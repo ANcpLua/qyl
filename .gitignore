@@ -85,6 +85,11 @@ coverage/
 *.coverage
 *.coveragexml
 
+# Archives
+*.zip
+*.tar.gz
+*.rar
+
 # Misc
 *.bak
 *.swp
