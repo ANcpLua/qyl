@@ -1,0 +1,12 @@
+<Project>
+  <!-- .NET Framework/.NET Standard don't properly support nullable reference types -->
+  <!-- Must be in .targets so TargetFramework is already set from csproj -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+    <NoWarn>$(NoWarn);nullable</NoWarn>
+  </PropertyGroup>
+
+  <!-- Import shared targets for code injection -->
+  <!-- Order matters: Shared.targets sets flags, LegacySupport.targets uses them -->
+  <Import Project="$(MSBuildThisFileDirectory)eng\MSBuild\Shared.targets" />
+  <Import Project="$(MSBuildThisFileDirectory)eng\MSBuild\LegacySupport.targets" />
+</Project>

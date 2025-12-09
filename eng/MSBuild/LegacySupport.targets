@@ -1,0 +1,36 @@
+<Project>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- LegacySupport - Polyfills for older .NET frameworks                     -->
+  <!-- Automatically imported by Directory.Build.props                         -->
+  <!--                                                                         -->
+  <!-- These polyfills are ONLY injected when targeting OLD frameworks         -->
+  <!-- (netstandard2.0, net472, etc.) - NOT on net8.0+                         -->
+  <!--                                                                         -->
+  <!-- Useful for: Roslyn analyzers, source generators, multi-targeting        -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <!-- InjectCallerAttributesOnLegacy: [CallerArgumentExpression] polyfill     -->
+  <!-- Needed for: Throw.IfNull() auto-populating parameter names              -->
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <ItemGroup Condition="'$(InjectCallerAttributesOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\CallerAttributes\*.cs" LinkBase="LegacySupport\CallerAttributes" />
+  </ItemGroup>
+
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <!-- InjectDiagnosticAttributesOnLegacy: [NotNull], [DoesNotReturn], etc.    -->
+  <!-- Needed for: Nullable reference type annotations                         -->
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <ItemGroup Condition="'$(InjectDiagnosticAttributesOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netcoreapp3.1'))">
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\DiagnosticAttributes\*.cs" LinkBase="LegacySupport\DiagnosticAttributes" />
+  </ItemGroup>
+
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <!-- InjectIsExternalInitOnLegacy: init property setter support              -->
+  <!-- Needed for: Records and init-only properties on older frameworks        -->
+  <!-- ─────────────────────────────────────────────────────────────────────── -->
+  <ItemGroup Condition="'$(InjectIsExternalInitOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))">
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\IsExternalInit\*.cs" LinkBase="LegacySupport\IsExternalInit" />
+  </ItemGroup>
+
+</Project>

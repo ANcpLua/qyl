@@ -1,0 +1,50 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+
+  <PropertyGroup>
+    <FrontendRoot>$(MSBuildThisFileDirectory)</FrontendRoot>
+
+    <NpmExe Condition="'$(NpmExe)' == ''">npm</NpmExe>
+
+    <DistDir>$(FrontendRoot)dist</DistDir>
+    <NodeModulesDir>$(FrontendRoot)node_modules</NodeModulesDir>
+  </PropertyGroup>
+
+  <Target Name="Restore">
+    <Message Text="[Frontend] Restoring dependencies (npm)..." Importance="high" />
+    <Exec Command="$(NpmExe) install" WorkingDirectory="$(FrontendRoot)" />
+  </Target>
+
+  <Target Name="Build" DependsOnTargets="Restore">
+    <Message Text="[Frontend] Building Vite application..." Importance="high" />
+    <Exec Command="$(NpmExe) run build" WorkingDirectory="$(FrontendRoot)" />
+  </Target>
+
+  <Target Name="Test" DependsOnTargets="Restore">
+    <Message Text="[Frontend] Running Vitest..." Importance="high" />
+    <Exec Command="$(NpmExe) test -- --run" WorkingDirectory="$(FrontendRoot)" ContinueOnError="false" />
+  </Target>
+
+  <Target Name="Clean">
+    <Message Text="[Frontend] Cleaning artifacts..." Importance="high" />
+    <RemoveDir Directories="$(DistDir)" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="package.json" />
+    <None Include="vite.config.ts" />
+    <None Include="tsconfig.json" />
+    <None Include="src\**" />
+    <None Include="public\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="node_modules\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Script Include="schemas\qyl.agent_run.schema.json" />
+    <Script Include="src\components\LiveTail.tsx" />
+    <Script Include="vitest.config.ts" />
+  </ItemGroup>
+
+</Project>

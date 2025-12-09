@@ -1,0 +1,31 @@
+# qyl.collector - Docker Compose for local development
+version: '3.8'
+
+services:
+  qyl-collector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qyl-collector
+    ports:
+      - "5100:5100"    # Dashboard + Query API
+      - "4317:4317"    # OTLP gRPC (compatibility)
+      - "4318:4318"    # OTLP HTTP (compatibility)
+    volumes:
+      - qyl-data:/data
+    environment:
+      - QYL_PORT=5100
+      - QYL_DATA_PATH=/data/qyl.duckdb
+      # Set QYL_TOKEN for predictable token (optional)
+      # - QYL_TOKEN=your-secret-token
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  qyl-data:
+    driver: local

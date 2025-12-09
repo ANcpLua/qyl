@@ -1,0 +1,45 @@
+services:
+  # qyl.collector - AI Observability Platform
+  # Receives OTLP telemetry and provides dashboard + MCP server
+  qyl-collector:
+    build:
+      context: ../../
+      dockerfile: Dockerfile
+    ports:
+      - "5100:5100"
+    environment:
+      - QYL_PORT=5100
+      - QYL_DATA_PATH=/data/qyl.duckdb
+    volumes:
+      - qyl-data:/data
+
+  # Example ASP.NET Core app instrumented with OpenTelemetry
+  example-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"
+    environment:
+      - ASPNETCORE_URLS=http://+:5050
+      - UseTracingExporter=OTLP
+      - UseMetricsExporter=OTLP
+      - UseLogExporter=OTLP
+      - Otlp__Endpoint=http://qyl-collector:5100
+    depends_on:
+      - qyl-collector
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:12.3.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    depends_on:
+      - qyl-collector
+
+volumes:
+  qyl-data:

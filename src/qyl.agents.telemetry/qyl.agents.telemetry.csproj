@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>qyl.agents.telemetry</RootNamespace>
+
+        <!-- Package Metadata -->
+        <PackageId>qyl.agents.telemetry</PackageId>
+        <Version>1.0.0</Version>
+        <Authors>Alexander Nachtmann</Authors>
+        <Description>OpenTelemetry GenAI semantic conventions (v1.38.0) for qyl collector and agents</Description>
+        <PackageTags>opentelemetry;agents;ai;tracing;instrumentation;genai;semconv</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Only OpenTelemetry for TracerProviderBuilder extensions -->
+        <PackageReference Include="OpenTelemetry" Version="1.14.0" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,92 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+*.dll
+*.exe
+*.pdb
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.lock.json
+packages/
+
+# .NET
+*.user
+*.rsuser
+*.suo
+*.cache
+*.userosscache
+*.sln.docstates
+**/Properties/launchSettings.json
+
+# Rider/JetBrains
+.idea/
+*.sln.iml
+*.DotSettings.user
+
+# Visual Studio
+.vs/
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Build tools
+.nuke/
+
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm/
+.yarn/
+*.tsbuildinfo
+
+# Frontend build output
+dist/
+.vite/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# qyl data files
+*.duckdb
+*.duckdb.wal
+*.parquet
+qyl.duckdb/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+appsettings.*.json
+!appsettings.Development.json.example
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Misc
+*.bak
+*.swp
+*.tmp
+*~

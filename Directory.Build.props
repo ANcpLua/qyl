@@ -1,0 +1,150 @@
+<Project>
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Solution-wide build settings for qyl-semconv-genai                     -->
+  <!-- Applies to all .NET SDK projects (schema, collector, sdk, cli, analyzers…) -->
+  <!-- React/Node dashboard is driven by package.json / tsconfig / eslint.    -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- Only apply to SDK-style .NET projects -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true'">
+    <!-- Target Framework: only if a project hasn't set one explicitly -->
+    <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
+
+    <!-- Language / compiler behavior -->
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true'">
+    <!-- Warnings & code style -->
+    <!-- Compiler warnings become errors; analyzer warnings handled separately -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningLevel>7</WarningLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Assembly / package metadata -->
+    <Authors>Alexander Nachtmann</Authors>
+    <Company>qyl</Company>
+    <Product>qyl Semconv GenAI Toolkit</Product>
+    <Description>
+      qyl – OpenTelemetry genai Semconv 1.37/1.38 toolkit: schema parser,
+      collector config, SDKs, analyzers, and MCP integration.
+    </Description>
+    <RepositoryUrl>https://github.com/ANcpLua/qyl-semconv-genai</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>qyl;opentelemetry;semconv;genai;tracing;mcp</PackageTags>
+
+    <!-- Build output & docs -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Keep existing NoWarn and add CS1591 (missing XML docs) -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Default: libraries/tooling are packable; tests override below -->
+    <IsPackable>true</IsPackable>
+  </PropertyGroup>
+
+  <!-- ────────────────────────────────────────────────────────────────────────
+       Debug / Release configuration
+       ──────────────────────────────────────────────────────────────────────── -->
+
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(Configuration)' == 'Debug'">
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(Configuration)' == 'Release'">
+    <DefineConstants>TRACE</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Analyzer strategy                                                       -->
+  <!--   - Full analyzers for net10.0                                         -->
+  <!--   - Disabled for other TFMs to keep multi-target build times down      -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- All TFMs except net10.0: analyzers off -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(TargetFramework)' != 'net10.0'">
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+    <RunAnalyzers>false</RunAnalyzers>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+
+  <!-- net10.0: full analyzer setup -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(TargetFramework)' == 'net10.0'">
+    <!-- Built-in .NET analyzers -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <!-- On .NET 10, AnalysisLevel 10.0 -->
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <!-- Ask for everything; filtered via .editorconfig/rulesets -->
+    <AnalysisMode>All</AnalysisMode>
+
+    <!-- Analyzer diagnostics become errors (in addition to compiler warnings) -->
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Third-party analyzers only for net10.0 -->
+  <ItemGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="4.14.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <PackageReference Include="Roslynator.Analyzers" Version="4.14.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.257">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Project-specific overrides                                              -->
+  <!--   Families: schema/collector/sdk/gemini/mcp/analyzers/cli/tests/build  -->
+  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+
+  <!-- qyl.cli: dotnet tool / CLI app -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(MSBuildProjectName)' == 'qyl.cli'">
+    <OutputType>Exe</OutputType>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>qyl</ToolCommandName>
+    <!-- CLI usually doesn't need XML docs -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- qyl.analyzers: Roslyn analyzer package - multi-targets netstandard2.0 + net10.0 -->
+  <!-- TargetFrameworks defined in csproj; Roslyn 5.0.0 requires VS 2022 17.12+ / .NET SDK 10.0 -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And '$(MSBuildProjectName)' == 'qyl.analyzers'">
+    <IsPackable>true</IsPackable>
+    <!-- Avoid analyzers analyzing themselves if it gets noisy -->
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!-- Build project (NUKE or custom build tooling) -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And ('$(MSBuildProjectName)' == 'build' Or '$(MSBuildProjectName)' == 'qyl.build')">
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Test projects: handled by tests/Directory.Build.props -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdk)' == 'true' And $(MSBuildProjectName.Contains('Tests'))">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Import shared properties for code injection -->
+  <Import Project="$(MSBuildThisFileDirectory)eng\MSBuild\Shared.props" />
+
+</Project>

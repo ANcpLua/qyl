@@ -1,0 +1,91 @@
+<Solution>
+
+  <!-- Solution Items - root config files -->
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path=".gitignore" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Build.targets" />
+    <File Path="FEATURE.md" />
+    <File Path="global.json" />
+    <File Path="QYL_ARCHITECTURE.md" />
+    <File Path="QYL_IMPLEMENTATION.md" />
+    <File Path="README.md" />
+  </Folder>
+
+  <!-- Solution Items - eng/build scripts -->
+  <Folder Name="/Solution Items/eng/build scripts/">
+    <File Path="eng/build.cmd" />
+    <File Path="eng/build.ps1" />
+    <File Path="eng/build.sh" />
+    <File Path="eng/compose.yaml" />
+  </Folder>
+
+  <!-- Solution Items - eng/MSBuild shared files -->
+  <Folder Name="/Solution Items/eng/" />
+  <Folder Name="/Solution Items/eng/MSBuild/">
+    <File Path="eng/MSBuild/Shared.props" />
+    <File Path="eng/MSBuild/Shared.targets" />
+    <File Path="eng/MSBuild/LegacySupport.targets" />
+  </Folder>
+
+  <!-- Solution Items - src/Shared code -->
+  <Folder Name="/Solution Items/src/" />
+  <Folder Name="/Solution Items/src/Shared/" />
+  <Folder Name="/Solution Items/src/Shared/Throw/">
+    <File Path="src/Shared/Throw/Throw.cs" />
+  </Folder>
+
+  <!-- Solution Items - src/LegacySupport polyfills -->
+  <Folder Name="/Solution Items/src/LegacySupport/" />
+  <Folder Name="/Solution Items/src/LegacySupport/CallerAttributes/">
+    <File Path="src/LegacySupport/CallerAttributes/CallerArgumentExpressionAttribute.cs" />
+  </Folder>
+  <Folder Name="/Solution Items/src/LegacySupport/DiagnosticAttributes/">
+    <File Path="src/LegacySupport/DiagnosticAttributes/NullableAttributes.cs" />
+  </Folder>
+  <Folder Name="/Solution Items/src/LegacySupport/IsExternalInit/">
+    <File Path="src/LegacySupport/IsExternalInit/IsExternalInit.cs" />
+  </Folder>
+
+  <!-- /eng - Build tooling, CLI, Analyzers -->
+  <Folder Name="/eng/">
+    <Project Path="eng/build/build.csproj" />
+    <Project Path="eng/qyl.cli/qyl.cli.csproj" />
+    <Project Path="eng/qyl.analyzers/qyl.analyzers.csproj" />
+  </Folder>
+  <Folder Name="/spec-compliance-matrix/">
+    <File Path="specification/spec-compliance-matrix.md" />
+  </Folder>
+
+  <!-- /src - Core libraries -->
+  <Folder Name="/src/">
+    <Project Path="src/qyl.agents.telemetry/qyl.agents.telemetry.csproj" />
+    <Project Path="src/qyl.collector/qyl.collector.csproj" />
+    <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
+    <Project Path="src/qyl.demo/qyl.demo.csproj" />
+    <Project Path="src/qyl.grpc/qyl.grpc.csproj" />
+    <Project Path="src/qyl.mcp.server/qyl.mcp.server.csproj" />
+    <Project Path="src/qyl.providers.gemini/qyl.providers.gemini.csproj" />
+    <Project Path="src/qyl.sdk.aspnetcore/qyl.sdk.aspnetcore.csproj" />
+  </Folder>
+
+  <!-- /examples - Sample projects -->
+  <Folder Name="/examples/">
+    <Project Path="examples/qyl.analyzers.Sample/qyl.analyzers.Sample.csproj" />
+    <Project Path="examples/qyl.AspNetCore.Example/qyl.AspNetCore.Example.csproj" />
+  </Folder>
+
+  <!-- /tests/UnitTests - Unit test projects -->
+  <Folder Name="/tests/UnitTests/">
+    <Project Path="tests/UnitTests/qyl.analyzers.tests/qyl.analyzers.tests.csproj" />
+    <Project Path="tests/UnitTests/qyl.mcp.server.tests/qyl.mcp.server.tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+
+  <!-- /tests/IntegrationTests - Integration test projects -->
+  <Folder Name="/tests/IntegrationTests/">
+  </Folder>
+</Solution>

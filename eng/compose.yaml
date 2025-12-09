@@ -1,0 +1,25 @@
+﻿services:
+  qyl.sdk.aspnetcore:
+    image: qyl.sdk.aspnetcore
+    build:
+      context: .
+      dockerfile: qyl.sdk.aspnetcore/Dockerfile
+
+  qyl.telemetry.otlp:
+    image: qyl.telemetry.otlp
+    build:
+      context: .
+      dockerfile: qyl.telemetry.otlp/Dockerfile
+
+  qtl.gemini:
+    image: qtl.gemini
+    build:
+      context: .
+      dockerfile: qtl.gemini/Dockerfile
+
+  qyl.cli:
+    image: qyl.cli
+    build:
+      context: .
+      dockerfile: qyl.cli/Dockerfile
+
