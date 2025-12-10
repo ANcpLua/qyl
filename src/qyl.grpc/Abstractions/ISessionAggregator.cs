@@ -1,6 +1,6 @@
-using qyl.Grpc.Models;
+using qyl.grpc.Models;
 
-namespace qyl.Grpc.Abstractions;
+namespace qyl.grpc.Abstractions;
 
 /// <summary>
 /// Aggregates spans into sessions with GenAI statistics.

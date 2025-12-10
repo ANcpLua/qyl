@@ -1,9 +1,9 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
-using qyl.Grpc.Abstractions;
+using qyl.grpc.Abstractions;
 
-namespace qyl.Grpc.Streaming;
+namespace qyl.grpc.Streaming;
 
 public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
 {

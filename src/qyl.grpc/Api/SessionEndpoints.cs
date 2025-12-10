@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using qyl.Grpc.Abstractions;
+using qyl.grpc.Abstractions;
 
-namespace qyl.Grpc.Api;
+namespace qyl.grpc.Api;
 
 public static class SessionEndpoints
 {

@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net10.0</TargetFramework>
+        <InjectSharedThrow>true</InjectSharedThrow>
         <!-- This is a sample project to demonstrate analyzers - suppress standard warnings -->
         <NoWarn>$(NoWarn);CA1034;CA1512;CA1822</NoWarn>
     </PropertyGroup>

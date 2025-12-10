@@ -159,8 +159,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
         using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.InvokeAgent} {agentName}",
-            ActivityKind.Internal);
+            $"{GenAiSemanticConventions.InvokeAgent} {agentName}");
 
         if (activity is null) return;
 
@@ -172,8 +171,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
         using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.ExecuteTool} {toolName}",
-            ActivityKind.Internal);
+            $"{GenAiSemanticConventions.ExecuteTool} {toolName}");
 
         if (activity is null) return;
 
@@ -192,8 +190,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
     {
         using var activity = s_activitySource.StartActivity(
-            "token_usage",
-            ActivityKind.Internal);
+            "token_usage");
 
         if (activity is null) return;
 
@@ -205,8 +202,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     public void TrackError(string agentName, Exception exception)
     {
         using var activity = s_activitySource.StartActivity(
-            "error",
-            ActivityKind.Internal);
+            "error");
 
         if (activity is null) return;
 

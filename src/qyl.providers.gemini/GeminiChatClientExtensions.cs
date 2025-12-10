@@ -2,10 +2,11 @@
 // Thin wrapper around Mscc.GenerativeAI.Microsoft for IChatClient support.
 // When Google.GenAI PR #81 merges, consider migrating to the official implementation.
 
+using Microsoft.Extensions.AI;
 using Mscc.GenerativeAI;
 using Mscc.GenerativeAI.Microsoft;
 
-namespace Microsoft.Extensions.AI;
+namespace qyl.providers.gemini;
 
 /// <summary>
 /// Extension methods for creating IChatClient instances from Gemini models.

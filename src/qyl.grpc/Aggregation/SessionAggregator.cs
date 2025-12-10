@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using qyl.Grpc.Extraction;
-using qyl.Grpc.Models;
+using qyl.grpc.Extraction;
+using qyl.grpc.Models;
 
-namespace qyl.Grpc.Aggregation;
+namespace qyl.grpc.Aggregation;
 
 /// <summary>
 /// Aggregates spans into AI sessions.

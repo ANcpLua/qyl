@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using qyl.Grpc.Abstractions;
-using qyl.Grpc.Api;
-using qyl.Grpc.Models;
-using qyl.Grpc.Protocol;
-using qyl.Grpc.Services;
-using qyl.Grpc.Stores;
-using qyl.Grpc.Streaming;
+using qyl.grpc.Abstractions;
+using qyl.grpc.Api;
+using qyl.grpc.Models;
+using qyl.grpc.Protocol;
+using qyl.grpc.Services;
+using qyl.grpc.Stores;
+using qyl.grpc.Streaming;
 
-namespace qyl.Grpc;
+namespace qyl.grpc;
 
 public static class ServiceCollectionExtensions
 {

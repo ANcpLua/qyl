@@ -43,7 +43,7 @@ internal static class Program
         command.Add(targetVersionOption);
         command.Add(outputOption);
 
-        command.SetAction(async (parseResult, cancellationToken) =>
+        command.SetAction(async (parseResult, _) =>
         {
             var targetVersion = parseResult.GetValue(targetVersionOption) ?? "1.38.0";
             var output = parseResult.GetValue(outputOption);
@@ -107,7 +107,7 @@ internal static class Program
         }
         catch (Exception ex)
         {
-            Console.Error.WriteLine($"Error: {ex.Message}");
+            await Console.Error.WriteLineAsync($"Error: {ex.Message}");
             return 1;
         }
     }
@@ -124,7 +124,7 @@ internal static class Program
 
         command.Add(formatOption);
 
-        command.SetAction((parseResult, cancellationToken) =>
+        command.SetAction((parseResult, _) =>
         {
             var format = parseResult.GetValue(formatOption) ?? "table";
             return Task.FromResult(DiffHandler(format));
@@ -189,7 +189,7 @@ internal static class Program
 
         command.Add(configOption);
 
-        command.SetAction(async (parseResult, cancellationToken) =>
+        command.SetAction(async (parseResult, _) =>
         {
             var config = parseResult.GetRequiredValue(configOption);
             return await ValidateHandler(config);
@@ -216,7 +216,7 @@ internal static class Program
 
         command.Add(outputDirOption);
 
-        command.SetAction(async (parseResult, cancellationToken) =>
+        command.SetAction(async (parseResult, _) =>
         {
             var outputDir = parseResult.GetValue(outputDirOption);
             return await UpdateSchemasHandler(outputDir);
@@ -227,7 +227,7 @@ internal static class Program
 
     private static async Task<int> UpdateSchemasHandler(DirectoryInfo? outputDir)
     {
-        // Focus on recent versions, especially v1.38
+        // Focus on recent versions, especially v1.38 which is currently the newest as of 10th december 2025 https://github.com/open-telemetry/semantic-conventions/blob/main/schemas/1.38.0
         var versions = new[] { "1.28.0", "1.29.0", "1.30.0", "1.31.0", "1.32.0", "1.33.0", "1.34.0", "1.35.0", "1.36.0", "1.37.0", "1.38.0" };
 
         var dir = outputDir?.FullName ?? "./schemas";

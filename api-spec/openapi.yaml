@@ -1,0 +1,622 @@
+openapi: 3.1.0
+info:
+  title: qyl. API
+  description: |
+    AI Observability Platform API
+    
+    OpenTelemetry Semantic Conventions v1.38 compliant.
+    This spec is the single source of truth - TypeScript, Python, and C# clients are generated from it.
+  version: 1.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5100
+    description: Local development
+
+tags:
+  - name: Sessions
+    description: AI session management and queries
+  - name: Traces
+    description: Distributed trace operations
+  - name: Spans
+    description: Span-level operations
+  - name: Realtime
+    description: Server-Sent Events streaming
+  - name: Auth
+    description: Token authentication
+  - name: Health
+    description: Health and readiness checks
+
+paths:
+  # ============================================================================
+  # AUTH
+  # ============================================================================
+  /api/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Authenticate with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+
+  /api/auth/check:
+    get:
+      tags: [Auth]
+      operationId: checkAuth
+      summary: Check authentication status
+      responses:
+        '200':
+          description: Auth status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthCheckResponse'
+
+  # ============================================================================
+  # SESSIONS
+  # ============================================================================
+  /api/v1/sessions:
+    get:
+      tags: [Sessions]
+      operationId: getSessions
+      summary: List sessions with optional filters
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+        - name: serviceName
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: hasErrors
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Session list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+
+  /api/v1/sessions/{sessionId}:
+    get:
+      tags: [Sessions]
+      operationId: getSession
+      summary: Get session by ID
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Session details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '404':
+          description: Session not found
+
+  /api/v1/sessions/{sessionId}/spans:
+    get:
+      tags: [Sessions]
+      operationId: getSessionSpans
+      summary: Get all spans for a session
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Spans in session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpanListResponse'
+
+  # ============================================================================
+  # TRACES
+  # ============================================================================
+  /api/v1/traces/{traceId}:
+    get:
+      tags: [Traces]
+      operationId: getTrace
+      summary: Get trace by ID
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Trace with all spans
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceResponse'
+        '404':
+          description: Trace not found
+
+  # ============================================================================
+  # REALTIME (SSE)
+  # ============================================================================
+  /api/v1/live:
+    get:
+      tags: [Realtime]
+      operationId: subscribeLive
+      summary: Subscribe to live telemetry stream (SSE)
+      parameters:
+        - name: session
+          in: query
+          description: Filter by session ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/TelemetryEvent'
+
+  # ============================================================================
+  # HEALTH
+  # ============================================================================
+  /health:
+    get:
+      tags: [Health]
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /ready:
+    get:
+      tags: [Health]
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: Ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  schemas:
+    # ==========================================================================
+    # AUTH
+    # ==========================================================================
+    LoginRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+        error:
+          type: string
+
+    AuthCheckResponse:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+
+    # ==========================================================================
+    # SPAN - The core telemetry unit
+    # ==========================================================================
+    Span:
+      type: object
+      required:
+        - traceId
+        - spanId
+        - name
+        - kind
+        - status
+        - startTime
+        - endTime
+        - durationMs
+        - serviceName
+        - attributes
+        - events
+      properties:
+        traceId:
+          type: string
+          description: W3C trace ID (32 hex chars)
+          example: "4bf92f3577b34da6a3ce929d0e0e4736"
+        spanId:
+          type: string
+          description: Span ID (16 hex chars)
+          example: "00f067aa0ba902b7"
+        parentSpanId:
+          type: string
+          nullable: true
+          description: Parent span ID, null for root spans
+        sessionId:
+          type: string
+          nullable: true
+          description: qyl session ID for grouping related traces
+        name:
+          type: string
+          description: Operation name
+          example: "chat openai.chat"
+        kind:
+          $ref: '#/components/schemas/SpanKind'
+        status:
+          $ref: '#/components/schemas/SpanStatus'
+        statusMessage:
+          type: string
+          nullable: true
+        startTime:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp
+        endTime:
+          type: string
+          format: date-time
+        durationMs:
+          type: number
+          format: double
+          description: Duration in milliseconds (computed)
+        serviceName:
+          type: string
+          description: service.name resource attribute
+          example: "my-ai-app"
+        serviceVersion:
+          type: string
+          nullable: true
+          description: service.version resource attribute
+        attributes:
+          type: object
+          additionalProperties: true
+          description: Span attributes as key-value pairs
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanEvent'
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpanLink'
+        genai:
+          $ref: '#/components/schemas/GenAISpanData'
+          nullable: true
+          description: Extracted GenAI semantic convention data (null for non-GenAI spans)
+
+    SpanKind:
+      type: string
+      enum: [unspecified, internal, server, client, producer, consumer]
+      description: OpenTelemetry SpanKind
+
+    SpanStatus:
+      type: string
+      enum: [unset, ok, error]
+      description: OpenTelemetry StatusCode
+
+    SpanEvent:
+      type: object
+      required: [name, timestamp]
+      properties:
+        name:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        attributes:
+          type: object
+          additionalProperties: true
+
+    SpanLink:
+      type: object
+      required: [traceId, spanId]
+      properties:
+        traceId:
+          type: string
+        spanId:
+          type: string
+        attributes:
+          type: object
+          additionalProperties: true
+
+    # ==========================================================================
+    # GENAI - OpenTelemetry Semantic Conventions v1.38
+    # ==========================================================================
+    GenAISpanData:
+      type: object
+      description: |
+        Extracted gen_ai.* attributes per OpenTelemetry Semantic Conventions v1.38.
+        See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+      properties:
+        providerName:
+          type: string
+          description: gen_ai.system (e.g., "openai", "anthropic")
+          example: "openai"
+        operationName:
+          type: string
+          description: gen_ai.operation.name
+          example: "chat"
+        requestModel:
+          type: string
+          nullable: true
+          description: gen_ai.request.model
+          example: "gpt-4o"
+        responseModel:
+          type: string
+          nullable: true
+          description: gen_ai.response.model
+        inputTokens:
+          type: integer
+          nullable: true
+          description: gen_ai.usage.input_tokens
+        outputTokens:
+          type: integer
+          nullable: true
+          description: gen_ai.usage.output_tokens
+        totalTokens:
+          type: integer
+          nullable: true
+          description: Computed (inputTokens + outputTokens)
+        costUsd:
+          type: number
+          format: double
+          nullable: true
+          description: qyl.cost.usd - estimated cost
+        temperature:
+          type: number
+          format: double
+          nullable: true
+          description: gen_ai.request.temperature
+        maxTokens:
+          type: integer
+          nullable: true
+          description: gen_ai.request.max_tokens
+        finishReason:
+          type: string
+          nullable: true
+          description: gen_ai.response.finish_reason
+          example: "stop"
+        toolName:
+          type: string
+          nullable: true
+          description: gen_ai.tool.name (for tool call spans)
+        toolCallId:
+          type: string
+          nullable: true
+          description: gen_ai.tool.call.id
+
+    # ==========================================================================
+    # SESSION - Aggregated view of related traces
+    # ==========================================================================
+    Session:
+      type: object
+      required:
+        - sessionId
+        - startTime
+        - lastActivity
+        - durationMs
+        - spanCount
+        - errorCount
+        - errorRate
+        - services
+        - traceIds
+        - genaiStats
+      properties:
+        sessionId:
+          type: string
+        startTime:
+          type: string
+          format: date-time
+        lastActivity:
+          type: string
+          format: date-time
+        durationMs:
+          type: number
+          format: double
+          description: Total session duration
+        spanCount:
+          type: integer
+        traceCount:
+          type: integer
+        errorCount:
+          type: integer
+        errorRate:
+          type: number
+          format: double
+          description: errorCount / spanCount (0.0 - 1.0)
+        services:
+          type: array
+          items:
+            type: string
+          description: All services involved in this session
+        traceIds:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+          description: Activity within last 5 minutes
+        genaiStats:
+          $ref: '#/components/schemas/SessionGenAIStats'
+        attributes:
+          type: object
+          additionalProperties: true
+          description: Session-level metadata
+
+    SessionGenAIStats:
+      type: object
+      description: Aggregated GenAI statistics for the session
+      properties:
+        totalInputTokens:
+          type: integer
+        totalOutputTokens:
+          type: integer
+        totalTokens:
+          type: integer
+        totalCostUsd:
+          type: number
+          format: double
+        requestCount:
+          type: integer
+          description: Number of GenAI spans
+        toolCallCount:
+          type: integer
+        models:
+          type: array
+          items:
+            type: string
+          description: Unique models used
+        providers:
+          type: array
+          items:
+            type: string
+          description: Unique providers used
+        primaryModel:
+          type: string
+          nullable: true
+          description: Most frequently used model
+
+    # ==========================================================================
+    # RESPONSES
+    # ==========================================================================
+    SessionListResponse:
+      type: object
+      required: [sessions, total, hasMore]
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Session'
+        total:
+          type: integer
+        hasMore:
+          type: boolean
+
+    SpanListResponse:
+      type: object
+      required: [spans]
+      properties:
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Span'
+
+    TraceResponse:
+      type: object
+      required: [spans]
+      properties:
+        traceId:
+          type: string
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Span'
+        rootSpan:
+          $ref: '#/components/schemas/Span'
+          nullable: true
+        durationMs:
+          type: number
+          format: double
+        status:
+          $ref: '#/components/schemas/SpanStatus'
+
+    # ==========================================================================
+    # REALTIME
+    # ==========================================================================
+    TelemetryEvent:
+      type: object
+      required: [eventType, timestamp]
+      properties:
+        eventType:
+          type: string
+          enum: [connected, spans, metrics, logs, heartbeat]
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/SpanBatch'
+            - type: object
+        timestamp:
+          type: string
+          format: date-time
+
+    SpanBatch:
+      type: object
+      required: [spans]
+      properties:
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Span'
+
+    # ==========================================================================
+    # HEALTH
+    # ==========================================================================
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [healthy, ready, degraded]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: qyl_token
+
+security:
+  - bearerAuth: []
+  - cookieAuth: []

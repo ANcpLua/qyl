@@ -1,4 +1,4 @@
-namespace qyl.Grpc.SemanticConventions;
+namespace qyl.grpc.SemanticConventions;
 
 public static class ResourceAttributes
 {

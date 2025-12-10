@@ -1,10 +1,10 @@
 using Google.Protobuf;
 using Microsoft.AspNetCore.Http;
-using qyl.Grpc.Abstractions;
-using qyl.Grpc.Models;
-using qyl.Grpc.Stores;
+using qyl.grpc.Abstractions;
+using qyl.grpc.Models;
+using qyl.grpc.Stores;
 
-namespace qyl.Grpc.Protocol;
+namespace qyl.grpc.Protocol;
 
 /// <summary>
 /// Generic handler for OTLP/HTTP endpoints.

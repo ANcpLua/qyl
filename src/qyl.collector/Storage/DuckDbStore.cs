@@ -78,7 +78,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             catch (Exception ex)
             {
                 // Log but don't crash the writer loop
-                Console.Error.WriteLine($"[qyl.collector] Write error: {ex.Message}");
+                await Console.Error.WriteLineAsync($"[qyl.collector] Write error: {ex.Message}");
             }
         }
     }

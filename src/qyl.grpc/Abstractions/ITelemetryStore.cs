@@ -1,4 +1,4 @@
-namespace qyl.Grpc.Abstractions;
+namespace qyl.grpc.Abstractions;
 
 public interface ITelemetryStore<T> where T : class
 {

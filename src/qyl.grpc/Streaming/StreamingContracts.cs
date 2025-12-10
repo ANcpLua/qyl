@@ -1,4 +1,4 @@
-namespace qyl.Grpc.Streaming;
+namespace qyl.grpc.Streaming;
 
 public sealed record TelemetryStreamMessage(
     TelemetryStreamType Type,

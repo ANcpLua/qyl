@@ -1,0 +1,23 @@
+{
+  "name": "@qyl/api-spec",
+  "version": "1.0.0",
+  "description": "qyl API specification and generated clients",
+  "type": "module",
+  "scripts": {
+    "generate": "npm run generate:ts && npm run generate:python",
+    "generate:ts": "openapi-typescript openapi.yaml -o generated/typescript/api.ts",
+    "generate:python": "openapi-generator-cli generate -i openapi.yaml -g python -o generated/python --additional-properties=packageName=qyl_client",
+    "validate": "redocly lint openapi.yaml",
+    "docs": "redocly preview-docs openapi.yaml",
+    "build-docs": "redocly build-docs openapi.yaml -o docs/index.html"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.6.1",
+    "@redocly/cli": "^1.34.3",
+    "@openapitools/openapi-generator-cli": "^2.19.1"
+  },
+  "files": [
+    "openapi.yaml",
+    "generated/**/*"
+  ]
+}

@@ -23,7 +23,7 @@ import {
   formatDuration,
   formatTimestamp,
 } from '@/hooks/use-telemetry';
-import type { Span } from '@/types/telemetry';
+import type { Span } from '@/types';
 
 interface FlattenedSpan {
   span: Span;

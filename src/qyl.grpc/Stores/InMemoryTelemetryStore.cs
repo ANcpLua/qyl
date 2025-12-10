@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using qyl.Grpc.Abstractions;
-using qyl.Grpc.Models;
+using qyl.grpc.Abstractions;
+using qyl.grpc.Models;
 
-namespace qyl.Grpc.Stores;
+namespace qyl.grpc.Stores;
 
 public sealed class InMemoryTelemetryStore<T> : ITelemetryStore<T> where T : class
 {

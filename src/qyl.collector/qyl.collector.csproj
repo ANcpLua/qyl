@@ -8,7 +8,8 @@
         <PublishAot>true</PublishAot>
         <RootNamespace>qyl.collector</RootNamespace>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-
+        <!-- Inject shared code -->
+        <InjectSharedThrow>true</InjectSharedThrow>
         <!-- Disable analyzer rules not applicable to self-contained apps -->
         <NoWarn>$(NoWarn);CA1002;CA1034;CA1056;CA1515;CA2016;MA0006;MA0048;MA0026;CA1054;CA1024;CA1822;CA1859;CA1031;MA0009;MA0002;MA0016;CA1055;CA1062;CA1819;MA0051;MA0011;MA0144;IL2026;IL3050;CA2007;MA0004;CA2100;CA1849</NoWarn>
     </PropertyGroup>

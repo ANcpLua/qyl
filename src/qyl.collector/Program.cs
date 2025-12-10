@@ -7,6 +7,9 @@ using System.Threading.Channels;
 using qyl.collector;
 using qyl.collector.Auth;
 using qyl.collector.ConsoleBridge;
+using qyl.collector.Contracts;
+using qyl.collector.Ingestion;
+using qyl.collector.Mapping;
 using qyl.collector.Mcp;
 using qyl.collector.Query;
 using qyl.collector.Realtime;
@@ -105,26 +108,50 @@ app.MapGet("/api/v1/sessions", (SessionAggregator aggregator, int? limit, string
         ? aggregator.GetSessionsByService(serviceName, limit ?? 100)
         : aggregator.GetSessions(limit ?? 100);
 
-    return Results.Ok(new SessionsResponse(sessions, sessions.Count, false));
+    // Map to DTOs aligned with OpenAPI spec
+    var response = SessionMapper.ToListResponse(sessions, sessions.Count, hasMore: false);
+    return Results.Ok(response);
 });
 
 app.MapGet("/api/v1/sessions/{sessionId}", (string sessionId, SessionAggregator aggregator) =>
 {
     var session = aggregator.GetSession(sessionId);
-    return session is null ? Results.NotFound() : Results.Ok(session);
+    if (session is null) return Results.NotFound();
+
+    // Map to DTO aligned with OpenAPI spec
+    return Results.Ok(SessionMapper.ToDto(session));
 });
 
-app.MapGet("/api/v1/sessions/{sessionId}/spans", async (string sessionId, DuckDbStore store) =>
+app.MapGet("/api/v1/sessions/{sessionId}/spans", async (string sessionId, DuckDbStore store, SessionAggregator aggregator) =>
 {
     var spans = await store.GetSpansBySessionAsync(sessionId).ConfigureAwait(false);
-    return Results.Ok(new { spans });
+
+    // Get session info for service name lookup
+    var session = aggregator.GetSession(sessionId);
+    var serviceName = session?.Services.Count > 0 ? session.Services[0] : "unknown";
+
+    // Map to DTOs aligned with OpenAPI spec
+    var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
+    return Results.Ok(new SpanListResponseDto { Spans = spanDtos });
 });
 
 app.MapGet("/api/v1/traces/{traceId}", async (string traceId, DuckDbStore store) =>
 {
     var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
     if (spans.Count == 0) return Results.NotFound();
-    return Results.Ok(new { spans });
+
+    // Map to DTOs aligned with OpenAPI spec
+    var spanDtos = SpanMapper.ToDtos(spans, r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
+    var rootSpan = spanDtos.FirstOrDefault(s => s.ParentSpanId is null);
+
+    return Results.Ok(new TraceResponseDto
+    {
+        TraceId = traceId,
+        Spans = spanDtos,
+        RootSpan = rootSpan,
+        DurationMs = rootSpan?.DurationMs,
+        Status = rootSpan?.Status
+    });
 });
 
 // ============================================================================
@@ -134,11 +161,89 @@ app.MapGet("/api/v1/traces/{traceId}", async (string traceId, DuckDbStore store)
 app.MapSseEndpoints();
 
 // ============================================================================
-// INGESTION API
+// INGESTION API - Wires up: Ingestion → DuckDB Storage + Session Aggregation + SSE
 // ============================================================================
 
-app.MapPost("/api/v1/ingest", () => Results.Accepted()); // qyl. native (PRIMARY)
-app.MapPost("/v1/traces", () => Results.Accepted());     // OTLP shim (compat only)
+app.MapPost("/api/v1/ingest", async (
+    HttpContext context,
+    DuckDbStore store,
+    SessionAggregator aggregator,
+    ITelemetrySseBroadcaster broadcaster) =>
+{
+    // Parse incoming spans (qyl native format)
+    SpanBatch? batch;
+    try
+    {
+        batch = await context.Request.ReadFromJsonAsync<SpanBatch>(
+            QylSerializerContext.Default.SpanBatch);
+
+        if (batch is null || batch.Spans.Count == 0)
+        {
+            return Results.BadRequest(new ErrorResponse("Empty or invalid batch"));
+        }
+    }
+    catch (JsonException ex)
+    {
+        return Results.BadRequest(new ErrorResponse("Invalid JSON", ex.Message));
+    }
+
+    // 1. Store to DuckDB (async, non-blocking via channel)
+    await store.EnqueueAsync(batch);
+
+    // 2. Track for session aggregation (in-memory)
+    foreach (var span in batch.Spans)
+    {
+        aggregator.TrackSpan(span);
+    }
+
+    // 3. Broadcast to SSE clients
+    broadcaster.PublishSpans(batch);
+
+    return Results.Accepted();
+});
+
+// OTLP compatibility shim - converts OTLP JSON format to internal format
+app.MapPost("/v1/traces", async (
+    HttpContext context,
+    DuckDbStore store,
+    SessionAggregator aggregator,
+    ITelemetrySseBroadcaster broadcaster) =>
+{
+    try
+    {
+        // Parse OTLP JSON format
+        var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
+            QylSerializerContext.Default.OtlpExportTraceServiceRequest);
+
+        if (otlpData?.ResourceSpans is null)
+        {
+            return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
+        }
+
+        var spans = ConvertOtlpToSpanRecords(otlpData);
+        if (spans.Count == 0)
+        {
+            return Results.Accepted(); // Nothing to process
+        }
+
+        var batch = new SpanBatch(spans);
+
+        await store.EnqueueAsync(batch);
+
+        foreach (var span in spans)
+        {
+            aggregator.TrackSpan(span);
+        }
+
+        broadcaster.PublishSpans(batch);
+
+        return Results.Accepted();
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new ErrorResponse("OTLP parse error", ex.Message));
+    }
+});
 
 // ============================================================================
 // FEEDBACK API
@@ -229,7 +334,7 @@ app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
 app.MapGet("/", () => Results.Redirect("/index.html"));
 
 // SPA fallback - serve index.html for client-side routing
-app.MapFallback(async (HttpContext context) =>
+app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
@@ -242,7 +347,7 @@ app.MapFallback(async (HttpContext context) =>
     }
 
     context.Response.ContentType = "text/html";
-    var indexPath = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
     if (File.Exists(indexPath))
     {
         await context.Response.SendFileAsync(indexPath).ConfigureAwait(false);
@@ -268,6 +373,63 @@ app.Run();
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+// OTLP conversion helper
+static List<SpanRecord> ConvertOtlpToSpanRecords(OtlpExportTraceServiceRequest otlp)
+{
+    var spans = new List<SpanRecord>();
+
+    foreach (var resourceSpan in otlp.ResourceSpans ?? [])
+    {
+        var serviceName = resourceSpan.Resource?.Attributes?
+            .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue ?? "unknown";
+
+        foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
+        {
+            foreach (var span in scopeSpan.Spans ?? [])
+            {
+                var attributes = new Dictionary<string, string> { ["service.name"] = serviceName };
+
+                // Copy span attributes
+                foreach (var attr in span.Attributes ?? [])
+                {
+                    if (attr.Key is not null)
+                    {
+                        attributes[attr.Key] = attr.Value?.StringValue
+                            ?? attr.Value?.IntValue?.ToString()
+                            ?? attr.Value?.DoubleValue?.ToString()
+                            ?? attr.Value?.BoolValue?.ToString()?.ToLowerInvariant()
+                            ?? "";
+                    }
+                }
+
+                spans.Add(new SpanRecord
+                {
+                    TraceId = span.TraceId ?? "",
+                    SpanId = span.SpanId ?? "",
+                    ParentSpanId = span.ParentSpanId,
+                    SessionId = attributes.GetValueOrDefault("session.id"),
+                    Name = span.Name ?? "unknown",
+                    Kind = span.Kind?.ToString(),
+                    StartTime = DateTime.UnixEpoch.AddTicks(span.StartTimeUnixNano / 100),
+                    EndTime = DateTime.UnixEpoch.AddTicks(span.EndTimeUnixNano / 100),
+                    StatusCode = span.Status?.Code,
+                    StatusMessage = span.Status?.Message,
+                    Attributes = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+                    Events = null, // TODO: Convert span events
+                    // GenAI fields extracted from attributes
+                    ProviderName = attributes.GetValueOrDefault("gen_ai.system"),
+                    RequestModel = attributes.GetValueOrDefault("gen_ai.request.model"),
+                    TokensIn = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.input_tokens"), out var tin) ? tin : null,
+                    TokensOut = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.output_tokens"), out var tout) ? tout : null,
+                    CostUsd = null
+                });
+            }
+        }
+    }
+
+    return spans;
+}
 
 static string GetFallbackHtml(string token) => $$"""
 <!DOCTYPE html>

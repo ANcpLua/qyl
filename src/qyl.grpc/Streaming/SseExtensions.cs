@@ -6,9 +6,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using qyl.Grpc.Abstractions;
+using qyl.grpc.Abstractions;
 
-namespace qyl.Grpc.Streaming;
+namespace qyl.grpc.Streaming;
 
 /// <summary>
 /// Extension methods for Server-Sent Events streaming.

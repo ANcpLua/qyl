@@ -5,7 +5,6 @@ namespace qyl.agents.telemetry;
 /// Single source of truth for all GenAI-related attribute names.
 /// <see href="https://opentelemetry.io/docs/specs/semconv/gen-ai/"/>
 /// </summary>
-#pragma warning disable CA1034 // Nested types should not be visible - intentional for semantic convention grouping
 public static class GenAiSemanticConventions
 {
     /// <summary>Default ActivitySource name for agent instrumentation.</summary>
@@ -15,13 +14,11 @@ public static class GenAiSemanticConventions
     public const string InvokeAgent = "invoke_agent";
     public const string ExecuteTool = "execute_tool";
 
-#pragma warning disable CA1716 // Identifiers should not match keywords - matches semantic convention naming
     public static class Error
     {
         public const string Type = "error.type";
         public const string Message = "error.message";
     }
-#pragma warning restore CA1716
 
     public static class Provider
     {
@@ -99,14 +96,12 @@ public static class GenAiSemanticConventions
         public const string Description = "gen_ai.tool.description";
         public const string Type = "gen_ai.tool.type";
 
-#pragma warning disable CA1716 // Identifiers should not match keywords - matches semantic convention naming
         public static class Call
         {
             public const string Id = "gen_ai.tool.call.id";
             public const string Arguments = "gen_ai.tool.call.arguments";
             public const string Result = "gen_ai.tool.call.result";
         }
-#pragma warning restore CA1716
     }
 
     public static class DataSource
@@ -145,4 +140,3 @@ public static class GenAiSemanticConventions
         public const string UsageCompletionTokens = "gen_ai.usage.completion_tokens";
     }
 }
-#pragma warning restore CA1034

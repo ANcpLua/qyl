@@ -2,6 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
+    <InjectSharedThrow>true</InjectSharedThrow>
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- Suppress warnings for example project -->
     <NoWarn>$(NoWarn);CA1515;CA1823;MA0006</NoWarn>

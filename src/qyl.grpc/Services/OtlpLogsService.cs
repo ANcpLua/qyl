@@ -1,10 +1,10 @@
 using Grpc.Core;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Proto.Collector.Logs.V1;
-using qyl.Grpc.Models;
-using qyl.Grpc.Protocol;
+using qyl.grpc.Models;
+using qyl.grpc.Protocol;
 
-namespace qyl.Grpc.Services;
+namespace qyl.grpc.Services;
 
 public sealed class OtlpLogsService(
     OtlpConverter converter,

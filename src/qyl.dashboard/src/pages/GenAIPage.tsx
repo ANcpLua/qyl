@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { formatDuration } from '@/hooks/use-telemetry';
+// Using legacy types with message content - OpenAPI schema doesn't include messages yet
 import type { Span, GenAISpanData } from '@/types/telemetry';
 
 // Mock GenAI spans

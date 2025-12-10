@@ -1,8 +1,8 @@
 using System.Collections.Concurrent;
-using qyl.Grpc.Abstractions;
-using qyl.Grpc.Models;
+using qyl.grpc.Abstractions;
+using qyl.grpc.Models;
 
-namespace qyl.Grpc.Stores;
+namespace qyl.grpc.Stores;
 
 public sealed class ServiceRegistry(
     ITelemetryStore<SpanModel> spanStore,
@@ -15,7 +15,7 @@ public sealed class ServiceRegistry(
         _services.AddOrUpdate(
             service.Name,
             _ => new ServiceEntry(service),
-            (_, existing) => existing with { Identity = service with { LastSeen = DateTimeOffset.UtcNow } });
+            (_, _) => new ServiceEntry(Identity: service with { LastSeen = DateTimeOffset.UtcNow }));
     }
 
     public void UpdateLastSeen(string serviceName)

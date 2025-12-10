@@ -1,4 +1,4 @@
-namespace qyl.Grpc.Models;
+namespace qyl.grpc.Models;
 
 public sealed record SpanModel(
     string TraceId,

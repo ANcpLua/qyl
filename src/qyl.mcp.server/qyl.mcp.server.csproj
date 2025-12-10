@@ -6,6 +6,8 @@
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Inject shared code -->
+        <InjectSharedThrow>true</InjectSharedThrow>
 
         <!-- Suppress A2A package AOT warnings - their JsonContext is private so we can't use it directly -->
         <!-- Suppress analyzer warnings for prototype code -->

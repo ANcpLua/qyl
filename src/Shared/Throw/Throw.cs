@@ -3,11 +3,10 @@
 
 #pragma warning disable IDE0005 // Using directive is unnecessary.
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace qyl.Shared.Diagnostics;
+namespace qyl.providers.gemini.Throw;
 
 /// <summary>
 /// Defines static methods used to throw exceptions with standardized messages.

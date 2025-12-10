@@ -5,7 +5,8 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>qyl.agents.telemetry</RootNamespace>
-
+        <!-- Inject shared code -->
+        <InjectSharedThrow>true</InjectSharedThrow>
         <!-- Package Metadata -->
         <PackageId>qyl.agents.telemetry</PackageId>
         <Version>1.0.0</Version>

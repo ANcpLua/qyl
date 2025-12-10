@@ -1,6 +1,6 @@
-    using qyl.Grpc.Models;
+    using qyl.grpc.Models;
 
-    namespace qyl.Grpc.Extraction;
+    namespace qyl.grpc.Extraction;
 
     /// <summary>
     /// Extracts gen_ai.* semantic convention attributes into typed fields.

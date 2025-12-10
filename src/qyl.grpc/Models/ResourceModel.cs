@@ -1,6 +1,6 @@
-using qyl.Grpc.SemanticConventions;
+using qyl.grpc.SemanticConventions;
 
-namespace qyl.Grpc.Models;
+namespace qyl.grpc.Models;
 
 public sealed record ResourceModel(IReadOnlyDictionary<string, AttributeValue> Attributes)
 {

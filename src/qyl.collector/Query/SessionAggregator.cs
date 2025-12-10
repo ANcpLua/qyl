@@ -86,7 +86,8 @@ public sealed class SessionAggregator
             InputTokens = genAi.InputTokens ?? 0,
             OutputTokens = genAi.OutputTokens ?? 0,
             GenAiRequestCount = genAi.IsGenAi ? 1 : 0,
-            Models = genAi.Model is not null ? [genAi.Model] : []
+            Models = genAi.Model is not null ? [genAi.Model] : [],
+            TotalCostUsd = span.CostUsd ?? 0
         };
     }
 
@@ -112,6 +113,7 @@ public sealed class SessionAggregator
             existing.GenAiRequestCount++;
             existing.InputTokens += genAi.InputTokens ?? 0;
             existing.OutputTokens += genAi.OutputTokens ?? 0;
+            existing.TotalCostUsd += span.CostUsd ?? 0;
 
             if (genAi.Model is not null)
                 existing.Models.Add(genAi.Model);
@@ -157,7 +159,8 @@ public sealed class SessionAggregator
             OutputTokens = stats.OutputTokens,
             TotalTokens = stats.InputTokens + stats.OutputTokens,
             GenAiRequestCount = stats.GenAiRequestCount,
-            Models = stats.Models.ToList()
+            Models = stats.Models.ToList(),
+            TotalCostUsd = stats.TotalCostUsd
         };
     }
 
@@ -178,6 +181,7 @@ public sealed class SessionAggregator
         public int OutputTokens { get; set; }
         public int GenAiRequestCount { get; set; }
         public HashSet<string> Models { get; init; } = [];
+        public decimal TotalCostUsd { get; set; }
     }
 }
 
@@ -200,4 +204,5 @@ public sealed record SessionSummary
     public int TotalTokens { get; init; }
     public int GenAiRequestCount { get; init; }
     public IReadOnlyList<string> Models { get; init; } = [];
+    public decimal TotalCostUsd { get; init; }
 }

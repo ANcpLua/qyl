@@ -16,7 +16,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSessions } from '@/hooks/use-telemetry';
-import type { Session } from '@/types/telemetry';
+import type { Session } from '@/types';
+import { getPrimaryService } from '@/types';
 
 type ViewMode = 'grid' | 'list' | 'graph';
 
@@ -40,7 +41,7 @@ function ResourceCard({ session }: { session: Session }) {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <div className={cn('status-dot', hasErrors ? 'status-error' : 'status-running')} />
-            <CardTitle className="text-base font-medium">{session.serviceName}</CardTitle>
+            <CardTitle className="text-base font-medium">{getPrimaryService(session)}</CardTitle>
           </div>
           <Link to={`/traces?session=${session.sessionId}`}>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -91,18 +92,18 @@ function ResourceCard({ session }: { session: Session }) {
             <div className="grid grid-cols-3 gap-2 text-xs">
               <div>
                 <div className="text-muted-foreground">Tokens In</div>
-                <div className="font-mono">{session.genaiStats.totalTokensIn.toLocaleString()}</div>
+                <div className="font-mono">{(session.genaiStats.totalInputTokens ?? 0).toLocaleString()}</div>
               </div>
               <div>
                 <div className="text-muted-foreground">Tokens Out</div>
                 <div className="font-mono">
-                  {session.genaiStats.totalTokensOut.toLocaleString()}
+                  {(session.genaiStats.totalOutputTokens ?? 0).toLocaleString()}
                 </div>
               </div>
               <div>
                 <div className="text-muted-foreground">Cost</div>
                 <div className="font-mono text-green-500">
-                  ${session.genaiStats.totalCostUsd.toFixed(4)}
+                  ${(session.genaiStats.totalCostUsd ?? 0).toFixed(4)}
                 </div>
               </div>
             </div>
@@ -134,7 +135,7 @@ const ResourceRow = memo(function ResourceRow({ session }: { session: Session })
       <div className={cn('status-dot', hasErrors ? 'status-error' : 'status-running')} />
 
       <div className="flex-1 min-w-0">
-        <div className="font-medium truncate">{session.serviceName}</div>
+        <div className="font-medium truncate">{getPrimaryService(session)}</div>
         <div className="text-xs text-muted-foreground">
           Session: {session.sessionId.slice(0, 8)}...
         </div>
@@ -224,13 +225,14 @@ function GraphView({ sessions }: { sessions: Session[] }) {
     const serviceMap = new Map<string, { name: string; spans: number; errors: number }>();
 
     for (const session of sessions) {
-      const existing = serviceMap.get(session.serviceName);
+      const serviceName = getPrimaryService(session);
+      const existing = serviceMap.get(serviceName);
       if (existing) {
         existing.spans += session.spanCount;
         existing.errors += session.errorCount;
       } else {
-        serviceMap.set(session.serviceName, {
-          name: session.serviceName,
+        serviceMap.set(serviceName, {
+          name: serviceName,
           spans: session.spanCount,
           errors: session.errorCount,
         });
@@ -296,7 +298,7 @@ export function ResourcesPage() {
     const totalSpans = sessions.reduce((acc, s) => acc + s.spanCount, 0);
     const totalErrors = sessions.reduce((acc, s) => acc + s.errorCount, 0);
     const errorRate = totalSpans > 0 ? ((totalErrors / totalSpans) * 100).toFixed(2) : '0';
-    const activeServices = new Set(sessions.map((s) => s.serviceName)).size;
+    const activeServices = new Set(sessions.map((s) => getPrimaryService(s))).size;
 
     return { totalSpans, totalErrors, errorRate, activeServices };
   }, [sessions]);

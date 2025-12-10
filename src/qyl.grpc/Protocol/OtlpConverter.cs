@@ -1,12 +1,12 @@
 using Google.Protobuf;
 using OpenTelemetry.Proto.Common.V1;
-using OpenTelemetry.Proto.Trace.V1;
-using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Logs.V1;
+using OpenTelemetry.Proto.Metrics.V1;
 using OpenTelemetry.Proto.Resource.V1;
-using qyl.Grpc.Models;
+using OpenTelemetry.Proto.Trace.V1;
+using qyl.grpc.Models;
 
-namespace qyl.Grpc.Protocol;
+namespace qyl.grpc.Protocol;
 
 public sealed class OtlpConverter
 {
