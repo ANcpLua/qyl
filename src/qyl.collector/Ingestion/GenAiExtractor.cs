@@ -1,35 +1,10 @@
-// qyl.collector - GenAI Field Extractor
-// Extracts v1.38 semantic convention fields from span attributes
-
 using System.Text.Json;
+using qyl.agents.telemetry;
 
 namespace qyl.collector.Ingestion;
 
-/// <summary>
-/// Extracts GenAI v1.38 semantic convention fields from JSON attributes.
-/// </summary>
 public static class GenAiExtractor
 {
-    // v1.38 GenAI semantic conventions
-    private static class Attrs
-    {
-        public const string SystemName = "gen_ai.system";
-        public const string RequestModel = "gen_ai.request.model";
-        public const string ResponseModel = "gen_ai.response.model";
-        public const string OperationName = "gen_ai.operation.name";
-
-        public const string UsageInputTokens = "gen_ai.usage.input_tokens";
-        public const string UsageOutputTokens = "gen_ai.usage.output_tokens";
-        public const string UsageTotalTokens = "gen_ai.usage.total_tokens";
-
-        // Legacy names for compatibility
-        public const string LegacyPromptTokens = "gen_ai.response.prompt_tokens";
-        public const string LegacyCompletionTokens = "gen_ai.response.completion_tokens";
-    }
-
-    /// <summary>
-    /// Extracts typed GenAI fields from JSON attributes.
-    /// </summary>
     public static GenAiFields Extract(string? attributesJson)
     {
         if (string.IsNullOrEmpty(attributesJson))
@@ -38,18 +13,7 @@ public static class GenAiExtractor
         try
         {
             using var doc = JsonDocument.Parse(attributesJson);
-            var root = doc.RootElement;
-
-            return new GenAiFields
-            {
-                System = GetString(root, Attrs.SystemName),
-                RequestModel = GetString(root, Attrs.RequestModel),
-                ResponseModel = GetString(root, Attrs.ResponseModel),
-                OperationName = GetString(root, Attrs.OperationName),
-                InputTokens = GetInt(root, Attrs.UsageInputTokens) ?? GetInt(root, Attrs.LegacyPromptTokens),
-                OutputTokens = GetInt(root, Attrs.UsageOutputTokens) ?? GetInt(root, Attrs.LegacyCompletionTokens),
-                TotalTokens = GetInt(root, Attrs.UsageTotalTokens)
-            };
+            return Extract(doc.RootElement);
         }
         catch
         {
@@ -57,26 +21,29 @@ public static class GenAiExtractor
         }
     }
 
-    /// <summary>
-    /// Extracts GenAI fields from a JsonElement directly.
-    /// </summary>
     public static GenAiFields Extract(JsonElement attributes)
     {
+        string? provider = GetString(attributes, Attrs.ProviderName)
+                           ?? GetString(attributes, Attrs.LegacySystem);
+
+        int? inputTokens = GetInt(attributes, Attrs.UsageInputTokens)
+                           ?? GetInt(attributes, Attrs.LegacyPromptTokens);
+
+        int? outputTokens = GetInt(attributes, Attrs.UsageOutputTokens)
+                            ?? GetInt(attributes, Attrs.LegacyCompletionTokens);
+
         return new GenAiFields
         {
-            System = GetString(attributes, Attrs.SystemName),
+            System = provider,
             RequestModel = GetString(attributes, Attrs.RequestModel),
             ResponseModel = GetString(attributes, Attrs.ResponseModel),
             OperationName = GetString(attributes, Attrs.OperationName),
-            InputTokens = GetInt(attributes, Attrs.UsageInputTokens) ?? GetInt(attributes, Attrs.LegacyPromptTokens),
-            OutputTokens = GetInt(attributes, Attrs.UsageOutputTokens) ?? GetInt(attributes, Attrs.LegacyCompletionTokens),
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
             TotalTokens = GetInt(attributes, Attrs.UsageTotalTokens)
         };
     }
 
-    /// <summary>
-    /// Checks if the attributes contain GenAI fields.
-    /// </summary>
     public static bool IsGenAiSpan(string? attributesJson)
     {
         if (string.IsNullOrEmpty(attributesJson))
@@ -85,8 +52,11 @@ public static class GenAiExtractor
         try
         {
             using var doc = JsonDocument.Parse(attributesJson);
-            return doc.RootElement.TryGetProperty(Attrs.SystemName, out _) ||
-                   doc.RootElement.TryGetProperty(Attrs.RequestModel, out _);
+            JsonElement root = doc.RootElement;
+
+            return root.TryGetProperty(Attrs.ProviderName, out _) ||
+                   root.TryGetProperty(Attrs.LegacySystem, out _) ||
+                   root.TryGetProperty(Attrs.RequestModel, out _);
         }
         catch
         {
@@ -94,43 +64,83 @@ public static class GenAiExtractor
         }
     }
 
-    private static string? GetString(JsonElement element, string property)
+    public static bool UsesDeprecatedAttributes(string? attributesJson)
     {
-        return element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+        if (string.IsNullOrEmpty(attributesJson))
+            return false;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(attributesJson);
+            JsonElement root = doc.RootElement;
+
+            return root.TryGetProperty(Attrs.LegacySystem, out _) ||
+                   root.TryGetProperty(Attrs.LegacyPromptTokens, out _) ||
+                   root.TryGetProperty(Attrs.LegacyCompletionTokens, out _);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string? GetString(JsonElement element, string property) =>
+        element.TryGetProperty(property, out JsonElement value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
-    }
 
     private static int? GetInt(JsonElement element, string property)
     {
-        if (!element.TryGetProperty(property, out var value))
+        if (!element.TryGetProperty(property, out JsonElement value))
             return null;
 
         return value.ValueKind switch
         {
-            JsonValueKind.Number => value.TryGetInt32(out var i) ? i : null,
-            JsonValueKind.String when int.TryParse(value.GetString(), out var parsed) => parsed,
+            JsonValueKind.Number => value.TryGetInt32(out int i) ? i : null,
+            JsonValueKind.String when int.TryParse(value.GetString(), out int parsed) => parsed,
             _ => null
         };
     }
+
+    private static class Attrs
+    {
+        public const string ProviderName = GenAiAttributes.ProviderName;
+        public const string RequestModel = GenAiAttributes.RequestModel;
+        public const string ResponseModel = GenAiAttributes.ResponseModel;
+        public const string OperationName = GenAiAttributes.OperationName;
+        public const string UsageInputTokens = GenAiAttributes.UsageInputTokens;
+        public const string UsageOutputTokens = GenAiAttributes.UsageOutputTokens;
+        public const string UsageTotalTokens = GenAiAttributes.UsageTotalTokens;
+
+        public const string LegacySystem = "gen_ai.system";
+        public const string LegacyPromptTokens = "gen_ai.usage.prompt_tokens";
+        public const string LegacyCompletionTokens = "gen_ai.usage.completion_tokens";
+    }
 }
 
-/// <summary>
-/// Extracted GenAI fields.
-/// </summary>
 public sealed record GenAiFields
 {
     public static readonly GenAiFields Empty = new();
 
     public string? System { get; init; }
+
     public string? RequestModel { get; init; }
+
     public string? ResponseModel { get; init; }
+
     public string? OperationName { get; init; }
+
     public int? InputTokens { get; init; }
+
     public int? OutputTokens { get; init; }
+
     public int? TotalTokens { get; init; }
 
     public string? Model => ResponseModel ?? RequestModel;
+
     public bool HasTokenUsage => InputTokens.HasValue || OutputTokens.HasValue;
+
     public bool IsGenAi => System is not null || Model is not null;
+
+    public int ComputedTotalTokens => TotalTokens ?? (InputTokens ?? 0) + (OutputTokens ?? 0);
 }

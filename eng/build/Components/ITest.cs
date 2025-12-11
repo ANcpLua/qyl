@@ -8,130 +8,118 @@ using Serilog;
 
 namespace Components;
 
-/// <summary>
-///     Testing component for xUnit v3 with Microsoft Testing Platform (MTP).
-/// </summary>
 [ParameterPrefix(nameof(ITest))]
 internal interface ITest : ICompile
 {
-	[Parameter("Test filter expression (xUnit v3 query syntax)")]
-	string? TestFilter => null;
+    [Parameter("Test filter expression (xUnit v3 query syntax)")]
+    string? TestFilter => null;
 
-	[Parameter("Stop on first test failure")]
-	bool? StopOnFail => null;
+    [Parameter("Stop on first test failure")]
+    bool? StopOnFail => null;
 
-	[Parameter("Show live test output")]
-	bool? LiveOutput => null;
+    [Parameter("Show live test output")]
+    bool? LiveOutput => null;
 
-	/// <summary>Test projects to run.</summary>
-	Project[] TestProjects =>
-	[
-		Solution.GetProject("PaperlessREST.tests")
-			?? throw new InvalidOperationException("PaperlessREST.tests not found"),
-		Solution.GetProject("PaperlessServices.tests")
-			?? throw new InvalidOperationException("PaperlessServices.tests not found")
-	];
+    Project[] TestProjects =>
+    [
+        Solution.GetProject("qyl.analyzers.tests")
+        ?? throw new InvalidOperationException("qyl.analyzers.tests not found"),
+        Solution.GetProject("qyl.mcp.server.tests")
+        ?? throw new InvalidOperationException("qyl.mcp.server.tests not found")
+    ];
 
-	Target Test => d => d
-		.Description("Run all tests")
-		.DependsOn<ICompile>(x => x.Compile)
-		.TryDependsOn<ITestContainers>()
-		.Executes(() => Runtests(new TestOptions(Filter: TestFilter)));
+    Target Test => d => d
+        .Description("Run all tests")
+        .DependsOn<ICompile>(x => x.Compile)
+        .TryDependsOn<ITestContainers>()
+        .Executes(() => RunTests(new TestOptions(TestFilter)));
 
-	Target Unittests => d => d
-		.Description("Run unit tests only")
-		.DependsOn<ICompile>(x => x.Compile)
-		.Executes(() => Runtests(new TestOptions(
-			NamespaceFilter: "*.Unit.*",
-			ReportPrefix: "Unit")));
+    Target UnitTests => d => d
+        .Description("Run unit tests only")
+        .DependsOn<ICompile>(x => x.Compile)
+        .Executes(() => RunTests(new TestOptions(
+            NamespaceFilter: "*.Unit.*",
+            ReportPrefix: "Unit")));
 
-	Target Integrationtests => d => d
-		.Description("Run integration tests only")
-		.DependsOn<ICompile>(x => x.Compile)
-		.TryDependsOn<ITestContainers>()
-		.Executes(() => Runtests(new TestOptions(
-			NamespaceFilter: "*.Integration.*",
-			ReportPrefix: "Integration")));
+    Target IntegrationTests => d => d
+        .Description("Run integration tests only")
+        .DependsOn<ICompile>(x => x.Compile)
+        .TryDependsOn<ITestContainers>()
+        .Executes(() => RunTests(new TestOptions(
+            NamespaceFilter: "*.Integration.*",
+            ReportPrefix: "Integration")));
 
-	// ══════════════════════════════════════════════════════════════════════════
-	// IMPLEMENTATION
-	// ══════════════════════════════════════════════════════════════════════════
+    private void RunTests(TestOptions options)
+    {
+        foreach (Project project in TestProjects) RunTestProject(project, options);
+    }
 
-	private void Runtests(TestOptions options)
-	{
-		foreach (var project in TestProjects)
-		{
-			RunTestProject(project, options);
-		}
-	}
+    private void RunTestProject(Project project, TestOptions options)
+    {
+        string reportName = options.ReportPrefix is { Length: > 0 } prefix
+            ? $"{project.Name}.{prefix}.trx"
+            : $"{project.Name}.trx";
 
-	private void RunTestProject(Project project, TestOptions options)
-	{
-		var reportName = options.ReportPrefix is { Length: > 0 } prefix
-			? $"{project.Name}.{prefix}.trx"
-			: $"{project.Name}.trx";
+        Log.Information("Running tests: {Project}", project.Name);
 
-		Log.Information("Running tests: {Project}", project.Name);
+        MtpArgumentsBuilder mtp = MtpExtensions.Mtp()
+            .ResultsDirectory(TestResultsDirectory)
+            .ReportTrx(reportName)
+            .IgnoreExitCode(8);
 
-		var mtp = MtpExtensions.Mtp()
-			.ResultsDirectory(TestResultsDirectory)
-			.ReportTrx(reportName)
-			.IgnoreExitCode(8);
+        if (options.Filter is { Length: > 0 } filter)
+            mtp.FilterQuery(filter);
 
-		if (options.Filter is { Length: > 0 } filter)
-			mtp.FilterQuery(filter);
+        if (options.NamespaceFilter is { Length: > 0 } ns)
+            mtp.FilterNamespace(ns);
 
-		if (options.NamespaceFilter is { Length: > 0 } ns)
-			mtp.FilterNamespace(ns);
+        if (options is { WithCoverage: true, CoverageOutput: { } coverageFile })
+            mtp.CoverageCobertura(coverageFile);
 
-		if (options.WithCoverage && options.CoverageOutput is { } coverageFile)
-			mtp.CoverageCobertura(coverageFile);
+        if (StopOnFail == true)
+            mtp.StopOnFail();
 
-		if (StopOnFail == true)
-			mtp.StopOnFail();
+        if (LiveOutput == true || IsLocalBuild)
+            mtp.ShowLiveOutput();
 
-		if (LiveOutput == true || IsLocalBuild)
-			mtp.ShowLiveOutput();
+        ExecuteMtpTestInternal(project, mtp);
+    }
 
-		ExecuteMtpTestInternal(project, mtp);
-	}
+    void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
+    {
+        IReadOnlyList<string> mtpArgs = mtp.BuildArgs();
 
-	void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
-	{
-		var mtpArgs = mtp.BuildArgs();
+        List<string> args =
+        [
+            "test",
+            "--project", project.Path!,
+            "--configuration", Configuration,
+            "--no-build",
+            "--no-restore",
+            .. mtpArgs.Count > 0 ? ["--", .. mtpArgs] : Array.Empty<string>()
+        ];
 
-		List<string> args =
-		[
-			"test",
-			"--project", project.Path!,
-			"--configuration", Configuration,
-			"--no-build",
-			"--no-restore",
-			.. mtpArgs.Count > 0 ? ["--", .. mtpArgs] : Array.Empty<string>()
-		];
+        Log.Debug("Executing: dotnet {Arguments}", string.Join(" ", args));
 
-		Log.Debug("Executing: dotnet {Arguments}", string.Join(" ", args));
+        IProcess? process = ProcessTasks.StartProcess(
+            ToolPathResolver.GetPathExecutable("dotnet"),
+            string.Join(" ", args),
+            RootDirectory,
+            logOutput: true);
 
-		var process = ProcessTasks.StartProcess(
-			ToolPathResolver.GetPathExecutable("dotnet"),
-			string.Join(" ", args),
-			RootDirectory,
-			logOutput: true);
+        process.AssertWaitForExit();
 
-		process.AssertWaitForExit();
+        if (process.ExitCode is not (0 or 8))
+            throw new InvalidOperationException($"dotnet test failed with exit code {process.ExitCode}");
 
-		if (process.ExitCode is not (0 or 8))
-			throw new InvalidOperationException($"dotnet test failed with exit code {process.ExitCode}");
+        if (process.ExitCode is 8)
+            Log.Warning("Zero tests matched filter (exit code 8)");
+    }
 
-		if (process.ExitCode is 8)
-			Log.Warning("Zero tests matched filter (exit code 8)");
-	}
-
-	/// <summary>Test run options.</summary>
-	protected readonly record struct TestOptions(
-		string? Filter = null,
-		string? NamespaceFilter = null,
-		string ReportPrefix = "",
-		bool WithCoverage = false,
-		AbsolutePath? CoverageOutput = null);
+    protected readonly record struct TestOptions(
+        string? Filter = null,
+        string? NamespaceFilter = null,
+        string ReportPrefix = "",
+        bool WithCoverage = false,
+        AbsolutePath? CoverageOutput = null);
 }

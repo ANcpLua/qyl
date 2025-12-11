@@ -1,21 +1,16 @@
-// qyl.mcp.server - A2A Client with OpenTelemetry v1.38 Observability
-// Demonstrates: remote agent discovery, telemetry wrapper, GenAI semantic conventions
-
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using A2A;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using OpenTelemetry.Trace;
 using qyl.agents.telemetry;
+using qyl.Shared;
 
 namespace qyl.mcp.server;
 
-/// <summary>
-/// A2A client for connecting to remote agents and using them as tools.
-/// </summary>
 public sealed partial class HostClientAgent
 {
     private readonly ILogger _logger;
@@ -27,41 +22,31 @@ public sealed partial class HostClientAgent
         _logger = loggerFactory?.CreateLogger<HostClientAgent>() ?? NullLogger<HostClientAgent>.Instance;
     }
 
-    /// <summary>
-    /// The configured AI agent that uses remote agents as tools.
-    /// </summary>
     public AIAgent? Agent { get; private set; }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Initializing Agent Framework agent with model: {ModelId}")]
     private partial void LogInitializing(string modelId);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Successfully initialized agent with {ToolCount} remote agent tools")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Successfully initialized agent with {ToolCount} remote agent tools")]
     private partial void LogInitialized(int toolCount);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to initialize HostClientAgent")]
     private partial void LogInitializationFailed(Exception ex);
 
-    /// <summary>
-    /// Initializes the host agent with remote A2A agents as tools.
-    /// </summary>
-    /// <param name="modelId">The model ID to use (e.g., "gemini-pro").</param>
-    /// <param name="chatClient">The chat client to use for the host agent.</param>
-    /// <param name="agentUrls">URLs of remote A2A agents to connect to.</param>
     public async Task InitializeAgentAsync(string modelId, IChatClient chatClient, string[] agentUrls)
     {
         try
         {
             LogInitializing(modelId);
 
-            // Connect to remote agents via A2A
-            var createAgentTasks = agentUrls.Select(url => GetRemoteAgentAsync(new Uri(url)));
-            var agents = await Task.WhenAll(createAgentTasks);
-            var tools = agents.Select(agent => (AITool)agent.AsAIFunction()).ToList();
+            IEnumerable<Task<AIAgent>> createAgentTasks = agentUrls.Select(url => GetRemoteAgentAsync(new Uri(url)));
+            AIAgent[] agents = await Task.WhenAll(createAgentTasks);
+            var tools = agents.Select(AITool (agent) => agent.AsAIFunction()).ToList();
 
-            // Create the agent using the provided chat client
             Agent = chatClient.CreateAIAgent(
-                instructions: "You specialize in handling queries for users and using your tools to provide answers.",
-                name: "HostClient",
+                "You specialize in handling queries for users and using your tools to provide answers.",
+                "HostClient",
                 tools: tools);
 
             LogInitialized(tools.Count);
@@ -75,15 +60,11 @@ public sealed partial class HostClientAgent
 
     private async Task<AIAgent> GetRemoteAgentAsync(Uri baseUrl)
     {
-        var agentCard = await A2ACardResolver.GetAgentCardAsync(baseUrl);
-        // Use the extension method from A2A package
+        AgentCard agentCard = await A2ACardResolver.GetAgentCardAsync(baseUrl);
         return agentCard.GetAIAgent(loggerFactory: _loggerFactory);
     }
 }
 
-/// <summary>
-/// Resolves Agent Card information from an A2A-compatible endpoint.
-/// </summary>
 public static class A2ACardResolver
 {
     private static readonly HttpClient s_sharedClient = new()
@@ -91,35 +72,31 @@ public static class A2ACardResolver
         Timeout = TimeSpan.FromSeconds(60)
     };
 
-    /// <summary>
-    /// Gets the agent card from a remote A2A endpoint.
-    /// </summary>
     public static async Task<AgentCard> GetAgentCardAsync(
         Uri baseUrl,
         string agentCardPath = "/.well-known/agent-card.json",
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(baseUrl);
+        Throw.IfNull(baseUrl);
 
-        var client = httpClient ?? s_sharedClient;
+        HttpClient client = httpClient ?? s_sharedClient;
         var cardUrl = new Uri(baseUrl, agentCardPath.TrimStart('/'));
 
         try
         {
-            using var response = await client
+            using HttpResponseMessage response = await client
                 .GetAsync(cardUrl, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
 
             response.EnsureSuccessStatusCode();
 
-            await using var responseStream = await response.Content
+            await using Stream responseStream = await response.Content
                 .ReadAsStreamAsync(cancellationToken)
                 .ConfigureAwait(false);
 
-            // Use A2A's DefaultOptions which includes their source-generated context
             return await JsonSerializer
-                       .DeserializeAsync<AgentCard>(responseStream, A2A.A2AJsonUtilities.DefaultOptions, cancellationToken)
+                       .DeserializeAsync<AgentCard>(responseStream, JsonSerializerOptions.Default, cancellationToken)
                        .ConfigureAwait(false)
                    ?? throw new A2AException("Failed to parse agent card JSON.");
         }
@@ -134,10 +111,6 @@ public static class A2ACardResolver
     }
 }
 
-/// <summary>
-/// Telemetry collector interface for tracking agent and tool invocations.
-/// Implementations export telemetry to OpenTelemetry-compatible backends.
-/// </summary>
 public interface ITelemetryCollector
 {
     void TrackAgentInvocation(string agentName, string operation, TimeSpan duration);
@@ -146,83 +119,72 @@ public interface ITelemetryCollector
     void TrackError(string agentName, Exception exception);
 }
 
-/// <summary>
-/// OpenTelemetry-based telemetry collector using v1.38 GenAI semantic conventions.
-/// Creates Activities with proper span attributes for agent and tool invocations.
-/// </summary>
 public sealed class OpenTelemetryCollector : ITelemetryCollector
 {
-    private static readonly ActivitySource s_activitySource = new(GenAiSemanticConventions.SourceName);
+    private static readonly ActivitySource s_activitySource = new(GenAiAttributes.SourceName);
 
     public static readonly OpenTelemetryCollector Instance = new();
 
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
-        using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.InvokeAgent} {agentName}");
+        using Activity? activity = s_activitySource.StartActivity(
+            $"{GenAiAttributes.InvokeAgent} {agentName}");
 
         if (activity is null) return;
 
-        activity.SetTag(GenAiSemanticConventions.Operation.Name, GenAiSemanticConventions.Operation.Values.InvokeAgent);
-        activity.SetTag(GenAiSemanticConventions.Agent.Name, agentName);
+        activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
+        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag("duration_ms", duration.TotalMilliseconds);
     }
 
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
-        using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.ExecuteTool} {toolName}");
+        using Activity? activity = s_activitySource.StartActivity(
+            $"{GenAiAttributes.ExecuteTool} {toolName}");
 
         if (activity is null) return;
 
-        activity.SetTag(GenAiSemanticConventions.Operation.Name, GenAiSemanticConventions.Operation.Values.ExecuteTool);
-        activity.SetTag(GenAiSemanticConventions.Tool.Name, toolName);
-        activity.SetTag(GenAiSemanticConventions.Agent.Name, agentName);
+        activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+        activity.SetTag(GenAiAttributes.ToolName, toolName);
+        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag("success", success);
         activity.SetTag("duration_ms", duration.TotalMilliseconds);
 
-        if (!success)
-        {
-            activity.SetStatus(ActivityStatusCode.Error);
-        }
+        if (!success) activity.SetStatus(ActivityStatusCode.Error);
     }
 
     public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
     {
-        using var activity = s_activitySource.StartActivity(
+        using Activity? activity = s_activitySource.StartActivity(
             "token_usage");
 
         if (activity is null) return;
 
-        activity.SetTag(GenAiSemanticConventions.Agent.Name, agentName);
-        activity.SetTag(GenAiSemanticConventions.Usage.InputTokens, inputTokens);
-        activity.SetTag(GenAiSemanticConventions.Usage.OutputTokens, outputTokens);
+        activity.SetTag(GenAiAttributes.AgentName, agentName);
+        activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+        activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
     }
 
     public void TrackError(string agentName, Exception exception)
     {
-        using var activity = s_activitySource.StartActivity(
+        using Activity? activity = s_activitySource.StartActivity(
             "error");
 
         if (activity is null) return;
 
-        activity.SetTag(GenAiSemanticConventions.Agent.Name, agentName);
-        activity.SetTag(GenAiSemanticConventions.Error.Type, exception.GetType().Name);
-        activity.SetTag(GenAiSemanticConventions.Error.Message, exception.Message);
+        activity.SetTag(GenAiAttributes.AgentName, agentName);
+        activity.SetTag(GenAiAttributes.ErrorType, exception.GetType().Name);
+        activity.SetTag(GenAiAttributes.ErrorMessage, exception.Message);
         activity.SetStatus(ActivityStatusCode.Error, exception.Message);
         activity.AddException(exception);
     }
 }
 
-/// <summary>
-/// Telemetry-enabled delegating agent that wraps another agent and tracks invocations.
-/// Uses OpenTelemetry v1.38 GenAI semantic conventions.
-/// </summary>
 public sealed class TelemetryAgent : DelegatingAIAgent
 {
-    private static readonly ActivitySource s_activitySource = new(GenAiSemanticConventions.SourceName);
-    private readonly ITelemetryCollector _collector;
+    private static readonly ActivitySource s_activitySource = new(GenAiAttributes.SourceName);
     private readonly string _agentName;
+    private readonly ITelemetryCollector _collector;
 
     public TelemetryAgent(AIAgent innerAgent, ITelemetryCollector? collector = null, string? agentName = null)
         : base(innerAgent)
@@ -233,7 +195,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
     private static string GetAgentName(AIAgent agent)
     {
-        var metadata = agent.GetService<AIAgentMetadata>();
+        AIAgentMetadata? metadata = agent.GetService<AIAgentMetadata>();
         return metadata?.ProviderName ?? "UnknownAgent";
     }
 
@@ -243,27 +205,25 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         AgentRunOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.InvokeAgent} {_agentName}",
+        using Activity? activity = s_activitySource.StartActivity(
+            $"{GenAiAttributes.InvokeAgent} {_agentName}",
             ActivityKind.Client);
 
-        // Set v1.38 semantic convention attributes
-        activity?.SetTag(GenAiSemanticConventions.Operation.Name, GenAiSemanticConventions.Operation.Values.InvokeAgent);
-        activity?.SetTag(GenAiSemanticConventions.Agent.Name, _agentName);
+        activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
+        activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
         var sw = Stopwatch.StartNew();
         try
         {
-            var response = await base.RunAsync(messages, thread, options, cancellationToken);
+            AgentRunResponse response = await base.RunAsync(messages, thread, options, cancellationToken);
             sw.Stop();
 
             _collector.TrackAgentInvocation(_agentName, "RunAsync", sw.Elapsed);
 
-            // Track token usage if available
             if (response.Usage is { } usage)
             {
-                activity?.SetTag(GenAiSemanticConventions.Usage.InputTokens, usage.InputTokenCount ?? 0);
-                activity?.SetTag(GenAiSemanticConventions.Usage.OutputTokens, usage.OutputTokenCount ?? 0);
+                activity?.SetTag(GenAiAttributes.UsageInputTokens, usage.InputTokenCount ?? 0);
+                activity?.SetTag(GenAiAttributes.UsageOutputTokens, usage.OutputTokenCount ?? 0);
                 _collector.TrackTokenUsage(_agentName, usage.InputTokenCount ?? 0, usage.OutputTokenCount ?? 0);
             }
 
@@ -283,51 +243,36 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         IEnumerable<ChatMessage> messages,
         AgentThread? thread = null,
         AgentRunOptions? options = null,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        using var activity = s_activitySource.StartActivity(
-            $"{GenAiSemanticConventions.InvokeAgent} {_agentName} (streaming)",
+        using Activity? activity = s_activitySource.StartActivity(
+            $"{GenAiAttributes.InvokeAgent} {_agentName} (streaming)",
             ActivityKind.Client);
 
-        activity?.SetTag(GenAiSemanticConventions.Operation.Name, GenAiSemanticConventions.Operation.Values.InvokeAgent);
-        activity?.SetTag(GenAiSemanticConventions.Agent.Name, _agentName);
+        activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
+        activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
         var sw = Stopwatch.StartNew();
 
-        await foreach (var update in base.RunStreamingAsync(messages, thread, options, cancellationToken))
-        {
+        await foreach (AgentRunResponseUpdate update in base.RunStreamingAsync(messages, thread, options, cancellationToken))
             yield return update;
-        }
 
         sw.Stop();
         _collector.TrackAgentInvocation(_agentName, "RunStreamingAsync", sw.Elapsed);
     }
 }
 
-/// <summary>
-/// Extension methods for adding telemetry to agents.
-/// </summary>
 public static class TelemetryAgentExtensions
 {
-    /// <summary>
-    /// Wraps an agent with telemetry tracking using v1.38 GenAI semantic conventions.
-    /// </summary>
     public static AIAgent WithTelemetry(
         this AIAgent agent,
         ITelemetryCollector? collector = null,
-        string? agentName = null)
-    {
-        return new TelemetryAgent(agent, collector, agentName);
-    }
+        string? agentName = null) =>
+        new TelemetryAgent(agent, collector, agentName);
 
-    /// <summary>
-    /// Adds telemetry to the agent pipeline using v1.38 GenAI semantic conventions.
-    /// </summary>
     public static AIAgentBuilder UseTelemetry(
         this AIAgentBuilder builder,
         ITelemetryCollector? collector = null,
-        string? agentName = null)
-    {
-        return builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
-    }
+        string? agentName = null) =>
+        builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
 }

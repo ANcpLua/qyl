@@ -1,37 +1,11 @@
 <Project>
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- Shared targets for qyl - auto-include shared code based on flags        -->
-  <!-- Automatically imported by Directory.Build.targets                       -->
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- =======================================================================
+       qyl Shared Targets - Imported by Directory.Build.targets
+       ======================================================================= -->
 
-  <!-- Auto-enable LegacySupport polyfills when InjectSharedThrow is used -->
-  <!-- Throw.cs uses [CallerArgumentExpression], [NotNull], [DoesNotReturn] -->
-  <!-- This must be in .targets (not .props) so it runs AFTER csproj is read -->
-  <PropertyGroup Condition="'$(InjectSharedThrow)' == 'true'">
-    <InjectCallerAttributesOnLegacy Condition="'$(InjectCallerAttributesOnLegacy)' == ''">true</InjectCallerAttributesOnLegacy>
-    <InjectDiagnosticAttributesOnLegacy Condition="'$(InjectDiagnosticAttributesOnLegacy)' == ''">true</InjectDiagnosticAttributesOnLegacy>
-  </PropertyGroup>
-
-  <!-- ─────────────────────────────────────────────────────────────────────── -->
-  <!-- InjectSharedThrow: Include argument validation helpers                  -->
-  <!-- Usage: <InjectSharedThrow>true</InjectSharedThrow> in your csproj       -->
-  <!-- Provides: Throw.IfNull(), Throw.IfNullOrWhitespace(), etc.              -->
-  <!-- ─────────────────────────────────────────────────────────────────────── -->
-  <ItemGroup Condition="'$(InjectSharedThrow)' == 'true'">
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\Shared\Throw\*.cs" LinkBase="Shared\Throw" />
-  </ItemGroup>
-
-  <!-- ─────────────────────────────────────────────────────────────────────── -->
-  <!-- InjectSharedTelemetry: Include telemetry helpers (future)               -->
-  <!-- Usage: <InjectSharedTelemetry>true</InjectSharedTelemetry>              -->
-  <!-- ─────────────────────────────────────────────────────────────────────── -->
-  <ItemGroup Condition="'$(InjectSharedTelemetry)' == 'true'">
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\Shared\Telemetry\*.cs" LinkBase="Shared\Telemetry" />
-  </ItemGroup>
-
-  <!-- Include README.md in package if present -->
-  <ItemGroup Condition="'$(IsPackable)' == 'true' And Exists('$(MSBuildProjectDirectory)\README.md')">
-    <None Include="$(MSBuildProjectDirectory)\README.md" Pack="true" PackagePath="\" />
+  <!-- Inject Shared/Throw code -->
+  <ItemGroup Condition="'$(InjectSharedThrow)' == 'true' AND Exists('$(_QylSharedThrowPath)')">
+    <Compile Include="$(_QylSharedThrowPath)/**/*.cs" LinkBase="Shared/Throw" Visible="false" />
   </ItemGroup>
 
 </Project>

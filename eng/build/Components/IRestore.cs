@@ -5,18 +5,15 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
 
-/// <summary>
-///     NuGet package restore component.
-/// </summary>
 internal interface IRestore : IHasSolution
 {
-	Target Restore => d => d
-		.Description("Restore NuGet packages")
-		.Executes(() =>
-		{
-			DotNetRestore(s => s
-				.SetProjectFile(GetSolutionPath()));
+    Target Restore => d => d
+        .Description("Restore NuGet packages")
+        .Executes(() =>
+        {
+            DotNetRestore(s => s
+                .SetProjectFile(GetSolutionPath()));
 
-			Log.Information("Restored: {Solution}", Solution.FileName);
-		});
+            Log.Information("Restored: {Solution}", Solution.FileName);
+        });
 }

@@ -1,226 +1,289 @@
 using System.Collections.Concurrent;
+using System.Threading.Channels;
 using qyl.grpc.Extraction;
 using qyl.grpc.Models;
 
 namespace qyl.grpc.Aggregation;
 
-/// <summary>
-/// Aggregates spans into AI sessions.
-/// Sessions group multiple traces/spans by conversation or user session.
-/// </summary>
-public sealed class SessionAggregator : ISessionAggregator
+public sealed class SessionAggregator : ISessionAggregator,
+    IDisposable
 {
-    private readonly ConcurrentDictionary<string, SessionBuilder> _sessions = new();
+    private readonly PriorityQueue<string, long> _evictionQueue = new();
+
+    private readonly Channel<EnrichedSpan> _ingestChannel;
+
     private readonly int _maxSessions;
+    private readonly Task _processingTask;
+
+    private readonly Lock _queueLock = new();
+
+    private readonly ConcurrentDictionary<string, SessionBuilder> _sessions = new(StringComparer.Ordinal);
     private readonly TimeSpan _sessionTimeout;
+    private readonly CancellationTokenSource _shutdownCts = new();
+    private long _globalCostMicros;
+    private long _globalErrors;
+    private long _globalInputTokens;
+    private long _globalOutputTokens;
+
+    private long _globalSpans;
+    private long _globalToolCalls;
 
     public SessionAggregator(int maxSessions = 10_000, TimeSpan? sessionTimeout = null)
     {
         _maxSessions = maxSessions;
         _sessionTimeout = sessionTimeout ?? TimeSpan.FromHours(24);
+
+        _ingestChannel = Channel.CreateUnbounded<EnrichedSpan>(
+            new()
+            {
+                SingleReader = true,
+                SingleWriter = false
+            });
+
+        _processingTask = Task.Run(ProcessLoopAsync, _shutdownCts.Token);
     }
 
-    public void AddSpan(SpanModel span)
+    public void Dispose()
     {
-        var enriched = GenAiExtractor.Enrich(span);
-        var sessionId = ResolveSessionId(enriched);
-
-        var builder = _sessions.GetOrAdd(sessionId, id => new SessionBuilder(id, span.Resource.ServiceName));
-        builder.AddSpan(enriched);
-
-        EvictExpiredSessions();
+        _shutdownCts.Cancel();
+#pragma warning disable MA0040 // Forward the CancellationToken - token is cancelled, Wait() is intentional for cleanup
+        _processingTask.Wait();
+#pragma warning restore MA0040
+        _shutdownCts.Dispose();
     }
 
-    public void AddSpan(EnrichedSpan enriched)
-    {
-        var sessionId = ResolveSessionId(enriched);
-        var builder = _sessions.GetOrAdd(sessionId, id => new SessionBuilder(id, enriched.ServiceName));
-        builder.AddSpan(enriched);
+    public void AddSpan(SpanModel span) =>
+        AddSpan();
 
-        EvictExpiredSessions();
-    }
+    public void AddSpan(EnrichedSpan enriched) =>
+        _ingestChannel.Writer.TryWrite(enriched);
 
     public SessionModel? GetSession(string sessionId) =>
-        _sessions.TryGetValue(sessionId, out var builder) ? builder.Build() : null;
-
-    public IReadOnlyList<SessionModel> GetRecentSessions(int limit = 100) =>
-        _sessions.Values
-            .Select(b => b.Build())
-            .OrderByDescending(s => s.LastActivity)
-            .Take(limit)
-            .ToList();
+        _sessions.TryGetValue(sessionId, out SessionBuilder? builder) ? builder.Build() : null;
 
     public IReadOnlyList<SessionModel> Query(SessionQuery query)
     {
-        var sessions = _sessions.Values.Select(b => b.Build()).AsEnumerable();
+        IEnumerable<SessionBuilder> builders = _sessions.Values.AsEnumerable();
 
         if (query.ServiceName is not null)
-            sessions = sessions.Where(s => s.ServiceName == query.ServiceName);
+            builders = builders.Where(b => b.ServiceName == query.ServiceName);
 
         if (query.From.HasValue)
-            sessions = sessions.Where(s => s.LastActivity >= query.From.Value);
-
-        if (query.To.HasValue)
-            sessions = sessions.Where(s => s.StartTime <= query.To.Value);
+            builders = builders.Where(b => b.LastActivity >= query.From.Value);
 
         if (query.MinTokens.HasValue)
-            sessions = sessions.Where(s => s.TotalTokens >= query.MinTokens.Value);
+            builders = builders.Where(b => b.LiveTotalTokens >= query.MinTokens.Value);
 
         if (query.HasErrors == true)
-            sessions = sessions.Where(s => s.ErrorCount > 0);
+            builders = builders.Where(b => b.HasErrors);
 
-        return sessions
-            .OrderByDescending(s => s.LastActivity)
-            .Skip(query.Offset)
-            .Take(query.Limit)
-            .ToList();
+        return
+        [
+            .. builders
+                .OrderByDescending(b => b.LastActivity)
+                .Skip(query.Offset)
+                .Take(query.Limit)
+                .Select(b => b.Build())
+        ];
     }
 
     public SessionStatistics GetStatistics()
     {
-        var sessions = _sessions.Values.Select(b => b.Build()).ToList();
+        var builderSnapshot = _sessions.Values.ToList();
 
-        return new SessionStatistics(
-            TotalSessions: sessions.Count,
-            ActiveSessions: sessions.Count(s => s.LastActivity > DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5)),
-            TotalSpans: sessions.Sum(s => s.SpanCount),
-            TotalInputTokens: sessions.Sum(s => s.TotalInputTokens),
-            TotalOutputTokens: sessions.Sum(s => s.TotalOutputTokens),
-            TotalCostUsd: sessions.Sum(s => s.TotalCostUsd),
-            TotalToolCalls: sessions.Sum(s => s.ToolCallCount),
-            TotalErrors: sessions.Sum(s => s.ErrorCount),
-            TopModels: sessions
-                .Where(s => s.PrimaryModel is not null)
-                .GroupBy(s => s.PrimaryModel!)
-                .OrderByDescending(g => g.Count())
-                .Take(5)
-                .ToDictionary(g => g.Key, g => g.Count())
+        var topModels = builderSnapshot
+            .Select(b => b.PrimaryModel)
+            .Where(m => m is not null)
+            .CountBy(m => m!)
+            .OrderByDescending(kv => kv.Value)
+            .Take(5)
+            .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
+
+        return new(
+            _sessions.Count,
+            builderSnapshot.Count(b => b.LastActivity > cutoff),
+            Interlocked.Read(ref _globalSpans),
+            Interlocked.Read(ref _globalInputTokens),
+            Interlocked.Read(ref _globalOutputTokens),
+            Interlocked.Read(ref _globalCostMicros) / 1_000_000m,
+            (int)Interlocked.Read(ref _globalToolCalls),
+            (int)Interlocked.Read(ref _globalErrors),
+            topModels
         );
     }
 
     public long SessionCount => _sessions.Count;
 
-    private static string ResolveSessionId(EnrichedSpan enriched)
-    {
-        if (enriched.SessionId is not null)
-            return enriched.SessionId;
+    public IReadOnlyList<SessionModel> GetRecentSessions(int limit = 100) =>
+        Query(new()
+        {
+            Limit = limit
+        });
 
-        return enriched.TraceId;
+    public void AddSpan(params ReadOnlySpan<SpanModel> spans)
+    {
+        foreach (SpanModel span in spans)
+        {
+            EnrichedSpan enriched = GenAiExtractor.Enrich(span);
+            _ingestChannel.Writer.TryWrite(enriched);
+        }
+    }
+
+    private async Task ProcessLoopAsync()
+    {
+        try
+        {
+            while (await _ingestChannel.Reader.WaitToReadAsync(_shutdownCts.Token))
+            {
+                while (_ingestChannel.Reader.TryRead(out EnrichedSpan? span)) MergeSpanInternal(span);
+
+                EvictExpiredSessions();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void MergeSpanInternal(EnrichedSpan span)
+    {
+        string sessionId = span.SessionId ?? span.TraceId;
+        SessionBuilder builder = _sessions.GetOrAdd(sessionId, id => new(id, span.ServiceName));
+
+        builder.AddSpan(span);
+
+        Interlocked.Increment(ref _globalSpans);
+        if (span.IsGenAiSpan)
+        {
+            Interlocked.Add(ref _globalInputTokens, span.GenAiInputTokens);
+            Interlocked.Add(ref _globalOutputTokens, span.GenAiOutputTokens);
+            if (span.GenAi?.IsToolCall == true) Interlocked.Increment(ref _globalToolCalls);
+
+            long costMicros = (long)(span.GenAiCostUsd * 1_000_000m);
+            Interlocked.Add(ref _globalCostMicros, costMicros);
+        }
+
+        if (span.Status == SpanStatus.Error) Interlocked.Increment(ref _globalErrors);
+
+        lock (_queueLock)
+        {
+            _evictionQueue.Enqueue(sessionId, builder.LastActivity.Ticks);
+        }
     }
 
     private void EvictExpiredSessions()
     {
-        if (_sessions.Count <= _maxSessions) return;
-
-        var cutoff = DateTimeOffset.UtcNow - _sessionTimeout;
-        var expired = _sessions
-            .Where(kv => kv.Value.LastActivity < cutoff)
-            .Select(kv => kv.Key)
-            .ToList();
-
-        foreach (var key in expired)
-            _sessions.TryRemove(key, out _);
-
-        if (_sessions.Count > _maxSessions)
+        lock (_queueLock)
         {
-            var oldest = _sessions
-                .OrderBy(kv => kv.Value.LastActivity)
-                .Take(_sessions.Count - _maxSessions)
-                .Select(kv => kv.Key)
-                .ToList();
+            if (_sessions.Count <= _maxSessions && _evictionQueue.Count == 0) return;
 
-            foreach (var key in oldest)
-                _sessions.TryRemove(key, out _);
+            long cutoffTicks = (DateTimeOffset.UtcNow - _sessionTimeout).Ticks;
+
+            while (_evictionQueue.TryPeek(out string? id, out long priorityTicks))
+            {
+                if (priorityTicks > cutoffTicks && _sessions.Count <= _maxSessions) break;
+
+                _evictionQueue.Dequeue();
+
+                if (_sessions.TryGetValue(id, out SessionBuilder? builder))
+                {
+                    if (builder.LastActivity.Ticks <= priorityTicks)
+
+                        _sessions.TryRemove(id, out _);
+                    else if (_sessions.Count > _maxSessions)
+
+                        _sessions.TryRemove(id, out _);
+                }
+            }
         }
+    }
+
+    public SessionModel? GetSession(ReadOnlySpan<char> sessionId)
+    {
+        ConcurrentDictionary<string, SessionBuilder>.AlternateLookup<ReadOnlySpan<char>> lookup = _sessions.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(sessionId, out SessionBuilder? builder) ? builder.Build() : null;
     }
 
     private sealed class SessionBuilder
     {
+        private readonly Lock _lock = new();
+
+        private readonly Dictionary<string, int> _modelCounts = [];
         private readonly string _sessionId;
-        private readonly string _serviceName;
         private readonly List<EnrichedSpan> _spans = [];
         private readonly HashSet<string> _traceIds = [];
-        private readonly HashSet<string> _models = [];
-        private readonly object _lock = new();
-
-        public DateTimeOffset LastActivity { get; private set; } = DateTimeOffset.UtcNow;
 
         public SessionBuilder(string sessionId, string serviceName)
         {
             _sessionId = sessionId;
-            _serviceName = serviceName;
+            ServiceName = serviceName;
+            StartTime = DateTimeOffset.UtcNow;
+            LastActivity = DateTimeOffset.UtcNow;
         }
+
+        public DateTimeOffset LastActivity { get; private set; }
+        public DateTimeOffset StartTime { get; private set; }
+        public long LiveTotalTokens { get; private set; }
+        public bool HasErrors { get; private set; }
+        public string? PrimaryModel { get; private set; }
+        public string ServiceName { get; }
 
         public void AddSpan(EnrichedSpan span)
         {
-            lock (_lock)
+            using (_lock.EnterScope())
             {
+                if (_spans.Count == 0) StartTime = span.StartTime;
+
                 _spans.Add(span);
                 _traceIds.Add(span.TraceId);
-
-                if (span.GenAiModel is not null)
-                    _models.Add(span.GenAiModel);
-
                 LastActivity = DateTimeOffset.UtcNow;
+
+                if (span.Status == SpanStatus.Error) HasErrors = true;
+
+                if (span.IsGenAiSpan)
+                {
+                    LiveTotalTokens += span.GenAiInputTokens + span.GenAiOutputTokens;
+
+                    if (span.GenAiModel is not null)
+                    {
+                        int count = _modelCounts.GetValueOrDefault(span.GenAiModel, 0);
+                        _modelCounts[span.GenAiModel] = count + 1;
+
+                        if (PrimaryModel == null || _modelCounts[span.GenAiModel] > _modelCounts[PrimaryModel])
+                            PrimaryModel = span.GenAiModel;
+                    }
+                }
             }
         }
 
         public SessionModel Build()
         {
-            lock (_lock)
+            using (_lock.EnterScope())
             {
-                if (_spans.Count == 0)
-                {
-                    return new SessionModel(
-                        SessionId: _sessionId,
-                        ServiceName: _serviceName,
-                        Spans: [],
-                        TraceIds: [],
-                        StartTime: DateTimeOffset.MinValue,
-                        LastActivity: LastActivity,
-                        SpanCount: 0,
-                        ErrorCount: 0,
-                        ErrorRate: 0,
-                        TotalInputTokens: 0,
-                        TotalOutputTokens: 0,
-                        TotalTokens: 0,
-                        TotalCostUsd: 0,
-                        ToolCallCount: 0,
-                        PrimaryModel: null,
-                        Models: []);
-                }
-
                 var spans = _spans.OrderBy(s => s.StartTime).ToList();
-                var errorCount = spans.Count(s => s.Status == SpanStatus.Error);
-
                 var genAiSpans = spans.Where(s => s.IsGenAiSpan).ToList();
-                var totalInput = genAiSpans.Sum(s => s.GenAiInputTokens);
-                var totalOutput = genAiSpans.Sum(s => s.GenAiOutputTokens);
-                var totalCost = genAiSpans.Sum(s => s.GenAiCostUsd);
-                var toolCalls = genAiSpans.Count(s => s.GenAi?.IsToolCall == true);
 
-                var primaryModel = _models
-                    .GroupBy(m => m)
-                    .OrderByDescending(g => g.Count())
-                    .FirstOrDefault()?.Key;
-
-                return new SessionModel(
-                    SessionId: _sessionId,
-                    ServiceName: _serviceName,
-                    Spans: spans,
-                    TraceIds: _traceIds.ToList(),
-                    StartTime: spans.Min(s => s.StartTime),
-                    LastActivity: spans.Max(s => s.StartTime),
-                    SpanCount: spans.Count,
-                    ErrorCount: errorCount,
-                    ErrorRate: spans.Count > 0 ? (double)errorCount / spans.Count : 0,
-                    TotalInputTokens: totalInput,
-                    TotalOutputTokens: totalOutput,
-                    TotalTokens: totalInput + totalOutput,
-                    TotalCostUsd: totalCost,
-                    ToolCallCount: toolCalls,
-                    PrimaryModel: primaryModel,
-                    Models: _models.ToList());
+                return new(
+                    _sessionId,
+                    ServiceName,
+                    spans,
+                    [.. _traceIds],
+                    StartTime,
+                    LastActivity,
+                    spans.Count,
+                    spans.Count(s => s.Status == SpanStatus.Error),
+                    spans.Count > 0
+                        ? (double)spans.Count(s => s.Status == SpanStatus.Error) / spans.Count
+                        : 0,
+                    genAiSpans.Sum(s => s.GenAiInputTokens),
+                    genAiSpans.Sum(s => s.GenAiOutputTokens),
+                    LiveTotalTokens,
+                    genAiSpans.Sum(s => s.GenAiCostUsd),
+                    genAiSpans.Count(s => s.GenAi?.IsToolCall == true),
+                    PrimaryModel,
+                    [.. _modelCounts.Keys]);
             }
         }
     }
@@ -228,18 +291,15 @@ public sealed class SessionAggregator : ISessionAggregator
 
 public interface ISessionAggregator
 {
+    long SessionCount { get; }
     void AddSpan(SpanModel span);
     void AddSpan(EnrichedSpan enriched);
     SessionModel? GetSession(string sessionId);
     IReadOnlyList<SessionModel> GetRecentSessions(int limit = 100);
     IReadOnlyList<SessionModel> Query(SessionQuery query);
     SessionStatistics GetStatistics();
-    long SessionCount { get; }
 }
 
-/// <summary>
-/// An AI session - a group of related LLM interactions.
-/// </summary>
 public sealed record SessionModel(
     string SessionId,
     string ServiceName,

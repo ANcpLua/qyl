@@ -3,18 +3,12 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.server.Tools;
 
-/// <summary>
-/// MCP tools for querying agent telemetry data.
-/// Expose these tools so Claude/MCP clients can query your telemetry backend.
-/// </summary>
 internal class TelemetryTools
 {
     private readonly ITelemetryStore _store;
 
-    public TelemetryTools(ITelemetryStore? store = null)
-    {
+    public TelemetryTools(ITelemetryStore? store = null) =>
         _store = store ?? InMemoryTelemetryStore.Instance;
-    }
 
     [McpServerTool(Name = "qyl.search_agent_runs")]
     [Description("Search for agent run records by provider, model, error type, or time range.")]
@@ -26,54 +20,39 @@ internal class TelemetryTools
         [Description("Filter by error type (e.g., 'RateLimitError', 'TimeoutError')")]
         string? errorType = null,
         [Description("Only include runs since this timestamp")]
-        DateTime? since = null)
-    {
-        return await _store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
-    }
+        DateTime? since = null) =>
+        await _store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_agent_run")]
     [Description("Get details of a specific agent run by ID.")]
     public async Task<AgentRun?> GetAgentRun(
-        [Description("The unique run ID")]
-        string runId)
-    {
-        return await _store.GetRunAsync(runId).ConfigureAwait(false);
-    }
+        [Description("The unique run ID")] string runId) =>
+        await _store.GetRunAsync(runId).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_token_usage")]
     [Description("Get token usage statistics for agents within a time range.")]
     public async Task<TokenUsageSummary[]> GetTokenUsage(
-        [Description("Start of time range")]
-        DateTime? since = null,
-        [Description("End of time range")]
-        DateTime? until = null,
+        [Description("Start of time range")] DateTime? since = null,
+        [Description("End of time range")] DateTime? until = null,
         [Description("Group by: 'agent', 'model', or 'hour'")]
-        string groupBy = "agent")
-    {
-        return await _store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
-    }
+        string groupBy = "agent") =>
+        await _store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.list_errors")]
     [Description("List recent errors from agent runs.")]
     public async Task<AgentError[]> ListErrors(
         [Description("Maximum number of errors to return")]
         int limit = 50,
-        [Description("Filter by agent name")]
-        string? agentName = null)
-    {
-        return await _store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
-    }
+        [Description("Filter by agent name")] string? agentName = null) =>
+        await _store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_latency_stats")]
     [Description("Get latency statistics for agent operations.")]
     public async Task<LatencyStats> GetLatencyStats(
-        [Description("Filter by agent name")]
-        string? agentName = null,
+        [Description("Filter by agent name")] string? agentName = null,
         [Description("Time range in hours (default: 24)")]
-        int hours = 24)
-    {
-        return await _store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
-    }
+        int hours = 24) =>
+        await _store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
 }
 
 #region Data Models
@@ -122,10 +101,6 @@ public record LatencyStats(
 
 #region Telemetry Store Interface
 
-/// <summary>
-/// Interface for telemetry storage backend.
-/// Implement this to connect to your actual telemetry system (Elastic, ClickHouse, etc.).
-/// </summary>
 public interface ITelemetryStore
 {
     Task RecordRunAsync(AgentRun run);
@@ -136,28 +111,22 @@ public interface ITelemetryStore
     Task<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours);
 }
 
-/// <summary>
-/// In-memory stub implementation for development/testing.
-/// Replace with your actual backend (Elastic, ClickHouse, TimescaleDB, etc.).
-/// </summary>
 public sealed class InMemoryTelemetryStore : ITelemetryStore
 {
     public static readonly InMemoryTelemetryStore Instance = new();
+    private readonly object _lock = new();
 
     private readonly List<AgentRun> _runs = [];
-    private readonly object _lock = new();
 
     public Task RecordRunAsync(AgentRun run)
     {
         lock (_lock)
         {
             _runs.Add(run);
-            // Keep only last 10000 runs in memory
-            if (_runs.Count > 10000)
-            {
-                _runs.RemoveAt(0);
-            }
+
+            if (_runs.Count > 10000) _runs.RemoveAt(0);
         }
+
         return Task.CompletedTask;
     }
 
@@ -173,7 +142,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            var query = _runs.AsEnumerable();
+            IEnumerable<AgentRun> query = _runs.AsEnumerable();
 
             if (!string.IsNullOrEmpty(provider))
                 query = query.Where(r => r.Provider?.Equals(provider, StringComparison.OrdinalIgnoreCase) == true);
@@ -195,7 +164,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            var query = _runs.AsEnumerable();
+            IEnumerable<AgentRun> query = _runs.AsEnumerable();
 
             if (since.HasValue)
                 query = query.Where(r => r.StartedAt >= since.Value);
@@ -203,7 +172,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
             if (until.HasValue)
                 query = query.Where(r => r.StartedAt <= until.Value);
 
-            var grouped = groupBy.ToLowerInvariant() switch
+            IEnumerable<IGrouping<string, AgentRun>> grouped = groupBy.ToLowerInvariant() switch
             {
                 "model" => query.GroupBy(r => r.Model ?? "unknown"),
                 "hour" => query.GroupBy(r => r.StartedAt.ToString("yyyy-MM-dd HH:00")),
@@ -225,7 +194,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            var query = _runs.Where(r => !r.Success && r.ErrorMessage != null);
+            IEnumerable<AgentRun> query = _runs.Where(r => r is { Success: false, ErrorMessage: not null });
 
             if (!string.IsNullOrEmpty(agentName))
                 query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
@@ -248,28 +217,25 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            var since = DateTime.UtcNow.AddHours(-hours);
-            var query = _runs.Where(r => r.StartedAt >= since && r.Duration.HasValue);
+            DateTime since = DateTime.UtcNow.AddHours(-hours);
+            IEnumerable<AgentRun> query = _runs.Where(r => r.StartedAt >= since && r.Duration.HasValue);
 
             if (!string.IsNullOrEmpty(agentName))
                 query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
 
             var durations = query.Select(r => r.Duration!.Value.TotalMilliseconds).OrderBy(d => d).ToList();
 
-            if (durations.Count == 0)
-            {
-                return Task.FromResult(new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0));
-            }
+            if (durations.Count == 0) return Task.FromResult(new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0));
 
             return Task.FromResult(new LatencyStats(
                 agentName,
-                P50Ms: Percentile(durations, 0.50),
-                P95Ms: Percentile(durations, 0.95),
-                P99Ms: Percentile(durations, 0.99),
-                AvgMs: durations.Average(),
-                MinMs: durations.Min(),
-                MaxMs: durations.Max(),
-                SampleCount: durations.Count
+                Percentile(durations, 0.50),
+                Percentile(durations, 0.95),
+                Percentile(durations, 0.99),
+                durations.Average(),
+                durations.Min(),
+                durations.Max(),
+                durations.Count
             ));
         }
     }
@@ -277,7 +243,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     private static double Percentile(List<double> sorted, double p)
     {
         if (sorted.Count == 0) return 0;
-        var index = (int)Math.Ceiling(p * sorted.Count) - 1;
+        int index = (int)Math.Ceiling(p * sorted.Count) - 1;
         return sorted[Math.Clamp(index, 0, sorted.Count - 1)];
     }
 }

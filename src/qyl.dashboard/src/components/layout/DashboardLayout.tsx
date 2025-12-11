@@ -1,11 +1,11 @@
-import { useState, useCallback } from 'react';
-import { Outlet, useOutletContext, useNavigate } from 'react-router-dom';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import { Sidebar } from './Sidebar';
-import { TopBar } from './TopBar';
-import { useLiveStream } from '@/hooks/use-telemetry';
-import { useNavigationShortcuts } from '@/hooks/use-keyboard-shortcuts';
-import type { Span } from '@/types/telemetry';
+import {useCallback, useState} from 'react';
+import {Outlet, useNavigate, useOutletContext} from 'react-router-dom';
+import {TooltipProvider} from '@/components/ui/tooltip';
+import {Sidebar} from './Sidebar';
+import {TopBar} from './TopBar';
+import {useLiveStream} from '@/hooks/use-telemetry';
+import {useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
+import type {Span} from '@/types/telemetry';
 
 export function DashboardLayout() {
   const navigate = useNavigate();
@@ -14,7 +14,7 @@ export function DashboardLayout() {
   const [timeRange, setTimeRange] = useState('15m');
 
   // Live stream
-  const { isConnected, recentSpans, reconnect } = useLiveStream({
+  const {isConnected, recentSpans, reconnect} = useLiveStream({
     enabled: isLive,
     onConnect: () => console.log('SSE connected'),
     onDisconnect: () => console.log('SSE disconnected'),
@@ -51,7 +51,7 @@ export function DashboardLayout() {
           />
 
           <main className="flex-1 overflow-auto">
-            <Outlet context={{ isLive, timeRange, recentSpans, reconnect }} />
+            <Outlet context={{isLive, timeRange, recentSpans, reconnect}}/>
           </main>
         </div>
       </div>

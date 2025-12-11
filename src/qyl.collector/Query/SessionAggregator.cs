@@ -1,31 +1,21 @@
-// qyl.collector - Session Aggregator
-// Aggregates spans into sessions with statistics
-
 using System.Collections.Concurrent;
+using System.Text.Json;
 using qyl.collector.Ingestion;
 using qyl.collector.Storage;
 
 namespace qyl.collector.Query;
 
-/// <summary>
-/// Aggregates spans into sessions with real-time statistics.
-/// </summary>
 public sealed class SessionAggregator
 {
     private readonly ConcurrentDictionary<string, SessionStats> _sessions = new();
     private readonly DuckDbStore _store;
 
-    public SessionAggregator(DuckDbStore store)
-    {
+    public SessionAggregator(DuckDbStore store) =>
         _store = store;
-    }
 
-    /// <summary>
-    /// Tracks a span for session aggregation.
-    /// </summary>
     public void TrackSpan(SpanRecord span)
     {
-        var sessionId = span.SessionId ?? span.TraceId; // Fallback to trace ID if no session
+        string sessionId = span.SessionId ?? span.TraceId;
 
         _sessions.AddOrUpdate(
             sessionId,
@@ -34,44 +24,31 @@ public sealed class SessionAggregator
         );
     }
 
-    /// <summary>
-    /// Gets all sessions ordered by most recent.
-    /// </summary>
-    public IReadOnlyList<SessionSummary> GetSessions(int limit = 100)
-    {
-        return _sessions.Values
+    public IReadOnlyList<SessionSummary> GetSessions(int limit = 100) =>
+    [
+        .. _sessions.Values
             .OrderByDescending(s => s.LastActivity)
             .Take(limit)
             .Select(ToSummary)
-            .ToList();
-    }
+    ];
 
-    /// <summary>
-    /// Gets a single session by ID.
-    /// </summary>
-    public SessionSummary? GetSession(string sessionId)
-    {
-        return _sessions.TryGetValue(sessionId, out var stats)
+    public SessionSummary? GetSession(string sessionId) =>
+        _sessions.TryGetValue(sessionId, out SessionStats? stats)
             ? ToSummary(stats)
             : null;
-    }
 
-    /// <summary>
-    /// Gets sessions filtered by service name.
-    /// </summary>
-    public IReadOnlyList<SessionSummary> GetSessionsByService(string serviceName, int limit = 100)
-    {
-        return _sessions.Values
+    public IReadOnlyList<SessionSummary> GetSessionsByService(string serviceName, int limit = 100) =>
+    [
+        .. _sessions.Values
             .Where(s => s.Services.Contains(serviceName))
             .OrderByDescending(s => s.LastActivity)
             .Take(limit)
             .Select(ToSummary)
-            .ToList();
-    }
+    ];
 
     private static SessionStats CreateInitialStats(SpanRecord span, string sessionId)
     {
-        var genAi = GenAiExtractor.Extract(span.Attributes);
+        GenAiFields genAi = GenAiExtractor.Extract(span.Attributes);
 
         return new SessionStats
         {
@@ -93,7 +70,7 @@ public sealed class SessionAggregator
 
     private static SessionStats UpdateStats(SessionStats existing, SpanRecord span)
     {
-        var genAi = GenAiExtractor.Extract(span.Attributes);
+        GenAiFields genAi = GenAiExtractor.Extract(span.Attributes);
 
         existing.SpanCount++;
         if (span.StatusCode == 2) existing.ErrorCount++;
@@ -124,27 +101,27 @@ public sealed class SessionAggregator
 
     private static string GetServiceName(SpanRecord span)
     {
-        // Try to extract service name from attributes
         if (span.Attributes is not null)
         {
             try
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(span.Attributes);
-                if (doc.RootElement.TryGetProperty("service.name", out var svc) &&
-                    svc.ValueKind == System.Text.Json.JsonValueKind.String)
+                using var doc = JsonDocument.Parse(span.Attributes);
+                if (doc.RootElement.TryGetProperty("service.name", out JsonElement svc) &&
+                    svc.ValueKind == JsonValueKind.String)
                 {
                     return svc.GetString() ?? "unknown";
                 }
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         return "unknown";
     }
 
-    private static SessionSummary ToSummary(SessionStats stats)
-    {
-        return new SessionSummary
+    private static SessionSummary ToSummary(SessionStats stats) =>
+        new()
         {
             SessionId = stats.SessionId,
             StartTime = stats.StartTime,
@@ -154,19 +131,15 @@ public sealed class SessionAggregator
             ErrorRate = stats.SpanCount > 0 ? (double)stats.ErrorCount / stats.SpanCount : 0,
             DurationMs = (stats.LastActivity - stats.StartTime).TotalMilliseconds,
             TraceCount = stats.TraceIds.Count,
-            Services = stats.Services.ToList(),
+            Services = [.. stats.Services],
             InputTokens = stats.InputTokens,
             OutputTokens = stats.OutputTokens,
             TotalTokens = stats.InputTokens + stats.OutputTokens,
             GenAiRequestCount = stats.GenAiRequestCount,
-            Models = stats.Models.ToList(),
+            Models = [.. stats.Models],
             TotalCostUsd = stats.TotalCostUsd
         };
-    }
 
-    /// <summary>
-    /// Internal mutable stats for aggregation.
-    /// </summary>
     private sealed class SessionStats
     {
         public required string SessionId { get; init; }
@@ -185,9 +158,6 @@ public sealed class SessionAggregator
     }
 }
 
-/// <summary>
-/// Session summary for API responses.
-/// </summary>
 public sealed record SessionSummary
 {
     public required string SessionId { get; init; }

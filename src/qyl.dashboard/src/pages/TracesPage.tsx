@@ -1,29 +1,22 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import {useCallback, useMemo, useRef, useState} from 'react';
+import {useSearchParams} from 'react-router-dom';
+import {useVirtualizer} from '@tanstack/react-virtual';
+import {AlertCircle, ChevronDown, ChevronRight, Filter, Network, X,} from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {ScrollArea} from '@/components/ui/scroll-area';
+import {Separator} from '@/components/ui/separator';
 import {
-  Network,
-  AlertCircle,
-  ChevronRight,
-  ChevronDown,
-  Filter,
-  X,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import {
-  useSessionSpans,
-  useSessions,
-  getSpanColor,
-  getSpanTypeLabel,
   formatDuration,
   formatTimestamp,
+  getSpanColor,
+  getSpanTypeLabel,
+  useSessions,
+  useSessionSpans,
 } from '@/hooks/use-telemetry';
-import type { Span } from '@/types';
+import type {Span} from '@/types';
 
 interface FlattenedSpan {
   span: Span;
@@ -45,16 +38,16 @@ interface SpanRowProps {
 }
 
 function SpanRow({
-  span,
-  depth,
-  isExpanded,
-  onToggle,
-  hasChildren,
-  timelineStart,
-  timelineEnd,
-  isSelected,
-  onSelect,
-}: SpanRowProps) {
+                   span,
+                   depth,
+                   isExpanded,
+                   onToggle,
+                   hasChildren,
+                   timelineStart,
+                   timelineEnd,
+                   isSelected,
+                   onSelect,
+                 }: SpanRowProps) {
   const totalDuration = timelineEnd - timelineStart;
   const spanStart = new Date(span.startTime).getTime();
   const spanEnd = new Date(span.endTime).getTime();
@@ -86,17 +79,17 @@ function SpanRow({
       onClick={handleClick}
     >
       {/* Expand/collapse and indentation */}
-      <div style={{ paddingLeft: depth * 16 }} className="flex items-center">
+      <div style={{paddingLeft: depth * 16}} className="flex items-center">
         {hasChildren ? (
           <button onClick={handleToggle} className="p-0.5 hover:bg-muted rounded">
             {isExpanded ? (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              <ChevronDown className="w-4 h-4 text-muted-foreground"/>
             ) : (
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <ChevronRight className="w-4 h-4 text-muted-foreground"/>
             )}
           </button>
         ) : (
-          <div className="w-5" />
+          <div className="w-5"/>
         )}
       </div>
 
@@ -104,7 +97,7 @@ function SpanRow({
       <div className="flex-shrink-0 w-32">
         <Badge
           variant="outline"
-          style={{ borderColor: color, color }}
+          style={{borderColor: color, color}}
           className="text-xs"
         >
           {typeLabel}
@@ -116,7 +109,7 @@ function SpanRow({
           <span className={cn('truncate font-mono text-sm', isError && 'text-red-500')}>
             {span.name}
           </span>
-          {isError && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />}
+          {isError && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0"/>}
         </div>
         <div className="text-xs text-muted-foreground truncate">
           {span.serviceName}
@@ -143,7 +136,7 @@ function SpanRow({
   );
 }
 
-function SpanDetails({ span }: { span: Span }) {
+function SpanDetails({span}: { span: Span }) {
   return (
     <div className="p-4 space-y-4">
       {/* Header */}
@@ -151,7 +144,7 @@ function SpanDetails({ span }: { span: Span }) {
         <div className="flex items-center gap-2">
           <Badge
             variant="outline"
-            style={{ borderColor: getSpanColor(span), color: getSpanColor(span) }}
+            style={{borderColor: getSpanColor(span), color: getSpanColor(span)}}
           >
             {getSpanTypeLabel(span)}
           </Badge>
@@ -163,7 +156,7 @@ function SpanDetails({ span }: { span: Span }) {
         <p className="text-sm text-muted-foreground">{span.serviceName}</p>
       </div>
 
-      <Separator />
+      <Separator/>
 
       {/* Timing */}
       <div>
@@ -184,7 +177,7 @@ function SpanDetails({ span }: { span: Span }) {
         </div>
       </div>
 
-      <Separator />
+      <Separator/>
 
       {/* IDs */}
       <div>
@@ -207,7 +200,7 @@ function SpanDetails({ span }: { span: Span }) {
         </div>
       </div>
 
-      <Separator />
+      <Separator/>
 
       {/* Attributes */}
       <div>
@@ -228,7 +221,7 @@ function SpanDetails({ span }: { span: Span }) {
       {/* GenAI specific */}
       {span.genai && (
         <>
-          <Separator />
+          <Separator/>
           <div>
             <h4 className="text-sm font-medium mb-2">GenAI Details</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -264,7 +257,7 @@ function SpanDetails({ span }: { span: Span }) {
       {/* Events */}
       {span.events.length > 0 && (
         <>
-          <Separator />
+          <Separator/>
           <div>
             <h4 className="text-sm font-medium mb-2">Events ({span.events.length})</h4>
             <div className="space-y-2">
@@ -296,13 +289,13 @@ export function TracesPage() {
 
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const { data: sessions = [] } = useSessions();
-  const { data: spans = [], isLoading } = useSessionSpans(
+  const {data: sessions = []} = useSessions();
+  const {data: spans = [], isLoading} = useSessionSpans(
     sessionId || sessions[0]?.sessionId || ''
   );
 
   // Build span tree and compute timeline bounds
-  const { childrenMap, timelineStart, timelineEnd } = useMemo(() => {
+  const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {
     const childrenMap = new Map<string, Span[]>();
     let minTime = Infinity;
     let maxTime = -Infinity;
@@ -373,7 +366,7 @@ export function TracesPage() {
 
       if (!matches && !hasMatchingDescendant) return;
 
-      result.push({ span, depth, hasChildren, isExpanded });
+      result.push({span, depth, hasChildren, isExpanded});
 
       if (isExpanded && hasChildren) {
         for (const child of children) {
@@ -416,7 +409,7 @@ export function TracesPage() {
         {/* Toolbar */}
         <div className="flex items-center gap-4 p-4 border-b border-border">
           <div className="relative flex-1 max-w-sm">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
             <Input
               placeholder="Filter spans..."
               value={filterText}
@@ -450,15 +443,15 @@ export function TracesPage() {
         <div
           ref={parentRef}
           className="flex-1 overflow-auto"
-          style={{ contain: 'strict' }}
+          style={{contain: 'strict'}}
         >
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"/>
             </div>
           ) : spans.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
-              <Network className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <Network className="w-12 h-12 mx-auto mb-4 opacity-50"/>
               <p>No traces found</p>
               <p className="text-sm">Select a session or wait for telemetry data</p>
             </div>
@@ -471,7 +464,7 @@ export function TracesPage() {
               }}
             >
               {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const { span, depth, hasChildren, isExpanded } = flattenedSpans[virtualRow.index];
+                const {span, depth, hasChildren, isExpanded} = flattenedSpans[virtualRow.index];
                 return (
                   <div
                     key={virtualRow.key}
@@ -513,11 +506,11 @@ export function TracesPage() {
               size="icon"
               onClick={() => setSelectedSpan(null)}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4"/>
             </Button>
           </div>
           <ScrollArea className="h-[calc(100vh-12rem)]">
-            <SpanDetails span={selectedSpan} />
+            <SpanDetails span={selectedSpan}/>
           </ScrollArea>
         </div>
       )}

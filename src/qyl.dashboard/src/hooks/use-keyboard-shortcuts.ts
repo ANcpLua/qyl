@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState, useRef } from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 interface ShortcutHandler {
   key: string;
@@ -85,7 +85,7 @@ export function useKeyboardShortcuts() {
 
 // Common navigation shortcuts hook
 export function useNavigationShortcuts(navigate: (path: string) => void) {
-  const { registerShortcut } = useKeyboardShortcuts();
+  const {registerShortcut} = useKeyboardShortcuts();
 
   useEffect(() => {
     const unsubscribes = [

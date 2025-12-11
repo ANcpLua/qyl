@@ -1,31 +1,25 @@
-import { useState, useMemo, useCallback, useRef, memo, useEffect, useLayoutEffect } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import {memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useVirtualizer} from '@tanstack/react-virtual';
 import {
-  FileText,
-  Filter,
+  AlertCircle,
+  AlertTriangle,
+  ArrowDown,
+  Bug,
   ChevronDown,
   ChevronRight,
-  AlertCircle,
+  FileText,
+  Filter,
   Info,
-  AlertTriangle,
-  Bug,
   Skull,
-  ArrowDown,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { formatTimestamp } from '@/hooks/use-telemetry';
-import { RingBuffer } from '@/lib/RingBuffer';
-import type { LogRecord, LogLevel } from '@/types/telemetry';
+import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {formatTimestamp} from '@/hooks/use-telemetry';
+import {RingBuffer} from '@/lib/RingBuffer';
+import type {LogLevel, LogRecord} from '@/types/telemetry';
 
 // =============================================================================
 // Configuration
@@ -39,12 +33,12 @@ const LOG_LEVEL_CONFIG: Record<
   LogLevel,
   { icon: typeof Info; className: string; color: string }
 > = {
-  trace: { icon: Bug, className: 'log-level-trace', color: 'text-gray-400' },
-  debug: { icon: Bug, className: 'log-level-debug', color: 'text-blue-400' },
-  info: { icon: Info, className: 'log-level-info', color: 'text-cyan-400' },
-  warn: { icon: AlertTriangle, className: 'log-level-warn', color: 'text-yellow-400' },
-  error: { icon: AlertCircle, className: 'log-level-error', color: 'text-red-400' },
-  fatal: { icon: Skull, className: 'log-level-fatal', color: 'text-red-300' },
+  trace: {icon: Bug, className: 'log-level-trace', color: 'text-gray-400'},
+  debug: {icon: Bug, className: 'log-level-debug', color: 'text-blue-400'},
+  info: {icon: Info, className: 'log-level-info', color: 'text-cyan-400'},
+  warn: {icon: AlertTriangle, className: 'log-level-warn', color: 'text-yellow-400'},
+  error: {icon: AlertCircle, className: 'log-level-error', color: 'text-red-400'},
+  fatal: {icon: Skull, className: 'log-level-fatal', color: 'text-red-300'},
 };
 
 const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
@@ -59,7 +53,7 @@ interface LogRowProps {
   onToggle: () => void;
 }
 
-const LogRow = memo(function LogRow({ log, isExpanded, onToggle }: LogRowProps) {
+const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
   const config = LOG_LEVEL_CONFIG[log.severityText];
   const Icon = config.icon;
 
@@ -77,9 +71,9 @@ const LogRow = memo(function LogRow({ log, isExpanded, onToggle }: LogRowProps) 
         {/* Expand icon */}
         <div className="pt-0.5">
           {isExpanded ? (
-            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            <ChevronDown className="w-4 h-4 text-muted-foreground"/>
           ) : (
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            <ChevronRight className="w-4 h-4 text-muted-foreground"/>
           )}
         </div>
 
@@ -90,7 +84,7 @@ const LogRow = memo(function LogRow({ log, isExpanded, onToggle }: LogRowProps) 
 
         {/* Level */}
         <Badge variant="outline" className={cn('text-xs', config.className)}>
-          <Icon className="w-3 h-3 mr-1" />
+          <Icon className="w-3 h-3 mr-1"/>
           {log.severityText.toUpperCase()}
         </Badge>
 
@@ -166,7 +160,7 @@ function useLiveLogs(
   setVersion: React.Dispatch<React.SetStateAction<number>>,
   options: UseLiveLogsOptions = {}
 ) {
-  const { enabled = true, onError } = options;
+  const {enabled = true, onError} = options;
 
   const pendingLogsRef = useRef<LogRecord[]>([]);
   const rafIdRef = useRef<number | null>(null);
@@ -216,8 +210,8 @@ function useLiveLogs(
           const logs: LogRecord[] = Array.isArray(data.logs)
             ? data.logs
             : Array.isArray(data)
-            ? data
-            : [data];
+              ? data
+              : [data];
           queueLogs(logs);
         } catch (err) {
           console.error('Failed to parse log event:', err);
@@ -263,7 +257,7 @@ function useLiveLogs(
     };
   }, [enabled, queueLogs, onError]);
 
-  return { isConnected };
+  return {isConnected};
 }
 
 // =============================================================================
@@ -306,7 +300,7 @@ export function LogsPage() {
   // -------------------------------------------------------------------------
   // SSE connection with RAF batching
   // -------------------------------------------------------------------------
-  const { isConnected } = useLiveLogs(logsBufferRef, setLogsVersion, {
+  const {isConnected} = useLiveLogs(logsBufferRef, setLogsVersion, {
     enabled: isLive,
   });
 
@@ -418,7 +412,7 @@ export function LogsPage() {
     const el = parentRef.current;
     if (!el) return;
 
-    const { scrollTop, scrollHeight, clientHeight } = el;
+    const {scrollTop, scrollHeight, clientHeight} = el;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     const shouldAutoScroll = distanceFromBottom < AUTO_SCROLL_THRESHOLD;
 
@@ -434,7 +428,7 @@ export function LogsPage() {
     const el = parentRef.current;
     if (!el) return;
 
-    el.addEventListener('scroll', handleScroll, { passive: true });
+    el.addEventListener('scroll', handleScroll, {passive: true});
     return () => el.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
@@ -490,7 +484,7 @@ export function LogsPage() {
       <div className="flex items-center gap-4 p-4 border-b border-border">
         {/* Search */}
         <div className="relative flex-1 max-w-sm">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
           <Input
             placeholder="Search logs..."
             value={filterText}
@@ -502,7 +496,7 @@ export function LogsPage() {
         {/* Level filter */}
         <Select value={minLevel} onValueChange={(v) => setMinLevel(v as LogLevel)}>
           <SelectTrigger className="w-32">
-            <SelectValue placeholder="Min Level" />
+            <SelectValue placeholder="Min Level"/>
           </SelectTrigger>
           <SelectContent>
             {LOG_LEVELS.map((level) => (
@@ -516,7 +510,7 @@ export function LogsPage() {
         {/* Service filter */}
         <Select value={selectedService} onValueChange={setSelectedService}>
           <SelectTrigger className="w-40">
-            <SelectValue placeholder="Service" />
+            <SelectValue placeholder="Service"/>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Services</SelectItem>
@@ -569,11 +563,11 @@ export function LogsPage() {
       <div
         ref={parentRef}
         className="flex-1 overflow-auto relative"
-        style={{ contain: 'strict' }}
+        style={{contain: 'strict'}}
       >
         {filteredLogs.length === 0 ? (
           <div className="py-12 text-center text-muted-foreground">
-            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <FileText className="w-12 h-12 mx-auto mb-4 opacity-50"/>
             <p>No logs found</p>
             <p className="text-sm">Adjust filters or wait for new logs</p>
           </div>
@@ -618,7 +612,7 @@ export function LogsPage() {
             className="absolute bottom-4 right-4 shadow-lg"
             onClick={jumpToBottom}
           >
-            <ArrowDown className="w-4 h-4 mr-2" />
+            <ArrowDown className="w-4 h-4 mr-2"/>
             {newLogsCount > 0 ? `${newLogsCount} new logs` : 'Jump to bottom'}
           </Button>
         )}

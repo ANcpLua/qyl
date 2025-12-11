@@ -1,13 +1,13 @@
 /**
  * qyl API Types
- * 
+ *
  * This file re-exports generated types from the OpenAPI spec with convenient aliases.
  * DO NOT edit api.ts directly - it's auto-generated from openapi.yaml
- * 
+ *
  * Regenerate with: npm run generate:ts
  */
 
-import type { components, operations, paths } from './api';
+import type {components, operations, paths} from './api';
 
 // =============================================================================
 // Core Types - Re-exported with convenient names
@@ -119,7 +119,7 @@ export function filterGenAISpans(spans: Span[]): GenAISpan[] {
 /** Calculate total tokens for a span */
 export function getTotalTokens(span: Span): number | null {
   if (!span.genai) return null;
-  const { inputTokens, outputTokens } = span.genai;
+  const {inputTokens, outputTokens} = span.genai;
   if (inputTokens == null && outputTokens == null) return null;
   return (inputTokens ?? 0) + (outputTokens ?? 0);
 }

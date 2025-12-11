@@ -1,6 +1,7 @@
 # AI Agent Web API
 
-This is an AI Agent Web API application created from the `aiagent-webapi` template. This template is currently in a preview stage. If you have feedback, please take a [brief survey](https://aka.ms/dotnet/aiagent-webapi/preview1/survey).
+This is an AI Agent Web API application created from the `aiagent-webapi` template. This template is currently in a
+preview stage. If you have feedback, please take a [brief survey](https://aka.ms/dotnet/aiagent-webapi/preview1/survey).
 
 ## Prerequisites
 
@@ -12,7 +13,8 @@ This is an AI Agent Web API application created from the `aiagent-webapi` templa
 
 #### Ollama Configuration
 
-This application uses Ollama running locally (model: llama3.2). You'll need to have Ollama installed and the llama3.2 model downloaded:
+This application uses Ollama running locally (model: llama3.2). You'll need to have Ollama installed and the llama3.2
+model downloaded:
 
 1. Visit [Ollama](https://ollama.com) and follow the installation instructions for your platform
 2. Once installed, download the llama3.2 model:
@@ -23,7 +25,6 @@ This application uses Ollama running locally (model: llama3.2). You'll need to h
 
 The application is configured to connect to Ollama at `http://localhost:11434`.
 
-
 ### 2. Run the Application
 
 ```bash
@@ -31,14 +32,18 @@ dotnet run -lp https
 ```
 
 The application will start and listen on:
+
 - HTTP: `http://localhost:5013`
 - HTTPS: `https://localhost:7275`
 
 ### 3. Test the Application
 
-The application exposes OpenAI-compatible API endpoints. You can interact with the AI agents using any OpenAI-compatible client or tools.
+The application exposes OpenAI-compatible API endpoints. You can interact with the AI agents using any OpenAI-compatible
+client or tools.
 
-In development environments, a `/devui/` route is mapped to the Agent Framework development UI (DevUI), and when the app is launched through an IDE a browser will open to this URL. DevUI provides a web-based UI for interacting with agents and workflows. DevUI operates as an OpenAI-compatible client using the Responses and Conversations endpoints.
+In development environments, a `/devui/` route is mapped to the Agent Framework development UI (DevUI), and when the app
+is launched through an IDE a browser will open to this URL. DevUI provides a web-based UI for interacting with agents
+and workflows. DevUI operates as an OpenAI-compatible client using the Responses and Conversations endpoints.
 
 ## How It Works
 
@@ -48,7 +53,8 @@ This application demonstrates Agent Framework with:
 2. **Editor Agent**: Edits stories to improve grammar and style, ensuring they stay under 300 words
 3. **Publisher Workflow Agent**: A sequential workflow agent that combines the writer and editor agents
 
-The agents are exposed through OpenAI-compatible API endpoints, making them easy to integrate with existing tools and applications.
+The agents are exposed through OpenAI-compatible API endpoints, making them easy to integrate with existing tools and
+applications.
 
 ## Template Parameters
 
@@ -103,10 +109,12 @@ dotnet new aiagent-webapi --provider ollama --chat-model llama3.1
 **Problem**: Application fails to connect to Ollama
 
 **Solution**:
+
 - Ensure Ollama is running. On macOS/Linux, check with `pgrep ollama`. On Windows, check Task Manager.
 - Verify Ollama is accessible at `http://localhost:11434`
 - Make sure you've downloaded the llama3.2 model: `ollama pull llama3.2`
 
 **Problem**: Model responses are slow or time out
 
-**Solution**: Ollama runs locally and performance depends on your hardware. Consider using a smaller model or ensuring your system has adequate resources (RAM, GPU if available).
+**Solution**: Ollama runs locally and performance depends on your hardware. Consider using a smaller model or ensuring
+your system has adequate resources (RAM, GPU if available).

@@ -8,10 +8,7 @@
     <File Path="CLAUDE.md" />
     <File Path="Directory.Build.props" />
     <File Path="Directory.Build.targets" />
-    <File Path="FEATURE.md" />
     <File Path="global.json" />
-    <File Path="QYL_ARCHITECTURE.md" />
-    <File Path="QYL_IMPLEMENTATION.md" />
     <File Path="README.md" />
   </Folder>
 
@@ -57,6 +54,21 @@
     <Project Path="eng/qyl.analyzers/qyl.analyzers.csproj" />
   </Folder>
   <Folder Name="/spec-compliance-matrix/">
+    <File Path="spec-compliance-matrix\collector-api-grpc-streaming-sockets.md" />
+    <File Path="spec-compliance-matrix\collector-core-schema.md" />
+    <File Path="spec-compliance-matrix\collector-duckdb.md" />
+    <File Path="spec-compliance-matrix\collector-host.md" />
+    <File Path="spec-compliance-matrix\collector-processing-batch-schema.md" />
+    <File Path="spec-compliance-matrix\collector-rest-api.md" />
+    <File Path="spec-compliance-matrix\collector-storageabstraction-validatingmemory.md" />
+    <File Path="spec-compliance-matrix\collector-streaming-see-websockets.md" />
+    <File Path="spec-compliance-matrix\consumers-cli.md" />
+    <File Path="spec-compliance-matrix\consumers-dashboard.md" />
+    <File Path="spec-compliance-matrix\MASTER.md" />
+    <File Path="spec-compliance-matrix\producer-backend-instrumentation-core-schema.md" />
+    <File Path="spec-compliance-matrix\schema.yaml" />
+    <File Path="spec-compliance-matrix\UML.md" />
+    <File Path="spec-compliance-matrix\wip-needs-heavy-update.md" />
     <File Path="specification/spec-compliance-matrix.md" />
   </Folder>
 

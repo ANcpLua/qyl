@@ -2,9 +2,6 @@ using System.Text.Json.Serialization;
 
 namespace qyl.mcp.server.Tools;
 
-/// <summary>
-/// JSON serialization context for AOT compatibility with telemetry types.
-/// </summary>
 [JsonSerializable(typeof(AgentRun))]
 [JsonSerializable(typeof(AgentRun[]))]
 [JsonSerializable(typeof(TokenUsageSummary))]

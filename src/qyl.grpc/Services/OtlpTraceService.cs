@@ -10,9 +10,6 @@ public sealed class OtlpTraceService(
     OtlpConverter converter,
     ILogger<OtlpTraceService> logger) : TraceService.TraceServiceBase
 {
-    /// <summary>
-    /// Event raised when spans are received.
-    /// </summary>
     public event Action<IReadOnlyList<SpanModel>>? SpansReceived;
 
     public override Task<ExportTraceServiceResponse> Export(

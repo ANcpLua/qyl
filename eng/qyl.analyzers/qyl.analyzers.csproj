@@ -1,46 +1,48 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <!-- Multi-target: netstandard2.0 for older VS/MSBuild hosts, net10.0 for modern tooling -->
-        <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
-        <IsPackable>false</IsPackable>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
+  <PropertyGroup>
+    <!-- Multi-target: netstandard2.0 for older VS/MSBuild hosts, net10.0 for modern tooling -->
+    <TargetFrameworks>netstandard2.0;net10.0</TargetFrameworks>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <!-- Roslyn analyzers cannot be AOT compatible -->
+    <IsAotCompatible>false</IsAotCompatible>
 
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-        <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <IsRoslynComponent>true</IsRoslynComponent>
 
-        <RootNamespace>qyl.analyzers</RootNamespace>
-        <AssemblyName>qyl.analyzers</AssemblyName>
+    <RootNamespace>qyl.analyzers</RootNamespace>
+    <AssemblyName>qyl.analyzers</AssemblyName>
 
-        <!-- Inject shared code -->
-        <InjectSharedThrow>true</InjectSharedThrow>
-    </PropertyGroup>
+    <!-- Inject shared code -->
+    <InjectSharedThrow>true</InjectSharedThrow>
+  </PropertyGroup>
 
-    <!-- Roslyn 5.0.0 provides netstandard2.0 assets for compatibility -->
-    <!-- Minimum supported toolset: VS 2022 17.12+ / .NET SDK 10.0 -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" PrivateAssets="all">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" PrivateAssets="all" />
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" PrivateAssets="all" />
-        <PackageReference Include="OpenTelemetry.Api" Version="1.14.0" />
-    </ItemGroup>
+  <!-- Roslyn 5.0.0 provides netstandard2.0 assets for compatibility -->
+  <!-- Minimum supported toolset: VS 2022 17.12+ / .NET SDK 10.0 -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
+    <PackageReference Include="OpenTelemetry.Api"/>
+  </ItemGroup>
 
-    <ItemGroup>
-        <EmbeddedResource Update="Resources.resx">
-            <Generator>ResXFileCodeGenerator</Generator>
-            <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-        </EmbeddedResource>
-    </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
 
-    <ItemGroup>
-        <Compile Update="Resources.Designer.cs">
-            <DesignTime>True</DesignTime>
-            <AutoGen>True</AutoGen>
-            <DependentUpon>Resources.resx</DependentUpon>
-        </Compile>
-    </ItemGroup>
+  <ItemGroup>
+    <Compile Update="Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
 
 </Project>

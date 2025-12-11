@@ -114,22 +114,50 @@
   }
 
   /* Log level badges */
-  .log-level-trace { @apply bg-muted text-muted-foreground; }
-  .log-level-debug { @apply bg-blue-500/20 text-blue-400; }
-  .log-level-info { @apply bg-cyan-500/20 text-cyan-400; }
-  .log-level-warn { @apply bg-yellow-500/20 text-yellow-400; }
-  .log-level-error { @apply bg-red-500/20 text-red-400; }
-  .log-level-fatal { @apply bg-red-700/30 text-red-300; }
+  .log-level-trace {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  .log-level-debug {
+    @apply bg-blue-500/20 text-blue-400;
+  }
+
+  .log-level-info {
+    @apply bg-cyan-500/20 text-cyan-400;
+  }
+
+  .log-level-warn {
+    @apply bg-yellow-500/20 text-yellow-400;
+  }
+
+  .log-level-error {
+    @apply bg-red-500/20 text-red-400;
+  }
+
+  .log-level-fatal {
+    @apply bg-red-700/30 text-red-300;
+  }
 
   /* Resource status dots */
   .status-dot {
     @apply w-2 h-2 rounded-full;
   }
 
-  .status-running { @apply bg-green-500; }
-  .status-stopped { @apply bg-gray-500; }
-  .status-error { @apply bg-red-500; }
-  .status-pending { @apply bg-yellow-500; }
+  .status-running {
+    @apply bg-green-500;
+  }
+
+  .status-stopped {
+    @apply bg-gray-500;
+  }
+
+  .status-error {
+    @apply bg-red-500;
+  }
+
+  .status-pending {
+    @apply bg-yellow-500;
+  }
 
   /* Animated pulse for live data */
   .pulse-live {
@@ -137,8 +165,12 @@
   }
 
   @keyframes pulse-live {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   /* Keyboard shortcut hints */

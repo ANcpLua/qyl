@@ -5,7 +5,7 @@
 // Usage: <script src="/qyl-console.js" data-endpoint="http://localhost:5100"></script>
 // Or: window.QylConsole.init({ endpoint: 'http://localhost:5100', sessionId: 'abc' })
 
-(function() {
+(function () {
   'use strict';
   if (window.__qylConsole) return; // Already loaded
   window.__qylConsole = true;
@@ -18,15 +18,19 @@
 
   const queue = [];
   let timer = null;
-  const orig = { log: console.log, info: console.info, warn: console.warn, error: console.error, debug: console.debug };
+  const orig = {log: console.log, info: console.info, warn: console.warn, error: console.error, debug: console.debug};
 
   function send(level, args) {
     const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    const entry = { level, message: msg, sessionId: cfg.sessionId, url: location.href };
+    const entry = {level, message: msg, sessionId: cfg.sessionId, url: location.href};
 
     // Capture stack for errors
     if (level === 'error') {
-      try { throw new Error(); } catch (e) { entry.stack = e.stack?.split('\n').slice(3).join('\n'); }
+      try {
+        throw new Error();
+      } catch (e) {
+        entry.stack = e.stack?.split('\n').slice(3).join('\n');
+      }
     }
 
     if (cfg.batch) {
@@ -39,7 +43,10 @@
   }
 
   function flush() {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (!queue.length) return;
     const batch = queue.splice(0, cfg.maxQueue);
     post(batch);
@@ -49,15 +56,17 @@
     // Don't let our own errors cause infinite loops
     try {
       fetch(cfg.endpoint + '/api/v1/console', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ logs }), keepalive: true
-      }).catch(() => {}); // Silently fail - don't log our own errors
-    } catch {}
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({logs}), keepalive: true
+      }).catch(() => {
+      }); // Silently fail - don't log our own errors
+    } catch {
+    }
   }
 
   // Wrap console methods
   ['debug', 'log', 'info', 'warn', 'error'].forEach(level => {
-    console[level] = function(...args) {
+    console[level] = function (...args) {
       orig[level].apply(console, args);
       send(level, args);
     };

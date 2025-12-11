@@ -1,191 +1,166 @@
-# qyl.
+# qyl. v2.0 — AI Observability Platform
 
-**Lightweight AI Observability for GenAI/LLM Workloads**
+Vendor-neutral OpenTelemetry GenAI collector. Single binary, embedded DuckDB, real-time SSE.
 
-[![.NET](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
-[![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
----
-
-qyl. (pronounced "quill") is a single-binary observability platform designed specifically for AI applications. No Redis, PostgreSQL, or Kafka required - just DuckDB embedded in a ~25MB Docker image.
-
-## Features
-
-- **GenAI-Native** - First-class OpenTelemetry semantic conventions 1.38 (gen_ai.*)
-- **Single Binary** - Native AOT compilation, ~500ms startup
-- **Embedded Storage** - DuckDB columnar database with Parquet cold tier
-- **Real-time** - Server-Sent Events (SSE) for live telemetry
-- **Cost Tracking** - Token counting and cost estimation built-in
-- **MCP Server** - Query telemetry from AI agents via Model Context Protocol
-- **Beautiful Dashboard** - React 19 + Tailwind v4 with keyboard shortcuts
-
-## Quick Start
-
-### Docker (Recommended)
-
-```bash
-docker compose up
+```
+SCHEMA                          RUNTIME                           CONSUMERS
+──────                          ───────                           ─────────
+core/specs/*.tsp (54 files)     OTLP (gRPC/HTTP)                  Dashboard
+       │                              │                           CLI
+       ▼ Kiota                        ▼                           MCP
+┌──────────────┐            ╔═══════════════════╗
+│ C# / TS / Py │            ║  qyl.collector    ║──▶ SSE/REST
+└──────────────┘            ║  (Native AOT)     ║
+                            ╠═══════════════════╣
+                            ║ GenAiExtractor    ║──▶ DuckDB (hot)
+                            ║ SessionAggregator ║──▶ Parquet (cold)
+                            ║ SseHub            ║──▶ EventStream
+                            ╚═══════════════════╝
 ```
 
-Open http://localhost:5100 - the login token is printed in the console.
+## Stack
 
-### Manual
+| Component | Tech             | Version |
+|-----------|------------------|---------|
+| Backend   | .NET Native AOT  | 10.0    |
+| Frontend  | React + Tailwind | 19 / v4 |
+| Storage   | DuckDB embedded  | —       |
+| Schema    | TypeSpec → Kiota | 1.7.0   |
+| Build     | NUKE             | 9.x     |
+
+## Quick Start
 
 ```bash
 # Backend
 dotnet run --project src/qyl.collector
 
-# Frontend (in another terminal)
-cd src/qyl.dashboard
-npm install
-npm run dev
+# Frontend (separate terminal)
+npm run dev --prefix src/qyl.dashboard
+
+# Demo producer
+dotnet run --project src/qyl.demo
 ```
 
-## Screenshots
+## NUKE Build Commands
 
-| Resources | Traces | Logs |
-|-----------|--------|------|
-| Grid/List/Graph views | Waterfall visualization | Virtualized 10k+ rows |
+```bash
+# Install NUKE (if needed)
+dotnet tool install Nuke.GlobalTool -g
 
-## Architecture
+# Common targets
+nuke Compile              # Build all .NET projects
+nuke Test                 # Run all tests
+nuke Coverage             # Run tests with coverage
+
+# Frontend targets
+nuke FrontendBuild        # Build dashboard for production
+nuke FrontendTest         # Run Vitest tests
+nuke FrontendLint         # ESLint check
+nuke FrontendDev          # Start Vite dev server
+
+# Code generation (TypeSpec → Kiota)
+nuke GenerateAll          # Generate C#, Python, TypeScript clients
+nuke TypeSpecCompile      # TypeSpec → OpenAPI 3.1
+nuke GenerateCSharp       # Generate C# client
+nuke GeneratePython       # Generate Python client
+nuke GenerateTypeScript   # Generate TypeScript client
+nuke TypeSpecInfo         # Show generation status
+
+# Docker
+nuke DockerBuild          # Build collector image
+nuke DockerUp             # Start with docker-compose
+
+# CI
+nuke Ci                   # Full backend pipeline
+nuke Full                 # Backend + Frontend pipeline
+```
+
+## TypeSpec Schema (54 files)
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     qyl.dashboard                            │
-│              React 19 + Tailwind v4 + TanStack               │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ HTTP/SSE
-┌─────────────────────────▼───────────────────────────────────┐
-│                     qyl.collector                            │
-│                   .NET 10 Native AOT                         │
-├─────────────────────────────────────────────────────────────┤
-│  Auth   │  Ingestion  │  Query  │  Realtime  │    MCP       │
-│ (Token) │ (Normalize) │  (API)  │   (SSE)    │  (AI Tools)  │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────┐
-│                      DuckDB                                  │
-│           Embedded Columnar + Parquet Export                 │
-└─────────────────────────────────────────────────────────────┘
+core/specs/
+├── main.tsp                    ← entry point
+├── tspconfig.yaml              ← compiler config
+├── common/   (3)  types, errors, pagination
+├── otel/     (5)  enums, resource, span, logs, metrics
+├── api/      (2)  routes, streaming
+└── domains/
+    ├── ai/        (3)  genai, code, cli
+    ├── security/  (4)  network, dns, tls, security-rule
+    ├── transport/ (7)  http, rpc, messaging, url, signalr, kestrel, user-agent
+    ├── infra/     (7)  host, container, k8s, cloud, faas, os, webengine
+    ├── runtime/   (5)  process, system, thread, dotnet, aspnetcore
+    ├── data/      (5)  db, file, elasticsearch, vcs, artifact
+    ├── observe/   (8)  session, browser, feature-flags, exceptions, otel, log, error, test
+    ├── ops/       (2)  cicd, deployment
+    └── identity/  (2)  user, geo
 ```
 
-## Configuration
+Generated outputs:
 
-| Environment Variable | Default | Description |
-|---------------------|---------|-------------|
-| `QYL_PORT` | 5100 | HTTP port |
-| `QYL_TOKEN` | (auto-generated) | Authentication token |
-| `QYL_DATA_PATH` | qyl.duckdb | Database file path |
+- `core/openapi/openapi.yaml` — OpenAPI 3.1 spec (~188KB)
+- `core/generated/dotnet/` — C# client (183 files)
+- `core/generated/python/` — Python client (169 files)
+- `core/generated/typescript/` — TypeScript client (70 files)
+
+## Key Files
+
+| Purpose        | Path                                            |
+|----------------|-------------------------------------------------|
+| API Entry      | `src/qyl.collector/Program.cs`                  |
+| GenAI Extract  | `src/qyl.collector/Ingestion/GenAiExtractor.cs` |
+| Storage        | `src/qyl.collector/Storage/DuckDbStore.cs`      |
+| SSE Hub        | `src/qyl.collector/Realtime/SseHub.cs`          |
+| Dashboard      | `src/qyl.dashboard/src/App.tsx`                 |
+| Build Config   | `eng/build/Build.cs`                            |
+| TypeSpec Build | `eng/build/Build.TypeSpec.cs`                   |
+
+## Frontend (React 19)
+
+```
+src/qyl.dashboard/
+├── src/
+│   ├── pages/           # 6 pages (GenAI, Traces, Logs, Metrics, Resources, Settings)
+│   ├── components/
+│   │   ├── layout/      # DashboardLayout, Sidebar, TopBar
+│   │   └── ui/          # shadcn/ui components
+│   ├── hooks/           # use-telemetry, use-keyboard-shortcuts, use-theme
+│   └── types/           # TypeScript definitions
+├── package.json
+└── vite.config.ts
+```
+
+**Stack:** React 19, TypeScript 5.9, Tailwind v4, TanStack Query 5, Radix UI, Vite 7
+
+## .NET 10 APIs
+
+| API                    | Usage                                       |
+|------------------------|---------------------------------------------|
+| `Task.WhenEach()`      | Concurrent receiver intake                  |
+| `Lock`                 | Zero-alloc sync (SessionAggregator, SseHub) |
+| `SearchValues<char>`   | SIMD delimiter/char detection               |
+| Direct `StartsWith`    | Prefix detection (gen_ai.*, agents.*)       |
+| `CountBy/AggregateBy`  | Single-pass statistics                      |
+| `TypedResults.SSE`     | Native Server-Sent Events                   |
+| `HybridCache`          | Stampede-proof caching                      |
 
 ## API
 
-### Query Endpoints
-
-```bash
-# List sessions
-curl http://localhost:5100/api/v1/sessions
-
-# Get trace
-curl http://localhost:5100/api/v1/traces/{traceId}
-
-# Get session spans
-curl http://localhost:5100/api/v1/sessions/{sessionId}/spans
+```
+POST /v1/traces           OTLP ingest
+GET  /api/v1/sessions     List sessions
+GET  /api/v1/live         SSE stream
+GET  /health              Health check
 ```
 
-### Real-time Streaming
+## OTel v1.38
 
-```bash
-# SSE stream (all sessions)
-curl -N http://localhost:5100/api/v1/live
-
-# SSE stream (filtered)
-curl -N http://localhost:5100/api/v1/live?session=abc123
-```
-
-### MCP Tools
-
-```bash
-# Get available tools
-curl http://localhost:5100/mcp/manifest
-
-# Call a tool
-curl -X POST http://localhost:5100/mcp/tools/call \
-  -H "Content-Type: application/json" \
-  -d '{"name": "get_storage_stats"}'
-```
-
-Available MCP tools:
-- `get_sessions` - List sessions with stats
-- `get_trace` - Fetch trace by ID
-- `get_spans` - Query spans with filters
-- `get_genai_stats` - Token/cost aggregations
-- `search_errors` - Find error spans
-- `get_storage_stats` - Database statistics
-- `archive_old_data` - Export to Parquet
-
-### Ingestion
-
-```bash
-# qyl. native format
-curl -X POST http://localhost:5100/api/v1/ingest \
-  -H "Content-Type: application/json" \
-  -d '{"spans": [...]}'
-
-# OTLP compatibility
-curl -X POST http://localhost:5100/v1/traces \
-  -H "Content-Type: application/json" \
-  -d '{"resourceSpans": [...]}'
-```
-
-## Dashboard Pages
-
-| Page | Description | Keyboard |
-|------|-------------|----------|
-| Resources | Service overview, grid/list/graph views | `G` |
-| Traces | Waterfall visualization, span details | `T` |
-| Logs | Virtualized log viewer, level filtering | `L` |
-| Metrics | Request rate, latency, error rate charts | `M` |
-| GenAI | LLM calls, token usage, cost breakdown | `A` |
-| Settings | Theme, shortcuts, data management | `,` |
-
-Press `?` anywhere to see all keyboard shortcuts.
-
-## Tech Stack
-
-### Backend
-- .NET 10 Native AOT
-- DuckDB (embedded columnar)
-- Server-Sent Events
-
-### Frontend
-- React 19
-- Tailwind CSS v4
-- TanStack Query + Virtual
-- Recharts
-- Radix UI
-
-## Development
-
-```bash
-# Run tests
-dotnet test
-npm test --prefix src/qyl.dashboard
-
-# Build for production
-dotnet publish -c Release
-npm run build --prefix src/qyl.dashboard
-
-# Build Docker image
-docker build -t qyl .
-```
+Required GenAI: `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.{input,output}_tokens`
 
 ## Documentation
 
-- [CLAUDE.md](CLAUDE.md) - Project context for Claude Code
-- [QYL_ARCHITECTURE.md](QYL_ARCHITECTURE.md) - Original specification
-- [QYL_IMPLEMENTATION.md](QYL_IMPLEMENTATION.md) - Detailed implementation analysis
-
-## License
-
-MIT
+| File                                 | Purpose                            |
+|--------------------------------------|------------------------------------|
+| `CLAUDE.md`                          | AI development guide (start here)  |
+| `spec-compliance-matrix/schema.yaml` | TypeSpec schema, .NET APIs, rules  |
+| `spec-compliance-matrix/UML.md`      | OTel 1.38 attributes, architecture |

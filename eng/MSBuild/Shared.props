@@ -1,37 +1,24 @@
 <Project>
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- Shared property configurations for qyl                                  -->
-  <!-- Automatically imported by Directory.Build.props                         -->
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- =======================================================================
+       qyl Shared Properties - Imported by Directory.Build.props
+       ======================================================================= -->
 
-  <!-- OpenTelemetry GenAI Semantic Conventions version being targeted -->
+  <!-- OTel Configuration -->
   <PropertyGroup>
-    <QylGenAiSemconvVersion>1.38</QylGenAiSemconvVersion>
+    <QylOTelEnabled Condition="'$(QylOTelEnabled)' == ''">true</QylOTelEnabled>
+    <QylOTelSemConvVersion>1.38.0</QylOTelSemConvVersion>
+    <QylJsonNamingPolicy>SnakeCaseLower</QylJsonNamingPolicy>
   </PropertyGroup>
 
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
-  <!-- Shared code injection flags                                             -->
-  <!-- Set these to 'true' in your csproj to auto-include shared code          -->
-  <!--                                                                         -->
-  <!-- Example usage in a .csproj:                                             -->
-  <!--   <PropertyGroup>                                                       -->
-  <!--     <InjectSharedThrow>true</InjectSharedThrow>                         -->
-  <!--   </PropertyGroup>                                                      -->
-  <!-- ═══════════════════════════════════════════════════════════════════════ -->
+  <!-- Global Usings for OTel -->
+  <ItemGroup Condition="'$(QylOTelEnabled)' == 'true'">
+    <Using Include="System.Diagnostics" />
+    <Using Include="System.Diagnostics.Metrics" />
+  </ItemGroup>
 
+  <!-- Shared Throw injection config - always define path, ItemGroup in targets checks condition -->
   <PropertyGroup>
-    <!-- Inject src/Shared/Throw/*.cs - argument validation helpers -->
-    <InjectSharedThrow Condition="'$(InjectSharedThrow)' == ''">false</InjectSharedThrow>
-
-    <!-- Inject src/Shared/Telemetry/*.cs - telemetry helpers (future) -->
-    <InjectSharedTelemetry Condition="'$(InjectSharedTelemetry)' == ''">false</InjectSharedTelemetry>
-  </PropertyGroup>
-
-  <!-- NuGet package defaults for qyl packages -->
-  <PropertyGroup Condition="'$(IsPackable)' == 'true'">
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/ANcpLua/qyl-semconv-genai</PackageProjectUrl>
-    <PackageReadmeFile Condition="Exists('$(MSBuildProjectDirectory)\README.md')">README.md</PackageReadmeFile>
+    <_QylSharedThrowPath>$(MSBuildThisFileDirectory)../../src/Shared/Throw</_QylSharedThrowPath>
   </PropertyGroup>
 
 </Project>

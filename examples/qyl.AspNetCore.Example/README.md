@@ -1,6 +1,7 @@
 # qyl OpenTelemetry ASP.NET Core Example
 
-This example demonstrates modern OpenTelemetry patterns for instrumenting an ASP.NET Core application with the qyl observability platform.
+This example demonstrates modern OpenTelemetry patterns for instrumenting an ASP.NET Core application with the qyl
+observability platform.
 
 ## Features
 
@@ -19,6 +20,7 @@ docker compose up -d
 ```
 
 Or run the collector directly:
+
 ```bash
 cd src/qyl.collector
 dotnet run
@@ -44,6 +46,7 @@ curl http://localhost:5050/WeatherForecast/10
 ### 4. View in qyl Dashboard
 
 Open http://localhost:5100 to see:
+
 - Traces in the Traces page
 - Live streaming in the Live page
 - Metrics (if OTLP metrics enabled)
@@ -52,12 +55,12 @@ Open http://localhost:5100 to see:
 
 Edit `appsettings.json` to configure exporters:
 
-| Setting | Options | Default |
-|---------|---------|---------|
-| `UseTracingExporter` | `OTLP`, `CONSOLE` | `OTLP` |
-| `UseMetricsExporter` | `OTLP`, `CONSOLE` | `CONSOLE` |
-| `UseLogExporter` | `OTLP`, `CONSOLE` | `CONSOLE` |
-| `Otlp:Endpoint` | URL | `http://localhost:5100` |
+| Setting              | Options           | Default                 |
+|----------------------|-------------------|-------------------------|
+| `UseTracingExporter` | `OTLP`, `CONSOLE` | `OTLP`                  |
+| `UseMetricsExporter` | `OTLP`, `CONSOLE` | `CONSOLE`               |
+| `UseLogExporter`     | `OTLP`, `CONSOLE` | `CONSOLE`               |
+| `Otlp:Endpoint`      | URL               | `http://localhost:5100` |
 
 ### Environment Variable Overrides
 
@@ -77,6 +80,7 @@ docker compose up --build
 ```
 
 Services:
+
 - **qyl-collector**: Port 5100 - Telemetry receiver + dashboard
 - **example-app**: Port 5050 - This example app
 - **grafana**: Port 3000 - Optional visualization

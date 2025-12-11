@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using qyl.grpc.Abstractions;
+using qyl.grpc.Aggregation;
 
 namespace qyl.grpc.Api;
 
@@ -10,7 +10,7 @@ public static class SessionEndpoints
 {
     public static IEndpointRouteBuilder MapSessionApi(this IEndpointRouteBuilder endpoints)
     {
-        var api = endpoints.MapGroup("/api/v1/sessions");
+        RouteGroupBuilder api = endpoints.MapGroup("/api/v1/sessions");
 
         api.MapGet("/", GetSessions).WithName("GetSessions");
         api.MapGet("/{sessionId}", GetSession).WithName("GetSession");
@@ -30,85 +30,86 @@ public static class SessionEndpoints
         int offset = 0)
     {
         var query = new SessionQuery(
-            ServiceName: serviceName,
-            From: from,
-            To: to,
-            MinTokens: minTokens,
-            HasErrors: hasErrors,
-            Limit: limit,
-            Offset: offset);
+            serviceName,
+            from,
+            to,
+            minTokens,
+            hasErrors,
+            limit,
+            offset);
 
-        var sessions = aggregator.Query(query);
+        IReadOnlyList<SessionModel> sessions = aggregator.Query(query);
 
-        return new SessionListResponse(
-            Sessions: sessions.Select(s => new SessionDto(
-                SessionId: s.SessionId,
-                ServiceName: s.ServiceName,
-                StartTime: s.StartTime,
-                LastActivity: s.LastActivity,
-                DurationMinutes: s.DurationMinutes,
-                SpanCount: s.SpanCount,
-                ErrorCount: s.ErrorCount,
-                ErrorRate: s.ErrorRate,
-                TotalInputTokens: s.TotalInputTokens,
-                TotalOutputTokens: s.TotalOutputTokens,
-                TotalTokens: s.TotalTokens,
-                TotalCostUsd: s.TotalCostUsd,
-                ToolCallCount: s.ToolCallCount,
-                PrimaryModel: s.PrimaryModel,
-                Models: s.Models,
-                IsActive: s.IsActive
-            )).ToList(),
-            Total: (int)aggregator.SessionCount,
-            HasMore: offset + limit < aggregator.SessionCount);
+        return new(
+            [
+                .. sessions.Select(s => new SessionDto(
+                    s.SessionId,
+                    s.ServiceName,
+                    s.StartTime,
+                    s.LastActivity,
+                    s.DurationMinutes,
+                    s.SpanCount,
+                    s.ErrorCount,
+                    s.ErrorRate,
+                    s.TotalInputTokens,
+                    s.TotalOutputTokens,
+                    s.TotalTokens,
+                    s.TotalCostUsd,
+                    s.ToolCallCount,
+                    s.PrimaryModel,
+                    s.Models,
+                    s.IsActive
+                ))
+            ],
+            (int)aggregator.SessionCount,
+            offset + limit < aggregator.SessionCount);
     }
 
     private static Results<Ok<SessionDetailResponse>, NotFound> GetSession(
         ISessionAggregator aggregator,
         string sessionId)
     {
-        var session = aggregator.GetSession(sessionId);
+        SessionModel? session = aggregator.GetSession(sessionId);
         if (session is null)
             return TypedResults.NotFound();
 
         return TypedResults.Ok(new SessionDetailResponse(
-            SessionId: session.SessionId,
-            ServiceName: session.ServiceName,
-            StartTime: session.StartTime,
-            LastActivity: session.LastActivity,
-            DurationMinutes: session.DurationMinutes,
-            SpanCount: session.SpanCount,
-            ErrorCount: session.ErrorCount,
-            ErrorRate: session.ErrorRate,
-            TotalInputTokens: session.TotalInputTokens,
-            TotalOutputTokens: session.TotalOutputTokens,
-            TotalTokens: session.TotalTokens,
-            TotalCostUsd: session.TotalCostUsd,
-            ToolCallCount: session.ToolCallCount,
-            PrimaryModel: session.PrimaryModel,
-            Models: session.Models,
-            TraceIds: session.TraceIds,
-            SpanCount2: session.Spans.Count));
+            session.SessionId,
+            session.ServiceName,
+            session.StartTime,
+            session.LastActivity,
+            session.DurationMinutes,
+            session.SpanCount,
+            session.ErrorCount,
+            session.ErrorRate,
+            session.TotalInputTokens,
+            session.TotalOutputTokens,
+            session.TotalTokens,
+            session.TotalCostUsd,
+            session.ToolCallCount,
+            session.PrimaryModel,
+            session.Models,
+            session.TraceIds,
+            session.Spans.Count));
     }
 
     private static SessionStatisticsResponse GetStatistics(ISessionAggregator aggregator)
     {
-        var stats = aggregator.GetStatistics();
+        SessionStatistics stats = aggregator.GetStatistics();
 
-        return new SessionStatisticsResponse(
-            TotalSessions: stats.TotalSessions,
-            ActiveSessions: stats.ActiveSessions,
-            TotalSpans: stats.TotalSpans,
-            TotalInputTokens: stats.TotalInputTokens,
-            TotalOutputTokens: stats.TotalOutputTokens,
-            TotalCostUsd: stats.TotalCostUsd,
-            TotalToolCalls: stats.TotalToolCalls,
-            TotalErrors: stats.TotalErrors,
-            TopModels: stats.TopModels);
+        return new(
+            stats.TotalSessions,
+            stats.ActiveSessions,
+            stats.TotalSpans,
+            stats.TotalInputTokens,
+            stats.TotalOutputTokens,
+            stats.TotalCostUsd,
+            stats.TotalToolCalls,
+            stats.TotalErrors,
+            stats.TopModels);
     }
 }
 
-// DTOs
 public sealed record SessionListResponse(
     IReadOnlyList<SessionDto> Sessions,
     int Total,

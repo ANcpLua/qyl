@@ -1,13 +1,6 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useQueryClient, useQuery } from '@tanstack/react-query';
-import type {
-  Span,
-  SpanBatch,
-  Session,
-  SessionListResponse,
-  SpanListResponse,
-  TraceResponse,
-} from '@/types';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
+import type {Session, SessionListResponse, Span, SpanBatch, SpanListResponse, TraceResponse,} from '@/types';
 // REMOVED: import type { Resource } from '@/types/telemetry';
 // Resource type and useResources() were calling non-existent endpoint
 
@@ -132,7 +125,7 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
       });
 
       // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: telemetryKeys.sessions() });
+      queryClient.invalidateQueries({queryKey: telemetryKeys.sessions()});
     });
 
     eventSource.onerror = () => {

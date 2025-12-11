@@ -10,12 +10,12 @@ public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
     private readonly ITelemetrySseBroadcaster? _sseBroadcaster;
     private readonly ConcurrentDictionary<Guid, Channel<TelemetryMessage>> _subscribers = new();
 
-    public TelemetryBroadcaster() { }
-
-    public TelemetryBroadcaster(ITelemetrySseBroadcaster sseBroadcaster)
+    public TelemetryBroadcaster()
     {
-        _sseBroadcaster = sseBroadcaster;
     }
+
+    public TelemetryBroadcaster(ITelemetrySseBroadcaster sseBroadcaster) =>
+        _sseBroadcaster = sseBroadcaster;
 
     public int ConnectionCount => _sseBroadcaster?.ClientCount ?? _subscribers.Count;
 
@@ -23,14 +23,9 @@ public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
     {
         var message = new TelemetryMessage(signal, data!, DateTimeOffset.UtcNow);
 
-        // Publish to SSE broadcaster if available
         _sseBroadcaster?.Publish(message);
 
-        // Also publish to direct subscribers (WebSocket, etc.)
-        foreach (var (_, channel) in _subscribers)
-        {
-            channel.Writer.TryWrite(message);
-        }
+        foreach ((Guid _, Channel<TelemetryMessage> channel) in _subscribers) channel.Writer.TryWrite(message);
 
         return ValueTask.CompletedTask;
     }
@@ -48,10 +43,7 @@ public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
 
         try
         {
-            await foreach (var message in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
-            {
-                yield return message;
-            }
+            await foreach (TelemetryMessage message in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false)) yield return message;
         }
         finally
         {

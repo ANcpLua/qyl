@@ -1,15 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <InjectSharedThrow>true</InjectSharedThrow>
-        <!-- This is a sample project to demonstrate analyzers - suppress standard warnings -->
-        <NoWarn>$(NoWarn);CA1034;CA1512;CA1822</NoWarn>
-    </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <InjectSharedThrow>true</InjectSharedThrow>
+    <!-- This is a sample project to demonstrate analyzers - suppress standard warnings -->
+    <NoWarn>$(NoWarn);CA1034;CA1512;CA1822</NoWarn>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="../../eng/qyl.analyzers/qyl.analyzers.csproj"
-                          OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
-    </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../eng/qyl.analyzers/qyl.analyzers.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
 
 </Project>

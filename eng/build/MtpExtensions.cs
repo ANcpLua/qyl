@@ -3,36 +3,20 @@ using System.Collections.Generic;
 using System.Text;
 using Nuke.Common.IO;
 
-/// <summary>
-///     Microsoft Testing Platform extensions for NUKE (.NET 10+ / xUnit v3).
-/// </summary>
-/// <remarks>
-///     xUnit v3 MTP filter options (passed after --):
-///     --filter-namespace, --filter-class, --filter-method, --filter-trait, --filter-query
-///     See: https://xunit.net/docs/query-filter-language
-/// </remarks>
 public static class MtpExtensions
 {
     public static MtpArgumentsBuilder Mtp() => new();
 }
 
-/// <summary>
-///     Fluent builder for xUnit v3 MTP command-line arguments.
-/// </summary>
 public sealed class MtpArgumentsBuilder
 {
     private readonly List<string> _args = [];
 
-    // ── Private Helpers ──────────────────────────────────────────────────────
-
     private MtpArgumentsBuilder AddFilter(string option, params ReadOnlySpan<string> patterns)
     {
-        foreach (var p in patterns)
+        foreach (string p in patterns)
         {
-            if (string.IsNullOrEmpty(p))
-            {
-                continue;
-            }
+            if (string.IsNullOrEmpty(p)) continue;
 
             _args.Add(option);
             _args.Add(p);
@@ -55,15 +39,11 @@ public sealed class MtpArgumentsBuilder
         return this;
     }
 
-    // ── Namespace Filters ────────────────────────────────────────────────────
-
     public MtpArgumentsBuilder FilterNamespace(params ReadOnlySpan<string> patterns)
         => AddFilter("--filter-namespace", patterns);
 
     public MtpArgumentsBuilder FilterNotNamespace(params ReadOnlySpan<string> patterns)
         => AddFilter("--filter-not-namespace", patterns);
-
-    // ── Class/Method Filters ─────────────────────────────────────────────────
 
     public MtpArgumentsBuilder FilterClass(params ReadOnlySpan<string> patterns)
         => AddFilter("--filter-class", patterns);
@@ -80,12 +60,8 @@ public sealed class MtpArgumentsBuilder
     public MtpArgumentsBuilder FilterNotTrait(string name, string value)
         => AddOption("--filter-not-trait", $"{name}={value}");
 
-    // ── Query Filter ─────────────────────────────────────────────────────────
-
     public MtpArgumentsBuilder FilterQuery(string? expression)
         => string.IsNullOrEmpty(expression) ? this : AddOption("--filter-query", expression);
-
-    // ── Reports ──────────────────────────────────────────────────────────────
 
     public MtpArgumentsBuilder ReportTrx(string filename)
     {
@@ -104,8 +80,6 @@ public sealed class MtpArgumentsBuilder
         _args.Add("--report-junit");
         return AddOption("--report-junit-filename", filename);
     }
-
-    // ── Execution Control ────────────────────────────────────────────────────
 
     public MtpArgumentsBuilder ResultsDirectory(AbsolutePath path)
         => AddOption("--results-directory", path.ToString());
@@ -127,13 +101,9 @@ public sealed class MtpArgumentsBuilder
     public MtpArgumentsBuilder Seed(int seed)
         => AddOption("--seed", seed.ToString());
 
-    // ── Diagnostics ──────────────────────────────────────────────────────────
-
     public MtpArgumentsBuilder ShowLiveOutput() => AddFlag("--show-live-output");
 
     public MtpArgumentsBuilder Diagnostics() => AddFlag("--xunit-diagnostics");
-
-    // ── Coverage ─────────────────────────────────────────────────────────────
 
     public MtpArgumentsBuilder CoverageCobertura(AbsolutePath outputPath)
     {
@@ -143,24 +113,16 @@ public sealed class MtpArgumentsBuilder
         return AddOption("--coverage-output", outputPath.ToString());
     }
 
-    // ── Build ────────────────────────────────────────────────────────────────
-
     public string Build()
     {
-        if (_args is [])
-        {
-            return string.Empty;
-        }
+        if (_args is []) return string.Empty;
 
         StringBuilder sb = new();
-        foreach (var arg in _args)
+        foreach (string arg in _args)
         {
-            if (sb.Length > 0)
-            {
-                sb.Append(' ');
-            }
+            if (sb.Length > 0) sb.Append(' ');
 
-            sb.Append(arg.Contains(' ') ? $"\"{arg}\"" : arg);
+            sb.Append(arg.Contains(' ', StringComparison.Ordinal) ? $"\"{arg}\"" : arg);
         }
 
         return sb.ToString();

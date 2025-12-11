@@ -1,23 +1,19 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import {NavLink, useLocation} from 'react-router-dom';
 import {
   Activity,
-  Network,
-  FileText,
   BarChart3,
-  Sparkles,
-  Settings,
-  Radio,
   ChevronLeft,
   ChevronRight,
+  FileText,
+  Network,
+  Radio,
+  Settings,
+  Sparkles,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/button';
+import {Separator} from '@/components/ui/separator';
+import {Tooltip, TooltipContent, TooltipTrigger,} from '@/components/ui/tooltip';
 
 interface NavItem {
   to: string;
@@ -27,11 +23,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { to: '/', icon: Activity, label: 'Resources', shortcut: 'G' },
-  { to: '/traces', icon: Network, label: 'Traces', shortcut: 'T' },
-  { to: '/logs', icon: FileText, label: 'Logs', shortcut: 'L' },
-  { to: '/metrics', icon: BarChart3, label: 'Metrics', shortcut: 'M' },
-  { to: '/genai', icon: Sparkles, label: 'GenAI', shortcut: 'A' },
+  {to: '/', icon: Activity, label: 'Resources', shortcut: 'G'},
+  {to: '/traces', icon: Network, label: 'Traces', shortcut: 'T'},
+  {to: '/logs', icon: FileText, label: 'Logs', shortcut: 'L'},
+  {to: '/metrics', icon: BarChart3, label: 'Metrics', shortcut: 'M'},
+  {to: '/genai', icon: Sparkles, label: 'GenAI', shortcut: 'A'},
 ];
 
 interface SidebarProps {
@@ -40,7 +36,7 @@ interface SidebarProps {
   isLive: boolean;
 }
 
-export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) {
+export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
   const location = useLocation();
 
   return (
@@ -53,7 +49,8 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
       {/* Logo */}
       <div className="flex items-center h-14 px-4 border-b border-border">
         <NavLink to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center">
+          <div
+            className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">Q</span>
           </div>
           {!collapsed && (
@@ -62,7 +59,7 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
         </NavLink>
         {!collapsed && isLive && (
           <div className="ml-auto flex items-center gap-1.5">
-            <Radio className="w-3 h-3 text-green-500 pulse-live" />
+            <Radio className="w-3 h-3 text-green-500 pulse-live"/>
             <span className="text-xs text-green-500">Live</span>
           </div>
         )}
@@ -85,7 +82,7 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <Icon className="w-5 h-5 flex-shrink-0"/>
               {!collapsed && (
                 <>
                   <span className="flex-1">{item.label}</span>
@@ -111,7 +108,7 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
         })}
       </nav>
 
-      <Separator />
+      <Separator/>
 
       {/* Bottom section */}
       <div className="p-2 space-y-1">
@@ -128,7 +125,7 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground'
               )}
             >
-              <Settings className="w-5 h-5 flex-shrink-0" />
+              <Settings className="w-5 h-5 flex-shrink-0"/>
               {!collapsed && (
                 <>
                   <span className="flex-1">Settings</span>
@@ -161,10 +158,10 @@ export function Sidebar({ collapsed, onCollapsedChange, isLive }: SidebarProps) 
           onClick={() => onCollapsedChange(!collapsed)}
         >
           {collapsed ? (
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-5 h-5"/>
           ) : (
             <>
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-5 h-5"/>
               <span className="ml-3">Collapse</span>
             </>
           )}

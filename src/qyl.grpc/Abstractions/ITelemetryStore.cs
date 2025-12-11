@@ -1,11 +1,12 @@
 namespace qyl.grpc.Abstractions;
 
-public interface ITelemetryStore<T> where T : class
+public interface ITelemetryStore<T>
+    where T : class
 {
+    long Count { get; }
     void Add(T item);
     IReadOnlyList<T> Query(TelemetryQuery query);
     void Clear();
-    long Count { get; }
 }
 
 public sealed record TelemetryQuery(

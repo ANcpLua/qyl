@@ -10,42 +10,30 @@ using qyl.grpc.Abstractions;
 
 namespace qyl.grpc.Streaming;
 
-/// <summary>
-/// Extension methods for Server-Sent Events streaming.
-/// Uses .NET 10 native TypedResults.ServerSentEvents API.
-/// </summary>
 public static class SseExtensions
 {
-    /// <summary>
-    /// Adds SSE streaming services to the DI container.
-    /// </summary>
     public static IServiceCollection AddTelemetrySse(this IServiceCollection services)
     {
         services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
         return services;
     }
 
-    /// <summary>
-    /// Maps SSE endpoints for real-time telemetry streaming.
-    /// </summary>
     public static IEndpointRouteBuilder MapTelemetrySse(this IEndpointRouteBuilder endpoints)
     {
-        // Main stream - all signals
         endpoints.MapGet("/api/v1/live", HandleLiveStream)
             .WithName("TelemetryLiveStream")
             .WithTags("Streaming");
 
-        // Filtered streams
         endpoints.MapGet("/api/v1/live/spans", (ITelemetrySseBroadcaster stream, HttpContext ctx) =>
-            HandleFilteredStream(stream, ctx, TelemetrySignal.Trace, "spans"))
+                HandleFilteredStream(stream, ctx, TelemetrySignal.Trace, "spans"))
             .WithName("SpansLiveStream");
 
         endpoints.MapGet("/api/v1/live/metrics", (ITelemetrySseBroadcaster stream, HttpContext ctx) =>
-            HandleFilteredStream(stream, ctx, TelemetrySignal.Metric, "metrics"))
+                HandleFilteredStream(stream, ctx, TelemetrySignal.Metric, "metrics"))
             .WithName("MetricsLiveStream");
 
         endpoints.MapGet("/api/v1/live/logs", (ITelemetrySseBroadcaster stream, HttpContext ctx) =>
-            HandleFilteredStream(stream, ctx, TelemetrySignal.Log, "logs"))
+                HandleFilteredStream(stream, ctx, TelemetrySignal.Log, "logs"))
             .WithName("LogsLiveStream");
 
         return endpoints;
@@ -54,7 +42,7 @@ public static class SseExtensions
     private static IResult HandleLiveStream(ITelemetrySseBroadcaster stream, HttpContext context)
     {
         var clientId = Guid.NewGuid();
-        var reader = stream.Subscribe(clientId);
+        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
         return TypedResults.ServerSentEvents(StreamEventsAsync(reader, context.RequestAborted));
@@ -67,26 +55,25 @@ public static class SseExtensions
         string eventType)
     {
         var clientId = Guid.NewGuid();
-        var reader = stream.Subscribe(clientId);
+        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
         return TypedResults.ServerSentEvents(
             StreamFilteredAsync(reader, filter, context.RequestAborted),
-            eventType: eventType);
+            eventType);
     }
 
     private static async IAsyncEnumerable<SseItem<TelemetrySseEvent>> StreamEventsAsync(
         ChannelReader<TelemetryMessage> reader,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        // Connection established event
-        yield return new SseItem<TelemetrySseEvent>(
-            new TelemetrySseEvent("connected", null, DateTimeOffset.UtcNow),
+        yield return new(
+            new("connected", null, DateTimeOffset.UtcNow),
             "connected");
 
-        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
-            var eventType = message.Signal switch
+            string eventType = message.Signal switch
             {
                 TelemetrySignal.Trace => "spans",
                 TelemetrySignal.Metric => "metrics",
@@ -94,8 +81,8 @@ public static class SseExtensions
                 _ => "data"
             };
 
-            yield return new SseItem<TelemetrySseEvent>(
-                new TelemetrySseEvent(eventType, message.Data, message.Timestamp),
+            yield return new(
+                new(eventType, message.Data, message.Timestamp),
                 eventType);
         }
     }
@@ -105,7 +92,7 @@ public static class SseExtensions
         TelemetrySignal filter,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
             if (message.Signal == filter)
                 yield return message.Data;
@@ -113,17 +100,11 @@ public static class SseExtensions
     }
 }
 
-/// <summary>
-/// SSE event payload. Serialized automatically by TypedResults.ServerSentEvents.
-/// </summary>
 public sealed record TelemetrySseEvent(
     string EventType,
     object? Data,
     DateTimeOffset Timestamp);
 
-/// <summary>
-/// SSE broadcaster interface for telemetry.
-/// </summary>
 public interface ITelemetrySseBroadcaster : IAsyncDisposable
 {
     int ClientCount { get; }
@@ -132,9 +113,6 @@ public interface ITelemetrySseBroadcaster : IAsyncDisposable
     void Publish(TelemetryMessage message);
 }
 
-/// <summary>
-/// Thread-safe SSE broadcaster using bounded channels with DropOldest backpressure.
-/// </summary>
 public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 {
     private readonly ConcurrentDictionary<Guid, Channel<TelemetryMessage>> _channels = new();
@@ -149,7 +127,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         var channel = Channel.CreateBounded<TelemetryMessage>(new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
-            SingleWriter = false,  // Multiple signal handlers publish
+            SingleWriter = false,
             SingleReader = true
         });
 
@@ -159,7 +137,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
     public void Unsubscribe(Guid clientId)
     {
-        if (_channels.TryRemove(clientId, out var channel))
+        if (_channels.TryRemove(clientId, out Channel<TelemetryMessage>? channel))
             channel.Writer.TryComplete();
     }
 
@@ -167,7 +145,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     {
         if (_disposed) return;
 
-        foreach (var channel in _channels.Values)
+        foreach (Channel<TelemetryMessage> channel in _channels.Values)
             channel.Writer.TryWrite(message);
     }
 
@@ -176,7 +154,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
 
-        foreach (var channel in _channels.Values)
+        foreach (Channel<TelemetryMessage> channel in _channels.Values)
             channel.Writer.TryComplete();
 
         _channels.Clear();

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
@@ -5,73 +6,50 @@ using Nuke.Common.ProjectModel;
 
 namespace Components;
 
-/// <summary>
-///     Base component providing shared Solution and path properties.
-///     All other components should inherit from this to access common infrastructure.
-/// </summary>
 internal interface IHasSolution : INukeBuild
 {
-	[Solution(GenerateProjects = true)]
-	Solution Solution => TryGetValue(() => Solution)!;
+    [Solution(GenerateProjects = true)]
+    Solution Solution => TryGetValue(() => Solution)!;
 
-	/// <summary>Artifacts output directory.</summary>
-	AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
+    AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
 
-	/// <summary>Test results directory.</summary>
-	AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
+    AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
 
-	/// <summary>Coverage reports directory.</summary>
-	AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
+    AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 
-	/// <summary>Docker compose file path.</summary>
-	AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
+    AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
 
-	/// <summary>Environment file for Docker Compose.</summary>
-	AbsolutePath EnvFile => RootDirectory / ".env";
+    AbsolutePath EnvFile => RootDirectory / ".env";
 
-	/// <summary>Safe accessor for Solution.Path with fallback.</summary>
-	AbsolutePath GetSolutionPath() =>
-		Solution.Path ?? RootDirectory.GlobFiles("*.sln", "*.slnx").FirstOrDefault()
-		?? throw new System.InvalidOperationException("Unable to locate solution file");
+    AbsolutePath SourceDirectory => RootDirectory / "src";
 
-	// ══════════════════════════════════════════════════════════════════════════
-	// SOURCE DIRECTORIES
-	// ══════════════════════════════════════════════════════════════════════════
+    AbsolutePath CollectorDirectory => SourceDirectory / "qyl.collector";
 
-	/// <summary>Source directory containing all projects.</summary>
-	AbsolutePath SourceDirectory => RootDirectory / "src";
+    AbsolutePath DashboardDirectory => SourceDirectory / "qyl.dashboard";
 
-	/// <summary>OTLP Receiver + REST API project directory.</summary>
-	AbsolutePath ReceiverDirectory => SourceDirectory / "dashboard.Receiver";
+    AbsolutePath GrpcDirectory => SourceDirectory / "qyl.grpc";
 
-	/// <summary>Frontend project directory (React SPA).</summary>
-	AbsolutePath WebUiDirectory => SourceDirectory / "dashboard.web";
+    AbsolutePath McpServerDirectory => SourceDirectory / "qyl.mcp.server";
 
-	/// <summary>lol semantic convention tooling directory.</summary>
-	AbsolutePath LolDirectory => SourceDirectory / "lol";
+    AbsolutePath AgentsTelemetryDirectory => SourceDirectory / "qyl.agents.telemetry";
 
-	/// <summary>ZeroCode samples root directory.</summary>
-	AbsolutePath ZeroCodeDirectory => SourceDirectory / "ZeroCode";
+    AbsolutePath SdkAspNetCoreDirectory => SourceDirectory / "qyl.sdk.aspnetcore";
 
-	// ══════════════════════════════════════════════════════════════════════════
-	// ZEROCODE POLYGLOT SAMPLES
-	// ══════════════════════════════════════════════════════════════════════════
+    AbsolutePath DemoDirectory => SourceDirectory / "qyl.demo";
 
-	/// <summary>ZeroCode .NET sample directory.</summary>
-	AbsolutePath ZeroCodeDotNetDirectory => SourceDirectory / "ZeroCode.DotNet";
+    AbsolutePath TestsDirectory => RootDirectory / "tests";
 
-	/// <summary>ZeroCode Java sample directory.</summary>
-	AbsolutePath ZeroCodeJavaDirectory => SourceDirectory / "ZeroCode.Java";
+    AbsolutePath UnitTestsDirectory => TestsDirectory / "UnitTests";
 
-	/// <summary>ZeroCode Python sample directory.</summary>
-	AbsolutePath ZeroCodePythonDirectory => SourceDirectory / "ZeroCode.Python";
+    AbsolutePath IntegrationTestsDirectory => TestsDirectory / "IntegrationTests";
 
-	/// <summary>ZeroCode Node.js sample directory.</summary>
-	AbsolutePath ZeroCodeNodeDirectory => SourceDirectory / "ZeroCode.Node";
+    AbsolutePath ExamplesDirectory => RootDirectory / "examples";
 
-	/// <summary>ZeroCode Go sample directory.</summary>
-	AbsolutePath ZeroCodeGoDirectory => SourceDirectory / "ZeroCode.Go";
+    AbsolutePath AspNetCoreExampleDirectory => ExamplesDirectory / "qyl.AspNetCore.Example";
 
-	/// <summary>ZeroCode PHP sample directory.</summary>
-	AbsolutePath ZeroCodePhpDirectory => SourceDirectory / "ZeroCode.PHP";
+    AbsolutePath WebUiDirectory => DashboardDirectory;
+
+    AbsolutePath GetSolutionPath() =>
+        Solution.Path ?? RootDirectory.GlobFiles("*.sln", "*.slnx").FirstOrDefault()
+        ?? throw new InvalidOperationException("Unable to locate solution file");
 }

@@ -10,9 +10,6 @@ public sealed class OtlpLogsService(
     OtlpConverter converter,
     ILogger<OtlpLogsService> logger) : LogsService.LogsServiceBase
 {
-    /// <summary>
-    /// Event raised when logs are received.
-    /// </summary>
     public event Action<IReadOnlyList<LogModel>>? LogsReceived;
 
     public override Task<ExportLogsServiceResponse> Export(

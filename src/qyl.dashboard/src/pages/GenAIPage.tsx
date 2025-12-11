@@ -1,25 +1,25 @@
-import { useState, useMemo } from 'react';
+import {useMemo, useState} from 'react';
 import {
-  Sparkles,
-  MessageSquare,
-  Wrench,
-  DollarSign,
-  Cpu,
-  ChevronRight,
-  ChevronDown,
-  Copy,
-  Check,
   Activity,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Copy,
+  Cpu,
+  DollarSign,
+  MessageSquare,
+  Sparkles,
+  Wrench,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
-import { formatDuration } from '@/hooks/use-telemetry';
+import {cn} from '@/lib/utils';
+import {Card, CardContent, CardHeader} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Separator} from '@/components/ui/separator';
+import {formatDuration} from '@/hooks/use-telemetry';
 // Using legacy types with message content - OpenAPI schema doesn't include messages yet
-import type { Span, GenAISpanData } from '@/types/telemetry';
+import type {GenAISpanData, Span} from '@/types/telemetry';
 
 // Mock GenAI spans
 const mockGenAISpans: (Span & { genai: GenAISpanData })[] = [
@@ -47,8 +47,8 @@ const mockGenAISpans: (Span & { genai: GenAISpanData })[] = [
       costUsd: 0.0425,
       finishReasons: ['stop'],
       inputMessages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
-        { role: 'user', content: 'What is the capital of France?' },
+        {role: 'system', content: 'You are a helpful assistant.'},
+        {role: 'user', content: 'What is the capital of France?'},
       ],
       outputMessages: [
         {
@@ -82,7 +82,7 @@ const mockGenAISpans: (Span & { genai: GenAISpanData })[] = [
       costUsd: 0.0885,
       finishReasons: ['end_turn'],
       inputMessages: [
-        { role: 'user', content: 'Help me write a Python function to calculate fibonacci numbers.' },
+        {role: 'user', content: 'Help me write a Python function to calculate fibonacci numbers.'},
       ],
       outputMessages: [
         {
@@ -110,7 +110,7 @@ interface GenAISpanCardProps {
   onToggle: () => void;
 }
 
-function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
+function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
   const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
 
   const copyToClipboard = (text: string, id: string) => {
@@ -122,8 +122,8 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
   const providerColor = span.genai.providerName === 'openai'
     ? 'text-green-500 border-green-500'
     : span.genai.providerName === 'anthropic'
-    ? 'text-orange-500 border-orange-500'
-    : 'text-violet-500 border-violet-500';
+      ? 'text-orange-500 border-orange-500'
+      : 'text-violet-500 border-violet-500';
 
   return (
     <Card className={cn('transition-all', isExpanded && 'ring-1 ring-primary/50')}>
@@ -134,9 +134,9 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
         <div className="flex items-start gap-4">
           {/* Expand indicator */}
           {isExpanded ? (
-            <ChevronDown className="w-5 h-5 mt-0.5 text-muted-foreground" />
+            <ChevronDown className="w-5 h-5 mt-0.5 text-muted-foreground"/>
           ) : (
-            <ChevronRight className="w-5 h-5 mt-0.5 text-muted-foreground" />
+            <ChevronRight className="w-5 h-5 mt-0.5 text-muted-foreground"/>
           )}
 
           {/* Provider/Model info */}
@@ -179,22 +179,22 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
 
       {isExpanded && (
         <CardContent className="pt-0">
-          <Separator className="mb-4" />
+          <Separator className="mb-4"/>
 
           <Tabs defaultValue="messages" className="w-full">
             <TabsList>
               <TabsTrigger value="messages">
-                <MessageSquare className="w-4 h-4 mr-1" />
+                <MessageSquare className="w-4 h-4 mr-1"/>
                 Messages
               </TabsTrigger>
               {span.genai.toolCalls && span.genai.toolCalls.length > 0 && (
                 <TabsTrigger value="tools">
-                  <Wrench className="w-4 h-4 mr-1" />
+                  <Wrench className="w-4 h-4 mr-1"/>
                   Tools ({span.genai.toolCalls.length})
                 </TabsTrigger>
               )}
               <TabsTrigger value="details">
-                <Cpu className="w-4 h-4 mr-1" />
+                <Cpu className="w-4 h-4 mr-1"/>
                 Details
               </TabsTrigger>
             </TabsList>
@@ -220,9 +220,9 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
                         onClick={() => copyToClipboard(msg.content || '', `input-${i}`)}
                       >
                         {copiedMessage === `input-${i}` ? (
-                          <Check className="w-3 h-3 text-green-500" />
+                          <Check className="w-3 h-3 text-green-500"/>
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3 h-3"/>
                         )}
                       </Button>
                     </div>
@@ -235,9 +235,9 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
 
               {/* Divider */}
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-4 h-4"/>
                 <span className="text-xs">Response</span>
-                <div className="flex-1 border-t border-border" />
+                <div className="flex-1 border-t border-border"/>
               </div>
 
               {/* Output messages */}
@@ -255,9 +255,9 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
                         onClick={() => copyToClipboard(msg.content || '', `output-${i}`)}
                       >
                         {copiedMessage === `output-${i}` ? (
-                          <Check className="w-3 h-3 text-green-500" />
+                          <Check className="w-3 h-3 text-green-500"/>
                         ) : (
-                          <Copy className="w-3 h-3" />
+                          <Copy className="w-3 h-3"/>
                         )}
                       </Button>
                     </div>
@@ -273,7 +273,7 @@ function GenAISpanCard({ span, isExpanded, onToggle }: GenAISpanCardProps) {
               {span.genai.toolCalls?.map((tool, i) => (
                 <div key={i} className="p-3 rounded-lg bg-muted">
                   <div className="flex items-center gap-2 mb-2">
-                    <Wrench className="w-4 h-4 text-primary" />
+                    <Wrench className="w-4 h-4 text-primary"/>
                     <span className="font-medium">{tool.function.name}</span>
                     <Badge variant="outline" className="text-xs">
                       {tool.type}
@@ -370,7 +370,7 @@ export function GenAIPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-violet-500" />
+              <Sparkles className="w-4 h-4 text-violet-500"/>
               <span className="text-sm text-muted-foreground">GenAI Calls</span>
             </div>
             <div className="text-2xl font-bold mt-1">{stats.totalCalls}</div>
@@ -380,7 +380,7 @@ export function GenAIPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-cyan-500" />
+              <Cpu className="w-4 h-4 text-cyan-500"/>
               <span className="text-sm text-muted-foreground">Total Tokens</span>
             </div>
             <div className="text-2xl font-bold mt-1">
@@ -392,7 +392,7 @@ export function GenAIPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-500" />
+              <DollarSign className="w-4 h-4 text-green-500"/>
               <span className="text-sm text-muted-foreground">Total Cost</span>
             </div>
             <div className="text-2xl font-bold mt-1 text-green-500">
@@ -404,7 +404,7 @@ export function GenAIPage() {
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <Activity className="w-4 h-4 text-yellow-500" />
+              <Activity className="w-4 h-4 text-yellow-500"/>
               <span className="text-sm text-muted-foreground">Avg Latency</span>
             </div>
             <div className="text-2xl font-bold mt-1">
@@ -421,7 +421,7 @@ export function GenAIPage() {
         {mockGenAISpans.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50"/>
               <p>No GenAI telemetry found</p>
               <p className="text-sm">GenAI spans will appear as your AI calls are traced</p>
             </CardContent>

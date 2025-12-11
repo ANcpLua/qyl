@@ -1,15 +1,9 @@
-// qyl.collector - Telemetry SSE Broadcaster
-// Thread-safe SSE broadcasting using bounded channels with DropOldest backpressure
-
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 using qyl.collector.Storage;
 
 namespace qyl.collector.Realtime;
 
-/// <summary>
-/// Thread-safe SSE broadcaster using bounded channels with DropOldest backpressure.
-/// </summary>
 public interface ITelemetrySseBroadcaster : IAsyncDisposable
 {
     int ClientCount { get; }
@@ -19,9 +13,6 @@ public interface ITelemetrySseBroadcaster : IAsyncDisposable
     void PublishSpans(SpanBatch batch);
 }
 
-/// <summary>
-/// Implementation of thread-safe SSE broadcaster.
-/// </summary>
 public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 {
     private readonly ConcurrentDictionary<Guid, Channel<TelemetryMessage>> _channels = new();
@@ -36,7 +27,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         var channel = Channel.CreateBounded<TelemetryMessage>(new BoundedChannelOptions(1000)
         {
             FullMode = BoundedChannelFullMode.DropOldest,
-            SingleWriter = false,  // Multiple publishers (trace, metric, log handlers)
+            SingleWriter = false,
             SingleReader = true
         });
 
@@ -46,7 +37,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
     public void Unsubscribe(Guid clientId)
     {
-        if (_channels.TryRemove(clientId, out var channel))
+        if (_channels.TryRemove(clientId, out Channel<TelemetryMessage>? channel))
             channel.Writer.TryComplete();
     }
 
@@ -54,7 +45,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     {
         if (_disposed) return;
 
-        foreach (var channel in _channels.Values)
+        foreach (Channel<TelemetryMessage> channel in _channels.Values)
             channel.Writer.TryWrite(item);
     }
 
@@ -69,7 +60,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
 
-        foreach (var channel in _channels.Values)
+        foreach (Channel<TelemetryMessage> channel in _channels.Values)
             channel.Writer.TryComplete();
 
         _channels.Clear();
@@ -77,9 +68,6 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     }
 }
 
-/// <summary>
-/// Telemetry signal types.
-/// </summary>
 public enum TelemetrySignal
 {
     Connected = 0,
@@ -89,17 +77,11 @@ public enum TelemetrySignal
     Heartbeat = 4
 }
 
-/// <summary>
-/// Telemetry message for SSE streaming.
-/// </summary>
 public sealed record TelemetryMessage(
     TelemetrySignal Signal,
     object? Data,
     DateTimeOffset Timestamp);
 
-/// <summary>
-/// DTO for SSE event payload.
-/// </summary>
 public sealed record TelemetryEventDto(
     string EventType,
     object? Data,

@@ -9,72 +9,44 @@ using Serilog;
 
 namespace Components;
 
-/// <summary>
-///     The "AI Context Compiler" (lol.claude.compiler).
-///     Transforms a linked list of CLAUDE.md files into a single, token-efficient artifact.
-/// </summary>
 internal partial interface IClaudeContext : IHasSolution
 {
-    // ══════════════════════════════════════════════════════════════════════════
-    // CONFIGURATION
-    // ══════════════════════════════════════════════════════════════════════════
-
     AbsolutePath LeafClaude => RootDirectory / "CLAUDE.md";
     AbsolutePath CompiledArtifact => RootDirectory / ".claude" / "context.md";
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // CLI TARGETS
-    // ══════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// COMPILER (Local): Resolves the linked list and generates the runtime artifact.
-    /// Run this before starting an AI session.
-    /// </summary>
     Target GenerateContext => d => d
         .Description("Compiles the CLAUDE.md dependency chain into a flattened context file")
         .Executes(() =>
         {
             Log.Information("🧠 Compiler started: Resolving Dependency Graph...");
 
-            // 1. Resolve Linked List (Leaf -> Root)
-            var chain = ResolveLinkedList(LeafClaude, []);
+            List<AbsolutePath> chain = ResolveLinkedList(LeafClaude, []);
 
-            // 2. Compile (Root -> Leaf) to apply override logic
             var compilationUnit = new Dictionary<string, Section>();
-            foreach (var node in Enumerable.Reverse(chain))
+            foreach (AbsolutePath node in Enumerable.Reverse(chain))
             {
-                var layer = ParseNode(node);
+                Dictionary<string, string> layer = ParseNode(node);
                 MergeLayer(compilationUnit, layer, node.Name);
             }
 
-            // 3. Emit Artifact
             WriteArtifact(compilationUnit);
         });
 
-    /// <summary>
-    /// GATEKEEPER (CI): strictly validates the artifact against the Enterprise Schema.
-    /// </summary>
     Target AuditContext => d => d
         .Description("Validates the compiled context against strict schema rules")
         .DependsOn(GenerateContext)
         .Executes(() =>
         {
-            var content = CompiledArtifact.ReadAllText();
+            string? content = CompiledArtifact.ReadAllText();
 
-            // Schema Rule 1: Security is Mandatory
-            if (!content.Contains("## Security"))
+            if (!content.Contains("## Security", StringComparison.Ordinal))
                 throw new Exception("❌ COMPILER ERROR: Artifact missing mandatory 'Security' section.");
 
-            // Schema Rule 2: Prescriptive Commands
-            if (content.Contains("## Commands") && !content.Contains("```"))
+            if (content.Contains("## Commands", StringComparison.Ordinal) && !content.Contains("```", StringComparison.Ordinal))
                 throw new Exception("❌ COMPILER ERROR: 'Commands' section too vague. Must contain code blocks.");
 
             Log.Information("✅ Artifact validated successfully.");
         });
-
-    // ══════════════════════════════════════════════════════════════════════════
-    // COMPILER ENGINE
-    // ══════════════════════════════════════════════════════════════════════════
 
     private List<AbsolutePath> ResolveLinkedList(AbsolutePath current, List<AbsolutePath> visited)
     {
@@ -82,7 +54,7 @@ internal partial interface IClaudeContext : IHasSolution
         {
             if (!current.FileExists())
             {
-                if (visited.Count == 0) return []; // Allow missing leaf
+                if (visited.Count == 0) return [];
                 throw new Exception($"❌ LINK ERROR: Import target '{current}' not found.");
             }
 
@@ -90,54 +62,57 @@ internal partial interface IClaudeContext : IHasSolution
 
             visited.Add(current);
 
-            // Scan for @import directive
-            var content = current.ReadAllText();
-            var match = MyRegex().Match(content);
+            string? content = current.ReadAllText();
+            Match match = MyRegex().Match(content);
 
-            if (!match.Success) return visited; // Base case: Root reached
-            var importPath = match.Groups["path"].Value;
-            var nextNode = ResolvePath(current, importPath);
+            if (!match.Success) return visited;
+            string importPath = match.Groups["path"].Value;
+            AbsolutePath nextNode = ResolvePath(current, importPath);
             current = nextNode;
         }
     }
 
     private AbsolutePath ResolvePath(AbsolutePath current, string importPath)
     {
-        if (!importPath.StartsWith("~")) return current.Parent / importPath;
-        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        return importPath.Replace("~", home);
-    }
-
-    private class Section
-    {
-        public string Content;
-        public bool Locked;
+        if (!importPath.StartsWith('~')) return current.Parent / importPath;
+        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        return importPath.Replace("~", home, StringComparison.Ordinal);
     }
 
     private void MergeLayer(Dictionary<string, Section> context, Dictionary<string, string> layer, string layerName)
     {
-        foreach (var (header, content) in layer)
-        {
-            // STRATEGY A: SECURITY (Immutable/Locked)
-            if (header.Contains("Security") || header.Contains("Policy"))
+        foreach ((string header, string content) in layer)
+
+            if (header.Contains("Security", StringComparison.Ordinal) || header.Contains("Policy", StringComparison.Ordinal))
             {
-                if (context.ContainsKey(header) && context[header].Locked) continue;
-                context[header] = new Section { Content = content, Locked = true };
+                if (context.TryGetValue(header, out Section? existing) && existing.Locked)
+                    continue;
+
+                context[header] = new Section
+                {
+                    Content = content,
+                    Locked = true
+                };
             }
-            // STRATEGY B: COMMANDS (Additive/Append)
-            else if (header.Contains("Commands"))
+
+            else if (header.Contains("Commands", StringComparison.Ordinal))
             {
-                if (!context.TryGetValue(header, out var value))
-                    context[header] = new Section { Content = content };
+                if (!context.TryGetValue(header, out Section? value))
+                    context[header] = new Section
+                    {
+                        Content = content
+                    };
                 else
                     value.Content += $"\n\n### [{layerName} Extension]\n{content}";
             }
-            // STRATEGY C: HEURISTICS (Replacement/Override)
+
             else
             {
-                context[header] = new Section { Content = content };
+                context[header] = new Section
+                {
+                    Content = content
+                };
             }
-        }
     }
 
     private Dictionary<string, string> ParseNode(AbsolutePath path)
@@ -148,8 +123,8 @@ internal partial interface IClaudeContext : IHasSolution
 
         foreach (Match match in regex.Matches(path.ReadAllText()))
         {
-            var cleanContent =
-                Regex.Replace(match.Groups["content"].Value, @"^@import.*$", "", RegexOptions.Multiline).Trim();
+            string cleanContent =
+                MyRegex1().Replace(match.Groups["content"].Value, "").Trim();
             if (!string.IsNullOrWhiteSpace(cleanContent))
                 result[match.Groups["header"].Value.Trim()] = cleanContent;
         }
@@ -163,15 +138,14 @@ internal partial interface IClaudeContext : IHasSolution
         var sb = new StringBuilder();
 
         sb.AppendLine("");
-        sb.AppendLine($"");
+        sb.AppendLine("");
         sb.AppendLine();
 
-        // Enforce Reading Order
-        var sortedKeys = context.Keys.OrderBy(k =>
-            k.Contains("Security") ? 0 :
-            k.Contains("Commands") ? 1 : 99);
+        IOrderedEnumerable<string> sortedKeys = context.Keys.OrderBy(k =>
+            k.Contains("Security", StringComparison.Ordinal) ? 0 :
+            k.Contains("Commands", StringComparison.Ordinal) ? 1 : 99);
 
-        foreach (var key in sortedKeys)
+        foreach (string key in sortedKeys)
         {
             sb.AppendLine($"## {key}");
             sb.AppendLine(context[key].Content);
@@ -186,4 +160,13 @@ internal partial interface IClaudeContext : IHasSolution
                     ^@import\s+"(?<path>.+)"
                     """, RegexOptions.Multiline)]
     private static partial Regex MyRegex();
+
+    [GeneratedRegex("^@import.*$", RegexOptions.Multiline)]
+    private static partial Regex MyRegex1();
+
+    private class Section
+    {
+        public required string Content;
+        public bool Locked;
+    }
 }

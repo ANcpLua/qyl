@@ -1,125 +1,73 @@
-// Copyright (c) qyl. All rights reserved.
-// Shared argument validation helpers.
-
-#pragma warning disable IDE0005 // Using directive is unnecessary.
+// =============================================================================
+// qyl Shared - Throw Helpers
+// Injected via <InjectSharedThrow>true</InjectSharedThrow>
+// =============================================================================
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace qyl.providers.gemini.Throw;
+namespace Qyl;
 
 /// <summary>
-/// Defines static methods used to throw exceptions with standardized messages.
+/// Provides helper methods for argument validation that throw on failure.
 /// </summary>
-[ExcludeFromCodeCoverage]
 internal static class Throw
 {
     /// <summary>
-    /// Throws an <see cref="ArgumentNullException"/> if the specified argument is <see langword="null"/>.
+    /// Throws <see cref="ArgumentNullException"/> if <paramref name="argument"/> is null.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
-    public static T IfNull<T>([NotNull] T argument, [CallerArgumentExpression(nameof(argument))] string paramName = "")
+    public static void IfNull<T>(
+        [NotNull] T? argument,
+        [CallerArgumentExpression(nameof(argument))] string? paramName = null)
+        where T : class
     {
-        if (argument is null)
-        {
-            ThrowArgumentNullException(paramName);
-        }
-        return argument;
+        ArgumentNullException.ThrowIfNull(argument, paramName);
     }
 
     /// <summary>
-    /// Throws an <see cref="ArgumentNullException"/> if the string is <see langword="null"/>,
-    /// or <see cref="ArgumentException"/> if it is empty or whitespace.
+    /// Throws <see cref="ArgumentException"/> if <paramref name="argument"/> is null or whitespace.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
-    public static string IfNullOrWhitespace([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string paramName = "")
+    public static void IfNullOrWhiteSpace(
+        [NotNull] string? argument,
+        [CallerArgumentExpression(nameof(argument))] string? paramName = null)
     {
-        if (string.IsNullOrWhiteSpace(argument))
-        {
-            if (argument is null)
-            {
-                ThrowArgumentNullException(paramName);
-            }
-            else
-            {
-                ThrowArgumentException(paramName, "Argument is empty or whitespace");
-            }
-        }
-        return argument;
+        ArgumentException.ThrowIfNullOrWhiteSpace(argument, paramName);
     }
 
     /// <summary>
-    /// Throws an <see cref="ArgumentNullException"/> if the string is <see langword="null"/>,
-    /// or <see cref="ArgumentException"/> if it is empty.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="value"/> is negative.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    [return: NotNull]
-    public static string IfNullOrEmpty([NotNull] string? argument, [CallerArgumentExpression(nameof(argument))] string paramName = "")
+    public static void IfNegative(
+        int value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
-        if (string.IsNullOrEmpty(argument))
-        {
-            if (argument is null)
-            {
-                ThrowArgumentNullException(paramName);
-            }
-            else
-            {
-                ThrowArgumentException(paramName, "Argument is an empty string");
-            }
-        }
-        return argument;
+        ArgumentOutOfRangeException.ThrowIfNegative(value, paramName);
     }
 
     /// <summary>
-    /// Throws an <see cref="ArgumentOutOfRangeException"/> if the specified number is less than min.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="value"/> is zero or negative.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int IfLessThan(int argument, int min, [CallerArgumentExpression(nameof(argument))] string paramName = "")
+    public static void IfNegativeOrZero(
+        int value,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null)
     {
-        if (argument < min)
-        {
-            ThrowArgumentOutOfRangeException(paramName, $"Argument less than minimum value {min}");
-        }
-        return argument;
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, paramName);
     }
 
     /// <summary>
-    /// Throws an <see cref="ArgumentOutOfRangeException"/> if the specified number is greater than max.
+    /// Throws <see cref="ArgumentOutOfRangeException"/> if <paramref name="value"/> is less than <paramref name="other"/>.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int IfGreaterThan(int argument, int max, [CallerArgumentExpression(nameof(argument))] string paramName = "")
+    public static void IfLessThan<T>(
+        T value,
+        T other,
+        [CallerArgumentExpression(nameof(value))] string? paramName = null)
+        where T : IComparable<T>
     {
-        if (argument > max)
-        {
-            ThrowArgumentOutOfRangeException(paramName, $"Argument greater than maximum value {max}");
-        }
-        return argument;
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, other, paramName);
     }
-
-    /// <summary>
-    /// Throws an <see cref="ArgumentOutOfRangeException"/> if the specified number is not in the specified range.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static int IfOutOfRange(int argument, int min, int max, [CallerArgumentExpression(nameof(argument))] string paramName = "")
-    {
-        if (argument < min || argument > max)
-        {
-            ThrowArgumentOutOfRangeException(paramName, $"Argument not in the range [{min}..{max}]");
-        }
-        return argument;
-    }
-
-    [DoesNotReturn]
-    private static void ThrowArgumentNullException(string paramName)
-        => throw new ArgumentNullException(paramName);
-
-    [DoesNotReturn]
-    private static void ThrowArgumentException(string paramName, string message)
-        => throw new ArgumentException(message, paramName);
-
-    [DoesNotReturn]
-    private static void ThrowArgumentOutOfRangeException(string paramName, string message)
-        => throw new ArgumentOutOfRangeException(paramName, message);
 }

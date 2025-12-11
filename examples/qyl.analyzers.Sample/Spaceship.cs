@@ -1,5 +1,3 @@
-using System;
-
 namespace qyl.analyzers.Sample;
 
 public class Spaceship

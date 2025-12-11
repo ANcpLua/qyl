@@ -74,7 +74,8 @@ public class MyService(GeminiClient gemini)
 
 ## Why "barking dog"?
 
-The Gemini free tier hallucinates so much it sounds like barking. Perfect for low-stakes summarization where Opus (Claude) needs a cheap fetch assistant. 🐕
+The Gemini free tier hallucinates so much it sounds like barking. Perfect for low-stakes summarization where Opus (
+Claude) needs a cheap fetch assistant. 🐕
 
 ## License
 

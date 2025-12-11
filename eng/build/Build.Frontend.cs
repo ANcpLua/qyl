@@ -5,137 +5,120 @@ using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
-/// <summary>
-///     Frontend build component for React SPA (dashboard.web).
-///     Refactored to use NUKE's native NpmTasks.
-/// </summary>
-/// <remarks>
-///     Stack: React 19, TypeScript, Vite 6, Tailwind 4
-///     Key improvements over ProcessTasks wrapper:
-///     - Type-safe NpmRun with argument handling
-///     - Automatic working directory management
-///     - Consistent error handling and exit code checking
-///     - Verbosity mapping integration
-/// </remarks>
 [ParameterPrefix(nameof(IFrontend))]
 internal interface IFrontend : IHasSolution
 {
-	// ══════════════════════════════════════════════════════════════════════════
-	// PATH CONSTANTS (webUIDirectory inherited from IHasSolution)
-	// ══════════════════════════════════════════════════════════════════════════
+    AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 
-	/// <summary>Frontend build output directory.</summary>
-	AbsolutePath WebUiDistDirectory => WebUiDirectory / "dist";
+    AbsolutePath NodeModulesDirectory => DashboardDirectory / "node_modules";
 
-	/// <summary>Frontend node_modules directory.</summary>
-	AbsolutePath NodeModulesDirectory => WebUiDirectory / "node_modules";
+    Target FrontendInstall => d => d
+        .Description("Install frontend npm dependencies")
+        .Executes(() =>
+        {
+            Log.Information("Installing npm dependencies in {Directory}", DashboardDirectory);
 
-	// ══════════════════════════════════════════════════════════════════════════
-	// TARGETS
-	// ══════════════════════════════════════════════════════════════════════════
+            NpmTasks.NpmInstall(s => s
+                .SetProcessWorkingDirectory<NpmInstallSettings>(DashboardDirectory));
+        });
 
-	/// <summary>Install npm dependencies.</summary>
-	Target FrontendInstall => d => d
-		.Description("Install frontend npm dependencies")
-		.Executes(() =>
-		{
-			Log.Information("Installing npm dependencies in {Directory}", WebUiDirectory);
+    Target FrontendBuild => d => d
+        .Description("Build frontend for production (tsc + vite build)")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Produces(DashboardDistDirectory / "**/*")
+        .Executes(() =>
+        {
+            Log.Information("Building qyl.dashboard...");
 
-			NpmTasks.NpmInstall(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmInstallSettings>(s, WebUiDirectory));
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("build"));
 
-	/// <summary>Build frontend for production.</summary>
-	Target FrontendBuild => d => d
-		.Description("Build frontend for production (tsc + vite build)")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Produces(WebUiDistDirectory / "**/*")
-		.Executes(() =>
-		{
-			Log.Information("Building frontend...");
+            Log.Information("Dashboard built → {Output}", DashboardDistDirectory);
+        });
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("build"));
+    Target FrontendTest => d => d
+        .Description("Run frontend tests (Vitest)")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Running frontend tests...");
 
-			Log.Information("Frontend built → {Output}", WebUiDistDirectory);
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("test")
+                .SetArguments("--", "--run"));
+        });
 
-	/// <summary>Run frontend tests with Vitest.</summary>
-	Target FrontendTest => d => d
-		.Description("Run frontend tests (Vitest)")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Executes(() =>
-		{
-			Log.Information("Running frontend tests...");
+    Target FrontendCoverage => d => d
+        .Description("Run frontend tests with coverage")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Running frontend tests with coverage...");
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("test")
-				.SetArguments("--", "--run"));
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("test:coverage"));
+        });
 
-	/// <summary>Run frontend tests with coverage.</summary>
-	Target FrontendCoverage => d => d
-		.Description("Run frontend tests with coverage")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Executes(() =>
-		{
-			Log.Information("Running frontend tests with coverage...");
+    Target FrontendLint => d => d
+        .Description("Lint frontend code (ESLint)")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Linting frontend code...");
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("test:coverage"));
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("lint"));
+        });
 
-	/// <summary>Lint frontend code with ESLint.</summary>
-	Target FrontendLint => d => d
-		.Description("Lint frontend code (ESLint)")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Executes(() =>
-		{
-			Log.Information("Linting frontend code...");
+    Target FrontendLintFix => d => d
+        .Description("Fix frontend linting issues")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Fixing frontend linting issues...");
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("lint"));
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("lint:fix"));
+        });
 
-	/// <summary>Fix linting issues automatically.</summary>
-	Target FrontendLintFix => d => d
-		.Description("Fix frontend linting issues")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Executes(() =>
-		{
-			Log.Information("Fixing frontend linting issues...");
+    Target FrontendDev => d => d
+        .Description("Start frontend dev server (Vite)")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Starting Vite dev server for qyl.dashboard...");
+            Log.Information("  URL: http://localhost:5173");
+            Log.Information("  API: Proxied to http://localhost:5100 (override with VITE_API_URL)");
+            Log.Information("  Press Ctrl+C to stop");
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("lint:fix"));
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("dev"));
+        });
 
-	/// <summary>Start Vite dev server (foreground).</summary>
-	Target FrontendDev => d => d
-		.Description("Start frontend dev server (Vite)")
-		.DependsOn<IFrontend>(x => x.FrontendInstall)
-		.Executes(() =>
-		{
-			Log.Information("Starting Vite dev server...");
-			Log.Information("  URL: http://localhost:5173");
-			Log.Information("  Press Ctrl+C to stop");
+    Target FrontendClean => d => d
+        .Description("Clean frontend build artifacts")
+        .Executes(() =>
+        {
+            Log.Information("Cleaning frontend artifacts...");
+            DashboardDistDirectory.DeleteDirectory();
+            Log.Information("Cleaned: {Directory}", DashboardDistDirectory);
+        });
 
-			NpmTasks.NpmRun(s => ToolOptionsExtensions
-				.SetProcessWorkingDirectory<NpmRunSettings>(s, WebUiDirectory)
-				.SetCommand("dev"));
-		});
+    Target FrontendTypeCheck => d => d
+        .Description("Type check frontend (tsc --noEmit)")
+        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .Executes(() =>
+        {
+            Log.Information("Type checking frontend...");
 
-	/// <summary>Clean frontend build artifacts.</summary>
-	Target FrontendClean => d => d
-		.Description("Clean frontend build artifacts")
-		.Executes(() =>
-		{
-			Log.Information("Cleaning frontend artifacts...");
-			WebUiDistDirectory.DeleteDirectory();
-			Log.Information("Cleaned: {Directory}", WebUiDistDirectory);
-		});
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(DashboardDirectory)
+                .SetCommand("typecheck"));
+        });
 }

@@ -1,74 +1,61 @@
-import { useState } from 'react';
+import {useState} from 'react';
+import {Activity, BarChart3, Clock, TrendingDown, TrendingUp, Zap,} from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Activity,
-  Clock,
-  Zap,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  LineChart,
-  Line,
-  AreaChart,
   Area,
-  BarChart,
+  AreaChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
 } from 'recharts';
 
 // Mock data for charts
 const latencyData = [
-  { time: '00:00', p50: 45, p95: 120, p99: 250 },
-  { time: '00:05', p50: 52, p95: 135, p99: 280 },
-  { time: '00:10', p50: 48, p95: 125, p99: 260 },
-  { time: '00:15', p50: 55, p95: 145, p99: 310 },
-  { time: '00:20', p50: 42, p95: 110, p99: 220 },
-  { time: '00:25', p50: 50, p95: 130, p99: 270 },
-  { time: '00:30', p50: 47, p95: 122, p99: 255 },
+  {time: '00:00', p50: 45, p95: 120, p99: 250},
+  {time: '00:05', p50: 52, p95: 135, p99: 280},
+  {time: '00:10', p50: 48, p95: 125, p99: 260},
+  {time: '00:15', p50: 55, p95: 145, p99: 310},
+  {time: '00:20', p50: 42, p95: 110, p99: 220},
+  {time: '00:25', p50: 50, p95: 130, p99: 270},
+  {time: '00:30', p50: 47, p95: 122, p99: 255},
 ];
 
 const throughputData = [
-  { time: '00:00', requests: 1200, errors: 12 },
-  { time: '00:05', requests: 1350, errors: 8 },
-  { time: '00:10', requests: 1180, errors: 15 },
-  { time: '00:15', requests: 1420, errors: 22 },
-  { time: '00:20', requests: 1280, errors: 10 },
-  { time: '00:25', requests: 1390, errors: 18 },
-  { time: '00:30', requests: 1310, errors: 14 },
+  {time: '00:00', requests: 1200, errors: 12},
+  {time: '00:05', requests: 1350, errors: 8},
+  {time: '00:10', requests: 1180, errors: 15},
+  {time: '00:15', requests: 1420, errors: 22},
+  {time: '00:20', requests: 1280, errors: 10},
+  {time: '00:25', requests: 1390, errors: 18},
+  {time: '00:30', requests: 1310, errors: 14},
 ];
 
 const tokenUsageData = [
-  { time: '00:00', input: 45000, output: 12000 },
-  { time: '00:05', input: 52000, output: 15000 },
-  { time: '00:10', input: 48000, output: 13500 },
-  { time: '00:15', input: 61000, output: 18000 },
-  { time: '00:20', input: 55000, output: 16000 },
-  { time: '00:25', input: 58000, output: 17000 },
-  { time: '00:30', input: 50000, output: 14500 },
+  {time: '00:00', input: 45000, output: 12000},
+  {time: '00:05', input: 52000, output: 15000},
+  {time: '00:10', input: 48000, output: 13500},
+  {time: '00:15', input: 61000, output: 18000},
+  {time: '00:20', input: 55000, output: 16000},
+  {time: '00:25', input: 58000, output: 17000},
+  {time: '00:30', input: 50000, output: 14500},
 ];
 
 const modelUsageData = [
-  { model: 'gpt-4o', requests: 450, tokens: 1250000, cost: 12.50 },
-  { model: 'gpt-4o-mini', requests: 820, tokens: 890000, cost: 4.20 },
-  { model: 'claude-3.5-sonnet', requests: 320, tokens: 780000, cost: 9.80 },
-  { model: 'claude-3-haiku', requests: 150, tokens: 450000, cost: 1.20 },
+  {model: 'gpt-4o', requests: 450, tokens: 1250000, cost: 12.50},
+  {model: 'gpt-4o-mini', requests: 820, tokens: 890000, cost: 4.20},
+  {model: 'claude-3.5-sonnet', requests: 320, tokens: 780000, cost: 9.80},
+  {model: 'claude-3-haiku', requests: 150, tokens: 450000, cost: 1.20},
 ];
 
 interface StatCardProps {
@@ -79,7 +66,7 @@ interface StatCardProps {
   iconColor?: string;
 }
 
-function StatCard({ title, value, change, icon: Icon, iconColor = 'text-primary' }: StatCardProps) {
+function StatCard({title, value, change, icon: Icon, iconColor = 'text-primary'}: StatCardProps) {
   return (
     <Card>
       <CardContent className="pt-4">
@@ -93,15 +80,15 @@ function StatCard({ title, value, change, icon: Icon, iconColor = 'text-primary'
                 change >= 0 ? 'text-green-500' : 'text-red-500'
               )}>
                 {change >= 0 ? (
-                  <TrendingUp className="w-4 h-4" />
+                  <TrendingUp className="w-4 h-4"/>
                 ) : (
-                  <TrendingDown className="w-4 h-4" />
+                  <TrendingDown className="w-4 h-4"/>
                 )}
                 <span>{Math.abs(change)}%</span>
               </div>
             )}
           </div>
-          <Icon className={cn('w-8 h-8', iconColor)} />
+          <Icon className={cn('w-8 h-8', iconColor)}/>
         </div>
       </CardContent>
     </Card>
@@ -118,7 +105,7 @@ export function MetricsPage() {
         <h2 className="text-lg font-semibold">Metrics Overview</h2>
         <Select value={timeRange} onValueChange={setTimeRange}>
           <SelectTrigger className="w-32">
-            <SelectValue />
+            <SelectValue/>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="15m">Last 15m</SelectItem>
@@ -178,7 +165,7 @@ export function MetricsPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={latencyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
                     <XAxis
                       dataKey="time"
                       stroke="hsl(var(--muted-foreground))"
@@ -195,9 +182,9 @@ export function MetricsPage() {
                         border: '1px solid hsl(var(--border))',
                         borderRadius: '8px',
                       }}
-                      labelStyle={{ color: 'hsl(var(--foreground))' }}
+                      labelStyle={{color: 'hsl(var(--foreground))'}}
                     />
-                    <Legend />
+                    <Legend/>
                     <Line
                       type="monotone"
                       dataKey="p50"
@@ -238,7 +225,7 @@ export function MetricsPage() {
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={throughputData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
                     <XAxis
                       dataKey="time"
                       stroke="hsl(var(--muted-foreground))"
@@ -255,7 +242,7 @@ export function MetricsPage() {
                         borderRadius: '8px',
                       }}
                     />
-                    <Legend />
+                    <Legend/>
                     <Area
                       type="monotone"
                       dataKey="requests"
@@ -287,7 +274,7 @@ export function MetricsPage() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={tokenUsageData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
                       <XAxis
                         dataKey="time"
                         stroke="hsl(var(--muted-foreground))"
@@ -305,7 +292,7 @@ export function MetricsPage() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Legend />
+                      <Legend/>
                       <Area
                         type="monotone"
                         dataKey="input"
@@ -334,8 +321,8 @@ export function MetricsPage() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={modelUsageData} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
+                      <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12}/>
                       <YAxis
                         type="category"
                         dataKey="model"
@@ -350,7 +337,7 @@ export function MetricsPage() {
                           borderRadius: '8px',
                         }}
                       />
-                      <Bar dataKey="requests" name="Requests" fill="hsl(var(--chart-2))" />
+                      <Bar dataKey="requests" name="Requests" fill="hsl(var(--chart-2))"/>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -366,40 +353,40 @@ export function MetricsPage() {
             <CardContent>
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 text-sm font-medium text-muted-foreground">Model</th>
-                    <th className="text-right py-2 text-sm font-medium text-muted-foreground">Requests</th>
-                    <th className="text-right py-2 text-sm font-medium text-muted-foreground">Tokens</th>
-                    <th className="text-right py-2 text-sm font-medium text-muted-foreground">Cost</th>
-                  </tr>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 text-sm font-medium text-muted-foreground">Model</th>
+                  <th className="text-right py-2 text-sm font-medium text-muted-foreground">Requests</th>
+                  <th className="text-right py-2 text-sm font-medium text-muted-foreground">Tokens</th>
+                  <th className="text-right py-2 text-sm font-medium text-muted-foreground">Cost</th>
+                </tr>
                 </thead>
                 <tbody>
-                  {modelUsageData.map((model) => (
-                    <tr key={model.model} className="border-b border-border">
-                      <td className="py-3">
-                        <Badge variant="outline">{model.model}</Badge>
-                      </td>
-                      <td className="text-right font-mono">{model.requests.toLocaleString()}</td>
-                      <td className="text-right font-mono">{(model.tokens / 1000).toFixed(0)}k</td>
-                      <td className="text-right font-mono text-green-500">
-                        ${model.cost.toFixed(2)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td className="py-3 font-medium">Total</td>
-                    <td className="text-right font-mono font-medium">
-                      {modelUsageData.reduce((a, b) => a + b.requests, 0).toLocaleString()}
+                {modelUsageData.map((model) => (
+                  <tr key={model.model} className="border-b border-border">
+                    <td className="py-3">
+                      <Badge variant="outline">{model.model}</Badge>
                     </td>
-                    <td className="text-right font-mono font-medium">
-                      {(modelUsageData.reduce((a, b) => a + b.tokens, 0) / 1000).toFixed(0)}k
-                    </td>
-                    <td className="text-right font-mono font-medium text-green-500">
-                      ${modelUsageData.reduce((a, b) => a + b.cost, 0).toFixed(2)}
+                    <td className="text-right font-mono">{model.requests.toLocaleString()}</td>
+                    <td className="text-right font-mono">{(model.tokens / 1000).toFixed(0)}k</td>
+                    <td className="text-right font-mono text-green-500">
+                      ${model.cost.toFixed(2)}
                     </td>
                   </tr>
+                ))}
+                </tbody>
+                <tfoot>
+                <tr>
+                  <td className="py-3 font-medium">Total</td>
+                  <td className="text-right font-mono font-medium">
+                    {modelUsageData.reduce((a, b) => a + b.requests, 0).toLocaleString()}
+                  </td>
+                  <td className="text-right font-mono font-medium">
+                    {(modelUsageData.reduce((a, b) => a + b.tokens, 0) / 1000).toFixed(0)}k
+                  </td>
+                  <td className="text-right font-mono font-medium text-green-500">
+                    ${modelUsageData.reduce((a, b) => a + b.cost, 0).toFixed(2)}
+                  </td>
+                </tr>
                 </tfoot>
               </table>
             </CardContent>

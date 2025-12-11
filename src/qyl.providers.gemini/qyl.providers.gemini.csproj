@@ -1,24 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-        <LangVersion>latest</LangVersion>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
 
-        <!-- Inject shared code -->
-        <InjectSharedThrow>true</InjectSharedThrow>
+    <!-- Inject shared code -->
+    <InjectSharedThrow>true</InjectSharedThrow>
 
-        <!-- Package Metadata -->
-        <PackageId>qyl.providers.gemini</PackageId>
-        <Version>1.0.0</Version>
-        <Authors>Alexander Nachtmann</Authors>
-        <Description>Google Gemini provider with IChatClient support for qyl via Mscc.GenerativeAI.Microsoft</Description>
-    </PropertyGroup>
+    <!-- Package Metadata -->
+    <PackageId>qyl.providers.gemini</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Alexander Nachtmann</Authors>
+    <Description>Google Gemini provider with IChatClient support for qyl via Mscc.GenerativeAI.Microsoft</Description>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <!-- Mscc.GenerativeAI.Microsoft provides IChatClient implementation -->
-        <PackageReference Include="Mscc.GenerativeAI.Microsoft" Version="2.9.7" />
-    </ItemGroup>
+  <ItemGroup>
+    <!-- Mscc.GenerativeAI.Microsoft provides IChatClient implementation -->
+    <PackageReference Include="Mscc.GenerativeAI.Microsoft"/>
+  </ItemGroup>
 
 </Project>

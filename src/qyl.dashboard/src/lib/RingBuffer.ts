@@ -12,15 +12,49 @@ export class RingBuffer<T> {
   private buffer: (T | undefined)[];
   private head = 0; // Next write position
   private tail = 0; // Oldest item position
-  private _length = 0;
-  private _generation = 0; // Increments on wrap-around (indices shifted - invalidate caches)
-  private _version = 0; // Increments on any push (content changed - trigger re-render)
 
   constructor(private readonly capacity: number) {
     if (capacity <= 0) {
       throw new Error('RingBuffer capacity must be positive');
     }
     this.buffer = new Array(capacity);
+  }
+
+  private _length = 0;
+
+  /** Current number of items in buffer */
+  get length(): number {
+    return this._length;
+  }
+
+  private _generation = 0; // Increments on wrap-around (indices shifted - invalidate caches)
+
+  /**
+   * Generation counter - increments each time buffer wraps around.
+   * Use this to invalidate cached measurements in virtualizers (indices shifted).
+   */
+  get generation(): number {
+    return this._generation;
+  }
+
+  private _version = 0; // Increments on any push (content changed - trigger re-render)
+
+  /**
+   * Version counter - increments on every push.
+   * Use this as a React dependency to trigger re-renders on content changes.
+   */
+  get version(): number {
+    return this._version;
+  }
+
+  /** Maximum capacity */
+  get size(): number {
+    return this.capacity;
+  }
+
+  /** Whether the buffer has wrapped at least once */
+  get hasWrapped(): boolean {
+    return this._generation > 0;
   }
 
   /**
@@ -80,37 +114,6 @@ export class RingBuffer<T> {
     return this.buffer[this.tail];
   }
 
-  /** Current number of items in buffer */
-  get length(): number {
-    return this._length;
-  }
-
-  /** Maximum capacity */
-  get size(): number {
-    return this.capacity;
-  }
-
-  /**
-   * Version counter - increments on every push.
-   * Use this as a React dependency to trigger re-renders on content changes.
-   */
-  get version(): number {
-    return this._version;
-  }
-
-  /**
-   * Generation counter - increments each time buffer wraps around.
-   * Use this to invalidate cached measurements in virtualizers (indices shifted).
-   */
-  get generation(): number {
-    return this._generation;
-  }
-
-  /** Whether the buffer has wrapped at least once */
-  get hasWrapped(): boolean {
-    return this._generation > 0;
-  }
-
   /**
    * Convert to array (oldest first).
    * O(n) - use sparingly, mainly for filtering.
@@ -138,7 +141,7 @@ export class RingBuffer<T> {
   /**
    * Iterate over items (oldest to newest).
    */
-  *[Symbol.iterator](): Iterator<T> {
+  * [Symbol.iterator](): Iterator<T> {
     for (let i = 0; i < this._length; i++) {
       yield this.get(i)!;
     }

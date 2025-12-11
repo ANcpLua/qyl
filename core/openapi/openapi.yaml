@@ -1,0 +1,6325 @@
+openapi: 3.1.0
+info:
+  title: QYL Observability API
+  version: '2025-01-01'
+tags:
+  - name: Streaming
+  - name: Traces
+  - name: Logs
+  - name: Metrics
+  - name: Sessions
+  - name: Errors
+  - name: Exceptions
+  - name: Deployments
+  - name: CI/CD
+  - name: Services
+  - name: Health
+paths:
+  /health:
+    get:
+      operationId: HealthApi_check
+      description: Health check endpoint
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+      tags:
+        - Health
+  /health/live:
+    get:
+      operationId: HealthApi_live
+      description: Liveness probe
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+        '503':
+          description: Service unavailable.
+      tags:
+        - Health
+  /health/ready:
+    get:
+      operationId: HealthApi_ready
+      description: Readiness probe
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+        '503':
+          description: Service unavailable.
+      tags:
+        - Health
+  /v1/deployments:
+    get:
+      operationId: DeploymentsApi_list
+      description: List deployments
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: environment
+          in: query
+          required: false
+          description: Environment filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEnvironment'
+          explode: false
+        - name: status
+          in: query
+          required: false
+          description: Status filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStatus'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEntity'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Deployments
+    post:
+      operationId: DeploymentsApi_create
+      description: Record new deployment
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEntity'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Deployments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentCreate'
+  /v1/deployments/metrics/dora:
+    get:
+      operationId: DeploymentsApi_getDoraMetrics
+      description: Get DORA metrics
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: environment
+          in: query
+          required: false
+          description: Environment filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEnvironment'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DoraMetrics'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Deployments
+  /v1/deployments/{deploymentId}:
+    get:
+      operationId: DeploymentsApi_get
+      description: Get deployment by ID
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEntity'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Deployments
+    patch:
+      operationId: DeploymentsApi_update
+      description: Update deployment status
+      parameters:
+        - name: deploymentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEntity'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Deployments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeploymentUpdate'
+  /v1/errors:
+    get:
+      operationId: ErrorsApi_list
+      description: List error groups
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: status
+          in: query
+          required: false
+          description: Status filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorStatus'
+          explode: false
+        - name: category
+          in: query
+          required: false
+          description: Category filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorCategory'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorEntity'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Errors
+  /v1/errors/stats:
+    get:
+      operationId: ErrorsApi_getStats
+      description: Get error statistics
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorStats'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Errors
+  /v1/errors/{errorId}:
+    get:
+      operationId: ErrorsApi_get
+      description: Get error by ID
+      parameters:
+        - name: errorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorEntity'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Errors
+    patch:
+      operationId: ErrorsApi_update
+      description: Update error status
+      parameters:
+        - name: errorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorEntity'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Errors
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ErrorUpdate'
+  /v1/errors/{errorId}/correlations:
+    get:
+      operationId: ErrorsApi_getCorrelations
+      description: Get error correlations
+      parameters:
+        - name: errorId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorCorrelation'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Errors
+  /v1/exceptions:
+    get:
+      operationId: ExceptionsApi_list
+      description: List exceptions
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: exceptionType
+          in: query
+          required: false
+          description: Exception type filter
+          schema:
+            type: string
+          explode: false
+        - name: status
+          in: query
+          required: false
+          description: Status filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionStatus'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.EnrichedException'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Exceptions
+  /v1/exceptions/stats:
+    get:
+      operationId: ExceptionsApi_getStats
+      description: Get exception statistics
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionStats'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Exceptions
+  /v1/logs:
+    get:
+      operationId: LogsApi_list
+      description: Query logs with filtering and pagination
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: severityMin
+          in: query
+          required: false
+          description: Minimum severity
+          schema:
+            $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityNumber'
+          explode: false
+        - name: severityMax
+          in: query
+          required: false
+          description: Maximum severity
+          schema:
+            $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityNumber'
+          explode: false
+        - name: traceId
+          in: query
+          required: false
+          description: Trace ID filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: query
+          in: query
+          required: false
+          description: Free text search
+          schema:
+            type: string
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 10000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+        - name: orderBy
+          in: query
+          required: false
+          description: Order
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogOrderBy'
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Logs.LogRecord'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Logs
+  /v1/logs/aggregate:
+    post:
+      operationId: LogsApi_aggregate
+      description: Aggregate logs
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogAggregationResponse'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Logs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogAggregationRequest'
+  /v1/logs/patterns:
+    get:
+      operationId: LogsApi_getPatterns
+      description: Get log patterns
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: minCount
+          in: query
+          required: false
+          description: Minimum occurrences
+          schema:
+            type: integer
+            format: int32
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogPattern'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Logs
+  /v1/logs/search:
+    post:
+      operationId: LogsApi_search
+      description: Search logs with complex query
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Logs.LogRecord'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Logs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogQuery'
+  /v1/logs/stats:
+    get:
+      operationId: LogsApi_getStats
+      description: Get log statistics
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.OTel.Logs.LogStats'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Logs
+  /v1/metrics:
+    get:
+      operationId: MetricsApi_list
+      description: List available metrics
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: namePattern
+          in: query
+          required: false
+          description: Metric name pattern
+          schema:
+            type: string
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/MetricMetadata'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Metrics
+  /v1/metrics/query:
+    post:
+      operationId: MetricsApi_query
+      description: Query metric data points
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricQueryResponse'
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Metrics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MetricQueryRequest'
+  /v1/metrics/{metricName}:
+    get:
+      operationId: MetricsApi_getMetadata
+      description: Get metric metadata
+      parameters:
+        - name: metricName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricMetadata'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Metrics
+  /v1/pipelines:
+    get:
+      operationId: PipelinesApi_list
+      description: List pipeline runs
+      parameters:
+        - name: pipelineName
+          in: query
+          required: false
+          description: Pipeline name filter
+          schema:
+            type: string
+          explode: false
+        - name: status
+          in: query
+          required: false
+          description: Status filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdPipelineStatus'
+          explode: false
+        - name: system
+          in: query
+          required: false
+          description: CI/CD system filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdSystem'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.PipelineRunEvent'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - CI/CD
+  /v1/pipelines/stats:
+    get:
+      operationId: PipelinesApi_getStats
+      description: Get pipeline statistics
+      parameters:
+        - name: pipelineName
+          in: query
+          required: false
+          description: Pipeline name filter
+          schema:
+            type: string
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PipelineStats'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - CI/CD
+  /v1/services:
+    get:
+      operationId: ServicesApi_list
+      description: List discovered services
+      parameters:
+        - name: namespaceName
+          in: query
+          required: false
+          description: Namespace filter
+          schema:
+            type: string
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceInfo'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Services
+  /v1/services/{serviceName}:
+    get:
+      operationId: ServicesApi_get
+      description: Get service details
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceDetails'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Services
+  /v1/services/{serviceName}/dependencies:
+    get:
+      operationId: ServicesApi_getDependencies
+      description: Get service dependencies
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Qyl.Domains.Identity.ServiceDependency'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Services
+  /v1/services/{serviceName}/operations:
+    get:
+      operationId: ServicesApi_getOperations
+      description: Get service operations
+      parameters:
+        - name: serviceName
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/OperationInfo'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Services
+  /v1/sessions:
+    get:
+      operationId: SessionsApi_list
+      description: List sessions
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          description: User ID filter
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.UserId'
+          explode: false
+        - name: isActive
+          in: query
+          required: false
+          description: Is active filter
+          schema:
+            type: boolean
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionEntity'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Sessions
+  /v1/sessions/stats:
+    get:
+      operationId: SessionsApi_getStats
+      description: Get session statistics
+      parameters:
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionStats'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Sessions
+  /v1/sessions/{sessionId}:
+    get:
+      operationId: SessionsApi_get
+      description: Get session by ID
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionEntity'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Sessions
+  /v1/sessions/{sessionId}/traces:
+    get:
+      operationId: SessionsApi_getTraces
+      description: Get session traces
+      parameters:
+        - name: sessionId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Traces.Trace'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Sessions
+  /v1/stream/deployments:
+    get:
+      operationId: StreamingApi_streamDeployments
+      description: Stream deployment events
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: environment
+          in: query
+          required: false
+          description: Environment filter
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/events:
+    get:
+      operationId: StreamingApi_streamEvents
+      description: Stream all telemetry events (SSE)
+      parameters:
+        - name: types
+          in: query
+          required: false
+          description: Event types
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Streaming.StreamEventType'
+          explode: false
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: sampleRate
+          in: query
+          required: false
+          description: Sample rate
+          schema:
+            type: number
+            format: double
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/exceptions:
+    get:
+      operationId: StreamingApi_streamExceptions
+      description: Stream exceptions in real-time
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: exceptionType
+          in: query
+          required: false
+          description: Exception type filter
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/logs:
+    get:
+      operationId: StreamingApi_streamLogs
+      description: Stream logs in real-time
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: minSeverity
+          in: query
+          required: false
+          description: Minimum severity
+          schema:
+            type: integer
+            format: int32
+          explode: false
+        - name: query
+          in: query
+          required: false
+          description: Query filter
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/metrics:
+    get:
+      operationId: StreamingApi_streamMetrics
+      description: Stream metrics in real-time
+      parameters:
+        - name: metricName
+          in: query
+          required: false
+          description: Metric name filter
+          schema:
+            type: string
+          explode: false
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/traces:
+    get:
+      operationId: StreamingApi_streamTraces
+      description: Stream traces in real-time
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: minDurationMs
+          in: query
+          required: false
+          description: Minimum duration filter
+          schema:
+            type: integer
+            format: int64
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/stream/traces/{traceId}/spans:
+    get:
+      operationId: StreamingApi_streamTraceSpans
+      description: Stream spans for a specific trace
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+      tags:
+        - Streaming
+  /v1/traces:
+    get:
+      operationId: TracesApi_list
+      description: List traces with pagination
+      parameters:
+        - name: serviceName
+          in: query
+          required: false
+          description: Service name filter
+          schema:
+            type: string
+          explode: false
+        - name: minDurationMs
+          in: query
+          required: false
+          description: Minimum duration in ms
+          schema:
+            type: integer
+            format: int64
+          explode: false
+        - name: maxDurationMs
+          in: query
+          required: false
+          description: Maximum duration in ms
+          schema:
+            type: integer
+            format: int64
+          explode: false
+        - name: status
+          in: query
+          required: false
+          description: Status filter
+          schema:
+            $ref: '#/components/schemas/Qyl.OTel.Enums.SpanStatusCode'
+          explode: false
+        - name: startTime
+          in: query
+          required: false
+          description: Start time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: endTime
+          in: query
+          required: false
+          description: End time
+          schema:
+            type: string
+            format: date-time
+          explode: false
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor for pagination
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Traces.Trace'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Traces
+  /v1/traces/search:
+    post:
+      operationId: TracesApi_search
+      description: Search traces
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Traces.Trace'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '400':
+          description: Bad request - validation failed (400)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.ValidationError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Traces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TraceQuery'
+  /v1/traces/{traceId}:
+    get:
+      operationId: TracesApi_get
+      description: Get a specific trace by ID
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.OTel.Traces.Trace'
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Traces
+  /v1/traces/{traceId}/spans:
+    get:
+      operationId: TracesApi_getSpans
+      description: Get spans for a trace
+      parameters:
+        - name: traceId
+          in: path
+          required: true
+          schema:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+        - name: limit
+          in: query
+          required: false
+          description: Page size
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
+            maximum: 1000
+            default: 100
+          explode: false
+        - name: cursor
+          in: query
+          required: false
+          description: Cursor
+          schema:
+            type: string
+          explode: false
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - items
+                  - has_more
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Qyl.OTel.Traces.Span'
+                    description: List of items in this page
+                  next_cursor:
+                    type: string
+                    description: Cursor for the next page (null if no more pages)
+                  prev_cursor:
+                    type: string
+                    description: Cursor for the previous page (null if first page)
+                  has_more:
+                    type: boolean
+                    description: Whether there are more items available
+                description: Cursor-based paginated response wrapper
+        '404':
+          description: Resource not found (404)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.NotFoundError'
+        '500':
+          description: Internal server error (500)
+          headers:
+            X-Trace-Id:
+              required: false
+              description: Trace ID for correlation
+              schema:
+                type: string
+            X-Request-Id:
+              required: false
+              description: Request ID for support
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
+      tags:
+        - Traces
+components:
+  schemas:
+    ApiVersions:
+      type: string
+      enum:
+        - '2024-01-01'
+        - '2024-06-01'
+        - '2025-01-01'
+    DeploymentCreate:
+      type: object
+      required:
+        - service_name
+        - service_version
+        - environment
+        - strategy
+      properties:
+        service_name:
+          type: string
+          description: Service name
+        service_version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        environment:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEnvironment'
+          description: Environment
+        strategy:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStrategy'
+          description: Strategy
+        deployed_by:
+          type: string
+          description: Deployed by
+        git_commit:
+          type: string
+          description: Git commit SHA
+        git_branch:
+          type: string
+          description: Git branch
+      description: Deployment creation request
+    DeploymentUpdate:
+      type: object
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStatus'
+          description: New status
+        healthy_replicas:
+          type: integer
+          format: int32
+          description: Healthy replicas
+        error_message:
+          type: string
+          description: Error message
+      description: Deployment update request
+    DoraMetrics:
+      type: object
+      required:
+        - deployment_frequency
+        - lead_time_hours
+        - change_failure_rate
+        - mttr_hours
+        - performance_level
+      properties:
+        deployment_frequency:
+          type: number
+          format: double
+          description: Deployment frequency (per day)
+        lead_time_hours:
+          type: number
+          format: double
+          description: Lead time for changes (hours)
+        change_failure_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Change failure rate
+        mttr_hours:
+          type: number
+          format: double
+          description: Mean time to recovery (hours)
+        performance_level:
+          allOf:
+            - $ref: '#/components/schemas/DoraPerformanceLevel'
+          description: Performance level
+      description: DORA metrics response
+    DoraPerformanceLevel:
+      type: string
+      enum:
+        - elite
+        - high
+        - medium
+        - low
+      description: DORA performance levels
+    ErrorUpdate:
+      type: object
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorStatus'
+          description: New status
+        assigned_to:
+          type: string
+          description: Assignee
+        issue_url:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.UrlString'
+          description: Issue URL
+      description: Error update request
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+        - uptime_seconds
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/HealthStatus'
+          description: Service status
+        version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        uptime_seconds:
+          type: integer
+          format: int64
+          description: Uptime in seconds
+        components:
+          type: object
+          unevaluatedProperties:
+            $ref: '#/components/schemas/HealthStatus'
+          description: Component health
+      description: Health check response
+    HealthStatus:
+      type: string
+      enum:
+        - healthy
+        - degraded
+        - unhealthy
+    LogAggregationBucket:
+      type: object
+      required:
+        - key
+        - value
+        - count
+      properties:
+        key:
+          type: string
+          description: Bucket key (group by value)
+        value:
+          type: number
+          format: double
+          description: Aggregated value
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Document count
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp (for time series)
+      description: Log aggregation bucket
+    LogAggregationRequest:
+      type: object
+      required:
+        - aggregation
+      properties:
+        query:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogQuery'
+          description: Query filters
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogAggregation'
+          description: Aggregation specification
+      description: Log aggregation request
+    LogAggregationResponse:
+      type: object
+      required:
+        - results
+        - total_count
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogAggregationBucket'
+          description: Aggregation results
+        total_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total matching logs
+      description: Log aggregation response
+    MetricDataPoint:
+      type: object
+      required:
+        - timestamp
+        - value
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp
+        value:
+          type: number
+          format: double
+          description: Value
+      description: Metric data point
+    MetricMetadata:
+      type: object
+      required:
+        - name
+        - type
+        - label_keys
+        - services
+      properties:
+        name:
+          type: string
+          description: Metric name
+        description:
+          type: string
+          description: Metric description
+        unit:
+          type: string
+          description: Metric unit
+        type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.MetricType'
+          description: Metric type
+        label_keys:
+          type: array
+          items:
+            type: string
+          description: Available label keys
+        services:
+          type: array
+          items:
+            type: string
+          description: Services reporting this metric
+      description: Metric metadata
+    MetricQueryRequest:
+      type: object
+      required:
+        - metric_name
+        - start_time
+        - end_time
+      properties:
+        metric_name:
+          type: string
+          description: Metric name
+        filters:
+          type: object
+          unevaluatedProperties:
+            type: string
+          description: Label filters
+        start_time:
+          type: string
+          format: date-time
+          description: Start time
+        end_time:
+          type: string
+          format: date-time
+          description: End time
+        step:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Pagination.TimeBucket'
+          description: Step interval
+        aggregation:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Metrics.AggregationFunction'
+          description: Aggregation function
+        group_by:
+          type: array
+          items:
+            type: string
+          description: Group by labels
+      description: Metric query request
+    MetricQueryResponse:
+      type: object
+      required:
+        - metric_name
+        - series
+      properties:
+        metric_name:
+          type: string
+          description: Metric name
+        series:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricTimeSeries'
+          description: Time series data
+      description: Metric query response
+    MetricTimeSeries:
+      type: object
+      required:
+        - labels
+        - points
+      properties:
+        labels:
+          type: object
+          unevaluatedProperties:
+            type: string
+          description: Labels
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/MetricDataPoint'
+          description: Data points
+      description: Metric time series
+    OperationInfo:
+      type: object
+      required:
+        - name
+        - span_kind
+        - request_count
+        - error_count
+        - avg_duration_ms
+        - p99_duration_ms
+      properties:
+        name:
+          type: string
+          description: Operation name
+        span_kind:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanKind'
+          description: Span kind
+        request_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Request count
+        error_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Error count
+        avg_duration_ms:
+          type: number
+          format: double
+          description: Average duration in milliseconds
+        p99_duration_ms:
+          type: number
+          format: double
+          description: P99 duration in milliseconds
+      description: Operation information
+    PipelineStats:
+      type: object
+      required:
+        - total_runs
+        - success_rate
+        - avg_duration_seconds
+        - p95_duration_seconds
+        - by_status
+      properties:
+        total_runs:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total runs
+        success_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Success rate
+        avg_duration_seconds:
+          type: number
+          format: double
+          description: Average duration in seconds
+        p95_duration_seconds:
+          type: number
+          format: double
+          description: P95 duration in seconds
+        by_status:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineStatusStats'
+          description: Runs by status
+      description: Pipeline statistics
+    PipelineStatusStats:
+      type: object
+      required:
+        - status
+        - count
+        - percentage
+      properties:
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdPipelineStatus'
+          description: Status
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage
+      description: Pipeline status statistics
+    Qyl.Common.Attribute:
+      type: object
+      required:
+        - key
+        - value
+      properties:
+        key:
+          type: string
+          minLength: 1
+          maxLength: 256
+          description: Attribute key (dot-separated namespace)
+        value:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.AttributeValue'
+          description: Attribute value
+      description: Key-value attribute pair following OTel conventions
+    Qyl.Common.AttributeValue:
+      anyOf:
+        - type: string
+        - type: boolean
+        - type: integer
+          format: int64
+        - type: number
+          format: double
+        - type: array
+          items:
+            type: string
+        - type: array
+          items:
+            type: boolean
+        - type: array
+          items:
+            type: integer
+            format: int64
+        - type: array
+          items:
+            type: number
+            format: double
+        - type: string
+          contentEncoding: base64
+      description: Primitive attribute value types supported by OpenTelemetry
+    Qyl.Common.Count:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Generic non-negative counter
+    Qyl.Common.DurationMs:
+      type: number
+      format: double
+      minimum: 0
+      description: Duration in milliseconds
+    Qyl.Common.DurationNs:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Duration in nanoseconds
+    Qyl.Common.DurationS:
+      type: number
+      format: double
+      minimum: 0
+      description: Duration in seconds
+    Qyl.Common.Errors.ConflictError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Conflict
+        conflicting_resource:
+          type: string
+          description: The conflicting resource ID
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Conflict - resource state conflict (409)
+    Qyl.Common.Errors.ForbiddenError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Forbidden
+        required_permission:
+          type: string
+          description: Required permission that is missing
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Forbidden - insufficient permissions (403)
+    Qyl.Common.Errors.InternalServerError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Internal Server Error
+        error_code:
+          type: string
+          description: Error code for support reference
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Internal server error (500)
+    Qyl.Common.Errors.NotFoundError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Not Found
+        resource_type:
+          type: string
+          description: The type of resource that was not found
+        resource_id:
+          type: string
+          description: The identifier that was not found
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Resource not found (404)
+    Qyl.Common.Errors.ProblemDetails:
+      type: object
+      required:
+        - type
+        - title
+        - status
+      properties:
+        type:
+          type: string
+          format: uri
+          description: A URI reference identifying the problem type
+          default: about:blank
+        title:
+          type: string
+          description: A short, human-readable summary of the problem type
+        status:
+          type: integer
+          format: int32
+          description: The HTTP status code (informational only, actual code set by subtype)
+        detail:
+          type: string
+          description: A human-readable explanation specific to this occurrence
+        instance:
+          type: string
+          format: uri
+          description: A URI reference identifying the specific occurrence
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the error
+      description: RFC 7807 Problem Details for HTTP APIs
+    Qyl.Common.Errors.RateLimitError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Too Many Requests
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Rate limited - too many requests (429)
+    Qyl.Common.Errors.ServiceUnavailableError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Service Unavailable
+        reason:
+          type: string
+          enum:
+            - maintenance
+            - overloaded
+            - dependency_failure
+          description: Reason for unavailability
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Service unavailable (503)
+    Qyl.Common.Errors.UnauthorizedError:
+      type: object
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          enum:
+            - Unauthorized
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Unauthorized - authentication required (401)
+    Qyl.Common.Errors.ValidationError:
+      type: object
+      required:
+        - title
+        - errors
+      properties:
+        title:
+          type: string
+          enum:
+            - Validation Failed
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Errors.ValidationErrorDetail'
+          description: List of validation errors
+      allOf:
+        - $ref: '#/components/schemas/Qyl.Common.Errors.ProblemDetails'
+      description: Bad request - validation failed (400)
+    Qyl.Common.Errors.ValidationErrorDetail:
+      type: object
+      required:
+        - field
+        - message
+        - code
+      properties:
+        field:
+          type: string
+          description: The field/property that failed validation
+        message:
+          type: string
+          description: The error message
+        code:
+          type: string
+          description: The validation rule that failed
+        rejected_value:
+          type: string
+          description: The rejected value (if safe to include)
+      description: Individual validation error detail
+    Qyl.Common.InstrumentationScope:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the instrumentation scope (library name)
+        version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Version of the instrumentation scope
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Additional attributes for the scope
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+      description: Instrumentation scope identifying the library/component emitting telemetry
+    Qyl.Common.IpAddress:
+      type: string
+      description: IP address (IPv4 or IPv6)
+    Qyl.Common.Pagination.TimeBucket:
+      type: string
+      enum:
+        - 1m
+        - 5m
+        - 15m
+        - 1h
+        - 1d
+        - 1w
+        - auto
+      description: Time bucket size for aggregations
+    Qyl.Common.Percentage:
+      type: number
+      format: double
+      minimum: 0
+      maximum: 100
+      description: Percentage value (0.0 to 100.0)
+    Qyl.Common.Ratio:
+      type: number
+      format: double
+      minimum: 0
+      maximum: 1
+      description: Ratio value (0.0 to 1.0)
+    Qyl.Common.SemVer:
+      type: string
+      pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
+      description: Semantic version string (e.g., 1.2.3)
+      examples:
+        - 2.1.0
+    Qyl.Common.SessionId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      description: Unique session identifier
+    Qyl.Common.SpanId:
+      type: string
+      minLength: 16
+      maxLength: 16
+      pattern: ^[a-f0-9]{16}$
+      description: Unique span identifier (16 lowercase hex characters)
+      examples:
+        - b7ad6b7169203331
+    Qyl.Common.TokenCount:
+      type: integer
+      format: int64
+      minimum: 0
+      description: Token count (for LLM operations)
+    Qyl.Common.TraceId:
+      type: string
+      minLength: 32
+      maxLength: 32
+      pattern: ^[a-f0-9]{32}$
+      description: Unique trace identifier (32 lowercase hex characters)
+      examples:
+        - 0af7651916cd43dd8448eb211c80319c
+    Qyl.Common.TraceState:
+      type: string
+      description: W3C Trace Context tracestate header (vendor-specific key-value pairs)
+      examples:
+        - rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
+    Qyl.Common.UrlString:
+      type: string
+      format: uri
+      description: URL string (absolute)
+    Qyl.Common.UserAgent:
+      type: string
+      description: User agent string
+      examples:
+        - Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+    Qyl.Common.UserId:
+      type: string
+      minLength: 1
+      maxLength: 256
+      description: User identifier (pseudonymized for privacy)
+    Qyl.Domains.AI.Code.CodeLocation:
+      type: object
+      required:
+        - filepath
+        - line_number
+      properties:
+        filepath:
+          type: string
+          description: Source file path
+        line_number:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Line number (1-indexed)
+        column_number:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Column number (1-indexed)
+        function_name:
+          type: string
+          description: Function/method name
+        class_name:
+          type: string
+          description: Class/type name
+        namespace:
+          type: string
+          description: Namespace/module
+      description: Precise source code location for debugging and tracing
+    Qyl.Domains.AI.Code.StackFrame:
+      type: object
+      required:
+        - index
+        - location
+      properties:
+        index:
+          type: integer
+          format: int32
+          description: Frame index (0 = top of stack)
+        location:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.AI.Code.CodeLocation'
+          description: Source location
+        is_user_code:
+          type: boolean
+          description: Whether this is user code (not library/framework)
+        module_name:
+          type: string
+          description: Assembly/module name
+        module_version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Assembly/module version
+        is_native:
+          type: boolean
+          description: Native/managed indicator
+      description: Single frame in a call stack
+    Qyl.Domains.AI.Code.StackTrace:
+      type: object
+      required:
+        - frames
+      properties:
+        frames:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.AI.Code.StackFrame'
+          description: Stack frames (top to bottom)
+        truncated:
+          type: boolean
+          description: Whether the stack was truncated
+        total_frames:
+          type: integer
+          format: int32
+          description: Total frame count before truncation
+      description: Full stack trace
+    Qyl.Domains.Identity.ServiceDependency:
+      type: object
+      required:
+        - source_service
+        - target_service
+        - request_count
+        - error_rate
+        - avg_latency_ms
+      properties:
+        source_service:
+          type: string
+          description: Source service
+        target_service:
+          type: string
+          description: Target service
+        request_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Request count
+        error_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Error rate
+        avg_latency_ms:
+          type: number
+          format: double
+          description: Average latency in milliseconds
+      description: Service dependency map
+    Qyl.Domains.Observe.Error.CorrelatedError:
+      type: object
+      required:
+        - error_id
+        - error_type
+        - correlation_strength
+        - temporal_relationship
+      properties:
+        error_id:
+          type: string
+          description: Error ID
+        error_type:
+          type: string
+          description: Error type
+        correlation_strength:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Correlation strength
+        temporal_relationship:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.TemporalRelationship'
+          description: Temporal relationship
+      description: Correlated error
+    Qyl.Domains.Observe.Error.ErrorCategory:
+      type: string
+      enum:
+        - client
+        - server
+        - network
+        - timeout
+        - validation
+        - authentication
+        - authorization
+        - rate_limit
+        - not_found
+        - conflict
+        - internal
+        - external
+        - database
+        - configuration
+        - unknown
+      description: High-level error categories
+    Qyl.Domains.Observe.Error.ErrorCategoryStats:
+      type: object
+      required:
+        - category
+        - count
+        - percentage
+      properties:
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorCategory'
+          description: Category
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+      description: Error stats by category
+    Qyl.Domains.Observe.Error.ErrorCorrelation:
+      type: object
+      required:
+        - error_id
+        - correlated_errors
+      properties:
+        error_id:
+          type: string
+          description: Error ID
+        correlated_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.CorrelatedError'
+          description: Correlated errors
+        root_cause:
+          type: string
+          description: Potential root cause
+        common_attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Common attributes
+      description: Error correlation result
+    Qyl.Domains.Observe.Error.ErrorEntity:
+      type: object
+      required:
+        - error_id
+        - error.type
+        - message
+        - category
+        - fingerprint
+        - first_seen
+        - last_seen
+        - occurrence_count
+        - status
+      properties:
+        error_id:
+          type: string
+          description: Error ID
+        error.type:
+          type: string
+          description: Error type (class name or code)
+        message:
+          type: string
+          description: Error message
+        category:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorCategory'
+          description: Error category
+        fingerprint:
+          type: string
+          description: Fingerprint for grouping
+        first_seen:
+          type: string
+          format: date-time
+          description: First occurrence
+        last_seen:
+          type: string
+          format: date-time
+          description: Last occurrence
+        occurrence_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Occurrence count
+        affected_users:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Affected users count
+        affected_services:
+          type: array
+          items:
+            type: string
+          description: Affected services
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorStatus'
+          description: Status
+        assigned_to:
+          type: string
+          description: Assigned to
+        issue_url:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.UrlString'
+          description: Issue tracker URL
+        sample_traces:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Sample trace IDs
+      description: Error entity for tracking and analysis
+    Qyl.Domains.Observe.Error.ErrorServiceStats:
+      type: object
+      required:
+        - service_name
+        - count
+        - error_rate
+        - top_error_type
+      properties:
+        service_name:
+          type: string
+          description: Service name
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Error count
+        error_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Error rate
+        top_error_type:
+          type: string
+          description: Top error type
+      description: Error stats by service
+    Qyl.Domains.Observe.Error.ErrorStats:
+      type: object
+      required:
+        - total_count
+        - unique_types
+        - error_rate
+        - by_category
+        - top_errors
+        - trend
+      properties:
+        total_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total error count
+        unique_types:
+          type: integer
+          format: int32
+          description: Unique error types
+        error_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Error rate
+        by_category:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorCategoryStats'
+          description: Errors by category
+        by_service:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorServiceStats'
+          description: Errors by service
+        top_errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorTypeStats'
+          description: Top errors
+        trend:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorTrend'
+          description: Trend
+      description: Error statistics
+    Qyl.Domains.Observe.Error.ErrorStatus:
+      type: string
+      enum:
+        - new
+        - acknowledged
+        - in_progress
+        - resolved
+        - ignored
+        - regressed
+        - wont_fix
+      description: Error tracking status
+    Qyl.Domains.Observe.Error.ErrorTrend:
+      type: string
+      enum:
+        - increasing
+        - decreasing
+        - stable
+        - spike
+      description: Error trend
+    Qyl.Domains.Observe.Error.ErrorTypeStats:
+      type: object
+      required:
+        - error_type
+        - count
+        - percentage
+        - status
+      properties:
+        error_type:
+          type: string
+          description: Error type
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+        affected_users:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Affected users
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Error.ErrorStatus'
+          description: Status
+      description: Error stats by type
+    Qyl.Domains.Observe.Error.TemporalRelationship:
+      type: string
+      enum:
+        - concurrent
+        - precedes
+        - follows
+        - unrelated
+      description: Temporal relationship between errors
+    Qyl.Domains.Observe.Exceptions.EnrichedException:
+      type: object
+      required:
+        - exception_type
+        - message
+      properties:
+        exception_type:
+          type: string
+          description: Exception type/class name
+        message:
+          type: string
+          description: Exception message
+        stack_trace:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.AI.Code.StackTrace'
+          description: Parsed stack trace
+        cause:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.EnrichedException'
+          description: Exception cause/inner exception
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Additional exception data
+        fingerprint:
+          type: string
+          description: Exception fingerprint (for grouping)
+        first_seen:
+          type: string
+          format: date-time
+          description: First occurrence timestamp
+        last_seen:
+          type: string
+          format: date-time
+          description: Last occurrence timestamp
+        occurrence_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Occurrence count
+        affected_users:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Affected users count
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionStatus'
+          description: Status
+      description: Enriched exception with parsed stack trace
+    Qyl.Domains.Observe.Exceptions.ExceptionEvent:
+      type: object
+      required:
+        - event.name
+        - exception.type
+        - exception.message
+        - exception.escaped
+        - timestamp
+      properties:
+        event.name:
+          type: string
+          enum:
+            - exception
+          description: Event name (always 'exception')
+        exception.type:
+          type: string
+          description: Exception type/class name
+        exception.message:
+          type: string
+          description: Exception message
+        exception.stacktrace:
+          type: string
+          description: Exception stacktrace
+        exception.escaped:
+          type: boolean
+          description: Whether the exception escaped
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Associated trace ID
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Associated span ID
+      description: Exception event following OTel spec
+    Qyl.Domains.Observe.Exceptions.ExceptionServiceStats:
+      type: object
+      required:
+        - service_name
+        - count
+        - rate_per_minute
+      properties:
+        service_name:
+          type: string
+          description: Service name
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Exception count
+        rate_per_minute:
+          type: number
+          format: double
+          description: Exception rate (per minute)
+      description: Exception stats by service
+    Qyl.Domains.Observe.Exceptions.ExceptionStats:
+      type: object
+      required:
+        - total_count
+        - unique_types
+        - by_type
+      properties:
+        total_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total exception count
+        unique_types:
+          type: integer
+          format: int32
+          description: Unique exception types
+        by_type:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionTypeStats'
+          description: Exceptions by type
+        by_service:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionServiceStats'
+          description: Most affected services
+        trend:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionTrend'
+          description: Exception trend (up/down/stable)
+      description: Exception statistics
+    Qyl.Domains.Observe.Exceptions.ExceptionStatus:
+      type: string
+      enum:
+        - new
+        - investigating
+        - in_progress
+        - resolved
+        - ignored
+        - regressed
+      description: Exception status
+    Qyl.Domains.Observe.Exceptions.ExceptionTrend:
+      type: string
+      enum:
+        - up
+        - down
+        - stable
+      description: Exception trend
+    Qyl.Domains.Observe.Exceptions.ExceptionTypeStats:
+      type: object
+      required:
+        - exception_type
+        - count
+        - percentage
+        - status
+      properties:
+        exception_type:
+          type: string
+          description: Exception type
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionStatus'
+          description: Status
+      description: Exception stats by type
+    Qyl.Domains.Observe.Log.AggregationFunction:
+      type: string
+      enum:
+        - count
+        - sum
+        - avg
+        - min
+        - max
+        - p50
+        - p90
+        - p95
+        - p99
+        - count_distinct
+      description: Aggregation functions
+    Qyl.Domains.Observe.Log.AttributeFilter:
+      type: object
+      required:
+        - key
+        - operator
+        - value
+      properties:
+        key:
+          type: string
+          description: Attribute key
+        operator:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.FilterOperator'
+          description: Filter operator
+        value:
+          type: string
+          description: Filter value
+      description: Attribute filter
+    Qyl.Domains.Observe.Log.FilterOperator:
+      type: string
+      enum:
+        - eq
+        - neq
+        - contains
+        - starts_with
+        - ends_with
+        - regex
+        - gt
+        - gte
+        - lt
+        - lte
+        - in
+        - not_in
+        - exists
+        - not_exists
+      description: Filter operators
+    Qyl.Domains.Observe.Log.LogAggregation:
+      type: object
+      required:
+        - group_by
+        - function
+      properties:
+        group_by:
+          type: array
+          items:
+            type: string
+          description: Group by fields
+        function:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.AggregationFunction'
+          description: Aggregation function
+        field:
+          type: string
+          description: Field to aggregate (for non-count)
+        time_bucket:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.TimeBucket'
+          description: Time bucket (for time series)
+        top_n:
+          type: integer
+          format: int32
+          description: Top N results
+      description: Log aggregation request
+    Qyl.Domains.Observe.Log.LogOrderBy:
+      type: string
+      enum:
+        - timestamp_asc
+        - timestamp_desc
+        - severity_asc
+        - severity_desc
+      description: Log ordering options
+    Qyl.Domains.Observe.Log.LogPattern:
+      type: object
+      required:
+        - pattern_id
+        - template
+        - sample
+        - count
+        - first_seen
+        - last_seen
+        - trend
+      properties:
+        pattern_id:
+          type: string
+          description: Pattern ID
+        template:
+          type: string
+          description: Pattern template
+        sample:
+          type: string
+          description: Sample log message
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Occurrence count
+        first_seen:
+          type: string
+          format: date-time
+          description: First seen
+        last_seen:
+          type: string
+          format: date-time
+          description: Last seen
+        trend:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogPatternTrend'
+          description: Trend
+        severity_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogSeverityStats'
+          description: Severity distribution
+      description: Detected log pattern
+    Qyl.Domains.Observe.Log.LogPatternTrend:
+      type: string
+      enum:
+        - increasing
+        - decreasing
+        - stable
+        - new
+        - spike
+      description: Log pattern trend
+    Qyl.Domains.Observe.Log.LogQuery:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Free text search
+        severity_min:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityNumber'
+          description: Severity filter
+        service_name:
+          type: string
+          description: Service name filter
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace ID filter
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Span ID filter
+        time_start:
+          type: string
+          format: date-time
+          description: Time range start
+        time_end:
+          type: string
+          format: date-time
+          description: Time range end
+        attribute_filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Log.AttributeFilter'
+          description: Attribute filters
+        limit:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 10000
+          description: Limit
+        order_by:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogOrderBy'
+          description: Order by
+      description: Log search query
+    Qyl.Domains.Observe.Log.LogSeverityStats:
+      type: object
+      required:
+        - severity
+        - severity_text
+        - count
+        - percentage
+      properties:
+        severity:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityNumber'
+          description: Severity number
+        severity_text:
+          type: string
+          description: Severity text
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+      description: Log stats by severity
+    Qyl.Domains.Observe.Log.TimeBucket:
+      type: string
+      enum:
+        - 1s
+        - 10s
+        - 30s
+        - 1m
+        - 5m
+        - 15m
+        - 30m
+        - 1h
+        - 6h
+        - 12h
+        - 1d
+        - 1w
+      description: Time bucket sizes
+    Qyl.Domains.Observe.Session.DeviceType:
+      type: string
+      enum:
+        - desktop
+        - mobile
+        - tablet
+        - tv
+        - console
+        - wearable
+        - iot
+        - bot
+        - unknown
+      description: Device types
+    Qyl.Domains.Observe.Session.SessionClientInfo:
+      type: object
+      properties:
+        ip:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.IpAddress'
+          description: Client IP address
+        user_agent:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.UserAgent'
+          description: User agent string
+        device_type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.DeviceType'
+          description: Device type
+        os:
+          type: string
+          description: Operating system
+        browser:
+          type: string
+          description: Browser name
+        browser_version:
+          type: string
+          description: Browser version
+      description: Session client information
+    Qyl.Domains.Observe.Session.SessionCountryStats:
+      type: object
+      required:
+        - country_code
+        - country_name
+        - count
+        - percentage
+      properties:
+        country_code:
+          type: string
+          description: Country code
+        country_name:
+          type: string
+          description: Country name
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Session count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+      description: Session stats by country
+    Qyl.Domains.Observe.Session.SessionDeviceStats:
+      type: object
+      required:
+        - device_type
+        - count
+        - percentage
+      properties:
+        device_type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.DeviceType'
+          description: Device type
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Session count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+      description: Session stats by device type
+    Qyl.Domains.Observe.Session.SessionEntity:
+      type: object
+      required:
+        - session.id
+        - start_time
+        - trace_count
+        - span_count
+        - error_count
+        - state
+      properties:
+        session.id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SessionId'
+          description: Session ID
+        user.id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.UserId'
+          description: User ID (if authenticated)
+        start_time:
+          type: string
+          format: date-time
+          description: Session start time
+        end_time:
+          type: string
+          format: date-time
+          description: Session end time
+        duration_ms:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.DurationMs'
+          description: Session duration in milliseconds
+        trace_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total trace count in session
+        span_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total span count in session
+        error_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total error count in session
+        state:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionState'
+          description: Session state
+        client:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionClientInfo'
+          description: Client information
+        geo:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionGeoInfo'
+          description: Location information
+        genai_usage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionGenAiUsage'
+          description: GenAI usage summary
+      description: Complete session entity with aggregated data
+    Qyl.Domains.Observe.Session.SessionGenAiUsage:
+      type: object
+      required:
+        - request_count
+        - total_input_tokens
+        - total_output_tokens
+        - models_used
+        - providers_used
+      properties:
+        request_count:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Total GenAI requests in session
+        total_input_tokens:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TokenCount'
+          description: Total input tokens consumed
+        total_output_tokens:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TokenCount'
+          description: Total output tokens generated
+        models_used:
+          type: array
+          items:
+            type: string
+          description: Models used in session
+        providers_used:
+          type: array
+          items:
+            type: string
+          description: Providers used in session
+        estimated_cost_usd:
+          type: number
+          format: double
+          description: Estimated cost in USD
+      description: Session GenAI usage summary
+    Qyl.Domains.Observe.Session.SessionGeoInfo:
+      type: object
+      properties:
+        country_code:
+          type: string
+          description: Country code (ISO 3166-1 alpha-2)
+        country_name:
+          type: string
+          description: Country name
+        region:
+          type: string
+          description: Region/state
+        city:
+          type: string
+          description: City
+        postal_code:
+          type: string
+          description: Postal code
+        timezone:
+          type: string
+          description: Timezone
+      description: Session geographic information
+    Qyl.Domains.Observe.Session.SessionState:
+      type: string
+      enum:
+        - active
+        - idle
+        - ended
+        - timed_out
+        - invalidated
+      description: Session states
+    Qyl.Domains.Observe.Session.SessionStats:
+      type: object
+      required:
+        - active_sessions
+        - total_sessions
+        - unique_users
+        - avg_duration_ms
+        - sessions_with_errors
+        - sessions_with_genai
+        - bounce_rate
+      properties:
+        active_sessions:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Active sessions count
+        total_sessions:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total sessions in time range
+        unique_users:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Unique users in time range
+        avg_duration_ms:
+          type: number
+          format: double
+          description: Average session duration in milliseconds
+        sessions_with_errors:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Sessions with errors
+        sessions_with_genai:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Sessions with GenAI usage
+        bounce_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Bounce rate (single-page sessions)
+        by_device_type:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionDeviceStats'
+          description: Sessions by device type
+        by_country:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionCountryStats'
+          description: Sessions by country
+      description: Aggregated session statistics
+    Qyl.Domains.Ops.Cicd.CicdEventName:
+      type: string
+      enum:
+        - cicd.pipeline.start
+        - cicd.pipeline.end
+        - cicd.task.start
+        - cicd.task.end
+        - cicd.deployment.start
+        - cicd.deployment.end
+      description: CI/CD event names
+    Qyl.Domains.Ops.Cicd.CicdPipelineStatus:
+      type: string
+      enum:
+        - pending
+        - running
+        - success
+        - failed
+        - cancelled
+        - skipped
+      description: CI/CD pipeline status
+    Qyl.Domains.Ops.Cicd.CicdSystem:
+      type: string
+      enum:
+        - github_actions
+        - gitlab_ci
+        - jenkins
+        - azure_devops
+        - circleci
+        - travis_ci
+        - bitbucket_pipelines
+        - teamcity
+        - bamboo
+        - drone_ci
+        - buildkite
+        - tekton
+        - argocd
+        - flux
+        - spinnaker
+        - other
+      description: CI/CD systems/providers
+    Qyl.Domains.Ops.Cicd.CicdTriggerType:
+      type: string
+      enum:
+        - push
+        - pull_request
+        - manual
+        - schedule
+        - api
+        - webhook
+        - dependency
+        - tag
+        - release
+      description: CI/CD trigger types
+    Qyl.Domains.Ops.Cicd.PipelineRunEvent:
+      type: object
+      required:
+        - event.name
+        - cicd.pipeline.name
+        - cicd.pipeline.run.id
+        - status
+        - system
+        - timestamp
+      properties:
+        event.name:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdEventName'
+          description: Event name
+        cicd.pipeline.name:
+          type: string
+          description: Pipeline name
+        cicd.pipeline.run.id:
+          type: string
+          description: Pipeline run ID
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdPipelineStatus'
+          description: Pipeline status
+        system:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdSystem'
+          description: CI/CD system
+        trigger_type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Cicd.CicdTriggerType'
+          description: Trigger type
+        vcs.repository.ref.name:
+          type: string
+          description: Git branch
+        vcs.repository.ref.revision:
+          type: string
+          description: Git commit SHA
+        duration_s:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.DurationS'
+          description: Duration in seconds
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Pipeline run event
+    Qyl.Domains.Ops.Deployment.DeploymentEntity:
+      type: object
+      required:
+        - deployment.id
+        - service.name
+        - service.version
+        - environment
+        - status
+        - strategy
+        - start_time
+      properties:
+        deployment.id:
+          type: string
+          description: Deployment ID
+        service.name:
+          type: string
+          description: Service name
+        service.version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        environment:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEnvironment'
+          description: Environment
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStatus'
+          description: Status
+        strategy:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStrategy'
+          description: Strategy
+        start_time:
+          type: string
+          format: date-time
+          description: Start time
+        end_time:
+          type: string
+          format: date-time
+          description: End time
+        duration_s:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.DurationS'
+          description: Duration in seconds
+        deployed_by:
+          type: string
+          description: Deployed by (user/system)
+        git_commit:
+          type: string
+          description: Git commit SHA
+        git_branch:
+          type: string
+          description: Git branch
+        previous_version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Previous version
+        rollback_target:
+          type: string
+          description: Rollback target (if rolled back)
+        replica_count:
+          type: integer
+          format: int32
+          description: Replica count
+        healthy_replicas:
+          type: integer
+          format: int32
+          description: Healthy replica count
+        error_message:
+          type: string
+          description: Error message (if failed)
+      description: Complete deployment record
+    Qyl.Domains.Ops.Deployment.DeploymentEnvironment:
+      type: string
+      enum:
+        - development
+        - testing
+        - staging
+        - production
+        - preview
+        - canary
+      description: Deployment environments
+    Qyl.Domains.Ops.Deployment.DeploymentEvent:
+      type: object
+      required:
+        - event.name
+        - deployment.id
+        - service.name
+        - deployment.environment.name
+        - status
+        - timestamp
+      properties:
+        event.name:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEventName'
+          description: Event name
+        deployment.id:
+          type: string
+          description: Deployment ID
+        service.name:
+          type: string
+          description: Service name
+        deployment.environment.name:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEnvironment'
+          description: Environment
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentStatus'
+          description: Status
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Deployment lifecycle event
+    Qyl.Domains.Ops.Deployment.DeploymentEventName:
+      type: string
+      enum:
+        - deployment.started
+        - deployment.completed
+        - deployment.failed
+        - deployment.rolled_back
+        - deployment.health_check.passed
+        - deployment.health_check.failed
+      description: Deployment event names
+    Qyl.Domains.Ops.Deployment.DeploymentStatus:
+      type: string
+      enum:
+        - pending
+        - in_progress
+        - success
+        - failed
+        - rolled_back
+        - cancelled
+      description: Deployment status
+    Qyl.Domains.Ops.Deployment.DeploymentStrategy:
+      type: string
+      enum:
+        - rolling
+        - blue_green
+        - canary
+        - recreate
+        - ab_test
+        - shadow
+        - feature_flag
+      description: Deployment strategies
+    Qyl.OTel.Enums.AggregationTemporality:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+      description: Aggregation temporality for metrics
+    Qyl.OTel.Enums.DataPointFlags:
+      type: number
+      enum:
+        - 0
+        - 1
+      description: Data point flags
+    Qyl.OTel.Enums.MetricType:
+      type: string
+      enum:
+        - gauge
+        - sum
+        - histogram
+        - exponential_histogram
+        - summary
+      description: Metric data type
+    Qyl.OTel.Enums.SeverityNumber:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+        - 7
+        - 8
+        - 9
+        - 10
+        - 11
+        - 12
+        - 13
+        - 14
+        - 15
+        - 16
+        - 17
+        - 18
+        - 19
+        - 20
+        - 21
+        - 22
+        - 23
+        - 24
+      description: Log severity number following OTel specification (1-24)
+    Qyl.OTel.Enums.SeverityText:
+      type: string
+      enum:
+        - TRACE
+        - DEBUG
+        - INFO
+        - WARN
+        - ERROR
+        - FATAL
+      description: Log severity text (human-readable)
+    Qyl.OTel.Enums.SpanKind:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+      description: Span kind describing the relationship between spans
+    Qyl.OTel.Enums.SpanStatusCode:
+      type: number
+      enum:
+        - 0
+        - 1
+        - 2
+      description: Span status code
+    Qyl.OTel.Enums.TelemetrySdkLanguage:
+      type: string
+      enum:
+        - cpp
+        - dotnet
+        - erlang
+        - go
+        - java
+        - nodejs
+        - php
+        - python
+        - ruby
+        - rust
+        - swift
+        - webjs
+      description: Telemetry SDK language
+    Qyl.OTel.Logs.LogBody:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Logs.LogBodyString'
+        - $ref: '#/components/schemas/Qyl.OTel.Logs.LogBodyKvList'
+        - $ref: '#/components/schemas/Qyl.OTel.Logs.LogBodyArray'
+        - $ref: '#/components/schemas/Qyl.OTel.Logs.LogBodyBytes'
+      discriminator:
+        propertyName: kind
+        mapping:
+          stringBody: '#/components/schemas/Qyl.OTel.Logs.LogBodyString'
+          kvListBody: '#/components/schemas/Qyl.OTel.Logs.LogBodyKvList'
+          arrayBody: '#/components/schemas/Qyl.OTel.Logs.LogBodyArray'
+          bytesBody: '#/components/schemas/Qyl.OTel.Logs.LogBodyBytes'
+      description: Log body content - can be string, structured, or bytes
+    Qyl.OTel.Logs.LogBodyArray:
+      type: object
+      required:
+        - array_value
+      properties:
+        array_value:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.AttributeValue'
+          description: Array of values
+      description: Array log body
+    Qyl.OTel.Logs.LogBodyBytes:
+      type: object
+      required:
+        - bytes_value
+      properties:
+        bytes_value:
+          type: string
+          contentEncoding: base64
+          description: Binary value (base64 encoded)
+      description: Binary log body
+    Qyl.OTel.Logs.LogBodyKvList:
+      type: object
+      required:
+        - kv_list_value
+      properties:
+        kv_list_value:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Key-value pairs
+      description: Structured key-value log body
+    Qyl.OTel.Logs.LogBodyString:
+      type: object
+      required:
+        - string_value
+      properties:
+        string_value:
+          type: string
+          description: String value
+      description: String log body
+    Qyl.OTel.Logs.LogCountByDimension:
+      type: object
+      required:
+        - dimension
+        - count
+        - error_count
+      properties:
+        dimension:
+          type: string
+          description: Dimension value
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Log count
+        error_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Error count for this dimension
+      description: Log count by dimension
+    Qyl.OTel.Logs.LogCountBySeverity:
+      type: object
+      required:
+        - severity
+        - count
+        - percentage
+      properties:
+        severity:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityText'
+          description: Severity level
+        count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Log count
+        percentage:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Percentage'
+          description: Percentage of total
+      description: Log count by severity level
+    Qyl.OTel.Logs.LogRecord:
+      type: object
+      required:
+        - time_unix_nano
+        - observed_time_unix_nano
+        - severity_number
+        - body
+        - resource
+      properties:
+        time_unix_nano:
+          type: integer
+          format: int64
+          description: Timestamp when the event occurred (nanoseconds since epoch)
+        observed_time_unix_nano:
+          type: integer
+          format: int64
+          description: Timestamp when the log was observed/collected (nanoseconds since epoch)
+        severity_number:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityNumber'
+          description: Severity number (1-24)
+        severity_text:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SeverityText'
+          description: Severity text (DEBUG, INFO, WARN, ERROR, etc.)
+        body:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Logs.LogBody'
+          description: Log body - the main content
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Log attributes
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+        flags:
+          type: integer
+          format: int32
+          description: Flags (trace flags)
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Associated trace ID
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Associated span ID
+        resource:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.Resource'
+          description: Resource describing the entity that produced this log
+        instrumentation_scope:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
+          description: Instrumentation scope
+      description: OpenTelemetry Log Record
+    Qyl.OTel.Logs.LogStats:
+      type: object
+      required:
+        - total_count
+        - by_severity
+        - by_service
+        - logs_per_second
+        - error_rate
+      properties:
+        total_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Total log count
+        by_severity:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Logs.LogCountBySeverity'
+          description: Log counts by severity
+        by_service:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Logs.LogCountByDimension'
+          description: Log counts by service
+        logs_per_second:
+          type: number
+          format: double
+          description: Logs per second rate
+        error_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Error log rate
+      description: Aggregated log statistics
+    Qyl.OTel.Metrics.AggregationFunction:
+      type: string
+      enum:
+        - sum
+        - avg
+        - min
+        - max
+        - count
+        - last
+        - rate
+        - increase
+      description: Aggregation functions for metrics
+    Qyl.OTel.Metrics.DataPointBase:
+      type: object
+      required:
+        - start_time_unix_nano
+        - time_unix_nano
+      properties:
+        start_time_unix_nano:
+          type: integer
+          format: int64
+          description: Start timestamp in nanoseconds since epoch
+        time_unix_nano:
+          type: integer
+          format: int64
+          description: End timestamp in nanoseconds since epoch
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Data point attributes
+        flags:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.DataPointFlags'
+          description: Data point flags
+      description: Base data point with common fields
+    Qyl.OTel.Metrics.Exemplar:
+      type: object
+      required:
+        - time_unix_nano
+      properties:
+        time_unix_nano:
+          type: integer
+          format: int64
+          description: Timestamp in nanoseconds since epoch
+        as_int:
+          type: integer
+          format: int64
+          description: Value as integer
+        as_double:
+          type: number
+          format: double
+          description: Value as double
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Span ID of the exemplar
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace ID of the exemplar
+        filtered_attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Filtered attributes
+      description: Exemplar - sample trace linked to metric
+    Qyl.OTel.Metrics.ExponentialBuckets:
+      type: object
+      required:
+        - offset
+        - bucket_counts
+      properties:
+        offset:
+          type: integer
+          format: int32
+          description: Offset of the first bucket
+        bucket_counts:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: Bucket counts
+      description: Exponential histogram buckets
+    Qyl.OTel.Metrics.ExponentialHistogramData:
+      type: object
+      required:
+        - type
+        - data_points
+        - aggregation_temporality
+      properties:
+        type:
+          type: string
+          enum:
+            - exponential_histogram
+          description: Discriminator identifying this as exponential histogram metric data
+        data_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.ExponentialHistogramDataPoint'
+          description: Exponential histogram data points
+        aggregation_temporality:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.AggregationTemporality'
+          description: Aggregation temporality
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+      description: Exponential histogram metric - distribution with exponential bucket boundaries
+    Qyl.OTel.Metrics.ExponentialHistogramDataPoint:
+      type: object
+      required:
+        - count
+        - scale
+        - zero_count
+        - positive
+        - negative
+      properties:
+        count:
+          type: integer
+          format: int64
+          description: Number of values
+        sum:
+          type: number
+          format: double
+          description: Sum of all values
+        scale:
+          type: integer
+          format: int32
+          description: Scale factor for bucket boundaries
+        zero_count:
+          type: integer
+          format: int64
+          description: Zero count
+        zero_threshold:
+          type: number
+          format: double
+          description: Zero threshold
+        positive:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Metrics.ExponentialBuckets'
+          description: Positive bucket counts
+        negative:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Metrics.ExponentialBuckets'
+          description: Negative bucket counts
+        min:
+          type: number
+          format: double
+          description: Minimum value
+        max:
+          type: number
+          format: double
+          description: Maximum value
+        exemplars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.Exemplar'
+          description: Exemplars for the data point
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.DataPointBase'
+      description: Exponential histogram data point
+    Qyl.OTel.Metrics.GaugeData:
+      type: object
+      required:
+        - type
+        - data_points
+      properties:
+        type:
+          type: string
+          enum:
+            - gauge
+          description: Discriminator identifying this as gauge metric data
+        data_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.NumberDataPoint'
+          description: Gauge data points
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+      description: Gauge metric - instantaneous value at a point in time
+    Qyl.OTel.Metrics.HistogramData:
+      type: object
+      required:
+        - type
+        - data_points
+        - aggregation_temporality
+      properties:
+        type:
+          type: string
+          enum:
+            - histogram
+          description: Discriminator identifying this as histogram metric data
+        data_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.HistogramDataPoint'
+          description: Histogram data points
+        aggregation_temporality:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.AggregationTemporality'
+          description: Aggregation temporality
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+      description: Histogram metric - distribution of values in buckets
+    Qyl.OTel.Metrics.HistogramDataPoint:
+      type: object
+      required:
+        - count
+        - bucket_counts
+        - explicit_bounds
+      properties:
+        count:
+          type: integer
+          format: int64
+          description: Number of values in the histogram
+        sum:
+          type: number
+          format: double
+          description: Sum of all values
+        bucket_counts:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: Bucket counts
+        explicit_bounds:
+          type: array
+          items:
+            type: number
+            format: double
+          description: Explicit bucket boundaries
+        min:
+          type: number
+          format: double
+          description: Minimum value
+        max:
+          type: number
+          format: double
+          description: Maximum value
+        exemplars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.Exemplar'
+          description: Exemplars for the data point
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.DataPointBase'
+      description: Histogram data point
+    Qyl.OTel.Metrics.Metric:
+      type: object
+      required:
+        - name
+        - data
+        - resource
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Metric name (e.g., http.server.request.duration)
+        description:
+          type: string
+          description: Metric description
+        unit:
+          type: string
+          description: Metric unit (e.g., 's', 'By', '1')
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+          description: Metric data (discriminated by type)
+        metadata:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Metric metadata attributes
+        resource:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.Resource'
+          description: Resource describing the entity that produced this metric
+        instrumentation_scope:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
+          description: Instrumentation scope
+      description: OpenTelemetry Metric containing measurement data
+    Qyl.OTel.Metrics.MetricData:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.MetricType'
+          description: Metric type discriminator
+      discriminator:
+        propertyName: type
+        mapping:
+          gauge: '#/components/schemas/Qyl.OTel.Metrics.GaugeData'
+          sum: '#/components/schemas/Qyl.OTel.Metrics.SumData'
+          histogram: '#/components/schemas/Qyl.OTel.Metrics.HistogramData'
+          exponential_histogram: '#/components/schemas/Qyl.OTel.Metrics.ExponentialHistogramData'
+          summary: '#/components/schemas/Qyl.OTel.Metrics.SummaryData'
+      description: Metric data discriminated by type
+    Qyl.OTel.Metrics.NumberDataPoint:
+      type: object
+      properties:
+        as_int:
+          type: integer
+          format: int64
+          description: Value as integer
+        as_double:
+          type: number
+          format: double
+          description: Value as double
+        exemplars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.Exemplar'
+          description: Exemplars for the data point
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.DataPointBase'
+      description: Numeric data point (for Gauge and Sum)
+    Qyl.OTel.Metrics.QuantileValue:
+      type: object
+      required:
+        - quantile
+        - value
+      properties:
+        quantile:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: Quantile (0.0 to 1.0)
+        value:
+          type: number
+          format: double
+          description: Value at this quantile
+      description: Quantile value for summary
+    Qyl.OTel.Metrics.SumData:
+      type: object
+      required:
+        - type
+        - data_points
+        - is_monotonic
+        - aggregation_temporality
+      properties:
+        type:
+          type: string
+          enum:
+            - sum
+          description: Discriminator identifying this as sum metric data
+        data_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.NumberDataPoint'
+          description: Sum data points
+        is_monotonic:
+          type: boolean
+          description: Whether the sum is monotonically increasing
+        aggregation_temporality:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.AggregationTemporality'
+          description: Aggregation temporality
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+      description: Sum metric - cumulative or delta counter
+    Qyl.OTel.Metrics.SummaryData:
+      type: object
+      required:
+        - type
+        - data_points
+      properties:
+        type:
+          type: string
+          enum:
+            - summary
+          description: Discriminator identifying this as summary metric data
+        data_points:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.SummaryDataPoint'
+          description: Summary data points
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.MetricData'
+      description: Summary metric - pre-aggregated quantile distribution
+    Qyl.OTel.Metrics.SummaryDataPoint:
+      type: object
+      required:
+        - count
+        - sum
+        - quantile_values
+      properties:
+        count:
+          type: integer
+          format: int64
+          description: Number of values
+        sum:
+          type: number
+          format: double
+          description: Sum of all values
+        quantile_values:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Metrics.QuantileValue'
+          description: Quantile values
+      allOf:
+        - $ref: '#/components/schemas/Qyl.OTel.Metrics.DataPointBase'
+      description: Summary data point
+    Qyl.OTel.Resource.CloudProvider:
+      type: string
+      enum:
+        - alibaba_cloud
+        - aws
+        - azure
+        - gcp
+        - heroku
+        - ibm_cloud
+        - tencent_cloud
+      description: Cloud provider types
+    Qyl.OTel.Resource.HostArch:
+      type: string
+      enum:
+        - amd64
+        - arm32
+        - arm64
+        - ia64
+        - ppc32
+        - ppc64
+        - s390x
+        - x86
+      description: Host architecture types
+    Qyl.OTel.Resource.OsType:
+      type: string
+      enum:
+        - windows
+        - linux
+        - darwin
+        - freebsd
+        - netbsd
+        - openbsd
+        - dragonflybsd
+        - hpux
+        - aix
+        - solaris
+        - z_os
+      description: Operating system types
+    Qyl.OTel.Resource.Resource:
+      type: object
+      required:
+        - service.name
+      properties:
+        service.name:
+          type: string
+          description: Service name (required)
+        service.namespace:
+          type: string
+          description: Service namespace for grouping
+        service.instance.id:
+          type: string
+          description: Service instance ID (unique per instance)
+        service.version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        telemetry.sdk.name:
+          type: string
+          description: Telemetry SDK name
+        telemetry.sdk.language:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.TelemetrySdkLanguage'
+          description: Telemetry SDK language
+        telemetry.sdk.version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Telemetry SDK version
+        telemetry.auto.version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Auto-instrumentation agent name
+        deployment.environment.name:
+          type: string
+          description: Deployment environment (e.g., production, staging)
+        cloud.provider:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.CloudProvider'
+          description: Cloud provider
+        cloud.region:
+          type: string
+          description: Cloud region
+        cloud.availability_zone:
+          type: string
+          description: Cloud availability zone
+        cloud.account.id:
+          type: string
+          description: Cloud account ID
+        cloud.platform:
+          type: string
+          description: Cloud platform (e.g., aws_ecs, gcp_cloud_run)
+        host.name:
+          type: string
+          description: Host name
+        host.id:
+          type: string
+          description: Host ID
+        host.type:
+          type: string
+          description: Host type (e.g., n1-standard-1)
+        host.arch:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.HostArch'
+          description: Host architecture (e.g., amd64, arm64)
+        os.type:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.OsType'
+          description: Operating system type
+        os.description:
+          type: string
+          description: Operating system description
+        os.version:
+          type: string
+          description: Operating system version
+        process.pid:
+          type: integer
+          format: int64
+          description: Process ID
+        process.executable.name:
+          type: string
+          description: Process executable name
+        process.command_line:
+          type: string
+          description: Process command line
+        process.runtime.name:
+          type: string
+          description: Process runtime name
+        process.runtime.version:
+          type: string
+          description: Process runtime version
+        container.id:
+          type: string
+          description: Container ID
+        container.name:
+          type: string
+          description: Container name
+        container.image.name:
+          type: string
+          description: Container image name
+        container.image.tag:
+          type: string
+          description: Container image tag
+        k8s.cluster.name:
+          type: string
+          description: Kubernetes cluster name
+        k8s.namespace.name:
+          type: string
+          description: Kubernetes namespace
+        k8s.pod.name:
+          type: string
+          description: Kubernetes pod name
+        k8s.pod.uid:
+          type: string
+          description: Kubernetes pod UID
+        k8s.deployment.name:
+          type: string
+          description: Kubernetes deployment name
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Additional resource attributes
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+      description: Resource describes the entity producing telemetry
+    Qyl.OTel.Traces.Span:
+      type: object
+      required:
+        - span_id
+        - trace_id
+        - name
+        - kind
+        - start_time_unix_nano
+        - end_time_unix_nano
+        - status
+        - resource
+      properties:
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Unique span identifier (16 hex chars)
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace identifier (32 hex chars)
+        parent_span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Parent span identifier (null for root spans)
+        trace_state:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceState'
+          description: W3C trace state
+        name:
+          type: string
+          minLength: 1
+          description: Human-readable span name
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanKind'
+          description: Span kind
+        start_time_unix_nano:
+          type: integer
+          format: int64
+          description: Start timestamp in nanoseconds since epoch
+        end_time_unix_nano:
+          type: integer
+          format: int64
+          description: End timestamp in nanoseconds since epoch
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Span attributes
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Traces.SpanEvent'
+          description: Span events (logs attached to span)
+        dropped_events_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped events count
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Traces.SpanLink'
+          description: Links to other spans
+        dropped_links_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped links count
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Traces.SpanStatus'
+          description: Span status
+        flags:
+          type: integer
+          format: int32
+          description: Span flags
+        resource:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Resource.Resource'
+          description: Resource describing the entity that produced this span
+        instrumentation_scope:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
+          description: Instrumentation scope
+      description: OpenTelemetry Span representing a single operation in a distributed trace
+    Qyl.OTel.Traces.SpanEvent:
+      type: object
+      required:
+        - name
+        - time_unix_nano
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Event name
+        time_unix_nano:
+          type: integer
+          format: int64
+          description: Event timestamp in nanoseconds since epoch
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Event attributes
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+      description: Event occurring during a span's lifetime
+    Qyl.OTel.Traces.SpanLink:
+      type: object
+      required:
+        - trace_id
+        - span_id
+      properties:
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Linked trace ID
+        span_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Linked span ID
+        trace_state:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceState'
+          description: Trace state of the linked span
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Link attributes
+        dropped_attributes_count:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Count'
+          description: Dropped attributes count
+        flags:
+          type: integer
+          format: int32
+          description: Link flags
+      description: Link to another span (e.g., batch processing)
+    Qyl.OTel.Traces.SpanStatus:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanStatusCode'
+          description: Status code
+        message:
+          type: string
+          description: Status message (only for ERROR status)
+      description: Span status
+    Qyl.OTel.Traces.Trace:
+      type: object
+      required:
+        - trace_id
+        - spans
+        - span_count
+        - duration_ns
+        - start_time
+        - end_time
+        - services
+        - has_error
+      properties:
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace identifier
+        spans:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.OTel.Traces.Span'
+          description: All spans in this trace
+        root_span:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Traces.Span'
+          description: Root span of the trace
+        span_count:
+          type: integer
+          format: int32
+          description: Total span count
+        duration_ns:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.DurationNs'
+          description: Trace duration in nanoseconds
+        start_time:
+          type: string
+          format: date-time
+          description: Trace start time
+        end_time:
+          type: string
+          format: date-time
+          description: Trace end time
+        services:
+          type: array
+          items:
+            type: string
+          description: Services involved in this trace
+        has_error:
+          type: boolean
+          description: Whether trace contains errors
+      description: Complete trace containing all related spans
+    ServiceDetails:
+      type: object
+      required:
+        - name
+        - instance_count
+        - last_seen
+        - resource_attributes
+        - instrumentation_libraries
+        - request_rate
+        - error_rate
+        - avg_latency_ms
+        - p99_latency_ms
+      properties:
+        name:
+          type: string
+          description: Service name
+        namespace_name:
+          type: string
+          description: Service namespace
+        version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        instance_count:
+          type: integer
+          format: int32
+          description: Instance count
+        last_seen:
+          type: string
+          format: date-time
+          description: Last seen
+        resource_attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.Attribute'
+          description: Resource attributes
+        instrumentation_libraries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
+          description: Instrumentation libraries
+        request_rate:
+          type: number
+          format: double
+          description: Request rate (per second)
+        error_rate:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Ratio'
+          description: Error rate
+        avg_latency_ms:
+          type: number
+          format: double
+          description: Average latency in milliseconds
+        p99_latency_ms:
+          type: number
+          format: double
+          description: P99 latency in milliseconds
+      description: Service details
+    ServiceInfo:
+      type: object
+      required:
+        - name
+        - instance_count
+        - last_seen
+      properties:
+        name:
+          type: string
+          description: Service name
+        namespace_name:
+          type: string
+          description: Service namespace
+        version:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SemVer'
+          description: Service version
+        instance_count:
+          type: integer
+          format: int32
+          description: Instance count
+        last_seen:
+          type: string
+          format: date-time
+          description: Last seen
+      description: Service information
+    Streaming.DeploymentEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.DeploymentStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Deployment stream events
+    Streaming.DeploymentStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - deployment
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Ops.Deployment.DeploymentEvent'
+          description: Deployment event data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Deployment stream event
+    Streaming.ExceptionEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.ExceptionStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Exception stream events
+    Streaming.ExceptionStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - exception
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Domains.Observe.Exceptions.ExceptionEvent'
+          description: Exception data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Exception stream event
+    Streaming.HeartbeatEvent:
+      type: object
+      required:
+        - type
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - heartbeat
+          description: Event type
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp
+      description: Heartbeat event for connection keep-alive
+    Streaming.LogEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.LogStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Log stream events
+    Streaming.LogStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - log
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Logs.LogRecord'
+          description: Log data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Log stream event
+    Streaming.MetricEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.MetricStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Metric stream events
+    Streaming.MetricStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - metric
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Metrics.Metric'
+          description: Metric data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Metric stream event
+    Streaming.SpanEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.SpanStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Span stream events
+    Streaming.SpanStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - span
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Traces.Span'
+          description: Span data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Span stream event
+    Streaming.StreamEventType:
+      type: string
+      enum:
+        - traces
+        - spans
+        - logs
+        - metrics
+        - exceptions
+        - deployments
+        - all
+      description: Stream event types
+    Streaming.StreamSubscription:
+      type: object
+      required:
+        - event_types
+      properties:
+        event_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/Streaming.StreamEventType'
+          description: Event types to subscribe to
+        service_name:
+          type: string
+          description: Service name filter
+        trace_id:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace ID filter (for specific trace)
+        min_severity:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 24
+          description: Minimum severity for logs (1-24)
+        filters:
+          type: object
+          unevaluatedProperties:
+            type: string
+          description: Attribute filters
+        sample_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: Sample rate (0.0-1.0)
+      description: Stream subscription request
+    Streaming.TailSamplingConfig:
+      type: object
+      required:
+        - enabled
+        - sample_errors
+        - sample_slow
+        - random_rate
+      properties:
+        enabled:
+          type: boolean
+          description: Enable tail-based sampling
+        sample_errors:
+          type: boolean
+          description: Sample error traces
+        sample_slow:
+          type: boolean
+          description: Sample slow traces (above threshold)
+        slow_threshold_ms:
+          type: integer
+          format: int64
+          description: Slow trace threshold in milliseconds
+        random_rate:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+          description: Random sample rate for remaining traces
+      description: Tail-based sampling configuration for streaming
+    Streaming.TelemetryStreamEvent:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.TraceStreamEvent'
+        - $ref: '#/components/schemas/Streaming.SpanStreamEvent'
+        - $ref: '#/components/schemas/Streaming.LogStreamEvent'
+        - $ref: '#/components/schemas/Streaming.MetricStreamEvent'
+        - $ref: '#/components/schemas/Streaming.ExceptionStreamEvent'
+        - $ref: '#/components/schemas/Streaming.DeploymentStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: All possible stream event types
+    Streaming.TraceEvents:
+      anyOf:
+        - $ref: '#/components/schemas/Streaming.TraceStreamEvent'
+        - $ref: '#/components/schemas/Streaming.HeartbeatEvent'
+      description: Trace stream events
+    Streaming.TraceStreamEvent:
+      type: object
+      required:
+        - type
+        - data
+        - timestamp
+      properties:
+        type:
+          type: string
+          enum:
+            - trace
+          description: Event type
+        data:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Traces.Trace'
+          description: Trace data
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+      description: Trace stream event
+    Streaming.WebSocketMessageType:
+      type: string
+      enum:
+        - subscribe
+        - unsubscribe
+        - data
+        - error
+        - ack
+        - ping
+        - pong
+      description: WebSocket message types
+    TraceQuery:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Free text search
+        service_name:
+          type: string
+          description: Service name filter
+        operation_name:
+          type: string
+          description: Operation name filter
+        min_duration_ms:
+          type: integer
+          format: int64
+          description: Minimum duration in milliseconds
+        max_duration_ms:
+          type: integer
+          format: int64
+          description: Maximum duration in milliseconds
+        status:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanStatusCode'
+          description: Status filter
+        start_time:
+          type: string
+          format: date-time
+          description: Time range start
+        end_time:
+          type: string
+          format: date-time
+          description: Time range end
+        tags:
+          type: object
+          unevaluatedProperties:
+            type: string
+          description: Tag filters
+        limit:
+          type: integer
+          format: int32
+          minimum: 1
+          maximum: 1000
+          description: Page size
+          default: 100
+        cursor:
+          type: string
+          description: Cursor
+      description: Trace search query
+servers:
+  - url: https://api.staging.qyl.dev
+    description: QYL Staging API
+    variables: {}
+  - url: https://api.qyl.dev
+    description: QYL Production API
+    variables: {}

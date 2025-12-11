@@ -1,0 +1,268 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "qyl-telemetry",
+    "$defs": {
+        "TraceId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TraceId.json",
+            "type": "string",
+            "examples": [
+                "0af7651916cd43dd8448eb211c80319c"
+            ],
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[a-f0-9]{32}$",
+            "description": "Unique trace identifier (32 lowercase hex characters)"
+        },
+        "SpanId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SpanId.json",
+            "type": "string",
+            "examples": [
+                "b7ad6b7169203331"
+            ],
+            "minLength": 16,
+            "maxLength": 16,
+            "pattern": "^[a-f0-9]{16}$",
+            "description": "Unique span identifier (16 lowercase hex characters)"
+        },
+        "TraceParent": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TraceParent.json",
+            "type": "string",
+            "examples": [
+                "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01"
+            ],
+            "pattern": "^[0-9a-f]{2}-[0-9a-f]{32}-[0-9a-f]{16}-[0-9a-f]{2}$",
+            "description": "W3C Trace Context traceparent header format"
+        },
+        "TraceState": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TraceState.json",
+            "type": "string",
+            "examples": [
+                "rojo=00f067aa0ba902b7,congo=t61rcWkgMzE"
+            ],
+            "description": "W3C Trace Context tracestate header (vendor-specific key-value pairs)"
+        },
+        "SessionId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SessionId.json",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "description": "Unique session identifier"
+        },
+        "UserId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UserId.json",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "description": "User identifier (pseudonymized for privacy)"
+        },
+        "Timestamp": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Timestamp.json",
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp with nanosecond precision (RFC 3339)"
+        },
+        "UnixNanos": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UnixNanos.json",
+            "type": "string",
+            "format": "date-time",
+            "description": "Unix timestamp in nanoseconds since epoch"
+        },
+        "DurationNs": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "DurationNs.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Duration in nanoseconds"
+        },
+        "DurationMs": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "DurationMs.json",
+            "type": "number",
+            "minimum": 0,
+            "description": "Duration in milliseconds"
+        },
+        "DurationS": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "DurationS.json",
+            "type": "number",
+            "minimum": 0,
+            "description": "Duration in seconds"
+        },
+        "IsoDuration": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "IsoDuration.json",
+            "type": "string",
+            "format": "duration",
+            "description": "ISO 8601 duration format (e.g., PT1H30M)"
+        },
+        "IPv4Address": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "IPv4Address.json",
+            "type": "string",
+            "examples": [
+                "192.168.1.1"
+            ],
+            "pattern": "^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$",
+            "description": "IPv4 address in dotted-decimal notation"
+        },
+        "IPv6Address": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "IPv6Address.json",
+            "type": "string",
+            "examples": [
+                "2001:0db8:85a3:0000:0000:8a2e:0370:7334"
+            ],
+            "description": "IPv6 address in standard notation"
+        },
+        "IpAddress": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "IpAddress.json",
+            "type": "string",
+            "description": "IP address (IPv4 or IPv6)"
+        },
+        "Port": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Port.json",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+            "description": "Network port number (1-65535)"
+        },
+        "MacAddress": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "MacAddress.json",
+            "type": "string",
+            "examples": [
+                "00:1A:2B:3C:4D:5E"
+            ],
+            "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$",
+            "description": "MAC address in colon-separated hex notation"
+        },
+        "ByteSize": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "ByteSize.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Size in bytes"
+        },
+        "TokenCount": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TokenCount.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Token count (for LLM operations)"
+        },
+        "Count": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Count.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Generic non-negative counter"
+        },
+        "Percentage": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Percentage.json",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Percentage value (0.0 to 100.0)"
+        },
+        "Ratio": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Ratio.json",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Ratio value (0.0 to 1.0)"
+        },
+        "Sha256Hash": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Sha256Hash.json",
+            "type": "string",
+            "minLength": 64,
+            "maxLength": 64,
+            "pattern": "^[a-f0-9]{64}$",
+            "description": "SHA-256 hash in lowercase hex"
+        },
+        "SemVer": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SemVer.json",
+            "type": "string",
+            "examples": [
+                "2.1.0"
+            ],
+            "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+            "description": "Semantic version string (e.g., 1.2.3)"
+        },
+        "UrlString": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UrlString.json",
+            "type": "string",
+            "format": "uri",
+            "description": "URL string (absolute)"
+        },
+        "UrlPath": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UrlPath.json",
+            "type": "string",
+            "examples": [
+                "/api/v1/users"
+            ],
+            "description": "URL path component"
+        },
+        "UrlQuery": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UrlQuery.json",
+            "type": "string",
+            "examples": [
+                "page=1&limit=100"
+            ],
+            "description": "URL query string (without leading ?)"
+        },
+        "HttpMethod": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "HttpMethod.json",
+            "type": "string",
+            "examples": [
+                "GET"
+            ],
+            "description": "HTTP method name (uppercase)"
+        },
+        "ContentType": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "ContentType.json",
+            "type": "string",
+            "examples": [
+                "application/json"
+            ],
+            "description": "MIME content type"
+        },
+        "UserAgent": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UserAgent.json",
+            "type": "string",
+            "examples": [
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            ],
+            "description": "User agent string"
+        },
+        "LanguageCode": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "LanguageCode.json",
+            "type": "string",
+            "examples": [
+                "en-US"
+            ],
+            "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$",
+            "description": "Language/locale code (BCP 47)"
+        }
+    }
+}

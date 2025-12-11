@@ -10,9 +10,6 @@ public sealed class OtlpMetricsService(
     OtlpConverter converter,
     ILogger<OtlpMetricsService> logger) : MetricsService.MetricsServiceBase
 {
-    /// <summary>
-    /// Event raised when metrics are received.
-    /// </summary>
     public event Action<IReadOnlyList<MetricModel>>? MetricsReceived;
 
     public override Task<ExportMetricsServiceResponse> Export(

@@ -1,22 +1,10 @@
-import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
-import {
-  Search,
-  RefreshCw,
-  Clock,
-  Pause,
-  Play,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import {useState} from 'react';
+import {useLocation} from 'react-router-dom';
+import {Clock, Pause, Play, RefreshCw, Search,} from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 
 interface TopBarProps {
   isLive: boolean;
@@ -37,25 +25,25 @@ const pageTitle: Record<string, string> = {
 };
 
 const timeRanges = [
-  { value: '5m', label: 'Last 5 minutes' },
-  { value: '15m', label: 'Last 15 minutes' },
-  { value: '30m', label: 'Last 30 minutes' },
-  { value: '1h', label: 'Last 1 hour' },
-  { value: '3h', label: 'Last 3 hours' },
-  { value: '6h', label: 'Last 6 hours' },
-  { value: '12h', label: 'Last 12 hours' },
-  { value: '24h', label: 'Last 24 hours' },
-  { value: '7d', label: 'Last 7 days' },
+  {value: '5m', label: 'Last 5 minutes'},
+  {value: '15m', label: 'Last 15 minutes'},
+  {value: '30m', label: 'Last 30 minutes'},
+  {value: '1h', label: 'Last 1 hour'},
+  {value: '3h', label: 'Last 3 hours'},
+  {value: '6h', label: 'Last 6 hours'},
+  {value: '12h', label: 'Last 12 hours'},
+  {value: '24h', label: 'Last 24 hours'},
+  {value: '7d', label: 'Last 7 days'},
 ];
 
 export function TopBar({
-  isLive,
-  onLiveToggle,
-  onRefresh,
-  timeRange,
-  onTimeRangeChange,
-  onSearch,
-}: TopBarProps) {
+                         isLive,
+                         onLiveToggle,
+                         onRefresh,
+                         timeRange,
+                         onTimeRangeChange,
+                         onSearch,
+                       }: TopBarProps) {
   const location = useLocation();
   const [searchValue, setSearchValue] = useState('');
 
@@ -68,7 +56,7 @@ export function TopBar({
       onSearch(searchValue);
     } else {
       window.dispatchEvent(
-        new CustomEvent('qyl:search', { detail: { query: searchValue } })
+        new CustomEvent('qyl:search', {detail: {query: searchValue}})
       );
     }
   };
@@ -81,7 +69,7 @@ export function TopBar({
       {/* Search */}
       <form onSubmit={handleSearch} className="flex-1 max-w-md">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
           <Input
             data-search-input
             type="text"
@@ -94,14 +82,14 @@ export function TopBar({
       </form>
 
       {/* Spacer */}
-      <div className="flex-1" />
+      <div className="flex-1"/>
 
       {/* Time range selector */}
       <div className="flex items-center gap-2">
-        <Clock className="w-4 h-4 text-muted-foreground" />
+        <Clock className="w-4 h-4 text-muted-foreground"/>
         <Select value={timeRange} onValueChange={onTimeRangeChange}>
           <SelectTrigger className="w-40">
-            <SelectValue />
+            <SelectValue/>
           </SelectTrigger>
           <SelectContent>
             {timeRanges.map((range) => (
@@ -122,12 +110,12 @@ export function TopBar({
       >
         {isLive ? (
           <>
-            <Pause className="w-4 h-4 mr-1" />
+            <Pause className="w-4 h-4 mr-1"/>
             Live
           </>
         ) : (
           <>
-            <Play className="w-4 h-4 mr-1" />
+            <Play className="w-4 h-4 mr-1"/>
             Paused
           </>
         )}
@@ -135,7 +123,7 @@ export function TopBar({
 
       {/* Refresh */}
       <Button variant="outline" size="icon" onClick={onRefresh}>
-        <RefreshCw className="w-4 h-4" />
+        <RefreshCw className="w-4 h-4"/>
       </Button>
     </header>
   );

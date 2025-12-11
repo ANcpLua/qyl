@@ -3,14 +3,17 @@
 This README was created using the C# MCP server project template.
 It demonstrates how you can easily create an MCP server using C# and publish it as a NuGet package.
 
-The MCP server is built as a framework-dependent application and requires the .NET runtime to be installed on the target machine.
-The application is configured to roll-forward to the next highest major version of the runtime if one is available on the target machine.
+The MCP server is built as a framework-dependent application and requires the .NET runtime to be installed on the target
+machine.
+The application is configured to roll-forward to the next highest major version of the runtime if one is available on
+the target machine.
 If an applicable .NET runtime is not available, the MCP server will not start.
 Consider building the MCP server as a self-contained application if you want to avoid this dependency.
 
 See [aka.ms/nuget/mcp/guide](https://aka.ms/nuget/mcp/guide) for the full guide.
 
-Please note that this template is currently in an early preview stage. If you have feedback, please take a [brief survey](http://aka.ms/dotnet-mcp-template-survey).
+Please note that this template is currently in an early preview stage. If you have feedback, please take
+a [brief survey](http://aka.ms/dotnet-mcp-template-survey).
 
 ## Checklist before publishing to NuGet.org
 
@@ -20,11 +23,13 @@ Please note that this template is currently in an early preview stage. If you ha
   - See [configuring inputs](https://aka.ms/nuget/mcp/guide/configuring-inputs) for more details.
 - Pack the project using `dotnet pack`.
 
-The `bin/Release` directory will contain the package file (.nupkg), which can be [published to NuGet.org](https://learn.microsoft.com/nuget/nuget-org/publish-a-package).
+The `bin/Release` directory will contain the package file (.nupkg), which can
+be [published to NuGet.org](https://learn.microsoft.com/nuget/nuget-org/publish-a-package).
 
 ## Developing locally
 
-To test this MCP server from source code (locally) without using a built MCP server package, you can configure your IDE to run the project directly using `dotnet run`.
+To test this MCP server from source code (locally) without using a built MCP server package, you can configure your IDE
+to run the project directly using `dotnet run`.
 
 ```json
 {
@@ -44,16 +49,19 @@ To test this MCP server from source code (locally) without using a built MCP ser
 
 ## Testing the MCP Server
 
-Once configured, you can ask Copilot Chat for a random number, for example, `Give me 3 random numbers`. It should prompt you to use the `get_random_number` tool on the `McpServer1` MCP server and show you the results.
+Once configured, you can ask Copilot Chat for a random number, for example, `Give me 3 random numbers`. It should prompt
+you to use the `get_random_number` tool on the `McpServer1` MCP server and show you the results.
 
 ## Publishing to NuGet.org
 
 1. Run `dotnet pack -c Release` to create the NuGet package
-2. Publish to NuGet.org with `dotnet nuget push bin/Release/*.nupkg --api-key <your-api-key> --source https://api.nuget.org/v3/index.json`
+2. Publish to NuGet.org with
+   `dotnet nuget push bin/Release/*.nupkg --api-key <your-api-key> --source https://api.nuget.org/v3/index.json`
 
 ## Using the MCP Server from NuGet.org
 
-Once the MCP server package is published to NuGet.org, you can configure it in your preferred IDE. Both VS Code and Visual Studio use the `dnx` command to download and install the MCP server package from NuGet.org.
+Once the MCP server package is published to NuGet.org, you can configure it in your preferred IDE. Both VS Code and
+Visual Studio use the `dnx` command to download and install the MCP server package from NuGet.org.
 
 - **VS Code**: Create a `<WORKSPACE DIRECTORY>/.vscode/mcp.json` file
 - **Visual Studio**: Create a `<SOLUTION DIRECTORY>\.mcp.json` file
@@ -79,7 +87,8 @@ For both VS Code and Visual Studio, the configuration file uses the following se
 
 ## More information
 
-.NET MCP servers use the [ModelContextProtocol](https://www.nuget.org/packages/ModelContextProtocol) C# SDK. For more information about MCP:
+.NET MCP servers use the [ModelContextProtocol](https://www.nuget.org/packages/ModelContextProtocol) C# SDK. For more
+information about MCP:
 
 - [Official Documentation](https://modelcontextprotocol.io/)
 - [Protocol Specification](https://spec.modelcontextprotocol.io/)

@@ -11,46 +11,40 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
 
     public void AddSpan(SpanModel span)
     {
-        var builder = _traces.GetOrAdd(span.TraceId, _ => new TraceBuilder(span.TraceId));
+        TraceBuilder builder = _traces.GetOrAdd(span.TraceId, _ => new(span.TraceId));
         builder.AddSpan(span);
 
         EvictOldTraces();
     }
 
     public TraceModel? GetTrace(string traceId) =>
-        _traces.TryGetValue(traceId, out var builder) ? builder.Build() : null;
+        _traces.TryGetValue(traceId, out TraceBuilder? builder) ? builder.Build() : null;
 
     public IReadOnlyList<TraceModel> GetRecentTraces(int limit = 100) =>
-        _traces.Values
+    [
+        .. _traces.Values
             .Select(b => b.Build())
             .OrderByDescending(t => t.StartTime)
             .Take(limit)
-            .ToList();
+    ];
 
     public IReadOnlyList<TraceModel> Query(TelemetryQuery query)
     {
-        var traces = _traces.Values.Select(b => b.Build()).AsEnumerable();
+        IEnumerable<TraceModel> traces = _traces.Values.Select(b => b.Build()).AsEnumerable();
 
-        if (query.ServiceName is not null)
-        {
-            traces = traces.Where(t => t.Services.Contains(query.ServiceName));
-        }
+        if (query.ServiceName is not null) traces = traces.Where(t => t.Services.Contains(query.ServiceName));
 
-        if (query.From.HasValue)
-        {
-            traces = traces.Where(t => t.StartTime >= query.From.Value);
-        }
+        if (query.From.HasValue) traces = traces.Where(t => t.StartTime >= query.From.Value);
 
-        if (query.To.HasValue)
-        {
-            traces = traces.Where(t => t.EndTime <= query.To.Value);
-        }
+        if (query.To.HasValue) traces = traces.Where(t => t.EndTime <= query.To.Value);
 
-        return traces
-            .OrderByDescending(t => t.StartTime)
-            .Skip(query.Offset)
-            .Take(query.Limit)
-            .ToList();
+        return
+        [
+            .. traces
+                .OrderByDescending(t => t.StartTime)
+                .Skip(query.Offset)
+                .Take(query.Limit)
+        ];
     }
 
     public long TraceCount => _traces.Count;
@@ -59,16 +53,13 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
     {
         if (_traces.Count <= maxTraces) return;
 
-        var cutoff = DateTimeOffset.UtcNow - _traceTimeout;
+        DateTimeOffset cutoff = DateTimeOffset.UtcNow - _traceTimeout;
         var toRemove = _traces
             .Where(kv => kv.Value.LastUpdate < cutoff)
             .Select(kv => kv.Key)
             .ToList();
 
-        foreach (var key in toRemove)
-        {
-            _traces.TryRemove(key, out _);
-        }
+        foreach (string key in toRemove) _traces.TryRemove(key, out _);
 
         if (_traces.Count > maxTraces)
         {
@@ -78,18 +69,15 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
                 .Select(kv => kv.Key)
                 .ToList();
 
-            foreach (var key in oldest)
-            {
-                _traces.TryRemove(key, out _);
-            }
+            foreach (string key in oldest) _traces.TryRemove(key, out _);
         }
     }
 
     private sealed class TraceBuilder(string traceId)
     {
-        private readonly List<SpanModel> _spans = [];
-        private readonly HashSet<string> _services = [];
         private readonly Lock _lock = new();
+        private readonly HashSet<string> _services = [];
+        private readonly List<SpanModel> _spans = [];
 
         public DateTimeOffset LastUpdate { get; private set; } = DateTimeOffset.UtcNow;
 
@@ -109,7 +97,7 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
             {
                 if (_spans.Count is 0)
                 {
-                    return new TraceModel(
+                    return new(
                         traceId,
                         [],
                         DateTimeOffset.MinValue,
@@ -119,11 +107,11 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
                 }
 
                 var sortedSpans = _spans.OrderBy(s => s.StartTime).ToList();
-                var startTime = sortedSpans.Min(s => s.StartTime);
-                var endTime = sortedSpans.Max(s => s.EndTime);
-                var hasError = sortedSpans.Any(s => s.Status == SpanStatus.Error);
+                DateTimeOffset startTime = sortedSpans.Min(s => s.StartTime);
+                DateTimeOffset endTime = sortedSpans.Max(s => s.EndTime);
+                bool hasError = sortedSpans.Exists(s => s.Status == SpanStatus.Error);
 
-                return new TraceModel(
+                return new(
                     traceId,
                     sortedSpans,
                     startTime,

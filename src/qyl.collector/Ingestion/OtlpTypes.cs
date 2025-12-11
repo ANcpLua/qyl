@@ -1,8 +1,3 @@
-// =============================================================================
-// OTLP TYPES - Simplified for JSON parsing (OTLP/HTTP JSON format)
-// These types match the OTLP JSON format for trace ingestion
-// =============================================================================
-
 namespace qyl.collector.Ingestion;
 
 public sealed record OtlpExportTraceServiceRequest

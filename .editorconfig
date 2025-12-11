@@ -1,0 +1,81 @@
+# =============================================================================
+# qyl EditorConfig - ROOT (STRICT)
+# =============================================================================
+
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+# Formatting
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Naming
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = error
+dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case.style = camel_case_underscore
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.camel_case_underscore.required_prefix = _
+dotnet_naming_style.camel_case_underscore.capitalization = camel_case
+
+# =============================================================================
+# ASYNC ANALYZERS (STRICT)
+# =============================================================================
+
+# VSTHRD - Threading Analyzers
+dotnet_diagnostic.VSTHRD001.severity = error   # Avoid legacy thread switching
+dotnet_diagnostic.VSTHRD002.severity = error   # Avoid problematic synchronous waits
+dotnet_diagnostic.VSTHRD003.severity = error   # Avoid awaiting foreign Tasks
+dotnet_diagnostic.VSTHRD010.severity = error   # Invoke single-threaded types on Main thread
+dotnet_diagnostic.VSTHRD011.severity = error   # Use AsyncLazy<T>
+dotnet_diagnostic.VSTHRD100.severity = error   # Avoid async void methods
+dotnet_diagnostic.VSTHRD101.severity = error   # Avoid unsupported async delegates
+dotnet_diagnostic.VSTHRD102.severity = error   # Implement internal logic asynchronously
+dotnet_diagnostic.VSTHRD103.severity = error   # Call async methods when in async method
+dotnet_diagnostic.VSTHRD104.severity = error   # Offer async option
+dotnet_diagnostic.VSTHRD105.severity = error   # Avoid implicit Task.Result
+dotnet_diagnostic.VSTHRD106.severity = error   # Use InvokeAsync for async callbacks
+dotnet_diagnostic.VSTHRD107.severity = error   # Await Task within using
+dotnet_diagnostic.VSTHRD110.severity = error   # Observe result of async calls
+dotnet_diagnostic.VSTHRD111.severity = warning # ConfigureAwait (warning, not error)
+dotnet_diagnostic.VSTHRD200.severity = error   # Use Async suffix
+
+# CA Async Rules
+dotnet_diagnostic.CA2007.severity = warning    # ConfigureAwait
+dotnet_diagnostic.CA2008.severity = error      # Do not create tasks without TaskScheduler
+dotnet_diagnostic.CA2012.severity = error      # Use ValueTasks correctly
+dotnet_diagnostic.CA2016.severity = error      # Forward CancellationToken
+
+# =============================================================================
+# GENERAL CODE QUALITY
+# =============================================================================
+
+dotnet_diagnostic.CA1816.severity = error      # Dispose pattern
+dotnet_diagnostic.CA1822.severity = warning    # Mark members as static
+dotnet_diagnostic.CA1848.severity = warning    # Use LoggerMessage delegates
+dotnet_diagnostic.CA1860.severity = error      # Avoid using 'Enumerable.Any()' extension method
+dotnet_diagnostic.CA1861.severity = error      # Avoid constant arrays as arguments
+dotnet_diagnostic.CA2254.severity = warning    # Template should be static
+
+# XML Documentation
+dotnet_diagnostic.CS1591.severity = warning    # Missing XML comment
+
+# BannedApiAnalyzers
+dotnet_diagnostic.RS0030.severity = error      # Banned API usage
+
+[*.json]
+indent_size = 2
+
+[*.{yaml,yml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

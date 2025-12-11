@@ -14,7 +14,7 @@
   <!-- Needed for: Throw.IfNull() auto-populating parameter names              -->
   <!-- ─────────────────────────────────────────────────────────────────────── -->
   <ItemGroup Condition="'$(InjectCallerAttributesOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))">
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\CallerAttributes\*.cs" LinkBase="LegacySupport\CallerAttributes" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\CallerAttributes\*.cs" LinkBase="LegacySupport\CallerAttributes"/>
   </ItemGroup>
 
   <!-- ─────────────────────────────────────────────────────────────────────── -->
@@ -22,7 +22,7 @@
   <!-- Needed for: Nullable reference type annotations                         -->
   <!-- ─────────────────────────────────────────────────────────────────────── -->
   <ItemGroup Condition="'$(InjectDiagnosticAttributesOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netcoreapp3.1'))">
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\DiagnosticAttributes\*.cs" LinkBase="LegacySupport\DiagnosticAttributes" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\DiagnosticAttributes\*.cs" LinkBase="LegacySupport\DiagnosticAttributes"/>
   </ItemGroup>
 
   <!-- ─────────────────────────────────────────────────────────────────────── -->
@@ -30,7 +30,7 @@
   <!-- Needed for: Records and init-only properties on older frameworks        -->
   <!-- ─────────────────────────────────────────────────────────────────────── -->
   <ItemGroup Condition="'$(InjectIsExternalInitOnLegacy)' == 'true' AND !$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))">
-    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\IsExternalInit\*.cs" LinkBase="LegacySupport\IsExternalInit" />
+    <Compile Include="$(MSBuildThisFileDirectory)..\..\src\LegacySupport\IsExternalInit\*.cs" LinkBase="LegacySupport\IsExternalInit"/>
   </ItemGroup>
 
 </Project>

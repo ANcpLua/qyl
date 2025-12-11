@@ -1,0 +1,211 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  NODE_VERSION: '22'
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/qyl.dashboard/package-lock.json
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Restore .NET dependencies
+        run: dotnet restore
+
+      - name: Build .NET solution
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Run .NET tests
+        run: dotnet test --configuration Release --no-build --verbosity normal
+
+      - name: Install frontend dependencies
+        working-directory: src/qyl.dashboard
+        run: npm ci
+
+      - name: Run frontend type check
+        working-directory: src/qyl.dashboard
+        run: npm run typecheck
+
+      - name: Run frontend lint
+        working-directory: src/qyl.dashboard
+        run: npm run lint
+
+      - name: Run frontend tests
+        working-directory: src/qyl.dashboard
+        run: npm run test -- --run
+
+      - name: Build frontend
+        working-directory: src/qyl.dashboard
+        run: npm run build
+
+      - name: Publish qyl.collector (Native AOT)
+        run: |
+          dotnet publish src/qyl.collector/qyl.collector.csproj \
+            --configuration Release \
+            --output ./publish/collector \
+            -p:PublishAot=true \
+            -p:Version=${{ steps.version.outputs.version_number }}
+
+      - name: Package artifacts
+        run: |
+          mkdir -p ./release
+
+          # Package collector
+          cd ./publish/collector
+          tar -czvf ../../release/qyl-collector-linux-x64-${{ steps.version.outputs.version }}.tar.gz .
+          cd ../..
+
+          # Package dashboard
+          cd ./src/qyl.dashboard/dist
+          tar -czvf ../../../release/qyl-dashboard-${{ steps.version.outputs.version }}.tar.gz .
+          cd ../../..
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          cat << 'EOF' > release_notes.md
+          ## qyl ${{ steps.version.outputs.version }}
+
+          ### Components
+
+          | Component | Version | Description |
+          |-----------|---------|-------------|
+          | qyl.collector | ${{ steps.version.outputs.version_number }} | Native AOT OTLP collector with DuckDB storage |
+          | qyl.dashboard | ${{ steps.version.outputs.version_number }} | React 19 observability dashboard |
+
+          ### Frontend Stack
+
+          | Package | Version |
+          |---------|---------|
+          | React | 19.2.0 |
+          | TypeScript | 5.9.3 |
+          | Vite | 7.2.6 |
+          | TailwindCSS | 4.1.17 |
+          | TanStack Query | 5.90.11 |
+          | TanStack Table | 8.21.3 |
+          | Recharts | 2.15.4 |
+          | Radix UI | Latest |
+
+          ### Backend Stack
+
+          | Package | Version |
+          |---------|---------|
+          | .NET | 10.0 |
+          | DuckDB | 1.4.1 |
+          | gRPC | 2.71.0 |
+          | OpenTelemetry | 1.14.0 |
+
+          ### Installation
+
+          ```bash
+          # Download and extract collector
+          tar -xzvf qyl-collector-linux-x64-${{ steps.version.outputs.version }}.tar.gz
+          ./qyl.collector
+
+          # Dashboard is served by the collector at http://localhost:8080
+          ```
+
+          ### Checksums
+
+          ```
+          $(sha256sum ./release/*.tar.gz)
+          ```
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: qyl ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          files: |
+            ./release/*.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-docker:
+    runs-on: ubuntu-latest
+    needs: build-and-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push collector image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: src/qyl.collector/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/collector:${{ steps.version.outputs.version }}
+            ghcr.io/${{ github.repository }}/collector:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -5,6 +5,7 @@ OpenTelemetry GenAI Semantic Conventions (v1.38.0) for qyl.
 ## Overview
 
 This package provides:
+
 - **GenAiSemanticConventions** - Constants for all GenAI semantic convention attributes
 - **TracerProviderBuilderExtensions** - Helpers for configuring OpenTelemetry tracing
 
@@ -53,6 +54,7 @@ Microsoft Agent Framework's built-in `UseOpenTelemetry()` extension method, whic
 the full [OpenTelemetry GenAI Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/).
 
 The constants in this package are useful for:
+
 - Collector-side span attribute parsing
 - Dashboard and query construction
 - Analyzer rules (deprecated attribute detection)
@@ -60,6 +62,7 @@ The constants in this package are useful for:
 ## Semantic Conventions v1.38.0
 
 Supported attribute groups:
+
 - `gen_ai.operation.*` - Operation metadata
 - `gen_ai.agent.*` - Agent identification
 - `gen_ai.request.*` - Request parameters

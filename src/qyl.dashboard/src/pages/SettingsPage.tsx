@@ -1,40 +1,25 @@
-import { useState } from 'react';
-import {
-  Settings,
-  Keyboard,
-  Palette,
-  Database,
-  LogOut,
-  Sun,
-  Moon,
-  Monitor,
-} from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import {useState} from 'react';
+import {Database, Keyboard, LogOut, Monitor, Moon, Palette, Settings, Sun,} from 'lucide-react';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {Separator} from '@/components/ui/separator';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 
 const keyboardShortcuts = [
-  { key: 'G', description: 'Go to Resources' },
-  { key: 'T', description: 'Go to Traces' },
-  { key: 'L', description: 'Go to Logs' },
-  { key: 'M', description: 'Go to Metrics' },
-  { key: 'A', description: 'Go to GenAI' },
-  { key: ',', description: 'Open Settings' },
-  { key: '?', description: 'Show keyboard shortcuts' },
-  { key: 'Ctrl + /', description: 'Focus search' },
-  { key: 'Escape', description: 'Close panel / Clear selection' },
-  { key: 'R', description: 'Refresh data' },
-  { key: 'Space', description: 'Toggle live mode' },
+  {key: 'G', description: 'Go to Resources'},
+  {key: 'T', description: 'Go to Traces'},
+  {key: 'L', description: 'Go to Logs'},
+  {key: 'M', description: 'Go to Metrics'},
+  {key: 'A', description: 'Go to GenAI'},
+  {key: ',', description: 'Open Settings'},
+  {key: '?', description: 'Show keyboard shortcuts'},
+  {key: 'Ctrl + /', description: 'Focus search'},
+  {key: 'Escape', description: 'Close panel / Clear selection'},
+  {key: 'R', description: 'Refresh data'},
+  {key: 'Space', description: 'Toggle live mode'},
 ];
 
 export function SettingsPage() {
@@ -43,7 +28,7 @@ export function SettingsPage() {
   const [maxLogLines, setMaxLogLines] = useState('1000');
 
   const handleLogout = () => {
-    fetch('/api/logout', { method: 'POST' })
+    fetch('/api/logout', {method: 'POST'})
       .then(() => window.location.reload());
   };
 
@@ -59,19 +44,19 @@ export function SettingsPage() {
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="general">
-            <Settings className="w-4 h-4 mr-2" />
+            <Settings className="w-4 h-4 mr-2"/>
             General
           </TabsTrigger>
           <TabsTrigger value="appearance">
-            <Palette className="w-4 h-4 mr-2" />
+            <Palette className="w-4 h-4 mr-2"/>
             Appearance
           </TabsTrigger>
           <TabsTrigger value="shortcuts">
-            <Keyboard className="w-4 h-4 mr-2" />
+            <Keyboard className="w-4 h-4 mr-2"/>
             Shortcuts
           </TabsTrigger>
           <TabsTrigger value="data">
-            <Database className="w-4 h-4 mr-2" />
+            <Database className="w-4 h-4 mr-2"/>
             Data
           </TabsTrigger>
         </TabsList>
@@ -94,7 +79,7 @@ export function SettingsPage() {
                   </p>
                 </div>
                 <Button variant="outline" onClick={handleLogout}>
-                  <LogOut className="w-4 h-4 mr-2" />
+                  <LogOut className="w-4 h-4 mr-2"/>
                   Logout
                 </Button>
               </div>
@@ -118,7 +103,7 @@ export function SettingsPage() {
                 </div>
                 <Badge variant="secondary">Coming Soon</Badge>
               </div>
-              <Separator />
+              <Separator/>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium">Cost Alerts</p>
@@ -148,7 +133,7 @@ export function SettingsPage() {
                   className="justify-start"
                   onClick={() => setTheme('dark')}
                 >
-                  <Moon className="w-4 h-4 mr-2" />
+                  <Moon className="w-4 h-4 mr-2"/>
                   Dark
                 </Button>
                 <Button
@@ -156,7 +141,7 @@ export function SettingsPage() {
                   className="justify-start"
                   onClick={() => setTheme('light')}
                 >
-                  <Sun className="w-4 h-4 mr-2" />
+                  <Sun className="w-4 h-4 mr-2"/>
                   Light
                 </Button>
                 <Button
@@ -164,7 +149,7 @@ export function SettingsPage() {
                   className="justify-start"
                   onClick={() => setTheme('system')}
                 >
-                  <Monitor className="w-4 h-4 mr-2" />
+                  <Monitor className="w-4 h-4 mr-2"/>
                   System
                 </Button>
               </div>
@@ -181,7 +166,7 @@ export function SettingsPage() {
             <CardContent>
               <Select defaultValue="comfortable">
                 <SelectTrigger className="w-48">
-                  <SelectValue />
+                  <SelectValue/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="compact">Compact</SelectItem>
@@ -199,7 +184,8 @@ export function SettingsPage() {
             <CardHeader>
               <CardTitle className="text-base">Keyboard Shortcuts</CardTitle>
               <CardDescription>
-                Quick navigation and actions. Press <kbd className="kbd">?</kbd> anywhere to see this list.
+                Quick navigation and actions. Press <kbd className="kbd">?</kbd> anywhere to see this
+                list.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -231,7 +217,7 @@ export function SettingsPage() {
               <div className="flex items-center gap-4">
                 <Select value={refreshInterval} onValueChange={setRefreshInterval}>
                   <SelectTrigger className="w-48">
-                    <SelectValue />
+                    <SelectValue/>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">Every 1 second</SelectItem>
@@ -284,7 +270,7 @@ export function SettingsPage() {
                   <span className="ml-2 font-mono">--</span>
                 </div>
               </div>
-              <Separator />
+              <Separator/>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" disabled>
                   Export Data

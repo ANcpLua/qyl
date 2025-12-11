@@ -1,20 +1,11 @@
-// =============================================================================
-// qyl Model Mappers
-// 
-// Transforms internal storage models (SpanRecord, SessionSummary) into API DTOs.
-// This is the bridge between DuckDB storage and the OpenAPI contract.
-// =============================================================================
-
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using qyl.collector.Contracts;
 using qyl.collector.Query;
 using qyl.collector.Storage;
-using qyl.collector.Contracts;
 
 namespace qyl.collector.Mapping;
 
-/// <summary>
-/// Maps SpanRecord (storage) → SpanDto (API)
-/// </summary>
 public static class SpanMapper
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -25,13 +16,10 @@ public static class SpanMapper
     private static readonly string[] SpanKindNames =
         ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
-    /// <summary>
-    /// Maps a SpanRecord from DuckDB storage to API DTO
-    /// </summary>
     public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
     {
-        var startTime = record.StartTime.ToUniversalTime();
-        var endTime = record.EndTime.ToUniversalTime();
+        DateTime startTime = record.StartTime.ToUniversalTime();
+        DateTime endTime = record.EndTime.ToUniversalTime();
 
         return new SpanDto
         {
@@ -50,29 +38,25 @@ public static class SpanMapper
             ServiceVersion = serviceVersion,
             Attributes = ParseAttributes(record.Attributes),
             Events = ParseEvents(record.Events),
-            Links = [], // TODO: Add links support to SpanRecord
+            Links = [],
             GenAI = ExtractGenAIData(record)
         };
     }
 
-    /// <summary>
-    /// Maps multiple SpanRecords with a service lookup
-    /// </summary>
     public static List<SpanDto> ToDtos(
         IEnumerable<SpanRecord> records,
-        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver)
-    {
-        return records.Select(r =>
+        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+    [
+        .. records.Select(r =>
         {
-            var (serviceName, serviceVersion) = serviceResolver(r);
+            (string serviceName, string? serviceVersion) = serviceResolver(r);
             return ToDto(r, serviceName, serviceVersion);
-        }).ToList();
-    }
+        })
+    ];
 
     private static string MapSpanKind(string? kind)
     {
-        // SpanRecord.Kind might be int as string or name
-        if (int.TryParse(kind, out var kindInt) && kindInt >= 0 && kindInt < SpanKindNames.Length)
+        if (int.TryParse(kind, out int kindInt) && kindInt >= 0 && kindInt < SpanKindNames.Length)
             return SpanKindNames[kindInt];
 
         return kind?.ToLowerInvariant() switch
@@ -86,16 +70,14 @@ public static class SpanMapper
         };
     }
 
-    private static string MapStatus(int? statusCode)
-    {
-        return statusCode switch
+    private static string MapStatus(int? statusCode) =>
+        statusCode switch
         {
             0 => "unset",
             1 => "ok",
             2 => "error",
             _ => "unset"
         };
-    }
 
     private static Dictionary<string, object?> ParseAttributes(string? json)
     {
@@ -119,7 +101,7 @@ public static class SpanMapper
 
         try
         {
-            var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
+            List<RawSpanEvent>? events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
             return events?.Select(e => new SpanEventDto
             {
                 Name = e.Name ?? "unknown",
@@ -135,7 +117,6 @@ public static class SpanMapper
 
     private static GenAISpanDataDto? ExtractGenAIData(SpanRecord record)
     {
-        // Check if this is a GenAI span (has tokens or provider)
         if (record.TokensIn is null && record.TokensOut is null && string.IsNullOrEmpty(record.ProviderName))
             return null;
 
@@ -144,12 +125,12 @@ public static class SpanMapper
             ProviderName = record.ProviderName,
             OperationName = ExtractOperationName(record.Name),
             RequestModel = record.RequestModel,
-            ResponseModel = null, // TODO: Add to SpanRecord if needed
+            ResponseModel = null,
             InputTokens = record.TokensIn,
             OutputTokens = record.TokensOut,
             TotalTokens = (record.TokensIn ?? 0) + (record.TokensOut ?? 0),
             CostUsd = record.CostUsd.HasValue ? (double)record.CostUsd.Value : null,
-            Temperature = null, // Extract from attributes if needed
+            Temperature = null,
             MaxTokens = null,
             FinishReason = null,
             ToolName = ExtractToolName(record),
@@ -159,22 +140,20 @@ public static class SpanMapper
 
     private static string? ExtractOperationName(string spanName)
     {
-        // Parse "chat openai.chat" → "chat"
-        var parts = spanName.Split(' ', 2);
+        string[] parts = spanName.Split(' ', 2);
         return parts.Length > 0 ? parts[0] : null;
     }
 
     private static string? ExtractToolName(SpanRecord record)
     {
-        // Check attributes for tool name
-        var attrs = ParseAttributes(record.Attributes);
-        if (attrs.TryGetValue("gen_ai.tool.name", out var toolName))
+        Dictionary<string, object?> attrs = ParseAttributes(record.Attributes);
+        if (attrs.TryGetValue("gen_ai.tool.name", out object? toolName))
             return toolName?.ToString();
         return null;
     }
 
-    // Used for JSON deserialization of span events stored in DuckDB
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by JsonSerializer.Deserialize")]
+    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",
+        Justification = "Instantiated by JsonSerializer.Deserialize")]
     private sealed class RawSpanEvent
     {
         public string? Name { get; init; }
@@ -183,15 +162,12 @@ public static class SpanMapper
     }
 }
 
-/// <summary>
-/// Maps SessionSummary (aggregation) → SessionDto (API)
-/// </summary>
 public static class SessionMapper
 {
     public static SessionDto ToDto(SessionSummary summary)
     {
-        var startTime = summary.StartTime.ToUniversalTime();
-        var lastActivity = summary.LastActivity.ToUniversalTime();
+        DateTime startTime = summary.StartTime.ToUniversalTime();
+        DateTime lastActivity = summary.LastActivity.ToUniversalTime();
 
         return new SessionDto
         {
@@ -203,8 +179,8 @@ public static class SessionMapper
             TraceCount = summary.TraceCount,
             ErrorCount = summary.ErrorCount,
             ErrorRate = summary.ErrorRate,
-            Services = summary.Services.ToList(),
-            TraceIds = [], // TODO: Populate if needed
+            Services = [.. summary.Services],
+            TraceIds = [],
             IsActive = (DateTime.UtcNow - lastActivity).TotalMinutes < 5,
             GenAIStats = new SessionGenAIStatsDto
             {
@@ -213,8 +189,8 @@ public static class SessionMapper
                 TotalTokens = summary.TotalTokens,
                 TotalCostUsd = (double)summary.TotalCostUsd,
                 RequestCount = summary.GenAiRequestCount,
-                ToolCallCount = 0, // TODO: Add to SessionSummary
-                Models = summary.Models.ToList(),
+                ToolCallCount = 0,
+                Models = [.. summary.Models],
                 Providers = ExtractProviders(summary),
                 PrimaryModel = summary.Models.Count > 0 ? summary.Models[0] : null
             },
@@ -222,43 +198,35 @@ public static class SessionMapper
         };
     }
 
-    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries)
-    {
-        return summaries.Select(ToDto).ToList();
-    }
+    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries) => [.. summaries.Select(ToDto)];
 
     public static SessionListResponseDto ToListResponse(
         IEnumerable<SessionSummary> summaries,
         int total,
-        bool hasMore)
-    {
-        return new SessionListResponseDto
+        bool hasMore) =>
+        new()
         {
             Sessions = ToDtos(summaries),
             Total = total,
             HasMore = hasMore
         };
-    }
 
     private static List<string> ExtractProviders(SessionSummary summary)
     {
-        // Extract unique providers from models (e.g., "gpt-4o" → "openai")
-        // This is a heuristic - ideally track providers explicitly
         var providers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var model in summary.Models)
+        foreach (string model in summary.Models)
         {
-            var provider = InferProvider(model);
+            string? provider = InferProvider(model);
             if (provider is not null)
                 providers.Add(provider);
         }
 
-        return providers.ToList();
+        return [.. providers];
     }
 
-    private static string? InferProvider(string model)
-    {
-        return model switch
+    private static string? InferProvider(string model) =>
+        model switch
         {
             _ when model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) => "openai",
             _ when model.StartsWith("o1", StringComparison.OrdinalIgnoreCase) => "openai",
@@ -269,5 +237,4 @@ public static class SessionMapper
             _ when model.StartsWith("command", StringComparison.OrdinalIgnoreCase) => "cohere",
             _ => null
         };
-    }
 }

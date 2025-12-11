@@ -1,5 +1,3 @@
-// qyl OpenTelemetry ASP.NET Core Example
-
 namespace qyl.AspNetCore.Example.Models;
 
 public class WeatherForecast

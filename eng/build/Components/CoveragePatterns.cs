@@ -12,9 +12,6 @@ using Serilog;
 
 namespace Components;
 
-/// <summary>
-///     Rule for excluding or tagging coverage entries.
-/// </summary>
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public sealed record ExclusionRule(
     string Name,
@@ -32,9 +29,6 @@ public sealed record ExclusionRule(
         ShouldExclude ? $"ExcludedByRule({Name})" : $"TaggedByRule({Name})";
 }
 
-/// <summary>
-///     Well-known exclusion patterns for common code categories.
-/// </summary>
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class WellKnownExclusionPatterns
 {
@@ -83,9 +77,6 @@ public static class WellKnownExclusionPatterns
         GetMatchingRule(normalizedPath) is { ShouldExclude: true };
 }
 
-/// <summary>
-///     Patterns for detecting compiler-generated async/iterator state machines.
-/// </summary>
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class StateMachinePatterns
 {
@@ -96,18 +87,12 @@ public static class StateMachinePatterns
     {
         methodName = null;
 
-        var plusIndex = className.IndexOf(_stateMachineMarker, StringComparison.Ordinal);
-        if (plusIndex < 0)
-        {
-            return false;
-        }
+        int plusIndex = className.IndexOf(_stateMachineMarker, StringComparison.Ordinal);
+        if (plusIndex < 0) return false;
 
-        var methodStart = plusIndex + 2;
-        var methodEnd = className.IndexOf(_stateMachineSuffix, methodStart, StringComparison.Ordinal);
-        if (methodEnd <= methodStart)
-        {
-            return false;
-        }
+        int methodStart = plusIndex + 2;
+        int methodEnd = className.IndexOf(_stateMachineSuffix, methodStart, StringComparison.Ordinal);
+        if (methodEnd <= methodStart) return false;
 
         methodName = className[methodStart..methodEnd];
         return methodName.Length > 0;
@@ -126,10 +111,6 @@ public static class StateMachinePatterns
             : "CompilerGeneratedStateMachine";
 }
 
-/// <summary>
-///     Converts Cobertura XML coverage reports to AI-friendly per-project summaries.
-///     Produces small XML/JSON files containing only uncovered/partially covered entries.
-/// </summary>
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class CoverageSummaryConverter
 {
@@ -139,8 +120,6 @@ public static class CoverageSummaryConverter
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
-
-    // ── Per-Project Conversion ───────────────────────────────────────────────
 
     public static void ConvertPerProject(
         AbsolutePath coberturaPath,
@@ -160,13 +139,13 @@ public static class CoverageSummaryConverter
             return;
         }
 
-        var generatedAtUtc = DateTime.UtcNow;
-        var relativeCoberturaPath = Path.GetFileName(coberturaPath);
-        var sourceRootNormalized = NormalizePath(sourceRoot, null);
+        DateTime generatedAtUtc = DateTime.UtcNow;
+        string relativeCoberturaPath = Path.GetFileName(coberturaPath);
+        string sourceRootNormalized = NormalizePath(sourceRoot, null);
 
-        var allFileIssues = ExtractAllFileIssues(coverageElement, sourceRootNormalized);
+        Dictionary<string, CoverageFile> allFileIssues = ExtractAllFileIssues(coverageElement, sourceRootNormalized);
 
-        foreach (var (projectName, outputPath) in projectOutputs)
+        foreach ((string projectName, AbsolutePath outputPath) in projectOutputs)
         {
             var projectFiles = allFileIssues
                 .Where(kvp => kvp.Key.Contains(projectName, StringComparison.OrdinalIgnoreCase))
@@ -176,36 +155,26 @@ public static class CoverageSummaryConverter
         }
     }
 
-    // ── Extraction ───────────────────────────────────────────────────────────
-
     private static Dictionary<string, CoverageFile> ExtractAllFileIssues(XElement coverageElement, string sourceRoot)
     {
         Dictionary<string, CoverageFile> result = new(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var classElement in coverageElement.Descendants("class"))
+        foreach (XElement classElement in coverageElement.Descendants("class"))
         {
-            var filename = classElement.Attribute("filename")?.Value;
-            if (filename is not { Length: > 0 })
-            {
-                continue;
-            }
+            string? filename = classElement.Attribute("filename")?.Value;
+            if (filename is not { Length: > 0 }) continue;
 
-            var normalizedPath = NormalizePath(filename, sourceRoot);
+            string normalizedPath = NormalizePath(filename, sourceRoot);
 
-            if (WellKnownExclusionPatterns.ShouldExcludePath(normalizedPath))
-            {
-                continue;
-            }
+            if (WellKnownExclusionPatterns.ShouldExcludePath(normalizedPath)) continue;
 
-            var tagRule = WellKnownExclusionPatterns.GetMatchingRule(normalizedPath);
-            var ruleTag = tagRule is { ShouldExclude: false } ? tagRule.CreateReasonTag() : null;
+            ExclusionRule? tagRule = WellKnownExclusionPatterns.GetMatchingRule(normalizedPath);
+            string? ruleTag = tagRule is { ShouldExclude: false } ? tagRule.CreateReasonTag() : null;
 
-            var className = classElement.Attribute("name")?.Value;
+            string? className = classElement.Attribute("name")?.Value;
             string? stateMachineMethod = null;
             if (className is { Length: > 0 } && StateMachinePatterns.IsStateMachineClass(className))
-            {
                 StateMachinePatterns.TryExtractStateMachineMethod(className, out stateMachineMethod);
-            }
 
             ProcessClassIssues(classElement, normalizedPath, result, ruleTag, stateMachineMethod);
         }
@@ -220,32 +189,28 @@ public static class CoverageSummaryConverter
         string? ruleTag,
         string? stateMachineMethod)
     {
-        var file = GetOrCreateFileIssues(result, normalizedPath);
+        CoverageFile file = GetOrCreateFileIssues(result, normalizedPath);
 
-        foreach (var line in classElement.Descendants("line"))
+        foreach (XElement line in classElement.Descendants("line"))
         {
-            var hits = int.Parse(line.Attribute("hits")?.Value ?? "0", CultureInfo.InvariantCulture);
-            var lineNumber = int.Parse(line.Attribute("number")?.Value ?? "0", CultureInfo.InvariantCulture);
-            var isBranch = string.Equals(line.Attribute("branch")?.Value, "true", StringComparison.OrdinalIgnoreCase);
-            var conditionCoverage = line.Attribute("condition-coverage")?.Value;
+            int hits = int.Parse(line.Attribute("hits")?.Value ?? "0", CultureInfo.InvariantCulture);
+            int lineNumber = int.Parse(line.Attribute("number")?.Value ?? "0", CultureInfo.InvariantCulture);
+            bool isBranch = string.Equals(line.Attribute("branch")?.Value, "true", StringComparison.OrdinalIgnoreCase);
+            string? conditionCoverage = line.Attribute("condition-coverage")?.Value;
 
             if (isBranch && conditionCoverage is { Length: > 0 })
             {
                 if (CreateBranchIssue(lineNumber, hits, conditionCoverage, ruleTag, stateMachineMethod) is
                     { } branchIssue)
-                {
                     file.BranchDict.TryAdd(lineNumber, branchIssue);
-                }
             }
             else if (hits is 0)
             {
-                var reason = DetermineLineReason(ruleTag, stateMachineMethod);
+                string reason = DetermineLineReason(ruleTag, stateMachineMethod);
                 file.LineDict.TryAdd(lineNumber, new CoverageLine(lineNumber, 0, reason));
             }
         }
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static void WriteProjectSummary(
         string projectName,
@@ -254,7 +219,6 @@ public static class CoverageSummaryConverter
         DateTime generatedAtUtc,
         string sourceName)
     {
-        // Build JSON model
         var jsonSummary = new CoverageSummary
         {
             Project = projectName,
@@ -262,23 +226,18 @@ public static class CoverageSummaryConverter
             GeneratedAtUtc = generatedAtUtc
         };
 
-        // Build XML structure
         XElement xmlSummary = new("coverage-summary",
             new XAttribute("project", projectName),
             new XAttribute("generatedAtUtc", generatedAtUtc.ToString("O", CultureInfo.InvariantCulture)),
             new XAttribute("source", sourceName));
 
-        var filesWithIssues = 0;
+        int filesWithIssues = 0;
 
-        foreach (var (filePath, file) in fileIssues.OrderBy(kvp => kvp.Key,
+        foreach ((string filePath, CoverageFile file) in fileIssues.OrderBy(kvp => kvp.Key,
                      StringComparer.OrdinalIgnoreCase))
         {
-            if (file.LineDict.Count is 0 && file.BranchDict.Count is 0)
-            {
-                continue;
-            }
+            if (file.LineDict.Count is 0 && file.BranchDict.Count is 0) continue;
 
-            // Add to JSON
             jsonSummary.Files.Add(new CoverageFileDto
             {
                 Path = filePath,
@@ -286,11 +245,9 @@ public static class CoverageSummaryConverter
                 Branches = file.Branches.ToList()
             });
 
-            // Add to XML
             XElement xmlFile = new("file", new XAttribute("path", filePath));
 
-            foreach (var branch in file.Branches)
-            {
+            foreach (CoverageBranch branch in file.Branches)
                 xmlFile.Add(new XElement("branch",
                     new XAttribute("line", branch.Line),
                     new XAttribute("coveredBranches", branch.CoveredBranches),
@@ -299,15 +256,12 @@ public static class CoverageSummaryConverter
                         branch.CoveragePercent.ToString("F1", CultureInfo.InvariantCulture)),
                     new XAttribute("hits", branch.Hits),
                     new XAttribute("reason", branch.Reason)));
-            }
 
-            foreach (var line in file.Lines)
-            {
+            foreach (CoverageLine line in file.Lines)
                 xmlFile.Add(new XElement("line",
                     new XAttribute("number", line.Line),
                     new XAttribute("hits", line.Hits),
                     new XAttribute("reason", line.Reason)));
-            }
 
             xmlSummary.Add(xmlFile);
             filesWithIssues++;
@@ -315,11 +269,9 @@ public static class CoverageSummaryConverter
 
         EnsureDirectoryExists(outputPath);
 
-        // Write XML
         new XDocument(new XDeclaration("1.0", "utf-8", null), xmlSummary).Save(outputPath);
 
-        // Write JSON alongside XML
-        var jsonPath = Path.Combine(
+        string jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
         File.WriteAllText(jsonPath, JsonSerializer.Serialize(jsonSummary, _jsonOptions));
@@ -334,16 +286,11 @@ public static class CoverageSummaryConverter
 
         if (sourceRoot is { Length: > 0 })
         {
-            var normalizedRoot = sourceRoot.Replace((char)92, '/');
-            if (!normalizedRoot.EndsWith('/'))
-            {
-                normalizedRoot += '/';
-            }
+            string normalizedRoot = sourceRoot.Replace((char)92, '/');
+            if (!normalizedRoot.EndsWith('/')) normalizedRoot += '/';
 
             if (path.StartsWith(normalizedRoot, StringComparison.OrdinalIgnoreCase))
-            {
                 path = path[normalizedRoot.Length..];
-            }
         }
 
         return path;
@@ -362,19 +309,16 @@ public static class CoverageSummaryConverter
         {
             if (hits is 0)
             {
-                var reason = DetermineLineReason(ruleTag, stateMachineMethod);
+                string reason = DetermineLineReason(ruleTag, stateMachineMethod);
                 return new CoverageBranch(lineNumber, hits, 0, 1, 0, reason);
             }
 
             return null;
         }
 
-        if (info.CoveredBranches >= info.TotalBranches)
-        {
-            return null;
-        }
+        if (info.CoveredBranches >= info.TotalBranches) return null;
 
-        var branchReason =
+        string branchReason =
             stateMachineMethod is { Length: > 0 } ? StateMachinePatterns.CreateStateMachineReason(stateMachineMethod) :
             ruleTag is { Length: > 0 } ? ruleTag :
             info.CoveredBranches is 0 ? "BranchNotCovered" :
@@ -386,70 +330,50 @@ public static class CoverageSummaryConverter
 
     private static BranchCoverageInfo? ParseConditionCoverage(ReadOnlySpan<char> input)
     {
-        // Format: "50% (1/2)"
-        var parenStart = input.IndexOf('(');
-        var parenEnd = input.IndexOf(')');
-        if (parenStart < 0 || parenEnd <= parenStart)
-        {
-            return null;
-        }
+        int parenStart = input.IndexOf('(');
+        int parenEnd = input.IndexOf(')');
+        if (parenStart < 0 || parenEnd <= parenStart) return null;
 
-        var percentPart = input[..parenStart].Trim();
-        if (percentPart is not [.., '%'])
-        {
-            return null;
-        }
+        ReadOnlySpan<char> percentPart = input[..parenStart].Trim();
+        if (percentPart is not [.., '%']) return null;
 
-        if (!double.TryParse(percentPart[..^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var percent))
-        {
-            return null;
-        }
+        if (!double.TryParse(percentPart[..^1], NumberStyles.Float, CultureInfo.InvariantCulture,
+                out double percent)) return null;
 
-        var fraction = input[(parenStart + 1)..parenEnd];
-        var slashIdx = fraction.IndexOf('/');
-        if (slashIdx < 0)
-        {
-            return null;
-        }
+        ReadOnlySpan<char> fraction = input[(parenStart + 1)..parenEnd];
+        int slashIdx = fraction.IndexOf('/');
+        if (slashIdx < 0) return null;
 
-        if (!int.TryParse(fraction[..slashIdx], NumberStyles.Integer, CultureInfo.InvariantCulture, out var covered))
-        {
-            return null;
-        }
+        if (!int.TryParse(fraction[..slashIdx], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out int covered)) return null;
 
         if (!int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture,
-                out var total))
-        {
+                out int total))
             return null;
-        }
 
         return new BranchCoverageInfo(covered, total, percent);
     }
 
     private static CoverageFile GetOrCreateFileIssues(Dictionary<string, CoverageFile> dict, string path) =>
-        dict.TryGetValue(path, out var issues) ? issues : dict[path] = new CoverageFile();
+        dict.TryGetValue(path, out CoverageFile? issues) ? issues : dict[path] = new CoverageFile();
 
     private static void EnsureDirectoryExists(string path)
     {
-        if (Path.GetDirectoryName(path) is { Length: > 0 } dir)
-        {
-            Directory.CreateDirectory(dir);
-        }
+        if (Path.GetDirectoryName(path) is { Length: > 0 } dir) Directory.CreateDirectory(dir);
     }
 
-    // ── Data Structures ─────────────────────────────────────────────────────
-
-    /// <summary>Internal working structure for O(1) lookup during processing.</summary>
     private sealed class CoverageFile
     {
-        [JsonIgnore] public Dictionary<int, CoverageLine> LineDict { get; } = [];
-        [JsonIgnore] public Dictionary<int, CoverageBranch> BranchDict { get; } = [];
+        [JsonIgnore]
+        public Dictionary<int, CoverageLine> LineDict { get; } = [];
+
+        [JsonIgnore]
+        public Dictionary<int, CoverageBranch> BranchDict { get; } = [];
 
         public IEnumerable<CoverageLine> Lines => LineDict.Values.OrderBy(l => l.Line);
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(b => b.Line);
     }
 
-    /// <summary>JSON output model for the full summary.</summary>
     private sealed class CoverageSummary
     {
         public string Project { get; init; } = "";
@@ -458,7 +382,6 @@ public static class CoverageSummaryConverter
         public List<CoverageFileDto> Files { get; } = [];
     }
 
-    /// <summary>JSON output model for a single file's coverage issues.</summary>
     private sealed class CoverageFileDto
     {
         public string Path { get; init; } = "";

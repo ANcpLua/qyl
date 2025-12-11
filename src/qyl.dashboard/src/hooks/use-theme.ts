@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import {useCallback, useEffect, useState} from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -44,5 +44,5 @@ export function useTheme() {
 
   const resolvedTheme = theme === 'system' ? getSystemTheme() : theme;
 
-  return { theme, setTheme, toggleTheme, resolvedTheme };
+  return {theme, setTheme, toggleTheme, resolvedTheme};
 }

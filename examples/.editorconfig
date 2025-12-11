@@ -1,0 +1,10 @@
+# =============================================================================
+# qyl EditorConfig - Examples (RELAXED)
+# =============================================================================
+
+[*.cs]
+# Relaxed for examples
+dotnet_diagnostic.CA1816.severity = none       # Dispose pattern
+dotnet_diagnostic.CA2000.severity = none       # Dispose objects
+dotnet_diagnostic.CS1591.severity = none       # XML docs
+dotnet_diagnostic.VSTHRD111.severity = none    # ConfigureAwait
