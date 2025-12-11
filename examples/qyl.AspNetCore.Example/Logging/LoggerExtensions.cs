@@ -4,11 +4,11 @@ namespace qyl.AspNetCore.Example.Logging;
 
 internal static partial class LoggerExtensions
 {
-    private static readonly Func<ILogger, string, IDisposable?> Scope =
+    private static readonly Func<ILogger, string, IDisposable?> _scope =
         LoggerMessage.DefineScope<string>("{CorrelationId}");
 
     public static IDisposable? BeginIdScope(this ILogger logger, string id) =>
-        Scope(logger, id);
+        _scope(logger, id);
 
     [LoggerMessage(EventId = 1, Message = "WeatherForecasts generated {Count}: {Forecasts}")]
     public static partial void WeatherForecastGenerated(

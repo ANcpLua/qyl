@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.DependencyInjection;
 using qyl.agents.telemetry;
@@ -28,7 +27,7 @@ public static class QylAspNetCoreExtensions
         string? sourceName = null,
         Action<OpenTelemetryAgent>? configure = null)
     {
-        string src = sourceName ?? GenAiAttributes.SourceName;
+        var src = sourceName ?? GenAiAttributes.SourceName;
         return builder.UseOpenTelemetry(src, configure);
     }
 }

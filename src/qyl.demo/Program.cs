@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
@@ -10,7 +9,7 @@ using OpenTelemetry.Trace;
 using qyl.agents.telemetry;
 using qyl.sdk.aspnetcore;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddQylAgentObservability();
 
@@ -24,7 +23,7 @@ builder.Services.AddChatClient(chatClient);
 
 builder.AddAIAgent("writer", (sp, key) =>
 {
-    IChatClient client = sp.GetRequiredService<IChatClient>();
+    var client = sp.GetRequiredService<IChatClient>();
     return client.CreateAIAgent(
             name: key,
             instructions: "You write short stories (300 words or less) about the specified topic.")
@@ -35,7 +34,7 @@ builder.AddAIAgent("writer", (sp, key) =>
 
 builder.AddAIAgent("editor", (sp, key) =>
 {
-    IChatClient client = sp.GetRequiredService<IChatClient>();
+    var client = sp.GetRequiredService<IChatClient>();
     return client.CreateAIAgent(
             name: key,
             instructions: """
@@ -51,8 +50,8 @@ builder.AddAIAgent("editor", (sp, key) =>
 
 builder.AddWorkflow("publisher", (sp, key) =>
 {
-    AIAgent writer = sp.GetRequiredKeyedService<AIAgent>("writer");
-    AIAgent editor = sp.GetRequiredKeyedService<AIAgent>("editor");
+    var writer = sp.GetRequiredKeyedService<AIAgent>("writer");
+    var editor = sp.GetRequiredKeyedService<AIAgent>("editor");
 
     return AgentWorkflowBuilder.BuildSequential(
         key,
@@ -63,7 +62,7 @@ builder.AddWorkflow("publisher", (sp, key) =>
 builder.Services.AddOpenAIResponses();
 builder.Services.AddOpenAIConversations();
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 app.UseHttpsRedirection();
 
 app.MapOpenAIResponses();
@@ -79,24 +78,24 @@ app.MapGet("/health", () => Results.Ok(new
     schema = "v1.38.0"
 }));
 
-await app.RunAsync();
+await app.RunAsync().ConfigureAwait(false);
 return;
 
 [Description("Formats the story for publication, revealing its title.")]
 static string FormatStory(string title, string story)
 {
-    using Activity? activity = new ActivitySource(GenAiAttributes.SourceName)
+    using var activity = new ActivitySource(GenAiAttributes.SourceName)
         .StartActivity(GenAiAttributes.ExecuteTool);
 
     activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
     activity?.SetTag(GenAiAttributes.ToolName, nameof(FormatStory));
     activity?.SetTag(GenAiAttributes.ToolType, "function");
 
-    string result = $"""
-                     **Title**: {title}
+    var result = $"""
+                  **Title**: {title}
 
-                     {story}
-                     """;
+                  {story}
+                  """;
 
     activity?.SetTag(GenAiAttributes.ToolCallResult, result);
 

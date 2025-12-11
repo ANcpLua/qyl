@@ -23,14 +23,14 @@ public static class GenAiExtractor
 
     public static GenAiFields Extract(JsonElement attributes)
     {
-        string? provider = GetString(attributes, Attrs.ProviderName)
-                           ?? GetString(attributes, Attrs.LegacySystem);
+        var provider = GetString(attributes, Attrs.ProviderName)
+                       ?? GetString(attributes, Attrs.LegacySystem);
 
-        int? inputTokens = GetInt(attributes, Attrs.UsageInputTokens)
-                           ?? GetInt(attributes, Attrs.LegacyPromptTokens);
+        var inputTokens = GetInt(attributes, Attrs.UsageInputTokens)
+                          ?? GetInt(attributes, Attrs.LegacyPromptTokens);
 
-        int? outputTokens = GetInt(attributes, Attrs.UsageOutputTokens)
-                            ?? GetInt(attributes, Attrs.LegacyCompletionTokens);
+        var outputTokens = GetInt(attributes, Attrs.UsageOutputTokens)
+                           ?? GetInt(attributes, Attrs.LegacyCompletionTokens);
 
         return new GenAiFields
         {
@@ -52,7 +52,7 @@ public static class GenAiExtractor
         try
         {
             using var doc = JsonDocument.Parse(attributesJson);
-            JsonElement root = doc.RootElement;
+            var root = doc.RootElement;
 
             return root.TryGetProperty(Attrs.ProviderName, out _) ||
                    root.TryGetProperty(Attrs.LegacySystem, out _) ||
@@ -72,7 +72,7 @@ public static class GenAiExtractor
         try
         {
             using var doc = JsonDocument.Parse(attributesJson);
-            JsonElement root = doc.RootElement;
+            var root = doc.RootElement;
 
             return root.TryGetProperty(Attrs.LegacySystem, out _) ||
                    root.TryGetProperty(Attrs.LegacyPromptTokens, out _) ||
@@ -85,19 +85,19 @@ public static class GenAiExtractor
     }
 
     private static string? GetString(JsonElement element, string property) =>
-        element.TryGetProperty(property, out JsonElement value) && value.ValueKind == JsonValueKind.String
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
 
     private static int? GetInt(JsonElement element, string property)
     {
-        if (!element.TryGetProperty(property, out JsonElement value))
+        if (!element.TryGetProperty(property, out var value))
             return null;
 
         return value.ValueKind switch
         {
-            JsonValueKind.Number => value.TryGetInt32(out int i) ? i : null,
-            JsonValueKind.String when int.TryParse(value.GetString(), out int parsed) => parsed,
+            JsonValueKind.Number => value.TryGetInt32(out var i) ? i : null,
+            JsonValueKind.String when int.TryParse(value.GetString(), out var parsed) => parsed,
             _ => null
         };
     }

@@ -2,29 +2,29 @@ namespace qyl.agents.telemetry;
 
 public static class QylAttributes
 {
-    private const string Prefix = "qyl";
+    private const string _prefix = "qyl";
 
-    public const string CostUsd = $"{Prefix}.cost.usd";
+    public const string CostUsd = $"{_prefix}.cost.usd";
 
-    public const string CostCurrency = $"{Prefix}.cost.currency";
+    public const string CostCurrency = $"{_prefix}.cost.currency";
 
-    public const string SessionId = $"{Prefix}.session.id";
+    public const string SessionId = $"{_prefix}.session.id";
 
-    public const string SessionName = $"{Prefix}.session.name";
+    public const string SessionName = $"{_prefix}.session.name";
 
-    public const string FeedbackScore = $"{Prefix}.feedback.score";
+    public const string FeedbackScore = $"{_prefix}.feedback.score";
 
-    public const string FeedbackComment = $"{Prefix}.feedback.comment";
+    public const string FeedbackComment = $"{_prefix}.feedback.comment";
 
-    public const string AgentId = $"{Prefix}.agent.id";
+    public const string AgentId = $"{_prefix}.agent.id";
 
-    public const string AgentName = $"{Prefix}.agent.name";
+    public const string AgentName = $"{_prefix}.agent.name";
 
-    public const string AgentRole = $"{Prefix}.agent.role";
+    public const string AgentRole = $"{_prefix}.agent.role";
 
-    public const string WorkflowId = $"{Prefix}.workflow.id";
+    public const string WorkflowId = $"{_prefix}.workflow.id";
 
-    public const string WorkflowStep = $"{Prefix}.workflow.step";
+    public const string WorkflowStep = $"{_prefix}.workflow.step";
 
-    public const string WorkflowStepIndex = $"{Prefix}.workflow.step.index";
+    public const string WorkflowStepIndex = $"{_prefix}.workflow.step.index";
 }

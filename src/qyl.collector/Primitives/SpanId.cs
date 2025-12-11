@@ -25,8 +25,8 @@ public readonly record struct SpanId :
     /// <summary>Empty span ID (zero).</summary>
     public static readonly SpanId Empty;
 
-    private const int HexLength = 16;
-    private const int ByteLength = 8;
+    private const int _hexLength = 16;
+    private const int _byteLength = 8;
 
     /// <summary>Creates a SpanId from a 64-bit value.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -36,7 +36,7 @@ public readonly record struct SpanId :
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanId(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length != ByteLength)
+        if (bytes.Length != _byteLength)
         {
             ThrowByteLengthException(bytes.Length);
         }
@@ -57,7 +57,7 @@ public readonly record struct SpanId :
     /// <inheritdoc />
     public static SpanId Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
     {
-        if (!TryParse(utf8Text, provider, out SpanId result))
+        if (!TryParse(utf8Text, provider, out var result))
         {
             ThrowFormatException(utf8Text.Length);
         }
@@ -69,12 +69,12 @@ public readonly record struct SpanId :
     public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, out SpanId result)
     {
         result = default;
-        if (utf8Text.Length != HexLength)
+        if (utf8Text.Length != _hexLength)
         {
             return false;
         }
 
-        Span<byte> bytes = stackalloc byte[ByteLength];
+        Span<byte> bytes = stackalloc byte[_byteLength];
         if (Convert.FromHexString(utf8Text, bytes, out _, out _) != OperationStatus.Done)
         {
             return false;
@@ -91,7 +91,7 @@ public readonly record struct SpanId :
     /// <inheritdoc />
     public static SpanId Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
     {
-        if (!TryParse(s, provider, out SpanId result))
+        if (!TryParse(s, provider, out var result))
         {
             ThrowFormatException(s.Length);
         }
@@ -103,12 +103,12 @@ public readonly record struct SpanId :
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out SpanId result)
     {
         result = default;
-        if (s.Length != HexLength)
+        if (s.Length != _hexLength)
         {
             return false;
         }
 
-        Span<byte> bytes = stackalloc byte[ByteLength];
+        Span<byte> bytes = stackalloc byte[_byteLength];
         if (Convert.FromHexString(s, bytes, out _, out _) != OperationStatus.Done)
         {
             return false;
@@ -150,15 +150,15 @@ public readonly record struct SpanId :
         IFormatProvider? provider)
     {
         bytesWritten = 0;
-        if (utf8Destination.Length < HexLength)
+        if (utf8Destination.Length < _hexLength)
         {
             return false;
         }
 
-        Span<byte> bytes = stackalloc byte[ByteLength];
+        Span<byte> bytes = stackalloc byte[_byteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
 
-        string hex = Convert.ToHexStringLower(bytes);
+        var hex = Convert.ToHexStringLower(bytes);
         bytesWritten = Encoding.UTF8.GetBytes(hex, utf8Destination);
         return true;
     }
@@ -175,24 +175,24 @@ public readonly record struct SpanId :
         IFormatProvider? provider)
     {
         charsWritten = 0;
-        if (destination.Length < HexLength)
+        if (destination.Length < _hexLength)
         {
             return false;
         }
 
-        Span<byte> bytes = stackalloc byte[ByteLength];
+        Span<byte> bytes = stackalloc byte[_byteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
 
-        string hex = Convert.ToHexStringLower(bytes);
+        var hex = Convert.ToHexStringLower(bytes);
         hex.CopyTo(destination);
-        charsWritten = HexLength;
+        charsWritten = _hexLength;
         return true;
     }
 
     /// <inheritdoc />
     public override string ToString()
     {
-        Span<byte> bytes = stackalloc byte[ByteLength];
+        Span<byte> bytes = stackalloc byte[_byteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
         return Convert.ToHexStringLower(bytes);
     }
@@ -206,9 +206,9 @@ public readonly record struct SpanId :
 
     [DoesNotReturn]
     private static void ThrowFormatException(int actualLength) =>
-        throw new FormatException($"Invalid SpanId format: expected {HexLength} hex characters, got {actualLength}");
+        throw new FormatException($"Invalid SpanId format: expected {_hexLength} hex characters, got {actualLength}");
 
     [DoesNotReturn]
     private static void ThrowByteLengthException(int actualLength) =>
-        throw new ArgumentException($"Expected {ByteLength} bytes, got {actualLength}");
+        throw new ArgumentException($"Expected {_byteLength} bytes, got {actualLength}");
 }

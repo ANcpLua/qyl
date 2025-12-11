@@ -24,7 +24,7 @@ public sealed class InMemoryTelemetryStore<T> : ITelemetryStore<T>
 
     public IReadOnlyList<T> Query(TelemetryQuery query)
     {
-        IEnumerable<T> items = _items.AsEnumerable();
+        var items = _items.AsEnumerable();
 
         if (query.ServiceName is not null) items = items.Where(i => GetServiceName(i) == query.ServiceName);
 

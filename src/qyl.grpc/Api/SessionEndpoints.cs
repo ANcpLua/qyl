@@ -10,7 +10,7 @@ public static class SessionEndpoints
 {
     public static IEndpointRouteBuilder MapSessionApi(this IEndpointRouteBuilder endpoints)
     {
-        RouteGroupBuilder api = endpoints.MapGroup("/api/v1/sessions");
+        var api = endpoints.MapGroup("/api/v1/sessions");
 
         api.MapGet("/", GetSessions).WithName("GetSessions");
         api.MapGet("/{sessionId}", GetSession).WithName("GetSession");
@@ -38,7 +38,7 @@ public static class SessionEndpoints
             limit,
             offset);
 
-        IReadOnlyList<SessionModel> sessions = aggregator.Query(query);
+        var sessions = aggregator.Query(query);
 
         return new(
             [
@@ -69,7 +69,7 @@ public static class SessionEndpoints
         ISessionAggregator aggregator,
         string sessionId)
     {
-        SessionModel? session = aggregator.GetSession(sessionId);
+        var session = aggregator.GetSession(sessionId);
         if (session is null)
             return TypedResults.NotFound();
 
@@ -95,7 +95,7 @@ public static class SessionEndpoints
 
     private static SessionStatisticsResponse GetStatistics(ISessionAggregator aggregator)
     {
-        SessionStatistics stats = aggregator.GetStatistics();
+        var stats = aggregator.GetStatistics();
 
         return new(
             stats.TotalSessions,

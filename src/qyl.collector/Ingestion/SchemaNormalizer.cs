@@ -10,7 +10,7 @@ public static class SchemaVersion
 
 public sealed class SchemaNormalizer
 {
-    private static readonly Dictionary<string, string> DeprecatedAttributes = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> _deprecatedAttributes = new(StringComparer.Ordinal)
     {
         ["gen_ai.system"] = "gen_ai.provider.name",
         ["gen_ai.prompt"] = "gen_ai.input.messages",
@@ -33,9 +33,9 @@ public sealed class SchemaNormalizer
 
         var result = new Dictionary<string, object?>(attributes.Count, StringComparer.Ordinal);
 
-        foreach ((string key, object? value) in attributes)
+        foreach ((var key, var value) in attributes)
         {
-            string normalizedKey = Normalize(key);
+            var normalizedKey = Normalize(key);
             result[normalizedKey] = value;
         }
 
@@ -43,12 +43,12 @@ public sealed class SchemaNormalizer
     }
 
     public static string Normalize(string attributeName) =>
-        DeprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
+        _deprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
 
 
     public bool IsDeprecated(string attributeName) =>
-        DeprecatedAttributes.ContainsKey(attributeName);
+        _deprecatedAttributes.ContainsKey(attributeName);
 
     public IReadOnlyDictionary<string, string> GetDeprecatedMappings() =>
-        DeprecatedAttributes;
+        _deprecatedAttributes;
 }

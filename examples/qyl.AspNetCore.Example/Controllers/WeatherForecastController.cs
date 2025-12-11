@@ -1,5 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using qyl.AspNetCore.Example.Logging;
@@ -11,12 +9,12 @@ namespace qyl.AspNetCore.Example.Controllers;
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
 {
-    private static readonly string[] Summaries =
+    private static readonly string[] _summaries =
     [
         "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
     ];
 
-    private static readonly HttpClient HttpClient = new();
+    private static readonly HttpClient _httpClient = new();
     private readonly ActivitySource _activitySource;
     private readonly Counter<long> _freezingDaysCounter;
 
@@ -40,22 +38,22 @@ public class WeatherForecastController : ControllerBase
     {
         _requestCounter.Add(1);
 
-        using IDisposable? scope = _logger.BeginIdScope(Guid.NewGuid().ToString("N"));
+        using var scope = _logger.BeginIdScope(Guid.NewGuid().ToString("N"));
 
-        using Activity? activity = _activitySource.StartActivity("CalculateForecast");
+        using var activity = _activitySource.StartActivity("CalculateForecast");
         activity?.SetTag("forecast.days", 5);
 
         WeatherForecast[] forecast =
         [
             .. Enumerable.Range(1, 5).Select(index => new WeatherForecast
             {
-                Date = DateTime.Now.AddDays(index),
+                Date = TimeProvider.System.GetLocalNow().DateTime.AddDays(index),
                 TemperatureC = RandomNumberGenerator.GetInt32(-20, 55),
-                Summary = Summaries[RandomNumberGenerator.GetInt32(Summaries.Length)],
+                Summary = _summaries[RandomNumberGenerator.GetInt32(_summaries.Length)],
             }),
         ];
 
-        int freezingDays = forecast.Count(f => f.TemperatureC < 0);
+        var freezingDays = forecast.Count(f => f.TemperatureC < 0);
         _freezingDaysCounter.Add(freezingDays);
 
         activity?.SetTag("forecast.freezing_days", freezingDays);
@@ -70,7 +68,7 @@ public class WeatherForecastController : ControllerBase
     {
         _requestCounter.Add(1);
 
-        using Activity? activity = _activitySource.StartActivity("CalculateForecast");
+        using var activity = _activitySource.StartActivity("CalculateForecast");
         activity?.SetTag("forecast.days", days);
 
         WeatherForecast[] forecast =
@@ -79,11 +77,11 @@ public class WeatherForecastController : ControllerBase
             {
                 Date = DateTime.Now.AddDays(index),
                 TemperatureC = RandomNumberGenerator.GetInt32(-20, 55),
-                Summary = Summaries[RandomNumberGenerator.GetInt32(Summaries.Length)],
+                Summary = _summaries[RandomNumberGenerator.GetInt32(_summaries.Length)],
             }),
         ];
 
-        int freezingDays = forecast.Count(f => f.TemperatureC < 0);
+        var freezingDays = forecast.Count(f => f.TemperatureC < 0);
         _freezingDaysCounter.Add(freezingDays);
         activity?.SetTag("forecast.freezing_days", freezingDays);
 

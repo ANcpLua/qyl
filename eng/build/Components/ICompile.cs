@@ -21,7 +21,7 @@ internal interface ICompile : IHasSolution
         .TryDependsOn<IRestore>()
         .Executes(() =>
         {
-            DotNetBuildSettings? settings = new DotNetBuildSettings()
+            var settings = new DotNetBuildSettings()
                 .SetProjectFile(GetSolutionPath())
                 .SetConfiguration(Configuration)
                 .EnableNoRestore()

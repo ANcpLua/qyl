@@ -33,7 +33,7 @@ public sealed class TokenAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        string path = context.Request.Path.Value ?? "/";
+        var path = context.Request.Path.Value ?? "/";
 
         if (_options.ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
         {
@@ -41,27 +41,27 @@ public sealed class TokenAuthMiddleware
             return;
         }
 
-        string? queryToken = context.Request.Query[_options.QueryParameterName].FirstOrDefault();
+        var queryToken = context.Request.Query[_options.QueryParameterName].FirstOrDefault();
         if (!string.IsNullOrEmpty(queryToken) && ValidateToken(queryToken))
         {
             SetAuthCookie(context);
 
-            string cleanUrl = RemoveQueryParameter(context.Request, _options.QueryParameterName);
+            var cleanUrl = RemoveQueryParameter(context.Request, _options.QueryParameterName);
             context.Response.Redirect(cleanUrl);
             return;
         }
 
-        string? cookieToken = context.Request.Cookies[_options.CookieName];
+        var cookieToken = context.Request.Cookies[_options.CookieName];
         if (!string.IsNullOrEmpty(cookieToken) && ValidateToken(cookieToken))
         {
             await _next(context).ConfigureAwait(false);
             return;
         }
 
-        string? authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+        var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            string bearerToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            var bearerToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
                 ? authHeader[7..]
                 : authHeader;
 
@@ -105,10 +105,10 @@ public sealed class TokenAuthMiddleware
 
     private static string RemoveQueryParameter(HttpRequest request, string paramName)
     {
-        Dictionary<string, StringValues> query = QueryHelpers.ParseQuery(request.QueryString.Value);
+        var query = QueryHelpers.ParseQuery(request.QueryString.Value);
         query.Remove(paramName);
 
-        string newQuery = QueryHelpers.AddQueryString(
+        var newQuery = QueryHelpers.AddQueryString(
             request.PathBase + request.Path, query);
 
         return newQuery;
@@ -139,7 +139,7 @@ public static class TokenAuthExtensions
         endpoints.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
         {
             var options = new TokenAuthOptions();
-            bool isValid = CryptographicOperations.FixedTimeEquals(
+            var isValid = CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(request.Token),
                 Encoding.UTF8.GetBytes(middleware.GetToken()));
 

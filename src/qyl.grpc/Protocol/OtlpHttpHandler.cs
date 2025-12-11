@@ -23,12 +23,12 @@ public static class OtlpHttpHandler
     {
         try
         {
-            TRequest? request = await ParseRequestAsync(ctx, parser);
+            var request = await ParseRequestAsync(ctx, parser);
             if (request is null)
                 return Results.BadRequest("Unsupported content type. Use application/x-protobuf or application/json");
 
             var items = converter(request).ToList();
-            foreach (TModel item in items)
+            foreach (var item in items)
             {
                 store.Add(item);
                 serviceRegistry.RegisterFromResource(resourceSelector(item));
@@ -60,7 +60,7 @@ public static class OtlpHttpHandler
         MessageParser<TRequest> parser)
         where TRequest : class, IMessage<TRequest>, new()
     {
-        string contentType = ctx.Request.ContentType ?? "";
+        var contentType = ctx.Request.ContentType ?? "";
 
         if (contentType.Contains("application/x-protobuf", StringComparison.Ordinal))
         {
@@ -73,7 +73,7 @@ public static class OtlpHttpHandler
         if (contentType.Contains("application/json", StringComparison.Ordinal))
         {
             using var reader = new StreamReader(ctx.Request.Body);
-            string json = await reader.ReadToEndAsync(ctx.RequestAborted);
+            var json = await reader.ReadToEndAsync(ctx.RequestAborted);
             return JsonParser.Default.Parse<TRequest>(json);
         }
 

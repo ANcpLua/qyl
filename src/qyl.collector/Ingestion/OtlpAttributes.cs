@@ -115,7 +115,7 @@ public static class OtlpGenAiProviders
 
     public static bool TryDetectFromHost(ReadOnlySpan<char> host, [NotNullWhen(true)] out string? provider)
     {
-        string hostStr = host.ToString();
+        var hostStr = host.ToString();
         if (_hostToProvider.TryGetValue(hostStr, out provider))
         {
             return true;

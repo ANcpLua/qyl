@@ -12,7 +12,7 @@ internal class TelemetryTools
 
     [McpServerTool(Name = "qyl.search_agent_runs")]
     [Description("Search for agent run records by provider, model, error type, or time range.")]
-    public async Task<AgentRun[]> SearchAgentRuns(
+    public async Task<AgentRun[]> SearchAgentRunsAsync(
         [Description("Filter by AI provider (e.g., 'anthropic', 'openai', 'google')")]
         string? provider = null,
         [Description("Filter by model name (e.g., 'claude-4-haiku', 'gpt-5o')")]
@@ -25,13 +25,13 @@ internal class TelemetryTools
 
     [McpServerTool(Name = "qyl.get_agent_run")]
     [Description("Get details of a specific agent run by ID.")]
-    public async Task<AgentRun?> GetAgentRun(
+    public async Task<AgentRun?> GetAgentRunAsync(
         [Description("The unique run ID")] string runId) =>
         await _store.GetRunAsync(runId).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_token_usage")]
     [Description("Get token usage statistics for agents within a time range.")]
-    public async Task<TokenUsageSummary[]> GetTokenUsage(
+    public async Task<TokenUsageSummary[]> GetTokenUsageAsync(
         [Description("Start of time range")] DateTime? since = null,
         [Description("End of time range")] DateTime? until = null,
         [Description("Group by: 'agent', 'model', or 'hour'")]
@@ -40,7 +40,7 @@ internal class TelemetryTools
 
     [McpServerTool(Name = "qyl.list_errors")]
     [Description("List recent errors from agent runs.")]
-    public async Task<AgentError[]> ListErrors(
+    public async Task<AgentError[]> ListErrorsAsync(
         [Description("Maximum number of errors to return")]
         int limit = 50,
         [Description("Filter by agent name")] string? agentName = null) =>
@@ -48,7 +48,7 @@ internal class TelemetryTools
 
     [McpServerTool(Name = "qyl.get_latency_stats")]
     [Description("Get latency statistics for agent operations.")]
-    public async Task<LatencyStats> GetLatencyStats(
+    public async Task<LatencyStats> GetLatencyStatsAsync(
         [Description("Filter by agent name")] string? agentName = null,
         [Description("Time range in hours (default: 24)")]
         int hours = 24) =>
@@ -114,7 +114,7 @@ public interface ITelemetryStore
 public sealed class InMemoryTelemetryStore : ITelemetryStore
 {
     public static readonly InMemoryTelemetryStore Instance = new();
-    private readonly object _lock = new();
+    private readonly Lock _lock = new();
 
     private readonly List<AgentRun> _runs = [];
 
@@ -142,7 +142,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            IEnumerable<AgentRun> query = _runs.AsEnumerable();
+            var query = _runs.AsEnumerable();
 
             if (!string.IsNullOrEmpty(provider))
                 query = query.Where(r => r.Provider?.Equals(provider, StringComparison.OrdinalIgnoreCase) == true);
@@ -164,7 +164,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            IEnumerable<AgentRun> query = _runs.AsEnumerable();
+            var query = _runs.AsEnumerable();
 
             if (since.HasValue)
                 query = query.Where(r => r.StartedAt >= since.Value);
@@ -172,7 +172,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
             if (until.HasValue)
                 query = query.Where(r => r.StartedAt <= until.Value);
 
-            IEnumerable<IGrouping<string, AgentRun>> grouped = groupBy.ToLowerInvariant() switch
+            var grouped = groupBy.ToLowerInvariant() switch
             {
                 "model" => query.GroupBy(r => r.Model ?? "unknown"),
                 "hour" => query.GroupBy(r => r.StartedAt.ToString("yyyy-MM-dd HH:00")),
@@ -194,7 +194,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            IEnumerable<AgentRun> query = _runs.Where(r => r is { Success: false, ErrorMessage: not null });
+            var query = _runs.Where(r => r is { Success: false, ErrorMessage: not null });
 
             if (!string.IsNullOrEmpty(agentName))
                 query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
@@ -217,8 +217,8 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     {
         lock (_lock)
         {
-            DateTime since = DateTime.UtcNow.AddHours(-hours);
-            IEnumerable<AgentRun> query = _runs.Where(r => r.StartedAt >= since && r.Duration.HasValue);
+            var since = TimeProvider.System.GetUtcNow().AddHours(-hours);
+            var query = _runs.Where(r => r.StartedAt >= since && r.Duration.HasValue);
 
             if (!string.IsNullOrEmpty(agentName))
                 query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
@@ -243,7 +243,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
     private static double Percentile(List<double> sorted, double p)
     {
         if (sorted.Count == 0) return 0;
-        int index = (int)Math.Ceiling(p * sorted.Count) - 1;
+        var index = (int)Math.Ceiling(p * sorted.Count) - 1;
         return sorted[Math.Clamp(index, 0, sorted.Count - 1)];
     }
 }

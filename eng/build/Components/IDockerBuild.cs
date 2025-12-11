@@ -45,14 +45,14 @@ internal interface IDockerBuild : IHasSolution
                         .SetTag(img.Tag)),
                 ParallelBuild ? 2 : 1);
 
-            foreach ((string Name, AbsolutePath Dockerfile, string Tag) img in ImageSpecs) Log.Information("Built: {Tag}", img.Tag);
+            foreach (var img in ImageSpecs) Log.Information("Built: {Tag}", img.Tag);
         });
 
     Target DockerBuildCollector => d => d
         .Description("Build qyl-collector Docker image")
         .Executes(() =>
         {
-            (string Name, AbsolutePath Dockerfile, string Tag) spec = ImageSpecs[0];
+            var spec = ImageSpecs[0];
             Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
 
             DockerBuild(s => s
@@ -67,7 +67,7 @@ internal interface IDockerBuild : IHasSolution
         .Description("Build qyl-dashboard Docker image")
         .Executes(() =>
         {
-            (string Name, AbsolutePath Dockerfile, string Tag) spec = ImageSpecs[1];
+            var spec = ImageSpecs[1];
             Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
 
             DockerBuild(s => s

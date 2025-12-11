@@ -53,24 +53,6 @@
     <Project Path="eng/qyl.cli/qyl.cli.csproj" />
     <Project Path="eng/qyl.analyzers/qyl.analyzers.csproj" />
   </Folder>
-  <Folder Name="/spec-compliance-matrix/">
-    <File Path="spec-compliance-matrix\collector-api-grpc-streaming-sockets.md" />
-    <File Path="spec-compliance-matrix\collector-core-schema.md" />
-    <File Path="spec-compliance-matrix\collector-duckdb.md" />
-    <File Path="spec-compliance-matrix\collector-host.md" />
-    <File Path="spec-compliance-matrix\collector-processing-batch-schema.md" />
-    <File Path="spec-compliance-matrix\collector-rest-api.md" />
-    <File Path="spec-compliance-matrix\collector-storageabstraction-validatingmemory.md" />
-    <File Path="spec-compliance-matrix\collector-streaming-see-websockets.md" />
-    <File Path="spec-compliance-matrix\consumers-cli.md" />
-    <File Path="spec-compliance-matrix\consumers-dashboard.md" />
-    <File Path="spec-compliance-matrix\MASTER.md" />
-    <File Path="spec-compliance-matrix\producer-backend-instrumentation-core-schema.md" />
-    <File Path="spec-compliance-matrix\schema.yaml" />
-    <File Path="spec-compliance-matrix\UML.md" />
-    <File Path="spec-compliance-matrix\wip-needs-heavy-update.md" />
-    <File Path="specification/spec-compliance-matrix.md" />
-  </Folder>
 
   <!-- /src - Core libraries -->
   <Folder Name="/src/">
@@ -80,7 +62,7 @@
     <Project Path="src/qyl.demo/qyl.demo.csproj" />
     <Project Path="src/qyl.grpc/qyl.grpc.csproj" />
     <Project Path="src/qyl.mcp.server/qyl.mcp.server.csproj" />
-    <Project Path="src/qyl.providers.gemini/qyl.providers.gemini.csproj" />
+    <Project Path="src/qyl.providers/qyl.providers.csproj" />
     <Project Path="src/qyl.sdk.aspnetcore/qyl.sdk.aspnetcore.csproj" />
   </Folder>
 

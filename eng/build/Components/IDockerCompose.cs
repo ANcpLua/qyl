@@ -29,7 +29,7 @@ internal interface IDockerCompose : IHasSolution
             Log.Information("Starting qyl Docker Compose stack...");
             Log.Information("  Compose file: {File}", ComposeFile);
 
-            string args = $"-f \"{ComposeFile}\" up -d --remove-orphans";
+            var args = $"-f \"{ComposeFile}\" up -d --remove-orphans";
             if (DockerBuild == true) args += " --build";
             if (ForceRecreate == true) args += " --force-recreate";
             if (!string.IsNullOrEmpty(Service)) args += $" {Service}";
@@ -48,7 +48,7 @@ internal interface IDockerCompose : IHasSolution
         {
             Log.Information("Stopping qyl Docker Compose stack...");
 
-            string args = $"-f \"{ComposeFile}\" down --remove-orphans";
+            var args = $"-f \"{ComposeFile}\" down --remove-orphans";
             if (RemoveVolumes == true) args += " -v";
 
             RunDockerCompose(args);
@@ -64,8 +64,8 @@ internal interface IDockerCompose : IHasSolution
         .Description("Tail Docker Compose logs")
         .Executes(() =>
         {
-            int tail = LogTail ?? 100;
-            string args = $"-f \"{ComposeFile}\" logs -f --tail {tail}";
+            var tail = LogTail ?? 100;
+            var args = $"-f \"{ComposeFile}\" logs -f --tail {tail}";
             if (!string.IsNullOrEmpty(Service)) args += $" {Service}";
 
             RunDockerCompose(args);

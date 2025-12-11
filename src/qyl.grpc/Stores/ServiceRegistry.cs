@@ -21,7 +21,7 @@ public sealed class ServiceRegistry(
 
     public void UpdateLastSeen(string serviceName)
     {
-        if (_services.TryGetValue(serviceName, out ServiceEntry? entry))
+        if (_services.TryGetValue(serviceName, out var entry))
         {
             _services.TryUpdate(
                 serviceName,
@@ -41,17 +41,17 @@ public sealed class ServiceRegistry(
     ];
 
     public ServiceIdentity? Get(string serviceName) =>
-        _services.TryGetValue(serviceName, out ServiceEntry? entry) ? entry.Identity : null;
+        _services.TryGetValue(serviceName, out var entry) ? entry.Identity : null;
 
     public ServiceStatistics GetStatistics(string serviceName)
     {
         var query = new TelemetryQuery(serviceName, Limit: int.MaxValue);
-        IReadOnlyList<SpanModel> spans = spanStore.Query(query);
-        IReadOnlyList<LogModel> logs = logStore.Query(query);
+        var spans = spanStore.Query(query);
+        var logs = logStore.Query(query);
 
-        int traceIds = spans.Select(s => s.TraceId).Distinct().Count();
-        int errorCount = spans.Count(s => s.Status == SpanStatus.Error);
-        double errorRate = spans.Count > 0 ? (double)errorCount / spans.Count : 0;
+        var traceIds = spans.Select(s => s.TraceId).Distinct().Count();
+        var errorCount = spans.Count(s => s.Status == SpanStatus.Error);
+        var errorRate = spans.Count > 0 ? (double)errorCount / spans.Count : 0;
 
         var allTimestamps = spans.Select(s => s.StartTime)
             .Concat(logs.Select(l => l.Timestamp))

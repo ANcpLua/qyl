@@ -63,7 +63,7 @@ internal interface ITypeSpec : IHasSolution
 
             if (OpenApiOutput.FileExists())
             {
-                long size = new FileInfo(OpenApiOutput).Length;
+                var size = new FileInfo(OpenApiOutput).Length;
                 Log.Information("OpenAPI generated: {Output} ({Size:N0} bytes)", OpenApiOutput, size);
             }
             else
@@ -83,7 +83,7 @@ internal interface ITypeSpec : IHasSolution
 
             GeneratedCSharp.CreateOrCleanDirectory();
 
-            IProcess? process = ProcessTasks.StartProcess(
+            var process = ProcessTasks.StartProcess(
                 "kiota",
                 $"generate " +
                 $"--language csharp " +
@@ -98,7 +98,7 @@ internal interface ITypeSpec : IHasSolution
             );
             process.AssertZeroExitCode();
 
-            int fileCount = GeneratedCSharp.GlobFiles("**/*.cs").Count;
+            var fileCount = GeneratedCSharp.GlobFiles("**/*.cs").Count;
             Log.Information("C# client generated: {Output} ({Count} files)", GeneratedCSharp, fileCount);
         });
 
@@ -113,7 +113,7 @@ internal interface ITypeSpec : IHasSolution
 
             GeneratedPython.CreateOrCleanDirectory();
 
-            IProcess? process = ProcessTasks.StartProcess(
+            var process = ProcessTasks.StartProcess(
                 "kiota",
                 $"generate " +
                 $"--language python " +
@@ -127,7 +127,7 @@ internal interface ITypeSpec : IHasSolution
             );
             process.AssertZeroExitCode();
 
-            int fileCount = GeneratedPython.GlobFiles("**/*.py").Count;
+            var fileCount = GeneratedPython.GlobFiles("**/*.py").Count;
             Log.Information("Python client generated: {Output} ({Count} files)", GeneratedPython, fileCount);
         });
 
@@ -142,7 +142,7 @@ internal interface ITypeSpec : IHasSolution
 
             GeneratedTypeScript.CreateOrCleanDirectory();
 
-            IProcess? process = ProcessTasks.StartProcess(
+            var process = ProcessTasks.StartProcess(
                 "kiota",
                 $"generate " +
                 $"--language typescript " +
@@ -156,7 +156,7 @@ internal interface ITypeSpec : IHasSolution
             );
             process.AssertZeroExitCode();
 
-            int fileCount = GeneratedTypeScript.GlobFiles("**/*.ts").Count;
+            var fileCount = GeneratedTypeScript.GlobFiles("**/*.ts").Count;
             Log.Information("TypeScript client generated: {Output} ({Count} files)", GeneratedTypeScript, fileCount);
         });
 
@@ -240,7 +240,7 @@ internal interface ITypeSpec : IHasSolution
                 DashboardTypesDestination
             ];
 
-            foreach (AbsolutePath dir in dirs.Where(d => d.DirectoryExists()))
+            foreach (var dir in dirs.Where(d => d.DirectoryExists()))
             {
                 dir.DeleteDirectory();
                 Log.Information("  Deleted: {Dir}", dir);

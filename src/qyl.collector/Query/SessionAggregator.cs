@@ -15,7 +15,7 @@ public sealed class SessionAggregator
 
     public void TrackSpan(SpanRecord span)
     {
-        string sessionId = span.SessionId ?? span.TraceId;
+        var sessionId = span.SessionId ?? span.TraceId;
 
         _sessions.AddOrUpdate(
             sessionId,
@@ -33,7 +33,7 @@ public sealed class SessionAggregator
     ];
 
     public SessionSummary? GetSession(string sessionId) =>
-        _sessions.TryGetValue(sessionId, out SessionStats? stats)
+        _sessions.TryGetValue(sessionId, out var stats)
             ? ToSummary(stats)
             : null;
 
@@ -48,7 +48,7 @@ public sealed class SessionAggregator
 
     private static SessionStats CreateInitialStats(SpanRecord span, string sessionId)
     {
-        GenAiFields genAi = GenAiExtractor.Extract(span.Attributes);
+        var genAi = GenAiExtractor.Extract(span.Attributes);
 
         return new SessionStats
         {
@@ -70,7 +70,7 @@ public sealed class SessionAggregator
 
     private static SessionStats UpdateStats(SessionStats existing, SpanRecord span)
     {
-        GenAiFields genAi = GenAiExtractor.Extract(span.Attributes);
+        var genAi = GenAiExtractor.Extract(span.Attributes);
 
         existing.SpanCount++;
         if (span.StatusCode == 2) existing.ErrorCount++;
@@ -106,7 +106,7 @@ public sealed class SessionAggregator
             try
             {
                 using var doc = JsonDocument.Parse(span.Attributes);
-                if (doc.RootElement.TryGetProperty("service.name", out JsonElement svc) &&
+                if (doc.RootElement.TryGetProperty("service.name", out var svc) &&
                     svc.ValueKind == JsonValueKind.String)
                 {
                     return svc.GetString() ?? "unknown";

@@ -30,9 +30,9 @@ internal interface ICoverage : ITest
             CoverageDirectory.CreateOrCleanDirectory();
             TestResultsDirectory.CreateOrCleanDirectory();
 
-            foreach (Project project in TestProjects)
+            foreach (var project in TestProjects)
             {
-                AbsolutePath? coverageFile = CoverageDirectory / $"{project.Name}.cobertura.xml";
+                var coverageFile = CoverageDirectory / $"{project.Name}.cobertura.xml";
                 RunTestWithCoverage(project, coverageFile);
             }
 
@@ -45,7 +45,7 @@ internal interface ICoverage : ITest
     {
         Log.Information("Running tests with coverage: {Project}", project.Name);
 
-        MtpArgumentsBuilder mtp = MtpExtensions.Mtp()
+        var mtp = MtpExtensions.Mtp()
             .ResultsDirectory(TestResultsDirectory)
             .ReportTrx($"{project.Name}.trx")
             .IgnoreExitCode(8)
@@ -72,7 +72,7 @@ internal interface ICoverage : ITest
 
         Log.Information("Generating coverage reports from {Count} file(s)", coverageFiles.Count);
 
-        ReportGeneratorSettings? settings = new ReportGeneratorSettings()
+        var settings = new ReportGeneratorSettings()
             .SetReports(coverageFiles.Select(f => f.ToString()))
             .SetTargetDirectory(CoverageDirectory)
             .SetReportTypes(
@@ -92,8 +92,8 @@ internal interface ICoverage : ITest
 
     private void GenerateAiCoverageSummary()
     {
-        AbsolutePath? summaryFile = CoverageDirectory / "Summary.txt";
-        AbsolutePath? jsonOutput = CoverageDirectory / "coverage.summary.json";
+        var summaryFile = CoverageDirectory / "Summary.txt";
+        var jsonOutput = CoverageDirectory / "coverage.summary.json";
 
         if (!summaryFile.FileExists())
         {
@@ -103,8 +103,8 @@ internal interface ICoverage : ITest
 
         try
         {
-            string[] lines = File.ReadAllLines(summaryFile);
-            Dictionary<string, object> summary = ParseCoverageSummary(lines);
+            var lines = File.ReadAllLines(summaryFile);
+            var summary = ParseCoverageSummary(lines);
             File.WriteAllText(jsonOutput, JsonSerializer.Serialize(summary, _jsonOptions));
             Log.Information("AI coverage summary: {Path}", jsonOutput);
         }
@@ -118,7 +118,7 @@ internal interface ICoverage : ITest
     {
         Dictionary<string, object> metrics = new();
 
-        foreach (string line in lines)
+        foreach (var line in lines)
         {
             if (line.Contains("Line coverage:", StringComparison.Ordinal))
             {
@@ -151,22 +151,22 @@ internal interface ICoverage : ITest
 
     private static double ExtractPercentage(ReadOnlySpan<char> line)
     {
-        int colonIdx = line.IndexOf(':');
-        int percentIdx = line.IndexOf('%');
+        var colonIdx = line.IndexOf(':');
+        var percentIdx = line.IndexOf('%');
         if (colonIdx < 0 || percentIdx <= colonIdx) return 0;
-        return double.TryParse(line[(colonIdx + 1)..percentIdx].Trim(), out double result) ? result : 0;
+        return double.TryParse(line[(colonIdx + 1)..percentIdx].Trim(), out var result) ? result : 0;
     }
 
     private static int ExtractNumber(ReadOnlySpan<char> line)
     {
-        int colonIdx = line.IndexOf(':');
+        var colonIdx = line.IndexOf(':');
         if (colonIdx < 0) return 0;
-        return int.TryParse(line[(colonIdx + 1)..].Trim(), out int result) ? result : 0;
+        return int.TryParse(line[(colonIdx + 1)..].Trim(), out var result) ? result : 0;
     }
 
     private void GenerateDetailedCoverageSummaries()
     {
-        AbsolutePath? mergedCobertura = CoverageDirectory / "Cobertura.xml";
+        var mergedCobertura = CoverageDirectory / "Cobertura.xml";
         if (!mergedCobertura.FileExists())
         {
             Log.Warning("Merged Cobertura.xml not found, skipping detailed summaries");

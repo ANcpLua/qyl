@@ -16,5 +16,5 @@ public sealed record ResourceModel(IReadOnlyDictionary<string, AttributeValue> A
     public string? K8SPodName => GetString(ResourceAttributes.K8S.PodName);
 
     private string? GetString(string key) =>
-        Attributes.TryGetValue(key, out AttributeValue? value) && value is StringValue sv ? sv.Value : null;
+        Attributes.TryGetValue(key, out var value) && value is StringValue sv ? sv.Value : null;
 }

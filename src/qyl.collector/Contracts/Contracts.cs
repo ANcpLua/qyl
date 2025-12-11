@@ -37,7 +37,7 @@ public sealed record SpanDto
     public List<SpanLinkDto> Links { get; init; } = [];
 
     [JsonPropertyName("genai")]
-    public GenAISpanDataDto? GenAI { get; init; }
+    public GenAiSpanDataDto? GenAi { get; init; }
 }
 
 public sealed record SpanEventDto
@@ -54,7 +54,7 @@ public sealed record SpanLinkDto
     public Dictionary<string, object?>? Attributes { get; init; }
 }
 
-public sealed record GenAISpanDataDto
+public sealed record GenAiSpanDataDto
 {
     public string? ProviderName { get; init; }
 
@@ -101,12 +101,12 @@ public sealed record SessionDto
     public bool IsActive { get; init; }
 
     [JsonPropertyName("genaiStats")]
-    public required SessionGenAIStatsDto GenAIStats { get; init; }
+    public required SessionGenAiStatsDto GenAiStats { get; init; }
 
     public Dictionary<string, object?>? Attributes { get; init; }
 }
 
-public sealed record SessionGenAIStatsDto
+public sealed record SessionGenAiStatsDto
 {
     public int TotalInputTokens { get; init; }
     public int TotalOutputTokens { get; init; }

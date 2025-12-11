@@ -30,19 +30,19 @@ public ref struct OtlpJsonSpanParser
     {
         var dict = new Dictionary<ulong, string>();
         // Intern common provider names
-        foreach (string p in (ReadOnlySpan<string>)["openai", "anthropic", "gcp.gemini", "aws.bedrock", "azure.openai"])
+        foreach (var p in (ReadOnlySpan<string>)["openai", "anthropic", "gcp.gemini", "aws.bedrock", "azure.openai"])
         {
             dict[ComputeHash(p)] = p;
         }
 
         // Intern common operation names
-        foreach (string o in (ReadOnlySpan<string>)["chat", "text_completion", "embeddings", "invoke_agent"])
+        foreach (var o in (ReadOnlySpan<string>)["chat", "text_completion", "embeddings", "invoke_agent"])
         {
             dict[ComputeHash(o)] = o;
         }
 
         // Intern common model prefixes
-        foreach (string m in (ReadOnlySpan<string>)["gpt-4", "gpt-4o", "gpt-3.5-turbo", "claude-3", "claude-sonnet", "gemini-pro"])
+        foreach (var m in (ReadOnlySpan<string>)["gpt-4", "gpt-4o", "gpt-3.5-turbo", "claude-3", "claude-sonnet", "gemini-pro"])
         {
             dict[ComputeHash(m)] = m;
         }
@@ -266,7 +266,7 @@ public ref struct OtlpJsonSpanParser
         {
             if (_reader.TokenType == JsonTokenType.StartObject)
             {
-                ParsedSpan? span = ParseSingleSpan();
+                var span = ParseSingleSpan();
                 if (span is not null)
                 {
                     results.Add(span);
@@ -286,15 +286,15 @@ public ref struct OtlpJsonSpanParser
                 continue;
             }
 
-            ReadOnlySpan<byte> propName = _reader.ValueSpan;
+            var propName = _reader.ValueSpan;
 
             if (propName.SequenceEqual("traceId"u8))
             {
                 _reader.Read();
                 if (_reader.TokenType == JsonTokenType.String)
                 {
-                    ReadOnlySpan<byte> valueSpan = _reader.ValueSpan;
-                    if (TraceId.TryParse(valueSpan, null, out TraceId traceId))
+                    var valueSpan = _reader.ValueSpan;
+                    if (TraceId.TryParse(valueSpan, null, out var traceId))
                     {
                         span.TraceId = traceId;
                     }
@@ -305,8 +305,8 @@ public ref struct OtlpJsonSpanParser
                 _reader.Read();
                 if (_reader.TokenType == JsonTokenType.String)
                 {
-                    ReadOnlySpan<byte> valueSpan = _reader.ValueSpan;
-                    if (SpanId.TryParse(valueSpan, null, out SpanId spanId))
+                    var valueSpan = _reader.ValueSpan;
+                    if (SpanId.TryParse(valueSpan, null, out var spanId))
                     {
                         span.SpanId = spanId;
                     }
@@ -317,8 +317,8 @@ public ref struct OtlpJsonSpanParser
                 _reader.Read();
                 if (_reader.TokenType == JsonTokenType.String)
                 {
-                    ReadOnlySpan<byte> valueSpan = _reader.ValueSpan;
-                    if (SpanId.TryParse(valueSpan, null, out SpanId parentId))
+                    var valueSpan = _reader.ValueSpan;
+                    if (SpanId.TryParse(valueSpan, null, out var parentId))
                     {
                         span.ParentSpanId = parentId;
                     }
@@ -374,7 +374,7 @@ public ref struct OtlpJsonSpanParser
         if (_reader.TokenType == JsonTokenType.String)
         {
             // OTLP JSON encodes large numbers as strings
-            ReadOnlySpan<byte> span = _reader.ValueSpan;
+            var span = _reader.ValueSpan;
             if (Utf8Parser.TryParse(span, out long value, out _))
             {
                 return new UnixNano(value);
@@ -469,7 +469,7 @@ public ref struct OtlpJsonSpanParser
                 }
                 else if (keySpan.SequenceEqual("session.id"u8))
                 {
-                    string? value = ParseAnyValue();
+                    var value = ParseAnyValue();
                     if (value is not null)
                     {
                         span.SessionId = new SessionId(value);
@@ -478,7 +478,7 @@ public ref struct OtlpJsonSpanParser
                 else
                 {
                     key ??= Encoding.UTF8.GetString(keySpan);
-                    object? value = ParseAnyValueAsObject();
+                    var value = ParseAnyValueAsObject();
                     span.Attributes ??= [];
                     span.Attributes.Add(new(key, value));
                 }
@@ -535,8 +535,8 @@ public ref struct OtlpJsonSpanParser
 
     private void ParseAgentsAttributeValue(ParsedSpan span, ReadOnlySpan<byte> keySpan)
     {
-        string key = Encoding.UTF8.GetString(keySpan);
-        object? value = ParseAnyValueAsObject();
+        var key = Encoding.UTF8.GetString(keySpan);
+        var value = ParseAnyValueAsObject();
         span.Attributes ??= [];
         span.Attributes.Add(new(key, value));
     }
@@ -575,7 +575,7 @@ public ref struct OtlpJsonSpanParser
 
     private string? ParseAnyValue()
     {
-        ReadOnlySpan<byte> span = ParseAnyValueSpan();
+        var span = ParseAnyValueSpan();
         return span.IsEmpty ? null : Encoding.UTF8.GetString(span);
     }
 
@@ -679,7 +679,7 @@ public ref struct OtlpJsonSpanParser
                 continue;
             }
 
-            ReadOnlySpan<byte> propName = _reader.ValueSpan;
+            var propName = _reader.ValueSpan;
             _reader.Read();
 
             if (propName.SequenceEqual("stringValue"u8))
@@ -763,7 +763,7 @@ public ref struct OtlpJsonSpanParser
         {
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
-                ReadOnlySpan<byte> propName = _reader.ValueSpan;
+                var propName = _reader.ValueSpan;
                 _reader.Read();
 
                 if (propName.SequenceEqual("stringValue"u8))
@@ -870,8 +870,8 @@ public ref struct OtlpJsonSpanParser
             return string.Empty;
         }
 
-        ulong hash = ComputeHash(utf8);
-        if (_internedStrings.TryGetValue(hash, out string? interned))
+        var hash = ComputeHash(utf8);
+        if (_internedStrings.TryGetValue(hash, out var interned))
         {
             return interned;
         }

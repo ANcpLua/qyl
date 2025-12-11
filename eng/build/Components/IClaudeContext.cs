@@ -20,12 +20,12 @@ internal partial interface IClaudeContext : IHasSolution
         {
             Log.Information("🧠 Compiler started: Resolving Dependency Graph...");
 
-            List<AbsolutePath> chain = ResolveLinkedList(LeafClaude, []);
+            var chain = ResolveLinkedList(LeafClaude, []);
 
             var compilationUnit = new Dictionary<string, Section>();
-            foreach (AbsolutePath node in Enumerable.Reverse(chain))
+            foreach (var node in Enumerable.Reverse(chain))
             {
-                Dictionary<string, string> layer = ParseNode(node);
+                var layer = ParseNode(node);
                 MergeLayer(compilationUnit, layer, node.Name);
             }
 
@@ -37,7 +37,7 @@ internal partial interface IClaudeContext : IHasSolution
         .DependsOn(GenerateContext)
         .Executes(() =>
         {
-            string? content = CompiledArtifact.ReadAllText();
+            var content = CompiledArtifact.ReadAllText();
 
             if (!content.Contains("## Security", StringComparison.Ordinal))
                 throw new Exception("❌ COMPILER ERROR: Artifact missing mandatory 'Security' section.");
@@ -62,12 +62,12 @@ internal partial interface IClaudeContext : IHasSolution
 
             visited.Add(current);
 
-            string? content = current.ReadAllText();
-            Match match = MyRegex().Match(content);
+            var content = current.ReadAllText();
+            var match = MyRegex().Match(content);
 
             if (!match.Success) return visited;
-            string importPath = match.Groups["path"].Value;
-            AbsolutePath nextNode = ResolvePath(current, importPath);
+            var importPath = match.Groups["path"].Value;
+            var nextNode = ResolvePath(current, importPath);
             current = nextNode;
         }
     }
@@ -75,17 +75,17 @@ internal partial interface IClaudeContext : IHasSolution
     private AbsolutePath ResolvePath(AbsolutePath current, string importPath)
     {
         if (!importPath.StartsWith('~')) return current.Parent / importPath;
-        string home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         return importPath.Replace("~", home, StringComparison.Ordinal);
     }
 
     private void MergeLayer(Dictionary<string, Section> context, Dictionary<string, string> layer, string layerName)
     {
-        foreach ((string header, string content) in layer)
+        foreach ((var header, var content) in layer)
 
             if (header.Contains("Security", StringComparison.Ordinal) || header.Contains("Policy", StringComparison.Ordinal))
             {
-                if (context.TryGetValue(header, out Section? existing) && existing.Locked)
+                if (context.TryGetValue(header, out var existing) && existing.Locked)
                     continue;
 
                 context[header] = new Section
@@ -97,7 +97,7 @@ internal partial interface IClaudeContext : IHasSolution
 
             else if (header.Contains("Commands", StringComparison.Ordinal))
             {
-                if (!context.TryGetValue(header, out Section? value))
+                if (!context.TryGetValue(header, out var value))
                     context[header] = new Section
                     {
                         Content = content
@@ -123,7 +123,7 @@ internal partial interface IClaudeContext : IHasSolution
 
         foreach (Match match in regex.Matches(path.ReadAllText()))
         {
-            string cleanContent =
+            var cleanContent =
                 MyRegex1().Replace(match.Groups["content"].Value, "").Trim();
             if (!string.IsNullOrWhiteSpace(cleanContent))
                 result[match.Groups["header"].Value.Trim()] = cleanContent;
@@ -141,11 +141,11 @@ internal partial interface IClaudeContext : IHasSolution
         sb.AppendLine("");
         sb.AppendLine();
 
-        IOrderedEnumerable<string> sortedKeys = context.Keys.OrderBy(k =>
+        var sortedKeys = context.Keys.OrderBy(k =>
             k.Contains("Security", StringComparison.Ordinal) ? 0 :
             k.Contains("Commands", StringComparison.Ordinal) ? 1 : 99);
 
-        foreach (string key in sortedKeys)
+        foreach (var key in sortedKeys)
         {
             sb.AppendLine($"## {key}");
             sb.AppendLine(context[key].Content);

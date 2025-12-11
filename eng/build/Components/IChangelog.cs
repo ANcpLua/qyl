@@ -25,7 +25,7 @@ internal interface IChangelog : ICompile
         {
             ChangelogDirectory.CreateDirectory();
 
-            AbsolutePath? outputFile = ChangelogDirectory / "CHANGELOG_FROM_LAST_COMMIT.md";
+            var outputFile = ChangelogDirectory / "CHANGELOG_FROM_LAST_COMMIT.md";
             StringBuilder sb = new();
 
             sb.AppendLine("# Changelog")
@@ -33,9 +33,9 @@ internal interface IChangelog : ICompile
                 .AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC")
                 .AppendLine();
 
-            string branch = RunGitSafe("rev-parse --abbrev-ref HEAD").Trim();
-            string commit = RunGitSafe("rev-parse --short HEAD").Trim();
-            string commitFull = RunGitSafe("rev-parse HEAD").Trim();
+            var branch = RunGitSafe("rev-parse --abbrev-ref HEAD").Trim();
+            var commit = RunGitSafe("rev-parse --short HEAD").Trim();
+            var commitFull = RunGitSafe("rev-parse HEAD").Trim();
 
             sb.AppendLine("## Current State")
                 .AppendLine()
@@ -49,22 +49,22 @@ internal interface IChangelog : ICompile
             sb.AppendLine();
 
             sb.AppendLine("## Recent Commits").AppendLine();
-            string commitLog = RunGitSafe("log --oneline -10 --pretty=format:\"- `%h` %s (%an, %ar)\"");
+            var commitLog = RunGitSafe("log --oneline -10 --pretty=format:\"- `%h` %s (%an, %ar)\"");
             sb.AppendLine(commitLog is { Length: > 0 } ? commitLog : "_No commits found_").AppendLine();
 
             sb.AppendLine("## Changed Files (HEAD~1..HEAD)").AppendLine();
-            string changedFiles = RunGitSafe("diff --name-status HEAD~1..HEAD");
+            var changedFiles = RunGitSafe("diff --name-status HEAD~1..HEAD");
 
             if (changedFiles is { Length: > 0 })
             {
                 sb.AppendLine("| Status | File |")
                     .AppendLine("|--------|------|");
 
-                foreach (string line in changedFiles.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                foreach (var line in changedFiles.Split('\n', StringSplitOptions.RemoveEmptyEntries))
                 {
-                    string[] parts = line.Split('\t', 2);
+                    var parts = line.Split('\t', 2);
                     if (parts.Length is not 2) continue;
-                    string status = parts[0] switch
+                    var status = parts[0] switch
                     {
                         "A" => "Added",
                         "M" => "Modified",
@@ -84,19 +84,19 @@ internal interface IChangelog : ICompile
             sb.AppendLine();
 
             sb.AppendLine("## Uncommitted Changes").AppendLine();
-            string gitStatus = RunGitSafe("status --porcelain");
+            var gitStatus = RunGitSafe("status --porcelain");
             sb.AppendLine(gitStatus is { Length: > 0 }
                 ? $"```\n{gitStatus}\n```"
                 : "_Working directory is clean_");
             sb.AppendLine();
 
             sb.AppendLine("## Recent Tags").AppendLine();
-            string tags = RunGitSafe("tag --sort=-creatordate");
+            var tags = RunGitSafe("tag --sort=-creatordate");
 
             if (tags is { Length: > 0 })
             {
-                IEnumerable<string> tagList = tags.Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(5);
-                foreach (string tag in tagList)
+                var tagList = tags.Split('\n', StringSplitOptions.RemoveEmptyEntries).Take(5);
+                foreach (var tag in tagList)
                     sb.AppendLine($"- `{tag}`");
             }
             else
@@ -112,7 +112,7 @@ internal interface IChangelog : ICompile
     {
         try
         {
-            IReadOnlyCollection<Output>? output = Git(
+            var output = Git(
                 arguments,
                 RootDirectory,
                 logOutput: false,

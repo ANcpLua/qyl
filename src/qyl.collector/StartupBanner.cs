@@ -5,7 +5,7 @@ namespace qyl.collector;
 
 public static class StartupBanner
 {
-    private const string Logo = """
+    private const string _logo = """
                                    ██████╗ ██╗   ██╗██╗
                                   ██╔═══██╗╚██╗ ██╔╝██║
                                   ██║   ██║ ╚████╔╝ ██║
@@ -16,11 +16,11 @@ public static class StartupBanner
 
     public static void Print(string baseUrl, string token, int port)
     {
-        string tokenUrl = $"{baseUrl}?t={token}";
+        var tokenUrl = $"{baseUrl}?t={token}";
 
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine(Logo);
+        Console.WriteLine(_logo);
         Console.ResetColor();
         Console.WriteLine();
 
@@ -104,8 +104,8 @@ public static class StartupBanner
 
     private static bool IsTerminalSupportsHyperlinks()
     {
-        string? term = Environment.GetEnvironmentVariable("TERM_PROGRAM");
-        string? wt = Environment.GetEnvironmentVariable("WT_SESSION");
+        var term = Environment.GetEnvironmentVariable("TERM_PROGRAM");
+        var wt = Environment.GetEnvironmentVariable("WT_SESSION");
 
         return !string.IsNullOrEmpty(wt) ||
                term is "iTerm.app" or "vscode" or "Hyper" ||
@@ -114,7 +114,7 @@ public static class StartupBanner
 
     private static void PadLine(int usedChars, int totalWidth)
     {
-        int padding = totalWidth - usedChars;
+        var padding = totalWidth - usedChars;
         if (padding > 0) Console.Write(new string(' ', padding));
     }
 }

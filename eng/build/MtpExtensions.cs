@@ -14,7 +14,7 @@ public sealed class MtpArgumentsBuilder
 
     private MtpArgumentsBuilder AddFilter(string option, params ReadOnlySpan<string> patterns)
     {
-        foreach (string p in patterns)
+        foreach (var p in patterns)
         {
             if (string.IsNullOrEmpty(p)) continue;
 
@@ -118,7 +118,7 @@ public sealed class MtpArgumentsBuilder
         if (_args is []) return string.Empty;
 
         StringBuilder sb = new();
-        foreach (string arg in _args)
+        foreach (var arg in _args)
         {
             if (sb.Length > 0) sb.Append(' ');
 

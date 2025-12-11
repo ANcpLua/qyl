@@ -42,7 +42,7 @@ public static class SseExtensions
     private static IResult HandleLiveStream(ITelemetrySseBroadcaster stream, HttpContext context)
     {
         var clientId = Guid.NewGuid();
-        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
+        var reader = stream.Subscribe(clientId);
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
         return TypedResults.ServerSentEvents(StreamEventsAsync(reader, context.RequestAborted));
@@ -55,7 +55,7 @@ public static class SseExtensions
         string eventType)
     {
         var clientId = Guid.NewGuid();
-        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
+        var reader = stream.Subscribe(clientId);
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
         return TypedResults.ServerSentEvents(
@@ -71,9 +71,9 @@ public static class SseExtensions
             new("connected", null, DateTimeOffset.UtcNow),
             "connected");
 
-        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
-            string eventType = message.Signal switch
+            var eventType = message.Signal switch
             {
                 TelemetrySignal.Trace => "spans",
                 TelemetrySignal.Metric => "metrics",
@@ -92,7 +92,7 @@ public static class SseExtensions
         TelemetrySignal filter,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
             if (message.Signal == filter)
                 yield return message.Data;
@@ -137,7 +137,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
     public void Unsubscribe(Guid clientId)
     {
-        if (_channels.TryRemove(clientId, out Channel<TelemetryMessage>? channel))
+        if (_channels.TryRemove(clientId, out var channel))
             channel.Writer.TryComplete();
     }
 
@@ -145,7 +145,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     {
         if (_disposed) return;
 
-        foreach (Channel<TelemetryMessage> channel in _channels.Values)
+        foreach (var channel in _channels.Values)
             channel.Writer.TryWrite(message);
     }
 
@@ -154,7 +154,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
 
-        foreach (Channel<TelemetryMessage> channel in _channels.Values)
+        foreach (var channel in _channels.Values)
             channel.Writer.TryComplete();
 
         _channels.Clear();

@@ -11,14 +11,14 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
 
     public void AddSpan(SpanModel span)
     {
-        TraceBuilder builder = _traces.GetOrAdd(span.TraceId, _ => new(span.TraceId));
+        var builder = _traces.GetOrAdd(span.TraceId, _ => new(span.TraceId));
         builder.AddSpan(span);
 
         EvictOldTraces();
     }
 
     public TraceModel? GetTrace(string traceId) =>
-        _traces.TryGetValue(traceId, out TraceBuilder? builder) ? builder.Build() : null;
+        _traces.TryGetValue(traceId, out var builder) ? builder.Build() : null;
 
     public IReadOnlyList<TraceModel> GetRecentTraces(int limit = 100) =>
     [
@@ -30,7 +30,7 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
 
     public IReadOnlyList<TraceModel> Query(TelemetryQuery query)
     {
-        IEnumerable<TraceModel> traces = _traces.Values.Select(b => b.Build()).AsEnumerable();
+        var traces = _traces.Values.Select(b => b.Build()).AsEnumerable();
 
         if (query.ServiceName is not null) traces = traces.Where(t => t.Services.Contains(query.ServiceName));
 
@@ -53,13 +53,13 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
     {
         if (_traces.Count <= maxTraces) return;
 
-        DateTimeOffset cutoff = DateTimeOffset.UtcNow - _traceTimeout;
+        var cutoff = DateTimeOffset.UtcNow - _traceTimeout;
         var toRemove = _traces
             .Where(kv => kv.Value.LastUpdate < cutoff)
             .Select(kv => kv.Key)
             .ToList();
 
-        foreach (string key in toRemove) _traces.TryRemove(key, out _);
+        foreach (var key in toRemove) _traces.TryRemove(key, out _);
 
         if (_traces.Count > maxTraces)
         {
@@ -69,7 +69,7 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
                 .Select(kv => kv.Key)
                 .ToList();
 
-            foreach (string key in oldest) _traces.TryRemove(key, out _);
+            foreach (var key in oldest) _traces.TryRemove(key, out _);
         }
     }
 
@@ -107,9 +107,9 @@ public sealed class TraceAggregator(int maxTraces = 1_000, TimeSpan? traceTimeou
                 }
 
                 var sortedSpans = _spans.OrderBy(s => s.StartTime).ToList();
-                DateTimeOffset startTime = sortedSpans.Min(s => s.StartTime);
-                DateTimeOffset endTime = sortedSpans.Max(s => s.EndTime);
-                bool hasError = sortedSpans.Exists(s => s.Status == SpanStatus.Error);
+                var startTime = sortedSpans.Min(s => s.StartTime);
+                var endTime = sortedSpans.Max(s => s.EndTime);
+                var hasError = sortedSpans.Exists(s => s.Status == SpanStatus.Error);
 
                 return new(
                     traceId,

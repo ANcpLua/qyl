@@ -5,7 +5,7 @@ namespace qyl.collector.ConsoleBridge;
 
 public sealed class FrontendConsole
 {
-    private const int MaxLogs = 5000;
+    private const int _maxLogs = 5000;
     private readonly ConcurrentQueue<ConsoleLogEntry> _ring = new();
     private readonly ConcurrentDictionary<string, Channel<ConsoleLogEntry>> _subs = new();
     private int _count;
@@ -18,17 +18,17 @@ public sealed class FrontendConsole
             Guid.NewGuid().ToString("N")[..8],
             ParseLevel(req.Level),
             req.Message ?? "",
-            DateTime.UtcNow,
+            TimeProvider.System.GetUtcNow().UtcDateTime,
             req.SessionId, req.Url, req.Stack);
 
         _ring.Enqueue(entry);
-        if (Interlocked.Increment(ref _count) > MaxLogs)
+        if (Interlocked.Increment(ref _count) > _maxLogs)
         {
             while (_ring.TryDequeue(out _))
                 Interlocked.Decrement(ref _count);
         }
 
-        foreach (Channel<ConsoleLogEntry> ch in _subs.Values)
+        foreach (var ch in _subs.Values)
             ch.Writer.TryWrite(entry);
 
         return entry;

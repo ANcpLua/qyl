@@ -17,6 +17,7 @@
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="DuckDB.NET.Data"/>
+    <PackageReference Remove="Microsoft.CodeAnalysis.NetAnalyzers" />
   </ItemGroup>
 
   <!-- OTLP protobuf ingestion (compatibility shim) -->

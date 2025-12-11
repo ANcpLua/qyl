@@ -7,11 +7,11 @@ public static class GenAiExtractor
 {
     public static GenAiSpanData? Extract(SpanModel span)
     {
-        IReadOnlyDictionary<string, AttributeValue> attrs = span.Attributes;
+        var attrs = span.Attributes;
 
-        bool hasProvider = attrs.ContainsKey(GenAiAttributes.ProviderName) ||
-                           attrs.ContainsKey(V136.System);
-        bool hasModel = attrs.ContainsKey(GenAiAttributes.RequestModel);
+        var hasProvider = attrs.ContainsKey(GenAiAttributes.ProviderName) ||
+                          attrs.ContainsKey(V136.System);
+        var hasModel = attrs.ContainsKey(GenAiAttributes.RequestModel);
 
         if (!hasProvider && !hasModel)
             return null;
@@ -45,13 +45,13 @@ public static class GenAiExtractor
 
     public static EnrichedSpan Enrich(SpanModel span)
     {
-        GenAiSpanData? genAi = Extract(span);
+        var genAi = Extract(span);
         return new(span, genAi);
     }
 
     public static bool UsesDeprecatedAttributes(SpanModel span)
     {
-        IReadOnlyDictionary<string, AttributeValue> attrs = span.Attributes;
+        var attrs = span.Attributes;
         return attrs.ContainsKey(V136.System) ||
                attrs.ContainsKey(V136.UsagePromptTokens) ||
                attrs.ContainsKey(V136.UsageCompletionTokens) ||
@@ -60,37 +60,37 @@ public static class GenAiExtractor
     }
 
     private static string? GetString(IReadOnlyDictionary<string, AttributeValue> attrs, string key) =>
-        attrs.TryGetValue(key, out AttributeValue? v) && v is StringValue sv ? sv.Value : null;
+        attrs.TryGetValue(key, out var v) && v is StringValue sv ? sv.Value : null;
 
     private static long? GetLong(IReadOnlyDictionary<string, AttributeValue> attrs, string key) =>
-        attrs.TryGetValue(key, out AttributeValue? v)
+        attrs.TryGetValue(key, out var v)
             ? v switch
             {
                 IntValue iv => iv.Value,
                 DoubleValue dv => (long)dv.Value,
-                StringValue sv when long.TryParse(sv.Value, out long l) => l,
+                StringValue sv when long.TryParse(sv.Value, out var l) => l,
                 _ => null
             }
             : null;
 
     private static double? GetDouble(IReadOnlyDictionary<string, AttributeValue> attrs, string key) =>
-        attrs.TryGetValue(key, out AttributeValue? v)
+        attrs.TryGetValue(key, out var v)
             ? v switch
             {
                 DoubleValue dv => dv.Value,
                 IntValue iv => iv.Value,
-                StringValue sv when double.TryParse(sv.Value, out double d) => d,
+                StringValue sv when double.TryParse(sv.Value, out var d) => d,
                 _ => null
             }
             : null;
 
     private static decimal? GetDecimal(IReadOnlyDictionary<string, AttributeValue> attrs, string key) =>
-        attrs.TryGetValue(key, out AttributeValue? v)
+        attrs.TryGetValue(key, out var v)
             ? v switch
             {
                 DoubleValue dv => (decimal)dv.Value,
                 IntValue iv => iv.Value,
-                StringValue sv when decimal.TryParse(sv.Value, out decimal d) => d,
+                StringValue sv when decimal.TryParse(sv.Value, out var d) => d,
                 _ => null
             }
             : null;

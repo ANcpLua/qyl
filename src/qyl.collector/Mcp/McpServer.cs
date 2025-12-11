@@ -266,7 +266,7 @@ public sealed class McpServer
 
     private async Task<McpResponse> GetSessionsAsync(JsonElement? args, CancellationToken ct)
     {
-        StorageStats stats = await _store.GetStorageStatsAsync(ct);
+        var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
             Content = new McpContent
@@ -279,14 +279,14 @@ public sealed class McpServer
 
     private async Task<McpResponse> GetTraceAsync(JsonElement? args, CancellationToken ct)
     {
-        string? traceId = args?.GetProperty("trace_id").GetString();
+        var traceId = args?.GetProperty("trace_id").GetString();
         if (string.IsNullOrEmpty(traceId))
             return new McpResponse
             {
                 Error = "trace_id is required"
             };
 
-        IReadOnlyList<SpanRecord> spans = await _store.GetTraceAsync(traceId);
+        var spans = await _store.GetTraceAsync(traceId);
         return new McpResponse
         {
             Content = new McpContent
@@ -299,11 +299,11 @@ public sealed class McpServer
 
     private async Task<McpResponse> GetSpansAsync(JsonElement? args, CancellationToken ct)
     {
-        string? sessionId = args?.TryGetProperty("session_id", out JsonElement s) == true ? s.GetString() : null;
+        var sessionId = args?.TryGetProperty("session_id", out var s) == true ? s.GetString() : null;
 
         if (!string.IsNullOrEmpty(sessionId))
         {
-            IReadOnlyList<SpanRecord> spans = await _store.GetSpansBySessionAsync(sessionId);
+            var spans = await _store.GetSpansBySessionAsync(sessionId);
             return new McpResponse
             {
                 Content = new McpContent
@@ -322,7 +322,7 @@ public sealed class McpServer
 
     private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? args, CancellationToken ct)
     {
-        StorageStats stats = await _store.GetStorageStatsAsync(ct);
+        var stats = await _store.GetStorageStatsAsync(ct);
 
         return new McpResponse
         {
@@ -349,7 +349,7 @@ public sealed class McpServer
 
     private async Task<McpResponse> GetStorageStatsAsync(CancellationToken ct)
     {
-        StorageStats stats = await _store.GetStorageStatsAsync(ct);
+        var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
             Content = new McpContent
@@ -362,9 +362,9 @@ public sealed class McpServer
 
     private async Task<McpResponse> ArchiveOldDataAsync(JsonElement? args, CancellationToken ct)
     {
-        int days = args?.TryGetProperty("older_than_days", out JsonElement d) == true ? d.GetInt32() : 7;
+        var days = args?.TryGetProperty("older_than_days", out var d) == true ? d.GetInt32() : 7;
 
-        int count = await _store.ArchiveToParquetAsync(
+        var count = await _store.ArchiveToParquetAsync(
             "/data/archive",
             TimeSpan.FromDays(days),
             ct);
@@ -381,10 +381,10 @@ public sealed class McpServer
 
     private McpResponse GetConsoleLogs(JsonElement? args)
     {
-        string? session = args?.TryGetProperty("session", out JsonElement s) == true ? s.GetString() : null;
-        string? pattern = args?.TryGetProperty("pattern", out JsonElement p) == true ? p.GetString() : null;
-        int limit = args?.TryGetProperty("limit", out JsonElement l) == true ? l.GetInt32() : 50;
-        string? levelStr = args?.TryGetProperty("level", out JsonElement lv) == true ? lv.GetString() : null;
+        var session = args?.TryGetProperty("session", out var s) == true ? s.GetString() : null;
+        var pattern = args?.TryGetProperty("pattern", out var p) == true ? p.GetString() : null;
+        var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 50;
+        var levelStr = args?.TryGetProperty("level", out var lv) == true ? lv.GetString() : null;
 
         ConsoleLevel? minLevel = levelStr?.ToLowerInvariant() switch
         {
@@ -395,10 +395,10 @@ public sealed class McpServer
             _ => null
         };
 
-        ConsoleLogEntry[] logs = _console.Query(minLevel, session, pattern, limit);
-        IEnumerable<string> formatted = logs.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                                         (e.Url != null ? $" ({e.Url})" : "") +
-                                                         (e.Stack != null ? $"\n  {e.Stack}" : ""));
+        var logs = _console.Query(minLevel, session, pattern, limit);
+        var formatted = logs.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
+                                         (e.Url != null ? $" ({e.Url})" : "") +
+                                         (e.Stack != null ? $"\n  {e.Stack}" : ""));
 
         return new McpResponse
         {
@@ -414,12 +414,12 @@ public sealed class McpServer
 
     private McpResponse GetConsoleErrors(JsonElement? args)
     {
-        int limit = args?.TryGetProperty("limit", out JsonElement l) == true ? l.GetInt32() : 20;
-        ConsoleLogEntry[] errors = _console.Errors(limit);
+        var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 20;
+        var errors = _console.Errors(limit);
 
-        IEnumerable<string> formatted = errors.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                                           (e.Url != null ? $"\n  URL: {e.Url}" : "") +
-                                                           (e.Stack != null ? $"\n  Stack: {e.Stack}" : ""));
+        var formatted = errors.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
+                                           (e.Url != null ? $"\n  URL: {e.Url}" : "") +
+                                           (e.Stack != null ? $"\n  Stack: {e.Stack}" : ""));
 
         return new McpResponse
         {

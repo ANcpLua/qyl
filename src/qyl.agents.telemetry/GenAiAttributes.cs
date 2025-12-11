@@ -12,89 +12,89 @@ public static class GenAiAttributes
 
     public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
 
-    private const string Prefix = "gen_ai";
+    private const string _prefix = "gen_ai";
 
-    public const string ProviderName = $"{Prefix}.provider.name";
+    public const string ProviderName = $"{_prefix}.provider.name";
 
-    public const string OperationName = $"{Prefix}.operation.name";
+    public const string OperationName = $"{_prefix}.operation.name";
 
-    public const string RequestModel = $"{Prefix}.request.model";
+    public const string RequestModel = $"{_prefix}.request.model";
 
-    public const string RequestTemperature = $"{Prefix}.request.temperature";
+    public const string RequestTemperature = $"{_prefix}.request.temperature";
 
-    public const string RequestTopK = $"{Prefix}.request.top_k";
+    public const string RequestTopK = $"{_prefix}.request.top_k";
 
-    public const string RequestTopP = $"{Prefix}.request.top_p";
+    public const string RequestTopP = $"{_prefix}.request.top_p";
 
-    public const string RequestPresencePenalty = $"{Prefix}.request.presence_penalty";
+    public const string RequestPresencePenalty = $"{_prefix}.request.presence_penalty";
 
-    public const string RequestFrequencyPenalty = $"{Prefix}.request.frequency_penalty";
+    public const string RequestFrequencyPenalty = $"{_prefix}.request.frequency_penalty";
 
-    public const string RequestMaxTokens = $"{Prefix}.request.max_tokens";
+    public const string RequestMaxTokens = $"{_prefix}.request.max_tokens";
 
-    public const string RequestStopSequences = $"{Prefix}.request.stop_sequences";
+    public const string RequestStopSequences = $"{_prefix}.request.stop_sequences";
 
-    public const string RequestChoiceCount = $"{Prefix}.request.choice.count";
+    public const string RequestChoiceCount = $"{_prefix}.request.choice.count";
 
-    public const string RequestSeed = $"{Prefix}.request.seed";
+    public const string RequestSeed = $"{_prefix}.request.seed";
 
-    public const string RequestEncodingFormats = $"{Prefix}.request.encoding_formats";
+    public const string RequestEncodingFormats = $"{_prefix}.request.encoding_formats";
 
-    public const string ResponseId = $"{Prefix}.response.id";
+    public const string ResponseId = $"{_prefix}.response.id";
 
-    public const string ResponseModel = $"{Prefix}.response.model";
+    public const string ResponseModel = $"{_prefix}.response.model";
 
-    public const string ResponseFinishReasons = $"{Prefix}.response.finish_reasons";
+    public const string ResponseFinishReasons = $"{_prefix}.response.finish_reasons";
 
-    public const string UsageInputTokens = $"{Prefix}.usage.input_tokens";
+    public const string UsageInputTokens = $"{_prefix}.usage.input_tokens";
 
-    public const string UsageOutputTokens = $"{Prefix}.usage.output_tokens";
+    public const string UsageOutputTokens = $"{_prefix}.usage.output_tokens";
 
-    public const string UsageTotalTokens = $"{Prefix}.usage.total_tokens";
+    public const string UsageTotalTokens = $"{_prefix}.usage.total_tokens";
 
-    public const string AgentId = $"{Prefix}.agent.id";
+    public const string AgentId = $"{_prefix}.agent.id";
 
-    public const string AgentName = $"{Prefix}.agent.name";
+    public const string AgentName = $"{_prefix}.agent.name";
 
-    public const string AgentDescription = $"{Prefix}.agent.description";
+    public const string AgentDescription = $"{_prefix}.agent.description";
 
-    public const string ConversationId = $"{Prefix}.conversation.id";
+    public const string ConversationId = $"{_prefix}.conversation.id";
 
-    public const string SystemInstructions = $"{Prefix}.system_instructions";
+    public const string SystemInstructions = $"{_prefix}.system_instructions";
 
-    public const string InputMessages = $"{Prefix}.input.messages";
+    public const string InputMessages = $"{_prefix}.input.messages";
 
-    public const string OutputMessages = $"{Prefix}.output.messages";
+    public const string OutputMessages = $"{_prefix}.output.messages";
 
-    public const string OutputType = $"{Prefix}.output.type";
+    public const string OutputType = $"{_prefix}.output.type";
 
-    public const string ToolDefinitions = $"{Prefix}.tool.definitions";
+    public const string ToolDefinitions = $"{_prefix}.tool.definitions";
 
-    public const string ToolName = $"{Prefix}.tool.name";
+    public const string ToolName = $"{_prefix}.tool.name";
 
-    public const string ToolDescription = $"{Prefix}.tool.description";
+    public const string ToolDescription = $"{_prefix}.tool.description";
 
-    public const string ToolType = $"{Prefix}.tool.type";
+    public const string ToolType = $"{_prefix}.tool.type";
 
-    public const string ToolCallId = $"{Prefix}.tool.call.id";
+    public const string ToolCallId = $"{_prefix}.tool.call.id";
 
-    public const string ToolCallArguments = $"{Prefix}.tool.call.arguments";
+    public const string ToolCallArguments = $"{_prefix}.tool.call.arguments";
 
-    public const string ToolCallResult = $"{Prefix}.tool.call.result";
+    public const string ToolCallResult = $"{_prefix}.tool.call.result";
 
-    public const string DataSourceId = $"{Prefix}.data_source.id";
+    public const string DataSourceId = $"{_prefix}.data_source.id";
 
-    public const string EmbeddingsDimensionCount = $"{Prefix}.embeddings.dimension.count";
+    public const string EmbeddingsDimensionCount = $"{_prefix}.embeddings.dimension.count";
 
-    public const string TokenType = $"{Prefix}.token.type";
+    public const string TokenType = $"{_prefix}.token.type";
 
-    public const string EvaluationName = $"{Prefix}.evaluation.name";
+    public const string EvaluationName = $"{_prefix}.evaluation.name";
 
-    public const string EvaluationScoreValue = $"{Prefix}.evaluation.score.value";
+    public const string EvaluationScoreValue = $"{_prefix}.evaluation.score.value";
 
-    public const string EvaluationScoreLabel = $"{Prefix}.evaluation.score.label";
+    public const string EvaluationScoreLabel = $"{_prefix}.evaluation.score.label";
 
-    public const string EvaluationExplanation = $"{Prefix}.evaluation.explanation";
+    public const string EvaluationExplanation = $"{_prefix}.evaluation.explanation";
 
     public const string ErrorType = "error.type";
 
@@ -105,14 +105,14 @@ public static class GenAiAttributes
 
     public static void EnsureLatestSemantics()
     {
-        string? current = Environment.GetEnvironmentVariable(StabilityEnvVar);
+        var current = Environment.GetEnvironmentVariable(StabilityEnvVar);
         if (string.IsNullOrEmpty(current) || !current.Contains(StabilityOptIn, StringComparison.Ordinal))
             Environment.SetEnvironmentVariable(StabilityEnvVar, StabilityOptIn);
     }
 
     public static bool IsLatestSemanticsEnabled()
     {
-        string? value = Environment.GetEnvironmentVariable(StabilityEnvVar);
+        var value = Environment.GetEnvironmentVariable(StabilityEnvVar);
         return value?.Contains(StabilityOptIn, StringComparison.Ordinal) == true;
     }
 

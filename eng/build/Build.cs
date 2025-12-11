@@ -28,7 +28,7 @@ internal sealed class Build : NukeBuild,
         .Executes(() =>
         {
             var compile = (ICompile)this;
-            GitVersion? gitVersion = compile.GitVersion;
+            var gitVersion = compile.GitVersion;
 
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  qyl. Build - AI Observability Platform");

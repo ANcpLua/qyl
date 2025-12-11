@@ -8,18 +8,18 @@ namespace qyl.collector.Mapping;
 
 public static class SpanMapper
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private static readonly string[] SpanKindNames =
+    private static readonly string[] _spanKindNames =
         ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
     public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
     {
-        DateTime startTime = record.StartTime.ToUniversalTime();
-        DateTime endTime = record.EndTime.ToUniversalTime();
+        var startTime = record.StartTime.ToUniversalTime();
+        var endTime = record.EndTime.ToUniversalTime();
 
         return new SpanDto
         {
@@ -39,7 +39,7 @@ public static class SpanMapper
             Attributes = ParseAttributes(record.Attributes),
             Events = ParseEvents(record.Events),
             Links = [],
-            GenAI = ExtractGenAIData(record)
+            GenAi = ExtractGenAiData(record)
         };
     }
 
@@ -49,15 +49,15 @@ public static class SpanMapper
     [
         .. records.Select(r =>
         {
-            (string serviceName, string? serviceVersion) = serviceResolver(r);
+            (var serviceName, var serviceVersion) = serviceResolver(r);
             return ToDto(r, serviceName, serviceVersion);
         })
     ];
 
     private static string MapSpanKind(string? kind)
     {
-        if (int.TryParse(kind, out int kindInt) && kindInt >= 0 && kindInt < SpanKindNames.Length)
-            return SpanKindNames[kindInt];
+        if (int.TryParse(kind, out var kindInt) && kindInt >= 0 && kindInt < _spanKindNames.Length)
+            return _spanKindNames[kindInt];
 
         return kind?.ToLowerInvariant() switch
         {
@@ -86,7 +86,7 @@ public static class SpanMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, JsonOptions) ?? [];
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, _jsonOptions) ?? [];
         }
         catch
         {
@@ -101,11 +101,11 @@ public static class SpanMapper
 
         try
         {
-            List<RawSpanEvent>? events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
+            var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, _jsonOptions);
             return events?.Select(e => new SpanEventDto
             {
                 Name = e.Name ?? "unknown",
-                Timestamp = e.Timestamp?.ToString("O") ?? DateTime.UtcNow.ToString("O"),
+                Timestamp = e.Timestamp?.ToString("O") ?? TimeProvider.System.GetUtcNow().ToString("O"),
                 Attributes = e.Attributes
             }).ToList() ?? [];
         }
@@ -115,12 +115,12 @@ public static class SpanMapper
         }
     }
 
-    private static GenAISpanDataDto? ExtractGenAIData(SpanRecord record)
+    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
     {
         if (record.TokensIn is null && record.TokensOut is null && string.IsNullOrEmpty(record.ProviderName))
             return null;
 
-        return new GenAISpanDataDto
+        return new GenAiSpanDataDto
         {
             ProviderName = record.ProviderName,
             OperationName = ExtractOperationName(record.Name),
@@ -140,14 +140,14 @@ public static class SpanMapper
 
     private static string? ExtractOperationName(string spanName)
     {
-        string[] parts = spanName.Split(' ', 2);
+        var parts = spanName.Split(' ', 2);
         return parts.Length > 0 ? parts[0] : null;
     }
 
     private static string? ExtractToolName(SpanRecord record)
     {
-        Dictionary<string, object?> attrs = ParseAttributes(record.Attributes);
-        if (attrs.TryGetValue("gen_ai.tool.name", out object? toolName))
+        var attrs = ParseAttributes(record.Attributes);
+        if (attrs.TryGetValue("gen_ai.tool.name", out var toolName))
             return toolName?.ToString();
         return null;
     }
@@ -166,8 +166,8 @@ public static class SessionMapper
 {
     public static SessionDto ToDto(SessionSummary summary)
     {
-        DateTime startTime = summary.StartTime.ToUniversalTime();
-        DateTime lastActivity = summary.LastActivity.ToUniversalTime();
+        var startTime = summary.StartTime.ToUniversalTime();
+        var lastActivity = summary.LastActivity.ToUniversalTime();
 
         return new SessionDto
         {
@@ -181,8 +181,8 @@ public static class SessionMapper
             ErrorRate = summary.ErrorRate,
             Services = [.. summary.Services],
             TraceIds = [],
-            IsActive = (DateTime.UtcNow - lastActivity).TotalMinutes < 5,
-            GenAIStats = new SessionGenAIStatsDto
+            IsActive = (TimeProvider.System.GetUtcNow() - lastActivity).TotalMinutes < 5,
+            GenAiStats = new SessionGenAiStatsDto
             {
                 TotalInputTokens = summary.InputTokens,
                 TotalOutputTokens = summary.OutputTokens,
@@ -215,9 +215,9 @@ public static class SessionMapper
     {
         var providers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (string model in summary.Models)
+        foreach (var model in summary.Models)
         {
-            string? provider = InferProvider(model);
+            var provider = InferProvider(model);
             if (provider is not null)
                 providers.Add(provider);
         }

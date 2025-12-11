@@ -1,4 +1,3 @@
-using System.Diagnostics.Metrics;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
@@ -6,12 +5,12 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using qyl.AspNetCore.Example;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-string tracingExporter = builder.Configuration.GetValue("UseTracingExporter", "CONSOLE").ToUpperInvariant();
-string metricsExporter = builder.Configuration.GetValue("UseMetricsExporter", "CONSOLE").ToUpperInvariant();
-string logExporter = builder.Configuration.GetValue("UseLogExporter", "CONSOLE").ToUpperInvariant();
-string histogramAggregation = builder.Configuration.GetValue("HistogramAggregation", "EXPLICIT").ToUpperInvariant();
+var tracingExporter = builder.Configuration.GetValue("UseTracingExporter", "CONSOLE").ToUpperInvariant();
+var metricsExporter = builder.Configuration.GetValue("UseMetricsExporter", "CONSOLE").ToUpperInvariant();
+var logExporter = builder.Configuration.GetValue("UseLogExporter", "CONSOLE").ToUpperInvariant();
+var histogramAggregation = builder.Configuration.GetValue("HistogramAggregation", "EXPLICIT").ToUpperInvariant();
 
 builder.Services.AddSingleton<InstrumentationSource>();
 
@@ -97,9 +96,9 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 app.UseAuthorization();
 app.MapControllers();
 
-await app.RunAsync();
+await app.RunAsync().ConfigureAwait(false);

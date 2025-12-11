@@ -13,12 +13,12 @@ public sealed class OtlpConverter
 {
     public IEnumerable<SpanModel> ConvertResourceSpans(IEnumerable<ResourceSpans> resourceSpans)
     {
-        foreach (ResourceSpans rs in resourceSpans)
+        foreach (var rs in resourceSpans)
         {
-            ResourceModel resource = ConvertResource(rs.Resource);
-            foreach (ScopeSpans? scopeSpans in rs.ScopeSpans)
+            var resource = ConvertResource(rs.Resource);
+            foreach (var scopeSpans in rs.ScopeSpans)
             {
-                foreach (Span? span in scopeSpans.Spans)
+                foreach (var span in scopeSpans.Spans)
                     yield return ConvertSpan(span, resource);
             }
         }
@@ -26,12 +26,12 @@ public sealed class OtlpConverter
 
     public IEnumerable<MetricModel> ConvertResourceMetrics(IEnumerable<ResourceMetrics> resourceMetrics)
     {
-        foreach (ResourceMetrics rm in resourceMetrics)
+        foreach (var rm in resourceMetrics)
         {
-            ResourceModel resource = ConvertResource(rm.Resource);
-            foreach (ScopeMetrics? scopeMetrics in rm.ScopeMetrics)
+            var resource = ConvertResource(rm.Resource);
+            foreach (var scopeMetrics in rm.ScopeMetrics)
             {
-                foreach (Metric? metric in scopeMetrics.Metrics)
+                foreach (var metric in scopeMetrics.Metrics)
                     yield return ConvertMetric(metric, resource);
             }
         }
@@ -39,12 +39,12 @@ public sealed class OtlpConverter
 
     public IEnumerable<LogModel> ConvertResourceLogs(IEnumerable<ResourceLogs> resourceLogs)
     {
-        foreach (ResourceLogs rl in resourceLogs)
+        foreach (var rl in resourceLogs)
         {
-            ResourceModel resource = ConvertResource(rl.Resource);
-            foreach (ScopeLogs? scopeLogs in rl.ScopeLogs)
+            var resource = ConvertResource(rl.Resource);
+            foreach (var scopeLogs in rl.ScopeLogs)
             {
-                foreach (LogRecord? log in scopeLogs.LogRecords)
+                foreach (var log in scopeLogs.LogRecords)
                     yield return ConvertLog(log, resource);
             }
         }
@@ -52,9 +52,9 @@ public sealed class OtlpConverter
 
     private static SpanModel ConvertSpan(Span span, ResourceModel resource)
     {
-        string traceId = ToHexString(span.TraceId);
-        string spanId = ToHexString(span.SpanId);
-        string? parentSpanId = span.ParentSpanId.IsEmpty ? null : ToHexString(span.ParentSpanId);
+        var traceId = ToHexString(span.TraceId);
+        var spanId = ToHexString(span.SpanId);
+        var parentSpanId = span.ParentSpanId.IsEmpty ? null : ToHexString(span.ParentSpanId);
 
         return new(
             traceId,
@@ -92,7 +92,7 @@ public sealed class OtlpConverter
 
     private static MetricModel ConvertMetric(Metric metric, ResourceModel resource)
     {
-        (MetricType metricType, IReadOnlyList<DataPointModel> dataPoints) = metric.DataCase switch
+        (var metricType, IReadOnlyList<DataPointModel> dataPoints) = metric.DataCase switch
         {
             Metric.DataOneofCase.Gauge => (MetricType.Gauge, ConvertGaugeDataPoints(metric.Gauge)),
             Metric.DataOneofCase.Sum => (MetricType.Sum, ConvertSumDataPoints(metric.Sum)),
@@ -114,8 +114,8 @@ public sealed class OtlpConverter
 
     private static LogModel ConvertLog(LogRecord log, ResourceModel resource)
     {
-        string? traceId = log.TraceId.IsEmpty ? null : ToHexString(log.TraceId);
-        string? spanId = log.SpanId.IsEmpty ? null : ToHexString(log.SpanId);
+        var traceId = log.TraceId.IsEmpty ? null : ToHexString(log.TraceId);
+        var spanId = log.SpanId.IsEmpty ? null : ToHexString(log.SpanId);
 
         return new(
             FromUnixNanos(log.TimeUnixNano),
@@ -132,7 +132,7 @@ public sealed class OtlpConverter
 
     private static ResourceModel ConvertResource(Resource? resource)
     {
-        IReadOnlyDictionary<string, AttributeValue> attributes = resource is null
+        var attributes = resource is null
             ? new Dictionary<string, AttributeValue>()
             : ConvertAttributes(resource.Attributes);
         return new(attributes);
@@ -142,7 +142,7 @@ public sealed class OtlpConverter
         IEnumerable<KeyValue> attributes)
     {
         var dict = new Dictionary<string, AttributeValue>();
-        foreach (KeyValue attr in attributes) dict[attr.Key] = ConvertAnyValue(attr.Value);
+        foreach (var attr in attributes) dict[attr.Key] = ConvertAnyValue(attr.Value);
 
         return dict;
     }
@@ -211,13 +211,13 @@ public sealed class OtlpConverter
 
     private static string ToHexString(ByteString bytes)
     {
-        ReadOnlySpan<byte> span = bytes.Span;
+        var span = bytes.Span;
         return Convert.ToHexString(span).ToLowerInvariant();
     }
 
     private static DateTimeOffset FromUnixNanos(ulong nanos)
     {
-        long ticks = (long)(nanos / 100);
+        var ticks = (long)(nanos / 100);
         return new(ticks + DateTimeOffset.UnixEpoch.Ticks, TimeSpan.Zero);
     }
 }

@@ -25,7 +25,7 @@ public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
 
         _sseBroadcaster?.Publish(message);
 
-        foreach ((Guid _, Channel<TelemetryMessage> channel) in _subscribers) channel.Writer.TryWrite(message);
+        foreach ((var _, var channel) in _subscribers) channel.Writer.TryWrite(message);
 
         return ValueTask.CompletedTask;
     }
@@ -43,7 +43,7 @@ public sealed class TelemetryBroadcaster : ITelemetryBroadcaster
 
         try
         {
-            await foreach (TelemetryMessage message in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false)) yield return message;
+            await foreach (var message in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false)) yield return message;
         }
         finally
         {

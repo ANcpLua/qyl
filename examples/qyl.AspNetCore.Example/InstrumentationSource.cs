@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-
 namespace qyl.AspNetCore.Example;
 
 public sealed class InstrumentationSource : IDisposable
@@ -12,7 +9,7 @@ public sealed class InstrumentationSource : IDisposable
 
     public InstrumentationSource()
     {
-        string? version = typeof(InstrumentationSource).Assembly.GetName().Version?.ToString();
+        var version = typeof(InstrumentationSource).Assembly.GetName().Version?.ToString();
         ActivitySource = new ActivitySource(ActivitySourceName, version);
         _meter = new Meter(MeterName, version);
 

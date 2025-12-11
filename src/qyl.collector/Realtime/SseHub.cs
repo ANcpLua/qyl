@@ -26,9 +26,9 @@ public sealed class SseHub
     {
         Throw.IfNull(batch);
 
-        foreach ((string _, Subscriber subscriber) in _subscribers)
+        foreach ((var _, var subscriber) in _subscribers)
         {
-            SpanBatch batchToSend = batch;
+            var batchToSend = batch;
 
             if (subscriber.SessionFilter is not null)
             {
@@ -49,11 +49,11 @@ public sealed class SseHub
     {
         Throw.IfNull(batch);
 
-        foreach ((string _, Subscriber subscriber) in _subscribers)
+        foreach ((var _, var subscriber) in _subscribers)
         {
             if (ct.IsCancellationRequested) break;
 
-            SpanBatch filteredBatch = batch;
+            var filteredBatch = batch;
             if (subscriber.SessionFilter is not null)
             {
                 var filteredSpans = batch.Spans

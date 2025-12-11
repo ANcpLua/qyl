@@ -7,7 +7,7 @@ namespace qyl.collector.Storage;
 
 public sealed class DuckDbStore : IAsyncDisposable
 {
-    private const string InsertSpanSql = """
+    private const string _insertSpanSql = """
                                          INSERT INTO spans (
                                              trace_id, span_id, parent_span_id, session_id,
                                              name, kind, start_time, end_time, status_code, status_message,
@@ -32,7 +32,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                                              events = EXCLUDED.events
                                          """;
 
-    private const string Schema = """
+    private const string _schema = """
                                   -- sessions table
                                   CREATE TABLE IF NOT EXISTS sessions (
                                       session_id VARCHAR PRIMARY KEY,
@@ -145,7 +145,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     private void InitializeSchema()
     {
         using DuckDBCommand cmd = _connection.CreateCommand();
-        cmd.CommandText = Schema;
+        cmd.CommandText = _schema;
         cmd.ExecuteNonQuery();
     }
 
@@ -154,7 +154,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     private async Task WriteLoopAsync()
     {
-        await foreach (SpanBatch batch in _writeChannel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+        await foreach (var batch in _writeChannel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
         {
             try
             {
@@ -180,11 +180,11 @@ public sealed class DuckDbStore : IAsyncDisposable
         {
             using DuckDBTransaction transaction = _connection.BeginTransaction();
 
-            foreach (SpanRecord span in batch.Spans)
+            foreach (var span in batch.Spans)
             {
                 using DuckDBCommand cmd = _connection.CreateCommand();
                 cmd.Transaction = transaction;
-                cmd.CommandText = InsertSpanSql;
+                cmd.CommandText = _insertSpanSql;
 
                 cmd.Parameters.Add(new DuckDBParameter("trace_id", span.TraceId));
                 cmd.Parameters.Add(new DuckDBParameter("span_id", span.SpanId));
@@ -234,7 +234,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                           """;
         cmd.Parameters.Add(new DuckDBParameter("session_id", sessionId));
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
 
         return spans;
@@ -256,7 +256,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                           """;
         cmd.Parameters.Add(new DuckDBParameter("trace_id", traceId));
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
 
         return spans;
@@ -298,7 +298,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             parameters.Add(new DuckDBParameter("start_before", startBefore.Value));
         }
 
-        string whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
         using DuckDBCommand cmd = _connection.CreateCommand();
         cmd.CommandText = $"""
@@ -312,10 +312,10 @@ public sealed class DuckDbStore : IAsyncDisposable
                            LIMIT $limit
                            """;
 
-        foreach (DuckDBParameter param in parameters) cmd.Parameters.Add(param);
+        foreach (var param in parameters) cmd.Parameters.Add(param);
         cmd.Parameters.Add(new DuckDBParameter("limit", limit));
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
 
         return spans;
@@ -351,17 +351,18 @@ public sealed class DuckDbStore : IAsyncDisposable
         CancellationToken ct = default)
     {
         Directory.CreateDirectory(outputDirectory);
-        DateTime cutoff = DateTime.UtcNow - olderThan;
-        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
+        var now = TimeProvider.System.GetUtcNow();
+        var cutoff = now.UtcDateTime - olderThan;
+        var timestamp = now.ToString("yyyyMMdd_HHmmss");
 
         using DuckDBCommand countCmd = _connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time < $cutoff";
         countCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
-        int count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
 
         if (count == 0) return 0;
 
-        string spansFile = Path.Combine(outputDirectory, $"spans_{timestamp}.parquet");
+        var spansFile = Path.Combine(outputDirectory, $"spans_{timestamp}.parquet");
         using DuckDBCommand exportCmd = _connection.CreateCommand();
         exportCmd.CommandText = $"""
                                  COPY (SELECT * FROM spans WHERE start_time < $cutoff)
@@ -408,7 +409,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             parameters.Add(new DuckDBParameter("start_after", startAfter.Value));
         }
 
-        string whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
         if (parquetPath.Contains('\'') || parquetPath.Contains(';') || parquetPath.Contains("--"))
             throw new ArgumentException("Invalid parquet path", nameof(parquetPath));
@@ -416,9 +417,9 @@ public sealed class DuckDbStore : IAsyncDisposable
         using DuckDBCommand cmd = _connection.CreateCommand();
         cmd.CommandText = $"SELECT * FROM read_parquet('{parquetPath}') {whereClause}";
 
-        foreach (DuckDBParameter param in parameters) cmd.Parameters.Add(param);
+        foreach (var param in parameters) cmd.Parameters.Add(param);
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
 
         return spans;
@@ -436,7 +437,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                               (SELECT MAX(start_time) FROM spans) as newest_span
                           """;
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new StorageStats
@@ -475,7 +476,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             parameters.Add(new DuckDBParameter("start_after", startAfter.Value));
         }
 
-        string whereClause = string.Join(" AND ", conditions);
+        var whereClause = string.Join(" AND ", conditions);
 
         using DuckDBCommand cmd = _connection.CreateCommand();
         cmd.CommandText = $"""
@@ -489,9 +490,9 @@ public sealed class DuckDbStore : IAsyncDisposable
                            WHERE {whereClause}
                            """;
 
-        foreach (DuckDBParameter param in parameters) cmd.Parameters.Add(param);
+        foreach (var param in parameters) cmd.Parameters.Add(param);
 
-        using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new GenAiStats

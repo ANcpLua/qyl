@@ -51,18 +51,18 @@ internal interface ITest : ICompile
 
     private void RunTests(TestOptions options)
     {
-        foreach (Project project in TestProjects) RunTestProject(project, options);
+        foreach (var project in TestProjects) RunTestProject(project, options);
     }
 
     private void RunTestProject(Project project, TestOptions options)
     {
-        string reportName = options.ReportPrefix is { Length: > 0 } prefix
+        var reportName = options.ReportPrefix is { Length: > 0 } prefix
             ? $"{project.Name}.{prefix}.trx"
             : $"{project.Name}.trx";
 
         Log.Information("Running tests: {Project}", project.Name);
 
-        MtpArgumentsBuilder mtp = MtpExtensions.Mtp()
+        var mtp = MtpExtensions.Mtp()
             .ResultsDirectory(TestResultsDirectory)
             .ReportTrx(reportName)
             .IgnoreExitCode(8);
@@ -87,7 +87,7 @@ internal interface ITest : ICompile
 
     void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
     {
-        IReadOnlyList<string> mtpArgs = mtp.BuildArgs();
+        var mtpArgs = mtp.BuildArgs();
 
         List<string> args =
         [
@@ -101,7 +101,7 @@ internal interface ITest : ICompile
 
         Log.Debug("Executing: dotnet {Arguments}", string.Join(" ", args));
 
-        IProcess? process = ProcessTasks.StartProcess(
+        var process = ProcessTasks.StartProcess(
             ToolPathResolver.GetPathExecutable("dotnet"),
             string.Join(" ", args),
             RootDirectory,

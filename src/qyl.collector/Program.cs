@@ -13,16 +13,16 @@ using qyl.collector.Query;
 using qyl.collector.Realtime;
 using qyl.collector.Storage;
 
-WebApplicationBuilder builder = WebApplication.CreateSlimBuilder(args);
+var builder = WebApplication.CreateSlimBuilder(args);
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default);
 });
 
-int port = builder.Configuration.GetValue("QYL_PORT", 5100);
-string token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
-string dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
+var port = builder.Configuration.GetValue("QYL_PORT", 5100);
+var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
+var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
 
 builder.Services.AddSingleton(new TokenAuthOptions
 {
@@ -37,10 +37,10 @@ builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>
 
 builder.Services.AddSingleton<SessionAggregator>();
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
-SseHub sseHub = app.Services.GetRequiredService<SseHub>();
-TokenAuthOptions options = app.Services.GetRequiredService<TokenAuthOptions>();
+var sseHub = app.Services.GetRequiredService<SseHub>();
+var options = app.Services.GetRequiredService<TokenAuthOptions>();
 
 app.UseMiddleware<TokenAuthMiddleware>(options);
 
@@ -49,7 +49,7 @@ app.UseStaticFiles();
 
 app.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
 {
-    bool isValid = CryptographicOperations.FixedTimeEquals(
+    var isValid = CryptographicOperations.FixedTimeEquals(
         Encoding.UTF8.GetBytes(request.Token),
         Encoding.UTF8.GetBytes(token));
 
@@ -81,11 +81,11 @@ app.MapPost("/api/logout", (HttpContext context) =>
 
 app.MapGet("/api/auth/check", (HttpContext context) =>
 {
-    string? cookieToken = context.Request.Cookies["qyl_token"];
-    bool isValid = !string.IsNullOrEmpty(cookieToken) &&
-                   CryptographicOperations.FixedTimeEquals(
-                       Encoding.UTF8.GetBytes(cookieToken),
-                       Encoding.UTF8.GetBytes(token));
+    var cookieToken = context.Request.Cookies["qyl_token"];
+    var isValid = !string.IsNullOrEmpty(cookieToken) &&
+                  CryptographicOperations.FixedTimeEquals(
+                      Encoding.UTF8.GetBytes(cookieToken),
+                      Encoding.UTF8.GetBytes(token));
 
     return Results.Ok(new
     {
@@ -95,17 +95,17 @@ app.MapGet("/api/auth/check", (HttpContext context) =>
 
 app.MapGet("/api/v1/sessions", (SessionAggregator aggregator, int? limit, string? serviceName) =>
 {
-    IReadOnlyList<SessionSummary> sessions = serviceName is not null
+    var sessions = serviceName is not null
         ? aggregator.GetSessionsByService(serviceName, limit ?? 100)
         : aggregator.GetSessions(limit ?? 100);
 
-    SessionListResponseDto response = SessionMapper.ToListResponse(sessions, sessions.Count, false);
+    var response = SessionMapper.ToListResponse(sessions, sessions.Count, false);
     return Results.Ok(response);
 });
 
 app.MapGet("/api/v1/sessions/{sessionId}", (string sessionId, SessionAggregator aggregator) =>
 {
-    SessionSummary? session = aggregator.GetSession(sessionId);
+    var session = aggregator.GetSession(sessionId);
     if (session is null) return Results.NotFound();
 
     return Results.Ok(SessionMapper.ToDto(session));
@@ -114,10 +114,10 @@ app.MapGet("/api/v1/sessions/{sessionId}", (string sessionId, SessionAggregator 
 app.MapGet("/api/v1/sessions/{sessionId}/spans",
     async (string sessionId, DuckDbStore store, SessionAggregator aggregator) =>
     {
-        IReadOnlyList<SpanRecord> spans = await store.GetSpansBySessionAsync(sessionId).ConfigureAwait(false);
+        var spans = await store.GetSpansBySessionAsync(sessionId).ConfigureAwait(false);
 
-        SessionSummary? session = aggregator.GetSession(sessionId);
-        string serviceName = session?.Services.Count > 0 ? session.Services[0] : "unknown";
+        var session = aggregator.GetSession(sessionId);
+        var serviceName = session?.Services.Count > 0 ? session.Services[0] : "unknown";
 
         var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
         return Results.Ok(new SpanListResponseDto
@@ -128,11 +128,11 @@ app.MapGet("/api/v1/sessions/{sessionId}/spans",
 
 app.MapGet("/api/v1/traces/{traceId}", async (string traceId, DuckDbStore store) =>
 {
-    IReadOnlyList<SpanRecord> spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
+    var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
     if (spans.Count == 0) return Results.NotFound();
 
-    List<SpanDto> spanDtos = SpanMapper.ToDtos(spans, r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
-    SpanDto? rootSpan = spanDtos.FirstOrDefault(s => s.ParentSpanId is null);
+    var spanDtos = SpanMapper.ToDtos(spans, r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
+    var rootSpan = spanDtos.FirstOrDefault(s => s.ParentSpanId is null);
 
     return Results.Ok(new TraceResponseDto
     {
@@ -168,7 +168,7 @@ app.MapPost("/api/v1/ingest", async (
 
     await store.EnqueueAsync(batch);
 
-    foreach (SpanRecord span in batch.Spans) aggregator.TrackSpan(span);
+    foreach (var span in batch.Spans) aggregator.TrackSpan(span);
 
     broadcaster.PublishSpans(batch);
 
@@ -183,19 +183,19 @@ app.MapPost("/v1/traces", async (
 {
     try
     {
-        OtlpExportTraceServiceRequest? otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
+        var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
             QylSerializerContext.Default.OtlpExportTraceServiceRequest);
 
         if (otlpData?.ResourceSpans is null) return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
 
-        List<SpanRecord> spans = ConvertOtlpToSpanRecords(otlpData);
+        var spans = ConvertOtlpToSpanRecords(otlpData);
         if (spans.Count == 0) return Results.Accepted();
 
         var batch = new SpanBatch(spans);
 
         await store.EnqueueAsync(batch);
 
-        foreach (SpanRecord span in spans) aggregator.TrackSpan(span);
+        foreach (var span in spans) aggregator.TrackSpan(span);
 
         broadcaster.PublishSpans(batch);
 
@@ -216,14 +216,14 @@ app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
 
 app.MapPost("/api/v1/console", (ConsoleIngestBatch batch, FrontendConsole console) =>
 {
-    foreach (ConsoleIngestRequest req in batch.Logs)
+    foreach (var req in batch.Logs)
         console.Ingest(req);
     return Results.Accepted();
 });
 
 app.MapGet("/api/v1/console", (FrontendConsole console, string? session, string? level, int? limit) =>
 {
-    ConsoleLevel? minLevel = level?.ToLowerInvariant() switch
+    var minLevel = level?.ToLowerInvariant() switch
     {
         "warn" => ConsoleLevel.Warn,
         "error" => ConsoleLevel.Error,
@@ -246,9 +246,9 @@ app.MapGet("/api/v1/console/live",
         {
             FullMode = BoundedChannelFullMode.DropOldest
         });
-        string connectionId = Guid.NewGuid().ToString("N")[..8];
+        var connectionId = Guid.NewGuid().ToString("N")[..8];
 
-        using IDisposable _ = console.Subscribe(connectionId, channel);
+        using var _ = console.Subscribe(connectionId, channel);
 
         await ctx.Response.WriteAsync($"event: connected\ndata: {{\"id\":\"{connectionId}\"}}\n\n", ct)
             .ConfigureAwait(false);
@@ -256,10 +256,10 @@ app.MapGet("/api/v1/console/live",
 
         try
         {
-            await foreach (ConsoleLogEntry entry in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
+            await foreach (var entry in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
             {
                 if (session != null && entry.Session != session) continue;
-                string json = JsonSerializer.Serialize(entry, QylSerializerContext.Default.ConsoleLogEntry);
+                var json = JsonSerializer.Serialize(entry, QylSerializerContext.Default.ConsoleLogEntry);
                 await ctx.Response.WriteAsync($"event: console\ndata: {json}\n\n", ct).ConfigureAwait(false);
                 await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
             }
@@ -273,7 +273,7 @@ app.MapGet("/mcp/manifest", () => Results.Ok(McpServer.GetManifest()));
 
 app.MapPost("/mcp/tools/call", async (McpToolCall call, McpServer mcp, CancellationToken ct) =>
 {
-    McpResponse response = await mcp.HandleToolCallAsync(call, ct).ConfigureAwait(false);
+    var response = await mcp.HandleToolCallAsync(call, ct).ConfigureAwait(false);
     return response.IsError ? Results.BadRequest(response) : Results.Ok(response);
 });
 
@@ -290,7 +290,7 @@ app.MapGet("/", () => Results.Redirect("/index.html"));
 
 app.MapFallback(async context =>
 {
-    string path = context.Request.Path.Value ?? "/";
+    var path = context.Request.Path.Value ?? "/";
 
     if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase))
@@ -300,7 +300,7 @@ app.MapFallback(async context =>
     }
 
     context.Response.ContentType = "text/html";
-    string indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
     if (File.Exists(indexPath))
         await context.Response.SendFileAsync(indexPath).ConfigureAwait(false);
     else
@@ -308,7 +308,7 @@ app.MapFallback(async context =>
         await context.Response.WriteAsync(GetFallbackHtml(token)).ConfigureAwait(false);
 });
 
-string urls = $"http://0.0.0.0:{port}";
+var urls = $"http://0.0.0.0:{port}";
 app.Urls.Add(urls);
 
 StartupBanner.Print($"http://localhost:{port}", token, port);
@@ -319,21 +319,21 @@ static List<SpanRecord> ConvertOtlpToSpanRecords(OtlpExportTraceServiceRequest o
 {
     var spans = new List<SpanRecord>();
 
-    foreach (OtlpResourceSpans resourceSpan in otlp.ResourceSpans ?? [])
+    foreach (var resourceSpan in otlp.ResourceSpans ?? [])
     {
-        string serviceName = resourceSpan.Resource?.Attributes?
+        var serviceName = resourceSpan.Resource?.Attributes?
             .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue ?? "unknown";
 
-        foreach (OtlpScopeSpans scopeSpan in resourceSpan.ScopeSpans ?? [])
+        foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
         {
-            foreach (OtlpSpan span in scopeSpan.Spans ?? [])
+            foreach (var span in scopeSpan.Spans ?? [])
             {
                 var attributes = new Dictionary<string, string>
                 {
                     ["service.name"] = serviceName
                 };
 
-                foreach (OtlpKeyValue attr in span.Attributes ?? [])
+                foreach (var attr in span.Attributes ?? [])
                 {
                     if (attr.Key is not null)
                         attributes[attr.Key] = attr.Value?.StringValue
@@ -361,10 +361,10 @@ static List<SpanRecord> ConvertOtlpToSpanRecords(OtlpExportTraceServiceRequest o
 
                     ProviderName = attributes.GetValueOrDefault("gen_ai.system"),
                     RequestModel = attributes.GetValueOrDefault("gen_ai.request.model"),
-                    TokensIn = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.input_tokens"), out int tin)
+                    TokensIn = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.input_tokens"), out var tin)
                         ? tin
                         : null,
-                    TokensOut = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.output_tokens"), out int tout)
+                    TokensOut = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.output_tokens"), out var tout)
                         ? tout
                         : null,
                     CostUsd = null

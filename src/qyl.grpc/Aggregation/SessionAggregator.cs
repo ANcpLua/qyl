@@ -59,11 +59,11 @@ public sealed class SessionAggregator : ISessionAggregator,
         _ingestChannel.Writer.TryWrite(enriched);
 
     public SessionModel? GetSession(string sessionId) =>
-        _sessions.TryGetValue(sessionId, out SessionBuilder? builder) ? builder.Build() : null;
+        _sessions.TryGetValue(sessionId, out var builder) ? builder.Build() : null;
 
     public IReadOnlyList<SessionModel> Query(SessionQuery query)
     {
-        IEnumerable<SessionBuilder> builders = _sessions.Values.AsEnumerable();
+        var builders = _sessions.Values.AsEnumerable();
 
         if (query.ServiceName is not null)
             builders = builders.Where(b => b.ServiceName == query.ServiceName);
@@ -99,7 +99,7 @@ public sealed class SessionAggregator : ISessionAggregator,
             .Take(5)
             .ToDictionary(kv => kv.Key, kv => kv.Value);
 
-        DateTimeOffset cutoff = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
+        var cutoff = DateTimeOffset.UtcNow - TimeSpan.FromMinutes(5);
 
         return new(
             _sessions.Count,
@@ -124,9 +124,9 @@ public sealed class SessionAggregator : ISessionAggregator,
 
     public void AddSpan(params ReadOnlySpan<SpanModel> spans)
     {
-        foreach (SpanModel span in spans)
+        foreach (var span in spans)
         {
-            EnrichedSpan enriched = GenAiExtractor.Enrich(span);
+            var enriched = GenAiExtractor.Enrich(span);
             _ingestChannel.Writer.TryWrite(enriched);
         }
     }
@@ -137,7 +137,7 @@ public sealed class SessionAggregator : ISessionAggregator,
         {
             while (await _ingestChannel.Reader.WaitToReadAsync(_shutdownCts.Token))
             {
-                while (_ingestChannel.Reader.TryRead(out EnrichedSpan? span)) MergeSpanInternal(span);
+                while (_ingestChannel.Reader.TryRead(out var span)) MergeSpanInternal(span);
 
                 EvictExpiredSessions();
             }
@@ -149,8 +149,8 @@ public sealed class SessionAggregator : ISessionAggregator,
 
     private void MergeSpanInternal(EnrichedSpan span)
     {
-        string sessionId = span.SessionId ?? span.TraceId;
-        SessionBuilder builder = _sessions.GetOrAdd(sessionId, id => new(id, span.ServiceName));
+        var sessionId = span.SessionId ?? span.TraceId;
+        var builder = _sessions.GetOrAdd(sessionId, id => new(id, span.ServiceName));
 
         builder.AddSpan(span);
 
@@ -161,7 +161,7 @@ public sealed class SessionAggregator : ISessionAggregator,
             Interlocked.Add(ref _globalOutputTokens, span.GenAiOutputTokens);
             if (span.GenAi?.IsToolCall == true) Interlocked.Increment(ref _globalToolCalls);
 
-            long costMicros = (long)(span.GenAiCostUsd * 1_000_000m);
+            var costMicros = (long)(span.GenAiCostUsd * 1_000_000m);
             Interlocked.Add(ref _globalCostMicros, costMicros);
         }
 
@@ -179,15 +179,15 @@ public sealed class SessionAggregator : ISessionAggregator,
         {
             if (_sessions.Count <= _maxSessions && _evictionQueue.Count == 0) return;
 
-            long cutoffTicks = (DateTimeOffset.UtcNow - _sessionTimeout).Ticks;
+            var cutoffTicks = (DateTimeOffset.UtcNow - _sessionTimeout).Ticks;
 
-            while (_evictionQueue.TryPeek(out string? id, out long priorityTicks))
+            while (_evictionQueue.TryPeek(out var id, out var priorityTicks))
             {
                 if (priorityTicks > cutoffTicks && _sessions.Count <= _maxSessions) break;
 
                 _evictionQueue.Dequeue();
 
-                if (_sessions.TryGetValue(id, out SessionBuilder? builder))
+                if (_sessions.TryGetValue(id, out var builder))
                 {
                     if (builder.LastActivity.Ticks <= priorityTicks)
 
@@ -202,8 +202,8 @@ public sealed class SessionAggregator : ISessionAggregator,
 
     public SessionModel? GetSession(ReadOnlySpan<char> sessionId)
     {
-        ConcurrentDictionary<string, SessionBuilder>.AlternateLookup<ReadOnlySpan<char>> lookup = _sessions.GetAlternateLookup<ReadOnlySpan<char>>();
-        return lookup.TryGetValue(sessionId, out SessionBuilder? builder) ? builder.Build() : null;
+        var lookup = _sessions.GetAlternateLookup<ReadOnlySpan<char>>();
+        return lookup.TryGetValue(sessionId, out var builder) ? builder.Build() : null;
     }
 
     private sealed class SessionBuilder
@@ -248,7 +248,7 @@ public sealed class SessionAggregator : ISessionAggregator,
 
                     if (span.GenAiModel is not null)
                     {
-                        int count = _modelCounts.GetValueOrDefault(span.GenAiModel, 0);
+                        var count = _modelCounts.GetValueOrDefault(span.GenAiModel, 0);
                         _modelCounts[span.GenAiModel] = count + 1;
 
                         if (PrimaryModel == null || _modelCounts[span.GenAiModel] > _modelCounts[PrimaryModel])

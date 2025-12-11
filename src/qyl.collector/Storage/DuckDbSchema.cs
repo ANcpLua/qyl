@@ -369,8 +369,8 @@ public enum PromotionReason
 /// </summary>
 public sealed class LargeContentHandler(DuckDBConnection connection)
 {
-    private const int ThresholdBytes = 4096;
-    private static readonly ArrayPool<byte> s_pool = ArrayPool<byte>.Shared;
+    private const int _thresholdBytes = 4096;
+    private static readonly ArrayPool<byte> _sPool = ArrayPool<byte>.Shared;
 
     /// <summary>
     /// Process attribute value, externalizing if too large.
@@ -386,13 +386,13 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
         if (!PromotedFields.IsLargeContent(attributeKey))
             return null;
 
-        byte[] valueBytes = Encoding.UTF8.GetBytes(value);
-        if (valueBytes.Length <= ThresholdBytes)
+        var valueBytes = Encoding.UTF8.GetBytes(value);
+        if (valueBytes.Length <= _thresholdBytes)
             return null;
 
         // Compress with ZSTD
-        byte[] compressed = CompressZstd(valueBytes);
-        string contentId = ComputeContentId(valueBytes);
+        var compressed = CompressZstd(valueBytes);
+        var contentId = ComputeContentId(valueBytes);
 
         // Store in span_content table
         await StoreContentAsync(
@@ -425,12 +425,12 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
             Value = contentId
         });
 
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
         if (!await reader.ReadAsync(ct))
             return null;
 
-        byte[] compressed = (byte[])reader.GetValue(0);
-        long originalSize = reader.GetInt64(1);
+        var compressed = (byte[])reader.GetValue(0);
+        var originalSize = reader.GetInt64(1);
 
         return DecompressZstd(compressed, (int)originalSize);
     }
@@ -442,7 +442,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
         IEnumerable<string> contentIds,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        string idList = string.Join(',', contentIds.Select(id => $"'{id}'"));
+        var idList = string.Join(',', contentIds.Select(id => $"'{id}'"));
 
         await using DuckDBCommand cmd = connection.CreateCommand();
         cmd.CommandText = $"""
@@ -451,13 +451,13 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
                            WHERE content_id IN ({idList})
                            """;
 
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct);
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
         while (await reader.ReadAsync(ct))
         {
-            string contentId = reader.GetString(0);
-            byte[] compressed = (byte[])reader.GetValue(1);
-            long originalSize = reader.GetInt64(2);
-            string content = DecompressZstd(compressed, (int)originalSize);
+            var contentId = reader.GetString(0);
+            var compressed = (byte[])reader.GetValue(1);
+            var originalSize = reader.GetInt64(2);
+            var content = DecompressZstd(compressed, (int)originalSize);
 
             yield return (contentId, content);
         }
@@ -532,17 +532,17 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
 
     private static string DecompressZstd(byte[] compressed, int originalSize)
     {
-        byte[] buffer = s_pool.Rent(originalSize);
+        var buffer = _sPool.Rent(originalSize);
         try
         {
             using var input = new MemoryStream(compressed);
             using var zstd = new ZLibStream(input, CompressionMode.Decompress);
-            int bytesRead = zstd.Read(buffer, 0, originalSize);
+            var bytesRead = zstd.Read(buffer, 0, originalSize);
             return Encoding.UTF8.GetString(buffer, 0, bytesRead);
         }
         finally
         {
-            s_pool.Return(buffer);
+            _sPool.Return(buffer);
         }
     }
 }
@@ -565,15 +565,15 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     public async ValueTask InsertSpanAsync(ParsedSpan span, CancellationToken ct = default)
     {
         // Partition attributes
-        (Dictionary<string, object?> promoted, Dictionary<string, string> mapped) = PartitionAttributes(span);
+        (var promoted, var mapped) = PartitionAttributes(span);
 
         // Handle large content
-        string? promptRef = span.Attributes?.FirstOrDefault(a => a.Key == "gen_ai.prompt").Value as string;
-        string? completionRef = span.Attributes?.FirstOrDefault(a => a.Key == "gen_ai.completion").Value as string;
+        var promptRef = span.Attributes?.FirstOrDefault(a => a.Key == "gen_ai.prompt").Value as string;
+        var completionRef = span.Attributes?.FirstOrDefault(a => a.Key == "gen_ai.completion").Value as string;
 
         if (promptRef is not null && promptRef.Length > 4096)
         {
-            string? contentId = await contentHandler.ProcessAttributeAsync(
+            var contentId = await contentHandler.ProcessAttributeAsync(
                 span.TraceId, span.SpanId, "gen_ai.prompt", promptRef, ct);
             if (contentId is not null)
                 promoted["gen_ai.prompt.ref"] = contentId;
@@ -581,7 +581,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
 
         if (completionRef is not null && completionRef.Length > 4096)
         {
-            string? contentId = await contentHandler.ProcessAttributeAsync(
+            var contentId = await contentHandler.ProcessAttributeAsync(
                 span.TraceId, span.SpanId, "gen_ai.completion", completionRef, ct);
             if (contentId is not null)
                 promoted["gen_ai.completion.ref"] = contentId;
@@ -601,9 +601,9 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
 
         using DuckDBAppender appender = connection.CreateAppender("spans");
 
-        foreach (ParsedSpan span in spans)
+        foreach (var span in spans)
         {
-            (Dictionary<string, object?> promoted, Dictionary<string, string> mapped) = PartitionAttributes(span);
+            (var promoted, var mapped) = PartitionAttributes(span);
 
             var row = appender.CreateRow();
 
@@ -611,7 +611,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             row.AppendValue(span.TraceId.ToString());
             row.AppendValue(span.SpanId.ToString());
             if (span.ParentSpanId.IsEmpty)
-                row.AppendNull();
+                row.AppendNullValue();
             else
                 row.AppendValue(span.ParentSpanId.ToString());
 
@@ -624,7 +624,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             row.AppendValue((byte)span.Kind);
             row.AppendValue((byte)span.Status);
             if (span.StatusMessage is null)
-                row.AppendNull();
+                row.AppendNullValue();
             else
                 row.AppendValue(span.StatusMessage);
 
@@ -635,8 +635,8 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             row.AppendValue(SerializeMap(mapped));
 
             // Events & Links (null for now)
-            row.AppendNull(); // events JSON
-            row.AppendNull(); // links JSON
+            row.AppendNullValue(); // events JSON
+            row.AppendNullValue(); // links JSON
 
             row.EndRow();
         }
@@ -673,10 +673,10 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         // Process remaining attributes
         if (span.Attributes is not null)
         {
-            foreach ((string key, object? value) in span.Attributes)
+            foreach ((var key, var value) in span.Attributes)
             {
                 // Handle deprecated mappings
-                string effectiveKey = PromotedFields.TryGetCurrentName(key, out string? current)
+                var effectiveKey = PromotedFields.TryGetCurrentName(key, out var current)
                     ? current
                     : key;
 
@@ -734,8 +734,8 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             "$9"
         };
 
-        int paramIndex = 10;
-        foreach ((string key, object? _) in promoted)
+        var paramIndex = 10;
+        foreach ((var key, var _) in promoted)
         {
             columns.Add($"\"{key}\"");
             values.Add($"${paramIndex++}");
@@ -789,7 +789,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         });
 
         // Promoted field parameters
-        foreach ((string _, object? value) in promoted)
+        foreach ((var _, var value) in promoted)
         {
             cmd.Parameters.Add(new DuckDBParameter
             {
@@ -811,7 +811,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         if (map.Count == 0)
             return "MAP {}";
 
-        IEnumerable<string> pairs = map.Select(kv => $"'{EscapeSql(kv.Key)}': '{EscapeSql(kv.Value)}'");
+        var pairs = map.Select(kv => $"'{EscapeSql(kv.Key)}': '{EscapeSql(kv.Value)}'");
         return $"MAP {{{string.Join(", ", pairs)}}}";
     }
 
@@ -851,9 +851,9 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             "gen_ai.completion.ref"
         ];
 
-        foreach (string key in orderedKeys)
+        foreach (var key in orderedKeys)
         {
-            if (promoted.TryGetValue(key, out object? value) && value is not null)
+            if (promoted.TryGetValue(key, out var value) && value is not null)
             {
                 // Handle different types appropriately
                 switch (value)
@@ -877,7 +877,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             }
             else
             {
-                row.AppendNull();
+                row.AppendNullValue();
             }
         }
     }
@@ -1182,7 +1182,7 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder Select(params string[] columns)
     {
-        foreach (string col in columns)
+        foreach (var col in columns)
         {
             _select.Add(GetColumnAccess(col));
         }
@@ -1198,7 +1198,7 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder Where(string attributeKey, string op, object value)
     {
-        string param = $"${_paramIndex++}";
+        var param = $"${_paramIndex++}";
         _parameters[param] = value;
         _where.Add($"{GetColumnAccess(attributeKey)} {op} {param}");
         return this;
@@ -1206,8 +1206,8 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder WhereTimeRange(UnixNano start, UnixNano end)
     {
-        string startParam = $"${_paramIndex++}";
-        string endParam = $"${_paramIndex++}";
+        var startParam = $"${_paramIndex++}";
+        var endParam = $"${_paramIndex++}";
         _parameters[startParam] = start.Value;
         _parameters[endParam] = end.Value;
         _where.Add($"start_time_unix_nano >= {startParam}");
@@ -1232,7 +1232,7 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder GroupBy(params string[] columns)
     {
-        foreach (string col in columns)
+        foreach (var col in columns)
         {
             _groupBy.Add(GetColumnAccess(col));
         }
@@ -1242,7 +1242,7 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder OrderBy(string column, bool descending = false)
     {
-        string dir = descending ? "DESC" : "ASC";
+        var dir = descending ? "DESC" : "ASC";
         _orderBy.Add($"{GetColumnAccess(column)} {dir}");
         return this;
     }

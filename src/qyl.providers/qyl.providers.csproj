@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <InjectSharedThrow>true</InjectSharedThrow>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+
+    <!-- Package Metadata -->
+    <PackageId>qyl.providers</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Alexander Nachtmann</Authors>
+    <Description>Unified AI provider extensions for qyl - supports Gemini, OpenAI, Ollama with IChatClient</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microsoft.Extensions.AI for IChatClient -->
+    <PackageReference Include="Microsoft.Agents.AI" />
+
+    <!-- Provider implementations -->
+    <PackageReference Include="Mscc.GenerativeAI.Microsoft" />
+    <PackageReference Include="OllamaSharp" />
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI" />
+  </ItemGroup>
+
+</Project>

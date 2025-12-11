@@ -4,7 +4,6 @@
 // =============================================================================
 
 using System.Buffers.Text;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -22,8 +21,8 @@ public readonly record struct UnixNano :
     /// <summary>Zero timestamp.</summary>
     public static readonly UnixNano Zero;
 
-    private const long NanosPerMillisecond = 1_000_000;
-    private const long TicksPerNano = 100; // 1 tick = 100 nanoseconds
+    private const long _nanosPerMillisecond = 1_000_000;
+    private const long _ticksPerNano = 100; // 1 tick = 100 nanoseconds
 
     /// <summary>Creates a UnixNano from a nanosecond value.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -34,20 +33,20 @@ public readonly record struct UnixNano :
 
     /// <summary>Converts to DateTimeOffset.</summary>
     public DateTimeOffset ToDateTimeOffset() =>
-        DateTimeOffset.FromUnixTimeMilliseconds(Value / NanosPerMillisecond);
+        DateTimeOffset.FromUnixTimeMilliseconds(Value / _nanosPerMillisecond);
 
     /// <summary>Converts to TimeSpan.</summary>
     public TimeSpan ToTimeSpan() =>
-        TimeSpan.FromTicks(Value / TicksPerNano);
+        TimeSpan.FromTicks(Value / _ticksPerNano);
 
     /// <summary>Creates UnixNano from DateTimeOffset.</summary>
     public static UnixNano FromDateTimeOffset(DateTimeOffset dto) =>
-        new(dto.ToUnixTimeMilliseconds() * NanosPerMillisecond);
+        new(dto.ToUnixTimeMilliseconds() * _nanosPerMillisecond);
 
     /// <summary>Gets current time as UnixNano with sub-millisecond precision.</summary>
     public static UnixNano Now() =>
-        new((DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * NanosPerMillisecond) +
-            (Stopwatch.GetTimestamp() % NanosPerMillisecond));
+        new((DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() * _nanosPerMillisecond) +
+            (Stopwatch.GetTimestamp() % _nanosPerMillisecond));
 
     // =========================================================================
     // IUtf8SpanParsable<UnixNano> - Zero allocation from UTF-8 bytes
@@ -89,7 +88,7 @@ public readonly record struct UnixNano :
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out UnixNano result)
     {
-        if (long.TryParse(s, provider, out long value))
+        if (long.TryParse(s, provider, out var value))
         {
             result = new UnixNano(value);
             return true;

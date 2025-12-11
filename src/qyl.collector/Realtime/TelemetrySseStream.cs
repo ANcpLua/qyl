@@ -37,7 +37,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
     public void Unsubscribe(Guid clientId)
     {
-        if (_channels.TryRemove(clientId, out Channel<TelemetryMessage>? channel))
+        if (_channels.TryRemove(clientId, out var channel))
             channel.Writer.TryComplete();
     }
 
@@ -45,7 +45,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     {
         if (_disposed) return;
 
-        foreach (Channel<TelemetryMessage> channel in _channels.Values)
+        foreach (var channel in _channels.Values)
             channel.Writer.TryWrite(item);
     }
 
@@ -60,7 +60,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
         if (_disposed) return ValueTask.CompletedTask;
         _disposed = true;
 
-        foreach (Channel<TelemetryMessage> channel in _channels.Values)
+        foreach (var channel in _channels.Values)
             channel.Writer.TryComplete();
 
         _channels.Clear();

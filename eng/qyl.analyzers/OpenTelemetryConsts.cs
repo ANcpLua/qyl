@@ -10,7 +10,7 @@ internal static class OpenTelemetryConsts
         public const string Message = "error.message";
     }
 
-    public static class GenAI
+    public static class GenAi
     {
         public const string InvokeAgent = "invoke_agent";
 

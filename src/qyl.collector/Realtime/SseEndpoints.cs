@@ -20,8 +20,8 @@ public static class SseEndpoints
     private static IResult HandleLiveStream(ITelemetrySseBroadcaster stream, HttpContext context)
     {
         var clientId = Guid.NewGuid();
-        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
-        string? sessionFilter = context.Request.Query["session"].FirstOrDefault();
+        var reader = stream.Subscribe(clientId);
+        var sessionFilter = context.Request.Query["session"].FirstOrDefault();
 
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
@@ -37,8 +37,8 @@ public static class SseEndpoints
         TelemetrySignal filter)
     {
         var clientId = Guid.NewGuid();
-        ChannelReader<TelemetryMessage> reader = stream.Subscribe(clientId);
-        string? sessionFilter = context.Request.Query["session"].FirstOrDefault();
+        var reader = stream.Subscribe(clientId);
+        var sessionFilter = context.Request.Query["session"].FirstOrDefault();
         context.RequestAborted.Register(() => stream.Unsubscribe(clientId));
 
         return TypedResults.ServerSentEvents(
@@ -61,9 +61,9 @@ public static class SseEndpoints
             "connected"
         );
 
-        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
-            TelemetryMessage messageToSend = message;
+            var messageToSend = message;
             if (sessionFilter is not null && message.Data is SpanBatch batch)
             {
                 var filteredSpans = batch.Spans
@@ -77,7 +77,7 @@ public static class SseEndpoints
                 };
             }
 
-            string eventType = messageToSend.Signal switch
+            var eventType = messageToSend.Signal switch
             {
                 TelemetrySignal.Spans => "spans",
                 TelemetrySignal.Metrics => "metrics",
@@ -98,7 +98,7 @@ public static class SseEndpoints
         string? sessionFilter,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (TelemetryMessage message in reader.ReadAllAsync(ct).ConfigureAwait(false))
+        await foreach (var message in reader.ReadAllAsync(ct).ConfigureAwait(false))
         {
             if (message.Signal != filter) continue;
 

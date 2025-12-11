@@ -24,9 +24,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Nuke.Common"/>
-    <PackageReference Include="Nuke.Components"/>
-    <PackageReference Include="Nuke.Tooling.Generator"/>
+    <PackageReference Include="Nuke.Common" Version="10.1.0"/>
+    <PackageReference Include="Nuke.Components" Version="10.1.0"/>
+    <PackageReference Include="Nuke.Tooling.Generator" Version="10.1.0"/>
   </ItemGroup>
 
   <ItemGroup>
