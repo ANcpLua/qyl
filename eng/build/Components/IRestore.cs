@@ -5,7 +5,7 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
 
-internal interface IRestore : IHasSolution
+interface IRestore : IHasSolution
 {
     Target Restore => d => d
         .Description("Restore NuGet packages")

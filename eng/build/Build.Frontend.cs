@@ -6,7 +6,7 @@ using Nuke.Common.Tools.Npm;
 using Serilog;
 
 [ParameterPrefix(nameof(IFrontend))]
-internal interface IFrontend : IHasSolution
+interface IFrontend : IHasSolution
 {
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
 

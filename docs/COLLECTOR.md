@@ -30,21 +30,23 @@ src/qyl.collector/
 
 ## Ports
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | REST API |
-| 4318 | HTTP | OTLP/HTTP (protobuf) |
-| 4317 | gRPC | OTLP/gRPC |
+| Port | Protocol | Purpose              |
+|------|----------|----------------------|
+| 5100 | HTTP     | REST API             |
+| 4318 | HTTP     | OTLP/HTTP (protobuf) |
+| 4317 | gRPC     | OTLP/gRPC            |
 
 ## API Endpoints
 
 ### OTLP Ingestion
+
 ```
 POST /v1/traces          # OTLP HTTP (application/x-protobuf)
 gRPC TraceService/Export # OTLP gRPC
 ```
 
 ### REST API
+
 ```
 GET /api/v1/sessions              # List sessions
 GET /api/v1/sessions/{sessionId}  # Get session details
@@ -58,6 +60,7 @@ GET /api/v1/spans                 # Query spans
 ```
 
 ### SSE Streaming
+
 ```
 GET /api/v1/events/spans          # Real-time span stream
     event: span
@@ -65,6 +68,7 @@ GET /api/v1/events/spans          # Real-time span stream
 ```
 
 ### Health
+
 ```
 GET /health                       # {"status":"healthy"}
 ```
@@ -106,6 +110,7 @@ CREATE TABLE IF NOT EXISTS spans (
 ## Configuration
 
 Environment variables:
+
 ```bash
 DuckDb__Path=/data/qyl.duckdb    # Database file path
 QYL_TOKEN=secret                  # Optional auth token

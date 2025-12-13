@@ -9,11 +9,13 @@
 
 ## Overview
 
-**Problem:** Multiple disconnected code generators (openapi-typescript, NSwag, datamodel-codegen, quicktype) with inconsistent outputs and maintenance burden.
+**Problem:** Multiple disconnected code generators (openapi-typescript, NSwag, datamodel-codegen, quicktype) with
+inconsistent outputs and maintenance burden.
 
 **Solution:** Single TypeSpec → OpenAPI → Kiota pipeline generating typed clients for all languages from one source.
 
 **User Story:**
+
 ```
 As a developer, I want to modify the API schema in one place so that all SDK clients (C#, Python, TypeScript) regenerate automatically.
 ```
@@ -23,6 +25,7 @@ As a developer, I want to modify the API schema in one place so that all SDK cli
 ## Codebase Context
 
 ### Location
+
 ```
 /Users/ancplua/qyl/core/
 ├── specs/           # TypeSpec source
@@ -33,24 +36,24 @@ As a developer, I want to modify the API schema in one place so that all SDK cli
 
 ### Tech Stack
 
-| Tech | Version | Notes |
-|------|---------|-------|
-| TypeSpec | 1.7.0 | API-first schema definition |
-| Kiota | Latest | Microsoft's OpenAPI client generator |
-| OpenAPI | 3.1.0 | Intermediate representation |
-| NUKE | 9.x | Build orchestration |
+| Tech     | Version | Notes                                |
+|----------|---------|--------------------------------------|
+| TypeSpec | 1.7.0   | API-first schema definition          |
+| Kiota    | Latest  | Microsoft's OpenAPI client generator |
+| OpenAPI  | 3.1.0   | Intermediate representation          |
+| NUKE     | 9.x     | Build orchestration                  |
 
 ---
 
 ## Files Changed
 
-| File | Action | What |
-|------|--------|------|
-| `eng/build/Build.TypeSpec.cs` | Created | TypeSpec + Kiota build targets |
-| `eng/build/Build.OpenApi.cs` | Deleted | Replaced by Build.TypeSpec.cs |
-| `eng/build/Build.cs` | Modified | IOpenApi → ITypeSpec |
-| `core/specs/` | Created | TypeSpec source (moved from dashboard) |
-| `core/CLAUDE.md` | Created | Generator documentation |
+| File                          | Action   | What                                   |
+|-------------------------------|----------|----------------------------------------|
+| `eng/build/Build.TypeSpec.cs` | Created  | TypeSpec + Kiota build targets         |
+| `eng/build/Build.OpenApi.cs`  | Deleted  | Replaced by Build.TypeSpec.cs          |
+| `eng/build/Build.cs`          | Modified | IOpenApi → ITypeSpec                   |
+| `core/specs/`                 | Created  | TypeSpec source (moved from dashboard) |
+| `core/CLAUDE.md`              | Created  | Generator documentation                |
 
 ---
 
@@ -59,13 +62,13 @@ As a developer, I want to modify the API schema in one place so that all SDK cli
 ### Completed
 
 1. **Build.TypeSpec.cs** - NUKE build component with targets:
-   - `TypeSpecInstall` - npm dependencies
-   - `TypeSpecCompile` - TypeSpec → OpenAPI + JSON Schema
-   - `GenerateCSharp/Python/TypeScript` - Kiota generation
-   - `GenerateAll` - All three languages
-   - `SyncGeneratedTypes` - Copy to consuming projects
-   - `TypeSpecInfo` - Configuration status
-   - `TypeSpecClean` - Clean artifacts
+    - `TypeSpecInstall` - npm dependencies
+    - `TypeSpecCompile` - TypeSpec → OpenAPI + JSON Schema
+    - `GenerateCSharp/Python/TypeScript` - Kiota generation
+    - `GenerateAll` - All three languages
+    - `SyncGeneratedTypes` - Copy to consuming projects
+    - `TypeSpecInfo` - Configuration status
+    - `TypeSpecClean` - Clean artifacts
 
 2. **Source relocation** - Moved from `src/qyl.dashboard/src/specs/` to `core/specs/`
 
@@ -77,9 +80,11 @@ As a developer, I want to modify the API schema in one place so that all SDK cli
 
 ### WIP: Clean up old location
 
-The old TypeSpec source at `src/qyl.dashboard/src/specs/` still exists. Should be deleted once migration is verified stable.
+The old TypeSpec source at `src/qyl.dashboard/src/specs/` still exists. Should be deleted once migration is verified
+stable.
 
 **Action:**
+
 ```bash
 rm -rf src/qyl.dashboard/src/specs
 ```
@@ -95,6 +100,7 @@ Add `nuke GenerateAll` to CI pipeline to verify schema changes don't break gener
 ### Enhancement: SDK packaging
 
 Create NuGet, PyPI, npm packages from generated clients:
+
 - `Qyl.Core` (NuGet)
 - `qyl-client` (PyPI)
 - `@qyl/client` (npm)
@@ -129,6 +135,7 @@ nuke GenerateAll
 ```
 
 **Verify:**
+
 - [x] TypeSpec compiles without errors
 - [x] OpenAPI generated at core/openapi/openapi.yaml
 - [x] C# client generated (183 files)

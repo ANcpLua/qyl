@@ -8,7 +8,7 @@ using Nuke.Common.Tools.Npm;
 using Serilog;
 
 [ParameterPrefix(nameof(ITypeSpec))]
-internal interface ITypeSpec : IHasSolution
+interface ITypeSpec : IHasSolution
 {
     AbsolutePath TypeSpecDirectory => RootDirectory / "core" / "specs";
 

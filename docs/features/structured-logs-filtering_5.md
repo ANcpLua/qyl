@@ -9,38 +9,44 @@
 
 ## Problem
 
-LogsPage exists but has no filtering UI. Users cannot filter logs by resource, level, or message content. The backend doesn't have a logs query endpoint.
+LogsPage exists but has no filtering UI. Users cannot filter logs by resource, level, or message content. The backend
+doesn't have a logs query endpoint.
 
 ## Solution
 
-Add backend logs endpoint with filtering, and frontend filter UI with level dropdown, resource selector, and advanced filter dialog.
+Add backend logs endpoint with filtering, and frontend filter UI with level dropdown, resource selector, and advanced
+filter dialog.
 
 ---
 
 ## Context
 
 ### Dashboard Location
+
 ```
 /Users/ancplua/qyl/src/qyl.dashboard/
 ```
 
 ### Collector Location
+
 ```
 /Users/ancplua/qyl/src/qyl.collector/
 ```
 
 ### Stack (DO NOT CHANGE)
-| Tech | Version | Notes |
-|------|---------|-------|
-| React | 19.2.0 | No forwardRef, hooks only |
-| TypeScript | 5.9.3 | Strict mode |
-| Tailwind | 4.1.17 | `cn()` helper |
-| TanStack Query | 5.90.11 | `telemetryKeys` factory |
-| Lucide | 0.555.0 | Icons |
-| Sonner | 2.0.7 | Toasts |
-| Radix UI | Latest | Select, Dialog primitives |
+
+| Tech           | Version | Notes                     |
+|----------------|---------|---------------------------|
+| React          | 19.2.0  | No forwardRef, hooks only |
+| TypeScript     | 5.9.3   | Strict mode               |
+| Tailwind       | 4.1.17  | `cn()` helper             |
+| TanStack Query | 5.90.11 | `telemetryKeys` factory   |
+| Lucide         | 0.555.0 | Icons                     |
+| Sonner         | 2.0.7   | Toasts                    |
+| Radix UI       | Latest  | Select, Dialog primitives |
 
 ### Existing Types
+
 ```typescript
 // From src/types/telemetry.ts - adapt as needed
 interface LogRecord {
@@ -59,14 +65,14 @@ interface LogRecord {
 
 ## Files
 
-| File | Action | What |
-|------|--------|------|
-| `src/qyl.collector/Query/LogsEndpoints.cs` | Create | Logs query endpoint |
-| `src/qyl.collector/Program.cs` | Modify | Register logs endpoints |
-| `src/types/telemetry.ts` | Modify | Add LogRecord, LogListResponse types |
-| `src/hooks/use-telemetry.ts` | Modify | Add useLogs hook |
-| `src/components/ui/log-filter.tsx` | Create | Filter toolbar component |
-| `src/pages/LogsPage.tsx` | Modify | Add filtering UI |
+| File                                       | Action | What                                 |
+|--------------------------------------------|--------|--------------------------------------|
+| `src/qyl.collector/Query/LogsEndpoints.cs` | Create | Logs query endpoint                  |
+| `src/qyl.collector/Program.cs`             | Modify | Register logs endpoints              |
+| `src/types/telemetry.ts`                   | Modify | Add LogRecord, LogListResponse types |
+| `src/hooks/use-telemetry.ts`               | Modify | Add useLogs hook                     |
+| `src/components/ui/log-filter.tsx`         | Create | Filter toolbar component             |
+| `src/pages/LogsPage.tsx`                   | Modify | Add filtering UI                     |
 
 ---
 

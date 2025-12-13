@@ -28,14 +28,14 @@ src/qyl.dashboard/
 
 ### Tech Stack
 
-| Library | Version | Purpose |
-|---------|---------|---------|
-| React | 19 | UI framework |
-| Vite | 6 | Build tool |
-| TanStack Query | 5 | Data fetching + cache |
-| TanStack Virtual | 3 | List virtualization |
-| Tailwind CSS | 4 | Styling |
-| Recharts | 2 | Charts |
+| Library          | Version | Purpose               |
+|------------------|---------|-----------------------|
+| React            | 19      | UI framework          |
+| Vite             | 6       | Build tool            |
+| TanStack Query   | 5       | Data fetching + cache |
+| TanStack Virtual | 3       | List virtualization   |
+| Tailwind CSS     | 4       | Styling               |
+| Recharts         | 2       | Charts                |
 
 ### Data Fetching Pattern
 
@@ -99,13 +99,13 @@ src/qyl.mcp/
 
 ### Tools
 
-| Tool | Description |
-|------|-------------|
-| `query_spans` | Query spans with filters |
-| `get_session` | Get session by ID |
-| `get_trace` | Get trace tree |
-| `list_services` | List all services |
-| `analyze_genai` | Analyze gen_ai usage |
+| Tool            | Description              |
+|-----------------|--------------------------|
+| `query_spans`   | Query spans with filters |
+| `get_session`   | Get session by ID        |
+| `get_trace`     | Get trace tree           |
+| `list_services` | List all services        |
+| `analyze_genai` | Analyze gen_ai usage     |
 
 ### Communication
 

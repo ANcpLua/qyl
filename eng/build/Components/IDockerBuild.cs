@@ -8,7 +8,7 @@ using static Nuke.Common.Tools.Docker.DockerTasks;
 namespace Components;
 
 [ParameterPrefix(nameof(IDockerBuild))]
-internal interface IDockerBuild : IHasSolution
+interface IDockerBuild : IHasSolution
 {
     [Parameter("Docker image tag")] string ImageTag => "latest";
 

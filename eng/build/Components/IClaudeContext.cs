@@ -9,7 +9,7 @@ using Serilog;
 
 namespace Components;
 
-internal partial interface IClaudeContext : IHasSolution
+partial interface IClaudeContext : IHasSolution
 {
     AbsolutePath LeafClaude => RootDirectory / "CLAUDE.md";
     AbsolutePath CompiledArtifact => RootDirectory / ".claude" / "context.md";

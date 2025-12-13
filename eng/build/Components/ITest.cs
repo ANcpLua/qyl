@@ -9,7 +9,7 @@ using Serilog;
 namespace Components;
 
 [ParameterPrefix(nameof(ITest))]
-internal interface ITest : ICompile
+interface ITest : ICompile
 {
     [Parameter("Test filter expression (xUnit v3 query syntax)")] string? TestFilter => null;
 

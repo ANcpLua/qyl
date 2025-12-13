@@ -11,7 +11,7 @@ using Serilog;
     OnPullRequestBranches = ["main", "develop"],
     InvokedTargets = [nameof(ITest.Test)],
     FetchDepth = 0)]
-internal sealed class Build : NukeBuild,
+sealed class Build : NukeBuild,
     IRestore,
     IChangelog,
     ICoverage,

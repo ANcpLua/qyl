@@ -9,22 +9,26 @@
 
 ## Problem
 
-TracesPage shows trace list but clicking a trace has no detail view. Users cannot visualize span timing as a Gantt-style timeline or inspect span attributes.
+TracesPage shows trace list but clicking a trace has no detail view. Users cannot visualize span timing as a Gantt-style
+timeline or inspect span attributes.
 
 ## Solution
 
-Add trace detail view with horizontal timeline visualization, span inspection panel, and attribute display. Navigate via clicking a trace row.
+Add trace detail view with horizontal timeline visualization, span inspection panel, and attribute display. Navigate via
+clicking a trace row.
 
 ---
 
 ## Context
 
 ### Dashboard Location
+
 ```
 /Users/ancplua/qyl/src/qyl.dashboard/
 ```
 
 ### Existing Endpoint
+
 ```
 GET /api/v1/traces/{traceId}
 Response: {
@@ -37,17 +41,19 @@ Response: {
 ```
 
 ### Stack (DO NOT CHANGE)
-| Tech | Version | Notes |
-|------|---------|-------|
-| React | 19.2.0 | No forwardRef, hooks only |
-| TypeScript | 5.9.3 | Strict mode |
-| Tailwind | 4.1.17 | `cn()` helper |
-| TanStack Query | 5.90.11 | `telemetryKeys` factory |
-| Lucide | 0.555.0 | Icons |
-| Sonner | 2.0.7 | Toasts |
-| Radix UI | Latest | Dialog, ScrollArea |
+
+| Tech           | Version | Notes                     |
+|----------------|---------|---------------------------|
+| React          | 19.2.0  | No forwardRef, hooks only |
+| TypeScript     | 5.9.3   | Strict mode               |
+| Tailwind       | 4.1.17  | `cn()` helper             |
+| TanStack Query | 5.90.11 | `telemetryKeys` factory   |
+| Lucide         | 0.555.0 | Icons                     |
+| Sonner         | 2.0.7   | Toasts                    |
+| Radix UI       | Latest  | Dialog, ScrollArea        |
 
 ### Existing Types
+
 ```typescript
 interface Span {
   trace_id: string;
@@ -68,14 +74,14 @@ interface Span {
 
 ## Files
 
-| File | Action | What |
-|------|--------|------|
-| `src/components/traces/TraceTimeline.tsx` | Create | Gantt-style timeline |
-| `src/components/traces/SpanDetail.tsx` | Create | Span inspector panel |
-| `src/components/traces/index.ts` | Create | Barrel exports |
-| `src/pages/TraceDetailPage.tsx` | Create | Full trace detail page |
-| `src/pages/index.ts` | Modify | Add TraceDetailPage export |
-| `src/App.tsx` | Modify | Add /traces/:traceId route |
+| File                                      | Action | What                       |
+|-------------------------------------------|--------|----------------------------|
+| `src/components/traces/TraceTimeline.tsx` | Create | Gantt-style timeline       |
+| `src/components/traces/SpanDetail.tsx`    | Create | Span inspector panel       |
+| `src/components/traces/index.ts`          | Create | Barrel exports             |
+| `src/pages/TraceDetailPage.tsx`           | Create | Full trace detail page     |
+| `src/pages/index.ts`                      | Modify | Add TraceDetailPage export |
+| `src/App.tsx`                             | Modify | Add /traces/:traceId route |
 
 ---
 

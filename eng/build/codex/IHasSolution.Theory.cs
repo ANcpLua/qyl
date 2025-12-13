@@ -1,33 +1,30 @@
-using Nuke.Common;
 using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
 
 namespace Components.Theory;
 
 /// <summary>
-/// Extension paths for IHasSolution used by TypeSpec compilation and code generation.
-/// These paths follow the qyl repository structure:
-///
-/// qyl/
-/// ├── core/
-/// │   ├── specs/           # TypeSpec source files
-/// │   ├── generated/       # All generated output
-/// │   │   ├── openapi/     # OpenAPI spec
-/// │   │   ├── duckdb/      # DuckDB schema
-/// │   │   ├── csharp/      # Generated C# 
-/// │   │   └── typescript/  # Generated TypeScript
-/// │   └── primitives/      # Kiota polyglot output
-/// │       ├── dotnet/
-/// │       ├── python/
-/// │       └── typescript/
-/// ├── src/
-/// │   ├── qyl.protocol/    # Shared contracts
-/// │   ├── qyl.collector/   # Backend
-/// │   └── qyl.dashboard/   # Frontend
-/// └── eng/
+///     Extension paths for IHasSolution used by TypeSpec compilation and code generation.
+///     These paths follow the qyl repository structure:
+///     qyl/
+///     ├── core/
+///     │   ├── specs/           # TypeSpec source files
+///     │   ├── generated/       # All generated output
+///     │   │   ├── openapi/     # OpenAPI spec
+///     │   │   ├── duckdb/      # DuckDB schema
+///     │   │   ├── csharp/      # Generated C#
+///     │   │   └── typescript/  # Generated TypeScript
+///     │   └── primitives/      # Kiota polyglot output
+///     │       ├── dotnet/
+///     │       ├── python/
+///     │       └── typescript/
+///     ├── src/
+///     │   ├── qyl.protocol/    # Shared contracts
+///     │   ├── qyl.collector/   # Backend
+///     │   └── qyl.dashboard/   # Frontend
+///     └── eng/
 ///     └── build/           # NUKE build
 /// </summary>
-internal interface IHasSolution : Components.IHasSolution
+interface IHasSolution : Components.IHasSolution
 {
     // ════════════════════════════════════════════════════════════════════════
     // Core Directory (Specs & Generated)

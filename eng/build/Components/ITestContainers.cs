@@ -4,7 +4,7 @@ using Serilog;
 
 namespace Components;
 
-internal interface ITestContainers : INukeBuild
+interface ITestContainers : INukeBuild
 {
     Target SetupTestcontainers => d => d
         .Description("Configure Testcontainers for CI")

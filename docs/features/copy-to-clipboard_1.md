@@ -12,12 +12,17 @@
 ## 1. Overview
 
 ### Problem Statement
-Users cannot easily copy trace IDs, span IDs, session IDs, or attribute values from the dashboard. They must manually select text which is error-prone and slow.
+
+Users cannot easily copy trace IDs, span IDs, session IDs, or attribute values from the dashboard. They must manually
+select text which is error-prone and slow.
 
 ### Proposed Solution
-Add a hover-activated copy button next to all ID fields and copyable values. Button shows copy icon, changes to checkmark on success, and shows toast notification.
+
+Add a hover-activated copy button next to all ID fields and copyable values. Button shows copy icon, changes to
+checkmark on success, and shows toast notification.
 
 ### User Story
+
 ```
 As a developer debugging an issue,
 I want to quickly copy trace IDs and attribute values,
@@ -30,15 +35,15 @@ So that I can search logs, share with teammates, or use in API calls.
 
 ### Tech Stack Reference
 
-| Technology | Version | Documentation |
-|------------|---------|---------------|
-| React | 19.2.0 | [React Docs](https://react.dev) |
-| TypeScript | 5.9.3 | Strict mode enabled |
-| Tailwind CSS | 4.1.17 | Uses `@theme` syntax in `index.css` |
-| Radix UI | Latest | [Radix Primitives](https://radix-ui.com) |
-| Lucide React | 0.555.0 | `Copy`, `Check` icons |
-| Sonner | 2.0.7 | Toast notifications |
-| Vite | 7.2.6 | Dev server port 5173 |
+| Technology   | Version | Documentation                            |
+|--------------|---------|------------------------------------------|
+| React        | 19.2.0  | [React Docs](https://react.dev)          |
+| TypeScript   | 5.9.3   | Strict mode enabled                      |
+| Tailwind CSS | 4.1.17  | Uses `@theme` syntax in `index.css`      |
+| Radix UI     | Latest  | [Radix Primitives](https://radix-ui.com) |
+| Lucide React | 0.555.0 | `Copy`, `Check` icons                    |
+| Sonner       | 2.0.7   | Toast notifications                      |
+| Vite         | 7.2.6   | Dev server port 5173                     |
 
 ### Project Structure
 
@@ -71,21 +76,21 @@ So that I can search logs, share with teammates, or use in API calls.
 
 ### Affected Files
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/ui/copy-button.tsx` | Create | Core copy button component |
+| File                                  | Action | Purpose                    |
+|---------------------------------------|--------|----------------------------|
+| `src/components/ui/copy-button.tsx`   | Create | Core copy button component |
 | `src/components/ui/copyable-text.tsx` | Create | Text + copy button wrapper |
-| `src/components/ui/index.ts` | Modify | Add exports |
-| `src/pages/TracesPage.tsx` | Modify | Add to trace/span IDs |
-| `src/pages/LogsPage.tsx` | Modify | Add to attribute values |
-| `src/pages/ResourcesPage.tsx` | Modify | Add to session IDs |
-| `src/pages/GenAIPage.tsx` | Modify | Add to model/request IDs |
+| `src/components/ui/index.ts`          | Modify | Add exports                |
+| `src/pages/TracesPage.tsx`            | Modify | Add to trace/span IDs      |
+| `src/pages/LogsPage.tsx`              | Modify | Add to attribute values    |
+| `src/pages/ResourcesPage.tsx`         | Modify | Add to session IDs         |
+| `src/pages/GenAIPage.tsx`             | Modify | Add to model/request IDs   |
 
 ### New Dependencies
 
-| Package | Version | Purpose | Install Command |
-|---------|---------|---------|-----------------|
-| None | - | Uses existing packages | - |
+| Package | Version | Purpose                | Install Command |
+|---------|---------|------------------------|-----------------|
+| None    | -       | Uses existing packages | -               |
 
 ### API Endpoints
 
@@ -168,6 +173,7 @@ export function CopyButton({
 ```
 
 **Explanation:**
+
 - Uses existing Button with ghost variant for minimal visual impact
 - `stopPropagation` prevents triggering parent click handlers (row selection)
 - State tracks copied status for visual feedback
@@ -220,6 +226,7 @@ export function CopyableText({
 ```
 
 **Explanation:**
+
 - Combines text display with copy button
 - `group` class enables hover detection for child opacity
 - Optional truncation with native title tooltip for full value
@@ -338,20 +345,24 @@ import { CopyableText } from "@/components/ui";
 ## 5. Pitfalls & Gotchas
 
 ### React 19 Considerations
+
 - [x] No `forwardRef` needed - Button already handles refs
 - [x] Event handlers work as expected
 
 ### TypeScript Strict Mode
+
 - [x] `CopyButtonProps` interface defined
 - [x] Optional props have defaults
 - [x] Event type is `React.MouseEvent`
 
 ### Tailwind v4 Notes
+
 - [x] Using existing color classes (`text-green-500`)
 - [x] `group-hover:opacity-100` pattern for hover reveal
 - [x] `transition-opacity` for smooth fade
 
 ### Radix UI Integration
+
 - [x] `TooltipProvider` already exists in App.tsx
 - [x] Using `asChild` on TooltipTrigger
 - [x] Tooltip positioning with `side="top"`
@@ -359,24 +370,24 @@ import { CopyableText } from "@/components/ui";
 ### Common Mistakes
 
 1. **Missing `group` class on parent:**
-   - **Issue:** Copy button never appears on hover
-   - **Solution:** Ensure parent container has `group` class
+    - **Issue:** Copy button never appears on hover
+    - **Solution:** Ensure parent container has `group` class
 
 2. **Row selection triggered on copy:**
-   - **Issue:** Clicking copy also selects the row
-   - **Solution:** Call `e.stopPropagation()` in click handler
+    - **Issue:** Clicking copy also selects the row
+    - **Solution:** Call `e.stopPropagation()` in click handler
 
 3. **Tooltip not showing:**
-   - **Issue:** TooltipProvider missing
-   - **Solution:** Verify `<TooltipProvider>` wraps app in App.tsx
+    - **Issue:** TooltipProvider missing
+    - **Solution:** Verify `<TooltipProvider>` wraps app in App.tsx
 
 4. **Copy fails silently:**
-   - **Issue:** `navigator.clipboard` undefined in non-HTTPS
-   - **Solution:** Use try/catch and show error toast
+    - **Issue:** `navigator.clipboard` undefined in non-HTTPS
+    - **Solution:** Use try/catch and show error toast
 
 5. **Z-index issues:**
-   - **Issue:** Button appears behind other elements
-   - **Solution:** Add `z-10` to button className if needed
+    - **Issue:** Button appears behind other elements
+    - **Solution:** Add `z-10` to button className if needed
 
 ---
 
@@ -439,6 +450,7 @@ open http://localhost:5173
 - [x] **Error Handling:** Toast shows error if clipboard fails (test in HTTP)
 
 ### Browser Compatibility
+
 - [x] Chrome (latest) - `navigator.clipboard` supported
 - [x] Firefox (latest) - `navigator.clipboard` supported
 - [x] Safari (latest) - `navigator.clipboard` supported
@@ -449,6 +461,7 @@ open http://localhost:5173
 ## 7. Success Criteria
 
 ### Functional Requirements
+
 - [x] Copy button appears on hover over copyable text
 - [x] Clicking copy button copies exact value to clipboard
 - [x] Visual feedback shows success (check icon)
@@ -456,6 +469,7 @@ open http://localhost:5173
 - [x] Works on TracesPage, LogsPage, ResourcesPage, GenAIPage
 
 ### Non-Functional Requirements
+
 - [x] No console errors or warnings
 - [x] No TypeScript errors
 - [x] No ESLint warnings
@@ -463,6 +477,7 @@ open http://localhost:5173
 - [x] Screen reader announces "Copy [label]" via tooltip
 
 ### Definition of Done
+
 - [ ] Code implemented and self-reviewed
 - [ ] All tests passing
 - [ ] Manual testing completed on all 4 pages
@@ -473,6 +488,7 @@ open http://localhost:5173
 ## 8. Screenshots / Mockups
 
 ### Before
+
 ```
 ┌─────────────────────────────────────────────┐
 │ Trace ID: abc123def456                      │
@@ -482,6 +498,7 @@ open http://localhost:5173
 ```
 
 ### After
+
 ```
 ┌─────────────────────────────────────────────┐
 │ Trace ID: abc123def456 [📋]  ← hover reveal │
@@ -530,11 +547,13 @@ git checkout HEAD -- src/pages/GenAIPage.tsx
 ## Appendix
 
 ### Related Documentation
+
 - [Radix Tooltip](https://www.radix-ui.com/primitives/docs/components/tooltip)
 - [Sonner Toast](https://sonner.emilkowal.ski/)
 - [Clipboard API](https://developer.mozilla.org/en-US/docs/Web/API/Clipboard/writeText)
 
 ### References
+
 - [Aspire Dashboard Copy Feature](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/dashboard/explore)
 
 ---

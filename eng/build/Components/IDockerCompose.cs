@@ -5,7 +5,7 @@ using Serilog;
 namespace Components;
 
 [ParameterPrefix(nameof(IDockerCompose))]
-internal interface IDockerCompose : IHasSolution
+interface IDockerCompose : IHasSolution
 {
     [Parameter("Build images before starting (--build)")] bool? DockerBuild => null;
 

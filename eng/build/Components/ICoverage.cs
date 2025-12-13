@@ -12,7 +12,7 @@ using static Nuke.Common.Tools.ReportGenerator.ReportGeneratorTasks;
 
 namespace Components;
 
-internal interface ICoverage : ITest
+interface ICoverage : ITest
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

@@ -45,12 +45,12 @@ eng/build/
 dotnet run --project eng/build/build.csproj -- <target>
 ```
 
-| Target | Description |
-|--------|-------------|
+| Target    | Description             |
+|-----------|-------------------------|
 | `Compile` | Build all .NET projects |
-| `Test` | Run all tests |
-| `Pack` | Create NuGet packages |
-| `Clean` | Clean all outputs |
+| `Test`    | Run all tests           |
+| `Pack`    | Create NuGet packages   |
+| `Clean`   | Clean all outputs       |
 
 ---
 
@@ -313,6 +313,7 @@ eng/build/codex/
 ### QylSchema.cs
 
 Defines all:
+
 - Primitives (SessionId, UnixNano, TraceId, SpanId)
 - Models (SpanRecord, GenAiSpanData, SessionSummary, TraceNode)
 - DuckDB tables with column mappings

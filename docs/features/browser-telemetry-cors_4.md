@@ -9,28 +9,33 @@
 
 ## Problem
 
-Browser apps cannot send OTLP telemetry to qyl because CORS is not configured on OTLP endpoints. The OTLP HTTP endpoint (4318) rejects cross-origin requests from browser JavaScript.
+Browser apps cannot send OTLP telemetry to qyl because CORS is not configured on OTLP endpoints. The OTLP HTTP
+endpoint (4318) rejects cross-origin requests from browser JavaScript.
 
 ## Solution
 
-Add CORS configuration for OTLP endpoints with configurable allowed origins and optional API key authentication for telemetry ingestion.
+Add CORS configuration for OTLP endpoints with configurable allowed origins and optional API key authentication for
+telemetry ingestion.
 
 ---
 
 ## Context
 
 ### Collector Location
+
 ```
 /Users/ancplua/qyl/src/qyl.collector/
 ```
 
 ### Current State
+
 - OTLP endpoints exist: gRPC (4317), HTTP (4318)
 - Auth middleware excludes `/v1/traces` from authentication
 - No CORS headers configured
 - No API key validation for OTLP
 
 ### Environment Variables (New)
+
 ```bash
 QYL_OTLP_CORS_ALLOWED_ORIGINS=http://localhost:5173,https://myapp.com  # Comma-separated, or * for all
 QYL_OTLP_CORS_ALLOWED_HEADERS=x-otlp-api-key,content-type              # Optional headers
@@ -43,11 +48,11 @@ QYL_OTLP_SECONDARY_API_KEY=                                            # Optiona
 
 ## Files
 
-| File | Action | What |
-|------|--------|------|
-| `src/qyl.collector/Ingestion/OtlpCorsMiddleware.cs` | Create | CORS middleware for OTLP paths |
-| `src/qyl.collector/Ingestion/OtlpApiKeyMiddleware.cs` | Create | API key validation for OTLP |
-| `src/qyl.collector/Program.cs` | Modify | Register middleware, read config |
+| File                                                  | Action | What                             |
+|-------------------------------------------------------|--------|----------------------------------|
+| `src/qyl.collector/Ingestion/OtlpCorsMiddleware.cs`   | Create | CORS middleware for OTLP paths   |
+| `src/qyl.collector/Ingestion/OtlpApiKeyMiddleware.cs` | Create | API key validation for OTLP      |
+| `src/qyl.collector/Program.cs`                        | Modify | Register middleware, read config |
 
 ---
 

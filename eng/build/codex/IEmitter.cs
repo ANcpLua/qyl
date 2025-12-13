@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Frozen;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Serilog;
@@ -11,45 +7,43 @@ using Serilog;
 namespace Components.Theory;
 
 /// <summary>
-/// Code generation emitter for qyl models, schemas, and TypeScript types.
-///
-/// Generates from the canonical model definitions:
-/// - C# records (qyl.protocol/Models/*.cs)
-/// - C# primitives (qyl.protocol/Primitives/*.cs)  
-/// - DuckDB schema SQL (core/generated/duckdb/schema.sql)
-/// - DuckDB C# mappings (core/generated/duckdb/DuckDbSchema.g.cs)
-/// - TypeScript types (core/generated/typescript/*.ts)
-///
-/// Usage:
-///   nuke Emit              # Generate all
-///   nuke EmitCSharp        # C# only
-///   nuke EmitDuckDb        # DuckDB only
-///   nuke EmitTypeScript    # TypeScript only
-///   nuke EmitInfo          # Show configuration
+///     Code generation emitter for qyl models, schemas, and TypeScript types.
+///     Generates from the canonical model definitions:
+///     - C# records (qyl.protocol/Models/*.cs)
+///     - C# primitives (qyl.protocol/Primitives/*.cs)
+///     - DuckDB schema SQL (core/generated/duckdb/schema.sql)
+///     - DuckDB C# mappings (core/generated/duckdb/DuckDbSchema.g.cs)
+///     - TypeScript types (core/generated/typescript/*.ts)
+///     Usage:
+///     nuke Emit              # Generate all
+///     nuke EmitCSharp        # C# only
+///     nuke EmitDuckDb        # DuckDB only
+///     nuke EmitTypeScript    # TypeScript only
+///     nuke EmitInfo          # Show configuration
 /// </summary>
 [ParameterPrefix(nameof(IEmitter))]
-internal interface IEmitter : IHasSolution, IGenerationGuard
+interface IEmitter : IHasSolution, IGenerationGuard
 {
     // ════════════════════════════════════════════════════════════════════════
     // Output Paths
     // ════════════════════════════════════════════════════════════════════════
 
     AbsolutePath GeneratedDirectory => CoreDirectory / "generated";
-    
+
     AbsolutePath GeneratedDuckDbDirectory => GeneratedDirectory / "duckdb";
-    
+
     AbsolutePath GeneratedTypeScriptDirectory => GeneratedDirectory / "typescript";
-    
+
     AbsolutePath GeneratedCSharpDirectory => GeneratedDirectory / "csharp";
-    
+
     AbsolutePath ProtocolModelsDirectory => ProtocolDirectory / "Models";
-    
+
     AbsolutePath ProtocolPrimitivesDirectory => ProtocolDirectory / "Primitives";
-    
+
     AbsolutePath ProtocolAttributesDirectory => ProtocolDirectory / "Attributes";
-    
+
     AbsolutePath ProtocolContractsDirectory => ProtocolDirectory / "Contracts";
-    
+
     AbsolutePath CollectorStorageDirectory => CollectorDirectory / "Storage";
 
     // ════════════════════════════════════════════════════════════════════════
@@ -59,16 +53,15 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
     [Parameter("Root namespace for generated C# code")]
     string RootNamespace => TryGetValue(() => RootNamespace) ?? "Qyl.Protocol";
 
-    [Parameter("Skip sync to consumer projects")]
-    bool SkipSync => TryGetValue<bool?>(() => SkipSync) ?? false;
+    [Parameter("Skip sync to consumer projects")] bool SkipSync => TryGetValue<bool?>(() => SkipSync) ?? false;
 
     // ════════════════════════════════════════════════════════════════════════
     // Schema Definition (Source of Truth)
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// The canonical schema definition for all qyl models.
-    /// This is the SINGLE SOURCE OF TRUTH.
+    ///     The canonical schema definition for all qyl models.
+    ///     This is the SINGLE SOURCE OF TRUTH.
     /// </summary>
     static QylSchema Schema => QylSchema.Instance;
 
@@ -84,7 +77,7 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
         .Executes(() =>
         {
             ((IGenerationGuard)this).LogSummary();
-            
+
             Log.Information("");
             Log.Information("  Generated artifacts:");
             Log.Information("    C# Models:    {Path}", ProtocolModelsDirectory);
@@ -105,11 +98,11 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
         .Executes(() =>
         {
             Log.Information("Generating C# models...");
-            
+
             ProtocolModelsDirectory.CreateDirectory();
             ProtocolPrimitivesDirectory.CreateDirectory();
             ProtocolAttributesDirectory.CreateDirectory();
-            
+
             var guard = (IGenerationGuard)this;
 
             // Generate primitives
@@ -117,9 +110,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = ProtocolPrimitivesDirectory / $"{primitive.Name}.g.cs";
                 var content = CSharpEmitter.EmitPrimitive(primitive, RootNamespace);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, $"Primitive {primitive.Name}");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, primitive.Name);
@@ -131,9 +125,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = ProtocolModelsDirectory / $"{model.Name}.g.cs";
                 var content = CSharpEmitter.EmitModel(model, RootNamespace);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, $"Model {model.Name}");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, model.Name);
@@ -144,9 +139,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = ProtocolAttributesDirectory / "GenAiAttributes.g.cs";
                 var content = CSharpEmitter.EmitGenAiAttributes(Schema.GenAiAttributes, RootNamespace);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "GenAiAttributes");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "GenAiAttributes");
@@ -167,18 +163,19 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
         .Executes(() =>
         {
             Log.Information("Generating DuckDB schema...");
-            
+
             GeneratedDuckDbDirectory.CreateDirectory();
-            
+
             var guard = (IGenerationGuard)this;
 
             // Generate SQL schema
             {
                 var path = GeneratedDuckDbDirectory / "schema.sql";
                 var content = DuckDbEmitter.EmitSql(Schema);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "DuckDB SQL Schema");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "schema.sql");
@@ -189,9 +186,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = GeneratedDuckDbDirectory / "DuckDbSchema.g.cs";
                 var content = DuckDbEmitter.EmitCSharpMappings(Schema, RootNamespace);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "DuckDB C# Mappings");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "DuckDbSchema.g.cs");
@@ -211,18 +209,19 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
         .Executes(() =>
         {
             Log.Information("Generating TypeScript types...");
-            
+
             GeneratedTypeScriptDirectory.CreateDirectory();
-            
+
             var guard = (IGenerationGuard)this;
 
             // Generate models.ts
             {
                 var path = GeneratedTypeScriptDirectory / "models.ts";
                 var content = TypeScriptEmitter.EmitModels(Schema);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "TypeScript Models");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "models.ts");
@@ -233,9 +232,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = GeneratedTypeScriptDirectory / "api-types.ts";
                 var content = TypeScriptEmitter.EmitApiTypes(Schema);
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "TypeScript API Types");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "api-types.ts");
@@ -246,9 +246,10 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             {
                 var path = GeneratedTypeScriptDirectory / "index.ts";
                 var content = TypeScriptEmitter.EmitIndex();
-                
+
                 var decision = guard.ShouldGenerateWithContent(path, content, "TypeScript Index");
-                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite or GenerationDecision.OverwriteAll)
+                if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite
+                    or GenerationDecision.OverwriteAll)
                 {
                     File.WriteAllText(path, content);
                     guard.LogGenerated(path, "index.ts");
@@ -273,7 +274,7 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
             // Sync DuckDB schema to collector
             var collectorStorageDest = CollectorStorageDirectory / "DuckDbSchema.g.cs";
             var duckDbSchemaSource = GeneratedDuckDbDirectory / "DuckDbSchema.g.cs";
-            
+
             if (duckDbSchemaSource.FileExists())
             {
                 CollectorStorageDirectory.CreateDirectory();
@@ -283,7 +284,7 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
 
             // Sync TypeScript to dashboard
             var dashboardTypesDest = DashboardSrcDirectory / "types" / "generated";
-            
+
             if (GeneratedTypeScriptDirectory.DirectoryExists())
             {
                 dashboardTypesDest.CreateDirectory();
@@ -356,13 +357,13 @@ internal interface IEmitter : IHasSolution, IGenerationGuard
 
             // Clean generated files in protocol project
             var generatedFiles = new[]
-            {
-                ProtocolModelsDirectory,
-                ProtocolPrimitivesDirectory,
-                ProtocolAttributesDirectory
-            }
-            .Where(d => d.DirectoryExists())
-            .SelectMany(d => d.GlobFiles("*.g.cs"));
+                {
+                    ProtocolModelsDirectory,
+                    ProtocolPrimitivesDirectory,
+                    ProtocolAttributesDirectory
+                }
+                .Where(d => d.DirectoryExists())
+                .SelectMany(d => d.GlobFiles("*.g.cs"));
 
             foreach (var file in generatedFiles)
             {

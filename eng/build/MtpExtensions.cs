@@ -10,9 +10,9 @@ public static class MtpExtensions
 
 public sealed class MtpArgumentsBuilder
 {
-    private readonly List<string> Args = [];
+    readonly List<string> Args = [];
 
-    private MtpArgumentsBuilder AddFilter(string option, params ReadOnlySpan<string> patterns)
+    MtpArgumentsBuilder AddFilter(string option, params ReadOnlySpan<string> patterns)
     {
         foreach (var p in patterns)
         {
@@ -25,14 +25,14 @@ public sealed class MtpArgumentsBuilder
         return this;
     }
 
-    private MtpArgumentsBuilder AddOption(string option, string value)
+    MtpArgumentsBuilder AddOption(string option, string value)
     {
         Args.Add(option);
         Args.Add(value);
         return this;
     }
 
-    private MtpArgumentsBuilder AddFlag(string option)
+    MtpArgumentsBuilder AddFlag(string option)
     {
         Args.Add(option);
         Args.Add("on");

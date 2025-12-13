@@ -136,8 +136,8 @@ public readonly record struct UnixNano :
     /// <summary>Gets current time as UnixNano with sub-millisecond precision.</summary>
     public static UnixNano Now()
     {
-        return new UnixNano((TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * _nanosPerMillisecond) +
-                            (Stopwatch.GetTimestamp() % _nanosPerMillisecond));
+        return new UnixNano(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * _nanosPerMillisecond +
+                            Stopwatch.GetTimestamp() % _nanosPerMillisecond);
     }
 
     public static bool operator <(UnixNano left, UnixNano right)

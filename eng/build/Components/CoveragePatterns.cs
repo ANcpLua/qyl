@@ -22,11 +22,11 @@ public sealed record ExclusionRule(
     public bool Matches(string normalizedPath) =>
         MatchesPath(normalizedPath) || MatchesSuffix(normalizedPath);
 
-    private bool MatchesPath(string path) =>
+    bool MatchesPath(string path) =>
         PathContains is { Length: > 0 } paths &&
         Array.Exists(paths, p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
 
-    private bool MatchesSuffix(string path) =>
+    bool MatchesSuffix(string path) =>
         FileSuffixes is { Length: > 0 } suffixes &&
         Array.Exists(suffixes, s => path.EndsWith(s, StringComparison.OrdinalIgnoreCase));
 
@@ -85,8 +85,8 @@ public static class WellKnownExclusionPatterns
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class StateMachinePatterns
 {
-    private const string StateMachineMarker = "+<";
-    private const string StateMachineSuffix = ">d__";
+    const string StateMachineMarker = "+<";
+    const string StateMachineSuffix = ">d__";
 
     public static bool TryExtractStateMachineMethod(string className, out string? methodName)
     {
@@ -119,7 +119,7 @@ public static class StateMachinePatterns
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class CoverageSummaryConverter
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
@@ -160,7 +160,7 @@ public static class CoverageSummaryConverter
         }
     }
 
-    private static Dictionary<string, CoverageFile> ExtractAllFileIssues(XElement coverageElement, string sourceRoot)
+    static Dictionary<string, CoverageFile> ExtractAllFileIssues(XElement coverageElement, string sourceRoot)
     {
         Dictionary<string, CoverageFile> result = new(StringComparer.OrdinalIgnoreCase);
 
@@ -187,7 +187,7 @@ public static class CoverageSummaryConverter
         return result;
     }
 
-    private static void ProcessClassIssues(
+    static void ProcessClassIssues(
         XElement classElement,
         string normalizedPath,
         Dictionary<string, CoverageFile> result,
@@ -217,7 +217,7 @@ public static class CoverageSummaryConverter
         }
     }
 
-    private static void WriteProjectSummary(
+    static void WriteProjectSummary(
         string projectName,
         Dictionary<string, CoverageFile> fileIssues,
         AbsolutePath outputPath,
@@ -285,7 +285,7 @@ public static class CoverageSummaryConverter
             outputPath, jsonPath, filesWithIssues);
     }
 
-    private static string NormalizePath(string path, string? sourceRoot)
+    static string NormalizePath(string path, string? sourceRoot)
     {
         path = path.Replace((char)92, '/');
 
@@ -301,12 +301,12 @@ public static class CoverageSummaryConverter
         return path;
     }
 
-    private static string DetermineLineReason(string? ruleTag, string? stateMachineMethod) =>
+    static string DetermineLineReason(string? ruleTag, string? stateMachineMethod) =>
         stateMachineMethod is { Length: > 0 } ? StateMachinePatterns.CreateStateMachineReason(stateMachineMethod) :
         ruleTag is { Length: > 0 } ? ruleTag :
         "LineNotExecuted";
 
-    private static CoverageBranch? CreateBranchIssue(
+    static CoverageBranch? CreateBranchIssue(
         int lineNumber, int hits, string conditionCoverage,
         string? ruleTag, string? stateMachineMethod)
     {
@@ -333,7 +333,7 @@ public static class CoverageSummaryConverter
             branchReason);
     }
 
-    private static BranchCoverageInfo? ParseConditionCoverage(ReadOnlySpan<char> input)
+    static BranchCoverageInfo? ParseConditionCoverage(ReadOnlySpan<char> input)
     {
         var parenStart = input.IndexOf('(');
         var parenEnd = input.IndexOf(')');
@@ -359,15 +359,15 @@ public static class CoverageSummaryConverter
         return new BranchCoverageInfo(covered, total, percent);
     }
 
-    private static CoverageFile GetOrCreateFileIssues(Dictionary<string, CoverageFile> dict, string path) =>
+    static CoverageFile GetOrCreateFileIssues(Dictionary<string, CoverageFile> dict, string path) =>
         dict.TryGetValue(path, out var issues) ? issues : dict[path] = new CoverageFile();
 
-    private static void EnsureDirectoryExists(string path)
+    static void EnsureDirectoryExists(string path)
     {
         if (Path.GetDirectoryName(path) is { Length: > 0 } dir) Directory.CreateDirectory(dir);
     }
 
-    private sealed class CoverageFile
+    sealed class CoverageFile
     {
         [JsonIgnore] public Dictionary<int, CoverageLine> LineDict { get; } = [];
 
@@ -377,7 +377,7 @@ public static class CoverageSummaryConverter
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(b => b.Line);
     }
 
-    private sealed class CoverageSummary
+    sealed class CoverageSummary
     {
         public string Project { get; init; } = "";
         public string Source { get; init; } = "";
@@ -385,16 +385,16 @@ public static class CoverageSummaryConverter
         public List<CoverageFileDto> Files { get; } = [];
     }
 
-    private sealed class CoverageFileDto
+    sealed class CoverageFileDto
     {
         public string Path { get; init; } = "";
         public List<CoverageLine> Lines { get; init; } = [];
         public List<CoverageBranch> Branches { get; init; } = [];
     }
 
-    private sealed record CoverageLine(int Line, int Hits, string Reason = "");
+    sealed record CoverageLine(int Line, int Hits, string Reason = "");
 
-    private sealed record CoverageBranch(
+    sealed record CoverageBranch(
         int Line,
         int Hits,
         int CoveredBranches,
@@ -402,5 +402,5 @@ public static class CoverageSummaryConverter
         double CoveragePercent,
         string Reason = "");
 
-    private sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
+    sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
 }

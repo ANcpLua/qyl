@@ -3,6 +3,7 @@ using Components.Theory;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
 using Serilog;
+using IHasSolution = Components.IHasSolution;
 
 [GitHubActions(
     "ci",
@@ -12,7 +13,7 @@ using Serilog;
     OnPullRequestBranches = ["main", "develop"],
     InvokedTargets = [nameof(ITest.Test)],
     FetchDepth = 0)]
-internal sealed class Build : NukeBuild,
+sealed class Build : NukeBuild,
     IRestore,
     IChangelog,
     ICoverage,
@@ -21,7 +22,7 @@ internal sealed class Build : NukeBuild,
     IDockerCompose,
     IFrontend,
     ITypeSpec,
-    IEmitter  // ← NEW: Code generation emitter
+    IEmitter // ← NEW: Code generation emitter
 {
     Target Print => d => d
         .Unlisted()
@@ -38,7 +39,7 @@ internal sealed class Build : NukeBuild,
             Log.Information("  Version       : {Version}", gitVersion?.FullSemVer ?? "N/A");
             Log.Information("  Branch        : {Branch}", gitVersion?.BranchName ?? "N/A");
             Log.Information("  Commit        : {Sha}", gitVersion?.Sha?[..8] ?? "N/A");
-            Log.Information("  Solution      : {Solution}", ((Components.IHasSolution)this).Solution.FileName);
+            Log.Information("  Solution      : {Solution}", ((IHasSolution)this).Solution.FileName);
             Log.Information("  IsServerBuild : {IsServer}", IsServerBuild);
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
@@ -55,8 +56,8 @@ internal sealed class Build : NukeBuild,
     Target Full => d => d
         .Description("Full CI pipeline (backend + frontend + codegen)")
         .DependsOn<ICompile>(x => x.Clean)
-        .DependsOn<IEmitter>(x => x.Emit)           // ← Code generation
-        .DependsOn<IEmitter>(x => x.SyncGeneratedTypes)  // ← Sync to consumers
+        .DependsOn<IEmitter>(x => x.Emit) // ← Code generation
+        .DependsOn<IEmitter>(x => x.SyncGeneratedTypes) // ← Sync to consumers
         .DependsOn<ICoverage>(x => x.Coverage)
         .TryDependsOn<ITypeSpec>(x => x.GenerateAll)
         .DependsOn<IFrontend>(x => x.FrontendBuild)
@@ -115,7 +116,7 @@ internal sealed class Build : NukeBuild,
         .Executes(() =>
         {
             var schema = QylSchema.Instance;
-            
+
             Log.Information("");
             Log.Information("Schema Validation:");
             Log.Information("  Primitives with JSON converters: {Count}",

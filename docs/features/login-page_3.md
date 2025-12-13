@@ -9,33 +9,38 @@
 
 ## Problem
 
-Dashboard has no login UI. Users must manually append `?t=<token>` to URL. The `/api/login` endpoint exists but there's no page to use it.
+Dashboard has no login UI. Users must manually append `?t=<token>` to URL. The `/api/login` endpoint exists but there's
+no page to use it.
 
 ## Solution
 
-Create a login page at `/login` with token input, instructions on where to find the token, and redirect to dashboard on success.
+Create a login page at `/login` with token input, instructions on where to find the token, and redirect to dashboard on
+success.
 
 ---
 
 ## Context
 
 ### Dashboard Location
+
 ```
 /Users/ancplua/qyl/src/qyl.dashboard/
 ```
 
 ### Stack (DO NOT CHANGE)
-| Tech | Version | Notes |
-|------|---------|-------|
-| React | 19.2.0 | No forwardRef, hooks only |
-| TypeScript | 5.9.3 | Strict mode |
-| Tailwind | 4.1.17 | `cn()` helper |
-| TanStack Query | 5.90.11 | `telemetryKeys` factory |
-| Lucide | 0.555.0 | Icons |
-| Sonner | 2.0.7 | Toasts |
-| Radix UI | Latest | Primitives |
+
+| Tech           | Version | Notes                     |
+|----------------|---------|---------------------------|
+| React          | 19.2.0  | No forwardRef, hooks only |
+| TypeScript     | 5.9.3   | Strict mode               |
+| Tailwind       | 4.1.17  | `cn()` helper             |
+| TanStack Query | 5.90.11 | `telemetryKeys` factory   |
+| Lucide         | 0.555.0 | Icons                     |
+| Sonner         | 2.0.7   | Toasts                    |
+| Radix UI       | Latest  | Primitives                |
 
 ### Existing Auth Endpoints
+
 ```
 POST /api/login        - Body: { token: string } → Sets cookie, returns { success: true }
 POST /api/logout       - Clears cookie
@@ -43,6 +48,7 @@ GET  /api/auth/check   - Returns { authenticated: boolean }
 ```
 
 ### Patterns
+
 ```tsx
 // Component pattern
 import { cn } from "@/lib/utils";
@@ -63,12 +69,12 @@ toast.success("Done"); toast.error("Failed");
 
 ## Files
 
-| File | Action | What |
-|------|--------|------|
-| `src/pages/LoginPage.tsx` | Create | Login form with token input |
-| `src/pages/index.ts` | Modify | Add LoginPage export |
-| `src/hooks/use-auth.ts` | Create | Auth hooks (login, logout, check) |
-| `src/App.tsx` | Modify | Add /login route outside DashboardLayout |
+| File                      | Action | What                                     |
+|---------------------------|--------|------------------------------------------|
+| `src/pages/LoginPage.tsx` | Create | Login form with token input              |
+| `src/pages/index.ts`      | Modify | Add LoginPage export                     |
+| `src/hooks/use-auth.ts`   | Create | Auth hooks (login, logout, check)        |
+| `src/App.tsx`             | Modify | Add /login route outside DashboardLayout |
 
 ---
 

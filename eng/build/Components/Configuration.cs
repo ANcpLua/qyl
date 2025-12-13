@@ -4,7 +4,7 @@ using Nuke.Common.Tooling;
 namespace Components;
 
 [TypeConverter(typeof(TypeConverter<Configuration>))]
-internal sealed class Configuration : Enumeration
+sealed class Configuration : Enumeration
 {
     public static readonly Configuration Debug = new()
     {

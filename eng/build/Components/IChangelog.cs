@@ -9,7 +9,7 @@ using Serilog;
 
 namespace Components;
 
-internal interface IChangelog : ICompile
+interface IChangelog : ICompile
 {
     [PathVariable] Tool Git => TryGetValue(() => Git)!;
 

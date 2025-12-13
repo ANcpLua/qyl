@@ -6,7 +6,7 @@ using Nuke.Common.ProjectModel;
 
 namespace Components;
 
-internal interface IHasSolution : INukeBuild
+interface IHasSolution : INukeBuild
 {
     [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)!;
 
