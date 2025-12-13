@@ -1,21 +1,36 @@
-﻿FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
-USER $APP_UID
-WORKDIR /app
+# qyl.cli - Development CLI Tool
+#
+# Build from eng/ directory:
+#   docker build -f qyl.cli/Dockerfile -t qyl-cli .
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
-ARG BUILD_CONFIGURATION=Release
+# ============================================================================
+# STAGE 1: Build
+# ============================================================================
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+
 WORKDIR /src
-COPY ["qyl.cli/qyl.cli.csproj", "qyl.cli/"]
-RUN dotnet restore "qyl.cli/qyl.cli.csproj"
-COPY . .
-WORKDIR "/src/qyl.cli"
-RUN dotnet build "./qyl.cli.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
-FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./qyl.cli.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+# Copy project file and restore
+COPY qyl.cli/qyl.cli.csproj qyl.cli/
+RUN dotnet restore qyl.cli/qyl.cli.csproj
 
-FROM base AS final
+# Copy source and build
+COPY qyl.cli/ qyl.cli/
+WORKDIR /src/qyl.cli
+RUN dotnet publish -c Release -o /app --no-restore
+
+# ============================================================================
+# STAGE 2: Runtime
+# ============================================================================
+FROM mcr.microsoft.com/dotnet/runtime:10.0-alpine AS runtime
+
+# Create non-root user
+RUN addgroup -S qyl && adduser -S qyl -G qyl
+
 WORKDIR /app
-COPY --from=publish /app/publish .
+COPY --from=build /app .
+RUN chown -R qyl:qyl /app
+
+USER qyl
+
 ENTRYPOINT ["dotnet", "qyl.cli.dll"]

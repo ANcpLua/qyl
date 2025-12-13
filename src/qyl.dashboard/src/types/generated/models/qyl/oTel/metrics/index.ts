@@ -7,14 +7,14 @@ export type AggregationFunction = (typeof AggregationFunctionObject)[keyof typeo
  * Aggregation functions for metrics
  */
 export const AggregationFunctionObject = {
-  Sum: "sum",
-  Avg: "avg",
-  Min: "min",
-  Max: "max",
-  Count: "count",
-  Last: "last",
-  Rate: "rate",
-  Increase: "increase",
+    Sum: "sum",
+    Avg: "avg",
+    Min: "min",
+    Max: "max",
+    Count: "count",
+    Last: "last",
+    Rate: "rate",
+    Increase: "increase",
 } as const;
 /* tslint:enable */
 /* eslint-enable */

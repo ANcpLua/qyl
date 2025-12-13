@@ -10,17 +10,13 @@ namespace Components;
 [ParameterPrefix(nameof(IDockerBuild))]
 internal interface IDockerBuild : IHasSolution
 {
-    [Parameter("Docker image tag")]
-    string ImageTag => "latest";
+    [Parameter("Docker image tag")] string ImageTag => "latest";
 
-    [Parameter("Docker registry prefix")]
-    string? Registry => TryGetValue(() => Registry);
+    [Parameter("Docker registry prefix")] string? Registry => TryGetValue(() => Registry);
 
-    [Parameter("Push images after build")]
-    bool? Push => null;
+    [Parameter("Push images after build")] bool? Push => null;
 
-    [Parameter("Build images in parallel (default: true)")]
-    bool ParallelBuild => true;
+    [Parameter("Build images in parallel (default: true)")] bool ParallelBuild => true;
 
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [

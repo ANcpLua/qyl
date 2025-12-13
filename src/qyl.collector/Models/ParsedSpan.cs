@@ -8,7 +8,7 @@ using qyl.collector.Primitives;
 namespace qyl.collector.Models;
 
 /// <summary>
-/// Parsed span data with promoted GenAI attributes.
+///     Parsed span data with promoted GenAI attributes.
 /// </summary>
 public sealed class ParsedSpan
 {
@@ -44,7 +44,7 @@ public sealed class ParsedSpan
 }
 
 /// <summary>
-/// OTel span kind enumeration.
+///     OTel span kind enumeration.
 /// </summary>
 public enum SpanKind : byte
 {
@@ -53,15 +53,15 @@ public enum SpanKind : byte
     Server = 2,
     Client = 3,
     Producer = 4,
-    Consumer = 5,
+    Consumer = 5
 }
 
 /// <summary>
-/// OTel span status code enumeration.
+///     OTel span status code enumeration.
 /// </summary>
 public enum StatusCode : byte
 {
     Unset = 0,
     Ok = 1,
-    Error = 2,
+    Error = 2
 }

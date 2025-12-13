@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using qyl.collector.Storage;
 using Qyl;
+using qyl.collector.Storage;
 
 namespace qyl.collector.Realtime;
 
@@ -19,14 +19,16 @@ public sealed class SseHub
         return new SubscriptionHandle(this, connectionId);
     }
 
-    public void Unsubscribe(string connectionId) =>
+    public void Unsubscribe(string connectionId)
+    {
         _subscribers.TryRemove(connectionId, out _);
+    }
 
     public void Broadcast(SpanBatch batch)
     {
         Throw.IfNull(batch);
 
-        foreach ((var _, var subscriber) in _subscribers)
+        foreach (var (_, subscriber) in _subscribers)
         {
             var batchToSend = batch;
 
@@ -45,11 +47,11 @@ public sealed class SseHub
         }
     }
 
-    public void BroadcastAsync(SpanBatch batch, CancellationToken ct = default)
+    public void Broadcast(SpanBatch batch, CancellationToken ct = default)
     {
         Throw.IfNull(batch);
 
-        foreach ((var _, var subscriber) in _subscribers)
+        foreach (var (_, subscriber) in _subscribers)
         {
             if (ct.IsCancellationRequested) break;
 
@@ -76,8 +78,10 @@ public sealed class SseHub
 
     private sealed class SubscriptionHandle(SseHub hub, string connectionId) : IDisposable
     {
-        public void Dispose() =>
+        public void Dispose()
+        {
             hub.Unsubscribe(connectionId);
+        }
     }
 }
 

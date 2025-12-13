@@ -11,17 +11,19 @@ internal static class Program
             CreateGenerateCommand(),
             CreateDiffCommand(),
             CreateValidateCommand(),
-            CreateUpdateSchemasCommand(),
+            CreateUpdateSchemasCommand()
         };
 
         return await rootCommand.Parse(args).InvokeAsync().ConfigureAwait(false);
     }
 
-    private static Command CreateGenerateCommand() =>
-        new("generate", "Generate collector configuration from schema files")
+    private static Command CreateGenerateCommand()
+    {
+        return new Command("generate", "Generate collector configuration from schema files")
         {
-            CreateGenerateOttlCommand(),
+            CreateGenerateOttlCommand()
         };
+    }
 
     private static Command CreateGenerateOttlCommand()
     {
@@ -96,9 +98,7 @@ internal static class Program
                 Console.WriteLine($"Generated config written to: {output.FullName}");
             }
             else
-            {
                 Console.WriteLine(config);
-            }
 
             return 0;
         }
@@ -143,7 +143,7 @@ internal static class Program
             ("code.filepath", "code.file.path", "1.30.0"),
             ("code.lineno", "code.line.number", "1.30.0"),
             ("db.system", "db.system.name", "1.30.0"),
-            ("gen_ai.openai.request.seed", "gen_ai.request.seed", "1.30.0"),
+            ("gen_ai.openai.request.seed", "gen_ai.request.seed", "1.30.0")
         ];
 
         Console.WriteLine("Attribute renames to v1.38.0:");
@@ -152,20 +152,20 @@ internal static class Program
         switch (format.ToLowerInvariant())
         {
             case "json":
-                foreach ((var old, var @new, var version) in renames)
+                foreach (var (old, @new, version) in renames)
                     Console.WriteLine($"{{\"old\": \"{old}\", \"new\": \"{@new}\", \"version\": \"{version}\"}}");
                 break;
 
             case "csv":
                 Console.WriteLine("old_name,new_name,deprecated_in");
-                foreach ((var old, var @new, var version) in renames)
+                foreach (var (old, @new, version) in renames)
                     Console.WriteLine($"{old},{@new},{version}");
                 break;
 
             default:
                 Console.WriteLine($"{"Old Attribute",-40} {"New Attribute",-40} {"Version",-10}");
                 Console.WriteLine(new string('-', 92));
-                foreach ((var old, var @new, var version) in renames)
+                foreach (var (old, @new, version) in renames)
                     Console.WriteLine($"{old,-40} {@new,-40} {version,-10}");
                 break;
         }
@@ -235,7 +235,7 @@ internal static class Program
             "1.35.0",
             "1.36.0",
             "1.37.0",
-            "1.38.0",
+            "1.38.0"
         ];
 
         var dir = outputDir?.FullName ?? "./schemas";

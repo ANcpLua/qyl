@@ -5,7 +5,7 @@
 
   <!-- Inject Shared/Throw code -->
   <ItemGroup Condition="'$(InjectSharedThrow)' == 'true' AND Exists('$(_QylSharedThrowPath)')">
-    <Compile Include="$(_QylSharedThrowPath)/**/*.cs" LinkBase="Shared/Throw" Visible="false" />
+    <Compile Include="$(_QylSharedThrowPath)/**/*.cs" LinkBase="Shared/Throw" Visible="false"/>
   </ItemGroup>
 
 </Project>

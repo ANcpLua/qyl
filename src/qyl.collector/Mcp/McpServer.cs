@@ -23,8 +23,9 @@ public sealed class McpServer
         };
     }
 
-    public async Task<McpResponse> HandleToolCallAsync(McpToolCall call, CancellationToken ct = default) =>
-        call.Name switch
+    public async Task<McpResponse> HandleToolCallAsync(McpToolCall call, CancellationToken ct = default)
+    {
+        return call.Name switch
         {
             "get_sessions" => await GetSessionsAsync(call.Arguments, ct),
             "get_trace" => await GetTraceAsync(call.Arguments, ct),
@@ -41,9 +42,11 @@ public sealed class McpServer
                 Error = $"Unknown tool: {call.Name}"
             }
         };
+    }
 
-    public static McpManifest GetManifest() =>
-        new()
+    public static McpManifest GetManifest()
+    {
+        return new McpManifest
         {
             Name = "qyl-telemetry",
             Version = "0.1.0",
@@ -263,6 +266,7 @@ public sealed class McpServer
                 }
             ]
         };
+    }
 
     private async Task<McpResponse> GetSessionsAsync(JsonElement? args, CancellationToken ct)
     {
@@ -286,7 +290,7 @@ public sealed class McpServer
                 Error = "trace_id is required"
             };
 
-        var spans = await _store.GetTraceAsync(traceId);
+        var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
         {
             Content = new McpContent
@@ -303,7 +307,7 @@ public sealed class McpServer
 
         if (!string.IsNullOrEmpty(sessionId))
         {
-            var spans = await _store.GetSpansBySessionAsync(sessionId);
+            var spans = await _store.GetSpansBySessionAsync(sessionId, ct);
             return new McpResponse
             {
                 Content = new McpContent
@@ -436,57 +440,43 @@ public sealed class McpServer
 
 public sealed class McpManifest
 {
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("version")]
-    public required string Version { get; init; }
+    [JsonPropertyName("version")] public required string Version { get; init; }
 
-    [JsonPropertyName("description")]
-    public required string Description { get; init; }
+    [JsonPropertyName("description")] public required string Description { get; init; }
 
-    [JsonPropertyName("tools")]
-    public required McpTool[] Tools { get; init; }
+    [JsonPropertyName("tools")] public required McpTool[] Tools { get; init; }
 }
 
 public sealed class McpTool
 {
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("description")]
-    public required string Description { get; init; }
+    [JsonPropertyName("description")] public required string Description { get; init; }
 
-    [JsonPropertyName("inputSchema")]
-    public object? InputSchema { get; init; }
+    [JsonPropertyName("inputSchema")] public object? InputSchema { get; init; }
 }
 
 public sealed class McpToolCall
 {
-    [JsonPropertyName("name")]
-    public required string Name { get; init; }
+    [JsonPropertyName("name")] public required string Name { get; init; }
 
-    [JsonPropertyName("arguments")]
-    public JsonElement? Arguments { get; init; }
+    [JsonPropertyName("arguments")] public JsonElement? Arguments { get; init; }
 }
 
 public sealed class McpResponse
 {
-    [JsonPropertyName("content")]
-    public McpContent? Content { get; init; }
+    [JsonPropertyName("content")] public McpContent? Content { get; init; }
 
-    [JsonPropertyName("error")]
-    public string? Error { get; init; }
+    [JsonPropertyName("error")] public string? Error { get; init; }
 
-    [JsonPropertyName("isError")]
-    public bool IsError => Error != null;
+    [JsonPropertyName("isError")] public bool IsError => Error != null;
 }
 
 public sealed class McpContent
 {
-    [JsonPropertyName("type")]
-    public required string Type { get; init; }
+    [JsonPropertyName("type")] public required string Type { get; init; }
 
-    [JsonPropertyName("text")]
-    public string? Text { get; init; }
+    [JsonPropertyName("text")] public string? Text { get; init; }
 }

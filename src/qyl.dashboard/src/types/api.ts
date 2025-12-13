@@ -4,607 +4,607 @@
  */
 
 export interface paths {
-  "/api/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authenticate with token */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Authenticate with token */
-    post: operations["login"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/check": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/auth/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check authentication status */
+        get: operations["checkAuth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Check authentication status */
-    get: operations["checkAuth"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/sessions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List sessions with optional filters */
+        get: operations["getSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List sessions with optional filters */
-    get: operations["getSessions"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/sessions/{sessionId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get session by ID */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get session by ID */
-    get: operations["getSession"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/sessions/{sessionId}/spans": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/sessions/{sessionId}/spans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get all spans for a session */
+        get: operations["getSessionSpans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get all spans for a session */
-    get: operations["getSessionSpans"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/traces/{traceId}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/traces/{traceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get trace by ID */
+        get: operations["getTrace"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get trace by ID */
-    get: operations["getTrace"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/live": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Subscribe to live telemetry stream (SSE) */
+        get: operations["subscribeLive"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Subscribe to live telemetry stream (SSE) */
-    get: operations["subscribeLive"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["healthCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["healthCheck"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/ready": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["readinessCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get: operations["readinessCheck"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 
 export type webhooks = Record<string, never>;
 
 export interface components {
-  schemas: {
-    LoginRequest: {
-      token: string;
+    schemas: {
+        LoginRequest: {
+            token: string;
+        };
+        LoginResponse: {
+            success: boolean;
+            error?: string;
+        };
+        AuthCheckResponse: {
+            authenticated: boolean;
+        };
+        Span: {
+            /**
+             * @description W3C trace ID (32 hex chars)
+             * @example 4bf92f3577b34da6a3ce929d0e0e4736
+             */
+            traceId: string;
+            /**
+             * @description Span ID (16 hex chars)
+             * @example 00f067aa0ba902b7
+             */
+            spanId: string;
+            /** @description Parent span ID, null for root spans */
+            parentSpanId?: string | null;
+            /** @description qyl session ID for grouping related traces */
+            sessionId?: string | null;
+            /**
+             * @description Operation name
+             * @example chat openai.chat
+             */
+            name: string;
+            kind: components["schemas"]["SpanKind"];
+            status: components["schemas"]["SpanStatus"];
+            statusMessage?: string | null;
+            /**
+             * Format: date-time
+             * @description ISO 8601 timestamp
+             */
+            startTime: string;
+            /** Format: date-time */
+            endTime: string;
+            /**
+             * Format: double
+             * @description Duration in milliseconds (computed)
+             */
+            durationMs: number;
+            /**
+             * @description service.name resource attribute
+             * @example my-ai-app
+             */
+            serviceName: string;
+            /** @description service.version resource attribute */
+            serviceVersion?: string | null;
+            /** @description Span attributes as key-value pairs */
+            attributes: {
+                [key: string]: unknown;
+            };
+            events: components["schemas"]["SpanEvent"][];
+            links?: components["schemas"]["SpanLink"][];
+            /** @description Extracted GenAI semantic convention data (null for non-GenAI spans) */
+            genai?: components["schemas"]["GenAISpanData"];
+        };
+        /**
+         * @description OpenTelemetry SpanKind
+         * @enum {string}
+         */
+        SpanKind: "unspecified" | "internal" | "server" | "client" | "producer" | "consumer";
+        /**
+         * @description OpenTelemetry StatusCode
+         * @enum {string}
+         */
+        SpanStatus: "unset" | "ok" | "error";
+        SpanEvent: {
+            name: string;
+            /** Format: date-time */
+            timestamp: string;
+            attributes?: {
+                [key: string]: unknown;
+            };
+        };
+        SpanLink: {
+            traceId: string;
+            spanId: string;
+            attributes?: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * @description Extracted gen_ai.* attributes per OpenTelemetry Semantic Conventions v1.38.
+         *     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+         */
+        GenAISpanData: {
+            /**
+             * @description gen_ai.system (e.g., "openai", "anthropic")
+             * @example openai
+             */
+            providerName?: string;
+            /**
+             * @description gen_ai.operation.name
+             * @example chat
+             */
+            operationName?: string;
+            /**
+             * @description gen_ai.request.model
+             * @example gpt-4o
+             */
+            requestModel?: string | null;
+            /** @description gen_ai.response.model */
+            responseModel?: string | null;
+            /** @description gen_ai.usage.input_tokens */
+            inputTokens?: number | null;
+            /** @description gen_ai.usage.output_tokens */
+            outputTokens?: number | null;
+            /** @description Computed (inputTokens + outputTokens) */
+            totalTokens?: number | null;
+            /**
+             * Format: double
+             * @description qyl.cost.usd - estimated cost
+             */
+            costUsd?: number | null;
+            /**
+             * Format: double
+             * @description gen_ai.request.temperature
+             */
+            temperature?: number | null;
+            /** @description gen_ai.request.max_tokens */
+            maxTokens?: number | null;
+            /**
+             * @description gen_ai.response.finish_reason
+             * @example stop
+             */
+            finishReason?: string | null;
+            /** @description gen_ai.tool.name (for tool call spans) */
+            toolName?: string | null;
+            /** @description gen_ai.tool.call.id */
+            toolCallId?: string | null;
+        };
+        Session: {
+            sessionId: string;
+            /** Format: date-time */
+            startTime: string;
+            /** Format: date-time */
+            lastActivity: string;
+            /**
+             * Format: double
+             * @description Total session duration
+             */
+            durationMs: number;
+            spanCount: number;
+            traceCount?: number;
+            errorCount: number;
+            /**
+             * Format: double
+             * @description errorCount / spanCount (0.0 - 1.0)
+             */
+            errorRate: number;
+            /** @description All services involved in this session */
+            services: string[];
+            traceIds: string[];
+            /** @description Activity within last 5 minutes */
+            isActive?: boolean;
+            genaiStats: components["schemas"]["SessionGenAIStats"];
+            /** @description Session-level metadata */
+            attributes?: {
+                [key: string]: unknown;
+            };
+        };
+        /** @description Aggregated GenAI statistics for the session */
+        SessionGenAIStats: {
+            totalInputTokens?: number;
+            totalOutputTokens?: number;
+            totalTokens?: number;
+            /** Format: double */
+            totalCostUsd?: number;
+            /** @description Number of GenAI spans */
+            requestCount?: number;
+            toolCallCount?: number;
+            /** @description Unique models used */
+            models?: string[];
+            /** @description Unique providers used */
+            providers?: string[];
+            /** @description Most frequently used model */
+            primaryModel?: string | null;
+        };
+        SessionListResponse: {
+            sessions: components["schemas"]["Session"][];
+            total: number;
+            hasMore: boolean;
+        };
+        SpanListResponse: {
+            spans: components["schemas"]["Span"][];
+        };
+        TraceResponse: {
+            traceId?: string;
+            spans: components["schemas"]["Span"][];
+            rootSpan?: components["schemas"]["Span"];
+            /** Format: double */
+            durationMs?: number;
+            status?: components["schemas"]["SpanStatus"];
+        };
+        TelemetryEvent: {
+            /** @enum {string} */
+            eventType: "connected" | "spans" | "metrics" | "logs" | "heartbeat";
+            data?: components["schemas"]["SpanBatch"] | Record<string, never>;
+            /** Format: date-time */
+            timestamp: string;
+        };
+        SpanBatch: {
+            spans: components["schemas"]["Span"][];
+        };
+        HealthResponse: {
+            /** @enum {string} */
+            status: "healthy" | "ready" | "degraded";
+        };
     };
-    LoginResponse: {
-      success: boolean;
-      error?: string;
-    };
-    AuthCheckResponse: {
-      authenticated: boolean;
-    };
-    Span: {
-      /**
-       * @description W3C trace ID (32 hex chars)
-       * @example 4bf92f3577b34da6a3ce929d0e0e4736
-       */
-      traceId: string;
-      /**
-       * @description Span ID (16 hex chars)
-       * @example 00f067aa0ba902b7
-       */
-      spanId: string;
-      /** @description Parent span ID, null for root spans */
-      parentSpanId?: string | null;
-      /** @description qyl session ID for grouping related traces */
-      sessionId?: string | null;
-      /**
-       * @description Operation name
-       * @example chat openai.chat
-       */
-      name: string;
-      kind: components["schemas"]["SpanKind"];
-      status: components["schemas"]["SpanStatus"];
-      statusMessage?: string | null;
-      /**
-       * Format: date-time
-       * @description ISO 8601 timestamp
-       */
-      startTime: string;
-      /** Format: date-time */
-      endTime: string;
-      /**
-       * Format: double
-       * @description Duration in milliseconds (computed)
-       */
-      durationMs: number;
-      /**
-       * @description service.name resource attribute
-       * @example my-ai-app
-       */
-      serviceName: string;
-      /** @description service.version resource attribute */
-      serviceVersion?: string | null;
-      /** @description Span attributes as key-value pairs */
-      attributes: {
-        [key: string]: unknown;
-      };
-      events: components["schemas"]["SpanEvent"][];
-      links?: components["schemas"]["SpanLink"][];
-      /** @description Extracted GenAI semantic convention data (null for non-GenAI spans) */
-      genai?: components["schemas"]["GenAISpanData"];
-    };
-    /**
-     * @description OpenTelemetry SpanKind
-     * @enum {string}
-     */
-    SpanKind: "unspecified" | "internal" | "server" | "client" | "producer" | "consumer";
-    /**
-     * @description OpenTelemetry StatusCode
-     * @enum {string}
-     */
-    SpanStatus: "unset" | "ok" | "error";
-    SpanEvent: {
-      name: string;
-      /** Format: date-time */
-      timestamp: string;
-      attributes?: {
-        [key: string]: unknown;
-      };
-    };
-    SpanLink: {
-      traceId: string;
-      spanId: string;
-      attributes?: {
-        [key: string]: unknown;
-      };
-    };
-    /**
-     * @description Extracted gen_ai.* attributes per OpenTelemetry Semantic Conventions v1.38.
-     *     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
-     */
-    GenAISpanData: {
-      /**
-       * @description gen_ai.system (e.g., "openai", "anthropic")
-       * @example openai
-       */
-      providerName?: string;
-      /**
-       * @description gen_ai.operation.name
-       * @example chat
-       */
-      operationName?: string;
-      /**
-       * @description gen_ai.request.model
-       * @example gpt-4o
-       */
-      requestModel?: string | null;
-      /** @description gen_ai.response.model */
-      responseModel?: string | null;
-      /** @description gen_ai.usage.input_tokens */
-      inputTokens?: number | null;
-      /** @description gen_ai.usage.output_tokens */
-      outputTokens?: number | null;
-      /** @description Computed (inputTokens + outputTokens) */
-      totalTokens?: number | null;
-      /**
-       * Format: double
-       * @description qyl.cost.usd - estimated cost
-       */
-      costUsd?: number | null;
-      /**
-       * Format: double
-       * @description gen_ai.request.temperature
-       */
-      temperature?: number | null;
-      /** @description gen_ai.request.max_tokens */
-      maxTokens?: number | null;
-      /**
-       * @description gen_ai.response.finish_reason
-       * @example stop
-       */
-      finishReason?: string | null;
-      /** @description gen_ai.tool.name (for tool call spans) */
-      toolName?: string | null;
-      /** @description gen_ai.tool.call.id */
-      toolCallId?: string | null;
-    };
-    Session: {
-      sessionId: string;
-      /** Format: date-time */
-      startTime: string;
-      /** Format: date-time */
-      lastActivity: string;
-      /**
-       * Format: double
-       * @description Total session duration
-       */
-      durationMs: number;
-      spanCount: number;
-      traceCount?: number;
-      errorCount: number;
-      /**
-       * Format: double
-       * @description errorCount / spanCount (0.0 - 1.0)
-       */
-      errorRate: number;
-      /** @description All services involved in this session */
-      services: string[];
-      traceIds: string[];
-      /** @description Activity within last 5 minutes */
-      isActive?: boolean;
-      genaiStats: components["schemas"]["SessionGenAIStats"];
-      /** @description Session-level metadata */
-      attributes?: {
-        [key: string]: unknown;
-      };
-    };
-    /** @description Aggregated GenAI statistics for the session */
-    SessionGenAIStats: {
-      totalInputTokens?: number;
-      totalOutputTokens?: number;
-      totalTokens?: number;
-      /** Format: double */
-      totalCostUsd?: number;
-      /** @description Number of GenAI spans */
-      requestCount?: number;
-      toolCallCount?: number;
-      /** @description Unique models used */
-      models?: string[];
-      /** @description Unique providers used */
-      providers?: string[];
-      /** @description Most frequently used model */
-      primaryModel?: string | null;
-    };
-    SessionListResponse: {
-      sessions: components["schemas"]["Session"][];
-      total: number;
-      hasMore: boolean;
-    };
-    SpanListResponse: {
-      spans: components["schemas"]["Span"][];
-    };
-    TraceResponse: {
-      traceId?: string;
-      spans: components["schemas"]["Span"][];
-      rootSpan?: components["schemas"]["Span"];
-      /** Format: double */
-      durationMs?: number;
-      status?: components["schemas"]["SpanStatus"];
-    };
-    TelemetryEvent: {
-      /** @enum {string} */
-      eventType: "connected" | "spans" | "metrics" | "logs" | "heartbeat";
-      data?: components["schemas"]["SpanBatch"] | Record<string, never>;
-      /** Format: date-time */
-      timestamp: string;
-    };
-    SpanBatch: {
-      spans: components["schemas"]["Span"][];
-    };
-    HealthResponse: {
-      /** @enum {string} */
-      status: "healthy" | "ready" | "degraded";
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 
 export type $defs = Record<string, never>;
 
 export interface operations {
-  login: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Login successful */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+            /** @description Invalid token */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginResponse"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginRequest"];
-      };
+    checkAuth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Auth status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthCheckResponse"];
+                };
+            };
+        };
     };
-    responses: {
-      /** @description Login successful */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getSessions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                serviceName?: string;
+                from?: string;
+                to?: string;
+                hasErrors?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["LoginResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Session list */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListResponse"];
+                };
+            };
         };
-      };
-      /** @description Invalid token */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["LoginResponse"];
-        };
-      };
     };
-  };
-  checkAuth: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session details */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description Session not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Auth status */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    getSessionSpans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["AuthCheckResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description Spans in session */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpanListResponse"];
+                };
+            };
         };
-      };
     };
-  };
-  getSessions: {
-    parameters: {
-      query?: {
-        limit?: number;
-        serviceName?: string;
-        from?: string;
-        to?: string;
-        hasErrors?: boolean;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
+    getTrace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                traceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Trace with all spans */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TraceResponse"];
+                };
+            };
+            /** @description Trace not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Session list */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    subscribeLive: {
+        parameters: {
+            query?: {
+                /** @description Filter by session ID */
+                session?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["SessionListResponse"];
+        requestBody?: never;
+        responses: {
+            /** @description SSE stream */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": components["schemas"]["TelemetryEvent"];
+                };
+            };
         };
-      };
     };
-  };
-  getSession: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        sessionId: string;
-      };
-      cookie?: never;
+    healthCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Healthy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
     };
-    requestBody?: never;
-    responses: {
-      /** @description Session details */
-      200: {
-        headers: {
-          [name: string]: unknown;
+    readinessCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
         };
-        content: {
-          "application/json": components["schemas"]["Session"];
+        requestBody?: never;
+        responses: {
+            /** @description Ready */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
         };
-      };
-      /** @description Session not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
     };
-  };
-  getSessionSpans: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        sessionId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Spans in session */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SpanListResponse"];
-        };
-      };
-    };
-  };
-  getTrace: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        traceId: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Trace with all spans */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TraceResponse"];
-        };
-      };
-      /** @description Trace not found */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  subscribeLive: {
-    parameters: {
-      query?: {
-        /** @description Filter by session ID */
-        session?: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description SSE stream */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "text/event-stream": components["schemas"]["TelemetryEvent"];
-        };
-      };
-    };
-  };
-  healthCheck: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Healthy */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-    };
-  };
-  readinessCheck: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Ready */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HealthResponse"];
-        };
-      };
-    };
-  };
 }

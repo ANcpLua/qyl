@@ -12,8 +12,8 @@
 
   <!-- Global Usings for OTel -->
   <ItemGroup Condition="'$(QylOTelEnabled)' == 'true'">
-    <Using Include="System.Diagnostics" />
-    <Using Include="System.Diagnostics.Metrics" />
+    <Using Include="System.Diagnostics"/>
+    <Using Include="System.Diagnostics.Metrics"/>
   </ItemGroup>
 
   <!-- Shared Throw injection config - always define path, ItemGroup in targets checks condition -->

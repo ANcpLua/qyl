@@ -20,10 +20,15 @@ public sealed record ExclusionRule(
     bool ShouldExclude = true)
 {
     public bool Matches(string normalizedPath) =>
-        (PathContains is { Length: > 0 } && Array.Exists(PathContains,
-            p => normalizedPath.Contains(p, StringComparison.OrdinalIgnoreCase))) ||
-        (FileSuffixes is { Length: > 0 } && Array.Exists(FileSuffixes,
-            s => normalizedPath.EndsWith(s, StringComparison.OrdinalIgnoreCase)));
+        MatchesPath(normalizedPath) || MatchesSuffix(normalizedPath);
+
+    private bool MatchesPath(string path) =>
+        PathContains is { Length: > 0 } paths &&
+        Array.Exists(paths, p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
+
+    private bool MatchesSuffix(string path) =>
+        FileSuffixes is { Length: > 0 } suffixes &&
+        Array.Exists(suffixes, s => path.EndsWith(s, StringComparison.OrdinalIgnoreCase));
 
     public string CreateReasonTag() =>
         ShouldExclude ? $"ExcludedByRule({Name})" : $"TaggedByRule({Name})";
@@ -80,18 +85,18 @@ public static class WellKnownExclusionPatterns
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class StateMachinePatterns
 {
-    private const string _stateMachineMarker = "+<";
-    private const string _stateMachineSuffix = ">d__";
+    private const string StateMachineMarker = "+<";
+    private const string StateMachineSuffix = ">d__";
 
     public static bool TryExtractStateMachineMethod(string className, out string? methodName)
     {
         methodName = null;
 
-        var plusIndex = className.IndexOf(_stateMachineMarker, StringComparison.Ordinal);
+        var plusIndex = className.IndexOf(StateMachineMarker, StringComparison.Ordinal);
         if (plusIndex < 0) return false;
 
         var methodStart = plusIndex + 2;
-        var methodEnd = className.IndexOf(_stateMachineSuffix, methodStart, StringComparison.Ordinal);
+        var methodEnd = className.IndexOf(StateMachineSuffix, methodStart, StringComparison.Ordinal);
         if (methodEnd <= methodStart) return false;
 
         methodName = className[methodStart..methodEnd];
@@ -99,7 +104,7 @@ public static class StateMachinePatterns
     }
 
     public static bool IsStateMachineClass(string className) =>
-        className.Contains(_stateMachineMarker, StringComparison.Ordinal) &&
+        className.Contains(StateMachineMarker, StringComparison.Ordinal) &&
         className.Contains(">d__", StringComparison.Ordinal);
 
     public static bool IsMoveNextMethod(string methodName) =>
@@ -114,7 +119,7 @@ public static class StateMachinePatterns
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public static class CoverageSummaryConverter
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
@@ -145,7 +150,7 @@ public static class CoverageSummaryConverter
 
         var allFileIssues = ExtractAllFileIssues(coverageElement, sourceRootNormalized);
 
-        foreach ((var projectName, var outputPath) in projectOutputs)
+        foreach (var (projectName, outputPath) in projectOutputs)
         {
             var projectFiles = allFileIssues
                 .Where(kvp => kvp.Key.Contains(projectName, StringComparison.OrdinalIgnoreCase))
@@ -233,7 +238,7 @@ public static class CoverageSummaryConverter
 
         var filesWithIssues = 0;
 
-        foreach ((var filePath, var file) in fileIssues.OrderBy(kvp => kvp.Key,
+        foreach (var (filePath, file) in fileIssues.OrderBy(kvp => kvp.Key,
                      StringComparer.OrdinalIgnoreCase))
         {
             if (file.LineDict.Count is 0 && file.BranchDict.Count is 0) continue;
@@ -274,7 +279,7 @@ public static class CoverageSummaryConverter
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(jsonSummary, _jsonOptions));
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(jsonSummary, JsonOptions));
 
         Log.Information("Coverage summary: {XmlPath} + {JsonPath} ({FileCount} files with issues)",
             outputPath, jsonPath, filesWithIssues);
@@ -364,11 +369,9 @@ public static class CoverageSummaryConverter
 
     private sealed class CoverageFile
     {
-        [JsonIgnore]
-        public Dictionary<int, CoverageLine> LineDict { get; } = [];
+        [JsonIgnore] public Dictionary<int, CoverageLine> LineDict { get; } = [];
 
-        [JsonIgnore]
-        public Dictionary<int, CoverageBranch> BranchDict { get; } = [];
+        [JsonIgnore] public Dictionary<int, CoverageBranch> BranchDict { get; } = [];
 
         public IEnumerable<CoverageLine> Lines => LineDict.Values.OrderBy(l => l.Line);
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(b => b.Line);

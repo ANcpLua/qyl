@@ -3,14 +3,12 @@
 // Target: .NET 10 / C# 14 | DuckDB.NET 1.4.3 | OTel SemConv 1.38.0
 // =============================================================================
 
-#nullable enable
-
 using System.Buffers;
 using System.Collections.Frozen;
-using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -29,8 +27,8 @@ public static class DuckDbSchema
     public const string Version = "2.0.0";
 
     /// <summary>
-    /// Core spans table with promoted OTel GenAI fields for columnar performance.
-    /// Non-promoted attributes stored in MAP for flexibility.
+    ///     Core spans table with promoted OTel GenAI fields for columnar performance.
+    ///     Non-promoted attributes stored in MAP for flexibility.
     /// </summary>
     public const string CreateSpansTable = """
                                            CREATE TABLE IF NOT EXISTS spans (
@@ -103,8 +101,8 @@ public static class DuckDbSchema
                                            """;
 
     /// <summary>
-    /// Large content storage for gen_ai.prompt/completion >4KB.
-    /// Uses ZSTD compression for efficient storage.
+    ///     Large content storage for gen_ai.prompt/completion >4KB.
+    ///     Uses ZSTD compression for efficient storage.
     /// </summary>
     public const string CreateContentTable = """
                                              CREATE TABLE IF NOT EXISTS span_content (
@@ -122,7 +120,7 @@ public static class DuckDbSchema
                                              """;
 
     /// <summary>
-    /// Session aggregation table for real-time analytics.
+    ///     Session aggregation table for real-time analytics.
     /// </summary>
     public const string CreateSessionsTable = """
                                               CREATE TABLE IF NOT EXISTS sessions (
@@ -149,7 +147,7 @@ public static class DuckDbSchema
                                               """;
 
     /// <summary>
-    /// Optimized indexes for common query patterns.
+    ///     Optimized indexes for common query patterns.
     /// </summary>
     public const string CreateIndexes = """
                                         -- Temporal queries (most common)
@@ -181,7 +179,7 @@ public static class DuckDbSchema
                                         """;
 
     /// <summary>
-    /// Materialized view for DORA metrics calculation.
+    ///     Materialized view for DORA metrics calculation.
     /// </summary>
     public const string CreateDoraMetricsView = """
                                                 CREATE OR REPLACE VIEW dora_metrics AS
@@ -218,7 +216,7 @@ public static class DuckDbSchema
                                                 """;
 
     /// <summary>
-    /// Top models analytics view.
+    ///     Top models analytics view.
     /// </summary>
     public const string CreateTopModelsView = """
                                               CREATE OR REPLACE VIEW top_models AS
@@ -240,7 +238,7 @@ public static class DuckDbSchema
 
     public static async Task InitializeAsync(DuckDBConnection connection)
     {
-        await using DuckDBCommand cmd = connection.CreateCommand();
+        await using var cmd = connection.CreateCommand();
 
         cmd.CommandText = CreateSpansTable;
         await cmd.ExecuteNonQueryAsync();
@@ -267,16 +265,16 @@ public static class DuckDbSchema
 // =============================================================================
 
 /// <summary>
-/// Canonical registry of promoted fields. Used by:
-/// - DuckDB schema generation
-/// - Span insertion logic
-/// - Roslyn analyzer (QYL003)
-/// - TypeSpec schema validation
+///     Canonical registry of promoted fields. Used by:
+///     - DuckDB schema generation
+///     - Span insertion logic
+///     - Roslyn analyzer (QYL003)
+///     - TypeSpec schema validation
 /// </summary>
 public static class PromotedFields
 {
     /// <summary>
-    /// All promoted attribute keys with their DuckDB column types.
+    ///     All promoted attribute keys with their DuckDB column types.
     /// </summary>
     public static readonly FrozenDictionary<string, ColumnDef> All = new Dictionary<string, ColumnDef>
     {
@@ -312,39 +310,47 @@ public static class PromotedFields
 
         // Errors
         ["exception.type"] = new("VARCHAR", PromotionReason.HighCardinality),
-        ["exception.message"] = new("VARCHAR", PromotionReason.Filtering),
+        ["exception.message"] = new("VARCHAR", PromotionReason.Filtering)
     }.ToFrozenDictionary();
 
     /// <summary>
-    /// Large content attributes that should be externalized to span_content table.
+    ///     Large content attributes that should be externalized to span_content table.
     /// </summary>
     public static readonly FrozenSet<string> LargeContentAttributes = new[]
     {
         "gen_ai.prompt",
         "gen_ai.completion",
         "gen_ai.request.messages",
-        "gen_ai.response.choices",
+        "gen_ai.response.choices"
     }.ToFrozenSet();
 
     /// <summary>
-    /// Deprecated attribute mappings (OTel 1.38 migration).
+    ///     Deprecated attribute mappings (OTel 1.38 migration).
     /// </summary>
     public static readonly FrozenDictionary<string, string> DeprecatedMappings = new Dictionary<string, string>
     {
         ["gen_ai.system"] = "gen_ai.provider.name",
         ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-        ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
+        ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens"
     }.ToFrozenDictionary();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsPromoted(string key) => All.ContainsKey(key);
+    public static bool IsPromoted(string key)
+    {
+        return All.ContainsKey(key);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsLargeContent(string key) => LargeContentAttributes.Contains(key);
+    public static bool IsLargeContent(string key)
+    {
+        return LargeContentAttributes.Contains(key);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetCurrentName(string key, [NotNullWhen(true)] out string? current)
-        => DeprecatedMappings.TryGetValue(key, out current);
+    {
+        return DeprecatedMappings.TryGetValue(key, out current);
+    }
 
     public readonly record struct ColumnDef(string DuckDbType, PromotionReason Reason);
 }
@@ -356,7 +362,7 @@ public enum PromotionReason
     Filtering, // Used in WHERE predicates
     Partitioning, // Time-series partitioning key
     Correlation, // Join/correlation key
-    Analytics, // Dashboard visualization
+    Analytics // Dashboard visualization
 }
 
 // =============================================================================
@@ -364,8 +370,8 @@ public enum PromotionReason
 // =============================================================================
 
 /// <summary>
-/// Handles >4KB content (gen_ai.prompt, gen_ai.completion) with ZSTD compression.
-/// Content is stored externally and referenced by SHA256 hash.
+///     Handles >4KB content (gen_ai.prompt, gen_ai.completion) with ZSTD compression.
+///     Content is stored externally and referenced by SHA256 hash.
 /// </summary>
 public sealed class LargeContentHandler(DuckDBConnection connection)
 {
@@ -373,8 +379,8 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
     private static readonly ArrayPool<byte> _sPool = ArrayPool<byte>.Shared;
 
     /// <summary>
-    /// Process attribute value, externalizing if too large.
-    /// Returns content_id reference or null if inline.
+    ///     Process attribute value, externalizing if too large.
+    ///     Returns content_id reference or null if inline.
     /// </summary>
     public async ValueTask<string?> ProcessAttributeAsync(
         TraceId traceId,
@@ -408,13 +414,13 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
     }
 
     /// <summary>
-    /// Retrieve and decompress large content.
+    ///     Retrieve and decompress large content.
     /// </summary>
     public async ValueTask<string?> RetrieveContentAsync(
         string contentId,
         CancellationToken ct = default)
     {
-        await using DuckDBCommand cmd = connection.CreateCommand();
+        await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
                           SELECT content_raw, size_bytes
                           FROM span_content
@@ -436,7 +442,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
     }
 
     /// <summary>
-    /// Batch retrieve content for multiple spans.
+    ///     Batch retrieve content for multiple spans.
     /// </summary>
     public async IAsyncEnumerable<(string ContentId, string Content)> RetrieveContentsAsync(
         IEnumerable<string> contentIds,
@@ -444,7 +450,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
     {
         var idList = string.Join(',', contentIds.Select(id => $"'{id}'"));
 
-        await using DuckDBCommand cmd = connection.CreateCommand();
+        await using var cmd = connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT content_id, content_raw, size_bytes
                            FROM span_content
@@ -472,7 +478,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
         int originalSize,
         CancellationToken ct)
     {
-        await using DuckDBCommand cmd = connection.CreateCommand();
+        await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
                           INSERT INTO span_content
                               (content_id, trace_id, span_id, content_type, content_raw, size_bytes, compressed_bytes)
@@ -515,7 +521,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
     private static string ComputeContentId(ReadOnlySpan<byte> content)
     {
         Span<byte> hash = stackalloc byte[32];
-        System.Security.Cryptography.SHA256.HashData(content, hash);
+        SHA256.HashData(content, hash);
         return Convert.ToHexStringLower(hash);
     }
 
@@ -552,20 +558,20 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
 // =============================================================================
 
 /// <summary>
-/// High-performance span storage with automatic attribute partitioning.
-/// Promoted fields → columns, others → MAP, large content → external.
+///     High-performance span storage with automatic attribute partitioning.
+///     Promoted fields → columns, others → MAP, large content → external.
 /// </summary>
 public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler contentHandler)
 {
     private readonly Lock _lock = new();
 
     /// <summary>
-    /// Insert parsed span with automatic attribute routing.
+    ///     Insert parsed span with automatic attribute routing.
     /// </summary>
     public async ValueTask InsertSpanAsync(ParsedSpan span, CancellationToken ct = default)
     {
         // Partition attributes
-        (var promoted, var mapped) = PartitionAttributes(span);
+        var (promoted, mapped) = PartitionAttributes(span);
 
         // Handle large content
         var promptRef = span.Attributes?.FirstOrDefault(a => a.Key == "gen_ai.prompt").Value as string;
@@ -591,7 +597,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     }
 
     /// <summary>
-    /// Batch insert for high-throughput ingestion.
+    ///     Batch insert for high-throughput ingestion.
     /// </summary>
     public async ValueTask InsertBatchAsync(
         IReadOnlyList<ParsedSpan> spans,
@@ -599,11 +605,11 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     {
         if (spans.Count == 0) return;
 
-        using DuckDBAppender appender = connection.CreateAppender("spans");
+        using var appender = connection.CreateAppender("spans");
 
         foreach (var span in spans)
         {
-            (var promoted, var mapped) = PartitionAttributes(span);
+            var (promoted, mapped) = PartitionAttributes(span);
 
             var row = appender.CreateRow();
 
@@ -672,8 +678,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
 
         // Process remaining attributes
         if (span.Attributes is not null)
-        {
-            foreach ((var key, var value) in span.Attributes)
+            foreach (var (key, value) in span.Attributes)
             {
                 // Handle deprecated mappings
                 var effectiveKey = PromotedFields.TryGetCurrentName(key, out var current)
@@ -681,11 +686,8 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                     : key;
 
                 if (PromotedFields.IsPromoted(effectiveKey))
-                {
                     promoted[effectiveKey] = value;
-                }
                 else if (!PromotedFields.IsLargeContent(effectiveKey))
-                {
                     // Convert to string for MAP storage
                     mapped[effectiveKey] = value switch
                     {
@@ -695,9 +697,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                         bool b => b ? "true" : "false",
                         _ => JsonSerializer.Serialize(value)
                     };
-                }
             }
-        }
 
         return (promoted, mapped);
     }
@@ -735,7 +735,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         };
 
         var paramIndex = 10;
-        foreach ((var key, var _) in promoted)
+        foreach (var (key, _) in promoted)
         {
             columns.Add($"\"{key}\"");
             values.Add($"${paramIndex++}");
@@ -744,7 +744,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         columns.Add("attributes");
         values.Add($"${paramIndex}");
 
-        await using DuckDBCommand cmd = connection.CreateCommand();
+        await using var cmd = connection.CreateCommand();
         cmd.CommandText = $"""
                            INSERT INTO spans ({string.Join(", ", columns)})
                            VALUES ({string.Join(", ", values)})
@@ -789,13 +789,11 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         });
 
         // Promoted field parameters
-        foreach ((var _, var value) in promoted)
-        {
+        foreach (var (_, value) in promoted)
             cmd.Parameters.Add(new DuckDBParameter
             {
                 Value = value ?? DBNull.Value
             });
-        }
 
         // MAP parameter
         cmd.Parameters.Add(new DuckDBParameter
@@ -816,7 +814,9 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     }
 
     private static string EscapeSql(string value)
-        => value.Replace("'", "''");
+    {
+        return value.Replace("'", "''");
+    }
 
     private static void AppendPromotedFields(IDuckDBAppenderRow row, Dictionary<string, object?> promoted)
     {
@@ -852,9 +852,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         ];
 
         foreach (var key in orderedKeys)
-        {
             if (promoted.TryGetValue(key, out var value) && value is not null)
-            {
                 // Handle different types appropriately
                 switch (value)
                 {
@@ -874,12 +872,8 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                         row.AppendValue(value.ToString() ?? string.Empty);
                         break;
                 }
-            }
             else
-            {
                 row.AppendNullValue();
-            }
-        }
     }
 }
 
@@ -1167,25 +1161,22 @@ public sealed class QYL003CodeFixProvider : CodeFixProvider
 // =============================================================================
 
 /// <summary>
-/// Query builder that automatically uses promoted columns vs MAP access.
+///     Query builder that automatically uses promoted columns vs MAP access.
 /// </summary>
 public sealed class SpanQueryBuilder
 {
-    private readonly List<string> _select = [];
-    private readonly List<string> _where = [];
     private readonly List<string> _groupBy = [];
     private readonly List<string> _orderBy = [];
     private readonly Dictionary<string, object> _parameters = [];
-    private int _paramIndex = 1;
+    private readonly List<string> _select = [];
+    private readonly List<string> _where = [];
     private int? _limit;
     private int? _offset;
+    private int _paramIndex = 1;
 
     public SpanQueryBuilder Select(params string[] columns)
     {
-        foreach (var col in columns)
-        {
-            _select.Add(GetColumnAccess(col));
-        }
+        foreach (var col in columns) _select.Add(GetColumnAccess(col));
 
         return this;
     }
@@ -1216,13 +1207,19 @@ public sealed class SpanQueryBuilder
     }
 
     public SpanQueryBuilder WhereSession(SessionId sessionId)
-        => Where("session.id", "=", sessionId.Value);
+    {
+        return Where("session.id", "=", sessionId.Value);
+    }
 
     public SpanQueryBuilder WhereProvider(string provider)
-        => Where("gen_ai.provider.name", "=", provider);
+    {
+        return Where("gen_ai.provider.name", "=", provider);
+    }
 
     public SpanQueryBuilder WhereModel(string model)
-        => Where("gen_ai.request.model", "=", model);
+    {
+        return Where("gen_ai.request.model", "=", model);
+    }
 
     public SpanQueryBuilder WhereError()
     {
@@ -1232,10 +1229,7 @@ public sealed class SpanQueryBuilder
 
     public SpanQueryBuilder GroupBy(params string[] columns)
     {
-        foreach (var col in columns)
-        {
-            _groupBy.Add(GetColumnAccess(col));
-        }
+        foreach (var col in columns) _groupBy.Add(GetColumnAccess(col));
 
         return this;
     }
@@ -1285,21 +1279,15 @@ public sealed class SpanQueryBuilder
             sql.Append(string.Join(", ", _orderBy));
         }
 
-        if (_limit.HasValue)
-        {
-            sql.Append($" LIMIT {_limit.Value}");
-        }
+        if (_limit.HasValue) sql.Append($" LIMIT {_limit.Value}");
 
-        if (_offset.HasValue)
-        {
-            sql.Append($" OFFSET {_offset.Value}");
-        }
+        if (_offset.HasValue) sql.Append($" OFFSET {_offset.Value}");
 
         return (sql.ToString(), _parameters);
     }
 
     /// <summary>
-    /// Returns column name for promoted fields, MAP access for others.
+    ///     Returns column name for promoted fields, MAP access for others.
     /// </summary>
     private static string GetColumnAccess(string attributeKey)
     {
@@ -1307,15 +1295,10 @@ public sealed class SpanQueryBuilder
         if (attributeKey is "trace_id" or "span_id" or "parent_span_id" or
             "name" or "kind" or "status_code" or "status_message" or
             "start_time_unix_nano" or "end_time_unix_nano" or "duration_ns")
-        {
             return attributeKey;
-        }
 
         // Promoted fields - direct column access
-        if (PromotedFields.IsPromoted(attributeKey))
-        {
-            return $"\"{attributeKey}\"";
-        }
+        if (PromotedFields.IsPromoted(attributeKey)) return $"\"{attributeKey}\"";
 
         // Non-promoted - MAP access
         return $"attributes['{attributeKey}']";
@@ -1327,7 +1310,7 @@ public sealed class SpanQueryBuilder
 // =============================================================================
 
 /// <summary>
-/// OTel-compliant attribute value (homogeneous arrays only).
+///     OTel-compliant attribute value (homogeneous arrays only).
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(StringValue), "string")]
@@ -1342,56 +1325,103 @@ public abstract record OTelAttributeValue
 {
     public abstract object? GetValue();
 
-    public static implicit operator OTelAttributeValue(string value) => new StringValue(value);
-    public static implicit operator OTelAttributeValue(long value) => new Int64Value(value);
-    public static implicit operator OTelAttributeValue(double value) => new Float64Value(value);
-    public static implicit operator OTelAttributeValue(bool value) => new BoolValue(value);
-    public static implicit operator OTelAttributeValue(string[] value) => new StringArrayValue(value);
-    public static implicit operator OTelAttributeValue(long[] value) => new Int64ArrayValue(value);
+    public static implicit operator OTelAttributeValue(string value)
+    {
+        return new StringValue(value);
+    }
+
+    public static implicit operator OTelAttributeValue(long value)
+    {
+        return new Int64Value(value);
+    }
+
+    public static implicit operator OTelAttributeValue(double value)
+    {
+        return new Float64Value(value);
+    }
+
+    public static implicit operator OTelAttributeValue(bool value)
+    {
+        return new BoolValue(value);
+    }
+
+    public static implicit operator OTelAttributeValue(string[] value)
+    {
+        return new StringArrayValue(value);
+    }
+
+    public static implicit operator OTelAttributeValue(long[] value)
+    {
+        return new Int64ArrayValue(value);
+    }
 }
 
 public sealed record StringValue(string Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record Int64Value(long Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record Float64Value(double Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record BoolValue(bool Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record StringArrayValue(string[] Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record Int64ArrayValue(long[] Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record Float64ArrayValue(double[] Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 public sealed record BoolArrayValue(bool[] Value) : OTelAttributeValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 /// <summary>
-/// Extended attribute value for GenAI content (allows nested structures).
+///     Extended attribute value for GenAI content (allows nested structures).
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "type")]
 [JsonDerivedType(typeof(GenAiMapValue), "map")]
@@ -1399,13 +1429,15 @@ public abstract record GenAiContentValue : OTelAttributeValue;
 
 public sealed record GenAiMapValue(Dictionary<string, OTelAttributeValue> Value) : GenAiContentValue
 {
-    public override object GetValue() => Value;
+    public override object GetValue()
+    {
+        return Value;
+    }
 }
 
 // =============================================================================
 // USAGE EXAMPLES
 // =============================================================================
-
 /*
 // Initialize DuckDB
 await using var connection = new DuckDBConnection("Data Source=qyl.duckdb");

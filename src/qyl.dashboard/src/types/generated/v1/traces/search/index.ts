@@ -5,24 +5,24 @@
 import {serializeTraceQuery, type TraceQuery} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createValidationErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type ValidationError
+    createInternalServerErrorFromDiscriminatorValue,
+    createValidationErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type ValidationError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {createTraceFromDiscriminatorValue, serializeTrace, type Trace} from '../../../models/qyl/oTel/traces/index.js';
 // @ts-ignore
 import {
-  type AdditionalDataHolder,
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type ParseNode,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata,
-  type SerializationWriter
+    type AdditionalDataHolder,
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type ParseNode,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata,
+    type SerializationWriter
 } from '@microsoft/kiota-abstractions';
 
 /**
@@ -32,7 +32,7 @@ import {
  */
 // @ts-ignore
 export function createSearchPostResponseFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoSearchPostResponse;
+    return deserializeIntoSearchPostResponse;
 }
 
 /**
@@ -42,65 +42,65 @@ export function createSearchPostResponseFromDiscriminatorValue(parseNode: ParseN
  */
 // @ts-ignore
 export function deserializeIntoSearchPostResponse(searchPostResponse: Partial<SearchPostResponse> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "has_more": n => {
-      searchPostResponse.hasMore = n.getBooleanValue();
-    },
-    "items": n => {
-      searchPostResponse.items = n.getCollectionOfObjectValues<Trace>(createTraceFromDiscriminatorValue);
-    },
-    "next_cursor": n => {
-      searchPostResponse.nextCursor = n.getStringValue();
-    },
-    "prev_cursor": n => {
-      searchPostResponse.prevCursor = n.getStringValue();
-    },
-  }
+    return {
+        "has_more": n => {
+            searchPostResponse.hasMore = n.getBooleanValue();
+        },
+        "items": n => {
+            searchPostResponse.items = n.getCollectionOfObjectValues<Trace>(createTraceFromDiscriminatorValue);
+        },
+        "next_cursor": n => {
+            searchPostResponse.nextCursor = n.getStringValue();
+        },
+        "prev_cursor": n => {
+            searchPostResponse.prevCursor = n.getStringValue();
+        },
+    }
 }
 
 /**
  * Cursor-based paginated response wrapper
  */
 export interface SearchPostResponse extends AdditionalDataHolder, Parsable {
-  /**
-   * Whether there are more items available
-   */
-  hasMore?: boolean | null;
-  /**
-   * List of items in this page
-   */
-  items?: Trace[] | null;
-  /**
-   * Cursor for the next page (null if no more pages)
-   */
-  nextCursor?: string | null;
-  /**
-   * Cursor for the previous page (null if first page)
-   */
-  prevCursor?: string | null;
+    /**
+     * Whether there are more items available
+     */
+    hasMore?: boolean | null;
+    /**
+     * List of items in this page
+     */
+    items?: Trace[] | null;
+    /**
+     * Cursor for the next page (null if no more pages)
+     */
+    nextCursor?: string | null;
+    /**
+     * Cursor for the previous page (null if first page)
+     */
+    prevCursor?: string | null;
 }
 
 /**
  * Builds and executes requests for operations under /v1/traces/search
  */
 export interface SearchRequestBuilder extends BaseRequestBuilder<SearchRequestBuilder> {
-  /**
-   * Search traces
-   * @param body Trace search query
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<SearchPostResponse>}
-   * @throws {ValidationError} error when the service returns a 400 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  post(body: TraceQuery, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<SearchPostResponse | undefined>;
+    /**
+     * Search traces
+     * @param body Trace search query
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<SearchPostResponse>}
+     * @throws {ValidationError} error when the service returns a 400 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    post(body: TraceQuery, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<SearchPostResponse | undefined>;
 
-  /**
-   * Search traces
-   * @param body Trace search query
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toPostRequestInformation(body: TraceQuery, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Search traces
+     * @param body Trace search query
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toPostRequestInformation(body: TraceQuery, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
@@ -111,14 +111,14 @@ export interface SearchRequestBuilder extends BaseRequestBuilder<SearchRequestBu
  */
 // @ts-ignore
 export function serializeSearchPostResponse(writer: SerializationWriter, searchPostResponse: Partial<SearchPostResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!searchPostResponse || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeBooleanValue("has_more", searchPostResponse.hasMore);
-  writer.writeCollectionOfObjectValues<Trace>("items", searchPostResponse.items, serializeTrace);
-  writer.writeStringValue("next_cursor", searchPostResponse.nextCursor);
-  writer.writeStringValue("prev_cursor", searchPostResponse.prevCursor);
-  writer.writeAdditionalData(searchPostResponse.additionalData);
+    if (!searchPostResponse || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeBooleanValue("has_more", searchPostResponse.hasMore);
+    writer.writeCollectionOfObjectValues<Trace>("items", searchPostResponse.items, serializeTrace);
+    writer.writeStringValue("next_cursor", searchPostResponse.nextCursor);
+    writer.writeStringValue("prev_cursor", searchPostResponse.prevCursor);
+    writer.writeAdditionalData(searchPostResponse.additionalData);
 }
 
 /**
@@ -129,19 +129,19 @@ export const SearchRequestBuilderUriTemplate = "{+baseurl}/v1/traces/search";
  * Metadata for all the requests in the request builder.
  */
 export const SearchRequestBuilderRequestsMetadata: RequestsMetadata = {
-  post: {
-    uriTemplate: SearchRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    post: {
+        uriTemplate: SearchRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createSearchPostResponseFromDiscriminatorValue,
+        requestBodyContentType: "application/json",
+        requestBodySerializer: serializeTraceQuery,
+        requestInformationContentSetMethod: "setContentFromParsable",
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createSearchPostResponseFromDiscriminatorValue,
-    requestBodyContentType: "application/json",
-    requestBodySerializer: serializeTraceQuery,
-    requestInformationContentSetMethod: "setContentFromParsable",
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

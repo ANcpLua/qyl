@@ -16,8 +16,8 @@ using qyl.collector.Primitives;
 namespace qyl.collector.Ingestion;
 
 /// <summary>
-/// High-performance OTLP/JSON span parser. Zero allocation on hot path.
-/// Designed for streaming ingestion via System.Threading.Channels.
+///     High-performance OTLP/JSON span parser. Zero allocation on hot path.
+///     Designed for streaming ingestion via System.Threading.Channels.
 /// </summary>
 public ref struct OtlpJsonSpanParser
 {
@@ -31,39 +31,38 @@ public ref struct OtlpJsonSpanParser
         var dict = new Dictionary<ulong, string>();
         // Intern common provider names
         foreach (var p in (ReadOnlySpan<string>)["openai", "anthropic", "gcp.gemini", "aws.bedrock", "azure.openai"])
-        {
             dict[ComputeHash(p)] = p;
-        }
 
         // Intern common operation names
         foreach (var o in (ReadOnlySpan<string>)["chat", "text_completion", "embeddings", "invoke_agent"])
-        {
             dict[ComputeHash(o)] = o;
-        }
 
         // Intern common model prefixes
-        foreach (var m in (ReadOnlySpan<string>)["gpt-4", "gpt-4o", "gpt-3.5-turbo", "claude-3", "claude-sonnet", "gemini-pro"])
-        {
+        foreach (var m in (ReadOnlySpan<string>)
+                 ["gpt-4", "gpt-4o", "gpt-3.5-turbo", "claude-3", "claude-sonnet", "gemini-pro"])
             dict[ComputeHash(m)] = m;
-        }
 
         return dict.ToFrozenDictionary();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong ComputeHash(ReadOnlySpan<byte> utf8)
-        => XxHash3.HashToUInt64(utf8);
+    {
+        return XxHash3.HashToUInt64(utf8);
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ulong ComputeHash(string s)
-        => XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(s));
+    {
+        return XxHash3.HashToUInt64(Encoding.UTF8.GetBytes(s));
+    }
 
     public OtlpJsonSpanParser(ReadOnlySpan<byte> json)
     {
         _reader = new Utf8JsonReader(json, new JsonReaderOptions
         {
             AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip,
+            CommentHandling = JsonCommentHandling.Skip
         });
     }
 
@@ -72,40 +71,30 @@ public ref struct OtlpJsonSpanParser
         _reader = new Utf8JsonReader(json, new JsonReaderOptions
         {
             AllowTrailingCommas = true,
-            CommentHandling = JsonCommentHandling.Skip,
+            CommentHandling = JsonCommentHandling.Skip
         });
     }
 
     /// <summary>
-    /// Parse OTLP ExportTraceServiceRequest JSON into spans.
-    /// Returns all parsed spans as a list.
+    ///     Parse OTLP ExportTraceServiceRequest JSON into spans.
+    ///     Returns all parsed spans as a list.
     /// </summary>
     public List<ParsedSpan> ParseExportRequest()
     {
         List<ParsedSpan> results = [];
 
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return results;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return results;
 
         while (_reader.Read())
         {
-            if (_reader.TokenType == JsonTokenType.EndObject)
-            {
-                break;
-            }
+            if (_reader.TokenType == JsonTokenType.EndObject) break;
 
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
                 if (_reader.ValueTextEquals("resourceSpans"u8))
-                {
                     ParseResourceSpans(results);
-                }
                 else
-                {
                     _reader.Skip();
-                }
             }
         }
 
@@ -114,61 +103,38 @@ public ref struct OtlpJsonSpanParser
 
     private void ParseResourceSpans(List<ParsedSpan> results)
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-        {
-            return;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-        {
             if (_reader.TokenType == JsonTokenType.StartObject)
-            {
                 ParseResourceSpan(results);
-            }
-        }
     }
 
     private void ParseResourceSpan(List<ParsedSpan> results)
     {
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
-        {
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
                 if (_reader.ValueTextEquals("resource"u8))
-                {
                     _ = ParseResourceServiceName(); // Parse but don't use - service name extracted at resource level
-                }
                 else if (_reader.ValueTextEquals("scopeSpans"u8))
-                {
                     ParseScopeSpans(results);
-                }
                 else
-                {
                     _reader.Skip();
-                }
             }
-        }
     }
 
     private string? ParseResourceServiceName()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
             if (_reader.TokenType == JsonTokenType.PropertyName &&
                 _reader.ValueTextEquals("attributes"u8))
-            {
                 return ExtractServiceNameFromAttributes();
-            }
 
-            if (_reader.TokenType == JsonTokenType.PropertyName)
-            {
-                _reader.Skip();
-            }
+            if (_reader.TokenType == JsonTokenType.PropertyName) _reader.Skip();
         }
 
         return null;
@@ -176,103 +142,65 @@ public ref struct OtlpJsonSpanParser
 
     private string? ExtractServiceNameFromAttributes()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-        {
-            return null;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-        {
             if (_reader.TokenType == JsonTokenType.StartObject)
             {
                 string? key = null;
                 string? value = null;
 
                 while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
-                {
                     if (_reader.TokenType == JsonTokenType.PropertyName)
                     {
                         if (_reader.ValueTextEquals("key"u8))
                         {
                             _reader.Read();
-                            if (_reader.ValueTextEquals("service.name"u8))
-                            {
-                                key = "service.name";
-                            }
+                            if (_reader.ValueTextEquals("service.name"u8)) key = "service.name";
                         }
                         else if (_reader.ValueTextEquals("value"u8) && key == "service.name")
-                        {
                             value = ParseAnyValue();
-                        }
                         else
-                        {
                             _reader.Skip();
-                        }
                     }
-                }
 
-                if (key == "service.name" && value is not null)
-                {
-                    return value;
-                }
+                if (key == "service.name" && value is not null) return value;
             }
-        }
 
         return null;
     }
 
     private void ParseScopeSpans(List<ParsedSpan> results)
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-        {
-            return;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-        {
             if (_reader.TokenType == JsonTokenType.StartObject)
-            {
                 ParseScopeSpan(results);
-            }
-        }
     }
 
     private void ParseScopeSpan(List<ParsedSpan> results)
     {
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
-        {
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
                 if (_reader.ValueTextEquals("spans"u8))
-                {
                     ParseSpanArray(results);
-                }
                 else
-                {
                     _reader.Skip();
-                }
             }
-        }
     }
 
     private void ParseSpanArray(List<ParsedSpan> results)
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-        {
-            return;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-        {
             if (_reader.TokenType == JsonTokenType.StartObject)
             {
                 var span = ParseSingleSpan();
-                if (span is not null)
-                {
-                    results.Add(span);
-                }
+                if (span is not null) results.Add(span);
             }
-        }
     }
 
     private ParsedSpan? ParseSingleSpan()
@@ -281,10 +209,7 @@ public ref struct OtlpJsonSpanParser
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             var propName = _reader.ValueSpan;
 
@@ -294,10 +219,7 @@ public ref struct OtlpJsonSpanParser
                 if (_reader.TokenType == JsonTokenType.String)
                 {
                     var valueSpan = _reader.ValueSpan;
-                    if (TraceId.TryParse(valueSpan, null, out var traceId))
-                    {
-                        span.TraceId = traceId;
-                    }
+                    if (TraceId.TryParse(valueSpan, null, out var traceId)) span.TraceId = traceId;
                 }
             }
             else if (propName.SequenceEqual("spanId"u8))
@@ -306,10 +228,7 @@ public ref struct OtlpJsonSpanParser
                 if (_reader.TokenType == JsonTokenType.String)
                 {
                     var valueSpan = _reader.ValueSpan;
-                    if (SpanId.TryParse(valueSpan, null, out var spanId))
-                    {
-                        span.SpanId = spanId;
-                    }
+                    if (SpanId.TryParse(valueSpan, null, out var spanId)) span.SpanId = spanId;
                 }
             }
             else if (propName.SequenceEqual("parentSpanId"u8))
@@ -318,10 +237,7 @@ public ref struct OtlpJsonSpanParser
                 if (_reader.TokenType == JsonTokenType.String)
                 {
                     var valueSpan = _reader.ValueSpan;
-                    if (SpanId.TryParse(valueSpan, null, out var parentId))
-                    {
-                        span.ParentSpanId = parentId;
-                    }
+                    if (SpanId.TryParse(valueSpan, null, out var parentId)) span.ParentSpanId = parentId;
                 }
             }
             else if (propName.SequenceEqual("name"u8))
@@ -347,17 +263,11 @@ public ref struct OtlpJsonSpanParser
                 span.EndTime = ParseUnixNano();
             }
             else if (propName.SequenceEqual("status"u8))
-            {
                 ParseStatus(span);
-            }
             else if (propName.SequenceEqual("attributes"u8))
-            {
                 ParseSpanAttributes(span);
-            }
             else
-            {
                 _reader.Skip();
-            }
         }
 
         return span.TraceId.IsEmpty ? null : span;
@@ -366,19 +276,13 @@ public ref struct OtlpJsonSpanParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UnixNano ParseUnixNano()
     {
-        if (_reader.TokenType == JsonTokenType.Number)
-        {
-            return new UnixNano(_reader.GetInt64());
-        }
+        if (_reader.TokenType == JsonTokenType.Number) return new UnixNano(_reader.GetInt64());
 
         if (_reader.TokenType == JsonTokenType.String)
         {
             // OTLP JSON encodes large numbers as strings
             var span = _reader.ValueSpan;
-            if (Utf8Parser.TryParse(span, out long value, out _))
-            {
-                return new UnixNano(value);
-            }
+            if (Utf8Parser.TryParse(span, out long value, out _)) return new UnixNano(value);
         }
 
         return UnixNano.Zero;
@@ -386,13 +290,9 @@ public ref struct OtlpJsonSpanParser
 
     private void ParseStatus(ParsedSpan span)
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
-        {
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
                 if (_reader.ValueTextEquals("code"u8))
@@ -408,27 +308,17 @@ public ref struct OtlpJsonSpanParser
                     span.StatusMessage = _reader.GetString();
                 }
                 else
-                {
                     _reader.Skip();
-                }
             }
-        }
     }
 
     private void ParseSpanAttributes(ParsedSpan span)
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-        {
-            return;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-        {
             if (_reader.TokenType == JsonTokenType.StartObject)
-            {
                 ParseSingleAttribute(span);
-            }
-        }
     }
 
     private void ParseSingleAttribute(ParsedSpan span)
@@ -438,10 +328,7 @@ public ref struct OtlpJsonSpanParser
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             if (_reader.ValueTextEquals("key"u8))
             {
@@ -460,33 +347,24 @@ public ref struct OtlpJsonSpanParser
                 }
 
                 if (OtlpGenAiAttributes.IsGenAiAttribute(keySpan))
-                {
                     ParseGenAiAttributeValue(span, keySpan);
-                }
                 else if (OtlpGenAiAttributes.IsAgentsAttribute(keySpan))
-                {
                     ParseAgentsAttributeValue(span, keySpan);
-                }
                 else if (keySpan.SequenceEqual("session.id"u8))
                 {
                     var value = ParseAnyValue();
-                    if (value is not null)
-                    {
-                        span.SessionId = new SessionId(value);
-                    }
+                    if (value is not null) span.SessionId = new SessionId(value);
                 }
                 else
                 {
                     key ??= Encoding.UTF8.GetString(keySpan);
                     var value = ParseAnyValueAsObject();
                     span.Attributes ??= [];
-                    span.Attributes.Add(new(key, value));
+                    span.Attributes.Add(new KeyValuePair<string, object?>(key, value));
                 }
             }
             else
-            {
                 _reader.Skip();
-            }
         }
     }
 
@@ -494,43 +372,25 @@ public ref struct OtlpJsonSpanParser
     {
         if (keySpan.SequenceEqual(OtlpGenAiAttributes.ProviderName) ||
             keySpan.SequenceEqual(OtlpGenAiAttributes.DeprecatedSystem))
-        {
             span.ProviderName = GetInternedString(ParseAnyValueSpan());
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.RequestModel))
-        {
             span.RequestModel = GetInternedString(ParseAnyValueSpan());
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.ResponseModel))
-        {
             span.ResponseModel = GetInternedString(ParseAnyValueSpan());
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.OperationName))
-        {
             span.OperationName = GetInternedString(ParseAnyValueSpan());
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.InputTokens) ||
                  keySpan.SequenceEqual(OtlpGenAiAttributes.DeprecatedPromptTokens))
-        {
             span.InputTokens = ParseAnyValueAsLong();
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.OutputTokens) ||
                  keySpan.SequenceEqual(OtlpGenAiAttributes.DeprecatedCompletionTokens))
-        {
             span.OutputTokens = ParseAnyValueAsLong();
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.RequestTemperature))
-        {
             span.Temperature = ParseAnyValueAsDouble();
-        }
         else if (keySpan.SequenceEqual(OtlpGenAiAttributes.RequestMaxTokens))
-        {
             span.MaxTokens = ParseAnyValueAsLong();
-        }
         else
-        {
             _reader.Skip();
-        }
     }
 
     private void ParseAgentsAttributeValue(ParsedSpan span, ReadOnlySpan<byte> keySpan)
@@ -538,24 +398,18 @@ public ref struct OtlpJsonSpanParser
         var key = Encoding.UTF8.GetString(keySpan);
         var value = ParseAnyValueAsObject();
         span.Attributes ??= [];
-        span.Attributes.Add(new(key, value));
+        span.Attributes.Add(new KeyValuePair<string, object?>(key, value));
     }
 
     private ReadOnlySpan<byte> ParseAnyValueSpan()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return default;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return default;
 
         ReadOnlySpan<byte> result = default;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             if (_reader.ValueTextEquals("stringValue"u8))
             {
@@ -565,9 +419,7 @@ public ref struct OtlpJsonSpanParser
                     : _reader.ValueSpan;
             }
             else
-            {
                 _reader.Skip();
-            }
         }
 
         return result;
@@ -581,19 +433,13 @@ public ref struct OtlpJsonSpanParser
 
     private long ParseAnyValueAsLong()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return 0;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return 0;
 
         long result = 0;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             if (_reader.ValueTextEquals("intValue"u8))
             {
@@ -602,21 +448,16 @@ public ref struct OtlpJsonSpanParser
                 {
                     JsonTokenType.Number => _reader.GetInt64(),
                     JsonTokenType.String when Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _) => v,
-                    _ => result,
+                    _ => result
                 };
             }
             else if (_reader.ValueTextEquals("stringValue"u8))
             {
                 _reader.Read();
-                if (Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _))
-                {
-                    result = v;
-                }
+                if (Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
             }
             else
-            {
                 _reader.Skip();
-            }
         }
 
         return result;
@@ -624,40 +465,26 @@ public ref struct OtlpJsonSpanParser
 
     private double? ParseAnyValueAsDouble()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return null;
 
         double? result = null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             if (_reader.ValueTextEquals("doubleValue"u8))
             {
                 _reader.Read();
-                if (_reader.TokenType == JsonTokenType.Number)
-                {
-                    result = _reader.GetDouble();
-                }
+                if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetDouble();
             }
             else if (_reader.ValueTextEquals("stringValue"u8))
             {
                 _reader.Read();
-                if (Utf8Parser.TryParse(_reader.ValueSpan, out double v, out _))
-                {
-                    result = v;
-                }
+                if (Utf8Parser.TryParse(_reader.ValueSpan, out double v, out _)) result = v;
             }
             else
-            {
                 _reader.Skip();
-            }
         }
 
         return result;
@@ -665,53 +492,32 @@ public ref struct OtlpJsonSpanParser
 
     private object? ParseAnyValueAsObject()
     {
-        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
+        if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return null;
 
         object? result = null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
-            if (_reader.TokenType != JsonTokenType.PropertyName)
-            {
-                continue;
-            }
+            if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
             var propName = _reader.ValueSpan;
             _reader.Read();
 
             if (propName.SequenceEqual("stringValue"u8))
-            {
                 result = _reader.GetString();
-            }
             else if (propName.SequenceEqual("intValue"u8))
-            {
                 result = _reader.TokenType == JsonTokenType.Number
                     ? _reader.GetInt64()
                     : long.Parse(_reader.GetString()!);
-            }
             else if (propName.SequenceEqual("doubleValue"u8))
-            {
                 result = _reader.GetDouble();
-            }
             else if (propName.SequenceEqual("boolValue"u8))
-            {
                 result = _reader.GetBoolean();
-            }
             else if (propName.SequenceEqual("bytesValue"u8))
-            {
                 result = _reader.GetBytesFromBase64();
-            }
             else if (propName.SequenceEqual("arrayValue"u8))
-            {
                 result = ParseArrayValue();
-            }
-            else if (propName.SequenceEqual("kvlistValue"u8))
-            {
-                result = ParseKvListValue();
-            }
+            else if (propName.SequenceEqual("kvlistValue"u8)) result = ParseKvListValue();
         }
 
         return result;
@@ -719,37 +525,24 @@ public ref struct OtlpJsonSpanParser
 
     private List<object?>? ParseArrayValue()
     {
-        if (_reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
+        if (_reader.TokenType != JsonTokenType.StartObject) return null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
             if (_reader.TokenType == JsonTokenType.PropertyName &&
                 _reader.ValueTextEquals("values"u8))
             {
-                if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-                {
-                    return null;
-                }
+                if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return null;
 
                 List<object?> list = [];
                 while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
-                {
                     if (_reader.TokenType == JsonTokenType.StartObject)
-                    {
                         list.Add(ParseAnyValueInner());
-                    }
-                }
 
                 return list;
             }
 
-            if (_reader.TokenType == JsonTokenType.PropertyName)
-            {
-                _reader.Skip();
-            }
+            if (_reader.TokenType == JsonTokenType.PropertyName) _reader.Skip();
         }
 
         return null;
@@ -760,74 +553,50 @@ public ref struct OtlpJsonSpanParser
         object? result = null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
-        {
             if (_reader.TokenType == JsonTokenType.PropertyName)
             {
                 var propName = _reader.ValueSpan;
                 _reader.Read();
 
                 if (propName.SequenceEqual("stringValue"u8))
-                {
                     result = _reader.GetString();
-                }
                 else if (propName.SequenceEqual("intValue"u8))
-                {
                     result = _reader.TokenType == JsonTokenType.Number
                         ? _reader.GetInt64()
                         : long.Parse(_reader.GetString()!);
-                }
                 else if (propName.SequenceEqual("doubleValue"u8))
-                {
                     result = _reader.GetDouble();
-                }
                 else if (propName.SequenceEqual("boolValue"u8))
-                {
                     result = _reader.GetBoolean();
-                }
                 else
-                {
                     _reader.Skip();
-                }
             }
-        }
 
         return result;
     }
 
     private Dictionary<string, object?>? ParseKvListValue()
     {
-        if (_reader.TokenType != JsonTokenType.StartObject)
-        {
-            return null;
-        }
+        if (_reader.TokenType != JsonTokenType.StartObject) return null;
 
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
             if (_reader.TokenType == JsonTokenType.PropertyName &&
                 _reader.ValueTextEquals("values"u8))
             {
-                if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray)
-                {
-                    return null;
-                }
+                if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return null;
 
                 Dictionary<string, object?> dict = [];
                 while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
                 {
-                    if (_reader.TokenType != JsonTokenType.StartObject)
-                    {
-                        continue;
-                    }
+                    if (_reader.TokenType != JsonTokenType.StartObject) continue;
 
                     string? key = null;
                     object? value = null;
 
                     while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
                     {
-                        if (_reader.TokenType != JsonTokenType.PropertyName)
-                        {
-                            continue;
-                        }
+                        if (_reader.TokenType != JsonTokenType.PropertyName) continue;
 
                         if (_reader.ValueTextEquals("key"u8))
                         {
@@ -835,28 +604,18 @@ public ref struct OtlpJsonSpanParser
                             key = _reader.GetString();
                         }
                         else if (_reader.ValueTextEquals("value"u8))
-                        {
                             value = ParseAnyValueAsObject();
-                        }
                         else
-                        {
                             _reader.Skip();
-                        }
                     }
 
-                    if (key is not null)
-                    {
-                        dict[key] = value;
-                    }
+                    if (key is not null) dict[key] = value;
                 }
 
                 return dict;
             }
 
-            if (_reader.TokenType == JsonTokenType.PropertyName)
-            {
-                _reader.Skip();
-            }
+            if (_reader.TokenType == JsonTokenType.PropertyName) _reader.Skip();
         }
 
         return null;
@@ -865,16 +624,10 @@ public ref struct OtlpJsonSpanParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string GetInternedString(ReadOnlySpan<byte> utf8)
     {
-        if (utf8.IsEmpty)
-        {
-            return string.Empty;
-        }
+        if (utf8.IsEmpty) return string.Empty;
 
         var hash = ComputeHash(utf8);
-        if (_internedStrings.TryGetValue(hash, out var interned))
-        {
-            return interned;
-        }
+        if (_internedStrings.TryGetValue(hash, out var interned)) return interned;
 
         return Encoding.UTF8.GetString(utf8);
     }

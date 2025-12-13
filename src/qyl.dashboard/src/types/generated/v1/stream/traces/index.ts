@@ -5,54 +5,54 @@
 import {type WithTraceItemRequestBuilder, WithTraceItemRequestBuilderNavigationMetadata} from './item/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/stream/traces
  */
 export interface TracesRequestBuilder extends BaseRequestBuilder<TracesRequestBuilder> {
-  /**
-   * Gets an item from the ApiSdk.v1.stream.traces.item collection
-   * @param traceId Unique identifier of the item
-   * @returns {WithTraceItemRequestBuilder}
-   */
-  byTraceId(traceId: string): WithTraceItemRequestBuilder;
+    /**
+     * Gets an item from the ApiSdk.v1.stream.traces.item collection
+     * @param traceId Unique identifier of the item
+     * @returns {WithTraceItemRequestBuilder}
+     */
+    byTraceId(traceId: string): WithTraceItemRequestBuilder;
 
-  /**
-   * Stream traces in real-time
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<ArrayBuffer>}
-   */
-  get(requestConfiguration?: RequestConfiguration<TracesRequestBuilderGetQueryParameters> | undefined): Promise<ArrayBuffer | undefined>;
+    /**
+     * Stream traces in real-time
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ArrayBuffer>}
+     */
+    get(requestConfiguration?: RequestConfiguration<TracesRequestBuilderGetQueryParameters> | undefined): Promise<ArrayBuffer | undefined>;
 
-  /**
-   * Stream traces in real-time
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<TracesRequestBuilderGetQueryParameters> | undefined): RequestInformation;
+    /**
+     * Stream traces in real-time
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<TracesRequestBuilderGetQueryParameters> | undefined): RequestInformation;
 }
 
 /**
  * Stream traces in real-time
  */
 export interface TracesRequestBuilderGetQueryParameters {
-  /**
-   * Minimum duration filter
-   */
-  minDurationMs?: number;
-  /**
-   * Service name filter
-   */
-  serviceName?: string;
+    /**
+     * Minimum duration filter
+     */
+    minDurationMs?: number;
+    /**
+     * Service name filter
+     */
+    serviceName?: string;
 }
 
 /**
@@ -63,21 +63,21 @@ export const TracesRequestBuilderUriTemplate = "{+baseurl}/v1/stream/traces{?min
  * Metadata for all the navigation properties in the request builder.
  */
 export const TracesRequestBuilderNavigationMetadata: Record<Exclude<keyof TracesRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  byTraceId: {
-    navigationMetadata: WithTraceItemRequestBuilderNavigationMetadata,
-    pathParametersMappings: ["traceId"],
-  },
+    byTraceId: {
+        navigationMetadata: WithTraceItemRequestBuilderNavigationMetadata,
+        pathParametersMappings: ["traceId"],
+    },
 };
 /**
  * Metadata for all the requests in the request builder.
  */
 export const TracesRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: TracesRequestBuilderUriTemplate,
-    responseBodyContentType: "text/event-stream",
-    adapterMethodName: "sendPrimitive",
-    responseBodyFactory: "ArrayBuffer",
-  },
+    get: {
+        uriTemplate: TracesRequestBuilderUriTemplate,
+        responseBodyContentType: "text/event-stream",
+        adapterMethodName: "sendPrimitive",
+        responseBodyFactory: "ArrayBuffer",
+    },
 };
 /* tslint:enable */
 /* eslint-enable */

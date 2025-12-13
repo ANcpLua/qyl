@@ -1,209 +1,209 @@
 @import "tailwindcss";
 
 @theme {
-  /* qyl. brand colors - inspired by terminal/observability aesthetic */
-  --color-background: oklch(13.11% 0.038 264);
-  --color-foreground: oklch(98% 0.01 264);
+    /* qyl. brand colors - inspired by terminal/observability aesthetic */
+    --color-background: oklch(13.11% 0.038 264);
+    --color-foreground: oklch(98% 0.01 264);
 
-  --color-card: oklch(15% 0.04 264);
-  --color-card-foreground: oklch(98% 0.01 264);
+    --color-card: oklch(15% 0.04 264);
+    --color-card-foreground: oklch(98% 0.01 264);
 
-  --color-popover: oklch(15% 0.04 264);
-  --color-popover-foreground: oklch(98% 0.01 264);
+    --color-popover: oklch(15% 0.04 264);
+    --color-popover-foreground: oklch(98% 0.01 264);
 
-  --color-primary: oklch(70% 0.2 200);
-  --color-primary-foreground: oklch(13% 0.04 264);
+    --color-primary: oklch(70% 0.2 200);
+    --color-primary-foreground: oklch(13% 0.04 264);
 
-  --color-secondary: oklch(25% 0.03 264);
-  --color-secondary-foreground: oklch(98% 0.01 264);
+    --color-secondary: oklch(25% 0.03 264);
+    --color-secondary-foreground: oklch(98% 0.01 264);
 
-  --color-muted: oklch(25% 0.03 264);
-  --color-muted-foreground: oklch(65% 0.02 264);
+    --color-muted: oklch(25% 0.03 264);
+    --color-muted-foreground: oklch(65% 0.02 264);
 
-  --color-accent: oklch(55% 0.2 285);
-  --color-accent-foreground: oklch(98% 0.01 264);
+    --color-accent: oklch(55% 0.2 285);
+    --color-accent-foreground: oklch(98% 0.01 264);
 
-  --color-destructive: oklch(55% 0.25 27);
-  --color-destructive-foreground: oklch(98% 0.01 264);
+    --color-destructive: oklch(55% 0.25 27);
+    --color-destructive-foreground: oklch(98% 0.01 264);
 
-  --color-border: oklch(25% 0.03 264);
-  --color-input: oklch(25% 0.03 264);
-  --color-ring: oklch(70% 0.2 200);
+    --color-border: oklch(25% 0.03 264);
+    --color-input: oklch(25% 0.03 264);
+    --color-ring: oklch(70% 0.2 200);
 
-  --radius: 0.5rem;
+    --radius: 0.5rem;
 
-  /* Status colors */
-  --color-success: oklch(60% 0.2 145);
-  --color-warning: oklch(70% 0.2 75);
-  --color-error: oklch(55% 0.25 27);
-  --color-info: oklch(60% 0.2 250);
+    /* Status colors */
+    --color-success: oklch(60% 0.2 145);
+    --color-warning: oklch(70% 0.2 75);
+    --color-error: oklch(55% 0.25 27);
+    --color-info: oklch(60% 0.2 250);
 
-  /* Chart colors */
-  --color-chart-1: oklch(70% 0.2 200);
-  --color-chart-2: oklch(55% 0.2 285);
-  --color-chart-3: oklch(60% 0.2 145);
-  --color-chart-4: oklch(70% 0.2 75);
-  --color-chart-5: oklch(55% 0.25 27);
+    /* Chart colors */
+    --color-chart-1: oklch(70% 0.2 200);
+    --color-chart-2: oklch(55% 0.2 285);
+    --color-chart-3: oklch(60% 0.2 145);
+    --color-chart-4: oklch(70% 0.2 75);
+    --color-chart-5: oklch(55% 0.25 27);
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
+    * {
+        @apply border-border;
+    }
 
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+    body {
+        @apply bg-background text-foreground;
+        font-feature-settings: "rlig" 1, "calt" 1;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 
-  /* Custom scrollbar for dark theme */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+    /* Custom scrollbar for dark theme */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
 
-  ::-webkit-scrollbar-track {
-    background: var(--color-background);
-  }
+    ::-webkit-scrollbar-track {
+        background: var(--color-background);
+    }
 
-  ::-webkit-scrollbar-thumb {
-    background: var(--color-border);
-    border-radius: 4px;
-  }
+    ::-webkit-scrollbar-thumb {
+        background: var(--color-border);
+        border-radius: 4px;
+    }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-muted-foreground);
-    opacity: 0.5;
-  }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--color-muted-foreground);
+        opacity: 0.5;
+    }
 }
 
 @layer components {
-  /* Monospace text for telemetry data */
-  .font-mono {
-    font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
-  }
-
-  /* Glow effect for status indicators */
-  .glow-success {
-    box-shadow: 0 0 8px var(--color-success);
-  }
-
-  .glow-error {
-    box-shadow: 0 0 8px var(--color-error);
-  }
-
-  .glow-warning {
-    box-shadow: 0 0 8px var(--color-warning);
-  }
-
-  .glow-primary {
-    box-shadow: 0 0 12px var(--color-primary);
-  }
-
-  /* Waterfall bars */
-  .waterfall-bar {
-    @apply rounded-sm h-5;
-    min-width: 2px;
-  }
-
-  /* Trace timeline */
-  .trace-line {
-    @apply absolute top-0 bottom-0 w-px bg-border;
-  }
-
-  /* Log level badges */
-  .log-level-trace {
-    @apply bg-muted text-muted-foreground;
-  }
-
-  .log-level-debug {
-    @apply bg-blue-500/20 text-blue-400;
-  }
-
-  .log-level-info {
-    @apply bg-cyan-500/20 text-cyan-400;
-  }
-
-  .log-level-warn {
-    @apply bg-yellow-500/20 text-yellow-400;
-  }
-
-  .log-level-error {
-    @apply bg-red-500/20 text-red-400;
-  }
-
-  .log-level-fatal {
-    @apply bg-red-700/30 text-red-300;
-  }
-
-  /* Resource status dots */
-  .status-dot {
-    @apply w-2 h-2 rounded-full;
-  }
-
-  .status-running {
-    @apply bg-green-500;
-  }
-
-  .status-stopped {
-    @apply bg-gray-500;
-  }
-
-  .status-error {
-    @apply bg-red-500;
-  }
-
-  .status-pending {
-    @apply bg-yellow-500;
-  }
-
-  /* Animated pulse for live data */
-  .pulse-live {
-    animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse-live {
-    0%, 100% {
-      opacity: 1;
+    /* Monospace text for telemetry data */
+    .font-mono {
+        font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
     }
-    50% {
-      opacity: 0.5;
-    }
-  }
 
-  /* Keyboard shortcut hints */
-  .kbd {
-    @apply inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-mono;
-    @apply bg-muted border border-border rounded;
-    @apply text-muted-foreground;
-    min-width: 1.5rem;
-  }
+    /* Glow effect for status indicators */
+    .glow-success {
+        box-shadow: 0 0 8px var(--color-success);
+    }
+
+    .glow-error {
+        box-shadow: 0 0 8px var(--color-error);
+    }
+
+    .glow-warning {
+        box-shadow: 0 0 8px var(--color-warning);
+    }
+
+    .glow-primary {
+        box-shadow: 0 0 12px var(--color-primary);
+    }
+
+    /* Waterfall bars */
+    .waterfall-bar {
+        @apply rounded-sm h-5;
+        min-width: 2px;
+    }
+
+    /* Trace timeline */
+    .trace-line {
+        @apply absolute top-0 bottom-0 w-px bg-border;
+    }
+
+    /* Log level badges */
+    .log-level-trace {
+        @apply bg-muted text-muted-foreground;
+    }
+
+    .log-level-debug {
+        @apply bg-blue-500/20 text-blue-400;
+    }
+
+    .log-level-info {
+        @apply bg-cyan-500/20 text-cyan-400;
+    }
+
+    .log-level-warn {
+        @apply bg-yellow-500/20 text-yellow-400;
+    }
+
+    .log-level-error {
+        @apply bg-red-500/20 text-red-400;
+    }
+
+    .log-level-fatal {
+        @apply bg-red-700/30 text-red-300;
+    }
+
+    /* Resource status dots */
+    .status-dot {
+        @apply w-2 h-2 rounded-full;
+    }
+
+    .status-running {
+        @apply bg-green-500;
+    }
+
+    .status-stopped {
+        @apply bg-gray-500;
+    }
+
+    .status-error {
+        @apply bg-red-500;
+    }
+
+    .status-pending {
+        @apply bg-yellow-500;
+    }
+
+    /* Animated pulse for live data */
+    .pulse-live {
+        animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    @keyframes pulse-live {
+        0%, 100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    /* Keyboard shortcut hints */
+    .kbd {
+        @apply inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-mono;
+        @apply bg-muted border border-border rounded;
+        @apply text-muted-foreground;
+        min-width: 1.5rem;
+    }
 }
 
 @layer utilities {
-  /* Text gradient for branding */
-  .text-gradient {
-    @apply bg-clip-text text-transparent;
-    background-image: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-  }
+    /* Text gradient for branding */
+    .text-gradient {
+        @apply bg-clip-text text-transparent;
+        background-image: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+    }
 
-  /* Truncate with ellipsis */
-  .truncate-middle {
-    max-width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+    /* Truncate with ellipsis */
+    .truncate-middle {
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 
-  /* Hide scrollbar but keep scroll functionality */
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
+    /* Hide scrollbar but keep scroll functionality */
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
 
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
 }

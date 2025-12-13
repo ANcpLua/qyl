@@ -10,11 +10,20 @@ using System.Runtime.CompilerServices;
 namespace qyl.collector.Ingestion;
 
 /// <summary>
-/// OTel 1.38 GenAI attribute keys as UTF-8 byte spans for zero-allocation OTLP parsing.
-/// Uses direct StartsWith checks for prefix matching (NOT SearchValues which is for substring).
+///     OTel 1.38 GenAI attribute keys as UTF-8 byte spans for zero-allocation OTLP parsing.
+///     Uses direct StartsWith checks for prefix matching (NOT SearchValues which is for substring).
 /// </summary>
 public static class OtlpGenAiAttributes
 {
+    // Frozen dictionary for O(1) deprecated → current mapping
+    private static readonly FrozenDictionary<string, string> _deprecatedMap =
+        new Dictionary<string, string>
+        {
+            ["gen_ai.system"] = "gen_ai.provider.name",
+            ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
+            ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens"
+        }.ToFrozenDictionary();
+
     // Required attributes (OTel 1.38)
     public static ReadOnlySpan<byte> ProviderName => "gen_ai.provider.name"u8;
     public static ReadOnlySpan<byte> RequestModel => "gen_ai.request.model"u8;
@@ -44,63 +53,42 @@ public static class OtlpGenAiAttributes
     public static ReadOnlySpan<byte> DeprecatedCompletionTokens => "gen_ai.usage.completion_tokens"u8;
 
     /// <summary>
-    /// Checks if the key starts with "gen_ai." prefix using direct comparison.
-    /// NOTE: Do NOT use SearchValues for prefix matching - it does substring matching.
+    ///     Checks if the key starts with "gen_ai." prefix using direct comparison.
+    ///     NOTE: Do NOT use SearchValues for prefix matching - it does substring matching.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsGenAiAttribute(ReadOnlySpan<byte> key)
     {
-        if (key.Length < 7)
-        {
-            return false;
-        }
+        if (key.Length < 7) return false;
 
         // Direct prefix check - NOT SearchValues which does substring matching
         return key[..7].SequenceEqual("gen_ai."u8);
     }
 
     /// <summary>
-    /// Checks if the key starts with "agents." prefix using direct comparison.
-    /// NOTE: Do NOT use SearchValues for prefix matching - it does substring matching.
+    ///     Checks if the key starts with "agents." prefix using direct comparison.
+    ///     NOTE: Do NOT use SearchValues for prefix matching - it does substring matching.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAgentsAttribute(ReadOnlySpan<byte> key)
     {
-        if (key.Length < 7)
-        {
-            return false;
-        }
+        if (key.Length < 7) return false;
 
         return key[..7].SequenceEqual("agents."u8);
     }
 
-    // Frozen dictionary for O(1) deprecated → current mapping
-    private static readonly FrozenDictionary<string, string> _deprecatedMap =
-        new Dictionary<string, string>
-        {
-            ["gen_ai.system"] = "gen_ai.provider.name",
-            ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-            ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
-        }.ToFrozenDictionary();
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey)
-        => _deprecatedMap.TryGetValue(deprecatedKey, out currentKey);
+    {
+        return _deprecatedMap.TryGetValue(deprecatedKey, out currentKey);
+    }
 }
 
 /// <summary>
-/// Provider identifiers per OTel 1.38 gen_ai.provider.name values.
+///     Provider identifiers per OTel 1.38 gen_ai.provider.name values.
 /// </summary>
 public static class OtlpGenAiProviders
 {
-    public static ReadOnlySpan<byte> OpenAi => "openai"u8;
-    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
-    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
-    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
-    public static ReadOnlySpan<byte> AzureOpenAi => "azure.openai"u8;
-    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
-    public static ReadOnlySpan<byte> Mistral => "mistral"u8;
-
     private static readonly FrozenDictionary<string, string> _hostToProvider =
         new Dictionary<string, string>
         {
@@ -110,16 +98,21 @@ public static class OtlpGenAiProviders
             ["bedrock-runtime"] = "aws.bedrock", // partial match needed
             ["openai.azure.com"] = "azure.openai",
             ["api.cohere.ai"] = "cohere",
-            ["api.mistral.ai"] = "mistral",
+            ["api.mistral.ai"] = "mistral"
         }.ToFrozenDictionary();
+
+    public static ReadOnlySpan<byte> OpenAi => "openai"u8;
+    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
+    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
+    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
+    public static ReadOnlySpan<byte> AzureOpenAi => "azure.openai"u8;
+    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
+    public static ReadOnlySpan<byte> Mistral => "mistral"u8;
 
     public static bool TryDetectFromHost(ReadOnlySpan<char> host, [NotNullWhen(true)] out string? provider)
     {
         var hostStr = host.ToString();
-        if (_hostToProvider.TryGetValue(hostStr, out provider))
-        {
-            return true;
-        }
+        if (_hostToProvider.TryGetValue(hostStr, out provider)) return true;
 
         // Partial match for AWS Bedrock
         if (host.Contains("bedrock-runtime", StringComparison.OrdinalIgnoreCase))

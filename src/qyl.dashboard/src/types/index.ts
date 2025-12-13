@@ -89,19 +89,19 @@ export type GetTraceParams = operations['getTrace']['parameters']['path'];
 // =============================================================================
 
 export function isSpanKind(value: string): value is SpanKind {
-  return ['unspecified', 'internal', 'server', 'client', 'producer', 'consumer'].includes(value);
+    return ['unspecified', 'internal', 'server', 'client', 'producer', 'consumer'].includes(value);
 }
 
 export function isSpanStatus(value: string): value is SpanStatus {
-  return ['unset', 'ok', 'error'].includes(value);
+    return ['unset', 'ok', 'error'].includes(value);
 }
 
 export function isGenAISpan(span: Span): span is Span & { genai: GenAISpanData } {
-  return span.genai !== null && span.genai !== undefined;
+    return span.genai !== null && span.genai !== undefined;
 }
 
 export function hasErrors(session: Session): boolean {
-  return session.errorCount > 0;
+    return session.errorCount > 0;
 }
 
 // =============================================================================
@@ -113,26 +113,26 @@ export type GenAISpan = Span & { genai: GenAISpanData };
 
 /** Filter all GenAI spans from a list */
 export function filterGenAISpans(spans: Span[]): GenAISpan[] {
-  return spans.filter(isGenAISpan);
+    return spans.filter(isGenAISpan);
 }
 
 /** Calculate total tokens for a span */
 export function getTotalTokens(span: Span): number | null {
-  if (!span.genai) return null;
-  const {inputTokens, outputTokens} = span.genai;
-  if (inputTokens == null && outputTokens == null) return null;
-  return (inputTokens ?? 0) + (outputTokens ?? 0);
+    if (!span.genai) return null;
+    const {inputTokens, outputTokens} = span.genai;
+    if (inputTokens == null && outputTokens == null) return null;
+    return (inputTokens ?? 0) + (outputTokens ?? 0);
 }
 
 /** Format duration in human-readable form */
 export function formatDuration(ms: number): string {
-  if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`;
-  if (ms < 1000) return `${ms.toFixed(1)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
-  return `${(ms / 60000).toFixed(1)}m`;
+    if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`;
+    if (ms < 1000) return `${ms.toFixed(1)}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
+    return `${(ms / 60000).toFixed(1)}m`;
 }
 
 /** Get primary service from session (first in array) */
 export function getPrimaryService(session: Session): string {
-  return session.services[0] ?? 'unknown';
+    return session.services[0] ?? 'unknown';
 }

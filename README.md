@@ -1,5 +1,130 @@
 # qyl. v2.0 — AI Observability Platform
 
+wir nutzen typespec also haben wir 48 .tsp files zb
+
+qyl/
+│
+├── core/ # 1. SCHEMA (Single Source of Truth)
+│ ├── specs/ # TypeSpec definitions
+│ │ ├── main.tsp
+│ │ ├── common/
+│ │ ├── otel/
+│ │ └── api/
+│ ├── openapi/ # Generated OpenAPI
+│ │ └── openapi.yaml
+│ └── generated/ # Kiota output
+│ ├── dotnet/
+│ ├── python/
+│ └── typescript/
+│
+├── src/
+│ ├── qyl.collector/ # 2. COLLECTOR (Backend)
+│ │ ├── Ingestion/ # OTLP receivers
+│ │ ├── Processing/ # GenAI extraction
+│ │ ├── Storage/ # DuckDB
+│ │ ├── Api/ # REST endpoints
+│ │ ├── Realtime/ # SSE streaming
+│ │ └── Program.cs
+│ │
+core/
+├── generated/
+│ ├── dotnet/
+│ │ ├── Health/
+│ │ ├── Models/ ← Shared DTOs (SpanDto, SessionDto, etc.)
+│ │ ├── V1/ ← API request builders
+│ │ └── QylClient.cs
+│ ├── python/
+│ │ ├── health/
+│ │ ├── models/
+│ │ ├── v1/
+│ │ └── qyl_client.py
+│ └── typescript/
+│ ├── health/
+│ ├── models/ ← Dashboard imports from here
+│ ├── v1/
+│ └── qylClient.ts
+├── openapi/
+│ └── openapi.yaml ← Generated from TypeSpec
+├── schemas/
+│ └── qyl-telemetry
+└── specs/ ← SINGLE SOURCE OF TRUTH
+├── api/
+│ ├── routes.tsp
+│ └── streaming.tsp
+├── common/
+├── domains/
+│ ├── ai/              (cli, code, genai)
+│ ├── data/            (artifact, db, elasticsearch, file, vcs)
+│ ├── identity/        (geo, user)
+│ ├── infra/           (cloud, container, faas, host, k8s, os)
+│ ├── observe/         (browser, error, exceptions, log, otel, session)
+│ ├── ops/             (cicd, deployment)
+│ ├── runtime/         (aspnetcore, dotnet, process, system, thread)
+│ ├── security/        (dns, network, security-rule, tls)
+│ └── transport/       (http, kestrel, messaging, rpc, signalr, url)
+├── otel/
+│ ├── enums.tsp
+│ ├── logs.tsp
+│ ├── metrics.tsp
+│ ├── resource.tsp
+│ └── span.tsp
+└── main.tsp
+
+src/qyl.dashboard/
+
+qyl.dashboard/
+├── public/
+│ ├── favicon.svg
+│ ├── qyl-console.js
+│ └── robots.txt
+├── schemas/
+│ └── qyl.agent_run.schema.json
+├── src/
+│ ├── __tests__/
+│ ├── components/
+│ │ ├── layout/
+│ │ ├── ui/
+│ │ └── LiveTail.tsx
+│ ├── hooks/
+│ │ ├── use-keyboard-shortcuts.ts
+│ │ ├── use-telemetry.ts
+│ │ └── use-theme.ts
+│ ├── lib/
+│ │ ├── RingBuffer.ts
+│ │ └── utils.ts
+│ ├── pages/
+│ │ ├── GenAIPage.tsx
+│ │ ├── LogsPage.tsx
+│ │ ├── MetricsPage.tsx
+│ │ ├── ResourcesPage.tsx
+│ │ ├── SettingsPage.tsx
+│ │ └── TracesPage.tsx
+│ ├── types/
+│ │ ├── generated/ ← Should use core/generated/typescript
+│ │ ├── api.ts
+│ │ └── telemetry.ts
+│ ├── App.tsx
+│ └── main.tsx
+├── Dockerfile
+├── package.json
+├── tailwind.config.ts
+├── tsconfig.json
+└── vite.config.ts
+│
+├── sdk/ # 4. SDK (Published Packages)
+│ ├── dotnet/
+│ │ └── qyl.sdk/ # Uses generated client
+│ ├── python/
+│ │ └── qyl_sdk/
+│ └── typescript/
+│ └── @qyl/sdk/
+│
+├── eng/ # 5. BUILD
+│ ├── build/
+│ └── Sdk/ # ANcpLua.NET.Sdk
+│
+└── tests/
+
 Vendor-neutral OpenTelemetry GenAI collector. Single binary, embedded DuckDB, real-time SSE.
 
 ```
@@ -134,15 +259,15 @@ src/qyl.dashboard/
 
 ## .NET 10 APIs
 
-| API                    | Usage                                       |
-|------------------------|---------------------------------------------|
-| `Task.WhenEach()`      | Concurrent receiver intake                  |
-| `Lock`                 | Zero-alloc sync (SessionAggregator, SseHub) |
-| `SearchValues<char>`   | SIMD delimiter/char detection               |
-| Direct `StartsWith`    | Prefix detection (gen_ai.*, agents.*)       |
-| `CountBy/AggregateBy`  | Single-pass statistics                      |
-| `TypedResults.SSE`     | Native Server-Sent Events                   |
-| `HybridCache`          | Stampede-proof caching                      |
+| API                   | Usage                                       |
+|-----------------------|---------------------------------------------|
+| `Task.WhenEach()`     | Concurrent receiver intake                  |
+| `Lock`                | Zero-alloc sync (SessionAggregator, SseHub) |
+| `SearchValues<char>`  | SIMD delimiter/char detection               |
+| Direct `StartsWith`   | Prefix detection (gen_ai.*, agents.*)       |
+| `CountBy/AggregateBy` | Single-pass statistics                      |
+| `TypedResults.SSE`    | Native Server-Sent Events                   |
+| `HybridCache`         | Stampede-proof caching                      |
 
 ## API
 

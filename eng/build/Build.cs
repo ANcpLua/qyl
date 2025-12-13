@@ -1,7 +1,6 @@
 using Components;
 using Nuke.Common;
 using Nuke.Common.CI.GitHubActions;
-using Nuke.Common.Tools.GitVersion;
 using Serilog;
 
 [GitHubActions(

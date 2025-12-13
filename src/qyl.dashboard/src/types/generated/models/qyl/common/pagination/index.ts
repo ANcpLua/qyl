@@ -7,13 +7,13 @@ export type TimeBucket = (typeof TimeBucketObject)[keyof typeof TimeBucketObject
  * Time bucket size for aggregations
  */
 export const TimeBucketObject = {
-  Onem: "1m",
-  Fivem: "5m",
-  OneFivem: "15m",
-  Oneh: "1h",
-  Oned: "1d",
-  Onew: "1w",
-  Auto: "auto",
+    Onem: "1m",
+    Fivem: "5m",
+    OneFivem: "15m",
+    Oneh: "1h",
+    Oned: "1d",
+    Onew: "1w",
+    Auto: "auto",
 } as const;
 /* tslint:enable */
 /* eslint-enable */

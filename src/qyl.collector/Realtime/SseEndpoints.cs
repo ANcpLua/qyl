@@ -57,7 +57,7 @@ public static class SseEndpoints
                 {
                     connectionId = Guid.NewGuid().ToString("N")[..8]
                 },
-                DateTimeOffset.UtcNow),
+                TimeProvider.System.GetUtcNow()),
             "connected"
         );
 
@@ -113,9 +113,7 @@ public static class SseEndpoints
                 yield return new SseItem<object?>(new SpanBatch(filteredSpans), filter.ToString().ToLowerInvariant());
             }
             else
-            {
                 yield return new SseItem<object?>(message.Data, filter.ToString().ToLowerInvariant());
-            }
         }
     }
 }

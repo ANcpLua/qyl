@@ -14,7 +14,7 @@ namespace Components;
 
 internal interface ICoverage : ITest
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -105,7 +105,7 @@ internal interface ICoverage : ITest
         {
             var lines = File.ReadAllLines(summaryFile);
             var summary = ParseCoverageSummary(lines);
-            File.WriteAllText(jsonOutput, JsonSerializer.Serialize(summary, _jsonOptions));
+            File.WriteAllText(jsonOutput, JsonSerializer.Serialize(summary, JsonOptions));
             Log.Information("AI coverage summary: {Path}", jsonOutput);
         }
         catch (Exception ex)
@@ -119,28 +119,16 @@ internal interface ICoverage : ITest
         Dictionary<string, object> metrics = new();
 
         foreach (var line in lines)
-        {
             if (line.Contains("Line coverage:", StringComparison.Ordinal))
-            {
                 metrics["lineCoverage"] = ExtractPercentage(line);
-            }
             else if (line.Contains("Branch coverage:", StringComparison.Ordinal))
-            {
                 metrics["branchCoverage"] = ExtractPercentage(line);
-            }
             else if (line.Contains("Method coverage:", StringComparison.Ordinal))
-            {
                 metrics["methodCoverage"] = ExtractPercentage(line);
-            }
             else if (line.Contains("Coverable lines:", StringComparison.Ordinal))
-            {
                 metrics["coverableLines"] = ExtractNumber(line);
-            }
             else if (line.Contains("Covered lines:", StringComparison.Ordinal))
-            {
                 metrics["coveredLines"] = ExtractNumber(line);
-            }
-        }
 
         return new Dictionary<string, object>
         {

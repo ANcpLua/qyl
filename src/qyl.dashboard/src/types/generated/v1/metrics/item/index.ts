@@ -5,40 +5,40 @@
 import {createMetricMetadataFromDiscriminatorValue, type MetricMetadata} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createNotFoundErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type NotFoundError
+    createInternalServerErrorFromDiscriminatorValue,
+    createNotFoundErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type NotFoundError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/metrics/{metricName}
  */
 export interface WithMetricNameItemRequestBuilder extends BaseRequestBuilder<WithMetricNameItemRequestBuilder> {
-  /**
-   * Get metric metadata
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<MetricMetadata>}
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<MetricMetadata | undefined>;
+    /**
+     * Get metric metadata
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<MetricMetadata>}
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<MetricMetadata | undefined>;
 
-  /**
-   * Get metric metadata
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Get metric metadata
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
@@ -49,16 +49,16 @@ export const WithMetricNameItemRequestBuilderUriTemplate = "{+baseurl}/v1/metric
  * Metadata for all the requests in the request builder.
  */
 export const WithMetricNameItemRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: WithMetricNameItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: WithMetricNameItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createMetricMetadataFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createMetricMetadataFromDiscriminatorValue,
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

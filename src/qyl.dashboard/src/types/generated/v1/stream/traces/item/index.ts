@@ -5,19 +5,19 @@
 import {type SpansRequestBuilder, SpansRequestBuilderRequestsMetadata} from './spans/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/stream/traces/{traceId}
  */
 export interface WithTraceItemRequestBuilder extends BaseRequestBuilder<WithTraceItemRequestBuilder> {
-  /**
-   * The spans property
-   */
-  get spans(): SpansRequestBuilder;
+    /**
+     * The spans property
+     */
+    get spans(): SpansRequestBuilder;
 }
 
 /**
@@ -28,9 +28,9 @@ export const WithTraceItemRequestBuilderUriTemplate = "{+baseurl}/v1/stream/trac
  * Metadata for all the navigation properties in the request builder.
  */
 export const WithTraceItemRequestBuilderNavigationMetadata: Record<Exclude<keyof WithTraceItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  spans: {
-    requestsMetadata: SpansRequestBuilderRequestsMetadata,
-  },
+    spans: {
+        requestsMetadata: SpansRequestBuilderRequestsMetadata,
+    },
 };
 /* tslint:enable */
 /* eslint-enable */

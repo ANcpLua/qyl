@@ -7,13 +7,13 @@ export type StreamEventType = (typeof StreamEventTypeObject)[keyof typeof Stream
  * Stream event types
  */
 export const StreamEventTypeObject = {
-  Traces: "traces",
-  Spans: "spans",
-  Logs: "logs",
-  Metrics: "metrics",
-  Exceptions: "exceptions",
-  Deployments: "deployments",
-  All: "all",
+    Traces: "traces",
+    Spans: "spans",
+    Logs: "logs",
+    Metrics: "metrics",
+    Exceptions: "exceptions",
+    Deployments: "deployments",
+    All: "all",
 } as const;
 /* tslint:enable */
 /* eslint-enable */

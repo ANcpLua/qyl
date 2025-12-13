@@ -7,10 +7,10 @@ import {type Attribute, createAttributeFromDiscriminatorValue, serializeAttribut
 import {createStackTraceFromDiscriminatorValue, serializeStackTrace, type StackTrace} from '../../aI/code/index.js';
 // @ts-ignore
 import {
-  type AdditionalDataHolder,
-  type Parsable,
-  type ParseNode,
-  type SerializationWriter
+    type AdditionalDataHolder,
+    type Parsable,
+    type ParseNode,
+    type SerializationWriter
 } from '@microsoft/kiota-abstractions';
 
 /**
@@ -20,7 +20,7 @@ import {
  */
 // @ts-ignore
 export function createEnrichedExceptionFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoEnrichedException;
+    return deserializeIntoEnrichedException;
 }
 
 /**
@@ -30,7 +30,7 @@ export function createEnrichedExceptionFromDiscriminatorValue(parseNode: ParseNo
  */
 // @ts-ignore
 export function createExceptionServiceStatsFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoExceptionServiceStats;
+    return deserializeIntoExceptionServiceStats;
 }
 
 /**
@@ -40,7 +40,7 @@ export function createExceptionServiceStatsFromDiscriminatorValue(parseNode: Par
  */
 // @ts-ignore
 export function createExceptionStatsFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoExceptionStats;
+    return deserializeIntoExceptionStats;
 }
 
 /**
@@ -50,7 +50,7 @@ export function createExceptionStatsFromDiscriminatorValue(parseNode: ParseNode 
  */
 // @ts-ignore
 export function createExceptionTypeStatsFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoExceptionTypeStats;
+    return deserializeIntoExceptionTypeStats;
 }
 
 /**
@@ -60,41 +60,41 @@ export function createExceptionTypeStatsFromDiscriminatorValue(parseNode: ParseN
  */
 // @ts-ignore
 export function deserializeIntoEnrichedException(enrichedException: Partial<EnrichedException> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "affected_users": n => {
-      enrichedException.affectedUsers = n.getNumberValue();
-    },
-    "cause": n => {
-      enrichedException.cause = n.getObjectValue<EnrichedException>(createEnrichedExceptionFromDiscriminatorValue);
-    },
-    "data": n => {
-      enrichedException.data = n.getCollectionOfObjectValues<Attribute>(createAttributeFromDiscriminatorValue);
-    },
-    "exception_type": n => {
-      enrichedException.exceptionType = n.getStringValue();
-    },
-    "fingerprint": n => {
-      enrichedException.fingerprint = n.getStringValue();
-    },
-    "first_seen": n => {
-      enrichedException.firstSeen = n.getDateValue();
-    },
-    "last_seen": n => {
-      enrichedException.lastSeen = n.getDateValue();
-    },
-    "message": n => {
-      enrichedException.message = n.getStringValue();
-    },
-    "occurrence_count": n => {
-      enrichedException.occurrenceCount = n.getNumberValue();
-    },
-    "stack_trace": n => {
-      enrichedException.stackTrace = n.getObjectValue<StackTrace>(createStackTraceFromDiscriminatorValue);
-    },
-    "status": n => {
-      enrichedException.status = n.getEnumValue<ExceptionStatus>(ExceptionStatusObject);
-    },
-  }
+    return {
+        "affected_users": n => {
+            enrichedException.affectedUsers = n.getNumberValue();
+        },
+        "cause": n => {
+            enrichedException.cause = n.getObjectValue<EnrichedException>(createEnrichedExceptionFromDiscriminatorValue);
+        },
+        "data": n => {
+            enrichedException.data = n.getCollectionOfObjectValues<Attribute>(createAttributeFromDiscriminatorValue);
+        },
+        "exception_type": n => {
+            enrichedException.exceptionType = n.getStringValue();
+        },
+        "fingerprint": n => {
+            enrichedException.fingerprint = n.getStringValue();
+        },
+        "first_seen": n => {
+            enrichedException.firstSeen = n.getDateValue();
+        },
+        "last_seen": n => {
+            enrichedException.lastSeen = n.getDateValue();
+        },
+        "message": n => {
+            enrichedException.message = n.getStringValue();
+        },
+        "occurrence_count": n => {
+            enrichedException.occurrenceCount = n.getNumberValue();
+        },
+        "stack_trace": n => {
+            enrichedException.stackTrace = n.getObjectValue<StackTrace>(createStackTraceFromDiscriminatorValue);
+        },
+        "status": n => {
+            enrichedException.status = n.getEnumValue<ExceptionStatus>(ExceptionStatusObject);
+        },
+    }
 }
 
 /**
@@ -104,17 +104,17 @@ export function deserializeIntoEnrichedException(enrichedException: Partial<Enri
  */
 // @ts-ignore
 export function deserializeIntoExceptionServiceStats(exceptionServiceStats: Partial<ExceptionServiceStats> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "count": n => {
-      exceptionServiceStats.count = n.getNumberValue();
-    },
-    "rate_per_minute": n => {
-      exceptionServiceStats.ratePerMinute = n.getNumberValue();
-    },
-    "service_name": n => {
-      exceptionServiceStats.serviceName = n.getStringValue();
-    },
-  }
+    return {
+        "count": n => {
+            exceptionServiceStats.count = n.getNumberValue();
+        },
+        "rate_per_minute": n => {
+            exceptionServiceStats.ratePerMinute = n.getNumberValue();
+        },
+        "service_name": n => {
+            exceptionServiceStats.serviceName = n.getStringValue();
+        },
+    }
 }
 
 /**
@@ -124,23 +124,23 @@ export function deserializeIntoExceptionServiceStats(exceptionServiceStats: Part
  */
 // @ts-ignore
 export function deserializeIntoExceptionStats(exceptionStats: Partial<ExceptionStats> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "by_service": n => {
-      exceptionStats.byService = n.getCollectionOfObjectValues<ExceptionServiceStats>(createExceptionServiceStatsFromDiscriminatorValue);
-    },
-    "by_type": n => {
-      exceptionStats.byType = n.getCollectionOfObjectValues<ExceptionTypeStats>(createExceptionTypeStatsFromDiscriminatorValue);
-    },
-    "total_count": n => {
-      exceptionStats.totalCount = n.getNumberValue();
-    },
-    "trend": n => {
-      exceptionStats.trend = n.getEnumValue<ExceptionTrend>(ExceptionTrendObject);
-    },
-    "unique_types": n => {
-      exceptionStats.uniqueTypes = n.getNumberValue();
-    },
-  }
+    return {
+        "by_service": n => {
+            exceptionStats.byService = n.getCollectionOfObjectValues<ExceptionServiceStats>(createExceptionServiceStatsFromDiscriminatorValue);
+        },
+        "by_type": n => {
+            exceptionStats.byType = n.getCollectionOfObjectValues<ExceptionTypeStats>(createExceptionTypeStatsFromDiscriminatorValue);
+        },
+        "total_count": n => {
+            exceptionStats.totalCount = n.getNumberValue();
+        },
+        "trend": n => {
+            exceptionStats.trend = n.getEnumValue<ExceptionTrend>(ExceptionTrendObject);
+        },
+        "unique_types": n => {
+            exceptionStats.uniqueTypes = n.getNumberValue();
+        },
+    }
 }
 
 /**
@@ -150,114 +150,114 @@ export function deserializeIntoExceptionStats(exceptionStats: Partial<ExceptionS
  */
 // @ts-ignore
 export function deserializeIntoExceptionTypeStats(exceptionTypeStats: Partial<ExceptionTypeStats> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "count": n => {
-      exceptionTypeStats.count = n.getNumberValue();
-    },
-    "exception_type": n => {
-      exceptionTypeStats.exceptionType = n.getStringValue();
-    },
-    "percentage": n => {
-      exceptionTypeStats.percentage = n.getNumberValue();
-    },
-    "status": n => {
-      exceptionTypeStats.status = n.getEnumValue<ExceptionStatus>(ExceptionStatusObject);
-    },
-  }
+    return {
+        "count": n => {
+            exceptionTypeStats.count = n.getNumberValue();
+        },
+        "exception_type": n => {
+            exceptionTypeStats.exceptionType = n.getStringValue();
+        },
+        "percentage": n => {
+            exceptionTypeStats.percentage = n.getNumberValue();
+        },
+        "status": n => {
+            exceptionTypeStats.status = n.getEnumValue<ExceptionStatus>(ExceptionStatusObject);
+        },
+    }
 }
 
 /**
  * Enriched exception with parsed stack trace
  */
 export interface EnrichedException extends AdditionalDataHolder, Parsable {
-  /**
-   * Affected users count
-   */
-  affectedUsers?: number | null;
-  /**
-   * Exception cause/inner exception
-   */
-  cause?: EnrichedException | null;
-  /**
-   * Additional exception data
-   */
-  data?: Attribute[] | null;
-  /**
-   * Exception type/class name
-   */
-  exceptionType?: string | null;
-  /**
-   * Exception fingerprint (for grouping)
-   */
-  fingerprint?: string | null;
-  /**
-   * First occurrence timestamp
-   */
-  firstSeen?: Date | null;
-  /**
-   * Last occurrence timestamp
-   */
-  lastSeen?: Date | null;
-  /**
-   * Exception message
-   */
-  message?: string | null;
-  /**
-   * Occurrence count
-   */
-  occurrenceCount?: number | null;
-  /**
-   * Parsed stack trace
-   */
-  stackTrace?: StackTrace | null;
-  /**
-   * Status
-   */
-  status?: ExceptionStatus | null;
+    /**
+     * Affected users count
+     */
+    affectedUsers?: number | null;
+    /**
+     * Exception cause/inner exception
+     */
+    cause?: EnrichedException | null;
+    /**
+     * Additional exception data
+     */
+    data?: Attribute[] | null;
+    /**
+     * Exception type/class name
+     */
+    exceptionType?: string | null;
+    /**
+     * Exception fingerprint (for grouping)
+     */
+    fingerprint?: string | null;
+    /**
+     * First occurrence timestamp
+     */
+    firstSeen?: Date | null;
+    /**
+     * Last occurrence timestamp
+     */
+    lastSeen?: Date | null;
+    /**
+     * Exception message
+     */
+    message?: string | null;
+    /**
+     * Occurrence count
+     */
+    occurrenceCount?: number | null;
+    /**
+     * Parsed stack trace
+     */
+    stackTrace?: StackTrace | null;
+    /**
+     * Status
+     */
+    status?: ExceptionStatus | null;
 }
 
 /**
  * Exception stats by service
  */
 export interface ExceptionServiceStats extends AdditionalDataHolder, Parsable {
-  /**
-   * Exception count
-   */
-  count?: number | null;
-  /**
-   * Exception rate (per minute)
-   */
-  ratePerMinute?: number | null;
-  /**
-   * Service name
-   */
-  serviceName?: string | null;
+    /**
+     * Exception count
+     */
+    count?: number | null;
+    /**
+     * Exception rate (per minute)
+     */
+    ratePerMinute?: number | null;
+    /**
+     * Service name
+     */
+    serviceName?: string | null;
 }
 
 /**
  * Exception statistics
  */
 export interface ExceptionStats extends AdditionalDataHolder, Parsable {
-  /**
-   * Most affected services
-   */
-  byService?: ExceptionServiceStats[] | null;
-  /**
-   * Exceptions by type
-   */
-  byType?: ExceptionTypeStats[] | null;
-  /**
-   * Total exception count
-   */
-  totalCount?: number | null;
-  /**
-   * Exception trend (up/down/stable)
-   */
-  trend?: ExceptionTrend | null;
-  /**
-   * Unique exception types
-   */
-  uniqueTypes?: number | null;
+    /**
+     * Most affected services
+     */
+    byService?: ExceptionServiceStats[] | null;
+    /**
+     * Exceptions by type
+     */
+    byType?: ExceptionTypeStats[] | null;
+    /**
+     * Total exception count
+     */
+    totalCount?: number | null;
+    /**
+     * Exception trend (up/down/stable)
+     */
+    trend?: ExceptionTrend | null;
+    /**
+     * Unique exception types
+     */
+    uniqueTypes?: number | null;
 }
 
 export type ExceptionStatus = (typeof ExceptionStatusObject)[keyof typeof ExceptionStatusObject];
@@ -267,22 +267,22 @@ export type ExceptionTrend = (typeof ExceptionTrendObject)[keyof typeof Exceptio
  * Exception stats by type
  */
 export interface ExceptionTypeStats extends AdditionalDataHolder, Parsable {
-  /**
-   * Count
-   */
-  count?: number | null;
-  /**
-   * Exception type
-   */
-  exceptionType?: string | null;
-  /**
-   * Percentage of total
-   */
-  percentage?: number | null;
-  /**
-   * Status
-   */
-  status?: ExceptionStatus | null;
+    /**
+     * Count
+     */
+    count?: number | null;
+    /**
+     * Exception type
+     */
+    exceptionType?: string | null;
+    /**
+     * Percentage of total
+     */
+    percentage?: number | null;
+    /**
+     * Status
+     */
+    status?: ExceptionStatus | null;
 }
 
 /**
@@ -293,21 +293,21 @@ export interface ExceptionTypeStats extends AdditionalDataHolder, Parsable {
  */
 // @ts-ignore
 export function serializeEnrichedException(writer: SerializationWriter, enrichedException: Partial<EnrichedException> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!enrichedException || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeNumberValue("affected_users", enrichedException.affectedUsers);
-  writer.writeObjectValue<EnrichedException>("cause", enrichedException.cause, serializeEnrichedException);
-  writer.writeCollectionOfObjectValues<Attribute>("data", enrichedException.data, serializeAttribute);
-  writer.writeStringValue("exception_type", enrichedException.exceptionType);
-  writer.writeStringValue("fingerprint", enrichedException.fingerprint);
-  writer.writeDateValue("first_seen", enrichedException.firstSeen);
-  writer.writeDateValue("last_seen", enrichedException.lastSeen);
-  writer.writeStringValue("message", enrichedException.message);
-  writer.writeNumberValue("occurrence_count", enrichedException.occurrenceCount);
-  writer.writeObjectValue<StackTrace>("stack_trace", enrichedException.stackTrace, serializeStackTrace);
-  writer.writeEnumValue<ExceptionStatus>("status", enrichedException.status);
-  writer.writeAdditionalData(enrichedException.additionalData);
+    if (!enrichedException || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeNumberValue("affected_users", enrichedException.affectedUsers);
+    writer.writeObjectValue<EnrichedException>("cause", enrichedException.cause, serializeEnrichedException);
+    writer.writeCollectionOfObjectValues<Attribute>("data", enrichedException.data, serializeAttribute);
+    writer.writeStringValue("exception_type", enrichedException.exceptionType);
+    writer.writeStringValue("fingerprint", enrichedException.fingerprint);
+    writer.writeDateValue("first_seen", enrichedException.firstSeen);
+    writer.writeDateValue("last_seen", enrichedException.lastSeen);
+    writer.writeStringValue("message", enrichedException.message);
+    writer.writeNumberValue("occurrence_count", enrichedException.occurrenceCount);
+    writer.writeObjectValue<StackTrace>("stack_trace", enrichedException.stackTrace, serializeStackTrace);
+    writer.writeEnumValue<ExceptionStatus>("status", enrichedException.status);
+    writer.writeAdditionalData(enrichedException.additionalData);
 }
 
 /**
@@ -318,13 +318,13 @@ export function serializeEnrichedException(writer: SerializationWriter, enriched
  */
 // @ts-ignore
 export function serializeExceptionServiceStats(writer: SerializationWriter, exceptionServiceStats: Partial<ExceptionServiceStats> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!exceptionServiceStats || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeNumberValue("count", exceptionServiceStats.count);
-  writer.writeNumberValue("rate_per_minute", exceptionServiceStats.ratePerMinute);
-  writer.writeStringValue("service_name", exceptionServiceStats.serviceName);
-  writer.writeAdditionalData(exceptionServiceStats.additionalData);
+    if (!exceptionServiceStats || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeNumberValue("count", exceptionServiceStats.count);
+    writer.writeNumberValue("rate_per_minute", exceptionServiceStats.ratePerMinute);
+    writer.writeStringValue("service_name", exceptionServiceStats.serviceName);
+    writer.writeAdditionalData(exceptionServiceStats.additionalData);
 }
 
 /**
@@ -335,15 +335,15 @@ export function serializeExceptionServiceStats(writer: SerializationWriter, exce
  */
 // @ts-ignore
 export function serializeExceptionStats(writer: SerializationWriter, exceptionStats: Partial<ExceptionStats> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!exceptionStats || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeCollectionOfObjectValues<ExceptionServiceStats>("by_service", exceptionStats.byService, serializeExceptionServiceStats);
-  writer.writeCollectionOfObjectValues<ExceptionTypeStats>("by_type", exceptionStats.byType, serializeExceptionTypeStats);
-  writer.writeNumberValue("total_count", exceptionStats.totalCount);
-  writer.writeEnumValue<ExceptionTrend>("trend", exceptionStats.trend);
-  writer.writeNumberValue("unique_types", exceptionStats.uniqueTypes);
-  writer.writeAdditionalData(exceptionStats.additionalData);
+    if (!exceptionStats || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeCollectionOfObjectValues<ExceptionServiceStats>("by_service", exceptionStats.byService, serializeExceptionServiceStats);
+    writer.writeCollectionOfObjectValues<ExceptionTypeStats>("by_type", exceptionStats.byType, serializeExceptionTypeStats);
+    writer.writeNumberValue("total_count", exceptionStats.totalCount);
+    writer.writeEnumValue<ExceptionTrend>("trend", exceptionStats.trend);
+    writer.writeNumberValue("unique_types", exceptionStats.uniqueTypes);
+    writer.writeAdditionalData(exceptionStats.additionalData);
 }
 
 /**
@@ -354,34 +354,34 @@ export function serializeExceptionStats(writer: SerializationWriter, exceptionSt
  */
 // @ts-ignore
 export function serializeExceptionTypeStats(writer: SerializationWriter, exceptionTypeStats: Partial<ExceptionTypeStats> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!exceptionTypeStats || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeNumberValue("count", exceptionTypeStats.count);
-  writer.writeStringValue("exception_type", exceptionTypeStats.exceptionType);
-  writer.writeNumberValue("percentage", exceptionTypeStats.percentage);
-  writer.writeEnumValue<ExceptionStatus>("status", exceptionTypeStats.status);
-  writer.writeAdditionalData(exceptionTypeStats.additionalData);
+    if (!exceptionTypeStats || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeNumberValue("count", exceptionTypeStats.count);
+    writer.writeStringValue("exception_type", exceptionTypeStats.exceptionType);
+    writer.writeNumberValue("percentage", exceptionTypeStats.percentage);
+    writer.writeEnumValue<ExceptionStatus>("status", exceptionTypeStats.status);
+    writer.writeAdditionalData(exceptionTypeStats.additionalData);
 }
 
 /**
  * Exception status
  */
 export const ExceptionStatusObject = {
-  NewEscaped: "new",
-  Investigating: "investigating",
-  In_progress: "in_progress",
-  Resolved: "resolved",
-  Ignored: "ignored",
-  Regressed: "regressed",
+    NewEscaped: "new",
+    Investigating: "investigating",
+    In_progress: "in_progress",
+    Resolved: "resolved",
+    Ignored: "ignored",
+    Regressed: "regressed",
 } as const;
 /**
  * Exception trend
  */
 export const ExceptionTrendObject = {
-  Up: "up",
-  Down: "down",
-  Stable: "stable",
+    Up: "up",
+    Down: "down",
+    Stable: "stable",
 } as const;
 /* tslint:enable */
 /* eslint-enable */

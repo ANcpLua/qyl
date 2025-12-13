@@ -5,18 +5,18 @@
 import {type DeploymentCreate, serializeDeploymentCreate} from '../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createValidationErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type ValidationError
+    createInternalServerErrorFromDiscriminatorValue,
+    createValidationErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type ValidationError
 } from '../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {
-  createDeploymentEntityFromDiscriminatorValue,
-  type DeploymentEntity,
-  DeploymentEnvironment,
-  DeploymentStatus,
-  serializeDeploymentEntity
+    createDeploymentEntityFromDiscriminatorValue,
+    type DeploymentEntity,
+    DeploymentEnvironment,
+    DeploymentStatus,
+    serializeDeploymentEntity
 } from '../../models/qyl/domains/ops/deployment/index.js';
 // @ts-ignore
 import {type WithDeploymentItemRequestBuilder, WithDeploymentItemRequestBuilderRequestsMetadata} from './item/index.js';
@@ -24,17 +24,17 @@ import {type WithDeploymentItemRequestBuilder, WithDeploymentItemRequestBuilderR
 import {type MetricsRequestBuilder, MetricsRequestBuilderNavigationMetadata} from './metrics/index.js';
 // @ts-ignore
 import {
-  type AdditionalDataHolder,
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata,
-  type Parsable,
-  type ParsableFactory,
-  type ParseNode,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata,
-  type SerializationWriter
+    type AdditionalDataHolder,
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata,
+    type Parsable,
+    type ParsableFactory,
+    type ParseNode,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata,
+    type SerializationWriter
 } from '@microsoft/kiota-abstractions';
 
 /**
@@ -44,114 +44,114 @@ import {
  */
 // @ts-ignore
 export function createDeploymentsGetResponseFromDiscriminatorValue(parseNode: ParseNode | undefined): ((instance?: Parsable) => Record<string, (node: ParseNode) => void>) {
-  return deserializeIntoDeploymentsGetResponse;
+    return deserializeIntoDeploymentsGetResponse;
 }
 
 /**
  * Cursor-based paginated response wrapper
  */
 export interface DeploymentsGetResponse extends AdditionalDataHolder, Parsable {
-  /**
-   * Whether there are more items available
-   */
-  hasMore?: boolean | null;
-  /**
-   * List of items in this page
-   */
-  items?: DeploymentEntity[] | null;
-  /**
-   * Cursor for the next page (null if no more pages)
-   */
-  nextCursor?: string | null;
-  /**
-   * Cursor for the previous page (null if first page)
-   */
-  prevCursor?: string | null;
+    /**
+     * Whether there are more items available
+     */
+    hasMore?: boolean | null;
+    /**
+     * List of items in this page
+     */
+    items?: DeploymentEntity[] | null;
+    /**
+     * Cursor for the next page (null if no more pages)
+     */
+    nextCursor?: string | null;
+    /**
+     * Cursor for the previous page (null if first page)
+     */
+    prevCursor?: string | null;
 }
 
 /**
  * Builds and executes requests for operations under /v1/deployments
  */
 export interface DeploymentsRequestBuilder extends BaseRequestBuilder<DeploymentsRequestBuilder> {
-  /**
-   * The metrics property
-   */
-  get metrics(): MetricsRequestBuilder;
+    /**
+     * The metrics property
+     */
+    get metrics(): MetricsRequestBuilder;
 
-  /**
-   * Gets an item from the ApiSdk.v1.deployments.item collection
-   * @param deploymentId Unique identifier of the item
-   * @returns {WithDeploymentItemRequestBuilder}
-   */
-  byDeploymentId(deploymentId: string): WithDeploymentItemRequestBuilder;
+    /**
+     * Gets an item from the ApiSdk.v1.deployments.item collection
+     * @param deploymentId Unique identifier of the item
+     * @returns {WithDeploymentItemRequestBuilder}
+     */
+    byDeploymentId(deploymentId: string): WithDeploymentItemRequestBuilder;
 
-  /**
-   * List deployments
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<DeploymentsGetResponse>}
-   * @throws {ValidationError} error when the service returns a 400 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<DeploymentsRequestBuilderGetQueryParameters> | undefined): Promise<DeploymentsGetResponse | undefined>;
+    /**
+     * List deployments
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<DeploymentsGetResponse>}
+     * @throws {ValidationError} error when the service returns a 400 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<DeploymentsRequestBuilderGetQueryParameters> | undefined): Promise<DeploymentsGetResponse | undefined>;
 
-  /**
-   * Record new deployment
-   * @param body Deployment creation request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<DeploymentEntity>}
-   * @throws {ValidationError} error when the service returns a 400 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  post(body: DeploymentCreate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
+    /**
+     * Record new deployment
+     * @param body Deployment creation request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<DeploymentEntity>}
+     * @throws {ValidationError} error when the service returns a 400 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    post(body: DeploymentCreate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
 
-  /**
-   * List deployments
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<DeploymentsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
+    /**
+     * List deployments
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<DeploymentsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
 
-  /**
-   * Record new deployment
-   * @param body Deployment creation request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toPostRequestInformation(body: DeploymentCreate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Record new deployment
+     * @param body Deployment creation request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toPostRequestInformation(body: DeploymentCreate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
  * List deployments
  */
 export interface DeploymentsRequestBuilderGetQueryParameters {
-  /**
-   * Cursor
-   */
-  cursor?: string;
-  /**
-   * End time
-   */
-  endTime?: Date;
-  /**
-   * Environment filter
-   */
-  environment?: DeploymentEnvironment;
-  /**
-   * Page size
-   */
-  limit?: number;
-  /**
-   * Service name filter
-   */
-  serviceName?: string;
-  /**
-   * Start time
-   */
-  startTime?: Date;
-  /**
-   * Status filter
-   */
-  status?: DeploymentStatus;
+    /**
+     * Cursor
+     */
+    cursor?: string;
+    /**
+     * End time
+     */
+    endTime?: Date;
+    /**
+     * Environment filter
+     */
+    environment?: DeploymentEnvironment;
+    /**
+     * Page size
+     */
+    limit?: number;
+    /**
+     * Service name filter
+     */
+    serviceName?: string;
+    /**
+     * Start time
+     */
+    startTime?: Date;
+    /**
+     * Status filter
+     */
+    status?: DeploymentStatus;
 }
 
 /**
@@ -161,20 +161,20 @@ export interface DeploymentsRequestBuilderGetQueryParameters {
  */
 // @ts-ignore
 export function deserializeIntoDeploymentsGetResponse(deploymentsGetResponse: Partial<DeploymentsGetResponse> | undefined = {}): Record<string, (node: ParseNode) => void> {
-  return {
-    "has_more": n => {
-      deploymentsGetResponse.hasMore = n.getBooleanValue();
-    },
-    "items": n => {
-      deploymentsGetResponse.items = n.getCollectionOfObjectValues<DeploymentEntity>(createDeploymentEntityFromDiscriminatorValue);
-    },
-    "next_cursor": n => {
-      deploymentsGetResponse.nextCursor = n.getStringValue();
-    },
-    "prev_cursor": n => {
-      deploymentsGetResponse.prevCursor = n.getStringValue();
-    },
-  }
+    return {
+        "has_more": n => {
+            deploymentsGetResponse.hasMore = n.getBooleanValue();
+        },
+        "items": n => {
+            deploymentsGetResponse.items = n.getCollectionOfObjectValues<DeploymentEntity>(createDeploymentEntityFromDiscriminatorValue);
+        },
+        "next_cursor": n => {
+            deploymentsGetResponse.nextCursor = n.getStringValue();
+        },
+        "prev_cursor": n => {
+            deploymentsGetResponse.prevCursor = n.getStringValue();
+        },
+    }
 }
 
 /**
@@ -185,14 +185,14 @@ export function deserializeIntoDeploymentsGetResponse(deploymentsGetResponse: Pa
  */
 // @ts-ignore
 export function serializeDeploymentsGetResponse(writer: SerializationWriter, deploymentsGetResponse: Partial<DeploymentsGetResponse> | undefined | null = {}, isSerializingDerivedType: boolean = false): void {
-  if (!deploymentsGetResponse || isSerializingDerivedType) {
-    return;
-  }
-  writer.writeBooleanValue("has_more", deploymentsGetResponse.hasMore);
-  writer.writeCollectionOfObjectValues<DeploymentEntity>("items", deploymentsGetResponse.items, serializeDeploymentEntity);
-  writer.writeStringValue("next_cursor", deploymentsGetResponse.nextCursor);
-  writer.writeStringValue("prev_cursor", deploymentsGetResponse.prevCursor);
-  writer.writeAdditionalData(deploymentsGetResponse.additionalData);
+    if (!deploymentsGetResponse || isSerializingDerivedType) {
+        return;
+    }
+    writer.writeBooleanValue("has_more", deploymentsGetResponse.hasMore);
+    writer.writeCollectionOfObjectValues<DeploymentEntity>("items", deploymentsGetResponse.items, serializeDeploymentEntity);
+    writer.writeStringValue("next_cursor", deploymentsGetResponse.nextCursor);
+    writer.writeStringValue("prev_cursor", deploymentsGetResponse.prevCursor);
+    writer.writeAdditionalData(deploymentsGetResponse.additionalData);
 }
 
 /**
@@ -203,41 +203,41 @@ export const DeploymentsRequestBuilderUriTemplate = "{+baseurl}/v1/deployments{?
  * Metadata for all the navigation properties in the request builder.
  */
 export const DeploymentsRequestBuilderNavigationMetadata: Record<Exclude<keyof DeploymentsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  byDeploymentId: {
-    requestsMetadata: WithDeploymentItemRequestBuilderRequestsMetadata,
-    pathParametersMappings: ["deploymentId"],
-  },
-  metrics: {
-    navigationMetadata: MetricsRequestBuilderNavigationMetadata,
-  },
+    byDeploymentId: {
+        requestsMetadata: WithDeploymentItemRequestBuilderRequestsMetadata,
+        pathParametersMappings: ["deploymentId"],
+    },
+    metrics: {
+        navigationMetadata: MetricsRequestBuilderNavigationMetadata,
+    },
 };
 /**
  * Metadata for all the requests in the request builder.
  */
 export const DeploymentsRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: DeploymentsRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: DeploymentsRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createDeploymentsGetResponseFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createDeploymentsGetResponseFromDiscriminatorValue,
-  },
-  post: {
-    uriTemplate: DeploymentsRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    post: {
+        uriTemplate: DeploymentsRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
+        requestBodyContentType: "application/json",
+        requestBodySerializer: serializeDeploymentCreate,
+        requestInformationContentSetMethod: "setContentFromParsable",
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
-    requestBodyContentType: "application/json",
-    requestBodySerializer: serializeDeploymentCreate,
-    requestInformationContentSetMethod: "setContentFromParsable",
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

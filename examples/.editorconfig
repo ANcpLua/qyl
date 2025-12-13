@@ -1,10 +1,14 @@
 # =============================================================================
-# qyl EditorConfig - Examples (RELAXED)
+# qyl EditorConfig - Examples
+# This file exists for IDE compatibility. Rules are defined in root .editorconfig
+# under [examples/**/*.cs] section. Both files have identical rules.
 # =============================================================================
 
+root = true
+
 [*.cs]
-# Relaxed for examples
-dotnet_diagnostic.CA1816.severity = none       # Dispose pattern
-dotnet_diagnostic.CA2000.severity = none       # Dispose objects
-dotnet_diagnostic.CS1591.severity = none       # XML docs
-dotnet_diagnostic.VSTHRD111.severity = none    # ConfigureAwait
+# Relaxed for examples - mirrors root [examples/**/*.cs] section
+dotnet_diagnostic.CA1816.severity = none # Dispose pattern
+dotnet_diagnostic.CA2000.severity = none # Dispose objects
+dotnet_diagnostic.CS1591.severity = none # XML docs
+dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait

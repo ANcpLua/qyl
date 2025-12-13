@@ -35,7 +35,11 @@ builder.Services.AddSingleton<McpServer>();
 
 builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
 
-builder.Services.AddSingleton<SessionAggregator>();
+builder.Services.AddSingleton(sp =>
+{
+    var store = sp.GetRequiredService<DuckDbStore>();
+    return new SessionQueryService(store.Connection);
+});
 
 var app = builder.Build();
 
@@ -60,7 +64,7 @@ app.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
             HttpOnly = true,
             Secure = context.Request.IsHttps,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(3),
+            Expires = TimeProvider.System.GetUtcNow().AddDays(3),
             Path = "/"
         });
 
@@ -93,31 +97,41 @@ app.MapGet("/api/auth/check", (HttpContext context) =>
     });
 });
 
-app.MapGet("/api/v1/sessions", (SessionAggregator aggregator, int? limit, string? serviceName) =>
-{
-    var sessions = serviceName is not null
-        ? aggregator.GetSessionsByService(serviceName, limit ?? 100)
-        : aggregator.GetSessions(limit ?? 100);
+app.MapGet("/api/v1/sessions",
+    async (SessionQueryService queryService, int? limit, string? serviceName, CancellationToken ct) =>
+    {
+        var sessions = await queryService.GetSessionsAsync(limit ?? 100, 0, serviceName, ct: ct).ConfigureAwait(false);
+        var response = SessionMapper.ToListResponse(sessions, sessions.Count, false);
+        return Results.Ok(response);
+    });
 
-    var response = SessionMapper.ToListResponse(sessions, sessions.Count, false);
-    return Results.Ok(response);
-});
+app.MapGet("/api/v1/sessions/{sessionId}",
+    async (string sessionId, SessionQueryService queryService, CancellationToken ct) =>
+    {
+        var session = await queryService.GetSessionAsync(sessionId, ct).ConfigureAwait(false);
+        if (session is null) return Results.NotFound();
 
-app.MapGet("/api/v1/sessions/{sessionId}", (string sessionId, SessionAggregator aggregator) =>
-{
-    var session = aggregator.GetSession(sessionId);
-    if (session is null) return Results.NotFound();
-
-    return Results.Ok(SessionMapper.ToDto(session));
-});
+        return Results.Ok(SessionMapper.ToDto(session));
+    });
 
 app.MapGet("/api/v1/sessions/{sessionId}/spans",
-    async (string sessionId, DuckDbStore store, SessionAggregator aggregator) =>
+    async (string sessionId, DuckDbStore store, CancellationToken ct) =>
     {
-        var spans = await store.GetSpansBySessionAsync(sessionId).ConfigureAwait(false);
+        var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
 
-        var session = aggregator.GetSession(sessionId);
-        var serviceName = session?.Services.Count > 0 ? session.Services[0] : "unknown";
+        // Extract service name from first span's attributes if available
+        var serviceName = "unknown";
+        if (spans.Count > 0 && spans[0].Attributes is not null)
+            try
+            {
+                var attrs = JsonSerializer.Deserialize<Dictionary<string, string>>(spans[0].Attributes);
+                if (attrs?.TryGetValue("service.name", out var svc) == true)
+                    serviceName = svc;
+            }
+            catch
+            {
+                /* ignore parse errors */
+            }
 
         var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
         return Results.Ok(new SpanListResponseDto
@@ -149,7 +163,6 @@ app.MapSseEndpoints();
 app.MapPost("/api/v1/ingest", async (
     HttpContext context,
     DuckDbStore store,
-    SessionAggregator aggregator,
     ITelemetrySseBroadcaster broadcaster) =>
 {
     SpanBatch? batch;
@@ -168,8 +181,6 @@ app.MapPost("/api/v1/ingest", async (
 
     await store.EnqueueAsync(batch);
 
-    foreach (var span in batch.Spans) aggregator.TrackSpan(span);
-
     broadcaster.PublishSpans(batch);
 
     return Results.Accepted();
@@ -178,7 +189,6 @@ app.MapPost("/api/v1/ingest", async (
 app.MapPost("/v1/traces", async (
     HttpContext context,
     DuckDbStore store,
-    SessionAggregator aggregator,
     ITelemetrySseBroadcaster broadcaster) =>
 {
     try
@@ -194,8 +204,6 @@ app.MapPost("/v1/traces", async (
         var batch = new SpanBatch(spans);
 
         await store.EnqueueAsync(batch);
-
-        foreach (var span in spans) aggregator.TrackSpan(span);
 
         broadcaster.PublishSpans(batch);
 
@@ -286,8 +294,6 @@ app.MapGet("/ready", () => Results.Ok(new
     status = "ready"
 }));
 
-app.MapGet("/", () => Results.Redirect("/index.html"));
-
 app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
@@ -325,248 +331,246 @@ static List<SpanRecord> ConvertOtlpToSpanRecords(OtlpExportTraceServiceRequest o
             .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue ?? "unknown";
 
         foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
+        foreach (var span in scopeSpan.Spans ?? [])
         {
-            foreach (var span in scopeSpan.Spans ?? [])
+            var attributes = new Dictionary<string, string>
             {
-                var attributes = new Dictionary<string, string>
-                {
-                    ["service.name"] = serviceName
-                };
+                ["service.name"] = serviceName
+            };
 
-                foreach (var attr in span.Attributes ?? [])
-                {
-                    if (attr.Key is not null)
-                        attributes[attr.Key] = attr.Value?.StringValue
-                                               ?? attr.Value?.IntValue?.ToString()
-                                               ?? attr.Value?.DoubleValue?.ToString()
-                                               ?? attr.Value?.BoolValue?.ToString()?.ToLowerInvariant()
-                                               ?? "";
-                }
+            foreach (var attr in span.Attributes ?? [])
+                if (attr.Key is not null)
+                    attributes[attr.Key] = attr.Value?.StringValue
+                                           ?? attr.Value?.IntValue?.ToString()
+                                           ?? attr.Value?.DoubleValue?.ToString()
+                                           ?? attr.Value?.BoolValue?.ToString()?.ToLowerInvariant()
+                                           ?? "";
 
-                spans.Add(new SpanRecord
-                {
-                    TraceId = span.TraceId ?? "",
-                    SpanId = span.SpanId ?? "",
-                    ParentSpanId = span.ParentSpanId,
-                    SessionId = attributes.GetValueOrDefault("session.id"),
-                    Name = span.Name ?? "unknown",
-                    Kind = span.Kind?.ToString(),
-                    StartTime = DateTime.UnixEpoch.AddTicks(span.StartTimeUnixNano / 100),
-                    EndTime = DateTime.UnixEpoch.AddTicks(span.EndTimeUnixNano / 100),
-                    StatusCode = span.Status?.Code,
-                    StatusMessage = span.Status?.Message,
-                    Attributes =
-                        JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-                    Events = null,
+            spans.Add(new SpanRecord
+            {
+                TraceId = span.TraceId ?? "",
+                SpanId = span.SpanId ?? "",
+                ParentSpanId = span.ParentSpanId,
+                SessionId = attributes.GetValueOrDefault("session.id"),
+                Name = span.Name ?? "unknown",
+                Kind = span.Kind?.ToString(),
+                StartTime = DateTime.UnixEpoch.AddTicks(span.StartTimeUnixNano / 100),
+                EndTime = DateTime.UnixEpoch.AddTicks(span.EndTimeUnixNano / 100),
+                StatusCode = span.Status?.Code,
+                StatusMessage = span.Status?.Message,
+                Attributes =
+                    JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+                Events = null,
 
-                    ProviderName = attributes.GetValueOrDefault("gen_ai.system"),
-                    RequestModel = attributes.GetValueOrDefault("gen_ai.request.model"),
-                    TokensIn = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.input_tokens"), out var tin)
-                        ? tin
-                        : null,
-                    TokensOut = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.output_tokens"), out var tout)
-                        ? tout
-                        : null,
-                    CostUsd = null
-                });
-            }
+                ProviderName = attributes.GetValueOrDefault("gen_ai.system"),
+                RequestModel = attributes.GetValueOrDefault("gen_ai.request.model"),
+                TokensIn = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.input_tokens"), out var tin)
+                    ? tin
+                    : null,
+                TokensOut = int.TryParse(attributes.GetValueOrDefault("gen_ai.usage.output_tokens"), out var tout)
+                    ? tout
+                    : null,
+                CostUsd = null
+            });
         }
     }
 
     return spans;
 }
 
-static string GetFallbackHtml(string token) =>
-    $$"""
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>qyl. Dashboard</title>
-          <style>
-              * { margin: 0; padding: 0; box-sizing: border-box; }
-              body {
-                  font-family: system-ui, -apple-system, sans-serif;
-                  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                  min-height: 100vh;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: #e0e0e0;
-              }
-              .container {
-                  text-align: center;
-                  padding: 2rem;
-                  max-width: 500px;
-              }
-              h1 {
-                  font-size: 3rem;
-                  margin-bottom: 1rem;
-                  background: linear-gradient(90deg, #00d4ff, #7c3aed);
-                  -webkit-background-clip: text;
-                  -webkit-text-fill-color: transparent;
-              }
-              .subtitle { color: #888; margin-bottom: 2rem; }
-              .login-form {
-                  background: rgba(255,255,255,0.05);
-                  border: 1px solid rgba(255,255,255,0.1);
-                  border-radius: 12px;
-                  padding: 2rem;
-                  margin-bottom: 1.5rem;
-              }
-              .form-group { margin-bottom: 1rem; text-align: left; }
-              label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
-              input {
-                  width: 100%;
-                  padding: 0.75rem 1rem;
-                  border: 1px solid rgba(255,255,255,0.2);
-                  border-radius: 8px;
-                  background: rgba(0,0,0,0.3);
-                  color: #fff;
-                  font-size: 1rem;
-                  font-family: monospace;
-              }
-              input:focus { outline: none; border-color: #00d4ff; }
-              button {
-                  width: 100%;
-                  padding: 0.75rem;
-                  border: none;
-                  border-radius: 8px;
-                  background: linear-gradient(90deg, #00d4ff, #7c3aed);
-                  color: #fff;
-                  font-size: 1rem;
-                  font-weight: 600;
-                  cursor: pointer;
-                  transition: transform 0.2s, box-shadow 0.2s;
-              }
-              button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
-              .help-link {
-                  color: #00d4ff;
-                  text-decoration: none;
-                  font-size: 0.9rem;
-              }
-              .help-link:hover { text-decoration: underline; }
-              .help-modal {
-                  display: none;
-                  position: fixed;
-                  top: 0;
-                  left: 0;
-                  right: 0;
-                  bottom: 0;
-                  background: rgba(0,0,0,0.8);
-                  align-items: center;
-                  justify-content: center;
-              }
-              .help-modal.show { display: flex; }
-              .help-content {
-                  background: #1a1a2e;
-                  border: 1px solid rgba(255,255,255,0.1);
-                  border-radius: 12px;
-                  padding: 2rem;
-                  max-width: 500px;
-                  text-align: left;
-              }
-              .help-content h2 { margin-bottom: 1rem; }
-              .help-content pre {
-                  background: rgba(0,0,0,0.3);
-                  padding: 1rem;
-                  border-radius: 8px;
-                  overflow-x: auto;
-                  color: #00d4ff;
-                  margin: 1rem 0;
-              }
-              .help-content .close {
-                  float: right;
-                  background: none;
-                  border: none;
-                  color: #888;
-                  font-size: 1.5rem;
-                  cursor: pointer;
-                  width: auto;
-                  padding: 0;
-              }
-              .error { color: #ff6b6b; margin-top: 1rem; display: none; }
-          </style>
-      </head>
-      <body>
-          <div class="container">
-              <h1>qyl.</h1>
-              <p class="subtitle">AI Observability Dashboard</p>
+static string GetFallbackHtml(string token)
+{
+    return $$"""
+             <!DOCTYPE html>
+             <html lang="en">
+             <head>
+                 <meta charset="UTF-8">
+                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                 <title>qyl. Dashboard</title>
+                 <style>
+                     * { margin: 0; padding: 0; box-sizing: border-box; }
+                     body {
+                         font-family: system-ui, -apple-system, sans-serif;
+                         background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                         min-height: 100vh;
+                         display: flex;
+                         align-items: center;
+                         justify-content: center;
+                         color: #e0e0e0;
+                     }
+                     .container {
+                         text-align: center;
+                         padding: 2rem;
+                         max-width: 500px;
+                     }
+                     h1 {
+                         font-size: 3rem;
+                         margin-bottom: 1rem;
+                         background: linear-gradient(90deg, #00d4ff, #7c3aed);
+                         -webkit-background-clip: text;
+                         -webkit-text-fill-color: transparent;
+                     }
+                     .subtitle { color: #888; margin-bottom: 2rem; }
+                     .login-form {
+                         background: rgba(255,255,255,0.05);
+                         border: 1px solid rgba(255,255,255,0.1);
+                         border-radius: 12px;
+                         padding: 2rem;
+                         margin-bottom: 1.5rem;
+                     }
+                     .form-group { margin-bottom: 1rem; text-align: left; }
+                     label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
+                     input {
+                         width: 100%;
+                         padding: 0.75rem 1rem;
+                         border: 1px solid rgba(255,255,255,0.2);
+                         border-radius: 8px;
+                         background: rgba(0,0,0,0.3);
+                         color: #fff;
+                         font-size: 1rem;
+                         font-family: monospace;
+                     }
+                     input:focus { outline: none; border-color: #00d4ff; }
+                     button {
+                         width: 100%;
+                         padding: 0.75rem;
+                         border: none;
+                         border-radius: 8px;
+                         background: linear-gradient(90deg, #00d4ff, #7c3aed);
+                         color: #fff;
+                         font-size: 1rem;
+                         font-weight: 600;
+                         cursor: pointer;
+                         transition: transform 0.2s, box-shadow 0.2s;
+                     }
+                     button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
+                     .help-link {
+                         color: #00d4ff;
+                         text-decoration: none;
+                         font-size: 0.9rem;
+                     }
+                     .help-link:hover { text-decoration: underline; }
+                     .help-modal {
+                         display: none;
+                         position: fixed;
+                         top: 0;
+                         left: 0;
+                         right: 0;
+                         bottom: 0;
+                         background: rgba(0,0,0,0.8);
+                         align-items: center;
+                         justify-content: center;
+                     }
+                     .help-modal.show { display: flex; }
+                     .help-content {
+                         background: #1a1a2e;
+                         border: 1px solid rgba(255,255,255,0.1);
+                         border-radius: 12px;
+                         padding: 2rem;
+                         max-width: 500px;
+                         text-align: left;
+                     }
+                     .help-content h2 { margin-bottom: 1rem; }
+                     .help-content pre {
+                         background: rgba(0,0,0,0.3);
+                         padding: 1rem;
+                         border-radius: 8px;
+                         overflow-x: auto;
+                         color: #00d4ff;
+                         margin: 1rem 0;
+                     }
+                     .help-content .close {
+                         float: right;
+                         background: none;
+                         border: none;
+                         color: #888;
+                         font-size: 1.5rem;
+                         cursor: pointer;
+                         width: auto;
+                         padding: 0;
+                     }
+                     .error { color: #ff6b6b; margin-top: 1rem; display: none; }
+                 </style>
+             </head>
+             <body>
+                 <div class="container">
+                     <h1>qyl.</h1>
+                     <p class="subtitle">AI Observability Dashboard</p>
 
-              <div class="login-form">
-                  <form id="loginForm">
-                      <div class="form-group">
-                          <label for="token">Authentication Token</label>
-                          <input type="password" id="token" name="token" placeholder="Enter your token" autocomplete="off">
-                      </div>
-                      <button type="submit">Login</button>
-                      <p class="error" id="error">Invalid token. Please try again.</p>
-                  </form>
-              </div>
+                     <div class="login-form">
+                         <form id="loginForm">
+                             <div class="form-group">
+                                 <label for="token">Authentication Token</label>
+                                 <input type="password" id="token" name="token" placeholder="Enter your token" autocomplete="off">
+                             </div>
+                             <button type="submit">Login</button>
+                             <p class="error" id="error">Invalid token. Please try again.</p>
+                         </form>
+                     </div>
 
-              <a href="#" class="help-link" onclick="showHelp()">Where do I find the token?</a>
-          </div>
+                     <a href="#" class="help-link" onclick="showHelp()">Where do I find the token?</a>
+                 </div>
 
-          <div class="help-modal" id="helpModal">
-              <div class="help-content">
-                  <button class="close" onclick="hideHelp()">&times;</button>
-                  <h2>Finding Your Token</h2>
-                  <p>The authentication token is displayed in the console when qyl.collector starts:</p>
-                  <pre>Login Token:
-      {{token}}</pre>
-                  <p>You can also:</p>
-                  <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                      <li>Click the login URL in the console output</li>
-                      <li>Set the <code>QYL_TOKEN</code> environment variable</li>
-                      <li>Pass <code>--QYL_TOKEN=yourtoken</code> on startup</li>
-                  </ul>
-              </div>
-          </div>
+                 <div class="help-modal" id="helpModal">
+                     <div class="help-content">
+                         <button class="close" onclick="hideHelp()">&times;</button>
+                         <h2>Finding Your Token</h2>
+                         <p>The authentication token is displayed in the console when qyl.collector starts:</p>
+                         <pre>Login Token:
+             {{token}}</pre>
+                         <p>You can also:</p>
+                         <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                             <li>Click the login URL in the console output</li>
+                             <li>Set the <code>QYL_TOKEN</code> environment variable</li>
+                             <li>Pass <code>--QYL_TOKEN=yourtoken</code> on startup</li>
+                         </ul>
+                     </div>
+                 </div>
 
-          <script>
-              document.getElementById('loginForm').addEventListener('submit', async (e) => {
-                  e.preventDefault();
-                  const token = document.getElementById('token').value;
-                  const error = document.getElementById('error');
+                 <script>
+                     document.getElementById('loginForm').addEventListener('submit', async (e) => {
+                         e.preventDefault();
+                         const token = document.getElementById('token').value;
+                         const error = document.getElementById('error');
 
-                  try {
-                      const res = await fetch('/api/login', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ token })
-                      });
+                         try {
+                             const res = await fetch('/api/login', {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ token })
+                             });
 
-                      if (res.ok) {
-                          window.location.reload();
-                      } else {
-                          error.style.display = 'block';
-                      }
-                  } catch (err) {
-                      error.style.display = 'block';
-                  }
-              });
+                             if (res.ok) {
+                                 window.location.reload();
+                             } else {
+                                 error.style.display = 'block';
+                             }
+                         } catch (err) {
+                             error.style.display = 'block';
+                         }
+                     });
 
-              function showHelp() { document.getElementById('helpModal').classList.add('show'); }
-              function hideHelp() { document.getElementById('helpModal').classList.remove('show'); }
-              document.getElementById('helpModal').addEventListener('click', (e) => {
-                  if (e.target.id === 'helpModal') hideHelp();
-              });
+                     function showHelp() { document.getElementById('helpModal').classList.add('show'); }
+                     function hideHelp() { document.getElementById('helpModal').classList.remove('show'); }
+                     document.getElementById('helpModal').addEventListener('click', (e) => {
+                         if (e.target.id === 'helpModal') hideHelp();
+                     });
 
-              // Check if already authenticated
-              fetch('/api/auth/check')
-                  .then(r => r.json())
-                  .then(data => {
-                      if (data.authenticated) {
-                          document.querySelector('.container').innerHTML = `
-                              <h1>qyl.</h1>
-                              <p class="subtitle">Dashboard not built yet</p>
-                              <p style="margin-top: 2rem;">Run <code>npm run build</code> in <code>src/qyl.dashboard</code></p>
-                              <p style="margin-top: 1rem;"><a href="/api/logout" class="help-link" onclick="fetch('/api/logout', {method:'POST'}).then(()=>location.reload());return false;">Logout</a></p>
-                          `;
-                      }
-                  });
-          </script>
-      </body>
-      </html>
-      """;
+                     // Check if already authenticated
+                     fetch('/api/auth/check')
+                         .then(r => r.json())
+                         .then(data => {
+                             if (data.authenticated) {
+                                 document.querySelector('.container').innerHTML = `
+                                     <h1>qyl.</h1>
+                                     <p class="subtitle">Dashboard not built yet</p>
+                                     <p style="margin-top: 2rem;">Run <code>npm run build</code> in <code>src/qyl.dashboard</code></p>
+                                     <p style="margin-top: 1rem;"><a href="/api/logout" class="help-link" onclick="fetch('/api/logout', {method:'POST'}).then(()=>location.reload());return false;">Logout</a></p>
+                                 `;
+                             }
+                         });
+                 </script>
+             </body>
+             </html>
+             """;
+}

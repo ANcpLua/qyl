@@ -20,11 +20,16 @@
 
   <!-- Quality -->
   <PropertyGroup>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- EnforceCodeStyleInBuild: Ensures .editorconfig rules are enforced in CI builds -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>10.0</AnalysisLevel>
-    <AnalysisMode>All</AnalysisMode>
+    <!-- AnalysisMode=Recommended: Enables stable rules only (not experimental/All) -->
+    <AnalysisMode>Recommended</AnalysisMode>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- WarningsAsErrors: Explicit list of critical rules that should fail builds -->
+    <!-- Using WarningsAsErrors instead of TreatWarningsAsErrors allows NoWarn to work -->
+    <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003;RS0030</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- AOT -->
@@ -43,7 +48,7 @@
   </PropertyGroup>
 
   <!-- Import Shared Props -->
-  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props" />
+  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
 
   <!-- BannedApiAnalyzers -->
   <ItemGroup>
@@ -51,7 +56,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-    <AdditionalFiles Include="$(MSBuildThisFileDirectory)eng/MSBuild/BannedSymbols.txt" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)eng/MSBuild/BannedSymbols.txt"/>
   </ItemGroup>
 
   <!-- Analyzers -->

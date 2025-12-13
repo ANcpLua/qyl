@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <!-- LEAF project - shared contracts between all qyl components -->
+    <Description>Shared types and contracts for qyl AI Observability Platform</Description>
+    <PackageId>Qyl.Protocol</PackageId>
+    <Authors>ANcpLua</Authors>
+
+    <!-- SDK injection features -->
+    <InjectSharedThrow>true</InjectSharedThrow>
+    <InjectCallerAttributesOnLegacy>true</InjectCallerAttributesOnLegacy>
+    <InjectDiagnosticAttributesOnLegacy>true</InjectDiagnosticAttributesOnLegacy>
+    <InjectIsExternalInitOnLegacy>true</InjectIsExternalInitOnLegacy>
+
+    <!-- AOT compatibility -->
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <!-- BCL only - LEAF project has no external dependencies -->
+
+</Project>

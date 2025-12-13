@@ -33,7 +33,7 @@ public sealed class SchemaNormalizer
 
         var result = new Dictionary<string, object?>(attributes.Count, StringComparer.Ordinal);
 
-        foreach ((var key, var value) in attributes)
+        foreach (var (key, value) in attributes)
         {
             var normalizedKey = Normalize(key);
             result[normalizedKey] = value;
@@ -42,13 +42,19 @@ public sealed class SchemaNormalizer
         return result;
     }
 
-    public static string Normalize(string attributeName) =>
-        _deprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
+    public static string Normalize(string attributeName)
+    {
+        return _deprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
+    }
 
 
-    public bool IsDeprecated(string attributeName) =>
-        _deprecatedAttributes.ContainsKey(attributeName);
+    public bool IsDeprecated(string attributeName)
+    {
+        return _deprecatedAttributes.ContainsKey(attributeName);
+    }
 
-    public IReadOnlyDictionary<string, string> GetDeprecatedMappings() =>
-        _deprecatedAttributes;
+    public IReadOnlyDictionary<string, string> GetDeprecatedMappings()
+    {
+        return _deprecatedAttributes;
+    }
 }

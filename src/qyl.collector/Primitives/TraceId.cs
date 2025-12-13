@@ -13,8 +13,8 @@ using BinaryPrimitives = System.Buffers.Binary.BinaryPrimitives;
 namespace qyl.collector.Primitives;
 
 /// <summary>
-/// 128-bit W3C Trace ID. Stored as two ulongs for efficient comparison.
-/// Wire format: 32 lowercase hex characters.
+///     128-bit W3C Trace ID. Stored as two ulongs for efficient comparison.
+///     Wire format: 32 lowercase hex characters.
 /// </summary>
 [StructLayout(LayoutKind.Sequential)]
 public readonly record struct TraceId :
@@ -41,10 +41,7 @@ public readonly record struct TraceId :
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public TraceId(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length != _byteLength)
-        {
-            ThrowByteLengthException(bytes.Length);
-        }
+        if (bytes.Length != _byteLength) ThrowByteLengthException(bytes.Length);
 
         High = BinaryPrimitives.ReadUInt64BigEndian(bytes);
         Low = BinaryPrimitives.ReadUInt64BigEndian(bytes[8..]);
@@ -66,10 +63,7 @@ public readonly record struct TraceId :
     /// <inheritdoc />
     public static TraceId Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
     {
-        if (!TryParse(utf8Text, provider, out var result))
-        {
-            ThrowFormatException(utf8Text.Length);
-        }
+        if (!TryParse(utf8Text, provider, out var result)) ThrowFormatException(utf8Text.Length);
 
         return result;
     }
@@ -78,16 +72,10 @@ public readonly record struct TraceId :
     public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, out TraceId result)
     {
         result = default;
-        if (utf8Text.Length != _hexLength)
-        {
-            return false;
-        }
+        if (utf8Text.Length != _hexLength) return false;
 
         Span<byte> bytes = stackalloc byte[_byteLength];
-        if (Convert.FromHexString(utf8Text, bytes, out _, out _) != OperationStatus.Done)
-        {
-            return false;
-        }
+        if (Convert.FromHexString(utf8Text, bytes, out _, out _) != OperationStatus.Done) return false;
 
         result = new TraceId(bytes);
         return true;
@@ -100,10 +88,7 @@ public readonly record struct TraceId :
     /// <inheritdoc />
     public static TraceId Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
     {
-        if (!TryParse(s, provider, out var result))
-        {
-            ThrowFormatException(s.Length);
-        }
+        if (!TryParse(s, provider, out var result)) ThrowFormatException(s.Length);
 
         return result;
     }
@@ -112,16 +97,10 @@ public readonly record struct TraceId :
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out TraceId result)
     {
         result = default;
-        if (s.Length != _hexLength)
-        {
-            return false;
-        }
+        if (s.Length != _hexLength) return false;
 
         Span<byte> bytes = stackalloc byte[_byteLength];
-        if (Convert.FromHexString(s, bytes, out _, out _) != OperationStatus.Done)
-        {
-            return false;
-        }
+        if (Convert.FromHexString(s, bytes, out _, out _) != OperationStatus.Done) return false;
 
         result = new TraceId(bytes);
         return true;
@@ -132,8 +111,10 @@ public readonly record struct TraceId :
     // =========================================================================
 
     /// <inheritdoc />
-    public static TraceId Parse(string s, IFormatProvider? provider) =>
-        Parse(s.AsSpan(), provider);
+    public static TraceId Parse(string s, IFormatProvider? provider)
+    {
+        return Parse(s.AsSpan(), provider);
+    }
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out TraceId result)
@@ -159,10 +140,7 @@ public readonly record struct TraceId :
         IFormatProvider? provider)
     {
         bytesWritten = 0;
-        if (utf8Destination.Length < _hexLength)
-        {
-            return false;
-        }
+        if (utf8Destination.Length < _hexLength) return false;
 
         Span<byte> bytes = stackalloc byte[_byteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, High);
@@ -185,10 +163,7 @@ public readonly record struct TraceId :
         IFormatProvider? provider)
     {
         charsWritten = 0;
-        if (destination.Length < _hexLength)
-        {
-            return false;
-        }
+        if (destination.Length < _hexLength) return false;
 
         Span<byte> bytes = stackalloc byte[_byteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, High);
@@ -210,17 +185,24 @@ public readonly record struct TraceId :
     }
 
     /// <inheritdoc />
-    public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
+    public string ToString(string? format, IFormatProvider? formatProvider)
+    {
+        return ToString();
+    }
 
     // =========================================================================
     // Exception helpers (cold path)
     // =========================================================================
 
     [DoesNotReturn]
-    private static void ThrowFormatException(int actualLength) =>
+    private static void ThrowFormatException(int actualLength)
+    {
         throw new FormatException($"Invalid TraceId format: expected {_hexLength} hex characters, got {actualLength}");
+    }
 
     [DoesNotReturn]
-    private static void ThrowByteLengthException(int actualLength) =>
+    private static void ThrowByteLengthException(int actualLength)
+    {
         throw new ArgumentException($"Expected {_byteLength} bytes, got {actualLength}");
+    }
 }

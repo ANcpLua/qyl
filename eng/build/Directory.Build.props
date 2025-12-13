@@ -1,8 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
-  <!-- This file prevents unintended imports of unrelated MSBuild files -->
-  <!-- Uncomment to include parent Directory.Build.props file -->
-  <!--<Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />-->
+    <!-- Import parent Directory.Build.props for consistent analyzer configuration -->
+    <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
+
+    <!-- Build-specific overrides (Nuke build automation) -->
+    <PropertyGroup>
+        <!-- Nuke uses reflection and dynamic patterns, relax some rules -->
+        <!-- RS0030: BannedApi (DateTime.UtcNow OK for build scripts, not production code) -->
+        <!-- IL*: AOT warnings not applicable to build tooling -->
+        <!-- CS1591: XML docs not required for build code -->
+        <NoWarn>$(NoWarn);CA1822;CS0649;CS0169;CA1050;CA2211;IDE1006;RS0030;IL2026;IL3050;CS1591</NoWarn>
+        <!-- Build tooling doesn't need AOT compatibility -->
+        <IsAotCompatible>false</IsAotCompatible>
+    </PropertyGroup>
 
 </Project>

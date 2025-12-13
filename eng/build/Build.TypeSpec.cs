@@ -67,9 +67,7 @@ internal interface ITypeSpec : IHasSolution
                 Log.Information("OpenAPI generated: {Output} ({Size:N0} bytes)", OpenApiOutput, size);
             }
             else
-            {
                 Log.Warning("OpenAPI output not found at {Output}", OpenApiOutput);
-            }
         });
 
     Target GenerateCSharp => d => d
@@ -85,14 +83,14 @@ internal interface ITypeSpec : IHasSolution
 
             var process = ProcessTasks.StartProcess(
                 "kiota",
-                $"generate " +
-                $"--language csharp " +
+                "generate " +
+                "--language csharp " +
                 $"--openapi \"{OpenApiOutput}\" " +
                 $"--output \"{GeneratedCSharp}\" " +
-                $"--namespace-name Qyl.Core " +
-                $"--class-name QylClient " +
-                $"--exclude-backward-compatible " +
-                $"--clean-output",
+                "--namespace-name Qyl.Core " +
+                "--class-name QylClient " +
+                "--exclude-backward-compatible " +
+                "--clean-output",
                 RootDirectory,
                 logOutput: true
             );
@@ -115,13 +113,13 @@ internal interface ITypeSpec : IHasSolution
 
             var process = ProcessTasks.StartProcess(
                 "kiota",
-                $"generate " +
-                $"--language python " +
+                "generate " +
+                "--language python " +
                 $"--openapi \"{OpenApiOutput}\" " +
                 $"--output \"{GeneratedPython}\" " +
-                $"--class-name QylClient " +
-                $"--exclude-backward-compatible " +
-                $"--clean-output",
+                "--class-name QylClient " +
+                "--exclude-backward-compatible " +
+                "--clean-output",
                 RootDirectory,
                 logOutput: true
             );
@@ -144,13 +142,13 @@ internal interface ITypeSpec : IHasSolution
 
             var process = ProcessTasks.StartProcess(
                 "kiota",
-                $"generate " +
-                $"--language typescript " +
+                "generate " +
+                "--language typescript " +
                 $"--openapi \"{OpenApiOutput}\" " +
                 $"--output \"{GeneratedTypeScript}\" " +
-                $"--class-name QylClient " +
-                $"--exclude-backward-compatible " +
-                $"--clean-output",
+                "--class-name QylClient " +
+                "--exclude-backward-compatible " +
+                "--clean-output",
                 RootDirectory,
                 logOutput: true
             );

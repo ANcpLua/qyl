@@ -1,5 +1,4 @@
 using System.Data;
-using System.Data.Common;
 using System.Threading.Channels;
 using DuckDB.NET.Data;
 
@@ -8,98 +7,97 @@ namespace qyl.collector.Storage;
 public sealed class DuckDbStore : IAsyncDisposable
 {
     private const string _insertSpanSql = """
-                                         INSERT INTO spans (
-                                             trace_id, span_id, parent_span_id, session_id,
-                                             name, kind, start_time, end_time, status_code, status_message,
-                                             provider_name, request_model, tokens_in, tokens_out,
-                                             cost_usd, eval_score, eval_reason, attributes, events
-                                         ) VALUES (
-                                             $trace_id, $span_id, $parent_span_id, $session_id,
-                                             $name, $kind, $start_time, $end_time, $status_code, $status_message,
-                                             $provider_name, $request_model, $tokens_in, $tokens_out,
-                                             $cost_usd, $eval_score, $eval_reason, $attributes, $events
-                                         )
-                                         ON CONFLICT (trace_id, span_id) DO UPDATE SET
-                                             end_time = EXCLUDED.end_time,
-                                             status_code = EXCLUDED.status_code,
-                                             status_message = EXCLUDED.status_message,
-                                             tokens_in = EXCLUDED.tokens_in,
-                                             tokens_out = EXCLUDED.tokens_out,
-                                             cost_usd = EXCLUDED.cost_usd,
-                                             eval_score = EXCLUDED.eval_score,
-                                             eval_reason = EXCLUDED.eval_reason,
-                                             attributes = EXCLUDED.attributes,
-                                             events = EXCLUDED.events
-                                         """;
+                                          INSERT INTO spans (
+                                              trace_id, span_id, parent_span_id, session_id,
+                                              name, kind, start_time, end_time, status_code, status_message,
+                                              provider_name, request_model, tokens_in, tokens_out,
+                                              cost_usd, eval_score, eval_reason, attributes, events
+                                          ) VALUES (
+                                              $trace_id, $span_id, $parent_span_id, $session_id,
+                                              $name, $kind, $start_time, $end_time, $status_code, $status_message,
+                                              $provider_name, $request_model, $tokens_in, $tokens_out,
+                                              $cost_usd, $eval_score, $eval_reason, $attributes, $events
+                                          )
+                                          ON CONFLICT (trace_id, span_id) DO UPDATE SET
+                                              end_time = EXCLUDED.end_time,
+                                              status_code = EXCLUDED.status_code,
+                                              status_message = EXCLUDED.status_message,
+                                              tokens_in = EXCLUDED.tokens_in,
+                                              tokens_out = EXCLUDED.tokens_out,
+                                              cost_usd = EXCLUDED.cost_usd,
+                                              eval_score = EXCLUDED.eval_score,
+                                              eval_reason = EXCLUDED.eval_reason,
+                                              attributes = EXCLUDED.attributes,
+                                              events = EXCLUDED.events
+                                          """;
 
     private const string _schema = """
-                                  -- sessions table
-                                  CREATE TABLE IF NOT EXISTS sessions (
-                                      session_id VARCHAR PRIMARY KEY,
-                                      name VARCHAR,
-                                      user_id VARCHAR,
-                                      started_at TIMESTAMPTZ NOT NULL,
-                                      ended_at TIMESTAMPTZ,
-                                      metadata JSON
-                                  );
+                                   -- sessions table
+                                   CREATE TABLE IF NOT EXISTS sessions (
+                                       session_id VARCHAR PRIMARY KEY,
+                                       name VARCHAR,
+                                       user_id VARCHAR,
+                                       started_at TIMESTAMPTZ NOT NULL,
+                                       ended_at TIMESTAMPTZ,
+                                       metadata JSON
+                                   );
 
-                                  -- spans table (hot storage)
-                                  CREATE TABLE IF NOT EXISTS spans (
-                                      trace_id VARCHAR NOT NULL,
-                                      span_id VARCHAR NOT NULL,
-                                      parent_span_id VARCHAR,
-                                      session_id VARCHAR,
+                                   -- spans table (hot storage)
+                                   CREATE TABLE IF NOT EXISTS spans (
+                                       trace_id VARCHAR NOT NULL,
+                                       span_id VARCHAR NOT NULL,
+                                       parent_span_id VARCHAR,
+                                       session_id VARCHAR,
 
-                                      name VARCHAR NOT NULL,
-                                      kind VARCHAR,
-                                      start_time TIMESTAMPTZ NOT NULL,
-                                      end_time TIMESTAMPTZ NOT NULL,
-                                      duration_ms DOUBLE GENERATED ALWAYS AS (
-                                          EXTRACT(EPOCH FROM (end_time - start_time)) * 1000
-                                      ),
-                                      status_code INT,
-                                      status_message VARCHAR,
+                                       name VARCHAR NOT NULL,
+                                       kind VARCHAR,
+                                       start_time TIMESTAMPTZ NOT NULL,
+                                       end_time TIMESTAMPTZ NOT NULL,
+                                       duration_ms DOUBLE GENERATED ALWAYS AS (
+                                           EXTRACT(EPOCH FROM (end_time - start_time)) * 1000
+                                       ),
+                                       status_code INT,
+                                       status_message VARCHAR,
 
-                                      -- GenAI semantic conventions (v1.38)
-                                      provider_name VARCHAR,
-                                      request_model VARCHAR,
-                                      tokens_in INT,
-                                      tokens_out INT,
+                                       -- GenAI semantic conventions (v1.38)
+                                       provider_name VARCHAR,
+                                       request_model VARCHAR,
+                                       tokens_in INT,
+                                       tokens_out INT,
 
-                                      -- qyl. extensions
-                                      cost_usd DECIMAL(10,6),
-                                      eval_score FLOAT,
-                                      eval_reason VARCHAR,
+                                       -- qyl. extensions
+                                       cost_usd DECIMAL(10,6),
+                                       eval_score FLOAT,
+                                       eval_reason VARCHAR,
 
-                                      -- Flexible storage
-                                      attributes JSON,
-                                      events JSON,
+                                       -- Flexible storage
+                                       attributes JSON,
+                                       events JSON,
 
-                                      PRIMARY KEY (trace_id, span_id)
-                                  );
+                                       PRIMARY KEY (trace_id, span_id)
+                                   );
 
-                                  -- feedback table
-                                  CREATE TABLE IF NOT EXISTS feedback (
-                                      feedback_id VARCHAR PRIMARY KEY,
-                                      session_id VARCHAR NOT NULL,
-                                      span_id VARCHAR,
+                                   -- feedback table
+                                   CREATE TABLE IF NOT EXISTS feedback (
+                                       feedback_id VARCHAR PRIMARY KEY,
+                                       session_id VARCHAR NOT NULL,
+                                       span_id VARCHAR,
 
-                                      type VARCHAR NOT NULL,
-                                      value VARCHAR,
-                                      comment VARCHAR,
-                                      created_at TIMESTAMPTZ NOT NULL,
+                                       type VARCHAR NOT NULL,
+                                       value VARCHAR,
+                                       comment VARCHAR,
+                                       created_at TIMESTAMPTZ NOT NULL,
 
-                                      metadata JSON
-                                  );
+                                       metadata JSON
+                                   );
 
-                                  -- Indexes
-                                  CREATE INDEX IF NOT EXISTS idx_spans_time ON spans (start_time);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_session ON spans (session_id);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (provider_name) WHERE provider_name IS NOT NULL;
-                                  CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback (session_id);
-                                  """;
+                                   -- Indexes
+                                   CREATE INDEX IF NOT EXISTS idx_spans_time ON spans (start_time);
+                                   CREATE INDEX IF NOT EXISTS idx_spans_session ON spans (session_id);
+                                   CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (provider_name) WHERE provider_name IS NOT NULL;
+                                   CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback (session_id);
+                                   """;
 
-    private readonly DuckDBConnection _connection;
     private readonly CancellationTokenSource _cts;
     private readonly Channel<SpanBatch> _writeChannel;
     private readonly SemaphoreSlim _writeLock = new(1, 1);
@@ -107,8 +105,8 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     public DuckDbStore(string databasePath = "qyl.duckdb")
     {
-        _connection = new DuckDBConnection($"Data Source={databasePath}");
-        _connection.Open();
+        Connection = new DuckDBConnection($"Data Source={databasePath}");
+        Connection.Open();
 
         InitializeSchema();
 
@@ -124,6 +122,11 @@ public sealed class DuckDbStore : IAsyncDisposable
         _writerTask = Task.Run(WriteLoopAsync);
     }
 
+    /// <summary>
+    ///     Exposes the connection for query services that need direct DuckDB access.
+    /// </summary>
+    public DuckDBConnection Connection { get; }
+
     public async ValueTask DisposeAsync()
     {
         _writeChannel.Writer.Complete();
@@ -131,31 +134,34 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         try
         {
+#pragma warning disable VSTHRD003 // Awaiting task from field is safe in DisposeAsync
             await _writerTask.ConfigureAwait(false);
+#pragma warning restore VSTHRD003
         }
         catch (OperationCanceledException)
         {
         }
 
-        _connection.Dispose();
+        Connection.Dispose();
         _cts.Dispose();
         _writeLock.Dispose();
     }
 
     private void InitializeSchema()
     {
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = _schema;
         cmd.ExecuteNonQuery();
     }
 
-    public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default) =>
-        _writeChannel.Writer.WriteAsync(batch, ct);
+    public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
+    {
+        return _writeChannel.Writer.WriteAsync(batch, ct);
+    }
 
     private async Task WriteLoopAsync()
     {
         await foreach (var batch in _writeChannel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
-        {
             try
             {
                 await WriteBatchInternalAsync(batch, _cts.Token).ConfigureAwait(false);
@@ -168,7 +174,6 @@ public sealed class DuckDbStore : IAsyncDisposable
             {
                 await Console.Error.WriteLineAsync($"[qyl.collector] Write error: {ex.Message}");
             }
-        }
     }
 
     private async Task WriteBatchInternalAsync(SpanBatch batch, CancellationToken ct)
@@ -178,11 +183,11 @@ public sealed class DuckDbStore : IAsyncDisposable
         await _writeLock.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            using DuckDBTransaction transaction = _connection.BeginTransaction();
+            using var transaction = Connection.BeginTransaction();
 
             foreach (var span in batch.Spans)
             {
-                using DuckDBCommand cmd = _connection.CreateCommand();
+                using var cmd = Connection.CreateCommand();
                 cmd.Transaction = transaction;
                 cmd.CommandText = _insertSpanSql;
 
@@ -222,7 +227,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         var spans = new List<SpanRecord>();
 
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT trace_id, span_id, parent_span_id, session_id,
                                  name, kind, start_time, end_time, status_code, status_message,
@@ -244,7 +249,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         var spans = new List<SpanRecord>();
 
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT trace_id, span_id, parent_span_id, session_id,
                                  name, kind, start_time, end_time, status_code, status_message,
@@ -300,7 +305,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT trace_id, span_id, parent_span_id, session_id,
                                   name, kind, start_time, end_time, status_code, status_message,
@@ -321,8 +326,9 @@ public sealed class DuckDbStore : IAsyncDisposable
         return spans;
     }
 
-    private static SpanRecord MapSpan(IDataReader reader) =>
-        new()
+    private static SpanRecord MapSpan(IDataReader reader)
+    {
+        return new SpanRecord
         {
             TraceId = reader.GetString(0),
             SpanId = reader.GetString(1),
@@ -344,6 +350,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             Attributes = reader.IsDBNull(17) ? null : reader.GetString(17),
             Events = reader.IsDBNull(18) ? null : reader.GetString(18)
         };
+    }
 
     public async Task<int> ArchiveToParquetAsync(
         string outputDirectory,
@@ -355,7 +362,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         var cutoff = now.UtcDateTime - olderThan;
         var timestamp = now.ToString("yyyyMMdd_HHmmss");
 
-        using DuckDBCommand countCmd = _connection.CreateCommand();
+        using var countCmd = Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time < $cutoff";
         countCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
         var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
@@ -363,7 +370,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         if (count == 0) return 0;
 
         var spansFile = Path.Combine(outputDirectory, $"spans_{timestamp}.parquet");
-        using DuckDBCommand exportCmd = _connection.CreateCommand();
+        using var exportCmd = Connection.CreateCommand();
         exportCmd.CommandText = $"""
                                  COPY (SELECT * FROM spans WHERE start_time < $cutoff)
                                  TO '{spansFile}'
@@ -372,7 +379,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         exportCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
         await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
 
-        using DuckDBCommand deleteCmd = _connection.CreateCommand();
+        using var deleteCmd = Connection.CreateCommand();
         deleteCmd.CommandText = "DELETE FROM spans WHERE start_time < $cutoff";
         deleteCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
         await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
@@ -414,7 +421,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         if (parquetPath.Contains('\'') || parquetPath.Contains(';') || parquetPath.Contains("--"))
             throw new ArgumentException("Invalid parquet path", nameof(parquetPath));
 
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = $"SELECT * FROM read_parquet('{parquetPath}') {whereClause}";
 
         foreach (var param in parameters) cmd.Parameters.Add(param);
@@ -427,7 +434,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     public async Task<StorageStats> GetStorageStatsAsync(CancellationToken ct = default)
     {
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               (SELECT COUNT(*) FROM spans) as span_count,
@@ -439,7 +446,6 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
-        {
             return new StorageStats
             {
                 SpanCount = reader.GetInt64(0),
@@ -448,7 +454,6 @@ public sealed class DuckDbStore : IAsyncDisposable
                 OldestSpan = reader.IsDBNull(3) ? null : reader.GetDateTime(3),
                 NewestSpan = reader.IsDBNull(4) ? null : reader.GetDateTime(4)
             };
-        }
 
         return new StorageStats();
     }
@@ -478,7 +483,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var whereClause = string.Join(" AND ", conditions);
 
-        using DuckDBCommand cmd = _connection.CreateCommand();
+        using var cmd = Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT
                                COUNT(*) as request_count,
@@ -494,7 +499,6 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
-        {
             return new GenAiStats
             {
                 RequestCount = reader.GetInt64(0),
@@ -503,7 +507,6 @@ public sealed class DuckDbStore : IAsyncDisposable
                 TotalCostUsd = reader.GetDecimal(3),
                 AverageEvalScore = reader.IsDBNull(4) ? null : (float)reader.GetDouble(4)
             };
-        }
 
         return new GenAiStats();
     }

@@ -23,10 +23,8 @@ public sealed class FrontendConsole
 
         _ring.Enqueue(entry);
         if (Interlocked.Increment(ref _count) > _maxLogs)
-        {
             while (_ring.TryDequeue(out _))
                 Interlocked.Decrement(ref _count);
-        }
 
         foreach (var ch in _subs.Values)
             ch.Writer.TryWrite(entry);
@@ -35,17 +33,22 @@ public sealed class FrontendConsole
     }
 
     public ConsoleLogEntry[] Query(ConsoleLevel? minLevel = null, string? session = null, string? pattern = null,
-        int limit = 50) =>
-    [
-        .. _ring.Reverse()
-            .Where(e => (!minLevel.HasValue || e.Lvl >= minLevel) &&
-                        (session == null || e.Session == session) &&
-                        (pattern == null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
-            .Take(limit)
-    ];
+        int limit = 50)
+    {
+        return
+        [
+            .. _ring.Reverse()
+                .Where(e => (!minLevel.HasValue || e.Lvl >= minLevel) &&
+                            (session == null || e.Session == session) &&
+                            (pattern == null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+                .Take(limit)
+        ];
+    }
 
-    public ConsoleLogEntry[] Errors(int limit = 20) =>
-        Query(ConsoleLevel.Warn, limit: limit);
+    public ConsoleLogEntry[] Errors(int limit = 20)
+    {
+        return Query(ConsoleLevel.Warn, limit: limit);
+    }
 
     public IDisposable Subscribe(string id, Channel<ConsoleLogEntry> ch)
     {
@@ -53,18 +56,22 @@ public sealed class FrontendConsole
         return new Sub(this, id);
     }
 
-    private static ConsoleLevel ParseLevel(string? s) =>
-        s?.ToLowerInvariant() switch
+    private static ConsoleLevel ParseLevel(string? s)
+    {
+        return s?.ToLowerInvariant() switch
         {
             "debug" => ConsoleLevel.Debug, "info" => ConsoleLevel.Info,
             "warn" or "warning" => ConsoleLevel.Warn, "error" => ConsoleLevel.Error,
             _ => ConsoleLevel.Log
         };
+    }
 
     private sealed class Sub(FrontendConsole b, string id) : IDisposable
     {
-        public void Dispose() =>
+        public void Dispose()
+        {
             b._subs.TryRemove(id, out _);
+        }
     }
 }
 

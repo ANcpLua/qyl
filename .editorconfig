@@ -1,5 +1,6 @@
 # =============================================================================
-# qyl EditorConfig - ROOT (STRICT)
+# qyl EditorConfig - ROOT (Single Source of Truth)
+# All projects inherit from this file. Use path-based sections for overrides.
 # =============================================================================
 
 root = true
@@ -12,12 +13,16 @@ charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
 
+# =============================================================================
+# C# FILES - DEFAULT (STRICT)
+# =============================================================================
+
 [*.cs]
 # Formatting
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
-# Naming
+# Naming - Private fields must use _camelCase
 dotnet_naming_rule.private_fields_should_be_camel_case.severity = error
 dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
 dotnet_naming_rule.private_fields_should_be_camel_case.style = camel_case_underscore
@@ -31,45 +36,124 @@ dotnet_naming_style.camel_case_underscore.capitalization = camel_case
 # =============================================================================
 
 # VSTHRD - Threading Analyzers
-dotnet_diagnostic.VSTHRD001.severity = error   # Avoid legacy thread switching
-dotnet_diagnostic.VSTHRD002.severity = error   # Avoid problematic synchronous waits
-dotnet_diagnostic.VSTHRD003.severity = error   # Avoid awaiting foreign Tasks
-dotnet_diagnostic.VSTHRD010.severity = error   # Invoke single-threaded types on Main thread
-dotnet_diagnostic.VSTHRD011.severity = error   # Use AsyncLazy<T>
-dotnet_diagnostic.VSTHRD100.severity = error   # Avoid async void methods
-dotnet_diagnostic.VSTHRD101.severity = error   # Avoid unsupported async delegates
-dotnet_diagnostic.VSTHRD102.severity = error   # Implement internal logic asynchronously
-dotnet_diagnostic.VSTHRD103.severity = error   # Call async methods when in async method
-dotnet_diagnostic.VSTHRD104.severity = error   # Offer async option
-dotnet_diagnostic.VSTHRD105.severity = error   # Avoid implicit Task.Result
-dotnet_diagnostic.VSTHRD106.severity = error   # Use InvokeAsync for async callbacks
-dotnet_diagnostic.VSTHRD107.severity = error   # Await Task within using
-dotnet_diagnostic.VSTHRD110.severity = error   # Observe result of async calls
+dotnet_diagnostic.VSTHRD001.severity = error # Avoid legacy thread switching
+dotnet_diagnostic.VSTHRD002.severity = error # Avoid problematic synchronous waits
+dotnet_diagnostic.VSTHRD003.severity = error # Avoid awaiting foreign Tasks
+dotnet_diagnostic.VSTHRD010.severity = error # Invoke single-threaded types on Main thread
+dotnet_diagnostic.VSTHRD011.severity = error # Use AsyncLazy<T>
+dotnet_diagnostic.VSTHRD100.severity = error # Avoid async void methods
+dotnet_diagnostic.VSTHRD101.severity = error # Avoid unsupported async delegates
+dotnet_diagnostic.VSTHRD102.severity = error # Implement internal logic asynchronously
+dotnet_diagnostic.VSTHRD103.severity = error # Call async methods when in async method
+dotnet_diagnostic.VSTHRD104.severity = error # Offer async option
+dotnet_diagnostic.VSTHRD105.severity = error # Avoid implicit Task.Result
+dotnet_diagnostic.VSTHRD106.severity = error # Use InvokeAsync for async callbacks
+dotnet_diagnostic.VSTHRD107.severity = error # Await Task within using
+dotnet_diagnostic.VSTHRD110.severity = error # Observe result of async calls
 dotnet_diagnostic.VSTHRD111.severity = warning # ConfigureAwait (warning, not error)
-dotnet_diagnostic.VSTHRD200.severity = error   # Use Async suffix
+dotnet_diagnostic.VSTHRD200.severity = error # Use Async suffix
 
 # CA Async Rules
-dotnet_diagnostic.CA2007.severity = warning    # ConfigureAwait
-dotnet_diagnostic.CA2008.severity = error      # Do not create tasks without TaskScheduler
-dotnet_diagnostic.CA2012.severity = error      # Use ValueTasks correctly
-dotnet_diagnostic.CA2016.severity = error      # Forward CancellationToken
+dotnet_diagnostic.CA2007.severity = warning # ConfigureAwait
+dotnet_diagnostic.CA2008.severity = error # Do not create tasks without TaskScheduler
+dotnet_diagnostic.CA2012.severity = error # Use ValueTasks correctly
+dotnet_diagnostic.CA2016.severity = error # Forward CancellationToken
 
 # =============================================================================
 # GENERAL CODE QUALITY
 # =============================================================================
 
-dotnet_diagnostic.CA1816.severity = error      # Dispose pattern
-dotnet_diagnostic.CA1822.severity = warning    # Mark members as static
-dotnet_diagnostic.CA1848.severity = warning    # Use LoggerMessage delegates
-dotnet_diagnostic.CA1860.severity = error      # Avoid using 'Enumerable.Any()' extension method
-dotnet_diagnostic.CA1861.severity = error      # Avoid constant arrays as arguments
-dotnet_diagnostic.CA2254.severity = warning    # Template should be static
+dotnet_diagnostic.CA1816.severity = error # Dispose pattern
+dotnet_diagnostic.CA1822.severity = warning # Mark members as static
+dotnet_diagnostic.CA1848.severity = warning # Use LoggerMessage delegates
+dotnet_diagnostic.CA1860.severity = error # Avoid using 'Enumerable.Any()' extension method
+dotnet_diagnostic.CA1861.severity = error # Avoid constant arrays as arguments
+dotnet_diagnostic.CA2254.severity = warning # Template should be static
 
 # XML Documentation
-dotnet_diagnostic.CS1591.severity = warning    # Missing XML comment
+dotnet_diagnostic.CS1591.severity = none # Missing XML comment (disabled globally)
 
 # BannedApiAnalyzers
-dotnet_diagnostic.RS0030.severity = error      # Banned API usage
+dotnet_diagnostic.RS0030.severity = error # Banned API usage
+
+# =============================================================================
+# GENERATED CODE EXCLUSIONS
+# =============================================================================
+
+[*.g.cs]
+# Generated code - disable all analyzers
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+[*.generated.cs]
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+[**/obj/**/*.cs]
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+[**/Protos/**/*.cs]
+# Protobuf generated code
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+[**/generated/**/*.cs]
+# Kiota/TypeSpec generated code
+dotnet_analyzer_diagnostic.severity = none
+generated_code = true
+
+# =============================================================================
+# BUILD TOOLING OVERRIDES (eng/build/)
+# =============================================================================
+
+[eng/build/**/*.cs]
+# Nuke build code uses reflection and dynamic patterns
+dotnet_diagnostic.CA1822.severity = none # Static members not applicable
+dotnet_diagnostic.CS0649.severity = none # Unassigned fields (Nuke DI)
+dotnet_diagnostic.CS0169.severity = none # Unused fields (Nuke DI)
+dotnet_diagnostic.CA1050.severity = none # Declare types in namespaces (Nuke)
+dotnet_diagnostic.CA2211.severity = none # Non-constant fields (Nuke)
+dotnet_diagnostic.IDE1006.severity = none # Naming (Nuke conventions)
+
+# Relaxed style for build automation
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+dotnet_style_require_accessibility_modifiers = never:warning
+csharp_style_expression_bodied_methods = true:silent
+csharp_style_expression_bodied_properties = true:warning
+csharp_style_expression_bodied_indexers = true:warning
+csharp_style_expression_bodied_accessors = true:warning
+
+# =============================================================================
+# TEST PROJECT OVERRIDES
+# =============================================================================
+
+[tests/**/*.cs]
+# Test-specific relaxations
+dotnet_diagnostic.CA1707.severity = none # Underscores in test names OK
+dotnet_diagnostic.CA1816.severity = none # Dispose pattern (test fixtures)
+dotnet_diagnostic.CA2000.severity = none # Dispose objects (test arrangements)
+dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait (tests don't need it)
+
+# xUnit
+dotnet_diagnostic.xUnit1004.severity = warning # Test methods should not be skipped
+
+# =============================================================================
+# EXAMPLE PROJECT OVERRIDES
+# =============================================================================
+
+[examples/**/*.cs]
+# Relaxed for demo code
+dotnet_diagnostic.CA1816.severity = none # Dispose pattern
+dotnet_diagnostic.CA2000.severity = none # Dispose objects
+dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait
+
+# =============================================================================
+# FILE TYPE SPECIFIC
+# =============================================================================
 
 [*.json]
 indent_size = 2
@@ -79,3 +163,6 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+
+[*.{xml,props,targets,csproj,fsproj,vbproj}]
+indent_size = 2

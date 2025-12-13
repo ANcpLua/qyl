@@ -11,21 +11,18 @@ namespace Components;
 [ParameterPrefix(nameof(ITest))]
 internal interface ITest : ICompile
 {
-    [Parameter("Test filter expression (xUnit v3 query syntax)")]
-    string? TestFilter => null;
+    [Parameter("Test filter expression (xUnit v3 query syntax)")] string? TestFilter => null;
 
-    [Parameter("Stop on first test failure")]
-    bool? StopOnFail => null;
+    [Parameter("Stop on first test failure")] bool? StopOnFail => null;
 
-    [Parameter("Show live test output")]
-    bool? LiveOutput => null;
+    [Parameter("Show live test output")] bool? LiveOutput => null;
 
     Project[] TestProjects =>
     [
         Solution.GetProject("qyl.analyzers.tests")
         ?? throw new InvalidOperationException("qyl.analyzers.tests not found"),
-        Solution.GetProject("qyl.mcp.server.tests")
-        ?? throw new InvalidOperationException("qyl.mcp.server.tests not found")
+        Solution.GetProject("qyl.mcp.tests")
+        ?? throw new InvalidOperationException("qyl.mcp.tests not found")
     ];
 
     Target Test => d => d

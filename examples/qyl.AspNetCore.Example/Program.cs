@@ -38,7 +38,8 @@ builder.Services.AddOpenTelemetry()
             case "OTLP":
                 tracing.AddOtlpExporter(otlp =>
                 {
-                    otlp.Endpoint = new Uri(builder.Configuration.GetValue("Otlp:Endpoint", "http://localhost:5100"));
+                    otlp.Endpoint =
+                        new Uri(builder.Configuration.GetValue("Otlp:Endpoint", "http://localhost:5100"));
                 });
                 break;
             default:
@@ -56,11 +57,9 @@ builder.Services.AddOpenTelemetry()
             .AddAspNetCoreInstrumentation();
 
         if (histogramAggregation == "EXPONENTIAL")
-        {
             metrics.AddView(instrument => instrument.GetType().GetGenericTypeDefinition() == typeof(Histogram<>)
                 ? new Base2ExponentialBucketHistogramConfiguration()
                 : null);
-        }
 
         switch (metricsExporter)
         {

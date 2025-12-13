@@ -1,10 +1,26 @@
+# =============================================================================
+# qyl EditorConfig - Build Tooling (Nuke)
+# This file exists for IDE compatibility. Rules are defined in root .editorconfig
+# under [eng/build/**/*.cs] section. Both files have identical rules.
+# =============================================================================
+
+root = true
+
 [*.cs]
+# Nuke build code uses reflection and dynamic patterns
+dotnet_diagnostic.CA1822.severity = none # Static members not applicable
+dotnet_diagnostic.CS0649.severity = none # Unassigned fields (Nuke DI)
+dotnet_diagnostic.CS0169.severity = none # Unused fields (Nuke DI)
+dotnet_diagnostic.CA1050.severity = none # Declare types in namespaces (Nuke)
+dotnet_diagnostic.CA2211.severity = none # Non-constant fields (Nuke)
+dotnet_diagnostic.IDE1006.severity = none # Naming (Nuke conventions)
+
+# Relaxed style for build automation
 dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning
 dotnet_style_qualification_for_method = false:warning
 dotnet_style_qualification_for_event = false:warning
 dotnet_style_require_accessibility_modifiers = never:warning
-
 csharp_style_expression_bodied_methods = true:silent
 csharp_style_expression_bodied_properties = true:warning
 csharp_style_expression_bodied_indexers = true:warning

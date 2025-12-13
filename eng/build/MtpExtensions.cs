@@ -10,7 +10,7 @@ public static class MtpExtensions
 
 public sealed class MtpArgumentsBuilder
 {
-    private readonly List<string> _args = [];
+    private readonly List<string> Args = [];
 
     private MtpArgumentsBuilder AddFilter(string option, params ReadOnlySpan<string> patterns)
     {
@@ -18,8 +18,8 @@ public sealed class MtpArgumentsBuilder
         {
             if (string.IsNullOrEmpty(p)) continue;
 
-            _args.Add(option);
-            _args.Add(p);
+            Args.Add(option);
+            Args.Add(p);
         }
 
         return this;
@@ -27,15 +27,15 @@ public sealed class MtpArgumentsBuilder
 
     private MtpArgumentsBuilder AddOption(string option, string value)
     {
-        _args.Add(option);
-        _args.Add(value);
+        Args.Add(option);
+        Args.Add(value);
         return this;
     }
 
     private MtpArgumentsBuilder AddFlag(string option)
     {
-        _args.Add(option);
-        _args.Add("on");
+        Args.Add(option);
+        Args.Add("on");
         return this;
     }
 
@@ -65,19 +65,19 @@ public sealed class MtpArgumentsBuilder
 
     public MtpArgumentsBuilder ReportTrx(string filename)
     {
-        _args.Add("--report-trx");
+        Args.Add("--report-trx");
         return AddOption("--report-trx-filename", filename);
     }
 
     public MtpArgumentsBuilder ReportXunit(string filename)
     {
-        _args.Add("--report-xunit");
+        Args.Add("--report-xunit");
         return AddOption("--report-xunit-filename", filename);
     }
 
     public MtpArgumentsBuilder ReportJunit(string filename)
     {
-        _args.Add("--report-junit");
+        Args.Add("--report-junit");
         return AddOption("--report-junit-filename", filename);
     }
 
@@ -107,18 +107,18 @@ public sealed class MtpArgumentsBuilder
 
     public MtpArgumentsBuilder CoverageCobertura(AbsolutePath outputPath)
     {
-        _args.Add("--coverage");
-        _args.Add("--coverage-output-format");
-        _args.Add("cobertura");
+        Args.Add("--coverage");
+        Args.Add("--coverage-output-format");
+        Args.Add("cobertura");
         return AddOption("--coverage-output", outputPath.ToString());
     }
 
     public string Build()
     {
-        if (_args is []) return string.Empty;
+        if (Args is []) return string.Empty;
 
         StringBuilder sb = new();
-        foreach (var arg in _args)
+        foreach (var arg in Args)
         {
             if (sb.Length > 0) sb.Append(' ');
 
@@ -128,5 +128,5 @@ public sealed class MtpArgumentsBuilder
         return sb.ToString();
     }
 
-    public IReadOnlyList<string> BuildArgs() => _args;
+    public IReadOnlyList<string> BuildArgs() => Args;
 }

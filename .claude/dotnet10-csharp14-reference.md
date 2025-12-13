@@ -9,6 +9,7 @@
 You are on **.NET 10** (November 2025 LTS, supported through November 2028) with **C# 14**.
 
 **Do NOT use:**
+
 - C# 11/12 patterns
 - .NET 6/7/8/9 workarounds
 - Pre-LINQ aggregation (GroupBy → ToDictionary)
@@ -24,6 +25,7 @@ You are on **.NET 10** (November 2025 LTS, supported through November 2028) with
 This reference is specifically aligned with the **qyl AI Observability Platform**:
 
 ### OTel SemConv 1.38 Required Attributes
+
 ```
 gen_ai.provider.name       (REQUIRED)
 gen_ai.request.model       (REQUIRED)
@@ -35,6 +37,7 @@ gen_ai.usage.total_tokens  (RECOMMENDED)
 ```
 
 ### Deprecated Fields - REJECT IMMEDIATELY
+
 ```
 gen_ai.system              → gen_ai.provider.name
 gen_ai.usage.prompt_tokens → gen_ai.usage.input_tokens
@@ -42,13 +45,14 @@ gen_ai.usage.completion_tokens → gen_ai.usage.output_tokens
 ```
 
 ### Module-Specific API Requirements
-| Module | Required APIs |
-|--------|---------------|
+
+| Module               | Required APIs                                                                                                      |
+|----------------------|--------------------------------------------------------------------------------------------------------------------|
 | Receivers/Processing | `Task.WhenEach()`, `IUtf8SpanParsable<T>`, `Lock`, `CountBy()`, `AggregateBy()`, `Index()`, `SearchValues<string>` |
-| Storage | `OrderedDictionary<K,V>`, `FrozenDictionary<K,V>` |
-| API | `JsonNamingPolicy.SnakeCaseLower`, `JsonSerializerOptions.Strict` |
-| Streaming | `TypedResults.ServerSentEvents()`, `SseItem<T>`, `IAsyncEnumerable<T>` |
-| Instrumentation | `[LogProperties]`, `[TagName]`, `ILogEnricher` |
+| Storage              | `OrderedDictionary<K,V>`, `FrozenDictionary<K,V>`                                                                  |
+| API                  | `JsonNamingPolicy.SnakeCaseLower`, `JsonSerializerOptions.Strict`                                                  |
+| Streaming            | `TypedResults.ServerSentEvents()`, `SseItem<T>`, `IAsyncEnumerable<T>`                                             |
+| Instrumentation      | `[LogProperties]`, `[TagName]`, `ILogEnricher`                                                                     |
 
 ---
 
@@ -56,7 +60,8 @@ gen_ai.usage.completion_tokens → gen_ai.usage.output_tokens
 
 ### 1. Extension Members (NEW - Use for Activity/Span enrichment)
 
-> **SYNTAX:** C# 14 uses `extension(Type paramName)` blocks. The parameter name is used inside the block to access the instance.
+> **SYNTAX:** C# 14 uses `extension(Type paramName)` blocks. The parameter name is used inside the block to access the
+> instance.
 
 ```csharp
 // OLD - Static extension methods scattered everywhere
@@ -1081,27 +1086,27 @@ var props = typeof(SpanData).GetProperties();  // GOOD
 
 ## Patterns to REJECT (With Corrections)
 
-| REJECT | USE INSTEAD | Why |
-|--------|-------------|-----|
-| `private readonly object _lock = new();` | `private readonly Lock _lock = new();` | Lock class is faster |
-| `.GroupBy().ToDictionary(g => g.Count())` | `.CountBy()` | Single pass |
-| `Task.WhenAny` in loops | `Task.WhenEach()` | Cleaner |
-| `ctx.Response.ContentType = "text/event-stream"` | `TypedResults.ServerSentEvents()` | Type-safe |
-| `new Dictionary<K,V>()` when order matters | `new OrderedDictionary<K,V>()` | Deterministic |
-| `DateTime.UtcNow` | `TimeProvider.GetUtcNow()` | Testable |
-| Custom snake_case policy | `JsonNamingPolicy.SnakeCaseLower` | Built-in |
-| Explicit backing fields | `field` keyword | Less boilerplate |
-| `new List<T>()` or `List<T> x = new()` | `List<T> x = []` | Collection expressions |
-| `new[] { 1, 2, 3 }` | `[1, 2, 3]` | Collection expressions |
-| `string traceId, string spanId` | `TraceId traceId, SpanId spanId` | Type safety |
-| `string.Split()` in hot paths | `ISpanParsable` + span | Zero allocation |
-| `ArgumentNullException.ThrowIfNull` | `Throw.IfNull()` | qyl helper returns value |
-| `ArgumentException.ThrowIfNullOrEmpty` | `Throw.IfNullOrEmpty()` | qyl helper returns value |
-| `Task<T>` for cache hits | `ValueTask<T>` | No allocation on sync |
-| `class` for small DTOs | `readonly record struct` | Stack allocation |
-| `gen_ai.system` | `gen_ai.provider.name` | OTel 1.38 |
-| `gen_ai.usage.prompt_tokens` | `gen_ai.usage.input_tokens` | OTel 1.38 |
-| `gen_ai.usage.completion_tokens` | `gen_ai.usage.output_tokens` | OTel 1.38 |
+| REJECT                                           | USE INSTEAD                            | Why                      |
+|--------------------------------------------------|----------------------------------------|--------------------------|
+| `private readonly object _lock = new();`         | `private readonly Lock _lock = new();` | Lock class is faster     |
+| `.GroupBy().ToDictionary(g => g.Count())`        | `.CountBy()`                           | Single pass              |
+| `Task.WhenAny` in loops                          | `Task.WhenEach()`                      | Cleaner                  |
+| `ctx.Response.ContentType = "text/event-stream"` | `TypedResults.ServerSentEvents()`      | Type-safe                |
+| `new Dictionary<K,V>()` when order matters       | `new OrderedDictionary<K,V>()`         | Deterministic            |
+| `DateTime.UtcNow`                                | `TimeProvider.GetUtcNow()`             | Testable                 |
+| Custom snake_case policy                         | `JsonNamingPolicy.SnakeCaseLower`      | Built-in                 |
+| Explicit backing fields                          | `field` keyword                        | Less boilerplate         |
+| `new List<T>()` or `List<T> x = new()`           | `List<T> x = []`                       | Collection expressions   |
+| `new[] { 1, 2, 3 }`                              | `[1, 2, 3]`                            | Collection expressions   |
+| `string traceId, string spanId`                  | `TraceId traceId, SpanId spanId`       | Type safety              |
+| `string.Split()` in hot paths                    | `ISpanParsable` + span                 | Zero allocation          |
+| `ArgumentNullException.ThrowIfNull`              | `Throw.IfNull()`                       | qyl helper returns value |
+| `ArgumentException.ThrowIfNullOrEmpty`           | `Throw.IfNullOrEmpty()`                | qyl helper returns value |
+| `Task<T>` for cache hits                         | `ValueTask<T>`                         | No allocation on sync    |
+| `class` for small DTOs                           | `readonly record struct`               | Stack allocation         |
+| `gen_ai.system`                                  | `gen_ai.provider.name`                 | OTel 1.38                |
+| `gen_ai.usage.prompt_tokens`                     | `gen_ai.usage.input_tokens`            | OTel 1.38                |
+| `gen_ai.usage.completion_tokens`                 | `gen_ai.usage.output_tokens`           | OTel 1.38                |
 
 ---
 

@@ -10,26 +10,33 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <!-- Inject shared code -->
     <InjectSharedThrow>true</InjectSharedThrow>
-    <!-- Disable analyzer rules not applicable to self-contained apps -->
-    <NoWarn>$(NoWarn);CA1002;CA1034;CA1056;CA1515;CA2016;MA0006;MA0048;MA0026;CA1054;CA1024;CA1822;CA1859;CA1031;MA0009;MA0002;MA0016;CA1055;CA1062;CA1819;MA0051;MA0011;MA0144;IL2026;IL3050;CA2007;MA0004;CA2100;CA1849;CA1028;CA1721;CA1823;CA2208;CA2225;CA2227;MA0015;RS0030;VSTHRD002;VSTHRD003;VSTHRD103;VSTHRD111;VSTHRD200;CS1591</NoWarn>
+    <!-- Suppress analyzer rules for AOT/Native compilation and collector-specific patterns -->
+    <!-- IL* rules: Native AOT trimming warnings (expected for AOT app) -->
+    <!-- MA* rules: Meziantou rules not applicable to collector patterns -->
+    <!-- VSTHRD*: Threading rules relaxed for collector's sync DuckDB operations -->
+    <NoWarn>$(NoWarn);IL2026;IL3050;MA0004;MA0006;MA0011;MA0048;VSTHRD002;VSTHRD103;VSTHRD111</NoWarn>
   </PropertyGroup>
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="DuckDB.NET.Data"/>
-    <PackageReference Remove="Microsoft.CodeAnalysis.NetAnalyzers" />
+    <!-- NetAnalyzers kept - rules managed via .editorconfig and NoWarn above -->
   </ItemGroup>
 
-  <!-- OTLP protobuf ingestion (compatibility shim) -->
+  <!-- OTLP protobuf ingestion -->
   <ItemGroup>
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
-
-  <!-- qyl.grpc for OTLP models and session aggregation -->
   <ItemGroup>
-    <ProjectReference Include="../qyl.grpc/qyl.grpc.csproj"/>
+
+  </ItemGroup>
+
+  <!-- Core dependencies -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
   </ItemGroup>
 
 </Project>

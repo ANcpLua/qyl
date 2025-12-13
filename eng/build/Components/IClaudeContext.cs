@@ -42,7 +42,8 @@ internal partial interface IClaudeContext : IHasSolution
             if (!content.Contains("## Security", StringComparison.Ordinal))
                 throw new Exception("❌ COMPILER ERROR: Artifact missing mandatory 'Security' section.");
 
-            if (content.Contains("## Commands", StringComparison.Ordinal) && !content.Contains("```", StringComparison.Ordinal))
+            if (content.Contains("## Commands", StringComparison.Ordinal) &&
+                !content.Contains("```", StringComparison.Ordinal))
                 throw new Exception("❌ COMPILER ERROR: 'Commands' section too vague. Must contain code blocks.");
 
             Log.Information("✅ Artifact validated successfully.");
@@ -81,9 +82,10 @@ internal partial interface IClaudeContext : IHasSolution
 
     private void MergeLayer(Dictionary<string, Section> context, Dictionary<string, string> layer, string layerName)
     {
-        foreach ((var header, var content) in layer)
+        foreach (var (header, content) in layer)
 
-            if (header.Contains("Security", StringComparison.Ordinal) || header.Contains("Policy", StringComparison.Ordinal))
+            if (header.Contains("Security", StringComparison.Ordinal) ||
+                header.Contains("Policy", StringComparison.Ordinal))
             {
                 if (context.TryGetValue(header, out var existing) && existing.Locked)
                     continue;
@@ -107,12 +109,10 @@ internal partial interface IClaudeContext : IHasSolution
             }
 
             else
-            {
                 context[header] = new Section
                 {
                     Content = content
                 };
-            }
     }
 
     private Dictionary<string, string> ParseNode(AbsolutePath path)

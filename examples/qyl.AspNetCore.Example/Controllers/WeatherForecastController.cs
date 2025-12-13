@@ -9,12 +9,12 @@ namespace qyl.AspNetCore.Example.Controllers;
 [Route("[controller]")]
 public class WeatherForecastController : ControllerBase
 {
-    private static readonly string[] _summaries =
+    private static readonly string[] Summaries =
     [
         "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
     ];
 
-    private static readonly HttpClient _httpClient = new();
+    private static readonly HttpClient HttpClient = new();
     private readonly ActivitySource _activitySource;
     private readonly Counter<long> _freezingDaysCounter;
 
@@ -49,8 +49,8 @@ public class WeatherForecastController : ControllerBase
             {
                 Date = TimeProvider.System.GetLocalNow().DateTime.AddDays(index),
                 TemperatureC = RandomNumberGenerator.GetInt32(-20, 55),
-                Summary = _summaries[RandomNumberGenerator.GetInt32(_summaries.Length)],
-            }),
+                Summary = Summaries[RandomNumberGenerator.GetInt32(Summaries.Length)]
+            })
         ];
 
         var freezingDays = forecast.Count(f => f.TemperatureC < 0);
@@ -75,10 +75,10 @@ public class WeatherForecastController : ControllerBase
         [
             .. Enumerable.Range(1, days).Select(index => new WeatherForecast
             {
-                Date = DateTime.Now.AddDays(index),
+                Date = TimeProvider.System.GetLocalNow().DateTime.AddDays(index),
                 TemperatureC = RandomNumberGenerator.GetInt32(-20, 55),
-                Summary = _summaries[RandomNumberGenerator.GetInt32(_summaries.Length)],
-            }),
+                Summary = Summaries[RandomNumberGenerator.GetInt32(Summaries.Length)]
+            })
         ];
 
         var freezingDays = forecast.Count(f => f.TemperatureC < 0);

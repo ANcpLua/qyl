@@ -1,22 +1,27 @@
-# qyl.collector - Docker Compose for local development
-version: '3.8'
+# qyl.collector - Standalone Docker Compose
+# For local development without full stack
+#
+# Usage:
+#   cd src/qyl.collector
+#   docker compose up -d
 
 services:
   qyl-collector:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: src/qyl.collector/Dockerfile
     container_name: qyl-collector
     ports:
-      - "5100:5100"    # Dashboard + Query API
-      - "4317:4317"    # OTLP gRPC (compatibility)
-      - "4318:4318"    # OTLP HTTP (compatibility)
+      - "5100:5100"    # REST API + SSE + Dashboard
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
     volumes:
       - qyl-data:/data
     environment:
       - QYL_PORT=5100
       - QYL_DATA_PATH=/data/qyl.duckdb
-      # Set QYL_TOKEN for predictable token (optional)
+      - ASPNETCORE_URLS=http://+:5100
+      # Uncomment for fixed auth token:
       # - QYL_TOKEN=your-secret-token
     restart: unless-stopped
     healthcheck:
@@ -24,7 +29,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 10s
 
 volumes:
   qyl-data:

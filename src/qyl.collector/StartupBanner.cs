@@ -6,13 +6,13 @@ namespace qyl.collector;
 public static class StartupBanner
 {
     private const string _logo = """
-                                   ██████╗ ██╗   ██╗██╗
-                                  ██╔═══██╗╚██╗ ██╔╝██║
-                                  ██║   ██║ ╚████╔╝ ██║
-                                  ██║▄▄ ██║  ╚██╔╝  ██║
-                                  ╚██████╔╝   ██║   ███████╗
-                                   ╚══▀▀═╝    ╚═╝   ╚══════╝
-                                """;
+                                    ██████╗ ██╗   ██╗██╗
+                                   ██╔═══██╗╚██╗ ██╔╝██║
+                                   ██║   ██║ ╚████╔╝ ██║
+                                   ██║▄▄ ██║  ╚██╔╝  ██║
+                                   ╚██████╔╝   ██║   ███████╗
+                                    ╚══▀▀═╝    ╚═╝   ╚══════╝
+                                 """;
 
     public static void Print(string baseUrl, string token, int port)
     {

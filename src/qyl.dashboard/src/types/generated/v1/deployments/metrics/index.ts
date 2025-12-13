@@ -5,19 +5,19 @@
 import {type DoraRequestBuilder, DoraRequestBuilderRequestsMetadata} from './dora/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/deployments/metrics
  */
 export interface MetricsRequestBuilder extends BaseRequestBuilder<MetricsRequestBuilder> {
-  /**
-   * The dora property
-   */
-  get dora(): DoraRequestBuilder;
+    /**
+     * The dora property
+     */
+    get dora(): DoraRequestBuilder;
 }
 
 /**
@@ -28,9 +28,9 @@ export const MetricsRequestBuilderUriTemplate = "{+baseurl}/v1/deployments/metri
  * Metadata for all the navigation properties in the request builder.
  */
 export const MetricsRequestBuilderNavigationMetadata: Record<Exclude<keyof MetricsRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  dora: {
-    requestsMetadata: DoraRequestBuilderRequestsMetadata,
-  },
+    dora: {
+        requestsMetadata: DoraRequestBuilderRequestsMetadata,
+    },
 };
 /* tslint:enable */
 /* eslint-enable */

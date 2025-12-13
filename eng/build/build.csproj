@@ -1,38 +1,45 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <Nullable>enable</Nullable>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>disable</ImplicitUsings>
-    <RootNamespace></RootNamespace>
-    <NoWarn>CS0649;CS0169;CA1050;CA1822;CA2211;IDE1006</NoWarn>
-    <NukeRootDirectory>..</NukeRootDirectory>
-    <NukeScriptDirectory>..</NukeScriptDirectory>
-    <NukeTelemetryVersion>1</NukeTelemetryVersion>
-    <IsPackable>false</IsPackable>
-  </PropertyGroup>
+    <!-- Exclude theory directory from compilation (experimental/planning files) -->
+    <ItemGroup>
+        <Compile Remove="theory\**\*.cs"/>
+        <None Include="theory\**\*.cs"/>
+    </ItemGroup>
 
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <DefineConstants>OS_WINDOWS</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-    <DefineConstants>OS_LINUX</DefineConstants>
-  </PropertyGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <DefineConstants>OS_MAC</DefineConstants>
-  </PropertyGroup>
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <Nullable>enable</Nullable>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <RootNamespace></RootNamespace>
+        <!-- NoWarn consolidated in eng/build/Directory.Build.props -->
+        <NukeRootDirectory>..</NukeRootDirectory>
+        <NukeScriptDirectory>..</NukeScriptDirectory>
+        <NukeTelemetryVersion>1</NukeTelemetryVersion>
+        <IsPackable>false</IsPackable>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Nuke.Common" Version="10.1.0"/>
-    <PackageReference Include="Nuke.Components" Version="10.1.0"/>
-    <PackageReference Include="Nuke.Tooling.Generator" Version="10.1.0"/>
-  </ItemGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+        <DefineConstants>OS_WINDOWS</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+        <DefineConstants>OS_LINUX</DefineConstants>
+    </PropertyGroup>
+    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+        <DefineConstants>OS_MAC</DefineConstants>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]"/>
-    <PackageDownload Include="ReportGenerator" Version="[5.5.0]"/>
-    <!-- dotnet-coverage removed - using MTP native coverage via Microsoft.Testing.Extensions.CodeCoverage -->
-  </ItemGroup>
+    <ItemGroup>
+        <!-- Versions managed by Directory.Packages.props (Central Package Management) -->
+        <PackageReference Include="Nuke.Common"/>
+        <PackageReference Include="Nuke.Components"/>
+        <PackageReference Include="Nuke.Tooling.Generator"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]"/>
+        <PackageDownload Include="ReportGenerator" Version="[5.5.0]"/>
+        <!-- dotnet-coverage removed - using MTP native coverage via Microsoft.Testing.Extensions.CodeCoverage -->
+    </ItemGroup>
 
 </Project>

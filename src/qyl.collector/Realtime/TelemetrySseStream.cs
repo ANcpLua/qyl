@@ -51,7 +51,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
     public void PublishSpans(SpanBatch batch)
     {
-        var message = new TelemetryMessage(TelemetrySignal.Spans, batch, DateTimeOffset.UtcNow);
+        var message = new TelemetryMessage(TelemetrySignal.Spans, batch, TimeProvider.System.GetUtcNow());
         Publish(message);
     }
 

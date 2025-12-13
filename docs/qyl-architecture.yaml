@@ -1,0 +1,712 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# qyl — AI Observability Platform
+# Architecture & Requirements Specification
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This document is the SINGLE SOURCE OF TRUTH for qyl architecture.
+# Machine-readable by AI assistants. Human-readable for developers.
+#
+# Last Updated: 2024-12-13
+# Maintainer: @ANcpLua
+# ═══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  name: qyl
+  full_name: "qyl AI Observability Platform"
+  description: |
+    Backend system that receives OpenTelemetry telemetry, extracts gen_ai.*
+    semantic convention attributes, stores in DuckDB, and exposes REST/SSE APIs
+    for dashboards and AI agents via MCP.
+  version: 1.0.0
+  target_framework: net10.0
+  language_version: C# 14
+  otel_semconv_version: 1.38.0
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEM ARCHITECTURE
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   ┌─────────────────────────────────────────────────────────────────────────────┐
+#   │                         USER APPLICATIONS                                   │
+#   │                                                                             │
+#   │   Uses Standard OpenTelemetry SDK (NO custom Qyl.Sdk needed!)               │
+#   │   services.AddOpenTelemetry()                                               │
+#   │       .WithTracing(b => b.AddOtlpExporter(o =>                              │
+#   │           o.Endpoint = new Uri("http://qyl:4318")));                        │
+#   │                                                                             │
+#   └─────────────────────────────────────────────────────────────────────────────┘
+#                                    │
+#                                    │ OTLP (HTTP :4318 / gRPC :4317)
+#                                    ▼
+#   ┌─────────────────────────────────────────────────────────────────────────────┐
+#   │                         qyl.collector                                       │
+#   │                         (Backend)                                           │
+#   │                                                                             │
+#   │   • OTLP Ingestion (HTTP + gRPC)     • REST API (/api/v1/*)                 │
+#   │   • gen_ai.* Extraction              • SSE Streaming                        │
+#   │   • DuckDB Storage                   • Health endpoints                     │
+#   │                                                                             │
+#   └─────────────────────────────────────────────────────────────────────────────┘
+#              │                                    │
+#              │ HTTP (REST)                        │ HTTP (REST + SSE)
+#              ▼                                    ▼
+#   ┌─────────────────────┐              ┌─────────────────────┐
+#   │     qyl.mcp         │              │   qyl.dashboard     │
+#   │   (MCP Server)      │              │     (React UI)      │
+#   │                     │              │                     │
+#   │ • AI Agent Tools    │              │ • Sessions View     │
+#   │ • Token Analysis    │              │ • Trace Explorer    │
+#   └─────────────────────┘              └─────────────────────┘
+#
+#   ┌─────────────────────────────────────────────────────────────────────────────┐
+#   │                         qyl.protocol                                        │
+#   │                    (Shared Contracts)                                       │
+#   │                                                                             │
+#   │   Primitives: SessionId, UnixNano                                           │
+#   │   Models: SpanRecord, SessionSummary, GenAiSpanData                         │
+#   │   Attributes: GenAiAttributes (OTel 1.38 constants)                         │
+#   │                                                                             │
+#   └─────────────────────────────────────────────────────────────────────────────┘
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PROJECT STRUCTURE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+projects:
+  count: 4  # FIXED - No additional projects allowed
+
+  qyl.protocol:
+    path: src/qyl.protocol
+    type: class_library
+    purpose: "Shared types between all qyl components - LEAF project"
+    publish: NuGet
+    target_frameworks: [ net10.0, net8.0, netstandard2.0 ]
+    dependencies:
+      allowed: [ System.*, Microsoft.Extensions.Primitives ]
+      forbidden: [ qyl.*, DuckDB.*, OpenTelemetry.*, Grpc.* ]
+    contains:
+      - Primitives/SessionId.cs
+      - Primitives/UnixNano.cs
+      - Models/SpanRecord.cs
+      - Models/GenAiSpanData.cs
+      - Models/SessionSummary.cs
+      - Models/TraceNode.cs
+      - Attributes/GenAiAttributes.cs
+      - Contracts/ISpanStore.cs
+      - Contracts/ISessionAggregator.cs
+
+  qyl.collector:
+    path: src/qyl.collector
+    type: web_api
+    purpose: "Backend - OTLP receiver, DuckDB storage, REST/SSE API"
+    publish: Docker (ghcr.io/qyl/collector)
+    framework: ASP.NET Core Minimal APIs
+    ports:
+      http_api: 8080
+      otlp_http: 4318
+      otlp_grpc: 4317
+    dependencies:
+      allowed: [ qyl.protocol, DuckDB.NET.Data, Google.Protobuf, Grpc.AspNetCore ]
+      forbidden: [ qyl.mcp, qyl.dashboard, OpenTelemetry.Exporter.* ]
+    structure:
+      Ingestion: [ OtlpHttpReceiver.cs, OtlpGrpcService.cs, GenAiExtractor.cs, SpanConverter.cs ]
+      Storage: [ DuckDbStore.cs, DuckDbSchema.cs ]
+      Query: [ SessionAggregator.cs, TraceBuilder.cs ]
+      Api: [ SessionsEndpoint.cs, TracesEndpoint.cs, SpansEndpoint.cs, SseEndpoint.cs ]
+      Realtime: [ SpanBroadcaster.cs, SseWriter.cs ]
+
+  qyl.mcp:
+    path: src/qyl.mcp
+    type: console_app
+    purpose: "MCP Server - HTTP client to collector, NO direct DB access"
+    publish: Docker (ghcr.io/qyl/mcp)
+    framework: .NET Generic Host + MCP SDK
+    transport: stdio
+    dependencies:
+      allowed: [ qyl.protocol, ModelContextProtocol, System.Net.Http ]
+      forbidden: [ qyl.collector, qyl.dashboard, DuckDB.* ]
+    communication:
+      to_collector: HTTP_ONLY  # CRITICAL: No ProjectReference!
+    tools:
+      - query_spans
+      - get_session
+      - get_trace
+      - analyze_genai
+      - list_services
+      - compare_sessions
+
+  qyl.dashboard:
+    path: src/qyl.dashboard
+    type: spa
+    purpose: "React frontend - separate deployable, HTTP to collector"
+    publish: Docker (ghcr.io/qyl/dashboard)
+    framework: React 19 + Vite 6 + Tailwind 4 + TanStack Query 5
+    dependencies:
+      allowed: [ react, react-dom, "@tanstack/react-query", recharts, tailwindcss ]
+      forbidden: [ "ANY .NET project" ]
+    communication:
+      to_collector: HTTP_ONLY  # REST + SSE
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCY GRAPH (ENFORCE STRICTLY)
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+#   qyl.dashboard ──HTTP──► qyl.collector ◄──HTTP── qyl.mcp
+#                                 │
+#                                 ▼
+#                           qyl.protocol
+#
+# Rules:
+# - qyl.protocol is LEAF (references nothing)
+# - collector may reference protocol
+# - mcp may reference protocol, communicates with collector via HTTP ONLY
+# - dashboard references NO .NET projects
+
+dependency_rules:
+  - from: qyl.protocol
+    to: [ ]
+    note: "LEAF project - BCL only"
+
+  - from: qyl.collector
+    to: [ qyl.protocol ]
+    forbidden: [ qyl.mcp, qyl.dashboard ]
+
+  - from: qyl.mcp
+    to: [ qyl.protocol ]
+    forbidden: [ qyl.collector, qyl.dashboard ]
+    note: "HTTP to collector, NO ProjectReference"
+
+  - from: qyl.dashboard
+    to: [ ]
+    forbidden: [ "*.csproj" ]
+    note: "Pure frontend, HTTP only"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLAUDE.md DOCUMENTATION SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Each project has a CLAUDE.md that AI assistants read for context.
+# Inheritance via @import directive at top of file.
+#
+# File Tree:
+#   /CLAUDE.md                      # Root - Architecture overview
+#   /src/qyl.protocol/CLAUDE.md     # @../../CLAUDE.md (inherits root)
+#   /src/qyl.collector/CLAUDE.md    # @../../CLAUDE.md (inherits root)
+#   /src/qyl.mcp/CLAUDE.md          # @../../CLAUDE.md (inherits root)
+#   /src/qyl.dashboard/CLAUDE.md    # @../../CLAUDE.md (inherits root)
+
+claude_documentation:
+  root:
+    path: /CLAUDE.md
+    purpose: "Architecture overview, dependency rules, tech stack, anti-patterns"
+    inherits_from: null
+    contains:
+      - System architecture diagram
+      - Project structure
+      - Dependency rules table
+      - Technology stack
+      - OTel semantic conventions summary
+      - Build system overview
+      - Must-use patterns
+      - Banned patterns
+
+  project_files:
+    - path: /src/qyl.protocol/CLAUDE.md
+      inherits: "@../../CLAUDE.md"
+      purpose: "Shared contracts scope, what types belong here"
+
+    - path: /src/qyl.collector/CLAUDE.md
+      inherits: "@../../CLAUDE.md"
+      purpose: "Backend scope, layer enforcement, owned files, schema source rules"
+      contains:
+        - Allowed/forbidden dependencies
+        - Owned files table
+        - DuckDbSchema as SINGLE schema source
+        - SessionQueryService as SINGLE aggregator
+        - AOT registration requirements
+
+    - path: /src/qyl.mcp/CLAUDE.md
+      inherits: "@../../CLAUDE.md"
+      purpose: "MCP tools scope, HTTP-only communication"
+
+    - path: /src/qyl.dashboard/CLAUDE.md
+      inherits: "@../../CLAUDE.md"
+      purpose: "Frontend scope, generated types from Kiota, SSE patterns"
+      contains:
+        - Type source rules (generated, not manual)
+        - SSE hook pattern
+        - Forbidden actions
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ANcpLua.NET.Sdk BUILD SYSTEM
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Custom MSBuild SDK that layers on top of Microsoft SDKs.
+# ONE SDK for all project types (Library, Web, Test).
+# Auto-detects project type and configures accordingly.
+
+build_system:
+  sdk:
+    name: ANcpLua.NET.Sdk
+    version: "1.0.0"
+    pattern: Layering  # NOT wrapping - we layer on Microsoft SDKs
+
+  usage:
+    global_json: |
+      {
+        "sdk": { "version": "10.0.100" },
+        "msbuild-sdks": {
+          "ANcpLua.NET.Sdk": "1.0.0"
+        }
+      }
+
+    directory_build_props: |
+      <Project>
+        <Sdk Name="ANcpLua.NET.Sdk"/>
+      </Project>
+
+    project_files:
+      library: '<Project Sdk="Microsoft.NET.Sdk">'
+      web_api: '<Project Sdk="Microsoft.NET.Sdk.Web">'
+      test: |
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <IsTestProject>true</IsTestProject>
+          </PropertyGroup>
+        </Project>
+
+  # SDK auto-detects project type via these MSBuild properties
+  detection:
+    web: "$(UsingMicrosoftNETSdkWeb) == 'true'"
+    test: "$(IsTestProject) == 'true' OR project name ends with .Tests"
+    library: "default (not web, not test)"
+
+  # SDK structure
+  structure:
+    Sdk:
+      - Sdk.props       # Entry point, imports common
+      - Sdk.targets     # Entry point, imports common
+    common:
+      - Common.props    # Defaults, analyzers, CI detection
+      - Common.targets  # Package injection, SBOM
+      - LegacySupport.props   # Polyfill toggles
+      - LegacySupport.targets # Polyfill injection
+      - Tests.targets   # Test framework config (VSTest, MTP)
+    shared:
+      - Polyfills/      # IsExternalInit, NullableAttributes, etc.
+      - Extensions/Throw.cs  # Guard clauses
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SDK INJECTION FEATURES
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# MSBuild properties that enable automatic code injection.
+# Set in Directory.Build.props or individual .csproj files.
+
+sdk_injection_features:
+  InjectSharedThrow:
+    property: "<InjectSharedThrow>true</InjectSharedThrow>"
+    purpose: "Inject Throw.cs guard clauses into project"
+    what_it_does: |
+      Adds Shared/Throw/*.cs files as linked compile items.
+      Provides: Throw.IfNull(), Throw.IfNullOrEmpty(), etc.
+    when_to_use: "All projects that need argument validation"
+    implementation: |
+      <ItemGroup Condition="'$(InjectSharedThrow)' == 'true'">
+        <Compile Include="$(_QylSharedThrowPath)/**/*.cs"
+                 LinkBase="Shared/Throw" Visible="false"/>
+      </ItemGroup>
+
+  InjectClaudeBrain:
+    property: "<InjectClaudeBrain>true</InjectClaudeBrain>"
+    purpose: "Auto-generate project CLAUDE.md from template"
+    what_it_does: |
+      Creates a CLAUDE.md file in project directory if missing.
+      Includes @import to root CLAUDE.md for inheritance.
+      Adds project-specific sections based on SDK detection.
+    when_to_use: "All projects - should be default"
+    template_variables:
+      - "{{PROJECT_NAME}}"
+      - "{{PROJECT_TYPE}}"  # library, web, test
+      - "{{ALLOWED_DEPENDENCIES}}"
+      - "{{FORBIDDEN_DEPENDENCIES}}"
+
+  InjectCallerAttributesOnLegacy:
+    property: "<InjectCallerAttributesOnLegacy>true</InjectCallerAttributesOnLegacy>"
+    purpose: "Polyfill [CallerArgumentExpression] for older frameworks"
+    condition: "!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net6.0'))"
+    when_to_use: "Multi-targeting projects that need Throw.IfNull() auto-populating parameter names"
+
+  InjectDiagnosticAttributesOnLegacy:
+    property: "<InjectDiagnosticAttributesOnLegacy>true</InjectDiagnosticAttributesOnLegacy>"
+    purpose: "Polyfill [NotNull], [DoesNotReturn], [MemberNotNull] for older frameworks"
+    condition: "!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'netcoreapp3.1'))"
+    when_to_use: "Multi-targeting projects with nullable reference types"
+
+  InjectIsExternalInitOnLegacy:
+    property: "<InjectIsExternalInitOnLegacy>true</InjectIsExternalInitOnLegacy>"
+    purpose: "Polyfill init property setter for older frameworks"
+    condition: "!$([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)', 'net5.0'))"
+    when_to_use: "Multi-targeting projects using records or init-only properties"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CODE QUALITY ENFORCEMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+code_quality:
+  analyzers:
+    - Microsoft.CodeAnalysis.BannedApiAnalyzers  # RS0030 for BannedSymbols.txt
+    - Meziantou.Analyzer                         # Additional quality rules
+
+  analysis_level: latest-all
+  enforce_code_style_in_build: true
+  treat_warnings_as_errors_in_ci: true
+
+  # BannedSymbols.txt - APIs that cause build errors
+  banned_apis:
+    threading:
+      - pattern: "Monitor.Enter/Exit/TryEnter"
+        use_instead: "Lock.EnterScope()"
+        reason: ".NET 9+ Lock class is type-safe"
+
+    datetime:
+      - pattern: "DateTime.Now"
+        use_instead: "TimeProvider.System.GetLocalNow()"
+        reason: "TimeProvider is testable and mockable"
+
+      - pattern: "DateTime.UtcNow"
+        use_instead: "TimeProvider.System.GetUtcNow()"
+        reason: "TimeProvider is testable and mockable"
+
+      - pattern: "DateTime.Today"
+        use_instead: "TimeProvider.System.GetLocalNow().Date"
+        reason: "Consistency with TimeProvider"
+
+    task_delay:
+      - pattern: "Task.Delay(int/TimeSpan)"
+        use_instead: "TimeProvider.Delay()"
+        reason: "TimeProvider-based delay is testable"
+
+    json:
+      - pattern: "Newtonsoft.Json.*"
+        use_instead: "System.Text.Json"
+        reason: "BCL JSON is faster and AOT-compatible"
+
+  # Required patterns (positive enforcement)
+  required_patterns:
+    - name: "Lock class"
+      example: "private readonly Lock _lock = new();"
+      reason: ".NET 9+ type-safe synchronization"
+
+    - name: "FrozenSet<T>"
+      example: "private static readonly FrozenSet<string> Allowed = [\"a\", \"b\"].ToFrozenSet();"
+      reason: "Immutable, optimized for reads"
+
+    - name: "FrozenDictionary<K,V>"
+      example: "private static readonly FrozenDictionary<string, int> Map = dict.ToFrozenDictionary();"
+      reason: "Immutable config lookups"
+
+    - name: "await using"
+      example: "await using var connection = await factory.CreateAsync();"
+      reason: "Proper async disposal"
+
+    - name: "ValueTask for hot paths"
+      example: "public ValueTask PublishAsync(SpanRecord span) => _channel.Writer.WriteAsync(span);"
+      reason: "Reduced allocations in hot paths"
+
+    - name: "IAsyncEnumerable for streaming"
+      example: "public async IAsyncEnumerable<T> StreamAsync([EnumeratorCancellation] CancellationToken ct)"
+      reason: "Memory-efficient streaming"
+
+    - name: "TypedResults.ServerSentEvents (NET 10)"
+      example: "return TypedResults.ServerSentEvents(stream, eventType: \"span\");"
+      reason: "Built-in SSE support"
+
+    - name: "private const for magic values"
+      example: "private const int DefaultBatchSize = 1000;"
+      reason: "IntelliSense, refactor-safe"
+
+    - name: "nameof() for strings"
+      example: "throw new ArgumentNullException(nameof(parameter));"
+      reason: "Refactor-safe parameter names"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NAMING CONVENTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+naming_conventions:
+  async_methods:
+    suffix: "Async"
+    example: "GetSessionAsync"
+
+  interfaces:
+    prefix: "I"
+    example: "ISpanStore"
+
+  private_fields:
+    prefix: "_"
+    example: "_connection"
+
+  constants:
+    style: PascalCase
+    example: "DefaultBatchSize"
+
+  generic_type_params:
+    prefix: "T"
+    example: "TEntity"
+
+  cancellation_tokens:
+    name: "cancellationToken"
+    abbreviation: "ct"
+    note: "ct allowed in lambdas and short methods"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OPENTELEMETRY SEMANTIC CONVENTIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+otel_semconv:
+  version: 1.38.0
+
+  gen_ai_attributes:
+    # Current (v1.38)
+    - key: gen_ai.operation.name
+      type: string
+      values: [ chat, text_completion, embeddings, image_generation ]
+
+    - key: gen_ai.provider.name
+      type: string
+      values: [ anthropic, openai, google, azure, cohere, mistral ]
+      note: "Replaces deprecated gen_ai.system"
+
+    - key: gen_ai.request.model
+      type: string
+      example: "gpt-4o"
+
+    - key: gen_ai.response.model
+      type: string
+      example: "gpt-4o-2024-08-06"
+
+    - key: gen_ai.usage.input_tokens
+      type: int
+      note: "Replaces deprecated gen_ai.usage.prompt_tokens"
+
+    - key: gen_ai.usage.output_tokens
+      type: int
+      note: "Replaces deprecated gen_ai.usage.completion_tokens"
+
+  # Migrations from deprecated to current
+  migrations:
+    - from: gen_ai.system
+      to: gen_ai.provider.name
+
+    - from: gen_ai.usage.prompt_tokens
+      to: gen_ai.usage.input_tokens
+
+    - from: gen_ai.usage.completion_tokens
+      to: gen_ai.usage.output_tokens
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# API SPECIFICATION
+# ═══════════════════════════════════════════════════════════════════════════════
+
+api:
+  base_url: http://localhost:8080
+
+  otlp_ingestion:
+    http:
+      - method: POST
+        path: /v1/traces
+        port: 4318
+        content_type: application/x-protobuf
+
+    grpc:
+      - service: opentelemetry.proto.collector.trace.v1.TraceService
+        method: Export
+        port: 4317
+
+  rest:
+    sessions:
+      - method: GET
+        path: /api/v1/sessions
+        params: [ limit ]
+        returns: SessionSummary[]
+
+      - method: GET
+        path: /api/v1/sessions/{sessionId}
+        returns: SessionSummary
+
+    traces:
+      - method: GET
+        path: /api/v1/traces/{traceId}
+        returns: TraceNode
+
+    spans:
+      - method: GET
+        path: /api/v1/spans
+        params: [ serviceName, from, to, genAiOnly, limit ]
+        returns: SpanRecord[]
+
+  streaming:
+    sse:
+      - method: GET
+        path: /api/v1/events/spans
+        event_type: span
+        data: SpanRecord (JSON)
+
+  health:
+    - method: GET
+      path: /health
+      returns: '{ "status": "healthy" }'
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FRONTEND PATTERNS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+frontend:
+  stack:
+    - React 19
+    - Vite 6
+    - TypeScript 5.7
+    - Tailwind CSS 4
+    - TanStack Query 5
+    - TanStack Virtual 3
+    - React Router 7
+    - Recharts 2
+
+  vite_config:
+    proxy:
+      /api: "http://localhost:5100"
+      /health: "http://localhost:5100"
+
+  sse_pattern: |
+    export function useSpanStream() {
+      const queryClient = useQueryClient();
+
+      useEffect(() => {
+        const es = new EventSource('/api/v1/events/spans');
+
+        es.onmessage = (event) => {
+          queryClient.invalidateQueries({ queryKey: ['sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['spans'] });
+        };
+
+        es.onerror = () => {
+          es.close();
+          setTimeout(() => new EventSource('/api/v1/events/spans'), 3000);
+        };
+
+        return () => es.close();
+      }, [queryClient]);
+    }
+
+  tanstack_query_pattern: |
+    export function useSessions(limit = 50) {
+      return useQuery({
+        queryKey: ['sessions', limit],
+        queryFn: () => client.get<SessionSummary[]>(`/api/v1/sessions?limit=${limit}`),
+        refetchInterval: 5000,
+      });
+    }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPLOYMENT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+deployment:
+  docker:
+    images:
+      - name: ghcr.io/qyl/collector
+        ports: [ 8080, 4317, 4318 ]
+
+      - name: ghcr.io/qyl/mcp
+        transport: stdio
+
+      - name: ghcr.io/qyl/dashboard
+        ports: [ 80 ]
+
+  compose_services:
+    collector:
+      image: ghcr.io/qyl/collector
+      ports:
+        - "8080:8080"
+        - "4317:4317"
+        - "4318:4318"
+      volumes:
+        - qyl-data:/data
+      environment:
+        DuckDb__Path: /data/qyl.db
+
+    dashboard:
+      image: ghcr.io/qyl/dashboard
+      ports:
+        - "3000:80"
+      environment:
+        VITE_API_URL: http://localhost:8080
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# REJECTED ALTERNATIVES (with rationale)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+rejected:
+  - idea: "ZLinq for qyl"
+    reason: "Wrong bottleneck - DuckDB I/O is the limit, not LINQ overhead"
+
+  - idea: "Separate SDK variants (ANcpLua.NET.Sdk.Web, .Test)"
+    reason: "Layering pattern with auto-detection is simpler and covers all cases"
+
+  - idea: "Custom TraceId/SpanId structs"
+    reason: "BCL ActivityTraceId/ActivitySpanId are sufficient and standard"
+
+  - idea: "Qyl.Sdk NuGet for user applications"
+    reason: "Users should use standard OpenTelemetry - qyl is a backend, not a client SDK"
+
+  - idea: "qyl.telemetry as separate project"
+    reason: "Redundant - content merged into qyl.protocol"
+
+  - idea: "TypeSpec for C# primitives"
+    reason: "C#-specific patterns (ISpanParsable, UInt128) cannot be expressed in TypeSpec"
+
+  - idea: "Full TypeSpec code generation"
+    reason: "Overkill for 4 projects - consider for Phase 2 if dashboard types drift"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OPEN DECISIONS (for future consideration)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+open_decisions:
+  - question: "TypeSpec for REST API DTOs?"
+    context: "Only if dashboard TypeScript types start drifting from C# models"
+    recommendation: "Wait until it's a problem"
+
+  - question: "Custom TypeSpec DuckDB Emitter?"
+    context: "For automated schema migrations"
+    recommendation: "Wait until schema evolution becomes complex"
+
+  - question: "HybridCache in Collector?"
+    context: "Caching before DuckDB queries"
+    recommendation: "Profile first - DuckDB is already fast for our scale"
+
+  - question: "Authentication in Collector?"
+    context: "JWT vs API Key vs none"
+    recommendation: "Start without auth, add when needed for production"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SINGLE SOURCE OF TRUTH RULES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+single_source_rules:
+  - resource: "DuckDB Schema"
+    source: "qyl.collector/Storage/DuckDbSchema.cs"
+    rule: "ALL table definitions MUST be in this file only"
+
+  - resource: "Session Aggregation"
+    source: "qyl.collector/Query/SessionAggregator.cs"
+    rule: "ALL aggregation logic MUST use SQL queries in this file"
+
+  - resource: "OTel Attribute Constants"
+    source: "qyl.protocol/Attributes/GenAiAttributes.cs"
+    rule: "ALL gen_ai.* string constants defined here"
+
+  - resource: "TypeScript API Types"
+    source: "qyl.dashboard/src/types/generated/"
+    rule: "Generated by Kiota - DO NOT edit manually"

@@ -7,20 +7,15 @@ namespace Components;
 [ParameterPrefix(nameof(IDockerCompose))]
 internal interface IDockerCompose : IHasSolution
 {
-    [Parameter("Build images before starting (--build)")]
-    bool? DockerBuild => null;
+    [Parameter("Build images before starting (--build)")] bool? DockerBuild => null;
 
-    [Parameter("Force recreate containers (--force-recreate)")]
-    bool? ForceRecreate => null;
+    [Parameter("Force recreate containers (--force-recreate)")] bool? ForceRecreate => null;
 
-    [Parameter("Remove volumes on down (-v)")]
-    bool? RemoveVolumes => null;
+    [Parameter("Remove volumes on down (-v)")] bool? RemoveVolumes => null;
 
-    [Parameter("Number of log lines to tail")]
-    int? LogTail => null;
+    [Parameter("Number of log lines to tail")] int? LogTail => null;
 
-    [Parameter("Target specific service")]
-    string? Service => null;
+    [Parameter("Target specific service")] string? Service => null;
 
     Target DockerUp => d => d
         .Description("Start qyl Docker Compose stack")

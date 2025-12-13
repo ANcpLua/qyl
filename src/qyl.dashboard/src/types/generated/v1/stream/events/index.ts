@@ -5,49 +5,49 @@
 import {StreamEventType} from '../../../models/streaming/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/stream/events
  */
 export interface EventsRequestBuilder extends BaseRequestBuilder<EventsRequestBuilder> {
-  /**
-   * Stream all telemetry events (SSE)
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<ArrayBuffer>}
-   */
-  get(requestConfiguration?: RequestConfiguration<EventsRequestBuilderGetQueryParameters> | undefined): Promise<ArrayBuffer | undefined>;
+    /**
+     * Stream all telemetry events (SSE)
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ArrayBuffer>}
+     */
+    get(requestConfiguration?: RequestConfiguration<EventsRequestBuilderGetQueryParameters> | undefined): Promise<ArrayBuffer | undefined>;
 
-  /**
-   * Stream all telemetry events (SSE)
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<EventsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
+    /**
+     * Stream all telemetry events (SSE)
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<EventsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
 }
 
 /**
  * Stream all telemetry events (SSE)
  */
 export interface EventsRequestBuilderGetQueryParameters {
-  /**
-   * Sample rate
-   */
-  sampleRate?: number;
-  /**
-   * Service name filter
-   */
-  serviceName?: string;
-  /**
-   * Event types
-   */
-  types?: StreamEventType[];
+    /**
+     * Sample rate
+     */
+    sampleRate?: number;
+    /**
+     * Service name filter
+     */
+    serviceName?: string;
+    /**
+     * Event types
+     */
+    types?: StreamEventType[];
 }
 
 /**
@@ -58,12 +58,12 @@ export const EventsRequestBuilderUriTemplate = "{+baseurl}/v1/stream/events{?sam
  * Metadata for all the requests in the request builder.
  */
 export const EventsRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: EventsRequestBuilderUriTemplate,
-    responseBodyContentType: "text/event-stream",
-    adapterMethodName: "sendPrimitive",
-    responseBodyFactory: "ArrayBuffer",
-  },
+    get: {
+        uriTemplate: EventsRequestBuilderUriTemplate,
+        responseBodyContentType: "text/event-stream",
+        adapterMethodName: "sendPrimitive",
+        responseBodyFactory: "ArrayBuffer",
+    },
 };
 /* tslint:enable */
 /* eslint-enable */

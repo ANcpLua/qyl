@@ -1,14 +1,18 @@
 # =============================================================================
-# qyl EditorConfig - Tests (RELAXED)
+# qyl EditorConfig - Tests
+# This file exists for IDE compatibility. Rules are defined in root .editorconfig
+# under [tests/**/*.cs] section. Both files have identical rules.
 # =============================================================================
 
+root = true
+
 [*.cs]
-# Relaxed for tests
-dotnet_diagnostic.CA1707.severity = none       # Underscores in test names OK
-dotnet_diagnostic.CA1816.severity = none       # Dispose pattern
-dotnet_diagnostic.CA2000.severity = none       # Dispose objects
-dotnet_diagnostic.CS1591.severity = none       # XML docs
-dotnet_diagnostic.VSTHRD111.severity = none    # ConfigureAwait
+# Relaxed for tests - mirrors root [tests/**/*.cs] section
+dotnet_diagnostic.CA1707.severity = none # Underscores in test names OK
+dotnet_diagnostic.CA1816.severity = none # Dispose pattern (test fixtures)
+dotnet_diagnostic.CA2000.severity = none # Dispose objects (test arrangements)
+dotnet_diagnostic.CS1591.severity = none # XML docs
+dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait (tests don't need it)
 
 # xUnit
 dotnet_diagnostic.xUnit1004.severity = warning # Test methods should not be skipped

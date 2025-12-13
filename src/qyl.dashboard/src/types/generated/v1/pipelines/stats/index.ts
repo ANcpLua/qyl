@@ -5,55 +5,55 @@
 import {createPipelineStatsFromDiscriminatorValue, type PipelineStats} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  type InternalServerError
+    createInternalServerErrorFromDiscriminatorValue,
+    type InternalServerError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/pipelines/stats
  */
 export interface StatsRequestBuilder extends BaseRequestBuilder<StatsRequestBuilder> {
-  /**
-   * Get pipeline statistics
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<PipelineStats>}
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<StatsRequestBuilderGetQueryParameters> | undefined): Promise<PipelineStats | undefined>;
+    /**
+     * Get pipeline statistics
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<PipelineStats>}
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<StatsRequestBuilderGetQueryParameters> | undefined): Promise<PipelineStats | undefined>;
 
-  /**
-   * Get pipeline statistics
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<StatsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
+    /**
+     * Get pipeline statistics
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<StatsRequestBuilderGetQueryParameters> | undefined): RequestInformation;
 }
 
 /**
  * Get pipeline statistics
  */
 export interface StatsRequestBuilderGetQueryParameters {
-  /**
-   * End time
-   */
-  endTime?: Date;
-  /**
-   * Pipeline name filter
-   */
-  pipelineName?: string;
-  /**
-   * Start time
-   */
-  startTime?: Date;
+    /**
+     * End time
+     */
+    endTime?: Date;
+    /**
+     * Pipeline name filter
+     */
+    pipelineName?: string;
+    /**
+     * Start time
+     */
+    startTime?: Date;
 }
 
 /**
@@ -64,15 +64,15 @@ export const StatsRequestBuilderUriTemplate = "{+baseurl}/v1/pipelines/stats{?en
  * Metadata for all the requests in the request builder.
  */
 export const StatsRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: StatsRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: StatsRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createPipelineStatsFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createPipelineStatsFromDiscriminatorValue,
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

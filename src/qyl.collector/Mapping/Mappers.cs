@@ -45,14 +45,17 @@ public static class SpanMapper
 
     public static List<SpanDto> ToDtos(
         IEnumerable<SpanRecord> records,
-        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
-    [
-        .. records.Select(r =>
-        {
-            (var serviceName, var serviceVersion) = serviceResolver(r);
-            return ToDto(r, serviceName, serviceVersion);
-        })
-    ];
+        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver)
+    {
+        return
+        [
+            .. records.Select(r =>
+            {
+                var (serviceName, serviceVersion) = serviceResolver(r);
+                return ToDto(r, serviceName, serviceVersion);
+            })
+        ];
+    }
 
     private static string MapSpanKind(string? kind)
     {
@@ -70,14 +73,16 @@ public static class SpanMapper
         };
     }
 
-    private static string MapStatus(int? statusCode) =>
-        statusCode switch
+    private static string MapStatus(int? statusCode)
+    {
+        return statusCode switch
         {
             0 => "unset",
             1 => "ok",
             2 => "error",
             _ => "unset"
         };
+    }
 
     private static Dictionary<string, object?> ParseAttributes(string? json)
     {
@@ -179,7 +184,7 @@ public static class SessionMapper
             TraceCount = summary.TraceCount,
             ErrorCount = summary.ErrorCount,
             ErrorRate = summary.ErrorRate,
-            Services = [.. summary.Services],
+            Services = [], // Services are now inferred from spans, not tracked on session
             TraceIds = [],
             IsActive = (TimeProvider.System.GetUtcNow() - lastActivity).TotalMinutes < 5,
             GenAiStats = new SessionGenAiStatsDto
@@ -198,18 +203,23 @@ public static class SessionMapper
         };
     }
 
-    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries) => [.. summaries.Select(ToDto)];
+    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries)
+    {
+        return [.. summaries.Select(ToDto)];
+    }
 
     public static SessionListResponseDto ToListResponse(
         IEnumerable<SessionSummary> summaries,
         int total,
-        bool hasMore) =>
-        new()
+        bool hasMore)
+    {
+        return new SessionListResponseDto
         {
             Sessions = ToDtos(summaries),
             Total = total,
             HasMore = hasMore
         };
+    }
 
     private static List<string> ExtractProviders(SessionSummary summary)
     {
@@ -225,8 +235,9 @@ public static class SessionMapper
         return [.. providers];
     }
 
-    private static string? InferProvider(string model) =>
-        model switch
+    private static string? InferProvider(string model)
+    {
+        return model switch
         {
             _ when model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) => "openai",
             _ when model.StartsWith("o1", StringComparison.OrdinalIgnoreCase) => "openai",
@@ -237,4 +248,5 @@ public static class SessionMapper
             _ when model.StartsWith("command", StringComparison.OrdinalIgnoreCase) => "cohere",
             _ => null
         };
+    }
 }

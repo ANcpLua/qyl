@@ -1,25 +1,89 @@
-﻿services:
-  qyl.sdk.aspnetcore:
-    image: qyl.sdk.aspnetcore
-    build:
-      context: .
-      dockerfile: qyl.sdk.aspnetcore/Dockerfile
+﻿# qyl. - AI Observability Platform
+# Development Docker Compose - Run from repository root
+#
+# Usage:
+#   docker compose -f eng/compose.yaml up -d
+#   docker compose -f eng/compose.yaml down
+#
+# Services:
+#   - qyl-collector: Backend API + DuckDB + SSE streaming (port 5100)
+#   - qyl-dashboard: React frontend (port 5173 dev, 8080 prod)
+#   - qyl-mcp: MCP server for AI agent queries
 
-  qyl.telemetry.otlp:
-    image: qyl.telemetry.otlp
+services:
+  # ============================================================================
+  # qyl.collector - AI Observability Backend
+  # ============================================================================
+  qyl-collector:
     build:
-      context: .
-      dockerfile: qyl.telemetry.otlp/Dockerfile
+      context: ..
+      dockerfile: src/qyl.collector/Dockerfile
+    container_name: qyl-collector
+    ports:
+      - "5100:5100"    # REST API + SSE
+      - "4317:4317"    # OTLP gRPC (optional)
+      - "4318:4318"    # OTLP HTTP (optional)
+    volumes:
+      - qyl-data:/data
+    environment:
+      - QYL_PORT=5100
+      - QYL_DATA_PATH=/data/qyl.duckdb
+      - ASPNETCORE_URLS=http://+:5100
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5100/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
-  qtl.gemini:
-    image: qtl.gemini
+  # ============================================================================
+  # qyl.dashboard - React Frontend (Production)
+  # ============================================================================
+  qyl-dashboard:
     build:
-      context: .
-      dockerfile: qtl.gemini/Dockerfile
+      context: ..
+      dockerfile: src/qyl.dashboard/Dockerfile
+    container_name: qyl-dashboard
+    ports:
+      - "8080:80"
+    depends_on:
+      qyl-collector:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://qyl-collector:5100
+    restart: unless-stopped
 
-  qyl.cli:
-    image: qyl.cli
+  # ============================================================================
+  # qyl.mcp - MCP Server for AI Agents
+  # ============================================================================
+  qyl-mcp:
+    build:
+      context: ..
+      dockerfile: src/qyl.mcp/Dockerfile
+    container_name: qyl-mcp
+    ports:
+      - "5200:5200"
+    depends_on:
+      qyl-collector:
+        condition: service_healthy
+    environment:
+      - QYL_COLLECTOR_URL=http://qyl-collector:5100
+    restart: unless-stopped
+
+  # ============================================================================
+  # qyl.cli - Development CLI (optional)
+  # ============================================================================
+  qyl-cli:
     build:
       context: .
       dockerfile: qyl.cli/Dockerfile
+    container_name: qyl-cli
+    profiles:
+      - cli  # Only start with: docker compose --profile cli up
+    depends_on:
+      - qyl-collector
 
+volumes:
+  qyl-data:
+    driver: local

@@ -5,10 +5,10 @@
 import {createServiceDetailsFromDiscriminatorValue, type ServiceDetails} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createNotFoundErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type NotFoundError
+    createInternalServerErrorFromDiscriminatorValue,
+    createNotFoundErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type NotFoundError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {type DependenciesRequestBuilder, DependenciesRequestBuilderRequestsMetadata} from './dependencies/index.js';
@@ -16,45 +16,45 @@ import {type DependenciesRequestBuilder, DependenciesRequestBuilderRequestsMetad
 import {type OperationsRequestBuilder, OperationsRequestBuilderRequestsMetadata} from './operations/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/services/{serviceName}
  */
 export interface WithServiceNameItemRequestBuilder extends BaseRequestBuilder<WithServiceNameItemRequestBuilder> {
-  /**
-   * The dependencies property
-   */
-  get dependencies(): DependenciesRequestBuilder;
+    /**
+     * The dependencies property
+     */
+    get dependencies(): DependenciesRequestBuilder;
 
-  /**
-   * The operations property
-   */
-  get operations(): OperationsRequestBuilder;
+    /**
+     * The operations property
+     */
+    get operations(): OperationsRequestBuilder;
 
-  /**
-   * Get service details
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<ServiceDetails>}
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ServiceDetails | undefined>;
+    /**
+     * Get service details
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ServiceDetails>}
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ServiceDetails | undefined>;
 
-  /**
-   * Get service details
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Get service details
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
@@ -65,27 +65,27 @@ export const WithServiceNameItemRequestBuilderUriTemplate = "{+baseurl}/v1/servi
  * Metadata for all the navigation properties in the request builder.
  */
 export const WithServiceNameItemRequestBuilderNavigationMetadata: Record<Exclude<keyof WithServiceNameItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  dependencies: {
-    requestsMetadata: DependenciesRequestBuilderRequestsMetadata,
-  },
-  operations: {
-    requestsMetadata: OperationsRequestBuilderRequestsMetadata,
-  },
+    dependencies: {
+        requestsMetadata: DependenciesRequestBuilderRequestsMetadata,
+    },
+    operations: {
+        requestsMetadata: OperationsRequestBuilderRequestsMetadata,
+    },
 };
 /**
  * Metadata for all the requests in the request builder.
  */
 export const WithServiceNameItemRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: WithServiceNameItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: WithServiceNameItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createServiceDetailsFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createServiceDetailsFromDiscriminatorValue,
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

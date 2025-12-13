@@ -1,7 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Primitives;
 
 namespace qyl.collector.Auth;
 
@@ -88,20 +87,24 @@ public sealed class TokenAuthMiddleware
         await _next(context).ConfigureAwait(false);
     }
 
-    private bool ValidateToken(string token) =>
-        CryptographicOperations.FixedTimeEquals(
+    private bool ValidateToken(string token)
+    {
+        return CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(token),
             Encoding.UTF8.GetBytes(_token));
+    }
 
-    private void SetAuthCookie(HttpContext context) =>
+    private void SetAuthCookie(HttpContext context)
+    {
         context.Response.Cookies.Append(_options.CookieName, _token, new CookieOptions
         {
             HttpOnly = true,
             Secure = context.Request.IsHttps,
             SameSite = SameSiteMode.Strict,
-            Expires = DateTimeOffset.UtcNow.AddDays(_options.CookieExpirationDays),
+            Expires = TimeProvider.System.GetUtcNow().AddDays(_options.CookieExpirationDays),
             Path = "/"
         });
+    }
 
     private static string RemoveQueryParameter(HttpRequest request, string paramName)
     {
@@ -114,8 +117,10 @@ public sealed class TokenAuthMiddleware
         return newQuery;
     }
 
-    public string GetToken() =>
-        _token;
+    public string GetToken()
+    {
+        return _token;
+    }
 }
 
 public sealed record LoginRequest(string Token);
@@ -150,7 +155,7 @@ public static class TokenAuthExtensions
                     HttpOnly = true,
                     Secure = context.Request.IsHttps,
                     SameSite = SameSiteMode.Strict,
-                    Expires = DateTimeOffset.UtcNow.AddDays(options.CookieExpirationDays),
+                    Expires = TimeProvider.System.GetUtcNow().AddDays(options.CookieExpirationDays),
                     Path = "/"
                 });
 

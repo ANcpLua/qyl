@@ -5,67 +5,67 @@
 import {type DeploymentUpdate, serializeDeploymentUpdate} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createNotFoundErrorFromDiscriminatorValue,
-  createValidationErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type NotFoundError,
-  type ValidationError
+    createInternalServerErrorFromDiscriminatorValue,
+    createNotFoundErrorFromDiscriminatorValue,
+    createValidationErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type NotFoundError,
+    type ValidationError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {
-  createDeploymentEntityFromDiscriminatorValue,
-  type DeploymentEntity,
-  serializeDeploymentEntity
+    createDeploymentEntityFromDiscriminatorValue,
+    type DeploymentEntity,
+    serializeDeploymentEntity
 } from '../../../models/qyl/domains/ops/deployment/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/deployments/{deploymentId}
  */
 export interface WithDeploymentItemRequestBuilder extends BaseRequestBuilder<WithDeploymentItemRequestBuilder> {
-  /**
-   * Get deployment by ID
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<DeploymentEntity>}
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
+    /**
+     * Get deployment by ID
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<DeploymentEntity>}
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
 
-  /**
-   * Update deployment status
-   * @param body Deployment update request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<DeploymentEntity>}
-   * @throws {ValidationError} error when the service returns a 400 status code
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  patch(body: DeploymentUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
+    /**
+     * Update deployment status
+     * @param body Deployment update request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<DeploymentEntity>}
+     * @throws {ValidationError} error when the service returns a 400 status code
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    patch(body: DeploymentUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<DeploymentEntity | undefined>;
 
-  /**
-   * Get deployment by ID
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Get deployment by ID
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 
-  /**
-   * Update deployment status
-   * @param body Deployment update request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toPatchRequestInformation(body: DeploymentUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Update deployment status
+     * @param body Deployment update request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toPatchRequestInformation(body: DeploymentUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
@@ -76,30 +76,30 @@ export const WithDeploymentItemRequestBuilderUriTemplate = "{+baseurl}/v1/deploy
  * Metadata for all the requests in the request builder.
  */
 export const WithDeploymentItemRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: WithDeploymentItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: WithDeploymentItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
-  },
-  patch: {
-    uriTemplate: WithDeploymentItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    patch: {
+        uriTemplate: WithDeploymentItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
+        requestBodyContentType: "application/json",
+        requestBodySerializer: serializeDeploymentUpdate,
+        requestInformationContentSetMethod: "setContentFromParsable",
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createDeploymentEntityFromDiscriminatorValue,
-    requestBodyContentType: "application/json",
-    requestBodySerializer: serializeDeploymentUpdate,
-    requestInformationContentSetMethod: "setContentFromParsable",
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

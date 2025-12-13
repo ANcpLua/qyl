@@ -9,39 +9,39 @@ export type TelemetrySdkLanguage = (typeof TelemetrySdkLanguageObject)[keyof typ
  * Metric data type
  */
 export const MetricTypeObject = {
-  Gauge: "gauge",
-  Sum: "sum",
-  Histogram: "histogram",
-  Exponential_histogram: "exponential_histogram",
-  Summary: "summary",
+    Gauge: "gauge",
+    Sum: "sum",
+    Histogram: "histogram",
+    Exponential_histogram: "exponential_histogram",
+    Summary: "summary",
 } as const;
 /**
  * Log severity text (human-readable)
  */
 export const SeverityTextObject = {
-  TRACE: "TRACE",
-  DEBUG: "DEBUG",
-  INFO: "INFO",
-  WARN: "WARN",
-  ERROREscaped: "ERROR",
-  FATAL: "FATAL",
+    TRACE: "TRACE",
+    DEBUG: "DEBUG",
+    INFO: "INFO",
+    WARN: "WARN",
+    ERROREscaped: "ERROR",
+    FATAL: "FATAL",
 } as const;
 /**
  * Telemetry SDK language
  */
 export const TelemetrySdkLanguageObject = {
-  Cpp: "cpp",
-  Dotnet: "dotnet",
-  Erlang: "erlang",
-  Go: "go",
-  Java: "java",
-  Nodejs: "nodejs",
-  Php: "php",
-  Python: "python",
-  Ruby: "ruby",
-  Rust: "rust",
-  Swift: "swift",
-  Webjs: "webjs",
+    Cpp: "cpp",
+    Dotnet: "dotnet",
+    Erlang: "erlang",
+    Go: "go",
+    Java: "java",
+    Nodejs: "nodejs",
+    Php: "php",
+    Python: "python",
+    Ruby: "ruby",
+    Rust: "rust",
+    Swift: "swift",
+    Webjs: "webjs",
 } as const;
 /* tslint:enable */
 /* eslint-enable */

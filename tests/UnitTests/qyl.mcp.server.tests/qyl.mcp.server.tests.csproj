@@ -1,22 +1,22 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <RootNamespace>qyl.mcp.server.tests</RootNamespace>
-  </PropertyGroup>
+    <PropertyGroup>
+        <RootNamespace>qyl.mcp.server.tests</RootNamespace>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
-  </ItemGroup>
+    <ItemGroup>
+        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Agents.AI"/>
-    <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Hosting"/>
-    <PackageReference Include="ModelContextProtocol"/>
-  </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Agents.AI"/>
+        <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting"/>
+        <PackageReference Include="ModelContextProtocol"/>
+    </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="../../../src/qyl.mcp.server/qyl.mcp.server.csproj"/>
-  </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\qyl.mcp\qyl.mcp.csproj"/>
+    </ItemGroup>
 
 </Project>

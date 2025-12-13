@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,8 +11,7 @@ namespace Components;
 
 internal interface IChangelog : ICompile
 {
-    [PathVariable]
-    Tool Git => TryGetValue(() => Git)!;
+    [PathVariable] Tool Git => TryGetValue(() => Git)!;
 
     AbsolutePath ChangelogDirectory => ArtifactsDirectory / "changelog";
 
@@ -77,9 +75,7 @@ internal interface IChangelog : ICompile
                 }
             }
             else
-            {
                 sb.AppendLine("_No changes detected or this is the first commit_");
-            }
 
             sb.AppendLine();
 
@@ -100,9 +96,7 @@ internal interface IChangelog : ICompile
                     sb.AppendLine($"- `{tag}`");
             }
             else
-            {
                 sb.AppendLine("_No tags found_");
-            }
 
             File.WriteAllText(outputFile, sb.ToString());
             Log.Information("Changelog written to: {Path}", outputFile);

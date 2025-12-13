@@ -5,76 +5,76 @@
 import {type ErrorUpdate, serializeErrorUpdate} from '../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  createNotFoundErrorFromDiscriminatorValue,
-  createValidationErrorFromDiscriminatorValue,
-  type InternalServerError,
-  type NotFoundError,
-  type ValidationError
+    createInternalServerErrorFromDiscriminatorValue,
+    createNotFoundErrorFromDiscriminatorValue,
+    createValidationErrorFromDiscriminatorValue,
+    type InternalServerError,
+    type NotFoundError,
+    type ValidationError
 } from '../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {
-  createErrorEntityFromDiscriminatorValue,
-  type ErrorEntity,
-  serializeErrorEntity
+    createErrorEntityFromDiscriminatorValue,
+    type ErrorEntity,
+    serializeErrorEntity
 } from '../../../models/qyl/domains/observe/errorEscaped/index.js';
 // @ts-ignore
 import {type CorrelationsRequestBuilder, CorrelationsRequestBuilderRequestsMetadata} from './correlations/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type KeysToExcludeForNavigationMetadata,
-  type NavigationMetadata,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type KeysToExcludeForNavigationMetadata,
+    type NavigationMetadata,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/errors/{errorId}
  */
 export interface WithErrorItemRequestBuilder extends BaseRequestBuilder<WithErrorItemRequestBuilder> {
-  /**
-   * The correlations property
-   */
-  get correlations(): CorrelationsRequestBuilder;
+    /**
+     * The correlations property
+     */
+    get correlations(): CorrelationsRequestBuilder;
 
-  /**
-   * Get error by ID
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<ErrorEntity>}
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ErrorEntity | undefined>;
+    /**
+     * Get error by ID
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ErrorEntity>}
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ErrorEntity | undefined>;
 
-  /**
-   * Update error status
-   * @param body Error update request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<ErrorEntity>}
-   * @throws {ValidationError} error when the service returns a 400 status code
-   * @throws {NotFoundError} error when the service returns a 404 status code
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  patch(body: ErrorUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ErrorEntity | undefined>;
+    /**
+     * Update error status
+     * @param body Error update request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<ErrorEntity>}
+     * @throws {ValidationError} error when the service returns a 400 status code
+     * @throws {NotFoundError} error when the service returns a 404 status code
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    patch(body: ErrorUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): Promise<ErrorEntity | undefined>;
 
-  /**
-   * Get error by ID
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Get error by ID
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 
-  /**
-   * Update error status
-   * @param body Error update request
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toPatchRequestInformation(body: ErrorUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
+    /**
+     * Update error status
+     * @param body Error update request
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toPatchRequestInformation(body: ErrorUpdate, requestConfiguration?: RequestConfiguration<object> | undefined): RequestInformation;
 }
 
 /**
@@ -85,38 +85,38 @@ export const WithErrorItemRequestBuilderUriTemplate = "{+baseurl}/v1/errors/{err
  * Metadata for all the navigation properties in the request builder.
  */
 export const WithErrorItemRequestBuilderNavigationMetadata: Record<Exclude<keyof WithErrorItemRequestBuilder, KeysToExcludeForNavigationMetadata>, NavigationMetadata> = {
-  correlations: {
-    requestsMetadata: CorrelationsRequestBuilderRequestsMetadata,
-  },
+    correlations: {
+        requestsMetadata: CorrelationsRequestBuilderRequestsMetadata,
+    },
 };
 /**
  * Metadata for all the requests in the request builder.
  */
 export const WithErrorItemRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: WithErrorItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: WithErrorItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createErrorEntityFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createErrorEntityFromDiscriminatorValue,
-  },
-  patch: {
-    uriTemplate: WithErrorItemRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    patch: {
+        uriTemplate: WithErrorItemRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            400: createValidationErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            404: createNotFoundErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createErrorEntityFromDiscriminatorValue,
+        requestBodyContentType: "application/json",
+        requestBodySerializer: serializeErrorUpdate,
+        requestInformationContentSetMethod: "setContentFromParsable",
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createErrorEntityFromDiscriminatorValue,
-    requestBodyContentType: "application/json",
-    requestBodySerializer: serializeErrorUpdate,
-    requestInformationContentSetMethod: "setContentFromParsable",
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

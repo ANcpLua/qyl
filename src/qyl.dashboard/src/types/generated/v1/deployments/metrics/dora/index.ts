@@ -5,61 +5,61 @@
 import {createDoraMetricsFromDiscriminatorValue, type DoraMetrics} from '../../../../models/index.js';
 // @ts-ignore
 import {
-  createInternalServerErrorFromDiscriminatorValue,
-  type InternalServerError
+    createInternalServerErrorFromDiscriminatorValue,
+    type InternalServerError
 } from '../../../../models/qyl/common/errors/index.js';
 // @ts-ignore
 import {DeploymentEnvironment} from '../../../../models/qyl/domains/ops/deployment/index.js';
 // @ts-ignore
 import {
-  type BaseRequestBuilder,
-  type Parsable,
-  type ParsableFactory,
-  type RequestConfiguration,
-  type RequestInformation,
-  type RequestsMetadata
+    type BaseRequestBuilder,
+    type Parsable,
+    type ParsableFactory,
+    type RequestConfiguration,
+    type RequestInformation,
+    type RequestsMetadata
 } from '@microsoft/kiota-abstractions';
 
 /**
  * Builds and executes requests for operations under /v1/deployments/metrics/dora
  */
 export interface DoraRequestBuilder extends BaseRequestBuilder<DoraRequestBuilder> {
-  /**
-   * Get DORA metrics
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {Promise<DoraMetrics>}
-   * @throws {InternalServerError} error when the service returns a 500 status code
-   */
-  get(requestConfiguration?: RequestConfiguration<DoraRequestBuilderGetQueryParameters> | undefined): Promise<DoraMetrics | undefined>;
+    /**
+     * Get DORA metrics
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {Promise<DoraMetrics>}
+     * @throws {InternalServerError} error when the service returns a 500 status code
+     */
+    get(requestConfiguration?: RequestConfiguration<DoraRequestBuilderGetQueryParameters> | undefined): Promise<DoraMetrics | undefined>;
 
-  /**
-   * Get DORA metrics
-   * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
-   * @returns {RequestInformation}
-   */
-  toGetRequestInformation(requestConfiguration?: RequestConfiguration<DoraRequestBuilderGetQueryParameters> | undefined): RequestInformation;
+    /**
+     * Get DORA metrics
+     * @param requestConfiguration Configuration for the request such as headers, query parameters, and middleware options.
+     * @returns {RequestInformation}
+     */
+    toGetRequestInformation(requestConfiguration?: RequestConfiguration<DoraRequestBuilderGetQueryParameters> | undefined): RequestInformation;
 }
 
 /**
  * Get DORA metrics
  */
 export interface DoraRequestBuilderGetQueryParameters {
-  /**
-   * End time
-   */
-  endTime?: Date;
-  /**
-   * Environment filter
-   */
-  environment?: DeploymentEnvironment;
-  /**
-   * Service name filter
-   */
-  serviceName?: string;
-  /**
-   * Start time
-   */
-  startTime?: Date;
+    /**
+     * End time
+     */
+    endTime?: Date;
+    /**
+     * Environment filter
+     */
+    environment?: DeploymentEnvironment;
+    /**
+     * Service name filter
+     */
+    serviceName?: string;
+    /**
+     * Start time
+     */
+    startTime?: Date;
 }
 
 /**
@@ -70,15 +70,15 @@ export const DoraRequestBuilderUriTemplate = "{+baseurl}/v1/deployments/metrics/
  * Metadata for all the requests in the request builder.
  */
 export const DoraRequestBuilderRequestsMetadata: RequestsMetadata = {
-  get: {
-    uriTemplate: DoraRequestBuilderUriTemplate,
-    responseBodyContentType: "application/json",
-    errorMappings: {
-      500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+    get: {
+        uriTemplate: DoraRequestBuilderUriTemplate,
+        responseBodyContentType: "application/json",
+        errorMappings: {
+            500: createInternalServerErrorFromDiscriminatorValue as ParsableFactory<Parsable>,
+        },
+        adapterMethodName: "send",
+        responseBodyFactory: createDoraMetricsFromDiscriminatorValue,
     },
-    adapterMethodName: "send",
-    responseBodyFactory: createDoraMetricsFromDiscriminatorValue,
-  },
 };
 /* tslint:enable */
 /* eslint-enable */

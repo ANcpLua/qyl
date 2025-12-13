@@ -20,8 +20,6 @@ internal interface ITestContainers : INukeBuild
                 Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
             }
             else
-            {
                 Log.Debug("Testcontainers: Using local Docker configuration");
-            }
         });
 }

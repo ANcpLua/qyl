@@ -8,8 +8,7 @@ namespace Components;
 
 internal interface IHasSolution : INukeBuild
 {
-    [Solution(GenerateProjects = true)]
-    Solution Solution => TryGetValue(() => Solution)!;
+    [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)!;
 
     AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
 
@@ -29,9 +28,9 @@ internal interface IHasSolution : INukeBuild
 
     AbsolutePath GrpcDirectory => SourceDirectory / "qyl.grpc";
 
-    AbsolutePath McpServerDirectory => SourceDirectory / "qyl.mcp.server";
+    AbsolutePath McpServerDirectory => SourceDirectory / "qyl.mcp";
 
-    AbsolutePath AgentsTelemetryDirectory => SourceDirectory / "qyl.agents.telemetry";
+    AbsolutePath AgentsTelemetryDirectory => SourceDirectory / "qyl.telemetry";
 
     AbsolutePath SdkAspNetCoreDirectory => SourceDirectory / "qyl.sdk.aspnetcore";
 
