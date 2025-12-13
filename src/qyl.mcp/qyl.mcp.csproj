@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       qyl.mcp — MCP Server
+
+       Model Context Protocol server for AI agents
+       Communicates with collector via HTTP ONLY (no ProjectReference to collector!)
+
+       MAY reference: qyl.protocol, ModelContextProtocol, HttpClient
+       MUST NOT reference: qyl.collector, qyl.dashboard, DuckDB
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Qyl.Mcp</RootNamespace>
+    <Description>qyl MCP Server for AI Agents</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+
+</Project>

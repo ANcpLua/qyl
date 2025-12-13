@@ -1,0 +1,113 @@
+<Solution>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       qyl — AI Observability Platform
+
+       Architecture: 4 core projects, strict dependency graph
+       Build Order:  protocol → collector/mcp → dashboard (HTTP only)
+       Artifacts:    All bin/obj → /artifacts (see Directory.Build.props)
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+
+  <Configurations>
+    <BuildType Name="Debug"/>
+    <BuildType Name="Release"/>
+    <Platform Name="Any CPU"/>
+  </Configurations>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       SOLUTION ITEMS — Root Configuration Files
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig"/>
+    <File Path=".gitignore"/>
+    <File Path="CHANGELOG.md"/>
+    <File Path="CLAUDE.md"/>
+    <File Path="Directory.Build.props"/>
+    <File Path="Directory.Build.targets"/>
+    <File Path="Directory.Packages.props"/>
+    <File Path="global.json"/>
+    <File Path="README.md"/>
+  </Folder>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       SPECS — Architecture Documentation (Machine + Human Readable)
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/specs/">
+    <File Path="architecture.yaml"/>
+    <File Path="schema.yaml"/>
+  </Folder>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       SOURCE — Core Platform (4 Projects Only)
+
+       Dependency Graph:
+         qyl.dashboard ──HTTP──► qyl.collector ◄──HTTP── qyl.mcp
+                                       │
+                                       ▼
+                                 qyl.protocol (LEAF)
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/src/">
+
+    <!-- LEAF: Shared contracts, NO dependencies on other qyl.* -->
+    <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>
+
+    <!-- Backend: OTLP receiver, DuckDB, REST/SSE API -->
+    <Project Path="src/qyl.collector/qyl.collector.csproj">
+      <BuildDependency Project="src/qyl.protocol/qyl.protocol.csproj"/>
+    </Project>
+
+    <!-- MCP Server: HTTP client to collector (NO ProjectReference!) -->
+    <Project Path="src/qyl.mcp/qyl.mcp.csproj">
+      <BuildDependency Project="src/qyl.protocol/qyl.protocol.csproj"/>
+    </Project>
+
+    <!-- React SPA: HTTP to collector only (excluded - requires npm/node setup) -->
+    <!-- Uncomment when dashboard is ready: <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/> -->
+
+  </Folder>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       TESTS — Mirror Source Structure
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/tests/">
+    <Project Path="tests/qyl.protocol.tests/qyl.protocol.tests.csproj">
+      <BuildDependency Project="src/qyl.protocol/qyl.protocol.csproj"/>
+    </Project>
+    <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj">
+      <BuildDependency Project="src/qyl.collector/qyl.collector.csproj"/>
+    </Project>
+    <Project Path="tests/qyl.mcp.tests/qyl.mcp.tests.csproj">
+      <BuildDependency Project="src/qyl.mcp/qyl.mcp.csproj"/>
+    </Project>
+  </Folder>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       EXAMPLES — How to Send Telemetry to qyl
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/examples/">
+    <Project Path="examples/qyl.example.webapi/qyl.example.webapi.csproj"/>
+    <Project Path="examples/qyl.example.console/qyl.example.console.csproj"/>
+  </Folder>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════════
+       ENGINEERING — Build Infrastructure
+       ═══════════════════════════════════════════════════════════════════════════════════ -->
+  <Folder Name="/eng/">
+
+    <!-- Build orchestration project -->
+    <Project Path="eng/build/build.csproj"/>
+
+    <!-- ANcpLua.NET.Sdk files (view only, not buildable) -->
+    <Folder Name="/eng/sdk/">
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/Sdk/Sdk.props"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/Sdk/Sdk.targets"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/common/Common.props"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/common/Common.targets"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/common/LegacySupport.props"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/common/LegacySupport.targets"/>
+      <File Path="eng/sdk/ANcpLua.NET.Sdk/common/Tests.targets"/>
+    </Folder>
+
+  </Folder>
+
+</Solution>

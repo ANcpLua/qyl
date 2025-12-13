@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       qyl.collector — Backend
+
+       OTLP receiver (gRPC + HTTP), DuckDB storage, REST/SSE API
+
+       MAY reference: qyl.protocol, DuckDB, gRPC, Protobuf
+       MUST NOT reference: qyl.mcp, qyl.dashboard
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <RootNamespace>Qyl.Collector</RootNamespace>
+    <Description>qyl AI Observability Backend</Description>
+    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DuckDB.NET.Data" />
+    <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.AspNetCore" />
+  </ItemGroup>
+
+</Project>

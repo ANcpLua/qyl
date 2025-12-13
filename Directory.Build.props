@@ -1,0 +1,84 @@
+<Project>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ANcpLua.NET.Sdk - Layering Pattern (Local Development)
+       SDK imported from local eng/sdk path during development
+       For production: publish SDK to NuGet and use <Sdk Name="ANcpLua.NET.Sdk"/>
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <Import Project="$(MSBuildThisFileDirectory)eng/sdk/ANcpLua.NET.Sdk/Sdk/Sdk.props" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ARTIFACTS OUTPUT (.NET 8+ Modern Layout)
+       All bin/obj go to /artifacts - keeps source tree clean
+       Structure: artifacts/{bin|obj|publish|package}/{ProjectName}/{Configuration}
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)artifacts</ArtifactsPath>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       REPOSITORY METADATA
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <Product>qyl</Product>
+    <Authors>ANcpLua</Authors>
+    <Company>ANcpLua</Company>
+    <Copyright>Copyright © ANcpLua $([System.DateTime]::Now.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/ANcpLua/qyl</RepositoryUrl>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       DEFAULT FRAMEWORK
+       Individual projects can override this
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <TargetFramework Condition="'$(TargetFramework)' == '' AND '$(TargetFrameworks)' == ''">net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       CODE QUALITY
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors Condition="'$(Configuration)' == 'Release' OR '$(CI)' == 'true'">true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       GLOBAL USINGS
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <Using Include="System.Diagnostics.CodeAnalysis"/>
+    <Using Include="System.Globalization"/>
+    <Using Include="System.Text"/>
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       SOURCE LINK (for debugging NuGet packages)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       CI DETECTION
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <!-- GitHub Actions -->
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Azure DevOps -->
+    <ContinuousIntegrationBuild Condition="'$(TF_BUILD)' == 'true'">true</ContinuousIntegrationBuild>
+    <!-- Generic CI env var -->
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+</Project>

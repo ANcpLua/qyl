@@ -1,0 +1,664 @@
+# =============================================================================
+# qyl Schema Specification
+# Data models, semantic conventions, and API contracts
+# =============================================================================
+
+meta:
+  name: qyl-schema
+  version: 2.0.0
+  otel_semconv: 1.38.0
+  last_updated: 2024-12-12
+
+# =============================================================================
+# OPENTELEMETRY SEMANTIC CONVENTIONS (gen_ai.*)
+# Reference: https://opentelemetry.io/docs/specs/semconv/gen-ai/
+# =============================================================================
+semantic_conventions:
+  version: 1.38.0
+
+  gen_ai:
+    operation:
+      name:
+        key: gen_ai.operation.name
+        type: string
+        description: The name of the operation being performed
+        examples: [chat, text_completion, embeddings, image_generation]
+        required: true
+
+    request:
+      model:
+        key: gen_ai.request.model
+        type: string
+        description: The name of the model a request is being made to
+        examples: [gpt-4o, claude-3-5-sonnet, gemini-2.0-flash]
+
+      max_tokens:
+        key: gen_ai.request.max_tokens
+        type: int
+        description: Maximum number of tokens the model generates
+
+      temperature:
+        key: gen_ai.request.temperature
+        type: double
+        description: Temperature setting for generation
+        range: [0.0, 2.0]
+
+      top_p:
+        key: gen_ai.request.top_p
+        type: double
+        description: Top-p (nucleus) sampling parameter
+        range: [0.0, 1.0]
+
+      top_k:
+        key: gen_ai.request.top_k
+        type: int
+        description: Top-k sampling parameter
+
+      stop_sequences:
+        key: gen_ai.request.stop_sequences
+        type: string[]
+        description: List of sequences where generation stops
+
+      frequency_penalty:
+        key: gen_ai.request.frequency_penalty
+        type: double
+        description: Penalty for token frequency
+
+      presence_penalty:
+        key: gen_ai.request.presence_penalty
+        type: double
+        description: Penalty for token presence
+
+    response:
+      id:
+        key: gen_ai.response.id
+        type: string
+        description: Unique identifier for the response
+        examples: [chatcmpl-abc123, msg_01XFDUDYJgAACzvnptvVoYEL]
+
+      model:
+        key: gen_ai.response.model
+        type: string
+        description: The model that generated the response
+        note: May differ from request model (e.g., gpt-4o → gpt-4o-2024-08-06)
+
+      finish_reasons:
+        key: gen_ai.response.finish_reasons
+        type: string[]
+        description: Reasons the model stopped generating
+        examples: [stop, length, tool_calls, content_filter]
+
+    usage:
+      input_tokens:
+        key: gen_ai.usage.input_tokens
+        type: int
+        description: Number of tokens in the prompt
+        note: Replaces deprecated gen_ai.usage.prompt_tokens
+
+      output_tokens:
+        key: gen_ai.usage.output_tokens
+        type: int
+        description: Number of tokens in the completion
+        note: Replaces deprecated gen_ai.usage.completion_tokens
+
+    provider:
+      name:
+        key: gen_ai.provider.name
+        type: string
+        description: Name of the GenAI provider
+        examples: [anthropic, openai, google, azure, cohere, mistral]
+        note: Replaces deprecated gen_ai.system
+
+    # Deprecated attributes (for migration)
+    deprecated:
+      system:
+        key: gen_ai.system
+        migrate_to: gen_ai.provider.name
+        reason: Renamed for clarity in v1.38
+
+      prompt_tokens:
+        key: gen_ai.usage.prompt_tokens
+        migrate_to: gen_ai.usage.input_tokens
+        reason: Renamed for consistency in v1.38
+
+      completion_tokens:
+        key: gen_ai.usage.completion_tokens
+        migrate_to: gen_ai.usage.output_tokens
+        reason: Renamed for consistency in v1.38
+
+    # Content events (gen_ai.prompt, gen_ai.completion)
+    events:
+      prompt:
+        name: gen_ai.content.prompt
+        attributes:
+          - gen_ai.prompt (string)
+        description: User/system prompt content
+
+      completion:
+        name: gen_ai.content.completion
+        attributes:
+          - gen_ai.completion (string)
+        description: Model completion content
+
+    # Tool calls
+    tool:
+      call_id:
+        key: gen_ai.tool.call.id
+        type: string
+
+      name:
+        key: gen_ai.tool.name
+        type: string
+
+      arguments:
+        key: gen_ai.tool.arguments
+        type: string
+        description: JSON-encoded tool arguments
+
+  # Known provider values
+  providers:
+    - value: anthropic
+      models: [claude-3-5-sonnet, claude-3-5-haiku, claude-3-opus]
+    - value: openai
+      models: [gpt-4o, gpt-4o-mini, gpt-4-turbo, o1, o1-mini]
+    - value: google
+      models: [gemini-2.0-flash, gemini-1.5-pro, gemini-1.5-flash]
+    - value: azure
+      note: Azure OpenAI Service
+    - value: cohere
+      models: [command-r, command-r-plus]
+    - value: mistral
+      models: [mistral-large, mistral-small, mixtral-8x7b]
+
+  # Known operation values
+  operations:
+    - value: chat
+      description: Conversational interaction
+    - value: text_completion
+      description: Text completion/generation
+    - value: embeddings
+      description: Text to vector embeddings
+    - value: image_generation
+      description: Text to image generation
+    - value: audio_transcription
+      description: Audio to text
+    - value: audio_speech
+      description: Text to speech
+
+# =============================================================================
+# DATA MODELS (qyl.protocol)
+# =============================================================================
+models:
+  # ---------------------------------------------------------------------------
+  # Primitives
+  # ---------------------------------------------------------------------------
+  SessionId:
+    namespace: Qyl.Protocol
+    type: readonly record struct
+    description: Strongly-typed session identifier (qyl-specific, not OTel standard)
+    properties:
+      Value:
+        type: Guid
+        required: true
+    methods:
+      - signature: static SessionId New()
+        returns: New random SessionId
+      - signature: static SessionId Parse(string s)
+        returns: Parsed SessionId
+      - signature: override string ToString()
+        returns: Guid as N-format (32 hex chars, no dashes)
+    operators:
+      - implicit operator Guid
+      - implicit operator string
+
+  UnixNano:
+    namespace: Qyl.Protocol
+    type: readonly record struct
+    description: Unix timestamp in nanoseconds (OTel standard)
+    properties:
+      Value:
+        type: ulong
+        required: true
+    methods:
+      - signature: DateTimeOffset ToDateTimeOffset()
+      - signature: DateTime ToUtcDateTime()
+      - signature: static UnixNano FromDateTimeOffset(DateTimeOffset dto)
+      - signature: static UnixNano Now { get; }
+      - signature: TimeSpan Subtract(UnixNano other)
+
+  # ---------------------------------------------------------------------------
+  # Core Models
+  # ---------------------------------------------------------------------------
+  SpanRecord:
+    namespace: Qyl.Protocol
+    type: sealed record
+    description: Flattened span for DuckDB storage
+    properties:
+      # Identity
+      TraceId:
+        type: string
+        required: true
+        description: 32-char hex trace ID
+      SpanId:
+        type: string
+        required: true
+        description: 16-char hex span ID
+      ParentSpanId:
+        type: string?
+        description: Parent span ID (null for root spans)
+
+      # Core
+      Name:
+        type: string
+        required: true
+      StartTime:
+        type: UnixNano
+        required: true
+      EndTime:
+        type: UnixNano
+        required: true
+      Status:
+        type: int
+        required: true
+        values:
+          0: Unset
+          1: Ok
+          2: Error
+      StatusMessage:
+        type: string?
+
+      # Resource
+      ServiceName:
+        type: string?
+      ServiceVersion:
+        type: string?
+
+      # GenAI (nullable - only for gen_ai spans)
+      GenAi:
+        type: GenAiSpanData?
+
+    computed:
+      Duration:
+        type: TimeSpan
+        expression: EndTime.Subtract(StartTime)
+
+  GenAiSpanData:
+    namespace: Qyl.Protocol
+    type: sealed record
+    description: Extracted gen_ai.* attributes from a span
+    properties:
+      OperationName:
+        type: string?
+        maps_to: gen_ai.operation.name
+      Provider:
+        type: string?
+        maps_to: gen_ai.provider.name
+      RequestModel:
+        type: string?
+        maps_to: gen_ai.request.model
+      ResponseModel:
+        type: string?
+        maps_to: gen_ai.response.model
+      InputTokens:
+        type: int?
+        maps_to: gen_ai.usage.input_tokens
+      OutputTokens:
+        type: int?
+        maps_to: gen_ai.usage.output_tokens
+      Temperature:
+        type: double?
+        maps_to: gen_ai.request.temperature
+      MaxTokens:
+        type: int?
+        maps_to: gen_ai.request.max_tokens
+      FinishReason:
+        type: string?
+        maps_to: gen_ai.response.finish_reasons
+      ResponseId:
+        type: string?
+        maps_to: gen_ai.response.id
+
+    computed:
+      TotalTokens:
+        type: int
+        expression: (InputTokens ?? 0) + (OutputTokens ?? 0)
+      IsChat:
+        type: bool
+        expression: OperationName == "chat"
+
+  SessionSummary:
+    namespace: Qyl.Protocol
+    type: sealed record
+    description: Aggregated session for dashboard display
+    properties:
+      SessionId:
+        type: SessionId
+        required: true
+      ServiceName:
+        type: string
+        required: true
+      StartTime:
+        type: DateTimeOffset
+        required: true
+      EndTime:
+        type: DateTimeOffset
+        required: true
+      TraceCount:
+        type: int
+        required: true
+      SpanCount:
+        type: int
+        required: true
+      ErrorCount:
+        type: int
+        required: true
+
+      # GenAI aggregates
+      GenAiSpanCount:
+        type: int
+      TotalInputTokens:
+        type: int
+      TotalOutputTokens:
+        type: int
+      PrimaryModel:
+        type: string?
+        description: Most frequently used model
+      PrimaryProvider:
+        type: string?
+        description: Most frequently used provider
+
+    computed:
+      Duration:
+        type: TimeSpan
+        expression: EndTime - StartTime
+      TotalTokens:
+        type: int
+        expression: TotalInputTokens + TotalOutputTokens
+      ErrorRate:
+        type: double
+        expression: SpanCount > 0 ? (double)ErrorCount / SpanCount : 0
+
+  TraceNode:
+    namespace: Qyl.Protocol
+    type: sealed record
+    description: Hierarchical trace tree
+    properties:
+      Span:
+        type: SpanRecord
+        required: true
+      Children:
+        type: List<TraceNode>
+        default: []
+
+# =============================================================================
+# API CONTRACTS
+# =============================================================================
+api_contracts:
+  # ---------------------------------------------------------------------------
+  # REST API DTOs
+  # ---------------------------------------------------------------------------
+  requests:
+    QuerySpansRequest:
+      properties:
+        serviceName:
+          type: string?
+          query_param: serviceName
+        from:
+          type: DateTimeOffset?
+          query_param: from
+          format: ISO 8601
+        to:
+          type: DateTimeOffset?
+          query_param: to
+          format: ISO 8601
+        genAiOnly:
+          type: bool?
+          query_param: genAiOnly
+          default: false
+        limit:
+          type: int
+          query_param: limit
+          default: 100
+          max: 1000
+
+  responses:
+    SessionsResponse:
+      type: array
+      items: SessionSummary
+
+    SpansResponse:
+      type: array
+      items: SpanRecord
+
+    TraceResponse:
+      type: TraceNode
+
+    HealthResponse:
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+
+  # ---------------------------------------------------------------------------
+  # SSE Events
+  # ---------------------------------------------------------------------------
+  sse_events:
+    SpanEvent:
+      event_type: span
+      data:
+        type: SpanRecord
+        format: JSON
+
+# =============================================================================
+# DATABASE SCHEMA (DuckDB)
+# =============================================================================
+database:
+  engine: DuckDB
+  version: "1.2.1"
+
+  tables:
+    spans:
+      description: Primary span storage
+      columns:
+        # Identity (composite primary key)
+        - name: trace_id
+          type: VARCHAR
+          nullable: false
+          description: 32-char hex trace identifier
+
+        - name: span_id
+          type: VARCHAR
+          nullable: false
+          description: 16-char hex span identifier
+
+        - name: parent_span_id
+          type: VARCHAR
+          nullable: true
+          description: Parent span ID (null for root)
+
+        # Core span data
+        - name: name
+          type: VARCHAR
+          nullable: false
+
+        - name: start_time
+          type: TIMESTAMP
+          nullable: false
+
+        - name: end_time
+          type: TIMESTAMP
+          nullable: false
+
+        - name: status
+          type: INTEGER
+          nullable: false
+          default: 0
+          description: "0=Unset, 1=Ok, 2=Error"
+
+        - name: status_message
+          type: VARCHAR
+          nullable: true
+
+        # Resource attributes (promoted)
+        - name: service_name
+          type: VARCHAR
+          nullable: true
+
+        - name: service_version
+          type: VARCHAR
+          nullable: true
+
+        # GenAI attributes (promoted for fast queries)
+        - name: gen_ai_operation_name
+          type: VARCHAR
+          nullable: true
+
+        - name: gen_ai_provider
+          type: VARCHAR
+          nullable: true
+
+        - name: gen_ai_request_model
+          type: VARCHAR
+          nullable: true
+
+        - name: gen_ai_response_model
+          type: VARCHAR
+          nullable: true
+
+        - name: gen_ai_input_tokens
+          type: INTEGER
+          nullable: true
+
+        - name: gen_ai_output_tokens
+          type: INTEGER
+          nullable: true
+
+        - name: gen_ai_temperature
+          type: DOUBLE
+          nullable: true
+
+        - name: gen_ai_finish_reason
+          type: VARCHAR
+          nullable: true
+
+        - name: gen_ai_response_id
+          type: VARCHAR
+          nullable: true
+
+        # Session tracking (qyl-specific)
+        - name: session_id
+          type: VARCHAR
+          nullable: true
+
+        # Overflow for other attributes
+        - name: attributes_json
+          type: VARCHAR
+          nullable: true
+          description: JSON blob for non-promoted attributes
+
+      primary_key: [trace_id, span_id]
+
+      indexes:
+        - name: idx_spans_time
+          columns: [start_time]
+          description: Time-range queries
+
+        - name: idx_spans_service
+          columns: [service_name]
+          description: Filter by service
+
+        - name: idx_spans_model
+          columns: [gen_ai_request_model]
+          description: Filter by AI model
+
+        - name: idx_spans_session
+          columns: [session_id]
+          description: Session aggregation
+
+        - name: idx_spans_trace
+          columns: [trace_id]
+          description: Trace assembly
+
+  queries:
+    insert_span: |
+      INSERT INTO spans (
+        trace_id, span_id, parent_span_id, name,
+        start_time, end_time, status, status_message,
+        service_name, service_version,
+        gen_ai_operation_name, gen_ai_provider,
+        gen_ai_request_model, gen_ai_input_tokens, gen_ai_output_tokens,
+        session_id, attributes_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+
+    query_spans_by_time: |
+      SELECT * FROM spans
+      WHERE start_time >= ? AND start_time <= ?
+      ORDER BY start_time DESC
+      LIMIT ?
+
+    query_spans_by_service: |
+      SELECT * FROM spans
+      WHERE service_name = ?
+        AND start_time >= ?
+        AND start_time <= ?
+      ORDER BY start_time DESC
+      LIMIT ?
+
+    query_genai_spans: |
+      SELECT * FROM spans
+      WHERE gen_ai_operation_name IS NOT NULL
+        AND start_time >= ?
+        AND start_time <= ?
+      ORDER BY start_time DESC
+      LIMIT ?
+
+    aggregate_session: |
+      SELECT
+        session_id,
+        MIN(service_name) as service_name,
+        MIN(start_time) as start_time,
+        MAX(end_time) as end_time,
+        COUNT(DISTINCT trace_id) as trace_count,
+        COUNT(*) as span_count,
+        SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as error_count,
+        SUM(CASE WHEN gen_ai_operation_name IS NOT NULL THEN 1 ELSE 0 END) as genai_span_count,
+        SUM(COALESCE(gen_ai_input_tokens, 0)) as total_input_tokens,
+        SUM(COALESCE(gen_ai_output_tokens, 0)) as total_output_tokens,
+        MODE(gen_ai_request_model) as primary_model,
+        MODE(gen_ai_provider) as primary_provider
+      FROM spans
+      WHERE session_id = ?
+      GROUP BY session_id
+
+# =============================================================================
+# VALIDATION RULES
+# =============================================================================
+validation:
+  TraceId:
+    pattern: "^[0-9a-f]{32}$"
+    description: 32 lowercase hex characters
+
+  SpanId:
+    pattern: "^[0-9a-f]{16}$"
+    description: 16 lowercase hex characters
+
+  SessionId:
+    pattern: "^[0-9a-f]{32}$"
+    description: GUID without dashes (N format)
+
+  Timestamp:
+    format: ISO 8601
+    example: "2024-12-12T15:30:00Z"
+
+  Provider:
+    enum: [anthropic, openai, google, azure, cohere, mistral]
+
+  Operation:
+    enum: [chat, text_completion, embeddings, image_generation, audio_transcription, audio_speech]
+
+  Status:
+    enum: [0, 1, 2]
+    mapping:
+      0: Unset
+      1: Ok
+      2: Error

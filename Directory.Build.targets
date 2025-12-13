@@ -1,0 +1,66 @@
+<Project>
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ANcpLua.NET.Sdk - Targets (Local Development)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <Import Project="$(MSBuildThisFileDirectory)eng/sdk/ANcpLua.NET.Sdk/Sdk/Sdk.targets" />
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       COMMON TARGETS
+       Applied to all projects after they're loaded
+       ═══════════════════════════════════════════════════════════════════════════ -->
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       ASSEMBLY METADATA
+       Embeds build info in assembly
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildTime</_Parameter1>
+      <_Parameter2>$([System.DateTime]::UtcNow.ToString("o"))</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(GITHUB_SHA)' != ''">
+      <_Parameter1>CommitHash</_Parameter1>
+      <_Parameter2>$(GITHUB_SHA)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       NUGET PACKAGE README
+       Auto-includes README.md in packages
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup>
+    <_ReadmePath Condition="Exists('$(MSBuildProjectDirectory)\README.md')">$(MSBuildProjectDirectory)\README.md</_ReadmePath>
+    <PackageReadmeFile Condition="'$(PackageReadmeFile)' == '' AND '$(_ReadmePath)' != ''">README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(_ReadmePath)' != ''">
+    <None Include="$(_ReadmePath)" Pack="true" PackagePath="README.md"/>
+  </ItemGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       TEST PROJECT DETECTION
+       Auto-configures test projects based on naming convention
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests')) OR $(MSBuildProjectName.EndsWith('.Test'))">
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════
+       WEB PROJECT DETECTION (for logging)
+       ═══════════════════════════════════════════════════════════════════════════ -->
+  <Target Name="LogProjectType" BeforeTargets="Build" Condition="'$(CI)' != 'true'">
+    <Message Importance="High" Text=""/>
+    <Message Importance="High" Text="════════════════════════════════════════════════════════════════"/>
+    <Message Importance="High" Text="  $(MSBuildProjectName)"/>
+    <Message Importance="High" Text="  Type: $([System.String]::Join(', ', 
+      $([System.String]::new('Library').PadLeft($([MSBuild]::ValueOrDefault('$(OutputType)', 'Library').Length))),
+      $([System.String]::new('Web').PadLeft($([MSBuild]::ValueOrDefault('$(UsingMicrosoftNETSdkWeb)', 'false').Length))),
+      $([System.String]::new('Test').PadLeft($([MSBuild]::ValueOrDefault('$(IsTestProject)', 'false').Length)))
+    ).Trim())"/>
+    <Message Importance="High" Text="  TFM: $(TargetFramework)"/>
+    <Message Importance="High" Text="════════════════════════════════════════════════════════════════"/>
+    <Message Importance="High" Text=""/>
+  </Target>
+
+</Project>

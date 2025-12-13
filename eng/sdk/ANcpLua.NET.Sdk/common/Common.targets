@@ -1,0 +1,21 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ANcpLua.NET.Sdk - Common Targets
+     Post-build logic applied to ALL projects
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<Project>
+
+  <!-- Test project detection and configuration -->
+  <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Auto-add test packages for test projects -->
+  <ItemGroup Condition="'$(IsTestProject)' == 'true'">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="NSubstitute" />
+  </ItemGroup>
+
+</Project>

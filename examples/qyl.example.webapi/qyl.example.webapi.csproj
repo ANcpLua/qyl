@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       Example: Web API sending telemetry to qyl
+
+       Demonstrates:
+       - Standard OpenTelemetry SDK usage (NO Qyl.Sdk needed)
+       - OTLP export to qyl.collector
+       - gen_ai.* span attributes for LLM calls
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <RootNamespace>Qyl.Example.WebApi</RootNamespace>
+    <Description>Example Web API with OpenTelemetry instrumentation</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+  </ItemGroup>
+
+</Project>

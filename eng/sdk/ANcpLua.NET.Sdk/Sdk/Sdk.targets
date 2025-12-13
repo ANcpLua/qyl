@@ -1,0 +1,7 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ANcpLua.NET.Sdk - Entry Point (Targets)
+     Imported AFTER Microsoft SDK by Directory.Build.targets
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\common\Common.targets" />
+</Project>

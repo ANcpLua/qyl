@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       Build Orchestration Project
+
+       Contains:
+       - CI/CD build scripts
+       - NuGet packaging logic
+       - Docker build targets
+       - Release automation
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Qyl.Build</RootNamespace>
+    <Description>Build orchestration for qyl</Description>
+    <!-- Exclude from normal solution build -->
+    <IsPublishable>false</IsPublishable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Nuke.Common" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.1647971">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       qyl.dashboard — React Frontend
+
+       React 19 + Vite 6 + Tailwind 4 + TanStack Query 5
+       Separately deployable, communicates with collector via HTTP only
+
+       MUST NOT reference any .NET project
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <StartupCommand>npm run dev</StartupCommand>
+    <JavaScriptTestFramework>Jest</JavaScriptTestFramework>
+    <ShouldRunBuildScript>false</ShouldRunBuildScript>
+    <PublishAssetsDirectory>$(MSBuildProjectDirectory)\dist</PublishAssetsDirectory>
+  </PropertyGroup>
+
+</Project>

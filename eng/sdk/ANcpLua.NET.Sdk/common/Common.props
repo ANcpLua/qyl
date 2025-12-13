@@ -1,0 +1,17 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ANcpLua.NET.Sdk - Common Properties
+     Default settings applied to ALL projects
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<Project>
+
+  <!-- SDK Detection -->
+  <PropertyGroup>
+    <_ANcpLuaSdkImported>true</_ANcpLuaSdkImported>
+  </PropertyGroup>
+
+  <!-- Default analyzers for all projects -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

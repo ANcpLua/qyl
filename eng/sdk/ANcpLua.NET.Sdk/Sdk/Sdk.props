@@ -1,0 +1,7 @@
+<!-- ═══════════════════════════════════════════════════════════════════════════════
+     ANcpLua.NET.Sdk - Entry Point (Props)
+     Imported BEFORE Microsoft SDK by Directory.Build.props
+     ═══════════════════════════════════════════════════════════════════════════════ -->
+<Project>
+  <Import Project="$(MSBuildThisFileDirectory)..\common\Common.props" />
+</Project>

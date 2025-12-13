@@ -1,0 +1,697 @@
+# =============================================================================
+# qyl Architecture Specification
+# Machine-readable project structure for AI assistants
+# =============================================================================
+
+meta:
+  name: qyl
+  description: AI Observability Platform for LLM/Agent telemetry
+  version: 2.0.0
+  target_framework: net10.0
+  language: C# 14
+  otel_version: 1.38.0
+  last_updated: 2024-12-12
+
+# =============================================================================
+# ARCHITECTURE OVERVIEW
+# =============================================================================
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │                         USER APPLICATIONS                               │
+#   │                                                                         │
+#   │   Uses Standard OpenTelemetry SDK (NO custom Qyl.Sdk needed!)           │
+#   │   services.AddOpenTelemetry()                                           │
+#   │       .WithTracing(b => b.AddOtlpExporter(o =>                          │
+#   │           o.Endpoint = new Uri("http://qyl:4318")));                    │
+#   │                                                                         │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#                                    │
+#                                    │ OTLP (HTTP :4318 / gRPC :4317)
+#                                    ▼
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │                         qyl.collector                                   │
+#   │                         (Backend)                                       │
+#   │                                                                         │
+#   │   • OTLP Ingestion (HTTP + gRPC)                                        │
+#   │   • gen_ai.* Extraction (OTel 1.38)                                     │
+#   │   • DuckDB Storage                                                      │
+#   │   • REST API                                                            │
+#   │   • SSE Streaming                                                       │
+#   │                                                                         │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#              │                                    │
+#              │ HTTP (REST)                        │ HTTP (REST + SSE)
+#              ▼                                    ▼
+#   ┌─────────────────────┐              ┌─────────────────────┐
+#   │     qyl.mcp         │              │   qyl.dashboard     │
+#   │   (MCP Server)      │              │     (React UI)      │
+#   │                     │              │                     │
+#   │ • MCP Tools         │              │ • Sessions View     │
+#   │ • AI Agent Queries  │              │ • Trace Explorer    │
+#   │ • Token Analysis    │              │ • GenAI Analytics   │
+#   └─────────────────────┘              └─────────────────────┘
+#
+#   ┌─────────────────────────────────────────────────────────────────────────┐
+#   │                         qyl.protocol                                    │
+#   │                    (Shared Contracts)                                   │
+#   │                                                                         │
+#   │   • Primitives: SessionId, UnixNano                                     │
+#   │   • Models: SpanRecord, SessionSummary, GenAiSpanData                   │
+#   │   • Attributes: GenAiAttributes (OTel 1.38 constants)                   │
+#   │   • Contracts: ISpanStore, ISessionAggregator                           │
+#   │                                                                         │
+#   │   NOTE: TraceId/SpanId use BCL ActivityTraceId/ActivitySpanId           │
+#   └─────────────────────────────────────────────────────────────────────────┘
+#
+# =============================================================================
+
+# =============================================================================
+# DEPENDENCY RULES (ENFORCE STRICTLY)
+# =============================================================================
+dependency_rules:
+  qyl.protocol:
+    description: Shared types - LEAF project, NO logic
+    may_reference:
+      - System.*
+      - Microsoft.Extensions.Primitives
+    must_not_reference:
+      - qyl.collector
+      - qyl.mcp
+      - qyl.dashboard
+      - DuckDB.*
+      - OpenTelemetry.*
+      - Grpc.*
+
+  qyl.collector:
+    description: Backend - OTLP ingestion, storage, API
+    may_reference:
+      - qyl.protocol
+      - DuckDB.NET.Data
+      - Google.Protobuf
+      - Grpc.AspNetCore
+      - System.IO.Hashing
+    must_not_reference:
+      - qyl.mcp
+      - qyl.dashboard
+      - OpenTelemetry.Exporter.*  # Collector RECEIVES, doesn't EXPORT
+
+  qyl.mcp:
+    description: MCP Server - HTTP client to collector
+    may_reference:
+      - qyl.protocol
+      - ModelContextProtocol
+      - System.Net.Http
+    must_not_reference:
+      - qyl.collector  # NO project reference, HTTP only!
+      - qyl.dashboard
+      - DuckDB.*
+
+  qyl.dashboard:
+    description: React frontend - separate deployable
+    may_reference:
+      - react
+      - "@tanstack/react-query"
+      - recharts
+    must_not_reference:
+      - ANY .NET project
+      - ANY backend dependency
+
+# =============================================================================
+# PROJECT: qyl.protocol (Shared Contracts)
+# =============================================================================
+protocol:
+  path: src/qyl.protocol
+  type: class_library
+  purpose: Shared types between collector, mcp, and external consumers
+  publish: NuGet (Qyl.Protocol)
+  target_frameworks:
+    - net10.0
+    - net8.0
+    - netstandard2.0
+
+  modules:
+    primitives:
+      path: Primitives/
+      files:
+        - name: SessionId.cs
+          purpose: Strongly-typed session identifier (qyl-specific)
+          type: readonly record struct
+          note: TraceId/SpanId use BCL ActivityTraceId/ActivitySpanId
+
+        - name: UnixNano.cs
+          purpose: Unix nanosecond timestamp wrapper
+          type: readonly record struct
+          conversions:
+            - ToDateTimeOffset()
+            - ToUtcDateTime()
+            - FromDateTimeOffset()
+
+    attributes:
+      path: Attributes/
+      files:
+        - name: GenAiAttributes.cs
+          purpose: OpenTelemetry Semantic Conventions v1.38 gen_ai.* constants
+          exports:
+            - GenAiAttributes.OperationName
+            - GenAiAttributes.RequestModel
+            - GenAiAttributes.ResponseModel
+            - GenAiAttributes.UsageInputTokens
+            - GenAiAttributes.UsageOutputTokens
+            - GenAiAttributes.ProviderName
+            - GenAiAttributes.Providers.*
+            - GenAiAttributes.Operations.*
+          semconv_version: "1.38.0"
+          migrations:
+            deprecated_to_current:
+              - gen_ai.system → gen_ai.provider.name
+              - gen_ai.usage.prompt_tokens → gen_ai.usage.input_tokens
+              - gen_ai.usage.completion_tokens → gen_ai.usage.output_tokens
+
+    models:
+      path: Models/
+      files:
+        - name: SpanRecord.cs
+          purpose: Flattened span for DuckDB storage
+          fields:
+            identity: [TraceId, SpanId, ParentSpanId]
+            temporal: [StartTime, EndTime]
+            core: [Name, Status, StatusMessage, ServiceName, ServiceVersion]
+            genai: [GenAi (GenAiSpanData?)]
+
+        - name: GenAiSpanData.cs
+          purpose: Extracted gen_ai.* attributes
+          fields:
+            - OperationName
+            - Provider
+            - RequestModel
+            - ResponseModel
+            - InputTokens
+            - OutputTokens
+            - Temperature
+            - MaxTokens
+            - FinishReason
+            - ResponseId
+          computed:
+            - TotalTokens
+            - IsChat
+
+        - name: SessionSummary.cs
+          purpose: Aggregated session for dashboard
+          fields:
+            - SessionId
+            - ServiceName
+            - StartTime
+            - EndTime
+            - TraceCount
+            - SpanCount
+            - ErrorCount
+            - GenAiSpanCount
+            - TotalInputTokens
+            - TotalOutputTokens
+            - PrimaryModel
+            - PrimaryProvider
+          computed:
+            - Duration
+            - TotalTokens
+            - ErrorRate
+
+        - name: TraceNode.cs
+          purpose: Hierarchical trace tree
+          fields:
+            - Span (SpanRecord)
+            - Children (List<TraceNode>)
+
+    contracts:
+      path: Contracts/
+      files:
+        - name: ISpanStore.cs
+          purpose: Storage abstraction
+          methods:
+            - InsertSpansAsync(spans)
+            - QuerySpansAsync(filters)
+            - GetSpanAsync(traceId, spanId)
+
+        - name: ISessionAggregator.cs
+          purpose: Aggregation abstraction
+          methods:
+            - GetSessionsAsync(limit)
+            - GetSessionAsync(sessionId)
+            - AggregateAsync(spans)
+
+# =============================================================================
+# PROJECT: qyl.collector (Backend)
+# =============================================================================
+collector:
+  path: src/qyl.collector
+  type: web_api
+  framework: ASP.NET Core Minimal APIs
+  publish: Docker (ghcr.io/qyl/collector)
+
+  ports:
+    http_api: 8080
+    otlp_http: 4318
+    otlp_grpc: 4317
+
+  dependencies:
+    project:
+      - qyl.protocol
+    nuget:
+      - DuckDB.NET.Data: "1.2.1"
+      - Google.Protobuf: "3.29.3"
+      - Grpc.AspNetCore: "2.71.0"
+      - System.IO.Hashing: "9.0.0"
+
+  modules:
+    ingestion:
+      path: Ingestion/
+      purpose: OTLP receivers and attribute extraction
+      files:
+        - name: OtlpHttpReceiver.cs
+          purpose: HTTP OTLP endpoint handlers
+          endpoints:
+            - POST /v1/traces
+            - POST /v1/metrics
+            - POST /v1/logs
+
+        - name: OtlpGrpcService.cs
+          purpose: gRPC OTLP service implementation
+          proto: opentelemetry.proto.collector.trace.v1.TraceService
+
+        - name: GenAiExtractor.cs
+          purpose: Extract gen_ai.* attributes from spans
+          input: OpenTelemetry.Proto.Trace.V1.Span
+          output: GenAiSpanData?
+          uses: GenAiAttributes constants
+
+        - name: SpanConverter.cs
+          purpose: Convert OTLP Span to SpanRecord
+          input: OpenTelemetry.Proto.Trace.V1.Span
+          output: SpanRecord
+
+    storage:
+      path: Storage/
+      purpose: DuckDB persistence layer
+      files:
+        - name: DuckDbStore.cs
+          purpose: ISpanStore implementation with DuckDB
+          features:
+            - Lock-based thread safety (System.Threading.Lock)
+            - Batch insert via Appender
+            - Parameterized queries
+          implements: ISpanStore
+
+        - name: DuckDbSchema.cs
+          purpose: DDL definitions and migrations
+          tables:
+            spans:
+              columns:
+                - trace_id VARCHAR PRIMARY KEY
+                - span_id VARCHAR PRIMARY KEY
+                - parent_span_id VARCHAR
+                - name VARCHAR
+                - start_time TIMESTAMP
+                - end_time TIMESTAMP
+                - status INTEGER
+                - status_message VARCHAR
+                - service_name VARCHAR
+                - service_version VARCHAR
+                - gen_ai_operation_name VARCHAR
+                - gen_ai_provider VARCHAR
+                - gen_ai_request_model VARCHAR
+                - gen_ai_input_tokens INTEGER
+                - gen_ai_output_tokens INTEGER
+              indexes:
+                - idx_spans_time (start_time)
+                - idx_spans_service (service_name)
+                - idx_spans_model (gen_ai_request_model)
+
+    query:
+      path: Query/
+      purpose: Aggregation and trace assembly
+      files:
+        - name: SessionAggregator.cs
+          purpose: Aggregate spans into SessionSummary
+          implements: ISessionAggregator
+          aggregations:
+            - total_tokens (SUM input + output)
+            - span_count (COUNT)
+            - error_count (COUNT WHERE status = 2)
+            - duration (MAX end_time - MIN start_time)
+
+        - name: TraceBuilder.cs
+          purpose: Build hierarchical TraceNode from flat spans
+          algorithm: parent_span_id linking
+
+    api:
+      path: Api/
+      purpose: REST and SSE endpoints
+      files:
+        - name: SessionsEndpoint.cs
+          endpoints:
+            - GET /api/v1/sessions
+            - GET /api/v1/sessions/{sessionId}
+
+        - name: TracesEndpoint.cs
+          endpoints:
+            - GET /api/v1/traces/{traceId}
+
+        - name: SpansEndpoint.cs
+          endpoints:
+            - GET /api/v1/spans?serviceName=&from=&to=&genAiOnly=&limit=
+
+        - name: SseEndpoint.cs
+          endpoints:
+            - GET /api/v1/events/spans
+          protocol: Server-Sent Events
+          uses: TypedResults.ServerSentEvents() (.NET 10)
+
+    realtime:
+      path: Realtime/
+      purpose: Pub/sub for SSE streaming
+      files:
+        - name: SpanBroadcaster.cs
+          purpose: Channel-based pub/sub
+          pattern: System.Threading.Channels
+          methods:
+            - PublishAsync(SpanRecord)
+            - SubscribeAsync() → IAsyncEnumerable<SpanRecord>
+
+        - name: SseWriter.cs
+          purpose: SSE formatting utilities
+
+  entry_point:
+    file: Program.cs
+    registration:
+      - DuckDbStore (Singleton)
+      - SessionAggregator (Singleton)
+      - TraceBuilder (Singleton)
+      - SpanBroadcaster (Singleton)
+      - GenAiExtractor (Singleton)
+      - gRPC services
+    endpoints:
+      - OTLP HTTP (/v1/traces, /v1/metrics, /v1/logs)
+      - OTLP gRPC (TraceService)
+      - REST API (/api/v1/*)
+      - SSE (/api/v1/events/*)
+      - Health (/health)
+
+# =============================================================================
+# PROJECT: qyl.mcp (MCP Server)
+# =============================================================================
+mcp:
+  path: src/qyl.mcp
+  type: console_app
+  framework: .NET Generic Host + MCP SDK
+  publish: Docker (ghcr.io/qyl/mcp)
+
+  dependencies:
+    project:
+      - qyl.protocol
+    nuget:
+      - ModelContextProtocol: "0.2.0"
+      - Microsoft.Extensions.Http: "9.0.0"
+
+  communication:
+    to_collector: HTTP only (NO project reference!)
+    transport: stdio (MCP standard)
+
+  modules:
+    client:
+      path: Client/
+      files:
+        - name: QylCollectorClient.cs
+          purpose: Typed HTTP client to collector REST API
+          methods:
+            - QuerySpansAsync(filters)
+            - GetSessionsAsync(limit)
+            - GetSessionAsync(sessionId)
+            - GetTraceAsync(traceId)
+
+    tools:
+      path: Tools/
+      files:
+        - name: QuerySpansTool.cs
+          mcp_name: query_spans
+          description: Search spans with filters
+          params:
+            - serviceName (string?)
+            - from (string? ISO 8601)
+            - to (string? ISO 8601)
+            - genAiOnly (bool?)
+            - limit (int)
+
+        - name: GetSessionTool.cs
+          mcp_name: get_session
+          description: Get session details
+          params:
+            - sessionId (string)
+
+        - name: GetTraceTool.cs
+          mcp_name: get_trace
+          description: Get full trace tree
+          params:
+            - traceId (string)
+
+        - name: AnalyzeGenAiTool.cs
+          mcp_name: analyze_genai
+          description: Analyze gen_ai usage and costs
+          params:
+            - period (string: 1h, 24h, 7d)
+            - groupBy (string: model, provider, service)
+
+        - name: ListServicesTool.cs
+          mcp_name: list_services
+          description: List discovered services
+
+        - name: CompareSessionsTool.cs
+          mcp_name: compare_sessions
+          description: Compare two sessions
+          params:
+            - sessionId1 (string)
+            - sessionId2 (string)
+
+  entry_point:
+    file: Program.cs
+    setup:
+      - HttpClient registration (IHttpClientFactory)
+      - QylCollectorClient registration
+      - MCP Server with stdio transport
+      - Tool registrations
+
+# =============================================================================
+# PROJECT: qyl.dashboard (Frontend)
+# =============================================================================
+dashboard:
+  path: src/qyl.dashboard
+  type: spa
+  framework: React 19 + Vite 6 + Tailwind 4
+  publish: Docker (ghcr.io/qyl/dashboard) OR static hosting
+
+  communication:
+    to_collector: HTTP (REST + SSE)
+    cors: Required for local dev
+
+  dependencies:
+    runtime:
+      - react: "^19.0.0"
+      - react-dom: "^19.0.0"
+      - react-router-dom: "^7.0.0"
+      - "@tanstack/react-query": "^5.62.0"
+      - "@tanstack/react-virtual": "^3.13.0"
+      - recharts: "^2.15.0"
+    dev:
+      - typescript: "^5.7.0"
+      - vite: "^6.0.0"
+      - tailwindcss: "^4.0.0"
+      - "@vitejs/plugin-react": "^4.3.0"
+
+  modules:
+    api:
+      path: src/api/
+      files:
+        - name: client.ts
+          purpose: Fetch wrapper with error handling
+        - name: hooks.ts
+          purpose: TanStack Query hooks
+          exports:
+            - useSessions(limit)
+            - useSpans(filters)
+            - useTrace(traceId)
+            - useSession(sessionId)
+
+    hooks:
+      path: src/hooks/
+      files:
+        - name: useSse.ts
+          purpose: SSE streaming hook with auto-reconnect
+          exports:
+            - useSpanStream()
+
+    components:
+      path: src/components/
+      structure:
+        layout:
+          - Sidebar.tsx
+          - Header.tsx
+        sessions:
+          - SessionList.tsx
+          - SessionCard.tsx
+        traces:
+          - TraceTree.tsx
+          - SpanDetail.tsx
+        genai:
+          - TokenChart.tsx
+          - ModelUsage.tsx
+          - CostBreakdown.tsx
+
+    pages:
+      path: src/pages/
+      files:
+        - SessionsPage.tsx
+        - TracesPage.tsx
+        - GenAiPage.tsx
+        - SettingsPage.tsx
+
+    types:
+      path: src/types/
+      files:
+        - name: api.ts
+          purpose: TypeScript types matching qyl.protocol models
+          note: Keep in sync with C# models (manual or generated)
+
+# =============================================================================
+# BUILD INFRASTRUCTURE
+# =============================================================================
+build:
+  sdk:
+    name: ANcpLua.NET.Sdk
+    version: "1.0.0"
+    pattern: Layering (ONE SDK for all project types)
+    usage: |
+      <!-- Directory.Build.props (repo root) -->
+      <Project>
+        <Sdk Name="ANcpLua.NET.Sdk"/>
+      </Project>
+
+      <!-- Individual .csproj files -->
+      <Project Sdk="Microsoft.NET.Sdk">        <!-- Library -->
+      <Project Sdk="Microsoft.NET.Sdk.Web">    <!-- Web API -->
+
+  files:
+    global.json:
+      sdk_version: "10.0.100"
+      msbuild_sdks:
+        ANcpLua.NET.Sdk: "1.0.0"
+
+    Directory.Build.props:
+      imports: <Sdk Name="ANcpLua.NET.Sdk"/>
+
+    Directory.Packages.props:
+      central_package_management: true
+
+# =============================================================================
+# API SPECIFICATION
+# =============================================================================
+api:
+  base_url: http://localhost:8080
+
+  otlp:
+    http:
+      - method: POST
+        path: /v1/traces
+        content_type: application/x-protobuf
+        description: OTLP HTTP trace ingestion
+
+      - method: POST
+        path: /v1/metrics
+        content_type: application/x-protobuf
+        description: OTLP HTTP metrics ingestion
+
+      - method: POST
+        path: /v1/logs
+        content_type: application/x-protobuf
+        description: OTLP HTTP logs ingestion
+
+    grpc:
+      port: 4317
+      services:
+        - opentelemetry.proto.collector.trace.v1.TraceService
+        - opentelemetry.proto.collector.metrics.v1.MetricsService
+        - opentelemetry.proto.collector.logs.v1.LogsService
+
+  rest:
+    sessions:
+      - method: GET
+        path: /api/v1/sessions
+        params: [limit]
+        returns: SessionSummary[]
+
+      - method: GET
+        path: /api/v1/sessions/{sessionId}
+        returns: SessionSummary
+
+    traces:
+      - method: GET
+        path: /api/v1/traces/{traceId}
+        returns: TraceNode
+
+    spans:
+      - method: GET
+        path: /api/v1/spans
+        params: [serviceName, from, to, genAiOnly, limit]
+        returns: SpanRecord[]
+
+    health:
+      - method: GET
+        path: /health
+        returns: { status: "healthy" }
+
+  streaming:
+    sse:
+      - method: GET
+        path: /api/v1/events/spans
+        protocol: Server-Sent Events
+        event_type: span
+        data: SpanRecord (JSON)
+
+# =============================================================================
+# DEPLOYMENT
+# =============================================================================
+deployment:
+  docker:
+    images:
+      - name: ghcr.io/qyl/collector
+        dockerfile: src/qyl.collector/Dockerfile
+        ports: [8080, 4317, 4318]
+
+      - name: ghcr.io/qyl/mcp
+        dockerfile: src/qyl.mcp/Dockerfile
+
+      - name: ghcr.io/qyl/dashboard
+        dockerfile: src/qyl.dashboard/Dockerfile
+        ports: [80]
+
+  compose:
+    services:
+      collector:
+        image: ghcr.io/qyl/collector
+        ports:
+          - "8080:8080"
+          - "4317:4317"
+          - "4318:4318"
+        volumes:
+          - qyl-data:/data
+        environment:
+          - DuckDb__Path=/data/qyl.db
+
+      dashboard:
+        image: ghcr.io/qyl/dashboard
+        ports:
+          - "3000:80"
+        environment:
+          - VITE_API_URL=http://localhost:8080
+
+      mcp:
+        image: ghcr.io/qyl/mcp
+        environment:
+          - Collector__Endpoint=http://collector:8080

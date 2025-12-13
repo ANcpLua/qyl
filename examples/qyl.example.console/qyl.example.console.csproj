@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════════════
+       Example: Console app sending telemetry to qyl
+
+       Demonstrates:
+       - Standard OpenTelemetry SDK usage
+       - Manual span creation with gen_ai.* attributes
+       - Batch export to qyl.collector
+       ═══════════════════════════════════════════════════════════════════════════════ -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Qyl.Example.Console</RootNamespace>
+    <Description>Example console app with OpenTelemetry instrumentation</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+  </ItemGroup>
+
+</Project>
