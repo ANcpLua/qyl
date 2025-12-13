@@ -8,11 +8,41 @@
         <File Path="CLAUDE.md"/>
         <File Path="Directory.Build.props"/>
         <File Path="Directory.Build.targets"/>
-        <File Path="docs\COMPLETE_STRUCTURE.txt"/>
-        <File Path="docs\qyl-architecture.yaml"/>
-        <File Path="docs\qyl-manual.yaml"/>
         <File Path="global.json"/>
         <File Path="README.md"/>
+    </Folder>
+
+    <!-- /docs - Documentation -->
+    <Folder Name="/docs/">
+        <File Path="docs/MASTER.md"/>
+        <File Path="docs/UML.md"/>
+        <File Path="docs/qyl-architecture.yaml"/>
+        <File Path="docs/qyl-manual.yaml"/>
+        <File Path="docs/schema.yaml"/>
+        <File Path="docs/spec-compliance-matrix.md"/>
+        <File Path="docs/COMPLETE_STRUCTURE.txt"/>
+        <File Path="docs/FEATURE_PROPOSAL_TEMPLATE.md"/>
+    </Folder>
+    <Folder Name="/docs/c4/">
+        <File Path="docs/c4-build.md"/>
+        <File Path="docs/c4-collector.md"/>
+        <File Path="docs/c4-dashboard.md"/>
+        <File Path="docs/c4-grpc.md"/>
+        <File Path="docs/c4-sdk.md"/>
+    </Folder>
+    <Folder Name="/docs/collector/">
+        <File Path="docs/collector-api-grpc-streaming-sockets.md"/>
+        <File Path="docs/collector-core-schema.md"/>
+        <File Path="docs/collector-duckdb.md"/>
+        <File Path="docs/collector-host.md"/>
+        <File Path="docs/collector-processing-batch-schema.md"/>
+        <File Path="docs/collector-rest-api.md"/>
+        <File Path="docs/collector-storageabstraction-validatingmemory.md"/>
+        <File Path="docs/collector-streaming-see-websockets.md"/>
+    </Folder>
+    <Folder Name="/docs/consumers/">
+        <File Path="docs/consumers-cli.md"/>
+        <File Path="docs/consumers-dashboard.md"/>
     </Folder>
 
     <!-- Solution Items - eng/build scripts -->
