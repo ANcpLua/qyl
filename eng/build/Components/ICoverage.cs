@@ -33,32 +33,16 @@ interface ICoverage : ITest
             foreach (var project in TestProjects)
             {
                 var coverageFile = CoverageDirectory / $"{project.Name}.cobertura.xml";
-                RunTestWithCoverage(project, coverageFile);
+                RunTestProject(project, new TestOptions(
+                    Filter: TestFilter,
+                    WithCoverage: true,
+                    CoverageOutput: coverageFile));
             }
 
             GenerateCoverageReports();
             GenerateAiCoverageSummary();
             GenerateDetailedCoverageSummaries();
         });
-
-    private void RunTestWithCoverage(Project project, AbsolutePath coverageOutput)
-    {
-        Log.Information("Running tests with coverage: {Project}", project.Name);
-
-        var mtp = MtpExtensions.Mtp()
-            .ResultsDirectory(TestResultsDirectory)
-            .ReportTrx($"{project.Name}.trx")
-            .IgnoreExitCode(8)
-            .CoverageCobertura(coverageOutput);
-
-        if (StopOnFail == true)
-            mtp.StopOnFail();
-
-        if (LiveOutput == true || IsLocalBuild)
-            mtp.ShowLiveOutput();
-
-        ExecuteMtpTestInternal(project, mtp);
-    }
 
     private void GenerateCoverageReports()
     {

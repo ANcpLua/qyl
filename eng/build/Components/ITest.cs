@@ -1,10 +1,12 @@
 using System;
-using System.Collections.Generic;
+using System.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.DotNet;
 using Serilog;
+using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
 
@@ -18,12 +20,9 @@ interface ITest : ICompile
     [Parameter("Show live test output")] bool? LiveOutput => null;
 
     Project[] TestProjects =>
-    [
-        Solution.GetProject("qyl.analyzers.tests")
-        ?? throw new InvalidOperationException("qyl.analyzers.tests not found"),
-        Solution.GetProject("qyl.mcp.tests")
-        ?? throw new InvalidOperationException("qyl.mcp.tests not found")
-    ];
+        Solution.AllProjects
+            .Where(p => p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
+            .ToArray();
 
     Target Test => d => d
         .Description("Run all tests")
@@ -51,7 +50,7 @@ interface ITest : ICompile
         foreach (var project in TestProjects) RunTestProject(project, options);
     }
 
-    private void RunTestProject(Project project, TestOptions options)
+    void RunTestProject(Project project, TestOptions options)
     {
         var reportName = options.ReportPrefix is { Length: > 0 } prefix
             ? $"{project.Name}.{prefix}.trx"
@@ -84,36 +83,29 @@ interface ITest : ICompile
 
     void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
     {
+        var settings = new DotNetTestSettings()
+            .SetProjectFile(project.Path!)
+            .SetConfiguration(Configuration)
+            .EnableNoBuild()
+            .EnableNoRestore()
+            .SetProcessWorkingDirectory(RootDirectory)
+            .SetProcessExitHandler(process =>
+            {
+                if (process.ExitCode is not (0 or 8))
+                    process.AssertZeroExitCode();
+
+                if (process.ExitCode is 8)
+                    Log.Warning("Zero tests matched filter (exit code 8)");
+            });
+
         var mtpArgs = mtp.BuildArgs();
+        if (mtpArgs.Count > 0)
+            settings = settings.AddProcessAdditionalArguments(["--", .. mtpArgs]);
 
-        List<string> args =
-        [
-            "test",
-            "--project", project.Path!,
-            "--configuration", Configuration,
-            "--no-build",
-            "--no-restore",
-            .. mtpArgs.Count > 0 ? ["--", .. mtpArgs] : Array.Empty<string>()
-        ];
-
-        Log.Debug("Executing: dotnet {Arguments}", string.Join(" ", args));
-
-        var process = ProcessTasks.StartProcess(
-            ToolPathResolver.GetPathExecutable("dotnet"),
-            string.Join(" ", args),
-            RootDirectory,
-            logOutput: true);
-
-        process.AssertWaitForExit();
-
-        if (process.ExitCode is not (0 or 8))
-            throw new InvalidOperationException($"dotnet test failed with exit code {process.ExitCode}");
-
-        if (process.ExitCode is 8)
-            Log.Warning("Zero tests matched filter (exit code 8)");
+        DotNetTest(settings);
     }
 
-    protected readonly record struct TestOptions(
+    public readonly record struct TestOptions(
         string? Filter = null,
         string? NamespaceFilter = null,
         string ReportPrefix = "",

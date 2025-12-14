@@ -4,60 +4,39 @@
 
 ## Scope
 
-Backend service: receives OTLP telemetry, normalizes semconv, extracts `gen_ai.*`, persists to DuckDB, exposes REST +
-SSE APIs.
+Backend service: OTLP ingestion, DuckDB storage, REST/SSE APIs
 
-## Dependency Rules
+## Project Info
 
-Allowed:
+| Property | Value |
+|----------|-------|
+| Layer | backend |
+| Framework | net10.0 |
+| Workflow | explore-plan-code-commit |
+| Test Coverage | 80% |
 
-- `src/qyl.protocol` (ProjectReference)
-- `DuckDB.NET.Data`, `Google.Protobuf`, `Grpc.AspNetCore`, `OpenTelemetry.Api`
-- ASP.NET Core minimal APIs
+## Critical Files
 
-Forbidden:
+| File | Reason |
+|------|--------|
+| Storage/DuckDbStore.cs | Core persistence - schema changes break data |
+| Storage/DuckDbSchema.cs | DDL definitions - must match DuckDbStore |
+| Ingestion/GenAiExtractor.cs | OTel 1.38 compliance - attribute mapping |
+| Program.cs | DI registration - service configuration |
 
-- `src/qyl.mcp` / `src/qyl.dashboard` project references
-- Any direct coupling to dashboard or MCP (HTTP-only consumers)
+## Anti-Patterns (FORBIDDEN)
 
-## Owned Files
+| Pattern | Use Instead | Severity |
+|---------|-------------|----------|
+| `DateTime.Now` | `TimeProvider.System.GetLocalNow()` | error |
+| `DateTime.UtcNow` | `TimeProvider.System.GetUtcNow()` | error |
+| `lock(object)` | `Lock.EnterScope()` | error |
+| `gen_ai.system` | `gen_ai.provider.name` | error |
 
-| File/Directory                                   | Responsibility               | Notes                |
-|--------------------------------------------------|------------------------------|----------------------|
-| `src/qyl.collector/Storage/DuckDbSchema.cs`      | DuckDB DDL + indexes         | SINGLE schema source |
-| `src/qyl.collector/Storage/DuckDbStore.cs`       | Storage implementation       | Must follow schema   |
-| `src/qyl.collector/Query/SessionQueryService.cs` | Session aggregation          | SQL-only (DuckDB)    |
-| `src/qyl.collector/QylSerializerContext.cs`      | JSON source-gen registry     | Required for AOT     |
-| `src/qyl.collector/Realtime/`                    | SSE streaming                | Fan-out + writers    |
-| `src/qyl.collector/Ingestion/`                   | OTLP parsing + normalization | SemConv migrations   |
+## Required Patterns
 
-## Single Source Rules
-
-- DuckDB schema: `src/qyl.collector/Storage/DuckDbSchema.cs`
-- Session aggregation: `src/qyl.collector/Query/SessionQueryService.cs` (SQL-only)
-- OTel attribute keys: `src/qyl.protocol/Attributes/GenAiAttributes.cs`
-
-## AOT Requirements
-
-Collector is Native AOT.
-
-- Prefer source-generated JSON (`JsonSerializerContext`) over reflection.
-- Avoid runtime codegen and dynamic loading.
-
-## AOT Registration
-
-If you add a new endpoint returning a new type, register it in `src/qyl.collector/QylSerializerContext.cs` or Native AOT
-builds will fail.
-
-## Forbidden Actions
-
-- Do not create additional schema definitions outside `DuckDbSchema.cs`
-- Do not add in-memory aggregation paths (aggregation is SQL in DuckDB)
-- Do not introduce new runtime components/services (see root `CLAUDE.md`)
-
-## Commands
-
-```bash
-dotnet run --project src/qyl.collector
-docker compose -f eng/compose.yaml up -d qyl-collector
-```
+| Pattern | Description |
+|---------|-------------|
+| `Lock` | .NET 9+ Lock class for thread-safe sync |
+| `FrozenSet` | Immutable lookup sets for static data |
+| `TimeProvider` | Testable time abstraction |

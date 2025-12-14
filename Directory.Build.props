@@ -29,7 +29,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- WarningsAsErrors: Explicit list of critical rules that should fail builds -->
     <!-- Using WarningsAsErrors instead of TreatWarningsAsErrors allows NoWarn to work -->
-    <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003;RS0030</WarningsAsErrors>
+    <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003;RS0030;RS0031</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- AOT -->

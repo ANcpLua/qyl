@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Nuke.Common.IO;
+using Nuke.Common.Utilities;
 
 public static class MtpExtensions
 {
@@ -122,11 +124,22 @@ public sealed class MtpArgumentsBuilder
         {
             if (sb.Length > 0) sb.Append(' ');
 
-            sb.Append(arg.Contains(' ', StringComparison.Ordinal) ? $"\"{arg}\"" : arg);
+            sb.Append(Nuke.Common.Utilities.StringExtensions.DoubleQuoteIfNeeded(arg));
         }
 
         return sb.ToString();
     }
 
     public IReadOnlyList<string> BuildArgs() => Args;
+
+    /// <summary>
+    /// Builds a properly-escaped argument string for passthrough after --.
+    /// Returns empty string if no args, otherwise "-- arg1 arg2 ...".
+    /// </summary>
+    public string BuildProcessArgs()
+    {
+        if (Args.Count == 0) return string.Empty;
+
+        return "-- " + string.Join(" ", Args.Select(StringExtensions.DoubleQuoteIfNeeded));
+    }
 }

@@ -1,9 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <!-- Exclude theory directory from compilation (experimental/planning files) -->
+    <!-- Exclude theory and codex directories from compilation (experimental/planning files) -->
     <ItemGroup>
         <Compile Remove="theory\**\*.cs"/>
+        <Compile Remove="codex\**\*.cs"/>
         <None Include="theory\**\*.cs"/>
+        <None Include="codex\**\*.cs"/>
     </ItemGroup>
 
     <PropertyGroup>

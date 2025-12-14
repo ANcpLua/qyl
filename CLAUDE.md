@@ -152,10 +152,14 @@ File tree:
 
 ## Build System
 
-- Solution format: `qyl.slnx` (XML, merge-friendly, see Microsoft SolutionPersistence “slnx”)
+- Solution format: `qyl.slnx` (XML, merge-friendly, see Microsoft SolutionPersistence "slnx")
 - Repo-wide build defaults: `Directory.Build.props`, `Directory.Build.targets`
-- MSBuild shared infrastructure lives in `eng/MSBuild/` and is designed to be extractable into a future
-  `ANcpLua.NET.Sdk`
+
+## TODO
+
+- [ ] Migrate to `<Project Sdk="ANcpLua.NET.Sdk/1.0.0">` (published on NuGet)
+- [ ] Remove `eng/MSBuild/` after SDK migration
+- [ ] Update projects to use SDK's BannedApiAnalyzers, polyfills, and CLAUDE.md generation
 
 ## SDK Injection Features
 

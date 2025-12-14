@@ -302,7 +302,7 @@ jobs:
 ### Location
 
 ```
-eng/build/codex/
+eng/build.experiments/codex/
 ├── QylSchema.cs           # SINGLE SOURCE OF TRUTH
 ├── IEmitter.cs            # Emitter interface
 ├── CSharpEmitter.cs       # Generate C# models

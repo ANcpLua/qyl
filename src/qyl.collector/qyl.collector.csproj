@@ -10,12 +10,38 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <!-- Inject shared code -->
     <InjectSharedThrow>true</InjectSharedThrow>
+    <InjectClaudeBrain>true</InjectClaudeBrain>
     <!-- Suppress analyzer rules for AOT/Native compilation and collector-specific patterns -->
-    <!-- IL* rules: Native AOT trimming warnings (expected for AOT app) -->
-    <!-- MA* rules: Meziantou rules not applicable to collector patterns -->
-    <!-- VSTHRD*: Threading rules relaxed for collector's sync DuckDB operations -->
     <NoWarn>$(NoWarn);IL2026;IL3050;MA0004;MA0006;MA0011;MA0048;VSTHRD002;VSTHRD103;VSTHRD111</NoWarn>
   </PropertyGroup>
+
+  <!-- CLAUDE.md Generation - AI Context Metadata -->
+  <PropertyGroup>
+    <ClaudePurpose>Backend service: OTLP ingestion, DuckDB storage, REST/SSE APIs</ClaudePurpose>
+    <ClaudeLayer>backend</ClaudeLayer>
+    <ClaudeWorkflow>explore-plan-code-commit</ClaudeWorkflow>
+    <ClaudeTestCoverage>80</ClaudeTestCoverage>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ClaudeCriticalFile Include="Storage/DuckDbStore.cs" Reason="Core persistence - schema changes break data"/>
+    <ClaudeCriticalFile Include="Storage/DuckDbSchema.cs" Reason="DDL definitions - must match DuckDbStore"/>
+    <ClaudeCriticalFile Include="Ingestion/GenAiExtractor.cs" Reason="OTel 1.38 compliance - attribute mapping"/>
+    <ClaudeCriticalFile Include="Program.cs" Reason="DI registration - service configuration"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClaudeAntiPattern Include="DateTime.Now" UseInstead="TimeProvider.System.GetLocalNow()" Severity="error"/>
+    <ClaudeAntiPattern Include="DateTime.UtcNow" UseInstead="TimeProvider.System.GetUtcNow()" Severity="error"/>
+    <ClaudeAntiPattern Include="lock(object)" UseInstead="Lock.EnterScope()" Severity="error"/>
+    <ClaudeAntiPattern Include="gen_ai.system" UseInstead="gen_ai.provider.name" Severity="error"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClaudeRequiredPattern Include="Lock" Description=".NET 9+ Lock class for thread-safe sync"/>
+    <ClaudeRequiredPattern Include="FrozenSet" Description="Immutable lookup sets for static data"/>
+    <ClaudeRequiredPattern Include="TimeProvider" Description="Testable time abstraction"/>
+  </ItemGroup>
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
