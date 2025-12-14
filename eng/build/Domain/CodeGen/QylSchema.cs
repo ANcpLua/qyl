@@ -2,7 +2,7 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 
-namespace Components.Theory;
+namespace CodeGen;
 
 /// <summary>
 ///     Canonical schema definition for qyl.

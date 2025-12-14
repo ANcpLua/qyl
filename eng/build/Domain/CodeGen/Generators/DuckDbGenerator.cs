@@ -1,15 +1,19 @@
+using System;
+using System.Collections.Frozen;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Context;
 
-namespace Components.Theory;
+namespace CodeGen.Generators;
 
 /// <summary>
-///     Emits DuckDB schema SQL and C# mapping code.
-///     Generates:
+///     Generates DuckDB schema SQL and C# mapping code.
+///     Produces:
 ///     - schema.sql - CREATE TABLE/VIEW statements
 ///     - DuckDbSchema.g.cs - FrozenDictionary column mappings for type-safe access
 /// </summary>
-static class DuckDbEmitter
+public sealed class DuckDbGenerator : IGenerator
 {
     const string SqlFileHeader = """
                                  -- ═══════════════════════════════════════════════════════════════════════════════
@@ -29,11 +33,26 @@ static class DuckDbEmitter
 
                                     """;
 
+    public string Name => "DuckDB";
+
+    public FrozenDictionary<string, string> Generate(QylSchema schema, BuildPaths paths, string rootNamespace)
+    {
+        var outputs = new Dictionary<string, string>();
+
+        // Generate SQL schema
+        outputs["schema.sql"] = EmitSql(schema);
+
+        // Generate C# schema mappings
+        outputs["DuckDbSchema.g.cs"] = EmitCSharpMappings(schema, rootNamespace);
+
+        return outputs.ToFrozenDictionary();
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // SQL Schema Generation
     // ════════════════════════════════════════════════════════════════════════
 
-    public static string EmitSql(QylSchema schema)
+    static string EmitSql(QylSchema schema)
     {
         var sb = new StringBuilder();
 
@@ -90,10 +109,10 @@ static class DuckDbEmitter
             foreach (var index in table.Indexes)
             {
                 var unique = index.IsUnique ? "UNIQUE " : "";
-                var columns_list = string.Join(", ", index.Columns.Select(c =>
+                var columnsList = string.Join(", ", index.Columns.Select(c =>
                     index.IsDescending ? $"{c} DESC" : c));
 
-                sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columns_list});");
+                sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columnsList});");
             }
 
             sb.AppendLine();
@@ -120,7 +139,7 @@ static class DuckDbEmitter
     // C# Mappings Generation
     // ════════════════════════════════════════════════════════════════════════
 
-    public static string EmitCSharpMappings(QylSchema schema, string rootNamespace)
+    static string EmitCSharpMappings(QylSchema schema, string rootNamespace)
     {
         var sb = new StringBuilder();
 
@@ -323,10 +342,10 @@ static class DuckDbEmitter
         foreach (var index in table.Indexes!)
         {
             var unique = index.IsUnique ? "UNIQUE " : "";
-            var columns_list = string.Join(", ", index.Columns.Select(c =>
+            var columnsList = string.Join(", ", index.Columns.Select(c =>
                 index.IsDescending ? $"{c} DESC" : c));
 
-            sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columns_list});");
+            sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columnsList});");
         }
 
         sb.AppendLine("\";");

@@ -1,13 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <!-- Exclude theory and codex directories from compilation (experimental/planning files) -->
-    <ItemGroup>
-        <Compile Remove="theory\**\*.cs"/>
-        <Compile Remove="codex\**\*.cs"/>
-        <None Include="theory\**\*.cs"/>
-        <None Include="codex\**\*.cs"/>
-    </ItemGroup>
-
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <Nullable>enable</Nullable>
@@ -42,6 +34,10 @@
         <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]"/>
         <PackageDownload Include="ReportGenerator" Version="[5.5.0]"/>
         <!-- dotnet-coverage removed - using MTP native coverage via Microsoft.Testing.Extensions.CodeCoverage -->
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="theory\" />
     </ItemGroup>
 
 </Project>
