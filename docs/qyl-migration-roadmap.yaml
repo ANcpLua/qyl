@@ -28,12 +28,12 @@ meta:
 
 sdk_integration:
   status: COMPLETED
-  version: "1.1.2"
+  version: "1.1.3"
   packages:
     - name: ANcpLua.NET.Sdk
-      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk/1.1.2
+      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk/1.1.3
     - name: ANcpLua.NET.Sdk.Web
-      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk.Web/1.1.2
+      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk.Web/1.1.3
 
   migrated_projects:
     - project: src/qyl.collector/qyl.collector.csproj
@@ -83,7 +83,7 @@ package_dependencies:
 architect_overrides:
   sdk_location:
     status: NUGET  # Changed from EXTERNAL to NUGET
-    packages: [ "ANcpLua.NET.Sdk@1.1.2", "ANcpLua.NET.Sdk.Web@1.1.2" ]
+    packages: [ "ANcpLua.NET.Sdk@1.1.3", "ANcpLua.NET.Sdk.Web@1.1.3" ]
     nuget: "https://www.nuget.org/packages/ANcpLua.NET.Sdk/"
     note: "SDK is in SEPARATE repository. Do NOT create sdk/ in qyl repo."
 
@@ -452,11 +452,11 @@ phase_3:
   relocations:
     - from: "src/Shared/Throw/"
       to: "PROVIDED BY SDK"
-      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.2 provides Throw.cs"
+      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.3 provides Throw.cs"
 
     - from: "src/LegacySupport/"
       to: "PROVIDED BY SDK"
-      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.2 provides Polyfills"
+      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.3 provides Polyfills"
 
   # qyl.collector status (2025-12-16)
   collector_changes:
