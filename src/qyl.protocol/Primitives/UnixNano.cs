@@ -8,7 +8,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
-namespace Qyl.Protocol.Primitives;
+namespace qyl.protocol.Primitives;
 
 /// <summary>
 ///     Unix timestamp in nanoseconds. Zero-allocation parsing from string/UTF-8.

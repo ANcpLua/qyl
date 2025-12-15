@@ -27,7 +27,6 @@
     <!-- Configure the MCP server to be a native AOT application with invariant globalization -->
     <PublishAot>true</PublishAot>
     <InvariantGlobalization>true</InvariantGlobalization>
-<InjectThrow>true</InjectThrow>
     <!-- Set recommended package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageId>SampleMcpServer</PackageId>
@@ -48,7 +47,6 @@
     <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A"/>
     <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ModelContextProtocol"/>
     <PackageReference Include="System.ClientModel"/>
     <!-- OpenTelemetry v1.38 GenAI Observability -->
@@ -58,6 +56,9 @@
   <!-- Reference protocol only - communicate with collector via HTTP -->
   <ItemGroup>
     <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
 
 </Project>

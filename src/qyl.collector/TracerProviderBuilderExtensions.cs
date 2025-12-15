@@ -1,14 +1,12 @@
 using OpenTelemetry.Trace;
-using Qyl;
-using qyl.collector;
 
-namespace qyl.telemetry;
+namespace qyl.collector;
 
 public static class TracerProviderBuilderExtensions
 {
     public static TracerProviderBuilder AddQylAgentInstrumentation(this TracerProviderBuilder builder)
     {
-        Throw.IfNull(builder);
+        Throw.Throw.IfNull(builder);
         return builder
             .AddSource("Microsoft.Agents.AI.*")
             .AddSource("Microsoft.Extensions.AI.*")
@@ -19,8 +17,8 @@ public static class TracerProviderBuilderExtensions
         this TracerProviderBuilder builder,
         string sourceName)
     {
-        Throw.IfNull(builder);
-        Throw.IfNullOrWhiteSpace(sourceName);
+        Throw.Throw.IfNull(builder);
+        Throw.Throw.IfNullOrWhiteSpace(sourceName);
         return builder.AddSource(sourceName);
     }
 }

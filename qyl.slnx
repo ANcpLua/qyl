@@ -19,6 +19,7 @@
         <File Path="docs/FRONTEND.md" />
         <File Path="docs/BUILD.md" />
         <File Path="docs/qyl-architecture.yaml" />
+        <File Path="docs\qyl-migration-roadmap.yaml" />
     </Folder>
 
     <!-- Solution Items - eng/build scripts -->

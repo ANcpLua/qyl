@@ -3,9 +3,9 @@
 // Aggregated session information
 // =============================================================================
 
-using Qyl.Protocol.Primitives;
+using qyl.protocol.Primitives;
 
-namespace Qyl.Protocol.Models;
+namespace qyl.protocol.Models;
 
 /// <summary>
 ///     Summary of a session with aggregated metrics.

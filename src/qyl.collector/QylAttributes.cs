@@ -1,4 +1,4 @@
-namespace qyl.telemetry;
+namespace qyl.collector;
 
 public static class QylAttributes
 {

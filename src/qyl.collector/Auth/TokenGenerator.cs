@@ -1,5 +1,4 @@
 using System.Security.Cryptography;
-using Qyl;
 
 namespace qyl.collector.Auth;
 
@@ -7,7 +6,7 @@ public static class TokenGenerator
 {
     public static string Generate(int byteLength = 24)
     {
-        Throw.IfNegativeOrZero(byteLength);
+        Throw.Throw.IfNegativeOrZero(byteLength);
 
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteLength))
             .Replace('+', '-')

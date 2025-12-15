@@ -3,11 +3,10 @@
 // Injected via <InjectSharedThrow>true</InjectSharedThrow>
 // =============================================================================
 
-using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Qyl;
+namespace qyl.mcp.Throw;
 
 /// <summary>
 /// Provides helper methods for argument validation that throw on failure.

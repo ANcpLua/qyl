@@ -1,5 +1,3 @@
-using Qyl;
-
 namespace qyl.collector.Ingestion;
 
 public static class SchemaVersion
@@ -29,7 +27,7 @@ public sealed class SchemaNormalizer
 
     public Dictionary<string, object?> NormalizeAttributes(IDictionary<string, object?> attributes)
     {
-        Throw.IfNull(attributes);
+        Throw.Throw.IfNull(attributes);
 
         var result = new Dictionary<string, object?>(attributes.Count, StringComparer.Ordinal);
 

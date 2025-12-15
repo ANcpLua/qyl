@@ -10,10 +10,7 @@ using System.Threading.Tasks;
 using A2A;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Qyl;
-using Qyl.Protocol.Attributes;
+using qyl.protocol.Attributes;
 
 namespace qyl.mcp;
 
@@ -84,7 +81,7 @@ public static class A2ACardResolver
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)
     {
-        Throw.IfNull(baseUrl);
+        Throw.Throw.IfNull(baseUrl);
 
         var client = httpClient ?? _sSharedClient;
         var cardUrl = new Uri(baseUrl, agentCardPath.TrimStart('/'));

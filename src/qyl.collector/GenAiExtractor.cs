@@ -5,10 +5,8 @@
 // =============================================================================
 
 using System.Text.Json;
-using Qyl;
-using qyl.collector;
 
-namespace qyl.telemetry.Extraction;
+namespace qyl.collector;
 
 /// <summary>
 ///     Extracts GenAI-specific attributes from span attribute collections.
@@ -25,7 +23,7 @@ public static class GenAiExtractor
     /// </summary>
     public static GenAiFields Extract(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.IfNull(attributes);
+        Throw.Throw.IfNull(attributes);
 
         var provider = GetString(attributes, GenAiAttributes.ProviderName)
                        ?? GetString(attributes, DeprecatedAttrs.System);
@@ -61,7 +59,7 @@ public static class GenAiExtractor
     /// </summary>
     public static bool IsGenAiSpan(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.IfNull(attributes);
+        Throw.Throw.IfNull(attributes);
 
         return attributes.ContainsKey(GenAiAttributes.ProviderName) ||
                attributes.ContainsKey(DeprecatedAttrs.System) ||
@@ -73,7 +71,7 @@ public static class GenAiExtractor
     /// </summary>
     public static bool UsesDeprecatedAttributes(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.IfNull(attributes);
+        Throw.Throw.IfNull(attributes);
 
         return attributes.ContainsKey(DeprecatedAttrs.System) ||
                attributes.ContainsKey(DeprecatedAttrs.UsagePromptTokens) ||

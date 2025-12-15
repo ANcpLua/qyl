@@ -3,7 +3,7 @@
 // Hierarchical trace representation
 // =============================================================================
 
-namespace Qyl.Protocol.Models;
+namespace qyl.protocol.Models;
 
 /// <summary>
 ///     A node in a trace tree. Represents a span with its children.

@@ -5,7 +5,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace Qyl.Protocol.Attributes;
+namespace qyl.protocol.Attributes;
 
 /// <summary>
 ///     OpenTelemetry Semantic Conventions v1.38 for Generative AI.

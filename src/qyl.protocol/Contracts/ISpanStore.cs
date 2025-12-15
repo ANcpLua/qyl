@@ -3,10 +3,10 @@
 // Interface for span storage operations
 // =============================================================================
 
-using Qyl.Protocol.Models;
-using Qyl.Protocol.Primitives;
+using qyl.protocol.Models;
+using qyl.protocol.Primitives;
 
-namespace Qyl.Protocol.Contracts;
+namespace qyl.protocol.Contracts;
 
 /// <summary>
 ///     Contract for span storage and retrieval operations.

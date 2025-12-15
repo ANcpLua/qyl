@@ -3,7 +3,7 @@
 // Extracted gen_ai.* attributes from a span
 // =============================================================================
 
-namespace Qyl.Protocol.Models;
+namespace qyl.protocol.Models;
 
 /// <summary>
 ///     GenAI-specific span data extracted from gen_ai.* semantic conventions.

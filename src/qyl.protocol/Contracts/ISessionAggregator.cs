@@ -3,9 +3,9 @@
 // Interface for session aggregation operations
 // =============================================================================
 
-using Qyl.Protocol.Models;
+using qyl.protocol.Models;
 
-namespace Qyl.Protocol.Contracts;
+namespace qyl.protocol.Contracts;
 
 /// <summary>
 ///     Contract for session aggregation and summary operations.

@@ -36,8 +36,4 @@
         <!-- dotnet-coverage removed - using MTP native coverage via Microsoft.Testing.Extensions.CodeCoverage -->
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="theory\" />
-    </ItemGroup>
-
 </Project>

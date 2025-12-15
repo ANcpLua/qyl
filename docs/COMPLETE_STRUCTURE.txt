@@ -23,7 +23,7 @@ qyl/                                                          # Root Repository
 ├── 📄 CHANGELOG.md                                           # Dev-only, manipulated via .slnx XSD
 ├── 📄 LICENSE
 ├── 📄 README.md
-├── 📄 CLAUDE.md                                              # 🧠 Root AI context (inherited by all)
+├── 📄 CLAUDE.md                                              # 🧠 Root AI context (inherited by all via )
 ├── 📄 qyl.slnx                                               # Solution file (VS 17.12+)
 ├── 📄 global.json                                            # SDK versions + msbuild-sdks
 ├── 📄 Directory.Build.props                                  # <Sdk Name="ANcpLua.NET.Sdk"/>

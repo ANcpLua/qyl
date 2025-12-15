@@ -3,9 +3,9 @@
 // Core span representation used across all qyl components
 // =============================================================================
 
-using Qyl.Protocol.Primitives;
+using qyl.protocol.Primitives;
 
-namespace Qyl.Protocol.Models;
+namespace qyl.protocol.Models;
 
 /// <summary>
 ///     Represents a span record stored in DuckDB and transmitted via API.

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Threading.Channels;
-using Qyl;
 using qyl.collector.Storage;
 
 namespace qyl.collector.Realtime;
@@ -26,7 +25,7 @@ public sealed class SseHub
 
     public void Broadcast(SpanBatch batch)
     {
-        Throw.IfNull(batch);
+        Throw.Throw.IfNull(batch);
 
         foreach (var (_, subscriber) in _subscribers)
         {
@@ -49,7 +48,7 @@ public sealed class SseHub
 
     public void Broadcast(SpanBatch batch, CancellationToken ct = default)
     {
-        Throw.IfNull(batch);
+        Throw.Throw.IfNull(batch);
 
         foreach (var (_, subscriber) in _subscribers)
         {

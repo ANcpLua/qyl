@@ -6,7 +6,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
-namespace Qyl.Protocol.Primitives;
+namespace qyl.protocol.Primitives;
 
 /// <summary>
 ///     Strongly-typed session identifier. Wraps a string with validation.
