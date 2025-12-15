@@ -7,6 +7,8 @@ using Nuke.Common;
 using Nuke.Common.IO;
 using Serilog;
 
+#pragma warning disable CA1305 // Build-time code uses invariant formatting
+
 namespace Components;
 
 partial interface IClaudeContext : IHasSolution
@@ -40,11 +42,11 @@ partial interface IClaudeContext : IHasSolution
             var content = CompiledArtifact.ReadAllText();
 
             if (!content.Contains("## Security", StringComparison.Ordinal))
-                throw new Exception("❌ COMPILER ERROR: Artifact missing mandatory 'Security' section.");
+                throw new InvalidOperationException("Artifact missing mandatory 'Security' section.");
 
             if (content.Contains("## Commands", StringComparison.Ordinal) &&
                 !content.Contains("```", StringComparison.Ordinal))
-                throw new Exception("❌ COMPILER ERROR: 'Commands' section too vague. Must contain code blocks.");
+                throw new InvalidOperationException("'Commands' section too vague. Must contain code blocks.");
 
             Log.Information("✅ Artifact validated successfully.");
         });
@@ -55,11 +57,12 @@ partial interface IClaudeContext : IHasSolution
         {
             if (!current.FileExists())
             {
-                if (visited.Count == 0) return [];
-                throw new Exception($"❌ LINK ERROR: Import target '{current}' not found.");
+                if (visited.Count is 0) return [];
+                throw new InvalidOperationException($"Import target '{current}' not found.");
             }
 
-            if (visited.Contains(current)) throw new Exception($"❌ CYCLE DETECTED: {current} imports itself.");
+            if (visited.Contains(current))
+                throw new InvalidOperationException($"Cycle detected: {current} imports itself.");
 
             visited.Add(current);
 
@@ -164,7 +167,7 @@ partial interface IClaudeContext : IHasSolution
     [GeneratedRegex("^@import.*$", RegexOptions.Multiline)]
     private static partial Regex MyRegex1();
 
-    private class Section
+    private sealed class Section
     {
         public required string Content;
         public bool Locked;

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Context;
+using Domain.CodeGen;
+
+#pragma warning disable CA1305, CA1863 // Build-time code generators use invariant formatting
 
 namespace CodeGen.Generators;
 
@@ -270,7 +273,7 @@ public sealed class CSharpGenerator : IGenerator
                 sb.AppendLine($"    [JsonPropertyName(\"{jsonName}\")]");
 
                 // Nullable annotation
-                if (!prop.IsRequired && !prop.Type.EndsWith("?"))
+                if (!prop.IsRequired && !prop.Type.EndsWith('?'))
                     sb.AppendLine($"    public {prop.Type}? {prop.Name} {{ get; init; }}");
                 else if (prop.DefaultValue is not null)
                     sb.AppendLine($"    public {prop.Type} {prop.Name} {{ get; init; }} = {prop.DefaultValue};");
@@ -376,12 +379,13 @@ public sealed class CSharpGenerator : IGenerator
             sb.AppendLine($"    /// {attr.Description}");
             if (attr.AllowedValues is { Length: > 0 })
                 sb.AppendLine($"    /// <para>Allowed values: {string.Join(", ", attr.AllowedValues)}</para>");
-            if (attr.IsDeprecated)
+            if (attr is { IsDeprecated: true, ReplacedBy: { } replacedBy })
                 sb.AppendLine(
-                    $"    /// <para>DEPRECATED: Use <see cref=\"{KeyToConstantName(attr.ReplacedBy!)}\"/> instead.</para>");
+                    $"    /// <para>DEPRECATED: Use <see cref=\"{KeyToConstantName(replacedBy)}\"/> instead.</para>");
             sb.AppendLine("    /// </summary>");
 
-            if (attr.IsDeprecated) sb.AppendLine($"    [Obsolete(\"Use {attr.ReplacedBy} instead\")]");
+            if (attr is { IsDeprecated: true, ReplacedBy: { } replacement })
+                sb.AppendLine($"    [Obsolete(\"Use {replacement} instead\")]");
 
             sb.AppendLine($"    public const string {constName} = \"{key}\";");
             sb.AppendLine();
@@ -442,12 +446,12 @@ public sealed class CSharpGenerator : IGenerator
 
         foreach (var part in parts)
         {
-            if (part.Length == 0) continue;
+            if (part.Length is 0) continue;
 
             var words = part.Split('_');
             foreach (var word in words)
             {
-                if (word.Length == 0) continue;
+                if (word.Length is 0) continue;
                 sb.Append(char.ToUpperInvariant(word[0]));
                 sb.Append(word[1..]);
             }

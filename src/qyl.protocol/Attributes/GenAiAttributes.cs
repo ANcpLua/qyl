@@ -25,166 +25,166 @@ public static class GenAiAttributes
     /// <summary>OTel schema URL for v1.38.</summary>
     public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
 
-    private const string _prefix = "gen_ai";
+    private const string Prefix = "gen_ai";
 
     // =========================================================================
     // Provider & Operation
     // =========================================================================
 
     /// <summary>gen_ai.provider.name - The name of the GenAI provider (e.g., "openai", "anthropic").</summary>
-    public const string ProviderName = $"{_prefix}.provider.name";
+    public const string ProviderName = $"{Prefix}.provider.name";
 
     /// <summary>gen_ai.operation.name - The operation type (chat, text_completion, etc.).</summary>
-    public const string OperationName = $"{_prefix}.operation.name";
+    public const string OperationName = $"{Prefix}.operation.name";
 
     // =========================================================================
     // Request Attributes
     // =========================================================================
 
     /// <summary>gen_ai.request.model - The model ID requested.</summary>
-    public const string RequestModel = $"{_prefix}.request.model";
+    public const string RequestModel = $"{Prefix}.request.model";
 
     /// <summary>gen_ai.request.temperature - Sampling temperature.</summary>
-    public const string RequestTemperature = $"{_prefix}.request.temperature";
+    public const string RequestTemperature = $"{Prefix}.request.temperature";
 
     /// <summary>gen_ai.request.top_k - Top-k sampling parameter.</summary>
-    public const string RequestTopK = $"{_prefix}.request.top_k";
+    public const string RequestTopK = $"{Prefix}.request.top_k";
 
     /// <summary>gen_ai.request.top_p - Nucleus sampling parameter.</summary>
-    public const string RequestTopP = $"{_prefix}.request.top_p";
+    public const string RequestTopP = $"{Prefix}.request.top_p";
 
     /// <summary>gen_ai.request.presence_penalty - Presence penalty.</summary>
-    public const string RequestPresencePenalty = $"{_prefix}.request.presence_penalty";
+    public const string RequestPresencePenalty = $"{Prefix}.request.presence_penalty";
 
     /// <summary>gen_ai.request.frequency_penalty - Frequency penalty.</summary>
-    public const string RequestFrequencyPenalty = $"{_prefix}.request.frequency_penalty";
+    public const string RequestFrequencyPenalty = $"{Prefix}.request.frequency_penalty";
 
     /// <summary>gen_ai.request.max_tokens - Maximum tokens to generate.</summary>
-    public const string RequestMaxTokens = $"{_prefix}.request.max_tokens";
+    public const string RequestMaxTokens = $"{Prefix}.request.max_tokens";
 
     /// <summary>gen_ai.request.stop_sequences - Stop sequences.</summary>
-    public const string RequestStopSequences = $"{_prefix}.request.stop_sequences";
+    public const string RequestStopSequences = $"{Prefix}.request.stop_sequences";
 
     /// <summary>gen_ai.request.choice.count - Number of choices requested.</summary>
-    public const string RequestChoiceCount = $"{_prefix}.request.choice.count";
+    public const string RequestChoiceCount = $"{Prefix}.request.choice.count";
 
     /// <summary>gen_ai.request.seed - Random seed for deterministic generation.</summary>
-    public const string RequestSeed = $"{_prefix}.request.seed";
+    public const string RequestSeed = $"{Prefix}.request.seed";
 
     /// <summary>gen_ai.request.encoding_formats - Encoding formats requested.</summary>
-    public const string RequestEncodingFormats = $"{_prefix}.request.encoding_formats";
+    public const string RequestEncodingFormats = $"{Prefix}.request.encoding_formats";
 
     // =========================================================================
     // Response Attributes
     // =========================================================================
 
     /// <summary>gen_ai.response.id - Response identifier.</summary>
-    public const string ResponseId = $"{_prefix}.response.id";
+    public const string ResponseId = $"{Prefix}.response.id";
 
     /// <summary>gen_ai.response.model - The model that actually served the request.</summary>
-    public const string ResponseModel = $"{_prefix}.response.model";
+    public const string ResponseModel = $"{Prefix}.response.model";
 
     /// <summary>gen_ai.response.finish_reasons - Finish reasons for the response.</summary>
-    public const string ResponseFinishReasons = $"{_prefix}.response.finish_reasons";
+    public const string ResponseFinishReasons = $"{Prefix}.response.finish_reasons";
 
     // =========================================================================
     // Usage Attributes
     // =========================================================================
 
     /// <summary>gen_ai.usage.input_tokens - Number of input tokens.</summary>
-    public const string UsageInputTokens = $"{_prefix}.usage.input_tokens";
+    public const string UsageInputTokens = $"{Prefix}.usage.input_tokens";
 
     /// <summary>gen_ai.usage.output_tokens - Number of output tokens.</summary>
-    public const string UsageOutputTokens = $"{_prefix}.usage.output_tokens";
+    public const string UsageOutputTokens = $"{Prefix}.usage.output_tokens";
 
     /// <summary>gen_ai.usage.total_tokens - Total tokens (input + output).</summary>
-    public const string UsageTotalTokens = $"{_prefix}.usage.total_tokens";
+    public const string UsageTotalTokens = $"{Prefix}.usage.total_tokens";
 
     // =========================================================================
     // Agent Attributes
     // =========================================================================
 
     /// <summary>gen_ai.agent.id - Agent identifier.</summary>
-    public const string AgentId = $"{_prefix}.agent.id";
+    public const string AgentId = $"{Prefix}.agent.id";
 
     /// <summary>gen_ai.agent.name - Agent name.</summary>
-    public const string AgentName = $"{_prefix}.agent.name";
+    public const string AgentName = $"{Prefix}.agent.name";
 
     /// <summary>gen_ai.agent.description - Agent description.</summary>
-    public const string AgentDescription = $"{_prefix}.agent.description";
+    public const string AgentDescription = $"{Prefix}.agent.description";
 
     // =========================================================================
     // Conversation & Content
     // =========================================================================
 
     /// <summary>gen_ai.conversation.id - Conversation/session identifier.</summary>
-    public const string ConversationId = $"{_prefix}.conversation.id";
+    public const string ConversationId = $"{Prefix}.conversation.id";
 
     /// <summary>gen_ai.system_instructions - System prompt/instructions.</summary>
-    public const string SystemInstructions = $"{_prefix}.system_instructions";
+    public const string SystemInstructions = $"{Prefix}.system_instructions";
 
     /// <summary>gen_ai.input.messages - Input messages.</summary>
-    public const string InputMessages = $"{_prefix}.input.messages";
+    public const string InputMessages = $"{Prefix}.input.messages";
 
     /// <summary>gen_ai.output.messages - Output messages.</summary>
-    public const string OutputMessages = $"{_prefix}.output.messages";
+    public const string OutputMessages = $"{Prefix}.output.messages";
 
     /// <summary>gen_ai.output.type - Output type.</summary>
-    public const string OutputType = $"{_prefix}.output.type";
+    public const string OutputType = $"{Prefix}.output.type";
 
     // =========================================================================
     // Tool Attributes
     // =========================================================================
 
     /// <summary>gen_ai.tool.definitions - Tool definitions available.</summary>
-    public const string ToolDefinitions = $"{_prefix}.tool.definitions";
+    public const string ToolDefinitions = $"{Prefix}.tool.definitions";
 
     /// <summary>gen_ai.tool.name - Tool name.</summary>
-    public const string ToolName = $"{_prefix}.tool.name";
+    public const string ToolName = $"{Prefix}.tool.name";
 
     /// <summary>gen_ai.tool.description - Tool description.</summary>
-    public const string ToolDescription = $"{_prefix}.tool.description";
+    public const string ToolDescription = $"{Prefix}.tool.description";
 
     /// <summary>gen_ai.tool.type - Tool type.</summary>
-    public const string ToolType = $"{_prefix}.tool.type";
+    public const string ToolType = $"{Prefix}.tool.type";
 
     /// <summary>gen_ai.tool.call.id - Tool call identifier.</summary>
-    public const string ToolCallId = $"{_prefix}.tool.call.id";
+    public const string ToolCallId = $"{Prefix}.tool.call.id";
 
     /// <summary>gen_ai.tool.call.arguments - Tool call arguments.</summary>
-    public const string ToolCallArguments = $"{_prefix}.tool.call.arguments";
+    public const string ToolCallArguments = $"{Prefix}.tool.call.arguments";
 
     /// <summary>gen_ai.tool.call.result - Tool call result.</summary>
-    public const string ToolCallResult = $"{_prefix}.tool.call.result";
+    public const string ToolCallResult = $"{Prefix}.tool.call.result";
 
     // =========================================================================
     // Other Attributes
     // =========================================================================
 
     /// <summary>gen_ai.data_source.id - Data source identifier.</summary>
-    public const string DataSourceId = $"{_prefix}.data_source.id";
+    public const string DataSourceId = $"{Prefix}.data_source.id";
 
     /// <summary>gen_ai.embeddings.dimension.count - Embedding dimension count.</summary>
-    public const string EmbeddingsDimensionCount = $"{_prefix}.embeddings.dimension.count";
+    public const string EmbeddingsDimensionCount = $"{Prefix}.embeddings.dimension.count";
 
     /// <summary>gen_ai.token.type - Token type.</summary>
-    public const string TokenType = $"{_prefix}.token.type";
+    public const string TokenType = $"{Prefix}.token.type";
 
     // =========================================================================
     // Evaluation Attributes
     // =========================================================================
 
     /// <summary>gen_ai.evaluation.name - Evaluation name.</summary>
-    public const string EvaluationName = $"{_prefix}.evaluation.name";
+    public const string EvaluationName = $"{Prefix}.evaluation.name";
 
     /// <summary>gen_ai.evaluation.score.value - Evaluation score value.</summary>
-    public const string EvaluationScoreValue = $"{_prefix}.evaluation.score.value";
+    public const string EvaluationScoreValue = $"{Prefix}.evaluation.score.value";
 
     /// <summary>gen_ai.evaluation.score.label - Evaluation score label.</summary>
-    public const string EvaluationScoreLabel = $"{_prefix}.evaluation.score.label";
+    public const string EvaluationScoreLabel = $"{Prefix}.evaluation.score.label";
 
     /// <summary>gen_ai.evaluation.explanation - Evaluation explanation.</summary>
-    public const string EvaluationExplanation = $"{_prefix}.evaluation.explanation";
+    public const string EvaluationExplanation = $"{Prefix}.evaluation.explanation";
 
     // =========================================================================
     // Error Attributes (standard OTel)

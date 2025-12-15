@@ -3,9 +3,6 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.38.0
 // =============================================================================
 
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-
 namespace qyl.collector.Primitives;
 
 /// <summary>
@@ -26,10 +23,7 @@ public readonly record struct SessionId(string Value) :
     // =========================================================================
 
     /// <inheritdoc />
-    public static SessionId Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
-    {
-        return new SessionId(s.ToString());
-    }
+    public static SessionId Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => new(s.ToString());
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out SessionId result)
@@ -43,10 +37,7 @@ public readonly record struct SessionId(string Value) :
     // =========================================================================
 
     /// <inheritdoc />
-    public static SessionId Parse(string s, IFormatProvider? provider)
-    {
-        return new SessionId(s);
-    }
+    public static SessionId Parse(string s, IFormatProvider? provider) => new(s);
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out SessionId result)
@@ -60,10 +51,8 @@ public readonly record struct SessionId(string Value) :
     // =========================================================================
 
     /// <inheritdoc />
-    public static SessionId Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider)
-    {
-        return new SessionId(Encoding.UTF8.GetString(utf8Text));
-    }
+    public static SessionId Parse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider) =>
+        new(Encoding.UTF8.GetString(utf8Text));
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, out SessionId result)
@@ -73,8 +62,5 @@ public readonly record struct SessionId(string Value) :
     }
 
     /// <inheritdoc />
-    public override string ToString()
-    {
-        return Value;
-    }
+    public override string ToString() => Value;
 }

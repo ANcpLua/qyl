@@ -1,18 +1,18 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Net.Http;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 using A2A;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using qyl.protocol.Attributes;
 
 namespace qyl.mcp;
+
+internal static class TelemetryConstants
+{
+    public static readonly ActivitySource ActivitySource = new(GenAiAttributes.SourceName);
+}
 
 public sealed partial class HostClientAgent
 {
@@ -44,8 +44,13 @@ public sealed partial class HostClientAgent
             LogInitializing(modelId);
 
             var createAgentTasks = agentUrls.Select(url => GetRemoteAgentAsync(new Uri(url)));
-            var agents = await Task.WhenAll(createAgentTasks).ConfigureAwait(false);
-            var tools = agents.Select(AITool (agent) => agent.AsAIFunction()).ToList();
+            List<AITool> tools = [];
+
+            await foreach (var completedTask in Task.WhenEach(createAgentTasks).ConfigureAwait(false))
+            {
+                var agent = await completedTask.ConfigureAwait(false);
+                tools.Add(agent.AsAIFunction());
+            }
 
             Agent = chatClient.CreateAIAgent(
                 "You specialize in handling queries for users and using your tools to provide answers.",
@@ -70,10 +75,7 @@ public sealed partial class HostClientAgent
 
 public static class A2ACardResolver
 {
-    private static readonly HttpClient _sSharedClient = new()
-    {
-        Timeout = TimeSpan.FromSeconds(60)
-    };
+    private static readonly HttpClient _sSharedClient = new() { Timeout = TimeSpan.FromSeconds(60) };
 
     public static async Task<AgentCard> GetAgentCardAsync(
         Uri baseUrl,
@@ -81,7 +83,7 @@ public static class A2ACardResolver
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)
     {
-        Throw.Throw.IfNull(baseUrl);
+        Throw.IfNull(baseUrl);
 
         var client = httpClient ?? _sSharedClient;
         var cardUrl = new Uri(baseUrl, agentCardPath.TrimStart('/'));
@@ -124,13 +126,11 @@ public interface ITelemetryCollector
 
 public sealed class OpenTelemetryCollector : ITelemetryCollector
 {
-    private static readonly ActivitySource _sActivitySource = new(GenAiAttributes.SourceName);
-
     public static readonly OpenTelemetryCollector Instance = new();
 
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             $"{GenAiAttributes.InvokeAgent} {agentName}");
 
         if (activity is null) return;
@@ -142,7 +142,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             $"{GenAiAttributes.ExecuteTool} {toolName}");
 
         if (activity is null) return;
@@ -158,7 +158,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             "token_usage");
 
         if (activity is null) return;
@@ -170,7 +170,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackError(string agentName, Exception exception)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             "error");
 
         if (activity is null) return;
@@ -185,7 +185,6 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
 public sealed class TelemetryAgent : DelegatingAIAgent
 {
-    private static readonly ActivitySource _sActivitySource = new(GenAiAttributes.SourceName);
     private readonly string _agentName;
     private readonly ITelemetryCollector _collector;
 
@@ -208,20 +207,20 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         AgentRunOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             $"{GenAiAttributes.InvokeAgent} {_agentName}",
             ActivityKind.Client);
 
         activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
         activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
-        var sw = Stopwatch.StartNew();
+        var startTime = TimeProvider.System.GetTimestamp();
         try
         {
             var response = await base.RunAsync(messages, thread, options, cancellationToken).ConfigureAwait(false);
-            sw.Stop();
+            var elapsed = TimeProvider.System.GetElapsedTime(startTime);
 
-            _collector.TrackAgentInvocation(_agentName, "RunAsync", sw.Elapsed);
+            _collector.TrackAgentInvocation(_agentName, "RunAsync", elapsed);
 
             if (response.Usage is { } usage)
             {
@@ -234,7 +233,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         }
         catch (Exception ex)
         {
-            sw.Stop();
+            var elapsed = TimeProvider.System.GetElapsedTime(startTime);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddException(ex);
             _collector.TrackError(_agentName, ex);
@@ -248,38 +247,34 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         AgentRunOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        using var activity = _sActivitySource.StartActivity(
+        using var activity = TelemetryConstants.ActivitySource.StartActivity(
             $"{GenAiAttributes.InvokeAgent} {_agentName} (streaming)",
             ActivityKind.Client);
 
         activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
         activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
-        var sw = Stopwatch.StartNew();
+        var startTime = TimeProvider.System.GetTimestamp();
 
         await foreach (var update in base.RunStreamingAsync(messages, thread, options, cancellationToken))
             yield return update;
 
-        sw.Stop();
-        _collector.TrackAgentInvocation(_agentName, "RunStreamingAsync", sw.Elapsed);
+        var elapsed = TimeProvider.System.GetElapsedTime(startTime);
+        _collector.TrackAgentInvocation(_agentName, "RunStreamingAsync", elapsed);
     }
 }
 
 public static class TelemetryAgentExtensions
 {
-    public static AIAgent WithTelemetry(
-        this AIAgent agent,
-        ITelemetryCollector? collector = null,
-        string? agentName = null)
+    extension(AIAgent agent)
     {
-        return new TelemetryAgent(agent, collector, agentName);
+        public AIAgent WithTelemetry(ITelemetryCollector? collector = null, string? agentName = null) =>
+            new TelemetryAgent(agent, collector, agentName);
     }
 
-    public static AIAgentBuilder UseTelemetry(
-        this AIAgentBuilder builder,
-        ITelemetryCollector? collector = null,
-        string? agentName = null)
+    extension(AIAgentBuilder builder)
     {
-        return builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
+        public AIAgentBuilder UseTelemetry(ITelemetryCollector? collector = null, string? agentName = null) =>
+            builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
     }
 }

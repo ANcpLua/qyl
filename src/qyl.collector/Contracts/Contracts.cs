@@ -143,13 +143,6 @@ public sealed record TraceResponseDto
     public string? Status { get; init; }
 }
 
-public sealed record TelemetryEventDto
-{
-    public required string EventType { get; init; }
-    public object? Data { get; init; }
-    public required string Timestamp { get; init; }
-}
-
 public sealed record SpanBatchDto
 {
     public required List<SpanDto> Spans { get; init; }

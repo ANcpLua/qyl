@@ -26,9 +26,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
 
         var channel = Channel.CreateBounded<TelemetryMessage>(new BoundedChannelOptions(1000)
         {
-            FullMode = BoundedChannelFullMode.DropOldest,
-            SingleWriter = false,
-            SingleReader = true
+            FullMode = BoundedChannelFullMode.DropOldest, SingleWriter = false, SingleReader = true
         });
 
         _channels[clientId] = channel;

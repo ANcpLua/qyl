@@ -23,14 +23,20 @@ qyl/                                                          # Root Repository
 ├── 📄 CHANGELOG.md                                           # Dev-only, manipulated via .slnx XSD
 ├── 📄 LICENSE
 ├── 📄 README.md
-├── 📄 CLAUDE.md                                              # 🧠 Root AI context (inherited by all via )
+├── 📄 CLAUDE.md                                              # 🧠 Root AI context (inherited by all)
 ├── 📄 qyl.slnx                                               # Solution file (VS 17.12+)
-├── 📄 global.json                                            # SDK versions + msbuild-sdks
-├── 📄 Directory.Build.props                                  # <Sdk Name="ANcpLua.NET.Sdk"/>
+├── 📄 global.json                                            # SDK versions: ANcpLua.NET.Sdk@1.1.2
+├── 📄 Directory.Build.props                                  # Imports SDK, CPM, analyzers
 ├── 📄 Directory.Build.targets
 ├── 📄 Directory.Packages.props                               # Central Package Management
 ├── 📄 nuget.config
 │
+│ ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ │                                           SDK INTEGRATION (COMPLETED)                                              │
+│ │  ANcpLua.NET.Sdk@1.1.2 - https://www.nuget.org/packages/ANcpLua.NET.Sdk/1.1.2                                     │
+│ │  ANcpLua.NET.Sdk.Web@1.1.2 - https://www.nuget.org/packages/ANcpLua.NET.Sdk.Web/1.1.2                             │
+│ │  Provides: Throw.cs, BannedApiAnalyzers, Polyfills, Standard analyzers                                            │
+│ └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 │
 │ ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ │                                              CORE SPECIFICATIONS                                                    │
@@ -135,8 +141,9 @@ qyl/                                                          # Root Repository
 │   │
 │   │ ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 │   │ ║  qyl.collector — Backend                                                                          🐳 Docker  ║
-│   │ ║  Dependencies: qyl.protocol, DuckDB, gRPC, Protobuf                                                          ║
+│   │ ║  Dependencies: qyl.protocol, DuckDB.NET.Data.Full@1.4.3, gRPC, Protobuf                                      ║
 │   │ ║  Ports: 8080 (REST), 4317 (gRPC), 4318 (OTLP HTTP)                                                           ║
+│   │ ║  NuGet: https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3                                            ║
 │   │ ╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 │   │
 │   ├── 📁 qyl.collector/
@@ -147,34 +154,55 @@ qyl/                                                          # Root Repository
 │   │   ├── 📄 appsettings.Development.json
 │   │   ├── 📄 Dockerfile
 │   │   │
-│   │   ├── 📁 Ingestion/                                     # OTLP receivers
-│   │   │   ├── 📄 OtlpHttpReceiver.cs                        # POST /v1/traces
-│   │   │   ├── 📄 OtlpGrpcService.cs                         # gRPC TraceService
-│   │   │   ├── 📄 GenAiExtractor.cs                          # Extract gen_ai.* → GenAiSpanData
-│   │   │   ├── 📄 SpanConverter.cs                           # OTLP Span → SpanRecord
+│   │   ├── 📁 Ingestion/                                     # OTLP parsing
+│   │   │   ├── 📄 OtlpJsonSpanParser.cs                      # Zero-allocation JSON parser
+│   │   │   ├── 📄 OtlpAttributes.cs                          # OTLP attribute constants
+│   │   │   ├── 📄 OtlpTypes.cs                               # OTLP DTOs
 │   │   │   └── 📄 SchemaNormalizer.cs                        # Migrate deprecated attrs to 1.38
 │   │   │
 │   │   ├── 📁 Storage/                                       # DuckDB persistence
 │   │   │   ├── 📄 DuckDbStore.cs                             # ISpanStore impl (Lock class)
 │   │   │   ├── 📄 DuckDbSchema.cs                            # DDL + migrations (SINGLE SOURCE)
-│   │   │   └── 📄 DuckDbSchema.g.cs                          # 🔧 Generated by TypeSpec emitter
+│   │   │   ├── 📄 SpanRecord.cs                              # Span data model
+│   │   │   ├── 📄 SpanBatch.cs                               # Batch insert model
+│   │   │   ├── 📄 GenAiStats.cs                              # GenAI statistics
+│   │   │   └── 📄 StorageStats.cs                            # Storage statistics
 │   │   │
 │   │   ├── 📁 Query/                                         # Aggregation logic
-│   │   │   ├── 📄 SessionAggregator.cs                       # ISessionAggregator impl (SQL-based)
-│   │   │   └── 📄 TraceBuilder.cs                            # Build hierarchical TraceNode
-│   │   │
-│   │   ├── 📁 Api/                                           # REST endpoints
-│   │   │   ├── 📄 SessionsEndpoint.cs                        # GET /api/v1/sessions
-│   │   │   ├── 📄 TracesEndpoint.cs                          # GET /api/v1/traces/{id}
-│   │   │   ├── 📄 SpansEndpoint.cs                           # GET /api/v1/spans
-│   │   │   └── 📄 SseEndpoint.cs                             # TypedResults.ServerSentEvents()
+│   │   │   └── 📄 SessionQueryService.cs                     # Session aggregation queries
 │   │   │
 │   │   ├── 📁 Realtime/                                      # SSE streaming
-│   │   │   ├── 📄 SpanBroadcaster.cs                         # Channel-based pub/sub
-│   │   │   └── 📄 SseWriter.cs                               # SSE formatting
+│   │   │   ├── 📄 SseEndpoints.cs                            # TypedResults.ServerSentEvents()
+│   │   │   ├── 📄 SseHub.cs                                  # Channel-based pub/sub
+│   │   │   └── 📄 TelemetrySseStream.cs                      # SSE stream formatting
 │   │   │
-│   │   └── 📁 Serialization/
-│   │       └── 📄 QylSerializerContext.cs                    # AOT JsonSerializerContext
+│   │   ├── 📁 Pipeline/                                      # High-throughput ingestion
+│   │   │   └── 📄 SpanIngestionPipeline.cs                   # Channel<T> backpressure
+│   │   │
+│   │   ├── 📁 Extensions/                                    # C# 14 extensions
+│   │   │   └── 📄 ActivityExtensions.cs                      # Activity extension members
+│   │   │
+│   │   ├── 📁 Parsing/                                       # Trace context parsing
+│   │   │   └── 📄 TraceContextParser.cs                      # W3C traceparent parser
+│   │   │
+│   │   ├── 📁 Primitives/                                    # Strongly-typed IDs
+│   │   │   ├── 📄 TraceId.cs                                 # IUtf8SpanParsable<TraceId>
+│   │   │   ├── 📄 SpanId.cs                                  # IUtf8SpanParsable<SpanId>
+│   │   │   ├── 📄 UnixNano.cs                                # Unix timestamp nanoseconds
+│   │   │   └── 📄 SessionId.cs                               # Session identifier
+│   │   │
+│   │   ├── 📁 Auth/                                          # Authentication
+│   │   │   ├── 📄 TokenAuth.cs                               # Token authentication
+│   │   │   └── 📄 TokenGenerator.cs                          # Token generation
+│   │   │
+│   │   ├── 📁 Models/                                        # Internal models
+│   │   │   └── 📄 ParsedSpan.cs                              # Parsed span representation
+│   │   │
+│   │   ├── 📄 Program.cs                                     # ⚡ Entry point, DI, endpoints
+│   │   ├── 📄 GenAiAttributes.cs                             # OTel 1.38 gen_ai.* constants
+│   │   ├── 📄 GenAiProviders.cs                              # Provider detection from host
+│   │   ├── 📄 GenAiExtractor.cs                              # Extract gen_ai.* attributes
+│   │   └── 📄 QylSerializerContext.cs                        # AOT JsonSerializerContext
 │   │
 │   │ ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
 │   │ ║  qyl.mcp — MCP Server                                                                             🐳 Docker  ║
@@ -287,15 +315,13 @@ qyl/                                                          # Root Repository
 │
 │ ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │ │                                                SHARED CODE                                                          │
+│ │  NOTE: src/Shared/ and src/LegacySupport/ DELETED - now provided by ANcpLua.NET.Sdk@1.1.2                          │
 │ └─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 │
-├── 📁 shared/                                                # 💉 Injected by SDK via <InjectSharedThrow>
-│   │
-│   └── 📁 Throw/
-│       ├── 📄 Throw.cs                                       # Throw.IfNull(), Throw.IfNullOrEmpty()
-│       ├── 📄 Throw.String.cs                                # String-specific guards
-│       ├── 📄 Throw.Collection.cs                            # Collection guards
-│       └── 📄 Throw.Range.cs                                 # Numeric range guards
+│   # Throw.cs and Polyfills are now injected from NuGet package:
+│   # - ANcpLua.NET.Sdk@1.1.2 provides Microsoft.Shared.Diagnostics (Throw.cs)
+│   # - ANcpLua.NET.Sdk@1.1.2 provides Polyfills for legacy TFMs
+│   # - Global using: Microsoft.Shared.Diagnostics
 │
 │
 │ ┌─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐

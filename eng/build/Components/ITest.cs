@@ -83,8 +83,9 @@ interface ITest : ICompile
 
     void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
     {
+        var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
         var settings = new DotNetTestSettings()
-            .SetProjectFile(project.Path!)
+            .SetProjectFile(projectPath)
             .SetConfiguration(Configuration)
             .EnableNoBuild()
             .EnableNoRestore()

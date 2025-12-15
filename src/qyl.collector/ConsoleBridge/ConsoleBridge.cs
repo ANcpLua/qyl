@@ -5,7 +5,7 @@ namespace qyl.collector.ConsoleBridge;
 
 public sealed class FrontendConsole
 {
-    private const int _maxLogs = 5000;
+    private const int MaxLogs = 5000;
     private readonly ConcurrentQueue<ConsoleLogEntry> _ring = new();
     private readonly ConcurrentDictionary<string, Channel<ConsoleLogEntry>> _subs = new();
     private int _count;
@@ -22,9 +22,11 @@ public sealed class FrontendConsole
             req.SessionId, req.Url, req.Stack);
 
         _ring.Enqueue(entry);
-        if (Interlocked.Increment(ref _count) > _maxLogs)
+        if (Interlocked.Increment(ref _count) > MaxLogs)
+        {
             while (_ring.TryDequeue(out _))
                 Interlocked.Decrement(ref _count);
+        }
 
         foreach (var ch in _subs.Values)
             ch.Writer.TryWrite(entry);
@@ -33,22 +35,16 @@ public sealed class FrontendConsole
     }
 
     public ConsoleLogEntry[] Query(ConsoleLevel? minLevel = null, string? session = null, string? pattern = null,
-        int limit = 50)
-    {
-        return
-        [
-            .. _ring.Reverse()
-                .Where(e => (!minLevel.HasValue || e.Lvl >= minLevel) &&
-                            (session == null || e.Session == session) &&
-                            (pattern == null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
-                .Take(limit)
-        ];
-    }
+        int limit = 50) =>
+    [
+        .. _ring.Reverse()
+            .Where(e => (!minLevel.HasValue || e.Lvl >= minLevel) &&
+                        (session == null || e.Session == session) &&
+                        (pattern == null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+            .Take(limit)
+    ];
 
-    public ConsoleLogEntry[] Errors(int limit = 20)
-    {
-        return Query(ConsoleLevel.Warn, limit: limit);
-    }
+    public ConsoleLogEntry[] Errors(int limit = 20) => Query(ConsoleLevel.Warn, limit: limit);
 
     public IDisposable Subscribe(string id, Channel<ConsoleLogEntry> ch)
     {
@@ -56,22 +52,17 @@ public sealed class FrontendConsole
         return new Sub(this, id);
     }
 
-    private static ConsoleLevel ParseLevel(string? s)
-    {
-        return s?.ToLowerInvariant() switch
+    private static ConsoleLevel ParseLevel(string? s) =>
+        s?.ToLowerInvariant() switch
         {
             "debug" => ConsoleLevel.Debug, "info" => ConsoleLevel.Info,
             "warn" or "warning" => ConsoleLevel.Warn, "error" => ConsoleLevel.Error,
             _ => ConsoleLevel.Log
         };
-    }
 
     private sealed class Sub(FrontendConsole b, string id) : IDisposable
     {
-        public void Dispose()
-        {
-            b._subs.TryRemove(id, out _);
-        }
+        public void Dispose() => b._subs.TryRemove(id, out _);
     }
 }
 

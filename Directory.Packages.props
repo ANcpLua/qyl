@@ -23,13 +23,16 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.1" />
     <!-- ASP.NET Core -->
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
     <!-- System -->
     <PackageVersion Include="System.Text.Json" Version="10.0.1" />
     <PackageVersion Include="System.Threading.Channels" Version="10.0.1" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.1" />
-    <!-- DuckDB -->
-    <PackageVersion Include="DuckDB.NET.Data" Version="1.4.3" />
+    <PackageVersion Include="System.IO.Pipelines" Version="10.0.1" />
+    <!-- DuckDB - https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3
+         GitHub: https://github.com/Giorgi/DuckDB.NET | Docs: https://duckdb.net
+         v1.4.3: ±infinity dates, transaction fixes, decimal param fixes -->
+    <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.4.3" />
     <!-- gRPC & Protobuf -->
     <PackageVersion Include="Google.Protobuf" Version="3.33.2" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0-pre1" />
@@ -42,8 +45,7 @@
     <PackageVersion Include="AwesomeAssertions" Version="1.0.0" />
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Testcontainers" Version="4.5.0" />
-    <!-- Analyzers -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.12.0-beta1.25218.8" />
+    <!-- Analyzers (BannedApiAnalyzers provided by ANcpLua.NET.Sdk) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101" />
     <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" />
     <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1" />
@@ -75,5 +77,13 @@
     <PackageVersion Include="Nuke.Tooling.Generator" Version="10.1.0" />
     <!-- CLI -->
     <PackageVersion Include="System.CommandLine" Version="2.0.1" />
+    <!-- RabbitMQ (for examples) -->
+    <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
+    <!-- Console example dependencies -->
+    <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0-pre1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.14.0-beta.1" />
   </ItemGroup>
 </Project>

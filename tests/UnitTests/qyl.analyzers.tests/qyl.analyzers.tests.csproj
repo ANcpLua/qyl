@@ -21,8 +21,4 @@
         <PackageReference Include="Microsoft.CodeAnalysis.Testing.Verifiers.XUnit"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="../../../eng/qyl.analyzers/qyl.analyzers.csproj"/>
-    </ItemGroup>
-
 </Project>

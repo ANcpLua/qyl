@@ -6,7 +6,7 @@
 # This document is the SINGLE SOURCE OF TRUTH for qyl architecture.
 # Machine-readable by AI assistants. Human-readable for developers.
 #
-# Last Updated: 2024-12-13
+# Last Updated: 2025-12-15
 # Maintainer: @ANcpLua
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -106,14 +106,21 @@ projects:
       otlp_http: 4318
       otlp_grpc: 4317
     dependencies:
-      allowed: [ qyl.protocol, DuckDB.NET.Data, Google.Protobuf, Grpc.AspNetCore ]
+      allowed: [ qyl.protocol, "DuckDB.NET.Data.Full@1.4.3", Google.Protobuf, Grpc.AspNetCore ]
       forbidden: [ qyl.mcp, qyl.dashboard, OpenTelemetry.Exporter.* ]
     structure:
-      Ingestion: [ OtlpHttpReceiver.cs, OtlpGrpcService.cs, GenAiExtractor.cs, SpanConverter.cs ]
-      Storage: [ DuckDbStore.cs, DuckDbSchema.cs ]
-      Query: [ SessionAggregator.cs, TraceBuilder.cs ]
-      Api: [ SessionsEndpoint.cs, TracesEndpoint.cs, SpansEndpoint.cs, SseEndpoint.cs ]
-      Realtime: [ SpanBroadcaster.cs, SseWriter.cs ]
+      Ingestion: [ OtlpJsonSpanParser.cs, OtlpAttributes.cs, OtlpTypes.cs, SchemaNormalizer.cs ]
+      Storage: [ DuckDbStore.cs, DuckDbSchema.cs, SpanRecord.cs, SpanBatch.cs, GenAiStats.cs, StorageStats.cs ]
+      Query: [ SessionQueryService.cs ]
+      Realtime: [ SseEndpoints.cs, SseHub.cs, TelemetrySseStream.cs ]
+      Pipeline: [ SpanIngestionPipeline.cs ]
+      Extensions: [ ActivityExtensions.cs ]
+      Parsing: [ TraceContextParser.cs ]
+      Primitives: [ TraceId.cs, SpanId.cs, UnixNano.cs, SessionId.cs ]
+      Auth: [ TokenAuth.cs, TokenGenerator.cs ]
+      Mapping: [ Mappers.cs ]
+      Models: [ ParsedSpan.cs ]
+      root: [ Program.cs, GenAiAttributes.cs, GenAiProviders.cs, GenAiExtractor.cs, QylSerializerContext.cs ]
 
   qyl.mcp:
     path: src/qyl.mcp
@@ -248,15 +255,19 @@ claude_documentation:
 build_system:
   sdk:
     name: ANcpLua.NET.Sdk
-    version: "1.0.0"
+    version: "1.1.2"
     pattern: Layering  # NOT wrapping - we layer on Microsoft SDKs
+    nuget_urls:
+      - https://www.nuget.org/packages/ANcpLua.NET.Sdk/1.1.2
+      - https://www.nuget.org/packages/ANcpLua.NET.Sdk.Web/1.1.2
 
   usage:
     global_json: |
       {
         "sdk": { "version": "10.0.100" },
         "msbuild-sdks": {
-          "ANcpLua.NET.Sdk": "1.0.0"
+          "ANcpLua.NET.Sdk": "1.1.2",
+          "ANcpLua.NET.Sdk.Web": "1.1.2"
         }
       }
 
@@ -431,10 +442,44 @@ code_quality:
       reason: "Refactor-safe parameter names"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# NAMING CONVENTIONS
+# NAMING CONVENTIONS (Microsoft .NET Guidelines)
+# https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines
 # ═══════════════════════════════════════════════════════════════════════════════
 
 naming_conventions:
+  # Rule 1: Constants must use PascalCase (regardless of accessibility)
+  constants:
+    style: PascalCase
+    example: "MaxBatchSize"
+    applies_to: "const fields (public, private, internal)"
+
+  # Rule 2: Static readonly fields should use PascalCase
+  static_readonly_fields:
+    style: PascalCase
+    example: "DefaultOptions"
+    applies_to: "private static readonly, public static readonly"
+
+  # Rule 3: Private instance fields use _camelCase
+  private_fields:
+    prefix: "_"
+    style: camelCase
+    example: "_connection"
+    applies_to: "private instance fields only"
+
+  # Rule 4: Private static (non-readonly) fields use s_camelCase
+  private_static_fields:
+    prefix: "s_"
+    style: camelCase
+    example: "s_counter"
+    applies_to: "private static mutable fields"
+
+  # Rule 5: Public/Internal fields use PascalCase
+  public_fields:
+    style: PascalCase
+    example: "DefaultTimeout"
+    applies_to: "public, internal, protected fields"
+
+  # Standard conventions
   async_methods:
     suffix: "Async"
     example: "GetSessionAsync"
@@ -442,14 +487,6 @@ naming_conventions:
   interfaces:
     prefix: "I"
     example: "ISpanStore"
-
-  private_fields:
-    prefix: "_"
-    example: "_connection"
-
-  constants:
-    style: PascalCase
-    example: "DefaultBatchSize"
 
   generic_type_params:
     prefix: "T"
@@ -459,6 +496,10 @@ naming_conventions:
     name: "cancellationToken"
     abbreviation: "ct"
     note: "ct allowed in lambdas and short methods"
+
+  namespaces:
+    style: PascalCase
+    exception: "qyl (product brand name allowed lowercase)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # OPENTELEMETRY SEMANTIC CONVENTIONS
@@ -689,6 +730,75 @@ open_decisions:
   - question: "Authentication in Collector?"
     context: "JWT vs API Key vs none"
     recommendation: "Start without auth, add when needed for production"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DUCKDB.NET PACKAGE REFERENCE
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Package: DuckDB.NET.Data.Full v1.4.3
+# NuGet: https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3
+# GitHub: https://github.com/Giorgi/DuckDB.NET
+# Docs: https://duckdb.net
+#
+# Package Variants:
+# ┌─────────────────────────────┬────────────────────┬─────────────────────────────┐
+# │ Package                     │ Native DLLs?       │ Use Case                    │
+# ├─────────────────────────────┼────────────────────┼─────────────────────────────┤
+# │ DuckDB.NET.Data             │ ❌ No              │ ADO.NET only (BYOD)         │
+# │ DuckDB.NET.Data.Full        │ ✅ Yes             │ ADO.NET + bundled DuckDB    │
+# │ DuckDB.NET.Bindings         │ ❌ No              │ Low-level P/Invoke          │
+# │ DuckDB.NET.Bindings.Full    │ ✅ Yes             │ P/Invoke + bundled DuckDB   │
+# └─────────────────────────────┴────────────────────┴─────────────────────────────┘
+#
+# v1.4.3 Key Features (2025-12-11):
+# - ±Infinity date/timestamp support (DuckDBDateOnly.IsInfinity, DuckDBTimestamp.IsInfinity)
+# - Improved transaction abortion handling in finalizers
+# - Fixed decimal parameter binding (scale > width)
+# - DuckDB core v1.4.3
+#
+# Usage Pattern:
+# ```csharp
+# var duckDate = reader.GetFieldValue<DuckDBDateOnly>(0);
+# if (duckDate.IsInfinity || duckDate.IsPositiveInfinity || duckDate.IsNegativeInfinity)
+# {
+#     // Handle infinite date - cannot convert to DateTime/DateOnly
+# }
+# else
+# {
+#     DateOnly netDate = duckDate; // Safe conversion
+# }
+# ```
+
+duckdb_package:
+  name: DuckDB.NET.Data.Full
+  version: "1.4.3"
+  nuget_url: https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3
+  github_url: https://github.com/Giorgi/DuckDB.NET
+  docs_url: https://duckdb.net
+  duckdb_core_version: "1.4.3"
+
+  features_v143:
+    - name: "±Infinity date/timestamp support"
+      description: "DuckDBDateOnly and DuckDBTimestamp now expose IsInfinity, IsPositiveInfinity, IsNegativeInfinity"
+      breaking: false
+
+    - name: "Transaction abortion handling"
+      description: "Improved finalizer safety when transactions abort unexpectedly"
+      breaking: false
+
+    - name: "Decimal parameter fix"
+      description: "Fixed decimal binding where scale > width in prepared statements"
+      breaking: false
+
+  alternative_packages:
+    - name: DuckDbSharp
+      nuget_url: https://www.nuget.org/packages/DuckDbSharp
+      github_url: https://github.com/alnkesq/DuckDbSharp
+      api_style: "POCO-centric (NOT ADO.NET)"
+      nested_data: "First-class support"
+      type_generation: "Auto-generates C# from SQL"
+      use_when: "Deep nested analytics, custom UDFs, Native AOT"
+      not_recommended_for: "ORM integration, standard ADO.NET patterns"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # SINGLE SOURCE OF TRUTH RULES

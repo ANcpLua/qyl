@@ -1,9 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -12,10 +7,7 @@ internal class TelemetryTools
 {
     private readonly ITelemetryStore _store;
 
-    public TelemetryTools(ITelemetryStore? store = null)
-    {
-        _store = store ?? InMemoryTelemetryStore.Instance;
-    }
+    public TelemetryTools(ITelemetryStore? store = null) => _store = store ?? InMemoryTelemetryStore.Instance;
 
     [McpServerTool(Name = "qyl.search_agent_runs")]
     [Description("Search for agent run records by provider, model, error type, or time range.")]
@@ -27,18 +19,14 @@ internal class TelemetryTools
         [Description("Filter by error type (e.g., 'RateLimitError', 'TimeoutError')")]
         string? errorType = null,
         [Description("Only include runs since this timestamp")]
-        DateTime? since = null)
-    {
-        return await _store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
-    }
+        DateTime? since = null) =>
+        await _store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_agent_run")]
     [Description("Get details of a specific agent run by ID.")]
     public async Task<AgentRun?> GetAgentRunAsync(
-        [Description("The unique run ID")] string runId)
-    {
-        return await _store.GetRunAsync(runId).ConfigureAwait(false);
-    }
+        [Description("The unique run ID")] string runId) =>
+        await _store.GetRunAsync(runId).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_token_usage")]
     [Description("Get token usage statistics for agents within a time range.")]
@@ -46,30 +34,24 @@ internal class TelemetryTools
         [Description("Start of time range")] DateTime? since = null,
         [Description("End of time range")] DateTime? until = null,
         [Description("Group by: 'agent', 'model', or 'hour'")]
-        string groupBy = "agent")
-    {
-        return await _store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
-    }
+        string groupBy = "agent") =>
+        await _store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.list_errors")]
     [Description("List recent errors from agent runs.")]
     public async Task<AgentError[]> ListErrorsAsync(
         [Description("Maximum number of errors to return")]
         int limit = 50,
-        [Description("Filter by agent name")] string? agentName = null)
-    {
-        return await _store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
-    }
+        [Description("Filter by agent name")] string? agentName = null) =>
+        await _store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
 
     [McpServerTool(Name = "qyl.get_latency_stats")]
     [Description("Get latency statistics for agent operations.")]
     public async Task<LatencyStats> GetLatencyStatsAsync(
         [Description("Filter by agent name")] string? agentName = null,
         [Description("Time range in hours (default: 24)")]
-        int hours = 24)
-    {
-        return await _store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
-    }
+        int hours = 24) =>
+        await _store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
 }
 
 #region Data Models
@@ -120,12 +102,12 @@ public record LatencyStats(
 
 public interface ITelemetryStore
 {
-    Task RecordRunAsync(AgentRun run);
-    Task<AgentRun?> GetRunAsync(string runId);
-    Task<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since);
-    Task<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy);
-    Task<AgentError[]> ListErrorsAsync(int limit, string? agentName);
-    Task<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours);
+    ValueTask RecordRunAsync(AgentRun run);
+    ValueTask<AgentRun?> GetRunAsync(string runId);
+    ValueTask<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since);
+    ValueTask<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy);
+    ValueTask<AgentError[]> ListErrorsAsync(int limit, string? agentName);
+    ValueTask<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours);
 }
 
 public sealed class InMemoryTelemetryStore : ITelemetryStore
@@ -135,7 +117,7 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
 
     private readonly List<AgentRun> _runs = [];
 
-    public Task RecordRunAsync(AgentRun run)
+    public ValueTask RecordRunAsync(AgentRun run)
     {
         lock (_lock)
         {
@@ -144,107 +126,109 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
             if (_runs.Count > 10000) _runs.RemoveAt(0);
         }
 
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task<AgentRun?> GetRunAsync(string runId)
+    public ValueTask<AgentRun?> GetRunAsync(string runId)
     {
         lock (_lock)
         {
-            return Task.FromResult(_runs.FirstOrDefault(r => r.RunId == runId));
+            return ValueTask.FromResult(_runs.Find(r => r.RunId == runId));
         }
     }
 
-    public Task<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since)
+    public ValueTask<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since)
     {
         lock (_lock)
         {
-            var query = _runs.AsEnumerable();
+            var results = _runs.FindAll(r =>
+                (string.IsNullOrEmpty(provider) ||
+                 r.Provider?.Equals(provider, StringComparison.OrdinalIgnoreCase) == true) &&
+                (string.IsNullOrEmpty(model) || r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) == true) &&
+                (string.IsNullOrEmpty(errorType) ||
+                 r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) == true) &&
+                (!since.HasValue || r.StartedAt >= since.Value));
 
-            if (!string.IsNullOrEmpty(provider))
-                query = query.Where(r => r.Provider?.Equals(provider, StringComparison.OrdinalIgnoreCase) == true);
-
-            if (!string.IsNullOrEmpty(model))
-                query = query.Where(r => r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) == true);
-
-            if (!string.IsNullOrEmpty(errorType))
-                query = query.Where(r => r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) == true);
-
-            if (since.HasValue)
-                query = query.Where(r => r.StartedAt >= since.Value);
-
-            return Task.FromResult(query.OrderByDescending(r => r.StartedAt).Take(100).ToArray());
+            results.Sort((a, b) => b.StartedAt.CompareTo(a.StartedAt));
+            return ValueTask.FromResult(results.Take(100).ToArray());
         }
     }
 
-    public Task<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy)
+    public ValueTask<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy)
     {
         lock (_lock)
         {
-            var query = _runs.AsEnumerable();
+            var filtered = _runs.FindAll(r =>
+                (!since.HasValue || r.StartedAt >= since.Value) &&
+                (!until.HasValue || r.StartedAt <= until.Value));
 
-            if (since.HasValue)
-                query = query.Where(r => r.StartedAt >= since.Value);
-
-            if (until.HasValue)
-                query = query.Where(r => r.StartedAt <= until.Value);
-
-            var grouped = groupBy.ToLowerInvariant() switch
+            Func<AgentRun, string> keySelector = groupBy.ToLowerInvariant() switch
             {
-                "model" => query.GroupBy(r => r.Model ?? "unknown"),
-                "hour" => query.GroupBy(r => r.StartedAt.ToString("yyyy-MM-dd HH:00")),
-                _ => query.GroupBy(r => r.AgentName)
+                "model" => r => r.Model ?? "unknown",
+                "hour" => r => r.StartedAt.ToString("yyyy-MM-dd HH:00"),
+                _ => r => r.AgentName
             };
 
-            return Task.FromResult(grouped.Select(g => new TokenUsageSummary(
-                g.Key,
-                g.Sum(r => r.InputTokens),
-                g.Sum(r => r.OutputTokens),
-                g.Count(),
-                g.Min(r => r.StartedAt),
-                g.Max(r => r.StartedAt)
-            )).ToArray());
+            var summaries = filtered.AggregateBy(
+                    keySelector,
+                    _ => (InputTokens: 0, OutputTokens: 0, Count: 0, MinTime: DateTime.MaxValue,
+                        MaxTime: DateTime.MinValue),
+                    (acc, run) => (
+                        acc.InputTokens + run.InputTokens,
+                        acc.OutputTokens + run.OutputTokens,
+                        acc.Count + 1,
+                        run.StartedAt < acc.MinTime ? run.StartedAt : acc.MinTime,
+                        run.StartedAt > acc.MaxTime ? run.StartedAt : acc.MaxTime
+                    ))
+                .Select(kv => new TokenUsageSummary(
+                    kv.Key,
+                    kv.Value.InputTokens,
+                    kv.Value.OutputTokens,
+                    kv.Value.Count,
+                    kv.Value.MinTime,
+                    kv.Value.MaxTime))
+                .ToArray();
+
+            return ValueTask.FromResult(summaries);
         }
     }
 
-    public Task<AgentError[]> ListErrorsAsync(int limit, string? agentName)
+    public ValueTask<AgentError[]> ListErrorsAsync(int limit, string? agentName)
     {
         lock (_lock)
         {
-            var query = _runs.Where(r => r is { Success: false, ErrorMessage: not null });
+            var errors = _runs.FindAll(r =>
+                r is { Success: false, ErrorMessage: not null } &&
+                (string.IsNullOrEmpty(agentName) || r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase)));
 
-            if (!string.IsNullOrEmpty(agentName))
-                query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
+            errors.Sort((a, b) => b.StartedAt.CompareTo(a.StartedAt));
 
-            return Task.FromResult(query
-                .OrderByDescending(r => r.StartedAt)
-                .Take(limit)
-                .Select(r => new AgentError(
-                    r.RunId,
-                    r.AgentName,
-                    r.ErrorType ?? "Unknown",
-                    r.ErrorMessage!,
-                    r.StartedAt,
-                    null))
-                .ToArray());
+            // Take limit and convert
+            var result = errors.Count > limit
+                ? errors.GetRange(0, limit).ConvertAll(ToAgentError)
+                : errors.ConvertAll(ToAgentError);
+
+            return ValueTask.FromResult(result.ToArray());
         }
     }
 
-    public Task<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours)
+    public ValueTask<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours)
     {
         lock (_lock)
         {
             var since = TimeProvider.System.GetUtcNow().AddHours(-hours);
-            var query = _runs.Where(r => r.StartedAt >= since && r.Duration.HasValue);
+            var filtered = _runs.FindAll(r =>
+                r.StartedAt >= since &&
+                r.Duration.HasValue &&
+                (string.IsNullOrEmpty(agentName) || r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase)));
 
-            if (!string.IsNullOrEmpty(agentName))
-                query = query.Where(r => r.AgentName.Equals(agentName, StringComparison.OrdinalIgnoreCase));
+            if (filtered.Count is 0)
+                return ValueTask.FromResult(new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0));
 
-            var durations = query.Select(r => r.Duration!.Value.TotalMilliseconds).OrderBy(d => d).ToList();
+            var durations = filtered.ConvertAll(r => r.Duration!.Value.TotalMilliseconds);
+            durations.Sort();
 
-            if (durations.Count == 0) return Task.FromResult(new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0));
-
-            return Task.FromResult(new LatencyStats(
+            return ValueTask.FromResult(new LatencyStats(
                 agentName,
                 Percentile(durations, 0.50),
                 Percentile(durations, 0.95),
@@ -257,9 +241,17 @@ public sealed class InMemoryTelemetryStore : ITelemetryStore
         }
     }
 
+    private static AgentError ToAgentError(AgentRun r) => new(
+        r.RunId,
+        r.AgentName,
+        r.ErrorType ?? "Unknown",
+        r.ErrorMessage!,
+        r.StartedAt,
+        null);
+
     private static double Percentile(List<double> sorted, double p)
     {
-        if (sorted.Count == 0) return 0;
+        if (sorted.Count is 0) return 0;
         var index = (int)Math.Ceiling(p * sorted.Count) - 1;
         return sorted[Math.Clamp(index, 0, sorted.Count - 1)];
     }

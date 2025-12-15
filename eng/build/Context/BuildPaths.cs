@@ -4,8 +4,8 @@ using Nuke.Common.IO;
 namespace Context;
 
 /// <summary>
-/// Single source of truth for all build paths in the qyl repository.
-/// Use <see cref="From"/> to create from a NUKE build instance.
+///     Single source of truth for all build paths in the qyl repository.
+///     Use <see cref="From" /> to create from a NUKE build instance.
 /// </summary>
 public sealed record BuildPaths(AbsolutePath Root)
 {
@@ -98,7 +98,7 @@ public sealed record BuildPaths(AbsolutePath Root)
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Creates a <see cref="BuildPaths"/> instance from a NUKE build.
+    ///     Creates a <see cref="BuildPaths" /> instance from a NUKE build.
     /// </summary>
     public static BuildPaths From(INukeBuild build) => new(build.RootDirectory);
 }

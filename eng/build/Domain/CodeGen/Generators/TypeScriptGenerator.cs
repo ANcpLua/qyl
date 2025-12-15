@@ -5,7 +5,9 @@ using System.Linq;
 using System.Text;
 using Context;
 
-namespace CodeGen.Generators;
+#pragma warning disable CA1305, CA1863 // Build-time code generators use invariant formatting
+
+namespace Domain.CodeGen.Generators;
 
 /// <summary>
 ///     Generates TypeScript type definitions for the dashboard.
@@ -385,9 +387,8 @@ public sealed class TypeScriptGenerator : IGenerator
     // Helpers
     // ════════════════════════════════════════════════════════════════════════
 
-    static string MapPrimitiveToTypeScript(string csharpType)
-    {
-        return csharpType switch
+    static string MapPrimitiveToTypeScript(string csharpType) =>
+        csharpType switch
         {
             "Guid" => "string",
             "ulong" => "string", // JSON can't represent uint64 safely
@@ -400,16 +401,15 @@ public sealed class TypeScriptGenerator : IGenerator
             "string" => "string",
             _ => "unknown"
         };
-    }
 
     static string MapTypeToTypeScript(string csharpType)
     {
         // Handle nullable types
-        var isNullable = csharpType.EndsWith("?");
+        var isNullable = csharpType.EndsWith('?');
         var baseType = csharpType.TrimEnd('?');
 
         // Handle generic types
-        if (baseType.StartsWith("IReadOnlyList<") && baseType.EndsWith(">"))
+        if (baseType.StartsWith("IReadOnlyList<", StringComparison.Ordinal) && baseType.EndsWith('>'))
         {
             var innerType = baseType[14..^1];
             var tsInner = MapTypeToTypeScript(innerType);
@@ -465,12 +465,12 @@ public sealed class TypeScriptGenerator : IGenerator
 
         foreach (var part in parts)
         {
-            if (part.Length == 0) continue;
+            if (part.Length is 0) continue;
 
             var words = part.Split('_');
             foreach (var word in words)
             {
-                if (word.Length == 0) continue;
+                if (word.Length is 0) continue;
                 sb.Append(char.ToUpperInvariant(word[0]));
                 sb.Append(word[1..]);
             }

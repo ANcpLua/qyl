@@ -18,8 +18,8 @@ public readonly record struct UnixNano :
     ISpanParsable<UnixNano>,
     IComparable<UnixNano>
 {
-    private const long _nanosPerMillisecond = 1_000_000;
-    private const long _ticksPerNano = 100; // 1 tick = 100 nanoseconds
+    private const long NanosPerMillisecond = 1_000_000;
+    private const long TicksPerNano = 100; // 1 tick = 100 nanoseconds
 
     /// <summary>Zero timestamp.</summary>
     public static readonly UnixNano Zero;
@@ -119,26 +119,26 @@ public readonly record struct UnixNano :
     /// <summary>Converts to DateTimeOffset.</summary>
     public DateTimeOffset ToDateTimeOffset()
     {
-        return DateTimeOffset.FromUnixTimeMilliseconds(Value / _nanosPerMillisecond);
+        return DateTimeOffset.FromUnixTimeMilliseconds(Value / NanosPerMillisecond);
     }
 
     /// <summary>Converts to TimeSpan.</summary>
     public TimeSpan ToTimeSpan()
     {
-        return TimeSpan.FromTicks(Value / _ticksPerNano);
+        return TimeSpan.FromTicks(Value / TicksPerNano);
     }
 
     /// <summary>Creates UnixNano from DateTimeOffset.</summary>
     public static UnixNano FromDateTimeOffset(DateTimeOffset dto)
     {
-        return new UnixNano(dto.ToUnixTimeMilliseconds() * _nanosPerMillisecond);
+        return new UnixNano(dto.ToUnixTimeMilliseconds() * NanosPerMillisecond);
     }
 
     /// <summary>Gets current time as UnixNano with sub-millisecond precision.</summary>
     public static UnixNano Now()
     {
-        return new UnixNano(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * _nanosPerMillisecond +
-                            Stopwatch.GetTimestamp() % _nanosPerMillisecond);
+        return new UnixNano(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * NanosPerMillisecond +
+                            Stopwatch.GetTimestamp() % NanosPerMillisecond);
     }
 
     public static bool operator <(UnixNano left, UnixNano right)

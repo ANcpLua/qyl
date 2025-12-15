@@ -6,7 +6,7 @@ public static class TokenGenerator
 {
     public static string Generate(int byteLength = 24)
     {
-        Throw.Throw.IfNegativeOrZero(byteLength);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLength);
 
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteLength))
             .Replace('+', '-')

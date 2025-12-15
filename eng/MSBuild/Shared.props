@@ -1,6 +1,8 @@
 <Project>
   <!-- =======================================================================
        qyl Shared Properties - Imported by Directory.Build.props
+       OTel configuration and qyl-specific settings
+       Throw.cs provided by ANcpLua.NET.Sdk (Microsoft.Shared.Diagnostics)
        ======================================================================= -->
 
   <!-- OTel Configuration -->
@@ -15,10 +17,5 @@
     <Using Include="System.Diagnostics"/>
     <Using Include="System.Diagnostics.Metrics"/>
   </ItemGroup>
-
-  <!-- Shared Throw injection config - always define path, ItemGroup in targets checks condition -->
-  <PropertyGroup>
-    <_QylSharedThrowPath>$(MSBuildThisFileDirectory)../../src/Shared/Throw</_QylSharedThrowPath>
-  </PropertyGroup>
 
 </Project>

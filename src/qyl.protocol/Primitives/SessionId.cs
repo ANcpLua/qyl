@@ -103,6 +103,26 @@ public readonly record struct SessionId :
         return new SessionId(value);
     }
 
+    public static bool operator <(SessionId left, SessionId right)
+    {
+        return left.CompareTo(right) < 0;
+    }
+
+    public static bool operator >(SessionId left, SessionId right)
+    {
+        return left.CompareTo(right) > 0;
+    }
+
+    public static bool operator <=(SessionId left, SessionId right)
+    {
+        return left.CompareTo(right) <= 0;
+    }
+
+    public static bool operator >=(SessionId left, SessionId right)
+    {
+        return left.CompareTo(right) >= 0;
+    }
+
     /// <inheritdoc />
     public override string ToString()
     {

@@ -9,7 +9,7 @@
 # Machine-readable by AI assistants. Phases are sequential.
 # Architect corrections applied: 2024-12-14
 #
-# Last Updated: 2025-12-14 9pm 25minutes UTC +1
+# Last Updated: 2025-12-16 01:00 UTC+1
 # Maintainer: @ANcpLua
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -23,6 +23,58 @@ meta:
   estimated_phases: 5
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# SDK INTEGRATION - COMPLETED 2025-12-15
+# ═══════════════════════════════════════════════════════════════════════════════
+
+sdk_integration:
+  status: COMPLETED
+  version: "1.1.2"
+  packages:
+    - name: ANcpLua.NET.Sdk
+      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk/1.1.2
+    - name: ANcpLua.NET.Sdk.Web
+      nuget_url: https://www.nuget.org/packages/ANcpLua.NET.Sdk.Web/1.1.2
+
+  migrated_projects:
+    - project: src/qyl.collector/qyl.collector.csproj
+      sdk: ANcpLua.NET.Sdk.Web
+      status: ✅
+    - project: src/qyl.mcp/qyl.mcp.csproj
+      sdk: ANcpLua.NET.Sdk
+      status: ✅
+    - project: src/qyl.protocol/qyl.protocol.csproj
+      sdk: Microsoft.NET.Sdk  # LEAF library - no custom SDK needed
+      status: ✅
+
+  deleted_files:
+    - src/Shared/Throw/
+    - src/LegacySupport/
+
+  sdk_provides:
+    - Microsoft.Shared.Diagnostics.Throw (guard clauses)
+    - BannedApiAnalyzers
+    - Polyfills for legacy TFMs
+    - Standard analyzers
+
+  global_using: "Microsoft.Shared.Diagnostics"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PACKAGE DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+package_dependencies:
+  duckdb:
+    package: DuckDB.NET.Data.Full
+    version: "1.4.3"
+    nuget_url: https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3
+    github_url: https://github.com/Giorgi/DuckDB.NET
+    duckdb_core: "1.4.3"
+    notes: |
+      v1.4.3 adds ±infinity date/timestamp support, transaction abortion handling,
+      and decimal parameter fixes. Use DuckDBDateOnly.IsInfinity to check for
+      infinite dates before converting to DateTime.
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ARCHITECT OVERRIDES
 # ═══════════════════════════════════════════════════════════════════════════════
 #
@@ -30,8 +82,8 @@ meta:
 
 architect_overrides:
   sdk_location:
-    status: EXTERNAL
-    path: "/Users/ancplua/RiderProjects/ANcpLua.NET.Sdk/"
+    status: NUGET  # Changed from EXTERNAL to NUGET
+    packages: [ "ANcpLua.NET.Sdk@1.1.2", "ANcpLua.NET.Sdk.Web@1.1.2" ]
     nuget: "https://www.nuget.org/packages/ANcpLua.NET.Sdk/"
     note: "SDK is in SEPARATE repository. Do NOT create sdk/ in qyl repo."
 
@@ -392,25 +444,42 @@ phase_2:
 phase_3:
   name: "Source Project Refactoring"
   priority: 3
-  status: PLANNED
+  status: PARTIALLY_COMPLETE  # Collector structure done, MCP pending
   scope: "src/"
   depends_on: [ phase_2 ]
 
-  # Shared code relocation
+  # Shared code relocation - COMPLETED
   relocations:
     - from: "src/Shared/Throw/"
-      to: "shared/Throw/"
-      reason: "Per COMPLETE_STRUCTURE.txt"
+      to: "PROVIDED BY SDK"
+      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.2 provides Throw.cs"
 
     - from: "src/LegacySupport/"
-      to: "eng/MSBuild/Polyfills/"
-      reason: "Polyfills belong with MSBuild infrastructure"
+      to: "PROVIDED BY SDK"
+      status: "✅ DELETED - ANcpLua.NET.Sdk@1.1.2 provides Polyfills"
 
-  # qyl.collector cleanup
+  # qyl.collector status (2025-12-16)
   collector_changes:
+    directories_exist:
+      - "src/qyl.collector/Pipeline/"          # ✅ SpanIngestionPipeline.cs
+      - "src/qyl.collector/Extensions/"        # ✅ ActivityExtensions.cs
+      - "src/qyl.collector/Parsing/"           # ✅ TraceContextParser.cs
+      - "src/qyl.collector/Primitives/"        # ✅ TraceId, SpanId, UnixNano, SessionId
+      - "src/qyl.collector/Auth/"              # ✅ TokenAuth, TokenGenerator
+      - "src/qyl.collector/Storage/"           # ✅ DuckDbStore, DuckDbSchema, etc.
+      - "src/qyl.collector/Ingestion/"         # ✅ OtlpJsonSpanParser, etc.
+      - "src/qyl.collector/Query/"             # ✅ SessionQueryService
+      - "src/qyl.collector/Realtime/"          # ✅ SseEndpoints, SseHub
+      - "src/qyl.collector/Models/"            # ✅ ParsedSpan
+
+    files_added_recently:
+      - "src/qyl.collector/GenAiProviders.cs"  # Provider detection from host
+      - "src/qyl.collector/Pipeline/SpanIngestionPipeline.cs"  # Channel<T> backpressure
+      - "src/qyl.collector/Extensions/ActivityExtensions.cs"   # C# 14 extensions
+      - "src/qyl.collector/Parsing/TraceContextParser.cs"      # W3C traceparent
+
     directories_create:
-      - "src/qyl.collector/Api/"
-      - "src/qyl.collector/Serialization/"
+      - "src/qyl.collector/Api/"               # REST endpoint organization (future)
 
     files_create:
       - path: "src/qyl.collector/appsettings.json"

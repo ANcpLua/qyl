@@ -5,14 +5,14 @@ namespace qyl.collector;
 
 public static class StartupBanner
 {
-    private const string _logo = """
-                                    ██████╗ ██╗   ██╗██╗
-                                   ██╔═══██╗╚██╗ ██╔╝██║
-                                   ██║   ██║ ╚████╔╝ ██║
-                                   ██║▄▄ ██║  ╚██╔╝  ██║
-                                   ╚██████╔╝   ██║   ███████╗
-                                    ╚══▀▀═╝    ╚═╝   ╚══════╝
-                                 """;
+    private const string Logo = """
+                                   ██████╗ ██╗   ██╗██╗
+                                  ██╔═══██╗╚██╗ ██╔╝██║
+                                  ██║   ██║ ╚████╔╝ ██║
+                                  ██║▄▄ ██║  ╚██╔╝  ██║
+                                  ╚██████╔╝   ██║   ███████╗
+                                   ╚══▀▀═╝    ╚═╝   ╚══════╝
+                                """;
 
     public static void Print(string baseUrl, string token, int port)
     {
@@ -20,7 +20,7 @@ public static class StartupBanner
 
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine(_logo);
+        Console.WriteLine(Logo);
         Console.ResetColor();
         Console.WriteLine();
 

@@ -7,6 +7,8 @@ using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Serilog;
 
+#pragma warning disable CA1305 // Build-time code uses invariant formatting
+
 namespace Components;
 
 interface IChangelog : ICompile

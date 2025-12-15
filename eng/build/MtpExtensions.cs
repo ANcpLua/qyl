@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Nuke.Common.IO;
@@ -89,19 +90,19 @@ public sealed class MtpArgumentsBuilder
     public MtpArgumentsBuilder StopOnFail() => AddFlag("--stop-on-fail");
 
     public MtpArgumentsBuilder MaxThreads(int count)
-        => AddOption("--max-threads", count.ToString());
+        => AddOption("--max-threads", count.ToString(CultureInfo.InvariantCulture));
 
     public MtpArgumentsBuilder Timeout(TimeSpan duration)
         => AddOption("--timeout", $"{(int)duration.TotalSeconds}s");
 
     public MtpArgumentsBuilder IgnoreExitCode(int code)
-        => AddOption("--ignore-exit-code", code.ToString());
+        => AddOption("--ignore-exit-code", code.ToString(CultureInfo.InvariantCulture));
 
-    public MtpArgumentsBuilder MinimumExpectedtests(int count)
-        => AddOption("--minimum-expected-tests", count.ToString());
+    public MtpArgumentsBuilder MinimumExpectedTests(int count)
+        => AddOption("--minimum-expected-tests", count.ToString(CultureInfo.InvariantCulture));
 
     public MtpArgumentsBuilder Seed(int seed)
-        => AddOption("--seed", seed.ToString());
+        => AddOption("--seed", seed.ToString(CultureInfo.InvariantCulture));
 
     public MtpArgumentsBuilder ShowLiveOutput() => AddFlag("--show-live-output");
 
@@ -124,7 +125,7 @@ public sealed class MtpArgumentsBuilder
         {
             if (sb.Length > 0) sb.Append(' ');
 
-            sb.Append(Nuke.Common.Utilities.StringExtensions.DoubleQuoteIfNeeded(arg));
+            sb.Append(arg.DoubleQuoteIfNeeded());
         }
 
         return sb.ToString();
@@ -133,12 +134,12 @@ public sealed class MtpArgumentsBuilder
     public IReadOnlyList<string> BuildArgs() => Args;
 
     /// <summary>
-    /// Builds a properly-escaped argument string for passthrough after --.
-    /// Returns empty string if no args, otherwise "-- arg1 arg2 ...".
+    ///     Builds a properly-escaped argument string for passthrough after --.
+    ///     Returns empty string if no args, otherwise "-- arg1 arg2 ...".
     /// </summary>
     public string BuildProcessArgs()
     {
-        if (Args.Count == 0) return string.Empty;
+        if (Args.Count is 0) return string.Empty;
 
         return "-- " + string.Join(" ", Args.Select(StringExtensions.DoubleQuoteIfNeeded));
     }

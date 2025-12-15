@@ -5,11 +5,9 @@
 
 using System.Buffers;
 using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using DuckDB.NET.Data;
@@ -318,10 +316,7 @@ public static class PromotedFields
     /// </summary>
     public static readonly FrozenSet<string> LargeContentAttributes = new[]
     {
-        "gen_ai.prompt",
-        "gen_ai.completion",
-        "gen_ai.request.messages",
-        "gen_ai.response.choices"
+        "gen_ai.prompt", "gen_ai.completion", "gen_ai.request.messages", "gen_ai.response.choices"
     }.ToFrozenSet();
 
     /// <summary>
@@ -335,22 +330,14 @@ public static class PromotedFields
     }.ToFrozenDictionary();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsPromoted(string key)
-    {
-        return All.ContainsKey(key);
-    }
+    public static bool IsPromoted(string key) => All.ContainsKey(key);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsLargeContent(string key)
-    {
-        return LargeContentAttributes.Contains(key);
-    }
+    public static bool IsLargeContent(string key) => LargeContentAttributes.Contains(key);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetCurrentName(string key, [NotNullWhen(true)] out string? current)
-    {
-        return DeprecatedMappings.TryGetValue(key, out current);
-    }
+    public static bool TryGetCurrentName(string key, [NotNullWhen(true)] out string? current) =>
+        DeprecatedMappings.TryGetValue(key, out current);
 
     public readonly record struct ColumnDef(string DuckDbType, PromotionReason Reason);
 }
@@ -375,8 +362,8 @@ public enum PromotionReason
 /// </summary>
 public sealed class LargeContentHandler(DuckDBConnection connection)
 {
-    private const int _thresholdBytes = 4096;
-    private static readonly ArrayPool<byte> _sPool = ArrayPool<byte>.Shared;
+    private const int ThresholdBytes = 4096;
+    private static readonly ArrayPool<byte> SharedPool = ArrayPool<byte>.Shared;
 
     /// <summary>
     ///     Process attribute value, externalizing if too large.
@@ -393,7 +380,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
             return null;
 
         var valueBytes = Encoding.UTF8.GetBytes(value);
-        if (valueBytes.Length <= _thresholdBytes)
+        if (valueBytes.Length <= ThresholdBytes)
             return null;
 
         // Compress with ZSTD
@@ -408,7 +395,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
             attributeKey,
             compressed,
             valueBytes.Length,
-            ct);
+            ct).ConfigureAwait(false);
 
         return contentId;
     }
@@ -426,13 +413,10 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
                           FROM span_content
                           WHERE content_id = $1
                           """;
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = contentId
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = contentId });
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        if (!await reader.ReadAsync(ct))
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
             return null;
 
         var compressed = (byte[])reader.GetValue(0);
@@ -457,8 +441,8 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
                            WHERE content_id IN ({idList})
                            """;
 
-        await using var reader = await cmd.ExecuteReaderAsync(ct);
-        while (await reader.ReadAsync(ct))
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var contentId = reader.GetString(0);
             var compressed = (byte[])reader.GetValue(1);
@@ -486,36 +470,15 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
                           ON CONFLICT (content_id) DO NOTHING
                           """;
 
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = contentId
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = traceId.ToString()
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = spanId.ToString()
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = contentType
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = compressed
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (long)originalSize
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (long)compressed.Length
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = contentId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = traceId.ToString() });
+        cmd.Parameters.Add(new DuckDBParameter { Value = spanId.ToString() });
+        cmd.Parameters.Add(new DuckDBParameter { Value = contentType });
+        cmd.Parameters.Add(new DuckDBParameter { Value = compressed });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (long)originalSize });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (long)compressed.Length });
 
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static string ComputeContentId(ReadOnlySpan<byte> content)
@@ -538,7 +501,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
 
     private static string DecompressZstd(byte[] compressed, int originalSize)
     {
-        var buffer = _sPool.Rent(originalSize);
+        var buffer = SharedPool.Rent(originalSize);
         try
         {
             using var input = new MemoryStream(compressed);
@@ -548,7 +511,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
         }
         finally
         {
-            _sPool.Return(buffer);
+            SharedPool.Return(buffer);
         }
     }
 }
@@ -568,6 +531,8 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     /// <summary>
     ///     Insert parsed span with automatic attribute routing.
     /// </summary>
+    [RequiresUnreferencedCode("Serializes unknown span attribute types to JSON")]
+    [RequiresDynamicCode("Serializes unknown span attribute types to JSON")]
     public async ValueTask InsertSpanAsync(ParsedSpan span, CancellationToken ct = default)
     {
         // Partition attributes
@@ -580,7 +545,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         if (promptRef is not null && promptRef.Length > 4096)
         {
             var contentId = await contentHandler.ProcessAttributeAsync(
-                span.TraceId, span.SpanId, "gen_ai.prompt", promptRef, ct);
+                span.TraceId, span.SpanId, "gen_ai.prompt", promptRef, ct).ConfigureAwait(false);
             if (contentId is not null)
                 promoted["gen_ai.prompt.ref"] = contentId;
         }
@@ -588,22 +553,24 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         if (completionRef is not null && completionRef.Length > 4096)
         {
             var contentId = await contentHandler.ProcessAttributeAsync(
-                span.TraceId, span.SpanId, "gen_ai.completion", completionRef, ct);
+                span.TraceId, span.SpanId, "gen_ai.completion", completionRef, ct).ConfigureAwait(false);
             if (contentId is not null)
                 promoted["gen_ai.completion.ref"] = contentId;
         }
 
-        await InsertWithPromotedFieldsAsync(span, promoted, mapped, ct);
+        await InsertWithPromotedFieldsAsync(span, promoted, mapped, ct).ConfigureAwait(false);
     }
 
     /// <summary>
     ///     Batch insert for high-throughput ingestion.
     /// </summary>
+    [RequiresUnreferencedCode("Serializes unknown span attribute types to JSON")]
+    [RequiresDynamicCode("Serializes unknown span attribute types to JSON")]
     public async ValueTask InsertBatchAsync(
         IReadOnlyList<ParsedSpan> spans,
         CancellationToken ct = default)
     {
-        if (spans.Count == 0) return;
+        if (spans.Count is 0) return;
 
         using var appender = connection.CreateAppender("spans");
 
@@ -650,6 +617,9 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         appender.Close();
     }
 
+    // Serializes unknown attribute types to JSON - AOT can't statically analyze arbitrary user attributes
+    [RequiresUnreferencedCode("Serializes unknown span attribute types to JSON")]
+    [RequiresDynamicCode("Serializes unknown span attribute types to JSON")]
     private static (Dictionary<string, object?> Promoted, Dictionary<string, string> Mapped)
         PartitionAttributes(ParsedSpan span)
     {
@@ -678,6 +648,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
 
         // Process remaining attributes
         if (span.Attributes is not null)
+        {
             foreach (var (key, value) in span.Attributes)
             {
                 // Handle deprecated mappings
@@ -689,15 +660,18 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                     promoted[effectiveKey] = value;
                 else if (!PromotedFields.IsLargeContent(effectiveKey))
                     // Convert to string for MAP storage
+                {
                     mapped[effectiveKey] = value switch
                     {
                         string s => s,
                         long l => l.ToString(),
                         double d => d.ToString("G17"),
                         bool b => b ? "true" : "false",
-                        _ => JsonSerializer.Serialize(value)
+                        _ => JsonSerializer.Serialize(value, QylSerializerContext.Default.Options)
                     };
+                }
             }
+        }
 
         return (promoted, mapped);
     }
@@ -751,72 +725,41 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                            """;
 
         // Core parameters
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.TraceId.ToString()
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.SpanId.ToString()
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId.ToString() });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId.ToString() });
         cmd.Parameters.Add(new DuckDBParameter
         {
             Value = span.ParentSpanId.IsEmpty ? DBNull.Value : span.ParentSpanId.ToString()
         });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.StartTime.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.EndTime.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.Name
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (byte)span.Kind
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (byte)span.Status
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.StatusMessage ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StartTime.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.EndTime.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (byte)span.Kind });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (byte)span.Status });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
 
         // Promoted field parameters
         foreach (var (_, value) in promoted)
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = value ?? DBNull.Value
-            });
+        {
+            cmd.Parameters.Add(new DuckDBParameter { Value = value ?? DBNull.Value });
+        }
 
         // MAP parameter
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = SerializeMap(mapped)
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = SerializeMap(mapped) });
 
-        await cmd.ExecuteNonQueryAsync(ct);
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static string SerializeMap(Dictionary<string, string> map)
     {
-        if (map.Count == 0)
+        if (map.Count is 0)
             return "MAP {}";
 
         var pairs = map.Select(kv => $"'{EscapeSql(kv.Key)}': '{EscapeSql(kv.Value)}'");
         return $"MAP {{{string.Join(", ", pairs)}}}";
     }
 
-    private static string EscapeSql(string value)
-    {
-        return value.Replace("'", "''");
-    }
+    private static string EscapeSql(string value) => value.Replace("'", "''");
 
     private static void AppendPromotedFields(IDuckDBAppenderRow row, Dictionary<string, object?> promoted)
     {
@@ -852,8 +795,10 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         ];
 
         foreach (var key in orderedKeys)
+        {
             if (promoted.TryGetValue(key, out var value) && value is not null)
                 // Handle different types appropriately
+            {
                 switch (value)
                 {
                     case string s:
@@ -872,8 +817,10 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
                         row.AppendValue(value.ToString() ?? string.Empty);
                         break;
                 }
+            }
             else
                 row.AppendNullValue();
+        }
     }
 }
 
@@ -1206,20 +1153,11 @@ public sealed class SpanQueryBuilder
         return this;
     }
 
-    public SpanQueryBuilder WhereSession(SessionId sessionId)
-    {
-        return Where("session.id", "=", sessionId.Value);
-    }
+    public SpanQueryBuilder WhereSession(SessionId sessionId) => Where("session.id", "=", sessionId.Value);
 
-    public SpanQueryBuilder WhereProvider(string provider)
-    {
-        return Where("gen_ai.provider.name", "=", provider);
-    }
+    public SpanQueryBuilder WhereProvider(string provider) => Where("gen_ai.provider.name", "=", provider);
 
-    public SpanQueryBuilder WhereModel(string model)
-    {
-        return Where("gen_ai.request.model", "=", model);
-    }
+    public SpanQueryBuilder WhereModel(string model) => Where("gen_ai.request.model", "=", model);
 
     public SpanQueryBuilder WhereError()
     {
@@ -1325,99 +1263,57 @@ public abstract record OTelAttributeValue
 {
     public abstract object? GetValue();
 
-    public static implicit operator OTelAttributeValue(string value)
-    {
-        return new StringValue(value);
-    }
+    public static implicit operator OTelAttributeValue(string value) => new StringValue(value);
 
-    public static implicit operator OTelAttributeValue(long value)
-    {
-        return new Int64Value(value);
-    }
+    public static implicit operator OTelAttributeValue(long value) => new Int64Value(value);
 
-    public static implicit operator OTelAttributeValue(double value)
-    {
-        return new Float64Value(value);
-    }
+    public static implicit operator OTelAttributeValue(double value) => new Float64Value(value);
 
-    public static implicit operator OTelAttributeValue(bool value)
-    {
-        return new BoolValue(value);
-    }
+    public static implicit operator OTelAttributeValue(bool value) => new BoolValue(value);
 
-    public static implicit operator OTelAttributeValue(string[] value)
-    {
-        return new StringArrayValue(value);
-    }
+    public static implicit operator OTelAttributeValue(string[] value) => new StringArrayValue(value);
 
-    public static implicit operator OTelAttributeValue(long[] value)
-    {
-        return new Int64ArrayValue(value);
-    }
+    public static implicit operator OTelAttributeValue(long[] value) => new Int64ArrayValue(value);
 }
 
 public sealed record StringValue(string Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record Int64Value(long Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record Float64Value(double Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record BoolValue(bool Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record StringArrayValue(string[] Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record Int64ArrayValue(long[] Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record Float64ArrayValue(double[] Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 public sealed record BoolArrayValue(bool[] Value) : OTelAttributeValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 /// <summary>
@@ -1429,10 +1325,7 @@ public abstract record GenAiContentValue : OTelAttributeValue;
 
 public sealed record GenAiMapValue(Dictionary<string, OTelAttributeValue> Value) : GenAiContentValue
 {
-    public override object GetValue()
-    {
-        return Value;
-    }
+    public override object GetValue() => Value;
 }
 
 // =============================================================================

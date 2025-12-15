@@ -199,6 +199,17 @@ Required patterns:
 - Collections: `FrozenSet<T>`, `FrozenDictionary<K,V>` for static lookups
 - Streaming: `IAsyncEnumerable<T>` and (collector) `TypedResults.ServerSentEvents`
 
+Naming conventions (
+per [Microsoft .NET Guidelines](https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines)):
+
+| Identifier Type         | Convention    | Example          |
+|-------------------------|---------------|------------------|
+| Constants (`const`)     | PascalCase    | `MaxBatchSize`   |
+| Static readonly fields  | PascalCase    | `DefaultOptions` |
+| Private instance fields | `_camelCase`  | `_connection`    |
+| Private static fields   | `s_camelCase` | `s_counter`      |
+| Public/Internal fields  | PascalCase    | `DefaultTimeout` |
+
 ## OTel Semantic Conventions (GenAI v1.38)
 
 Current keys (selected):

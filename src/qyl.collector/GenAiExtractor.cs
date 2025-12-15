@@ -23,7 +23,7 @@ public static class GenAiExtractor
     /// </summary>
     public static GenAiFields Extract(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.Throw.IfNull(attributes);
+        Throw.IfNull(attributes);
 
         var provider = GetString(attributes, GenAiAttributes.ProviderName)
                        ?? GetString(attributes, DeprecatedAttrs.System);
@@ -59,7 +59,7 @@ public static class GenAiExtractor
     /// </summary>
     public static bool IsGenAiSpan(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.Throw.IfNull(attributes);
+        Throw.IfNull(attributes);
 
         return attributes.ContainsKey(GenAiAttributes.ProviderName) ||
                attributes.ContainsKey(DeprecatedAttrs.System) ||
@@ -71,7 +71,7 @@ public static class GenAiExtractor
     /// </summary>
     public static bool UsesDeprecatedAttributes(IReadOnlyDictionary<string, object?> attributes)
     {
-        Throw.Throw.IfNull(attributes);
+        Throw.IfNull(attributes);
 
         return attributes.ContainsKey(DeprecatedAttrs.System) ||
                attributes.ContainsKey(DeprecatedAttrs.UsagePromptTokens) ||
@@ -157,12 +157,10 @@ public static class GenAiExtractor
     /// <summary>
     ///     Checks if JsonElement contains any GenAI-related keys.
     /// </summary>
-    public static bool IsGenAiSpan(JsonElement attributes)
-    {
-        return attributes.TryGetProperty(GenAiAttributes.ProviderName, out _) ||
-               attributes.TryGetProperty(DeprecatedAttrs.System, out _) ||
-               attributes.TryGetProperty(GenAiAttributes.RequestModel, out _);
-    }
+    public static bool IsGenAiSpan(JsonElement attributes) =>
+        attributes.TryGetProperty(GenAiAttributes.ProviderName, out _) ||
+        attributes.TryGetProperty(DeprecatedAttrs.System, out _) ||
+        attributes.TryGetProperty(GenAiAttributes.RequestModel, out _);
 
     /// <summary>
     ///     Checks if JSON attributes use deprecated GenAI attribute names.
@@ -186,21 +184,17 @@ public static class GenAiExtractor
     /// <summary>
     ///     Checks if JsonElement uses deprecated GenAI attribute names.
     /// </summary>
-    public static bool UsesDeprecatedAttributes(JsonElement attributes)
-    {
-        return attributes.TryGetProperty(DeprecatedAttrs.System, out _) ||
-               attributes.TryGetProperty(DeprecatedAttrs.UsagePromptTokens, out _) ||
-               attributes.TryGetProperty(DeprecatedAttrs.UsageCompletionTokens, out _);
-    }
+    public static bool UsesDeprecatedAttributes(JsonElement attributes) =>
+        attributes.TryGetProperty(DeprecatedAttrs.System, out _) ||
+        attributes.TryGetProperty(DeprecatedAttrs.UsagePromptTokens, out _) ||
+        attributes.TryGetProperty(DeprecatedAttrs.UsageCompletionTokens, out _);
 
     // =========================================================================
     // Dictionary helpers
     // =========================================================================
 
-    private static string? GetString(IReadOnlyDictionary<string, object?> attrs, string key)
-    {
-        return attrs.TryGetValue(key, out var value) ? value?.ToString() : null;
-    }
+    private static string? GetString(IReadOnlyDictionary<string, object?> attrs, string key) =>
+        attrs.TryGetValue(key, out var value) ? value?.ToString() : null;
 
     private static long? GetLong(IReadOnlyDictionary<string, object?> attrs, string key)
     {
@@ -254,12 +248,10 @@ public static class GenAiExtractor
     // JSON helpers
     // =========================================================================
 
-    private static string? GetJsonString(JsonElement element, string property)
-    {
-        return element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
+    private static string? GetJsonString(JsonElement element, string property) =>
+        element.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String
             ? value.GetString()
             : null;
-    }
 
     private static long? GetJsonLong(JsonElement element, string property)
     {

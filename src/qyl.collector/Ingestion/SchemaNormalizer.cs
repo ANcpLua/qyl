@@ -8,26 +8,23 @@ public static class SchemaVersion
 
 public sealed class SchemaNormalizer
 {
-    private static readonly Dictionary<string, string> _deprecatedAttributes = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, string> DeprecatedAttributes = new(StringComparer.Ordinal)
     {
         ["gen_ai.system"] = "gen_ai.provider.name",
         ["gen_ai.prompt"] = "gen_ai.input.messages",
         ["gen_ai.completion"] = "gen_ai.output.messages",
         ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
         ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
-
         ["code.function"] = "code.function.name",
         ["code.filepath"] = "code.file.path",
         ["code.lineno"] = "code.line.number",
-
         ["db.system"] = "db.system.name",
-
         ["gen_ai.openai.request.seed"] = "gen_ai.request.seed"
     };
 
     public Dictionary<string, object?> NormalizeAttributes(IDictionary<string, object?> attributes)
     {
-        Throw.Throw.IfNull(attributes);
+        Throw.IfNull(attributes);
 
         var result = new Dictionary<string, object?>(attributes.Count, StringComparer.Ordinal);
 
@@ -40,19 +37,11 @@ public sealed class SchemaNormalizer
         return result;
     }
 
-    public static string Normalize(string attributeName)
-    {
-        return _deprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
-    }
+    public static string Normalize(string attributeName) =>
+        DeprecatedAttributes.GetValueOrDefault(attributeName, attributeName);
 
 
-    public bool IsDeprecated(string attributeName)
-    {
-        return _deprecatedAttributes.ContainsKey(attributeName);
-    }
+    public bool IsDeprecated(string attributeName) => DeprecatedAttributes.ContainsKey(attributeName);
 
-    public IReadOnlyDictionary<string, string> GetDeprecatedMappings()
-    {
-        return _deprecatedAttributes;
-    }
+    public IReadOnlyDictionary<string, string> GetDeprecatedMappings() => DeprecatedAttributes;
 }

@@ -4,13 +4,11 @@
 
 ## Scope
 
-
-
 ## Project Info
 
-| Property | Value |
-|----------|-------|
-| Layer |  |
-| Framework | net10.0 |
-| Workflow |  |
-| Test Coverage | % |
+| Property      | Value   |
+|---------------|---------|
+| Layer         |         |
+| Framework     | net10.0 |
+| Workflow      |         |
+| Test Coverage | %       |

@@ -1,6 +1,7 @@
 using System.Net.ServerSentEvents;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.AspNetCore.Http.HttpResults;
 using qyl.collector.Storage;
 
 namespace qyl.collector.Realtime;
@@ -17,7 +18,8 @@ public static class SseEndpoints
         return endpoints;
     }
 
-    private static IResult HandleLiveStream(ITelemetrySseBroadcaster stream, HttpContext context)
+    private static ServerSentEventsResult<SseItem<TelemetryEventDto>> HandleLiveStream(ITelemetrySseBroadcaster stream,
+        HttpContext context)
     {
         var clientId = Guid.NewGuid();
         var reader = stream.Subscribe(clientId);
@@ -31,7 +33,7 @@ public static class SseEndpoints
         );
     }
 
-    private static IResult HandleFilteredStream(
+    private static ServerSentEventsResult<SseItem<object?>> HandleFilteredStream(
         ITelemetrySseBroadcaster stream,
         HttpContext context,
         TelemetrySignal filter)
@@ -53,10 +55,7 @@ public static class SseEndpoints
         [EnumeratorCancellation] CancellationToken ct)
     {
         yield return new SseItem<TelemetryEventDto>(
-            new TelemetryEventDto("connected", new
-                {
-                    connectionId = Guid.NewGuid().ToString("N")[..8]
-                },
+            new TelemetryEventDto("connected", new { connectionId = Guid.NewGuid().ToString("N")[..8] },
                 TimeProvider.System.GetUtcNow()),
             "connected"
         );
@@ -70,11 +69,8 @@ public static class SseEndpoints
                     .Where(s => string.Equals(s.SessionId, sessionFilter, StringComparison.Ordinal))
                     .ToList();
 
-                if (filteredSpans.Count == 0) continue;
-                messageToSend = message with
-                {
-                    Data = new SpanBatch(filteredSpans)
-                };
+                if (filteredSpans.Count is 0) continue;
+                messageToSend = message with { Data = new SpanBatch(filteredSpans) };
             }
 
             var eventType = messageToSend.Signal switch
@@ -108,7 +104,7 @@ public static class SseEndpoints
                     .Where(s => string.Equals(s.SessionId, sessionFilter, StringComparison.Ordinal))
                     .ToList();
 
-                if (filteredSpans.Count == 0) continue;
+                if (filteredSpans.Count is 0) continue;
 
                 yield return new SseItem<object?>(new SpanBatch(filteredSpans), filter.ToString().ToLowerInvariant());
             }

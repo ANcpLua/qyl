@@ -6,7 +6,6 @@ using qyl.collector.Ingestion;
 using qyl.collector.Mcp;
 using qyl.collector.Realtime;
 using qyl.collector.Storage;
-using TelemetryEventDto = qyl.collector.Realtime.TelemetryEventDto;
 
 namespace qyl.collector;
 
@@ -19,6 +18,7 @@ namespace qyl.collector;
 [JsonSerializable(typeof(AuthCheckResponse))]
 [JsonSerializable(typeof(SpanRecord))]
 [JsonSerializable(typeof(SpanRecord[]))]
+[JsonSerializable(typeof(List<SpanRecord>))]
 [JsonSerializable(typeof(StorageStats))]
 [JsonSerializable(typeof(GenAiStats))]
 [JsonSerializable(typeof(McpToolCall))]
@@ -48,7 +48,6 @@ namespace qyl.collector;
 [JsonSerializable(typeof(SpanListResponseDto))]
 [JsonSerializable(typeof(TraceResponseDto))]
 [JsonSerializable(typeof(SpanBatchDto))]
-[JsonSerializable(typeof(Contracts.TelemetryEventDto), TypeInfoPropertyName = "ContractsTelemetryEventDto")]
 [JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(FeedbackResponse))]

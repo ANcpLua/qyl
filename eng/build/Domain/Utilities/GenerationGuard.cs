@@ -1,19 +1,16 @@
-using System;
 using System.IO;
 using System.Threading;
 using Nuke.Common.IO;
 using Serilog;
 
-namespace Utilities;
+namespace Domain.Utilities;
 
 /// <summary>
-/// Generation guard utility for handling file overwrites during code generation.
-/// Provides Force/DryRun/SkipExisting modes with content-aware skipping.
+///     Generation guard utility for handling file overwrites during code generation.
+///     Provides Force/DryRun/SkipExisting modes with content-aware skipping.
 /// </summary>
 public sealed class GenerationGuard
 {
-    readonly GenerationStats _stats = new();
-
     public GenerationGuard(bool force = false, bool dryRun = false, bool skipExisting = false)
     {
         Force = force;
@@ -27,21 +24,21 @@ public sealed class GenerationGuard
 
     public bool SkipExisting { get; }
 
-    public GenerationStats Stats => _stats;
+    public GenerationStats Stats { get; } = new();
 
     // ════════════════════════════════════════════════════════════════════════
     // Core Methods
     // ════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Check if a file should be generated at the given path.
+    ///     Check if a file should be generated at the given path.
     /// </summary>
     public GenerationDecision ShouldGenerate(AbsolutePath path, string description)
     {
         if (DryRun)
         {
             Log.Information("  [DRY RUN] Would generate: {Path}", path);
-            _stats.IncrementDryRun();
+            Stats.IncrementDryRun();
             return GenerationDecision.DryRun;
         }
 
@@ -55,34 +52,34 @@ public sealed class GenerationGuard
         if (Force)
         {
             Log.Information("  [OVERWRITE] {Description}: {Path}", description, path);
-            _stats.IncrementOverwritten();
+            Stats.IncrementOverwritten();
             return GenerationDecision.Overwrite;
         }
 
         if (SkipExisting)
         {
             Log.Information("  [SKIP] {Description} already exists: {Path}", description, path);
-            _stats.IncrementSkipped();
+            Stats.IncrementSkipped();
             return GenerationDecision.Skip;
         }
 
         // No force flag - skip by default (safe)
         Log.Warning("  [SKIP] {Description} already exists (use --Force to overwrite): {Path}",
             description, path);
-        _stats.IncrementSkipped();
+        Stats.IncrementSkipped();
         return GenerationDecision.Skip;
     }
 
     /// <summary>
-    /// Check if content should be written (content-aware generation).
-    /// Skips write if content is identical.
+    ///     Check if content should be written (content-aware generation).
+    ///     Skips write if content is identical.
     /// </summary>
     public GenerationDecision ShouldGenerateWithContent(AbsolutePath path, string content, string description)
     {
         if (DryRun)
         {
             Log.Information("  [DRY RUN] Would generate: {Path}", path);
-            _stats.IncrementDryRun();
+            Stats.IncrementDryRun();
             return GenerationDecision.DryRun;
         }
 
@@ -99,7 +96,7 @@ public sealed class GenerationGuard
         if (existingContent == normalizedContent)
         {
             Log.Debug("  [UNCHANGED] {Description}: {Path}", description, path);
-            _stats.IncrementUnchanged();
+            Stats.IncrementUnchanged();
             return GenerationDecision.Unchanged;
         }
 
@@ -107,55 +104,52 @@ public sealed class GenerationGuard
         if (Force)
         {
             Log.Information("  [UPDATE] {Description}: {Path}", description, path);
-            _stats.IncrementUpdated();
+            Stats.IncrementUpdated();
             return GenerationDecision.Update;
         }
 
         if (SkipExisting)
         {
             Log.Information("  [SKIP] {Description} differs but skipping: {Path}", description, path);
-            _stats.IncrementSkipped();
+            Stats.IncrementSkipped();
             return GenerationDecision.Skip;
         }
 
         Log.Warning("  [SKIP] {Description} would be updated (use --Force): {Path}", description, path);
-        _stats.IncrementSkipped();
+        Stats.IncrementSkipped();
         return GenerationDecision.Skip;
     }
 
     /// <summary>
-    /// Write content to a file if the decision permits.
+    ///     Write content to a file if the decision permits.
     /// </summary>
     public void WriteIfAllowed(AbsolutePath path, string content, string description)
     {
         var decision = ShouldGenerateWithContent(path, content, description);
 
-        if (decision is GenerationDecision.Generate or GenerationDecision.Update or GenerationDecision.Overwrite)
-        {
-            path.Parent.CreateDirectory();
-            File.WriteAllText(path, content);
-            LogGenerated(path, description);
-        }
+        if (decision is not (GenerationDecision.Generate or GenerationDecision.Update
+            or GenerationDecision.Overwrite))
+            return;
+
+        path.Parent.CreateDirectory();
+        File.WriteAllText(path, content);
+        LogGenerated(path, description);
     }
 
     /// <summary>
-    /// Log that a file was successfully generated.
+    ///     Log that a file was successfully generated.
     /// </summary>
     public void LogGenerated(AbsolutePath path, string? description = null)
     {
-        _stats.IncrementGenerated();
+        Stats.IncrementGenerated();
         if (description is not null)
-        {
             Log.Information("  [GENERATED] {Description}: {Path}", description, path);
-        }
         else
-        {
             Log.Information("  [GENERATED] {Path}", path);
-        }
     }
 
     /// <summary>
-    /// Log generation summary statistics.
+    ///     Log generation summary statistics.
     /// </summary>
     public void LogSummary()
     {
@@ -163,21 +157,21 @@ public sealed class GenerationGuard
         Log.Information("  Generation Summary");
         Log.Information("═══════════════════════════════════════════════════════════════");
 
-        if (_stats.GeneratedCount > 0)
-            Log.Information("  Generated:  {Count} files", _stats.GeneratedCount);
-        if (_stats.UpdatedCount > 0)
-            Log.Information("  Updated:    {Count} files", _stats.UpdatedCount);
-        if (_stats.OverwrittenCount > 0)
-            Log.Information("  Overwritten:{Count} files", _stats.OverwrittenCount);
-        if (_stats.SkippedCount > 0)
-            Log.Information("  Skipped:    {Count} files (already exist)", _stats.SkippedCount);
-        if (_stats.UnchangedCount > 0)
-            Log.Information("  Unchanged:  {Count} files (content identical)", _stats.UnchangedCount);
-        if (_stats.DryRunCount > 0)
-            Log.Information("  Dry Run:    {Count} files (would generate)", _stats.DryRunCount);
+        if (Stats.GeneratedCount > 0)
+            Log.Information("  Generated:  {Count} files", Stats.GeneratedCount);
+        if (Stats.UpdatedCount > 0)
+            Log.Information("  Updated:    {Count} files", Stats.UpdatedCount);
+        if (Stats.OverwrittenCount > 0)
+            Log.Information("  Overwritten:{Count} files", Stats.OverwrittenCount);
+        if (Stats.SkippedCount > 0)
+            Log.Information("  Skipped:    {Count} files (already exist)", Stats.SkippedCount);
+        if (Stats.UnchangedCount > 0)
+            Log.Information("  Unchanged:  {Count} files (content identical)", Stats.UnchangedCount);
+        if (Stats.DryRunCount > 0)
+            Log.Information("  Dry Run:    {Count} files (would generate)", Stats.DryRunCount);
 
-        var total = _stats.GeneratedCount + _stats.UpdatedCount + _stats.OverwrittenCount;
-        if (total == 0 && _stats.SkippedCount > 0)
+        var total = Stats.GeneratedCount + Stats.UpdatedCount + Stats.OverwrittenCount;
+        if (total is 0 && Stats.SkippedCount > 0)
         {
             Log.Information("");
             Log.Information("  Tip: Use --Force to overwrite existing files");
@@ -189,7 +183,7 @@ public sealed class GenerationGuard
 }
 
 /// <summary>
-/// Result of generation decision.
+///     Result of generation decision.
 /// </summary>
 public enum GenerationDecision
 {
@@ -213,16 +207,16 @@ public enum GenerationDecision
 }
 
 /// <summary>
-/// Thread-safe statistics for generation operations.
+///     Thread-safe statistics for generation operations.
 /// </summary>
 public sealed class GenerationStats
 {
+    int _dryRunCount;
     int _generatedCount;
-    int _updatedCount;
     int _overwrittenCount;
     int _skippedCount;
     int _unchangedCount;
-    int _dryRunCount;
+    int _updatedCount;
 
     public int GeneratedCount => _generatedCount;
     public int UpdatedCount => _updatedCount;

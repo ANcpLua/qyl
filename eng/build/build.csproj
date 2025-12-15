@@ -36,4 +36,11 @@
         <!-- dotnet-coverage removed - using MTP native coverage via Microsoft.Testing.Extensions.CodeCoverage -->
     </ItemGroup>
 
+    <ItemGroup>
+        <Content Include="obj\Debug\build.csproj.Up2Date"/>
+        <Content Include="obj\Debug\build.dll"/>
+        <Content Include="obj\Debug\build.genruntimeconfig.cache"/>
+        <Content Include="obj\Debug\build.pdb"/>
+    </ItemGroup>
+
 </Project>

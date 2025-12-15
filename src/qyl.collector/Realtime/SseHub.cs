@@ -4,6 +4,11 @@ using qyl.collector.Storage;
 
 namespace qyl.collector.Realtime;
 
+public class InClassName(CancellationToken ct)
+{
+    public CancellationToken Ct { get; } = ct;
+}
+
 public sealed class SseHub
 {
     private readonly ConcurrentDictionary<string, Subscriber> _subscribers = new();
@@ -18,14 +23,11 @@ public sealed class SseHub
         return new SubscriptionHandle(this, connectionId);
     }
 
-    public void Unsubscribe(string connectionId)
-    {
-        _subscribers.TryRemove(connectionId, out _);
-    }
+    public void Unsubscribe(string connectionId) => _subscribers.TryRemove(connectionId, out _);
 
     public void Broadcast(SpanBatch batch)
     {
-        Throw.Throw.IfNull(batch);
+        Throw.IfNull(batch);
 
         foreach (var (_, subscriber) in _subscribers)
         {
@@ -37,7 +39,7 @@ public sealed class SseHub
                     .Where(s => string.Equals(s.SessionId, subscriber.SessionFilter, StringComparison.Ordinal))
                     .ToList();
 
-                if (filteredSpans.Count == 0) continue;
+                if (filteredSpans.Count is 0) continue;
 
                 batchToSend = new SpanBatch(filteredSpans);
             }
@@ -46,9 +48,10 @@ public sealed class SseHub
         }
     }
 
-    public void Broadcast(SpanBatch batch, CancellationToken ct = default)
+    public void Broadcast(SpanBatch batch, InClassName inClassName)
     {
-        Throw.Throw.IfNull(batch);
+        var ct = inClassName.Ct;
+        Throw.IfNull(batch);
 
         foreach (var (_, subscriber) in _subscribers)
         {
@@ -61,7 +64,7 @@ public sealed class SseHub
                     .Where(s => string.Equals(s.SessionId, subscriber.SessionFilter, StringComparison.Ordinal))
                     .ToList();
 
-                if (filteredSpans.Count == 0) continue;
+                if (filteredSpans.Count is 0) continue;
 
                 filteredBatch = new SpanBatch(filteredSpans);
             }
@@ -77,10 +80,7 @@ public sealed class SseHub
 
     private sealed class SubscriptionHandle(SseHub hub, string connectionId) : IDisposable
     {
-        public void Dispose()
-        {
-            hub.Unsubscribe(connectionId);
-        }
+        public void Dispose() => hub.Unsubscribe(connectionId);
     }
 }
 

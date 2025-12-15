@@ -4,7 +4,6 @@
 // =============================================================================
 
 using System.Collections.Frozen;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace qyl.collector.Ingestion;
@@ -16,7 +15,7 @@ namespace qyl.collector.Ingestion;
 public static class OtlpGenAiAttributes
 {
     // Frozen dictionary for O(1) deprecated → current mapping
-    private static readonly FrozenDictionary<string, string> _deprecatedMap =
+    private static readonly FrozenDictionary<string, string> DeprecatedMap =
         new Dictionary<string, string>
         {
             ["gen_ai.system"] = "gen_ai.provider.name",
@@ -78,10 +77,8 @@ public static class OtlpGenAiAttributes
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey)
-    {
-        return _deprecatedMap.TryGetValue(deprecatedKey, out currentKey);
-    }
+    public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey) =>
+        DeprecatedMap.TryGetValue(deprecatedKey, out currentKey);
 }
 
 /// <summary>
@@ -89,7 +86,7 @@ public static class OtlpGenAiAttributes
 /// </summary>
 public static class OtlpGenAiProviders
 {
-    private static readonly FrozenDictionary<string, string> _hostToProvider =
+    private static readonly FrozenDictionary<string, string> HostToProvider =
         new Dictionary<string, string>
         {
             ["api.openai.com"] = "openai",
@@ -112,7 +109,7 @@ public static class OtlpGenAiProviders
     public static bool TryDetectFromHost(ReadOnlySpan<char> host, [NotNullWhen(true)] out string? provider)
     {
         var hostStr = host.ToString();
-        if (_hostToProvider.TryGetValue(hostStr, out provider)) return true;
+        if (HostToProvider.TryGetValue(hostStr, out provider)) return true;
 
         // Partial match for AWS Bedrock
         if (host.Contains("bedrock-runtime", StringComparison.OrdinalIgnoreCase))

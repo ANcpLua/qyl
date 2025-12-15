@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using qyl.collector.Contracts;
 using qyl.collector.Query;
@@ -8,14 +7,16 @@ namespace qyl.collector.Mapping;
 
 public static class SpanMapper
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new()
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private static readonly string[] _spanKindNames =
+    private static readonly string[] SpanKindNames =
         ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
     {
         var startTime = record.StartTime.ToUniversalTime();
@@ -43,24 +44,23 @@ public static class SpanMapper
         };
     }
 
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static List<SpanDto> ToDtos(
         IEnumerable<SpanRecord> records,
-        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver)
-    {
-        return
-        [
-            .. records.Select(r =>
-            {
-                var (serviceName, serviceVersion) = serviceResolver(r);
-                return ToDto(r, serviceName, serviceVersion);
-            })
-        ];
-    }
+        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+    [
+        .. records.Select(r =>
+        {
+            var (serviceName, serviceVersion) = serviceResolver(r);
+            return ToDto(r, serviceName, serviceVersion);
+        })
+    ];
 
     private static string MapSpanKind(string? kind)
     {
-        if (int.TryParse(kind, out var kindInt) && kindInt >= 0 && kindInt < _spanKindNames.Length)
-            return _spanKindNames[kindInt];
+        if (int.TryParse(kind, out var kindInt) && kindInt >= 0 && kindInt < SpanKindNames.Length)
+            return SpanKindNames[kindInt];
 
         return kind?.ToLowerInvariant() switch
         {
@@ -73,17 +73,17 @@ public static class SpanMapper
         };
     }
 
-    private static string MapStatus(int? statusCode)
-    {
-        return statusCode switch
+    private static string MapStatus(int? statusCode) =>
+        statusCode switch
         {
             0 => "unset",
             1 => "ok",
             2 => "error",
             _ => "unset"
         };
-    }
 
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
     private static Dictionary<string, object?> ParseAttributes(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -91,7 +91,7 @@ public static class SpanMapper
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, _jsonOptions) ?? [];
+            return JsonSerializer.Deserialize<Dictionary<string, object?>>(json, JsonOptions) ?? [];
         }
         catch
         {
@@ -99,6 +99,8 @@ public static class SpanMapper
         }
     }
 
+    [RequiresUnreferencedCode("Deserializes dynamic span event structure")]
+    [RequiresDynamicCode("Deserializes dynamic span event structure")]
     private static List<SpanEventDto> ParseEvents(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -106,7 +108,7 @@ public static class SpanMapper
 
         try
         {
-            var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, _jsonOptions);
+            var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
             return events?.Select(e => new SpanEventDto
             {
                 Name = e.Name ?? "unknown",
@@ -120,6 +122,8 @@ public static class SpanMapper
         }
     }
 
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
     private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
     {
         if (record.TokensIn is null && record.TokensOut is null && string.IsNullOrEmpty(record.ProviderName))
@@ -149,6 +153,8 @@ public static class SpanMapper
         return parts.Length > 0 ? parts[0] : null;
     }
 
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
     private static string? ExtractToolName(SpanRecord record)
     {
         var attrs = ParseAttributes(record.Attributes);
@@ -203,23 +209,13 @@ public static class SessionMapper
         };
     }
 
-    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries)
-    {
-        return [.. summaries.Select(ToDto)];
-    }
+    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries) => [.. summaries.Select(ToDto)];
 
     public static SessionListResponseDto ToListResponse(
         IEnumerable<SessionSummary> summaries,
         int total,
-        bool hasMore)
-    {
-        return new SessionListResponseDto
-        {
-            Sessions = ToDtos(summaries),
-            Total = total,
-            HasMore = hasMore
-        };
-    }
+        bool hasMore) =>
+        new() { Sessions = ToDtos(summaries), Total = total, HasMore = hasMore };
 
     private static List<string> ExtractProviders(SessionSummary summary)
     {
@@ -235,9 +231,8 @@ public static class SessionMapper
         return [.. providers];
     }
 
-    private static string? InferProvider(string model)
-    {
-        return model switch
+    private static string? InferProvider(string model) =>
+        model switch
         {
             _ when model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) => "openai",
             _ when model.StartsWith("o1", StringComparison.OrdinalIgnoreCase) => "openai",
@@ -248,5 +243,4 @@ public static class SessionMapper
             _ when model.StartsWith("command", StringComparison.OrdinalIgnoreCase) => "cohere",
             _ => null
         };
-    }
 }

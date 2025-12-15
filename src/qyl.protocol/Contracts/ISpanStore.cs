@@ -20,15 +20,15 @@ public interface ISpanStore
 
     /// <summary>Gets spans matching the specified criteria.</summary>
     /// <param name="serviceName">Optional service name filter.</param>
-    /// <param name="from">Optional start time filter.</param>
-    /// <param name="to">Optional end time filter.</param>
+    /// <param name="fromTime">Optional start time filter.</param>
+    /// <param name="toTime">Optional end time filter.</param>
     /// <param name="genAiOnly">If true, only return GenAI spans.</param>
     /// <param name="limit">Maximum number of spans to return.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     IAsyncEnumerable<SpanRecord> GetSpansAsync(
         string? serviceName = null,
-        UnixNano? from = null,
-        UnixNano? to = null,
+        UnixNano? fromTime = null,
+        UnixNano? toTime = null,
         bool genAiOnly = false,
         int limit = 100,
         CancellationToken cancellationToken = default);

@@ -26,13 +26,12 @@ sealed class Build : NukeBuild,
         .Before<ICompile>(x => x.Clean)
         .Executes(() =>
         {
-            var compile = (ICompile)this;
-            var gitVersion = compile.GitVersion;
+            var gitVersion = ((ICompile)this).GitVersion;
 
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  qyl. Build - AI Observability Platform");
             Log.Information("═══════════════════════════════════════════════════════════════");
-            Log.Information("  Configuration : {Configuration}", compile.Configuration);
+            Log.Information("  Configuration : {Configuration}", ((ICompile)this).Configuration);
             Log.Information("  Version       : {Version}", gitVersion?.FullSemVer ?? "N/A");
             Log.Information("  Branch        : {Branch}", gitVersion?.BranchName ?? "N/A");
             Log.Information("  Commit        : {Sha}", gitVersion?.Sha?[..8] ?? "N/A");

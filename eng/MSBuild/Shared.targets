@@ -1,18 +1,15 @@
 <Project>
   <!-- =======================================================================
        qyl Shared Targets - Imported by Directory.Build.targets
+       Throw.cs injection now handled by ANcpLua.NET.Sdk
        ======================================================================= -->
-
-  <!-- Inject Shared/Throw code -->
-  <ItemGroup Condition="'$(InjectSharedThrow)' == 'true' AND Exists('$(_QylSharedThrowPath)')">
-    <Compile Include="$(_QylSharedThrowPath)/**/*.cs" LinkBase="Shared/Throw" Visible="false"/>
-  </ItemGroup>
 
   <!-- =======================================================================
        CLAUDE.md Generation - InjectClaudeBrain
+       (qyl maintains its own CLAUDE.md files with @import inheritance)
        ======================================================================= -->
   <PropertyGroup>
-    <InjectClaudeBrain Condition="'$(InjectClaudeBrain)' == ''">true</InjectClaudeBrain>
+    <InjectClaudeBrain Condition="'$(InjectClaudeBrain)' == ''">false</InjectClaudeBrain>
     <_ClaudeMdPath>$(MSBuildProjectDirectory)/CLAUDE.md</_ClaudeMdPath>
     <_RootClaudeMd>$([MSBuild]::GetPathOfFileAbove('CLAUDE.md', '$(MSBuildProjectDirectory)/..'))</_RootClaudeMd>
   </PropertyGroup>

@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text.Json;
 using Nuke.Common;
 using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.ReportGenerator;
 using Serilog;
 using static Nuke.Common.Tools.ReportGenerator.ReportGeneratorTasks;
@@ -34,7 +33,7 @@ interface ICoverage : ITest
             {
                 var coverageFile = CoverageDirectory / $"{project.Name}.cobertura.xml";
                 RunTestProject(project, new TestOptions(
-                    Filter: TestFilter,
+                    TestFilter,
                     WithCoverage: true,
                     CoverageOutput: coverageFile));
             }

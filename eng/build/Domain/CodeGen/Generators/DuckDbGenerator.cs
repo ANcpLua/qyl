@@ -5,7 +5,9 @@ using System.Linq;
 using System.Text;
 using Context;
 
-namespace CodeGen.Generators;
+#pragma warning disable CA1305, CA1863 // Build-time code generators use invariant formatting
+
+namespace Domain.CodeGen.Generators;
 
 /// <summary>
 ///     Generates DuckDB schema SQL and C# mapping code.
@@ -364,7 +366,7 @@ public sealed class DuckDbGenerator : IGenerator
 
         foreach (var part in parts)
         {
-            if (part.Length == 0) continue;
+            if (part.Length is 0) continue;
             sb.Append(char.ToUpperInvariant(part[0]));
             sb.Append(part[1..]);
         }

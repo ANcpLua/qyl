@@ -4,10 +4,8 @@
 // =============================================================================
 
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using BinaryPrimitives = System.Buffers.Binary.BinaryPrimitives;
 
 namespace qyl.collector.Primitives;
@@ -25,27 +23,24 @@ public readonly record struct SpanId :
     /// <summary>Empty span ID (zero).</summary>
     public static readonly SpanId Empty;
 
-    private const int _hexLength = 16;
-    private const int _byteLength = 8;
+    private const int HexLength = 16;
+    private const int ByteLength = 8;
 
     /// <summary>Creates a SpanId from a 64-bit value.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public SpanId(ulong value)
-    {
-        Value = value;
-    }
+    public SpanId(ulong value) => Value = value;
 
     /// <summary>Creates a SpanId from an 8-byte span (big-endian).</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SpanId(ReadOnlySpan<byte> bytes)
     {
-        if (bytes.Length != _byteLength) ThrowByteLengthException(bytes.Length);
+        if (bytes.Length != ByteLength) ThrowByteLengthException(bytes.Length);
 
         Value = BinaryPrimitives.ReadUInt64BigEndian(bytes);
     }
 
     /// <summary>Returns true if this is the empty/zero span ID.</summary>
-    public bool IsEmpty => Value == 0;
+    public bool IsEmpty => Value is 0;
 
     /// <summary>Gets the underlying 64-bit value.</summary>
     public ulong Value { get; }
@@ -66,9 +61,9 @@ public readonly record struct SpanId :
     public static bool TryParse(ReadOnlySpan<byte> utf8Text, IFormatProvider? provider, out SpanId result)
     {
         result = default;
-        if (utf8Text.Length != _hexLength) return false;
+        if (utf8Text.Length != HexLength) return false;
 
-        Span<byte> bytes = stackalloc byte[_byteLength];
+        Span<byte> bytes = stackalloc byte[ByteLength];
         if (Convert.FromHexString(utf8Text, bytes, out _, out _) != OperationStatus.Done) return false;
 
         result = new SpanId(bytes);
@@ -91,9 +86,9 @@ public readonly record struct SpanId :
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out SpanId result)
     {
         result = default;
-        if (s.Length != _hexLength) return false;
+        if (s.Length != HexLength) return false;
 
-        Span<byte> bytes = stackalloc byte[_byteLength];
+        Span<byte> bytes = stackalloc byte[ByteLength];
         if (Convert.FromHexString(s, bytes, out _, out _) != OperationStatus.Done) return false;
 
         result = new SpanId(bytes);
@@ -105,10 +100,7 @@ public readonly record struct SpanId :
     // =========================================================================
 
     /// <inheritdoc />
-    public static SpanId Parse(string s, IFormatProvider? provider)
-    {
-        return Parse(s.AsSpan(), provider);
-    }
+    public static SpanId Parse(string s, IFormatProvider? provider) => Parse(s.AsSpan(), provider);
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out SpanId result)
@@ -134,9 +126,9 @@ public readonly record struct SpanId :
         IFormatProvider? provider)
     {
         bytesWritten = 0;
-        if (utf8Destination.Length < _hexLength) return false;
+        if (utf8Destination.Length < HexLength) return false;
 
-        Span<byte> bytes = stackalloc byte[_byteLength];
+        Span<byte> bytes = stackalloc byte[ByteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
 
         var hex = Convert.ToHexStringLower(bytes);
@@ -156,44 +148,37 @@ public readonly record struct SpanId :
         IFormatProvider? provider)
     {
         charsWritten = 0;
-        if (destination.Length < _hexLength) return false;
+        if (destination.Length < HexLength) return false;
 
-        Span<byte> bytes = stackalloc byte[_byteLength];
+        Span<byte> bytes = stackalloc byte[ByteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
 
         var hex = Convert.ToHexStringLower(bytes);
         hex.CopyTo(destination);
-        charsWritten = _hexLength;
+        charsWritten = HexLength;
         return true;
     }
 
     /// <inheritdoc />
     public override string ToString()
     {
-        Span<byte> bytes = stackalloc byte[_byteLength];
+        Span<byte> bytes = stackalloc byte[ByteLength];
         BinaryPrimitives.WriteUInt64BigEndian(bytes, Value);
         return Convert.ToHexStringLower(bytes);
     }
 
     /// <inheritdoc />
-    public string ToString(string? format, IFormatProvider? formatProvider)
-    {
-        return ToString();
-    }
+    public string ToString(string? format, IFormatProvider? formatProvider) => ToString();
 
     // =========================================================================
     // Exception helpers (cold path)
     // =========================================================================
 
     [DoesNotReturn]
-    private static void ThrowFormatException(int actualLength)
-    {
-        throw new FormatException($"Invalid SpanId format: expected {_hexLength} hex characters, got {actualLength}");
-    }
+    private static void ThrowFormatException(int actualLength) =>
+        throw new FormatException($"Invalid SpanId format: expected {HexLength} hex characters, got {actualLength}");
 
     [DoesNotReturn]
-    private static void ThrowByteLengthException(int actualLength)
-    {
-        throw new ArgumentException($"Expected {_byteLength} bytes, got {actualLength}");
-    }
+    private static void ThrowByteLengthException(int actualLength) =>
+        throw new ArgumentException($"Expected {ByteLength} bytes, got {actualLength}");
 }

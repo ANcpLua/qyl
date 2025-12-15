@@ -108,7 +108,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         while (await reader.ReadAsync(ct))
-            spans.Add(MapSpan(reader));
+            spans.Add(await MapSpanAsync(reader, ct).ConfigureAwait(false));
 
         return spans;
     }
@@ -144,16 +144,19 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         if (await reader.ReadAsync(ct))
+        {
             return new SessionGenAiStats
             {
                 RequestCount = reader.GetInt64(0),
                 InputTokens = reader.GetInt64(1),
                 OutputTokens = reader.GetInt64(2),
                 TotalCostUsd = reader.GetDecimal(3),
-                AverageEvalScore = reader.IsDBNull(4) ? null : (float)reader.GetDouble(4),
-                Providers = ReadStringList(reader, 5),
-                Models = ReadStringList(reader, 6)
+                AverageEvalScore =
+                    await reader.IsDBNullAsync(4, ct).ConfigureAwait(false) ? null : (float)reader.GetDouble(4),
+                Providers = await ReadStringListAsync(reader, 5).ConfigureAwait(false),
+                Models = await ReadStringListAsync(reader, 6).ConfigureAwait(false)
             };
+        }
 
         return new SessionGenAiStats();
     }
@@ -194,18 +197,20 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         while (await reader.ReadAsync(ct))
+        {
             models.Add(new ModelUsage
             {
-                Provider = reader.IsDBNull(0) ? null : reader.GetString(0),
-                Model = reader.IsDBNull(1) ? null : reader.GetString(1),
+                Provider = await reader.IsDBNullAsync(0, ct).ConfigureAwait(false) ? null : reader.GetString(0),
+                Model = await reader.IsDBNullAsync(1, ct).ConfigureAwait(false) ? null : reader.GetString(1),
                 CallCount = reader.GetInt64(2),
                 InputTokens = reader.GetInt64(3),
                 OutputTokens = reader.GetInt64(4),
                 TotalCostUsd = reader.GetDecimal(5),
-                AvgLatencyMs = reader.IsDBNull(6) ? 0 : reader.GetDouble(6),
-                P95LatencyMs = reader.IsDBNull(7) ? 0 : reader.GetDouble(7),
-                ErrorRate = reader.IsDBNull(8) ? 0 : reader.GetDouble(8)
+                AvgLatencyMs = await reader.IsDBNullAsync(6, ct).ConfigureAwait(false) ? 0 : reader.GetDouble(6),
+                P95LatencyMs = await reader.IsDBNullAsync(7, ct).ConfigureAwait(false) ? 0 : reader.GetDouble(7),
+                ErrorRate = await reader.IsDBNullAsync(8, ct).ConfigureAwait(false) ? 0 : reader.GetDouble(8)
             });
+        }
 
         return models;
     }
@@ -236,12 +241,14 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         if (await reader.ReadAsync(ct))
+        {
             return new ErrorSummary
             {
                 TotalSpans = reader.GetInt64(0),
                 ErrorCount = reader.GetInt64(1),
-                ErrorRate = reader.IsDBNull(2) ? 0 : reader.GetDouble(2)
+                ErrorRate = await reader.IsDBNullAsync(2, ct).ConfigureAwait(false) ? 0 : reader.GetDouble(2)
             };
+        }
 
         return new ErrorSummary();
     }
@@ -279,16 +286,16 @@ public sealed class SessionQueryService(DuckDBConnection connection)
                 TotalTokens = (int)(reader.GetInt64(6) + reader.GetInt64(7)),
                 GenAiRequestCount = (int)reader.GetInt64(8),
                 TotalCostUsd = reader.GetDecimal(9),
-                Models = ReadStringList(reader, 10)
+                Models = await ReadStringListAsync(reader, 10).ConfigureAwait(false)
             });
         }
 
         return sessions;
     }
 
-    private static IReadOnlyList<string> ReadStringList(DbDataReader reader, int ordinal)
+    private static async Task<IReadOnlyList<string>> ReadStringListAsync(DbDataReader reader, int ordinal)
     {
-        if (reader.IsDBNull(ordinal))
+        if (await reader.IsDBNullAsync(ordinal).ConfigureAwait(false))
             return [];
 
         // DuckDB LIST type comes as object[]
@@ -301,59 +308,57 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         };
     }
 
-    private static SpanRecord MapSpan(DbDataReader reader)
-    {
-        return new SpanRecord
+    private static async Task<SpanRecord> MapSpanAsync(DbDataReader reader, CancellationToken ct = default) =>
+        new()
         {
             TraceId = reader.GetString(reader.GetOrdinal("trace_id")),
             SpanId = reader.GetString(reader.GetOrdinal("span_id")),
-            ParentSpanId = reader.IsDBNull(reader.GetOrdinal("parent_span_id"))
+            ParentSpanId = await reader.IsDBNullAsync(reader.GetOrdinal("parent_span_id"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("parent_span_id")),
-            SessionId = reader.IsDBNull(reader.GetOrdinal("session_id"))
+            SessionId = await reader.IsDBNullAsync(reader.GetOrdinal("session_id"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("session_id")),
             Name = reader.GetString(reader.GetOrdinal("name")),
-            Kind = reader.IsDBNull(reader.GetOrdinal("kind"))
+            Kind = await reader.IsDBNullAsync(reader.GetOrdinal("kind"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("kind")),
             StartTime = reader.GetDateTime(reader.GetOrdinal("start_time")),
             EndTime = reader.GetDateTime(reader.GetOrdinal("end_time")),
-            StatusCode = reader.IsDBNull(reader.GetOrdinal("status_code"))
+            StatusCode = await reader.IsDBNullAsync(reader.GetOrdinal("status_code"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetInt32(reader.GetOrdinal("status_code")),
-            StatusMessage = reader.IsDBNull(reader.GetOrdinal("status_message"))
+            StatusMessage = await reader.IsDBNullAsync(reader.GetOrdinal("status_message"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("status_message")),
-            ProviderName = reader.IsDBNull(reader.GetOrdinal("provider_name"))
+            ProviderName = await reader.IsDBNullAsync(reader.GetOrdinal("provider_name"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("provider_name")),
-            RequestModel = reader.IsDBNull(reader.GetOrdinal("request_model"))
+            RequestModel = await reader.IsDBNullAsync(reader.GetOrdinal("request_model"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("request_model")),
-            TokensIn = reader.IsDBNull(reader.GetOrdinal("tokens_in"))
+            TokensIn = await reader.IsDBNullAsync(reader.GetOrdinal("tokens_in"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetInt32(reader.GetOrdinal("tokens_in")),
-            TokensOut = reader.IsDBNull(reader.GetOrdinal("tokens_out"))
+            TokensOut = await reader.IsDBNullAsync(reader.GetOrdinal("tokens_out"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetInt32(reader.GetOrdinal("tokens_out")),
-            CostUsd = reader.IsDBNull(reader.GetOrdinal("cost_usd"))
+            CostUsd = await reader.IsDBNullAsync(reader.GetOrdinal("cost_usd"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetDecimal(reader.GetOrdinal("cost_usd")),
-            EvalScore = reader.IsDBNull(reader.GetOrdinal("eval_score"))
+            EvalScore = await reader.IsDBNullAsync(reader.GetOrdinal("eval_score"), ct).ConfigureAwait(false)
                 ? null
                 : (float)reader.GetDouble(reader.GetOrdinal("eval_score")),
-            EvalReason = reader.IsDBNull(reader.GetOrdinal("eval_reason"))
+            EvalReason = await reader.IsDBNullAsync(reader.GetOrdinal("eval_reason"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("eval_reason")),
-            Attributes = reader.IsDBNull(reader.GetOrdinal("attributes"))
+            Attributes = await reader.IsDBNullAsync(reader.GetOrdinal("attributes"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("attributes")),
-            Events = reader.IsDBNull(reader.GetOrdinal("events"))
+            Events = await reader.IsDBNullAsync(reader.GetOrdinal("events"), ct).ConfigureAwait(false)
                 ? null
                 : reader.GetString(reader.GetOrdinal("events"))
         };
-    }
 }
 
 // =============================================================================

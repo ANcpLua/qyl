@@ -5,6 +5,9 @@ using qyl.collector.Storage;
 
 namespace qyl.collector.Mcp;
 
+// MCP JSON-RPC protocol requires dynamic payloads - AOT can't statically analyze tool arguments/responses
+#pragma warning disable IL2026, IL3050
+
 public sealed class McpServer
 {
     private readonly FrontendConsole _console;
@@ -23,9 +26,8 @@ public sealed class McpServer
         };
     }
 
-    public async Task<McpResponse> HandleToolCallAsync(McpToolCall call, CancellationToken ct = default)
-    {
-        return call.Name switch
+    public async Task<McpResponse> HandleToolCallAsync(McpToolCall call, CancellationToken ct = default) =>
+        call.Name switch
         {
             "get_sessions" => await GetSessionsAsync(call.Arguments, ct),
             "get_trace" => await GetTraceAsync(call.Arguments, ct),
@@ -37,16 +39,11 @@ public sealed class McpServer
 
             "get_console_logs" => GetConsoleLogs(call.Arguments),
             "get_console_errors" => GetConsoleErrors(call.Arguments),
-            _ => new McpResponse
-            {
-                Error = $"Unknown tool: {call.Name}"
-            }
+            _ => new McpResponse { Error = $"Unknown tool: {call.Name}" }
         };
-    }
 
-    public static McpManifest GetManifest()
-    {
-        return new McpManifest
+    public static McpManifest GetManifest() =>
+        new()
         {
             Name = "qyl-telemetry",
             Version = "0.1.0",
@@ -64,15 +61,9 @@ public sealed class McpServer
                         {
                             limit = new
                             {
-                                type = "integer",
-                                description = "Max sessions to return",
-                                @default = 10
+                                type = "integer", description = "Max sessions to return", @default = 10
                             },
-                            service_name = new
-                            {
-                                type = "string",
-                                description = "Filter by service name"
-                            }
+                            service_name = new { type = "string", description = "Filter by service name" }
                         }
                     }
                 },
@@ -85,16 +76,9 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            trace_id = new
-                            {
-                                type = "string",
-                                description = "The trace ID to fetch"
-                            }
+                            trace_id = new { type = "string", description = "The trace ID to fetch" }
                         },
-                        required = new[]
-                        {
-                            "trace_id"
-                        }
+                        required = new[] { "trace_id" }
                     }
                 },
                 new McpTool
@@ -106,32 +90,16 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new
-                            {
-                                type = "string",
-                                description = "Filter by session ID"
-                            },
-                            provider_name = new
-                            {
-                                type = "string",
-                                description = "Filter by GenAI provider (openai, anthropic, etc.)"
-                            },
-                            model = new
-                            {
-                                type = "string",
-                                description = "Filter by model name"
-                            },
-                            status = new
-                            {
-                                type = "string",
-                                description = "Filter by status (ok, error)"
-                            },
-                            limit = new
-                            {
-                                type = "integer",
-                                description = "Max spans to return",
-                                @default = 100
-                            }
+                            session_id = new { type = "string", description = "Filter by session ID" },
+                            provider_name =
+                                new
+                                {
+                                    type = "string",
+                                    description = "Filter by GenAI provider (openai, anthropic, etc.)"
+                                },
+                            model = new { type = "string", description = "Filter by model name" },
+                            status = new { type = "string", description = "Filter by status (ok, error)" },
+                            limit = new { type = "integer", description = "Max spans to return", @default = 100 }
                         }
                     }
                 },
@@ -144,16 +112,10 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new
-                            {
-                                type = "string",
-                                description = "Filter by session ID"
-                            },
+                            session_id = new { type = "string", description = "Filter by session ID" },
                             hours = new
                             {
-                                type = "integer",
-                                description = "Time window in hours",
-                                @default = 24
+                                type = "integer", description = "Time window in hours", @default = 24
                             }
                         }
                     }
@@ -169,20 +131,15 @@ public sealed class McpServer
                         {
                             query = new
                             {
-                                type = "string",
-                                description = "Text to search in error messages"
+                                type = "string", description = "Text to search in error messages"
                             },
                             hours = new
                             {
-                                type = "integer",
-                                description = "Time window in hours",
-                                @default = 24
+                                type = "integer", description = "Time window in hours", @default = 24
                             },
                             limit = new
                             {
-                                type = "integer",
-                                description = "Max errors to return",
-                                @default = 50
+                                type = "integer", description = "Max errors to return", @default = 50
                             }
                         }
                     }
@@ -221,27 +178,16 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session = new
-                            {
-                                type = "string",
-                                description = "Filter by session ID"
-                            },
+                            session = new { type = "string", description = "Filter by session ID" },
                             level = new
                             {
-                                type = "string",
-                                description = "Min level: debug, log, info, warn, error"
+                                type = "string", description = "Min level: debug, log, info, warn, error"
                             },
                             pattern = new
                             {
-                                type = "string",
-                                description = "Text pattern to search in messages"
+                                type = "string", description = "Text pattern to search in messages"
                             },
-                            limit = new
-                            {
-                                type = "integer",
-                                description = "Max logs to return",
-                                @default = 50
-                            }
+                            limit = new { type = "integer", description = "Max logs to return", @default = 50 }
                         }
                     }
                 },
@@ -257,16 +203,13 @@ public sealed class McpServer
                         {
                             limit = new
                             {
-                                type = "integer",
-                                description = "Max errors to return",
-                                @default = 20
+                                type = "integer", description = "Max errors to return", @default = 20
                             }
                         }
                     }
                 }
             ]
         };
-    }
 
     private async Task<McpResponse> GetSessionsAsync(JsonElement? args, CancellationToken ct)
     {
@@ -285,19 +228,14 @@ public sealed class McpServer
     {
         var traceId = args?.GetProperty("trace_id").GetString();
         if (string.IsNullOrEmpty(traceId))
-            return new McpResponse
-            {
-                Error = "trace_id is required"
-            };
+        {
+            return new McpResponse { Error = "trace_id is required" };
+        }
 
         var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text",
-                Text = JsonSerializer.Serialize(spans, _jsonOptions)
-            }
+            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
         };
     }
 
@@ -310,18 +248,11 @@ public sealed class McpServer
             var spans = await _store.GetSpansBySessionAsync(sessionId, ct);
             return new McpResponse
             {
-                Content = new McpContent
-                {
-                    Type = "text",
-                    Text = JsonSerializer.Serialize(spans, _jsonOptions)
-                }
+                Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
             };
         }
 
-        return new McpResponse
-        {
-            Error = "session_id filter required for now"
-        };
+        return new McpResponse { Error = "session_id filter required for now" };
     }
 
     private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? args, CancellationToken ct)
@@ -332,22 +263,17 @@ public sealed class McpServer
         {
             Content = new McpContent
             {
-                Type = "text",
-                Text = $"GenAI stats from {stats.OldestSpan:g} to {stats.NewestSpan:g}"
+                Type = "text", Text = $"GenAI stats from {stats.OldestSpan:g} to {stats.NewestSpan:g}"
             }
         };
     }
 
-    private async Task<McpResponse> SearchErrorsAsync(JsonElement? args, CancellationToken ct)
+    private static async Task<McpResponse> SearchErrorsAsync(JsonElement? args, CancellationToken ct)
     {
         await Task.CompletedTask;
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text",
-                Text = "Error search not yet implemented"
-            }
+            Content = new McpContent { Type = "text", Text = "Error search not yet implemented" }
         };
     }
 
@@ -356,11 +282,7 @@ public sealed class McpServer
         var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text",
-                Text = JsonSerializer.Serialize(stats, _jsonOptions)
-            }
+            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(stats, _jsonOptions) }
         };
     }
 
@@ -371,15 +293,11 @@ public sealed class McpServer
         var count = await _store.ArchiveToParquetAsync(
             "/data/archive",
             TimeSpan.FromDays(days),
-            ct);
+            ct).ConfigureAwait(false);
 
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text",
-                Text = $"Archived {count} spans to Parquet files"
-            }
+            Content = new McpContent { Type = "text", Text = $"Archived {count} spans to Parquet files" }
         };
     }
 
@@ -401,15 +319,15 @@ public sealed class McpServer
 
         var logs = _console.Query(minLevel, session, pattern, limit);
         var formatted = logs.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                         (e.Url != null ? $" ({e.Url})" : "") +
-                                         (e.Stack != null ? $"\n  {e.Stack}" : ""));
+                                         (e.Url is not null ? $" ({e.Url})" : "") +
+                                         (e.Stack is not null ? $"\n  {e.Stack}" : ""));
 
         return new McpResponse
         {
             Content = new McpContent
             {
                 Type = "text",
-                Text = logs.Length == 0
+                Text = logs.Length is 0
                     ? "No console logs found. Is the qyl-console.js shim installed in the frontend?"
                     : string.Join('\n', formatted)
             }
@@ -422,15 +340,15 @@ public sealed class McpServer
         var errors = _console.Errors(limit);
 
         var formatted = errors.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                           (e.Url != null ? $"\n  URL: {e.Url}" : "") +
-                                           (e.Stack != null ? $"\n  Stack: {e.Stack}" : ""));
+                                           (e.Url is not null ? $"\n  URL: {e.Url}" : "") +
+                                           (e.Stack is not null ? $"\n  Stack: {e.Stack}" : ""));
 
         return new McpResponse
         {
             Content = new McpContent
             {
                 Type = "text",
-                Text = errors.Length == 0
+                Text = errors.Length is 0
                     ? "No console errors found. Either the app is working, or the qyl-console.js shim isn't installed."
                     : $"Found {errors.Length} error(s):\n\n" + string.Join("\n\n", formatted)
             }
@@ -471,7 +389,7 @@ public sealed class McpResponse
 
     [JsonPropertyName("error")] public string? Error { get; init; }
 
-    [JsonPropertyName("isError")] public bool IsError => Error != null;
+    [JsonPropertyName("isError")] public bool IsError => Error is not null;
 }
 
 public sealed class McpContent
