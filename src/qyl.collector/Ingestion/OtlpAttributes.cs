@@ -423,10 +423,10 @@ public static class OtlpGenAiProviders
 }
 
 // =============================================================================
-// SCHEMA VERSION
+// SCHEMA VERSION (for OTLP parsing - use qyl.protocol.Primitives.SchemaVersion for typed version)
 // =============================================================================
 
-public static class SchemaVersion
+public static class OtlpSchemaVersion
 {
     public const string Version = "1.38.0";
     public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
@@ -598,7 +598,7 @@ public sealed class ParsedSpan
     // Raw attributes for non-promoted fields
     public List<KeyValuePair<string, object?>>? Attributes { get; set; }
 
-    public TimeSpan Duration => (EndTime - StartTime).ToTimeSpan();
+    public TimeSpan Duration => TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
     public long TotalTokens => InputTokens + OutputTokens;
     public bool IsGenAiSpan => ProviderName is not null || RequestModel is not null;
 }

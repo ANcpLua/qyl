@@ -369,42 +369,15 @@ public sealed class OTelSemconvGenerator : IGenerator
 
         sb.Append(GeneratedFileHeaders.CSharp(GeneratorName, outputPath));
         sb.AppendLine("using System;");
-        sb.AppendLine("using System.Buffers;");
         sb.AppendLine();
         sb.AppendLine($"namespace {rootNamespace}.Telemetry;");
         sb.AppendLine();
 
         sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// High-performance extension methods for GenAI attribute key matching.");
-        sb.AppendLine("/// Uses SearchValues&lt;string&gt; for efficient multi-prefix checks.");
+        sb.AppendLine("/// Extension methods for GenAI attribute key matching.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine("public static class GenAiSemconvExtensions");
         sb.AppendLine("{");
-
-        // SearchValues instances
-        sb.AppendLine("    // ─────────────────────────────────────────────────────────────────────");
-        sb.AppendLine("    // SearchValues<string> for efficient prefix matching (.NET 10+)");
-        sb.AppendLine("    // ─────────────────────────────────────────────────────────────────────");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>SearchValues for agent and tool prefixes.</summary>");
-        sb.AppendLine("    private static readonly SearchValues<string> AgentToolPrefixes =");
-        sb.AppendLine("        SearchValues.Create([\"gen_ai.agent.\", \"gen_ai.tool.\"], StringComparison.Ordinal);");
-        sb.AppendLine();
-        sb.AppendLine("    /// <summary>SearchValues for all gen_ai.* sub-namespaces.</summary>");
-        sb.AppendLine("    private static readonly SearchValues<string> GenAiSubPrefixes =");
-        sb.AppendLine("        SearchValues.Create([");
-        sb.AppendLine("            \"gen_ai.agent.\",");
-        sb.AppendLine("            \"gen_ai.tool.\",");
-        sb.AppendLine("            \"gen_ai.request.\",");
-        sb.AppendLine("            \"gen_ai.response.\",");
-        sb.AppendLine("            \"gen_ai.usage.\",");
-        sb.AppendLine("            \"gen_ai.evaluation.\",");
-        sb.AppendLine("            \"gen_ai.embeddings.\",");
-        sb.AppendLine("            \"gen_ai.data_source.\",");
-        sb.AppendLine("            \"gen_ai.input.\",");
-        sb.AppendLine("            \"gen_ai.output.\",");
-        sb.AppendLine("        ], StringComparison.Ordinal);");
-        sb.AppendLine();
 
         // Extension methods
         sb.AppendLine("    // ─────────────────────────────────────────────────────────────────────");
@@ -420,17 +393,30 @@ public sealed class OTelSemconvGenerator : IGenerator
         sb.AppendLine();
 
         sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Checks if the key is an agent or tool attribute using SearchValues.");
+        sb.AppendLine("    /// Checks if the key is an agent or tool attribute.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    public static bool IsAgentOrToolAttribute(this string key)");
-        sb.AppendLine("        => AgentToolPrefixes.ContainsAny(key);");
+        sb.AppendLine("        => key.StartsWith(\"gen_ai.agent.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("           key.StartsWith(\"gen_ai.tool.\", StringComparison.Ordinal);");
         sb.AppendLine();
 
         sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Checks if the key matches any gen_ai.* sub-namespace using SearchValues.");
+        sb.AppendLine("    /// Checks if the key matches any gen_ai.* sub-namespace.");
         sb.AppendLine("    /// </summary>");
         sb.AppendLine("    public static bool IsGenAiSubNamespace(this string key)");
-        sb.AppendLine("        => GenAiSubPrefixes.ContainsAny(key);");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (!key.StartsWith(\"gen_ai.\", StringComparison.Ordinal)) return false;");
+        sb.AppendLine("        return key.StartsWith(\"gen_ai.agent.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.tool.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.request.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.response.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.usage.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.evaluation.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.embeddings.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.data_source.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.input.\", StringComparison.Ordinal) ||");
+        sb.AppendLine("               key.StartsWith(\"gen_ai.output.\", StringComparison.Ordinal);");
+        sb.AppendLine("    }");
         sb.AppendLine();
 
         sb.AppendLine("    /// <summary>");

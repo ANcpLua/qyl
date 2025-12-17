@@ -4,8 +4,12 @@ using qyl.collector.Auth;
 using qyl.collector.Grpc;
 using qyl.collector.Mapping;
 using qyl.collector.Mcp;
+using qyl.collector.Telemetry;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+// Request decompression for OTLP clients sending gzip/deflate compressed payloads
+builder.Services.AddRequestDecompression();
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -27,8 +31,12 @@ builder.WebHost.ConfigureKestrel(options =>
     options.ListenAnyIP(grpcPort, listenOptions => { listenOptions.Protocols = HttpProtocols.Http2; });
 });
 
-// Register gRPC services with custom method provider for OTLP TraceService
-builder.Services.AddGrpc();
+// Register gRPC services with compression support for OTLP clients
+builder.Services.AddGrpc(options =>
+{
+    options.ResponseCompressionLevel = CompressionLevel.Optimal;
+    options.ResponseCompressionAlgorithm = "gzip";
+});
 builder.Services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceServiceMethodProvider>();
 
 builder.Services.AddSingleton(new TokenAuthOptions { Token = token });
@@ -36,7 +44,11 @@ builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<McpServer>();
 
-builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
+// SSE broadcasting with backpressure support
+builder.Services.AddSseBroadcasting();
+
+// .NET 10 telemetry: enrichment, redaction, buffering
+builder.Services.AddQylTelemetry();
 
 builder.Services.AddSingleton(sp =>
 {
@@ -49,6 +61,12 @@ var app = builder.Build();
 var options = app.Services.GetRequiredService<TokenAuthOptions>();
 
 app.UseMiddleware<TokenAuthMiddleware>(options);
+
+// Request decompression must be before endpoints that read request body (OTLP)
+app.UseRequestDecompression();
+
+// .NET 10 telemetry middleware: request latency telemetry
+app.UseQylTelemetry();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -1041,6 +1059,8 @@ namespace qyl.collector
     [JsonSerializable(typeof(ErrorResponse))]
     [JsonSerializable(typeof(FeedbackResponse))]
     [JsonSerializable(typeof(SpanBatch))]
+    [JsonSerializable(typeof(SpanStorageRow))]
+    [JsonSerializable(typeof(List<SpanStorageRow>))]
     [JsonSerializable(typeof(Dictionary<string, string>), TypeInfoPropertyName = "DictionaryStringString")]
     [JsonSerializable(typeof(OtlpExportTraceServiceRequest))]
     [JsonSerializable(typeof(OtlpResourceSpans))]

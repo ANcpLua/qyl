@@ -275,16 +275,16 @@ public ref struct OtlpJsonSpanParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UnixNano ParseUnixNano()
     {
-        if (_reader.TokenType == JsonTokenType.Number) return new UnixNano(_reader.GetInt64());
+        if (_reader.TokenType == JsonTokenType.Number) return new UnixNano((ulong)_reader.GetInt64());
 
         if (_reader.TokenType == JsonTokenType.String)
         {
             // OTLP JSON encodes large numbers as strings
             var span = _reader.ValueSpan;
-            if (Utf8Parser.TryParse(span, out long value, out _)) return new UnixNano(value);
+            if (Utf8Parser.TryParse(span, out long value, out _)) return new UnixNano((ulong)value);
         }
 
-        return UnixNano.Zero;
+        return UnixNano.Empty;
     }
 
     private void ParseStatus(ParsedSpan span)
@@ -357,7 +357,8 @@ public ref struct OtlpJsonSpanParser
                 else if (keySpan.SequenceEqual("session.id"u8))
                 {
                     var value = ParseAnyValue();
-                    if (value is not null) span.SessionId = new SessionId(value);
+                    if (value is string s && Guid.TryParse(s, out var guid))
+                        span.SessionId = new SessionId(guid);
                 }
                 else
                 {

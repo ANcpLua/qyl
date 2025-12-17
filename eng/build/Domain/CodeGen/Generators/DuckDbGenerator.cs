@@ -134,8 +134,10 @@ public sealed class DuckDbGenerator : IGenerator
         sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Frozen;");
         sb.AppendLine("using System.Collections.Generic;");
+        sb.AppendLine($"using Models = {rootNamespace}.Models;");
         sb.AppendLine();
-        sb.AppendLine($"namespace {rootNamespace}.Storage;");
+        // DuckDbSchema goes in collector, not protocol
+        sb.AppendLine("namespace qyl.collector.Storage;");
         sb.AppendLine();
 
         sb.AppendLine("/// <summary>");
@@ -176,8 +178,10 @@ public sealed class DuckDbGenerator : IGenerator
             foreach (var prop in model.Properties?.Where(p => p.DuckDbColumn is not null) ?? [])
             {
                 var constName = prop.Name;
+                // Escape quotes for regular string literal (not verbatim)
+                var escapedForRegularString = prop.DuckDbColumn!.Replace("\"", "\\\"");
                 sb.AppendLine($"        /// <summary>{prop.Description} ({prop.DuckDbType})</summary>");
-                sb.AppendLine($"        public const string {constName} = \"{prop.DuckDbColumn}\";");
+                sb.AppendLine($"        public const string {constName} = \"{escapedForRegularString}\";");
             }
 
             sb.AppendLine();
@@ -220,12 +224,15 @@ public sealed class DuckDbGenerator : IGenerator
                 .Select(p => p.DuckDbColumn!)
                 .ToList() ?? [];
 
+            // Escape double quotes for verbatim string literal
+            var insertColsEscaped = insertCols.Select(c => c.Replace("\"", "\"\"")).ToList();
+
             sb.AppendLine("        /// <summary>INSERT statement with all columns.</summary>");
             sb.AppendLine("        public const string InsertSql = @\"");
             sb.AppendLine($"INSERT INTO {table.Name} (");
-            sb.AppendLine($"    {string.Join(",\n    ", insertCols)}");
+            sb.AppendLine($"    {string.Join(",\n    ", insertColsEscaped)}");
             sb.AppendLine(") VALUES (");
-            sb.AppendLine($"    {string.Join(",\n    ", insertCols.Select((_, i) => $"${i + 1}"))}");
+            sb.AppendLine($"    {string.Join(",\n    ", insertColsEscaped.Select((_, i) => $"${i + 1}"))}");
             sb.AppendLine(")\";");
             sb.AppendLine();
 
@@ -310,7 +317,9 @@ public sealed class DuckDbGenerator : IGenerator
                 var defaultValue = GetDefaultValue(prop);
                 var defaultClause = defaultValue is not null ? $" DEFAULT {defaultValue}" : "";
 
-                sb.Append($"    {prop.DuckDbColumn} {prop.DuckDbType}{nullConstraint}{defaultClause}");
+                // Escape double quotes for verbatim string literal
+                var escapedColumn = prop.DuckDbColumn!.Replace("\"", "\"\"");
+                sb.Append($"    {escapedColumn} {prop.DuckDbType}{nullConstraint}{defaultClause}");
 
                 if (!isLast || table.PrimaryKey is not null)
                     sb.Append(',');
@@ -330,8 +339,12 @@ public sealed class DuckDbGenerator : IGenerator
         foreach (var index in table.Indexes!)
         {
             var unique = index.IsUnique ? "UNIQUE " : "";
+            // Escape double quotes for verbatim string literal
             var columnsList = string.Join(", ", index.Columns.Select(c =>
-                index.IsDescending ? $"{c} DESC" : c));
+            {
+                var escaped = c.Replace("\"", "\"\"");
+                return index.IsDescending ? $"{escaped} DESC" : escaped;
+            }));
 
             sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columnsList});");
         }

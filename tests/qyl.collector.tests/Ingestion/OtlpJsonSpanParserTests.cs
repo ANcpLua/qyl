@@ -167,7 +167,7 @@ public sealed class OtlpJsonSpanParserTests
                                                                 { "key": "gen_ai.usage.input_tokens", "value": { "intValue": "150" } },
                                                                 { "key": "gen_ai.usage.output_tokens", "value": { "intValue": 75 } },
                                                                 { "key": "gen_ai.request.temperature", "value": { "doubleValue": 0.7 } },
-                                                                { "key": "session.id", "value": { "stringValue": "sess-123" } }
+                                                                { "key": "session.id", "value": { "stringValue": "a1b2c3d4-e5f6-7890-abcd-ef1234567890" } }
                                                             ]
                                                         }]
                                                     }]
@@ -281,8 +281,8 @@ public sealed class OtlpJsonSpanParserTests
         Assert.Equal("b7ad6b7169203331", span.SpanId.ToString());
         Assert.Equal("test-span", span.Name);
         Assert.Equal(SpanKind.Internal, span.Kind);
-        Assert.Equal(1640000000000000000L, span.StartTime.Value);
-        Assert.Equal(1640000000100000000L, span.EndTime.Value);
+        Assert.Equal(1640000000000000000UL, span.StartTime.Value);
+        Assert.Equal(1640000000100000000UL, span.EndTime.Value);
     }
 
     [Fact]
@@ -365,7 +365,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Verify session
         Assert.NotNull(span.SessionId);
-        Assert.Equal("sess-123", span.SessionId.Value.Value);
+        Assert.Equal(Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"), span.SessionId!.Value.Value);
 
         // Verify it's recognized as GenAI span
         Assert.True(span.IsGenAiSpan);
@@ -563,7 +563,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Assert
         Assert.Single(spans);
-        Assert.Equal(long.MaxValue, spans[0].StartTime.Value);
+        Assert.Equal((ulong)long.MaxValue, spans[0].StartTime.Value);
     }
 
     [Fact]

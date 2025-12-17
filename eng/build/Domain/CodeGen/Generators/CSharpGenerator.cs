@@ -162,15 +162,35 @@ public sealed class CSharpGenerator : IGenerator
                 $"    /// <summary>Parses a span of characters into a <see cref=\"{primitive.Name}\"/>.</summary>");
             sb.AppendLine(
                 $"    public static {primitive.Name} Parse(ReadOnlySpan<char> s, IFormatProvider? provider = null)");
-            sb.AppendLine($"        => new({primitive.ParseMethod}(s, NumberStyles.None, provider));");
+
+            // Guid doesn't support NumberStyles, use simple overload
+            // Hex types (UInt128, ulong with x format) need NumberStyles.HexNumber
+            var isHexType = primitive.FormatMethod.Contains("x");
+            if (primitive.UnderlyingType == "Guid")
+                sb.AppendLine($"        => new({primitive.ParseMethod}(s));");
+            else if (isHexType)
+                sb.AppendLine($"        => new({primitive.ParseMethod}(s, NumberStyles.HexNumber, provider));");
+            else
+                sb.AppendLine($"        => new({primitive.ParseMethod}(s, NumberStyles.None, provider));");
+
             sb.AppendLine();
             sb.AppendLine(
                 $"    /// <summary>Tries to parse a span of characters into a <see cref=\"{primitive.Name}\"/>.</summary>");
             sb.AppendLine(
                 $"    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out {primitive.Name} result)");
             sb.AppendLine("    {");
-            sb.AppendLine(
-                $"        if ({primitive.UnderlyingType}.TryParse(s, NumberStyles.None, provider, out var value))");
+
+            // Guid doesn't support NumberStyles
+            // Hex types need NumberStyles.HexNumber
+            if (primitive.UnderlyingType == "Guid")
+                sb.AppendLine($"        if ({primitive.UnderlyingType}.TryParse(s, out var value))");
+            else if (isHexType)
+                sb.AppendLine(
+                    $"        if ({primitive.UnderlyingType}.TryParse(s, NumberStyles.HexNumber, provider, out var value))");
+            else
+                sb.AppendLine(
+                    $"        if ({primitive.UnderlyingType}.TryParse(s, NumberStyles.None, provider, out var value))");
+
             sb.AppendLine("        {");
             sb.AppendLine($"            result = new {primitive.Name}(value);");
             sb.AppendLine("            return true;");
@@ -197,6 +217,68 @@ public sealed class CSharpGenerator : IGenerator
         sb.AppendLine("        }");
         sb.AppendLine("        return TryParse(s.AsSpan(), provider, out result);");
         sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // IsEmpty property
+        sb.AppendLine("    /// <summary>Returns true if this is the default/empty value.</summary>");
+        sb.AppendLine($"    public bool IsEmpty => _value == {primitive.DefaultValue};");
+        sb.AppendLine();
+
+        // Zero/Empty static readonly (alias for Empty)
+        if (primitive.UnderlyingType is "ulong" or "UInt128")
+        {
+            sb.AppendLine("    /// <summary>Gets the zero value.</summary>");
+            sb.AppendLine($"    public static readonly {primitive.Name} Zero = Empty;");
+            sb.AppendLine();
+        }
+
+        // TryFormat for ISpanFormattable (hex types)
+        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains("x"))
+        {
+            var hexWidth = primitive.UnderlyingType == "UInt128" ? "32" : "16";
+            sb.AppendLine("    /// <summary>Tries to format the value into the provided span.</summary>");
+            sb.AppendLine("    public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format = default, IFormatProvider? provider = null)");
+            sb.AppendLine("    {");
+            sb.AppendLine($"        return _value.TryFormat(destination, out charsWritten, \"x{hexWidth}\", provider);");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+
+        // UTF-8 parsing for hex types
+        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains("x"))
+        {
+            sb.AppendLine("    /// <summary>Parses a UTF-8 span into this type.</summary>");
+            sb.AppendLine($"    public static {primitive.Name} Parse(ReadOnlySpan<byte> utf8)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        Span<char> chars = stackalloc char[utf8.Length];");
+            sb.AppendLine("        for (int i = 0; i < utf8.Length; i++) chars[i] = (char)utf8[i];");
+            sb.AppendLine("        return Parse(chars);");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>Tries to parse a UTF-8 span into this type.</summary>");
+            sb.AppendLine($"    public static bool TryParse(ReadOnlySpan<byte> utf8, out {primitive.Name} result)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        Span<char> chars = stackalloc char[utf8.Length];");
+            sb.AppendLine("        for (int i = 0; i < utf8.Length; i++) chars[i] = (char)utf8[i];");
+            sb.AppendLine("        return TryParse(chars, null, out result);");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>Tries to parse a UTF-8 span into this type (IFormatProvider overload for compatibility).</summary>");
+            sb.AppendLine($"    public static bool TryParse(ReadOnlySpan<byte> utf8, IFormatProvider? provider, out {primitive.Name} result)");
+            sb.AppendLine("        => TryParse(utf8, out result);");
+            sb.AppendLine();
+        }
+
+        // ToTimeSpan for UnixNano
+        if (primitive.Name == "UnixNano")
+        {
+            sb.AppendLine("    /// <summary>Converts to TimeSpan (from Unix epoch).</summary>");
+            sb.AppendLine("    public TimeSpan ToTimeSpan() => TimeSpan.FromTicks((long)(_value / 100));");
+            sb.AppendLine();
+            sb.AppendLine("    /// <summary>Converts to DateTimeOffset.</summary>");
+            sb.AppendLine("    public DateTimeOffset ToDateTimeOffset() => DateTimeOffset.FromUnixTimeMilliseconds((long)(_value / 1_000_000));");
+            sb.AppendLine();
+        }
 
         sb.AppendLine("}");
 
@@ -333,6 +415,10 @@ public sealed class CSharpGenerator : IGenerator
             var prefix = key.Split('.')[0] + "." + key.Split('.')[1];
             if (prefix != currentGroup)
             {
+                // Close previous region if any
+                if (currentGroup != "")
+                    sb.AppendLine("    #endregion");
+
                 currentGroup = prefix;
                 sb.AppendLine();
                 sb.AppendLine($"    #region {prefix}.*");

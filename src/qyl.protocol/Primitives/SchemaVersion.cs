@@ -15,15 +15,6 @@ namespace qyl.protocol.Primitives;
 /// </summary>
 public sealed partial record SchemaVersion : IComparable<SchemaVersion>
 {
-    /// <summary>Major version number.</summary>
-    public int Major { get; }
-
-    /// <summary>Minor version number.</summary>
-    public int Minor { get; }
-
-    /// <summary>Patch version number.</summary>
-    public int Patch { get; }
-
     /// <summary>Creates a new schema version.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public SchemaVersion(int major, int minor, int patch)
@@ -36,6 +27,15 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
         Minor = minor;
         Patch = patch;
     }
+
+    /// <summary>Major version number.</summary>
+    public int Major { get; }
+
+    /// <summary>Minor version number.</summary>
+    public int Minor { get; }
+
+    /// <summary>Patch version number.</summary>
+    public int Patch { get; }
 
     // =========================================================================
     // Well-Known Versions
@@ -57,16 +57,6 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
     public static SchemaVersion Current => V1_38_0;
 
     // =========================================================================
-    // Schema URL
-    // =========================================================================
-
-    /// <summary>Gets the official OpenTelemetry schema URL for this version.</summary>
-    public string ToSchemaUrl() => $"https://opentelemetry.io/schemas/{this}";
-
-    /// <inheritdoc />
-    public override string ToString() => $"{Major}.{Minor}.{Patch}";
-
-    // =========================================================================
     // IComparable<SchemaVersion>
     // =========================================================================
 
@@ -83,6 +73,16 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
 
         return Patch.CompareTo(other.Patch);
     }
+
+    // =========================================================================
+    // Schema URL
+    // =========================================================================
+
+    /// <summary>Gets the official OpenTelemetry schema URL for this version.</summary>
+    public string ToSchemaUrl() => $"https://opentelemetry.io/schemas/{this}";
+
+    /// <inheritdoc />
+    public override string ToString() => $"{Major}.{Minor}.{Patch}";
 
     public static bool operator <(SchemaVersion left, SchemaVersion right) => left.CompareTo(right) < 0;
     public static bool operator >(SchemaVersion left, SchemaVersion right) => left.CompareTo(right) > 0;
