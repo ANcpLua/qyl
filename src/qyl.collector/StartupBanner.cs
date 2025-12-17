@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using Console = System.Console;
 
 namespace qyl.collector;
@@ -14,7 +13,7 @@ public static class StartupBanner
                                    ╚══▀▀═╝    ╚═╝   ╚══════╝
                                 """;
 
-    public static void Print(string baseUrl, string token, int port)
+    public static void Print(string baseUrl, string token, int port, int grpcPort = 4317)
     {
         var tokenUrl = $"{baseUrl}?t={token}";
 
@@ -42,11 +41,18 @@ public static class StartupBanner
         PadLine(baseUrl.Length + 13, 68);
         Console.WriteLine("│");
 
-        Console.Write("  │  Port:       ");
+        Console.Write("  │  HTTP Port:  ");
         Console.ForegroundColor = ConsoleColor.Yellow;
         Console.Write(port);
         Console.ResetColor();
         PadLine(port.ToString().Length + 13, 68);
+        Console.WriteLine("│");
+
+        Console.Write("  │  gRPC Port:  ");
+        Console.ForegroundColor = ConsoleColor.Yellow;
+        Console.Write(grpcPort);
+        Console.ResetColor();
+        PadLine(grpcPort.ToString().Length + 13, 68);
         Console.WriteLine("│");
 
         Console.WriteLine("  │                                                                   │");
@@ -86,7 +92,8 @@ public static class StartupBanner
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("  Endpoints:");
         Console.WriteLine("    POST /api/v1/ingest     - qyl. native protocol (primary)");
-        Console.WriteLine("    POST /v1/traces         - OTLP compatibility shim");
+        Console.WriteLine("    POST /v1/traces         - OTLP HTTP compatibility shim");
+        Console.WriteLine("    gRPC TraceService       - OTLP gRPC (port 4317)");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
         Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
         Console.WriteLine("    POST /api/login         - Token authentication");
@@ -94,13 +101,8 @@ public static class StartupBanner
         Console.WriteLine();
     }
 
-    private static void WriteClickableUrl(string url)
-    {
-        if (IsTerminalSupportsHyperlinks())
-            Console.Write($"\e]8;;{url}\e\\{url}\e]8;;\e\\");
-        else
-            Console.Write(url);
-    }
+    private static void WriteClickableUrl(string url) =>
+        Console.Write(IsTerminalSupportsHyperlinks() ? $"\e]8;;{url}\e\\{url}\e]8;;\e\\" : url);
 
     private static bool IsTerminalSupportsHyperlinks()
     {

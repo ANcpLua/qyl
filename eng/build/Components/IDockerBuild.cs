@@ -16,7 +16,8 @@ interface IDockerBuild : IHasSolution
 
     [Parameter("Push images after build")] bool? Push => null;
 
-    [Parameter("Build images in parallel (default: true)")] bool ParallelBuild => true;
+    [Parameter("Build images in parallel (default: true)")]
+    bool ParallelBuild => true;
 
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>
     [

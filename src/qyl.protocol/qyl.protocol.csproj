@@ -1,15 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <LangVersion>latest</LangVersion>
-
     <!-- LEAF project - shared contracts between all qyl components -->
     <Description>Shared types and contracts for qyl AI Observability Platform</Description>
     <PackageId>Qyl.Protocol</PackageId>
     <Authors>ANcpLua</Authors>
+
+    <!-- Suppress naming convention for intentional lowercase namespace -->
+    <NoWarn>$(NoWarn);IDE1006</NoWarn>
 
     <!-- SDK injection features -->
     <InjectSharedThrow>true</InjectSharedThrow>
@@ -20,6 +18,10 @@
     <!-- AOT compatibility -->
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks"/>
+  </ItemGroup>
 
   <!-- BCL only - LEAF project has no external dependencies -->
 

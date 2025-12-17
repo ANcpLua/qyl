@@ -1,7 +1,19 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.WebUtilities;
 
 namespace qyl.collector.Auth;
+
+public static class TokenGenerator
+{
+    public static string Generate(int byteLength = 24)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(byteLength);
+
+        return Convert.ToBase64String(RandomNumberGenerator.GetBytes(byteLength))
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+}
 
 public sealed class TokenAuthOptions
 {

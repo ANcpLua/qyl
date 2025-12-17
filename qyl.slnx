@@ -1,9 +1,10 @@
 <Solution>
+    <!-- JUNKYARD folder exists but not in solution - reference only -->
+    <Folder Name="/JUNKYARD/"/>
     <!-- Solution Items - root config files -->
     <Folder Name="/Solution Items/">
         <File Path=".dockerignore"/>
         <File Path=".gitignore"/>
-        <File Path="CHANGELOG.md"/>
         <File Path="CLAUDE.md"/>
         <File Path="Directory.Build.props"/>
         <File Path="Directory.Build.targets"/>
@@ -18,6 +19,7 @@
         <File Path="docs/FRONTEND.md"/>
         <File Path="docs/BUILD.md"/>
         <File Path="docs/qyl-architecture.yaml"/>
+        <File Path="docs\COMPLETE_STRUCTURE.txt"/>
         <File Path="docs\duckdb_1.4.3.md"/>
         <File Path="docs\FEATURE_TEMP.md"/>
         <File Path="docs\qyl-migration-roadmap.yaml"/>
@@ -68,12 +70,8 @@
 
     <!-- /tests/UnitTests - Unit test projects -->
     <Folder Name="/tests/UnitTests/">
-        <Project Path="tests/UnitTests/qyl.analyzers.tests/qyl.analyzers.tests.csproj"/>
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
         <Project Path="tests/UnitTests/qyl.mcp.server.tests/qyl.mcp.server.tests.csproj"/>
     </Folder>
     <Folder Name="/tests/"/>
-
-    <!-- /tests/IntegrationTests - Integration test projects -->
-    <Folder Name="/tests/IntegrationTests/">
-    </Folder>
 </Solution>

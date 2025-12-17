@@ -4,15 +4,13 @@
         <RootNamespace>qyl.mcp.server.tests</RootNamespace>
     </PropertyGroup>
 
-    <ItemGroup>
-        <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest"/>
-    </ItemGroup>
-
+    <!-- Project-specific dependencies -->
     <ItemGroup>
         <PackageReference Include="Microsoft.Agents.AI"/>
         <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
         <PackageReference Include="Microsoft.Extensions.Hosting"/>
         <PackageReference Include="ModelContextProtocol"/>
+        <PackageReference Include="xunit"/>
     </ItemGroup>
 
     <ItemGroup>

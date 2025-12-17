@@ -1,8 +1,3 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using qyl.collector.ConsoleBridge;
-using qyl.collector.Storage;
-
 namespace qyl.collector.Mcp;
 
 // MCP JSON-RPC protocol requires dynamic payloads - AOT can't statically analyze tool arguments/responses
@@ -211,7 +206,7 @@ public sealed class McpServer
             ]
         };
 
-    private async Task<McpResponse> GetSessionsAsync(JsonElement? args, CancellationToken ct)
+    private async Task<McpResponse> GetSessionsAsync(JsonElement? _, CancellationToken ct)
     {
         var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
@@ -227,10 +222,7 @@ public sealed class McpServer
     private async Task<McpResponse> GetTraceAsync(JsonElement? args, CancellationToken ct)
     {
         var traceId = args?.GetProperty("trace_id").GetString();
-        if (string.IsNullOrEmpty(traceId))
-        {
-            return new McpResponse { Error = "trace_id is required" };
-        }
+        if (string.IsNullOrEmpty(traceId)) return new McpResponse { Error = "trace_id is required" };
 
         var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
@@ -243,19 +235,15 @@ public sealed class McpServer
     {
         var sessionId = args?.TryGetProperty("session_id", out var s) == true ? s.GetString() : null;
 
-        if (!string.IsNullOrEmpty(sessionId))
+        if (string.IsNullOrEmpty(sessionId)) return new McpResponse { Error = "session_id filter required for now" };
+        var spans = await _store.GetSpansBySessionAsync(sessionId, ct);
+        return new McpResponse
         {
-            var spans = await _store.GetSpansBySessionAsync(sessionId, ct);
-            return new McpResponse
-            {
-                Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
-            };
-        }
-
-        return new McpResponse { Error = "session_id filter required for now" };
+            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
+        };
     }
 
-    private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? args, CancellationToken ct)
+    private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? _, CancellationToken ct)
     {
         var stats = await _store.GetStorageStatsAsync(ct);
 
@@ -268,14 +256,11 @@ public sealed class McpServer
         };
     }
 
-    private static async Task<McpResponse> SearchErrorsAsync(JsonElement? args, CancellationToken ct)
-    {
-        await Task.CompletedTask;
-        return new McpResponse
+    private static Task<McpResponse> SearchErrorsAsync(JsonElement? _, CancellationToken __) =>
+        Task.FromResult(new McpResponse
         {
             Content = new McpContent { Type = "text", Text = "Error search not yet implemented" }
-        };
-    }
+        });
 
     private async Task<McpResponse> GetStorageStatsAsync(CancellationToken ct)
     {

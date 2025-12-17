@@ -5,7 +5,11 @@
     "allowPrerelease": true
   },
   "msbuild-sdks": {
-    "ANcpLua.NET.Sdk": "1.1.2",
-    "ANcpLua.NET.Sdk.Web": "1.1.2"
+    "ANcpLua.NET.Sdk": "1.1.8",
+    "ANcpLua.NET.Sdk.Web": "1.1.8",
+    "ANcpLua.NET.Sdk.Test": "1.1.8"
+  },
+  "test": {
+    "runner": "Microsoft.Testing.Platform"
   }
 }

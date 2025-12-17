@@ -4,8 +4,6 @@
 // =============================================================================
 
 using System.Buffers.Text;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Runtime.CompilerServices;
 
 namespace qyl.protocol.Primitives;
@@ -26,10 +24,7 @@ public readonly record struct UnixNano :
 
     /// <summary>Creates a UnixNano from a nanosecond value.</summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public UnixNano(long value)
-    {
-        Value = value;
-    }
+    public UnixNano(long value) => Value = value;
 
     /// <summary>Gets the raw nanosecond value.</summary>
     public long Value { get; }
@@ -39,20 +34,14 @@ public readonly record struct UnixNano :
     // =========================================================================
 
     /// <inheritdoc />
-    public int CompareTo(UnixNano other)
-    {
-        return Value.CompareTo(other.Value);
-    }
+    public int CompareTo(UnixNano other) => Value.CompareTo(other.Value);
 
     // =========================================================================
     // ISpanParsable<UnixNano> - Zero allocation from char span
     // =========================================================================
 
     /// <inheritdoc />
-    public static UnixNano Parse(ReadOnlySpan<char> s, IFormatProvider? provider)
-    {
-        return new UnixNano(long.Parse(s, provider));
-    }
+    public static UnixNano Parse(ReadOnlySpan<char> s, IFormatProvider? provider) => new(long.Parse(s, provider));
 
     /// <inheritdoc />
     public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out UnixNano result)
@@ -72,10 +61,7 @@ public readonly record struct UnixNano :
     // =========================================================================
 
     /// <inheritdoc />
-    public static UnixNano Parse(string s, IFormatProvider? provider)
-    {
-        return Parse(s.AsSpan(), provider);
-    }
+    public static UnixNano Parse(string s, IFormatProvider? provider) => Parse(s.AsSpan(), provider);
 
     /// <inheritdoc />
     public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out UnixNano result)
@@ -117,73 +103,40 @@ public readonly record struct UnixNano :
     }
 
     /// <summary>Converts to DateTimeOffset.</summary>
-    public DateTimeOffset ToDateTimeOffset()
-    {
-        return DateTimeOffset.FromUnixTimeMilliseconds(Value / NanosPerMillisecond);
-    }
+    public DateTimeOffset ToDateTimeOffset() => DateTimeOffset.FromUnixTimeMilliseconds(Value / NanosPerMillisecond);
 
     /// <summary>Converts to TimeSpan.</summary>
-    public TimeSpan ToTimeSpan()
-    {
-        return TimeSpan.FromTicks(Value / TicksPerNano);
-    }
+    public TimeSpan ToTimeSpan() => TimeSpan.FromTicks(Value / TicksPerNano);
 
     /// <summary>Creates UnixNano from DateTimeOffset.</summary>
-    public static UnixNano FromDateTimeOffset(DateTimeOffset dto)
-    {
-        return new UnixNano(dto.ToUnixTimeMilliseconds() * NanosPerMillisecond);
-    }
+    public static UnixNano FromDateTimeOffset(DateTimeOffset dto) =>
+        new(dto.ToUnixTimeMilliseconds() * NanosPerMillisecond);
 
     /// <summary>Gets current time as UnixNano with sub-millisecond precision.</summary>
-    public static UnixNano Now()
-    {
-        return new UnixNano(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * NanosPerMillisecond +
-                            Stopwatch.GetTimestamp() % NanosPerMillisecond);
-    }
+    public static UnixNano Now() =>
+        new((TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * NanosPerMillisecond) +
+            (Stopwatch.GetTimestamp() % NanosPerMillisecond));
 
-    public static bool operator <(UnixNano left, UnixNano right)
-    {
-        return left.Value < right.Value;
-    }
+    public static bool operator <(UnixNano left, UnixNano right) => left.Value < right.Value;
 
-    public static bool operator >(UnixNano left, UnixNano right)
-    {
-        return left.Value > right.Value;
-    }
+    public static bool operator >(UnixNano left, UnixNano right) => left.Value > right.Value;
 
-    public static bool operator <=(UnixNano left, UnixNano right)
-    {
-        return left.Value <= right.Value;
-    }
+    public static bool operator <=(UnixNano left, UnixNano right) => left.Value <= right.Value;
 
-    public static bool operator >=(UnixNano left, UnixNano right)
-    {
-        return left.Value >= right.Value;
-    }
+    public static bool operator >=(UnixNano left, UnixNano right) => left.Value >= right.Value;
 
-    public static UnixNano operator -(UnixNano left, UnixNano right)
-    {
-        return new UnixNano(left.Value - right.Value);
-    }
+    public static UnixNano operator -(UnixNano left, UnixNano right) => new(left.Value - right.Value);
 
-    public static UnixNano operator +(UnixNano left, UnixNano right)
-    {
-        return new UnixNano(left.Value + right.Value);
-    }
+    public static UnixNano operator +(UnixNano left, UnixNano right) => new(left.Value + right.Value);
 
     /// <inheritdoc />
-    public override string ToString()
-    {
-        return Value.ToString(CultureInfo.InvariantCulture);
-    }
+    public override string ToString() => Value.ToString(CultureInfo.InvariantCulture);
 
     // =========================================================================
     // Exception helpers (cold path)
     // =========================================================================
 
     [DoesNotReturn]
-    private static void ThrowFormatException(int actualLength)
-    {
+    private static void ThrowFormatException(int actualLength) =>
         throw new FormatException($"Invalid UnixNano format (length: {actualLength})");
-    }
 }

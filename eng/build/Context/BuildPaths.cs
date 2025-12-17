@@ -91,7 +91,7 @@ public sealed record BuildPaths(AbsolutePath Root)
 
     public AbsolutePath EngBuild => Eng / "build";
 
-    public AbsolutePath EngMSBuild => Eng / "MSBuild";
+    public AbsolutePath EngMsBuild => Eng / "MSBuild";
 
     // ════════════════════════════════════════════════════════════════════════
     // Factory

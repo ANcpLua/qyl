@@ -4,8 +4,11 @@
        ======================================================================= -->
   <ItemGroup>
     <!-- OpenTelemetry -->
+    <PackageVersion Include="Microsoft.DotNet.ILCompiler" Version="10.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.EventSource" Version="10.0.1" />
+    
+    <PackageVersion Include="Microsoft.NET.ILLink.Tasks" Version="10.0.1" />
     <PackageVersion Include="Nuke.Build" Version="10.1.0" />
     <PackageVersion Include="OpenTelemetry" Version="1.14.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.14.0" />
@@ -22,8 +25,17 @@
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.1" />
+    <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators + enrichment -->
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="10.1.0" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Buffering" Version="10.1.0" />
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1" />
     <!-- System -->
     <PackageVersion Include="System.Text.Json" Version="10.0.1" />
     <PackageVersion Include="System.Threading.Channels" Version="10.0.1" />
@@ -38,24 +50,19 @@
     <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0-pre1" />
     <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.71.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.76.0" />
-    <!-- Testing -->
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP) -->
+    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0-pre1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.14.0-beta.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
-    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.3" />
-    <PackageVersion Include="AwesomeAssertions" Version="1.0.0" />
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
-    <PackageVersion Include="Testcontainers" Version="4.5.0" />
+    <PackageVersion Include="xunit.v3" Version="3.2.1" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.1.0" />
+    <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <!-- Analyzers (BannedApiAnalyzers provided by ANcpLua.NET.Sdk) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101" />
-    <PackageVersion Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15" />
-    <PackageVersion Include="Roslynator.Analyzers" Version="4.14.1" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.12.0-beta1.25218.8" />
     <!-- Roslyn (for qyl.analyzers) -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.14.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.2" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Testing.Verifiers.XUnit" Version="1.1.2" />
     <!-- Microsoft.Agents.AI (preview) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.251204.1" />
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.251204.1" />
@@ -74,16 +81,14 @@
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="10.1.0" />
     <PackageVersion Include="Nuke.Components" Version="10.1.0" />
-    <PackageVersion Include="Nuke.Tooling.Generator" Version="10.1.0" />
     <!-- CLI -->
-    <PackageVersion Include="System.CommandLine" Version="2.0.1" />
-    <!-- RabbitMQ (for examples) -->
-    <PackageVersion Include="RabbitMQ.Client" Version="7.1.2" />
+    <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
     <!-- Console example dependencies -->
-    <PackageVersion Include="CommandLineParser" Version="2.9.1" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0-pre1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.14.0-beta.1" />
+
+  </ItemGroup>
+  <ItemGroup>
+    <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]" />
+    <PackageDownload Include="ReportGenerator" Version="[5.5.0]" />
+    <PackageDownload Include="Versionize" Version="[2.4.0]" />
   </ItemGroup>
 </Project>

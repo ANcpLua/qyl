@@ -2,25 +2,31 @@
     <!-- Import root props -->
     <Import Project="../Directory.Build.props"/>
 
-    <!-- Test project settings -->
+    <!-- =======================================================================
+         xUnit v3 Test Projects with Microsoft Testing Platform (MTP)
+         All test projects are executables that run via MTP.
+         ======================================================================= -->
     <PropertyGroup>
+        <OutputType>Exe</OutputType>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
         <IsAotCompatible>false</IsAotCompatible>
+        <!-- CA1707: Underscores in test method names are convention -->
+        <!-- VSTHRD111: Use .ConfigureAwait(bool) is not needed in test code -->
+        <!-- xUnit1051: CancellationToken suggestion - not critical for tests -->
+        <NoWarn>$(NoWarn);CA1707;VSTHRD111;xUnit1051</NoWarn>
     </PropertyGroup>
 
-    <!-- Test packages -->
+    <!-- xUnit v3 MTP packages -->
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk"/>
-        <PackageReference Include="xunit"/>
-        <PackageReference Include="xunit.runner.visualstudio">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="coverlet.collector">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
+    </ItemGroup>
+
+    <!-- xUnit v3 configuration file -->
+    <ItemGroup>
+        <Content Include="$(MSBuildThisFileDirectory)xunit.v3.runner.json" CopyToOutputDirectory="PreserveNewest" Link="xunit.v3.runner.json"/>
     </ItemGroup>
 
 </Project>

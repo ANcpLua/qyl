@@ -75,7 +75,7 @@ public sealed partial class HostClientAgent
 
 public static class A2ACardResolver
 {
-    private static readonly HttpClient _sSharedClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+    private static readonly HttpClient SSharedClient = new() { Timeout = TimeSpan.FromSeconds(60) };
 
     public static async Task<AgentCard> GetAgentCardAsync(
         Uri baseUrl,
@@ -85,7 +85,7 @@ public static class A2ACardResolver
     {
         Throw.IfNull(baseUrl);
 
-        var client = httpClient ?? _sSharedClient;
+        var client = httpClient ?? SSharedClient;
         var cardUrl = new Uri(baseUrl, agentCardPath.TrimStart('/'));
 
         try
@@ -266,15 +266,11 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
 public static class TelemetryAgentExtensions
 {
-    extension(AIAgent agent)
-    {
-        public AIAgent WithTelemetry(ITelemetryCollector? collector = null, string? agentName = null) =>
-            new TelemetryAgent(agent, collector, agentName);
-    }
+    public static AIAgent WithTelemetry(this AIAgent agent, ITelemetryCollector? collector = null,
+        string? agentName = null) =>
+        new TelemetryAgent(agent, collector, agentName);
 
-    extension(AIAgentBuilder builder)
-    {
-        public AIAgentBuilder UseTelemetry(ITelemetryCollector? collector = null, string? agentName = null) =>
-            builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
-    }
+    public static AIAgentBuilder UseTelemetry(this AIAgentBuilder builder, ITelemetryCollector? collector = null,
+        string? agentName = null) =>
+        builder.Use((innerAgent, _) => new TelemetryAgent(innerAgent, collector, agentName));
 }

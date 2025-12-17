@@ -4,6 +4,7 @@
     <RootNamespace>qyl.collector</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <PublishAot>true</PublishAot>
+    <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- ConfigureAwait not needed in ASP.NET Core apps -->
     <NoWarn>$(NoWarn);CA2007;VSTHRD111</NoWarn>
@@ -20,15 +21,12 @@
     <ClaudeCriticalFile Include="Storage/DuckDbStore.cs" Reason="Core persistence - schema changes break data"/>
     <ClaudeCriticalFile Include="Storage/DuckDbSchema.cs" Reason="DDL definitions - must match DuckDbStore"/>
     <ClaudeCriticalFile Include="Program.cs" Reason="DI registration - service configuration"/>
-    <ClaudeAntiPattern Include="DateTime.UtcNow" UseInstead="TimeProvider.System.GetUtcNow()" Severity="Error"/>
-    <ClaudeAntiPattern Include="object _lock" UseInstead="Lock _lock = new()" Severity="Error"/>
-    <ClaudeRequiredPattern Include="Lock" Description="Use .NET 9+ Lock class for all synchronization"/>
-    <ClaudeRequiredPattern Include="TypedResults.ServerSentEvents" Description="Use for all SSE endpoints"/>
   </ItemGroup>
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
+    <PackageReference Remove="ANcpSdk.AspNetCore.ServiceDefaults"/>
   </ItemGroup>
 
 
@@ -36,8 +34,22 @@
   <ItemGroup>
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="Grpc.Tools"/>
+    <PackageReference Include="Microsoft.DotNet.ILCompiler"/>
+    <PackageReference Include="Microsoft.NET.ILLink.Tasks"/>
     <PackageReference Include="OpenTelemetry.Api"/>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>
+  </ItemGroup>
+
+  <!-- .NET 10 Telemetry: Source generators, enrichment, redaction, buffering -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Buffering"/>
   </ItemGroup>
 
   <!-- Core dependencies -->

@@ -1,5 +1,8 @@
+using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using System.Threading;
+using Nuke.Common;
 using Nuke.Common.IO;
 using Serilog;
 
@@ -25,6 +28,25 @@ public sealed class GenerationGuard
     public bool SkipExisting { get; }
 
     public GenerationStats Stats { get; } = new();
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Factory Methods
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    ///     Creates a guard configured for CI builds (Force=true for clean generation).
+    /// </summary>
+    public static GenerationGuard ForCi() => new(true);
+
+    /// <summary>
+    ///     Creates a guard configured for local development (preserves existing files).
+    /// </summary>
+    public static GenerationGuard ForLocal(bool force = false) => new(force, skipExisting: !force);
+
+    /// <summary>
+    ///     Creates a guard for dry-run preview.
+    /// </summary>
+    public static GenerationGuard ForPreview() => new(dryRun: true);
 
     // ════════════════════════════════════════════════════════════════════════
     // Core Methods
@@ -89,9 +111,9 @@ public sealed class GenerationGuard
             return GenerationDecision.Generate;
         }
 
-        // Check if content is identical
-        var existingContent = File.ReadAllText(path).ReplaceLineEndings("\n");
-        var normalizedContent = content.ReplaceLineEndings("\n");
+        // Check if content is identical (ignoring timestamp in header)
+        var existingContent = NormalizeForComparison(File.ReadAllText(path));
+        var normalizedContent = NormalizeForComparison(content);
 
         if (existingContent == normalizedContent)
         {
@@ -151,27 +173,51 @@ public sealed class GenerationGuard
     /// <summary>
     ///     Log generation summary statistics.
     /// </summary>
-    public void LogSummary()
+    /// <param name="failOnStaleInCi">If true and running in CI with skipped files, throws an exception.</param>
+    public void LogSummary(bool failOnStaleInCi = true)
     {
+        var isServerBuild = NukeBuild.IsServerBuild;
+
         Log.Information("═══════════════════════════════════════════════════════════════");
         Log.Information("  Generation Summary");
         Log.Information("═══════════════════════════════════════════════════════════════");
 
         if (Stats.GeneratedCount > 0)
-            Log.Information("  Generated:  {Count} files", Stats.GeneratedCount);
+            Log.Information("  Generated:   {Count} files", Stats.GeneratedCount);
         if (Stats.UpdatedCount > 0)
-            Log.Information("  Updated:    {Count} files", Stats.UpdatedCount);
+            Log.Information("  Updated:     {Count} files", Stats.UpdatedCount);
         if (Stats.OverwrittenCount > 0)
-            Log.Information("  Overwritten:{Count} files", Stats.OverwrittenCount);
+            Log.Information("  Overwritten: {Count} files", Stats.OverwrittenCount);
         if (Stats.SkippedCount > 0)
-            Log.Information("  Skipped:    {Count} files (already exist)", Stats.SkippedCount);
+            Log.Information("  Skipped:     {Count} files (already exist)", Stats.SkippedCount);
         if (Stats.UnchangedCount > 0)
-            Log.Information("  Unchanged:  {Count} files (content identical)", Stats.UnchangedCount);
+            Log.Information("  Unchanged:   {Count} files (content identical)", Stats.UnchangedCount);
         if (Stats.DryRunCount > 0)
-            Log.Information("  Dry Run:    {Count} files (would generate)", Stats.DryRunCount);
+            Log.Information("  Dry Run:     {Count} files (would generate)", Stats.DryRunCount);
 
         var total = Stats.GeneratedCount + Stats.UpdatedCount + Stats.OverwrittenCount;
-        if (total is 0 && Stats.SkippedCount > 0)
+
+        // Stale output detection for CI
+        if (isServerBuild && Stats.SkippedCount > 0 && !Force)
+        {
+            Log.Warning("═══════════════════════════════════════════════════════════════");
+            Log.Warning("  ⚠️  STALE OUTPUT RISK: {Count} files were skipped", Stats.SkippedCount);
+            Log.Warning("═══════════════════════════════════════════════════════════════");
+            Log.Warning("  Generated files may be out of sync with source schema.");
+            Log.Warning("  CI should run with --Force to ensure fresh generation.");
+            Log.Warning("");
+            Log.Warning("  To fix:");
+            Log.Warning("    1. Run: nuke Generate --Force");
+            Log.Warning("    2. Commit the updated generated files");
+            Log.Warning("    3. Or update CI to always use --Force");
+            Log.Warning("═══════════════════════════════════════════════════════════════");
+
+            if (failOnStaleInCi)
+                throw new InvalidOperationException(
+                    $"CI build detected {Stats.SkippedCount} stale generated files. " +
+                    "Run 'nuke Generate --Force' locally and commit the changes.");
+        }
+        else if (total is 0 && Stats.SkippedCount > 0)
         {
             Log.Information("");
             Log.Information("  Tip: Use --Force to overwrite existing files");
@@ -179,6 +225,29 @@ public sealed class GenerationGuard
         }
 
         Log.Information("═══════════════════════════════════════════════════════════════");
+    }
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Helpers
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    ///     Normalize content for comparison by removing timestamps from headers.
+    /// </summary>
+    static string NormalizeForComparison(string content)
+    {
+        // Normalize line endings
+        content = content.ReplaceLineEndings("\n");
+
+        // Remove timestamp lines from auto-generated headers
+        // Matches: "//     Generated: 2024-12-17T..." or "--     Generated: ..."
+        content = Regex.Replace(
+            content,
+            @"^(//|--)\s+Generated:\s+\d{4}-\d{2}-\d{2}T.*$",
+            "$1     Generated: [TIMESTAMP]",
+            RegexOptions.Multiline);
+
+        return content;
     }
 }
 
@@ -224,6 +293,9 @@ public sealed class GenerationStats
     public int SkippedCount => _skippedCount;
     public int UnchangedCount => _unchangedCount;
     public int DryRunCount => _dryRunCount;
+
+    public int TotalProcessed => _generatedCount + _updatedCount + _overwrittenCount +
+                                 _skippedCount + _unchangedCount + _dryRunCount;
 
     public void IncrementGenerated() => Interlocked.Increment(ref _generatedCount);
     public void IncrementUpdated() => Interlocked.Increment(ref _updatedCount);

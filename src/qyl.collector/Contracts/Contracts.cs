@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace qyl.collector.Contracts;
 
 public sealed record SpanDto
@@ -63,11 +61,11 @@ public sealed record GenAiSpanDataDto
 
     public string? ResponseModel { get; init; }
 
-    public int? InputTokens { get; init; }
+    public long? InputTokens { get; init; }
 
-    public int? OutputTokens { get; init; }
+    public long? OutputTokens { get; init; }
 
-    public int? TotalTokens { get; init; }
+    public long? TotalTokens { get; init; }
 
     public double? CostUsd { get; init; }
 
@@ -88,9 +86,9 @@ public sealed record SessionDto
     public required string StartTime { get; init; }
     public required string LastActivity { get; init; }
     public required double DurationMs { get; init; }
-    public required int SpanCount { get; init; }
-    public required int TraceCount { get; init; }
-    public required int ErrorCount { get; init; }
+    public required long SpanCount { get; init; }
+    public required long TraceCount { get; init; }
+    public required long ErrorCount { get; init; }
     public required double ErrorRate { get; init; }
 
     public required List<string> Services { get; init; }
@@ -106,14 +104,14 @@ public sealed record SessionDto
 
 public sealed record SessionGenAiStatsDto
 {
-    public int TotalInputTokens { get; init; }
-    public int TotalOutputTokens { get; init; }
-    public int TotalTokens { get; init; }
+    public long TotalInputTokens { get; init; }
+    public long TotalOutputTokens { get; init; }
+    public long TotalTokens { get; init; }
     public double TotalCostUsd { get; init; }
 
-    public int RequestCount { get; init; }
+    public long RequestCount { get; init; }
 
-    public int ToolCallCount { get; init; }
+    public long ToolCallCount { get; init; }
 
     public List<string> Models { get; init; } = [];
 

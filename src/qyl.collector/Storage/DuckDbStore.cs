@@ -1,29 +1,35 @@
-using System.Data.Common;
-using System.Threading.Channels;
-using DuckDB.NET.Data;
-
 namespace qyl.collector.Storage;
 
+/// <summary>
+///     DuckDB storage with separated read/write paths for optimal concurrency.
+///     - Single writer connection (channel-buffered, batched)
+///     - Pooled read connections (parallel queries, bounded concurrency)
+/// </summary>
 public sealed class DuckDbStore : IAsyncDisposable
 {
+    // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named ($param_name).
     private const string InsertSpanSql = """
                                          INSERT INTO spans (
-                                             trace_id, span_id, parent_span_id, session_id,
+                                             trace_id, span_id, parent_span_id,
                                              name, kind, start_time, end_time, status_code, status_message,
-                                             provider_name, request_model, tokens_in, tokens_out,
+                                             service_name, session_id,
+                                             genai_provider, genai_request_model,
+                                             genai_input_tokens, genai_output_tokens,
                                              cost_usd, eval_score, eval_reason, attributes, events
                                          ) VALUES (
-                                             $trace_id, $span_id, $parent_span_id, $session_id,
-                                             $name, $kind, $start_time, $end_time, $status_code, $status_message,
-                                             $provider_name, $request_model, $tokens_in, $tokens_out,
-                                             $cost_usd, $eval_score, $eval_reason, $attributes, $events
+                                             $1, $2, $3,
+                                             $4, $5, $6, $7, $8, $9,
+                                             $10, $11,
+                                             $12, $13,
+                                             $14, $15,
+                                             $16, $17, $18, $19, $20
                                          )
                                          ON CONFLICT (trace_id, span_id) DO UPDATE SET
                                              end_time = EXCLUDED.end_time,
                                              status_code = EXCLUDED.status_code,
                                              status_message = EXCLUDED.status_message,
-                                             tokens_in = EXCLUDED.tokens_in,
-                                             tokens_out = EXCLUDED.tokens_out,
+                                             genai_input_tokens = EXCLUDED.genai_input_tokens,
+                                             genai_output_tokens = EXCLUDED.genai_output_tokens,
                                              cost_usd = EXCLUDED.cost_usd,
                                              eval_score = EXCLUDED.eval_score,
                                              eval_reason = EXCLUDED.eval_reason,
@@ -32,7 +38,6 @@ public sealed class DuckDbStore : IAsyncDisposable
                                          """;
 
     private const string Schema = """
-                                  -- sessions table
                                   CREATE TABLE IF NOT EXISTS sessions (
                                       session_id VARCHAR PRIMARY KEY,
                                       name VARCHAR,
@@ -42,12 +47,10 @@ public sealed class DuckDbStore : IAsyncDisposable
                                       metadata JSON
                                   );
 
-                                  -- spans table (hot storage)
                                   CREATE TABLE IF NOT EXISTS spans (
                                       trace_id VARCHAR NOT NULL,
                                       span_id VARCHAR NOT NULL,
                                       parent_span_id VARCHAR,
-                                      session_id VARCHAR,
 
                                       name VARCHAR NOT NULL,
                                       kind VARCHAR,
@@ -59,25 +62,26 @@ public sealed class DuckDbStore : IAsyncDisposable
                                       status_code INT,
                                       status_message VARCHAR,
 
-                                      -- GenAI semantic conventions (v1.38)
-                                      provider_name VARCHAR,
-                                      request_model VARCHAR,
-                                      tokens_in INT,
-                                      tokens_out INT,
+                                      service_name VARCHAR,
+                                      session_id VARCHAR,
 
-                                      -- qyl. extensions
+                                      genai_provider VARCHAR,
+                                      genai_request_model VARCHAR,
+                                      genai_response_model VARCHAR,
+                                      genai_operation VARCHAR,
+                                      genai_input_tokens BIGINT,
+                                      genai_output_tokens BIGINT,
+
                                       cost_usd DECIMAL(10,6),
                                       eval_score FLOAT,
                                       eval_reason VARCHAR,
 
-                                      -- Flexible storage
                                       attributes JSON,
                                       events JSON,
 
                                       PRIMARY KEY (trace_id, span_id)
                                   );
 
-                                  -- feedback table
                                   CREATE TABLE IF NOT EXISTS feedback (
                                       feedback_id VARCHAR PRIMARY KEY,
                                       session_id VARCHAR NOT NULL,
@@ -91,181 +95,218 @@ public sealed class DuckDbStore : IAsyncDisposable
                                       metadata JSON
                                   );
 
-                                  -- Indexes
                                   CREATE INDEX IF NOT EXISTS idx_spans_time ON spans (start_time);
                                   CREATE INDEX IF NOT EXISTS idx_spans_session ON spans (session_id);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (provider_name) WHERE provider_name IS NOT NULL;
-                                  CREATE INDEX IF NOT EXISTS idx_feedback_session ON feedback (session_id);
+                                  CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (genai_provider);
+                                  CREATE INDEX IF NOT EXISTS idx_spans_service ON spans (service_name);
                                   """;
 
-    private readonly CancellationTokenSource _cts;
-    private readonly Channel<SpanBatch> _writeChannel;
-    private readonly SemaphoreSlim _writeLock = new(1, 1);
+    private const string SelectColumns = """
+                                         trace_id, span_id, parent_span_id,
+                                         name, kind, start_time, end_time, status_code, status_message,
+                                         service_name, session_id,
+                                         genai_provider, genai_request_model,
+                                         genai_input_tokens, genai_output_tokens,
+                                         cost_usd, eval_score, eval_reason, attributes, events
+                                         """;
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly Counter<long> _droppedJobs;
+    private readonly Counter<long> _droppedSpans;
+    private readonly bool _isInMemory;
+    private readonly Channel<WriteJob> _jobs;
+
+    private readonly Meter _meter = new("qyl.collector.storage", "1.0.0");
+
+    private readonly SemaphoreSlim _readGate;
+    private readonly ReadConnectionPolicy _readPolicy;
+
+    private readonly DefaultObjectPool<DuckDBConnection> _readPool;
     private readonly Task _writerTask;
 
-    public DuckDbStore(string databasePath = "qyl.duckdb")
+    private int _disposed;
+
+    public DuckDbStore(
+        string databasePath = "qyl.duckdb",
+        int jobQueueCapacity = 1000,
+        int maxConcurrentReads = 8,
+        int maxRetainedReadConnections = 16)
     {
-        Connection = new DuckDBConnection($"Data Source={databasePath}");
+        _isInMemory = databasePath == ":memory:";
+        Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
+        InitializeSchema(Connection);
 
-        InitializeSchema();
+        _droppedJobs = _meter.CreateCounter<long>("qyl.duckdb.dropped_jobs_total");
+        _droppedSpans = _meter.CreateCounter<long>("qyl.duckdb.dropped_spans_total");
 
-        _cts = new CancellationTokenSource();
-
-        _writeChannel = Channel.CreateBounded<SpanBatch>(new BoundedChannelOptions(1000)
+        _jobs = Channel.CreateBounded<WriteJob>(new BoundedChannelOptions(jobQueueCapacity)
         {
             FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = false
         });
 
-        _writerTask = Task.Run(WriteLoopAsync);
+        _readPolicy = new ReadConnectionPolicy(databasePath);
+        _readPool = new DefaultObjectPool<DuckDBConnection>(_readPolicy, maxRetainedReadConnections);
+        _readGate = new SemaphoreSlim(maxConcurrentReads, maxConcurrentReads);
+
+        _writerTask = Task.Run(WriterLoopAsync);
     }
 
     /// <summary>
-    ///     Exposes the connection for query services that need direct DuckDB access.
+    ///     Exposes the write connection for legacy compatibility (SessionQueryService).
+    ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
     /// </summary>
     public DuckDBConnection Connection { get; }
 
     public async ValueTask DisposeAsync()
     {
-        _writeChannel.Writer.Complete();
-        await _cts.CancelAsync().ConfigureAwait(false);
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
 
+        _jobs.Writer.TryComplete();
+
+        // Graceful shutdown: 3s to drain, then cancel
         try
         {
-#pragma warning disable VSTHRD003 // Awaiting task from field is safe in DisposeAsync
-            await _writerTask.ConfigureAwait(false);
-#pragma warning restore VSTHRD003
+            await _writerTask.WaitAsync(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+        }
+        catch (TimeoutException)
+        {
+            await _cts.CancelAsync().ConfigureAwait(false);
+            try
+            {
+                await _writerTask.WaitAsync(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            }
+            catch
+            {
+                // Best effort - proceed with cleanup
+            }
         }
         catch (OperationCanceledException)
         {
+            // Expected during shutdown
         }
 
         Connection.Dispose();
         _cts.Dispose();
-        _writeLock.Dispose();
+        _readGate.Dispose();
+        _readPolicy.DisposeAll();
+        _meter.Dispose();
     }
 
-    private void InitializeSchema()
+    /// <summary>
+    ///     Provides direct read access for SessionQueryService.
+    ///     Returns a leased connection that must be disposed after use.
+    /// </summary>
+    public async ValueTask<IAsyncDisposable> GetReadConnectionAsync(CancellationToken ct = default) =>
+        await RentReadAsync(ct).ConfigureAwait(false);
+
+    /// <summary>
+    ///     Enqueues a batch for async writing. With DropOldest, TryWrite always succeeds
+    ///     but may drop the oldest queued item (whose OnAborted will be called by WriterLoop).
+    /// </summary>
+    public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default)
     {
-        using var cmd = Connection.CreateCommand();
-        cmd.CommandText = Schema;
-        cmd.ExecuteNonQuery();
+        ThrowIfDisposed();
+        if (ct.IsCancellationRequested) return ValueTask.FromCanceled(ct);
+        if (batch.Spans.Count == 0) return ValueTask.CompletedTask;
+
+        var job = new FireAndForgetJob(
+            batch.Spans.Count,
+            (con, token) => WriteBatchInternalAsync(con, batch, token),
+            spanCount =>
+            {
+                _droppedJobs.Add(1);
+                _droppedSpans.Add(spanCount);
+            });
+
+        // DropOldest: Always succeeds, drops oldest if full (acceptable for telemetry)
+        _jobs.Writer.TryWrite(job);
+        return ValueTask.CompletedTask;
     }
 
-    public ValueTask EnqueueAsync(SpanBatch batch, CancellationToken ct = default) =>
-        _writeChannel.Writer.WriteAsync(batch, ct);
-
-    private async Task WriteLoopAsync()
+    /// <summary>
+    ///     Writes a batch directly (for testing). Bypasses the queue and writes synchronously.
+    /// </summary>
+    public async Task WriteBatchAsync(SpanBatch batch, CancellationToken ct = default)
     {
-        await foreach (var batch in _writeChannel.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
-        {
-            try
-            {
-                await WriteBatchInternalAsync(batch, _cts.Token).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException)
-            {
-                break;
-            }
-            catch (Exception ex)
-            {
-                await Console.Error.WriteLineAsync($"[qyl.collector] Write error: {ex.Message}");
-            }
-        }
+        ThrowIfDisposed();
+        if (batch.Spans.Count == 0) return;
+
+        // Write directly to the connection (bypasses background queue)
+        await WriteBatchInternalAsync(Connection, batch, ct).ConfigureAwait(false);
     }
 
-    private async Task WriteBatchInternalAsync(SpanBatch batch, CancellationToken ct)
-    {
-        if (batch.Spans.Count is 0) return;
-
-        await _writeLock.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            using var transaction = Connection.BeginTransaction();
-
-            foreach (var span in batch.Spans)
-            {
-                using var cmd = Connection.CreateCommand();
-                cmd.Transaction = transaction;
-                cmd.CommandText = InsertSpanSql;
-
-                cmd.Parameters.Add(new DuckDBParameter("trace_id", span.TraceId));
-                cmd.Parameters.Add(new DuckDBParameter("span_id", span.SpanId));
-                cmd.Parameters.Add(new DuckDBParameter("parent_span_id", span.ParentSpanId ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("session_id", span.SessionId ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("name", span.Name));
-                cmd.Parameters.Add(new DuckDBParameter("kind", span.Kind ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("start_time", span.StartTime));
-                cmd.Parameters.Add(new DuckDBParameter("end_time", span.EndTime));
-                cmd.Parameters.Add(new DuckDBParameter("status_code", span.StatusCode ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("status_message", span.StatusMessage ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("provider_name", span.ProviderName ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("request_model", span.RequestModel ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("tokens_in", span.TokensIn ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("tokens_out", span.TokensOut ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("cost_usd", span.CostUsd ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("eval_score", span.EvalScore ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("eval_reason", span.EvalReason ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("attributes", span.Attributes ?? (object)DBNull.Value));
-                cmd.Parameters.Add(new DuckDBParameter("events", span.Events ?? (object)DBNull.Value));
-
-                await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            }
-
-            transaction.Commit();
-        }
-        finally
-        {
-            _writeLock.Release();
-        }
-    }
-
-    public async Task<IReadOnlyList<SpanRecord>> GetSpansBySessionAsync(string sessionId,
+    public async Task<int> ArchiveToParquetAsync(
+        string outputDirectory,
+        TimeSpan olderThan,
         CancellationToken ct = default)
     {
-        var spans = new List<SpanRecord>();
+        ThrowIfDisposed();
+        if (ct.IsCancellationRequested) return await Task.FromCanceled<int>(ct).ConfigureAwait(false);
 
-        using var cmd = Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT trace_id, span_id, parent_span_id, session_id,
-                                 name, kind, start_time, end_time, status_code, status_message,
-                                 provider_name, request_model, tokens_in, tokens_out,
-                                 cost_usd, eval_score, eval_reason, attributes, events
-                          FROM spans
-                          WHERE session_id = $session_id
-                          ORDER BY start_time ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter("session_id", sessionId));
+        var job = new WriteJob<int>((con, token) =>
+            ArchiveInternalAsync(con, outputDirectory, olderThan, token));
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
-
-        return spans;
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<SpanRecord>> GetTraceAsync(string traceId, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(string sessionId,
+        CancellationToken ct = default)
     {
-        var spans = new List<SpanRecord>();
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        using var cmd = Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT trace_id, span_id, parent_span_id, session_id,
-                                 name, kind, start_time, end_time, status_code, status_message,
-                                 provider_name, request_model, tokens_in, tokens_out,
-                                 cost_usd, eval_score, eval_reason, attributes, events
-                          FROM spans
-                          WHERE trace_id = $trace_id
-                          ORDER BY start_time ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter("trace_id", traceId));
+        // DuckDB.NET 1.4.3 BUG: = operator doesn't work correctly for session_id column
+        // Even with identical hex values, WHERE session_id = 'value' returns 0 rows
+        // But WHERE session_id LIKE '%value%' works. Using this as workaround.
+        // Escape LIKE special characters and SQL injection characters
+        var escapedSessionId = sessionId
+            .Replace("'", "''")
+            .Replace("%", @"\%")
+            .Replace("_", @"\_");
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
+        var spans = new List<SpanStorageRow>();
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"""
+                           SELECT {SelectColumns}
+                           FROM spans
+                           WHERE session_id LIKE '%{escapedSessionId}%' ESCAPE '\'
+                           ORDER BY start_time ASC
+                           """;
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            spans.Add(MapSpan(reader));
 
         return spans;
     }
 
-    public async Task<IReadOnlyList<SpanRecord>> GetSpansAsync(
+    public async Task<IReadOnlyList<SpanStorageRow>> GetTraceAsync(string traceId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var spans = new List<SpanStorageRow>();
+        await using var cmd = lease.Connection.CreateCommand();
+        // DuckDB.NET 1.4.3: Use positional parameters ($1) instead of named ($trace_id)
+        cmd.CommandText = $"""
+                           SELECT {SelectColumns}
+                           FROM spans
+                           WHERE trace_id = $1
+                           ORDER BY start_time ASC
+                           """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            spans.Add(MapSpan(reader));
+
+        return spans;
+    }
+
+    public async Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
         string? sessionId = null,
         string? providerName = null,
         DateTime? startAfter = null,
@@ -273,164 +314,116 @@ public sealed class DuckDbStore : IAsyncDisposable
         int limit = 100,
         CancellationToken ct = default)
     {
-        var spans = new List<SpanRecord>();
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var spans = new List<SpanStorageRow>();
         var conditions = new List<string>();
         var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
 
+        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
         if (!string.IsNullOrEmpty(sessionId))
         {
-            conditions.Add("session_id = $session_id");
-            parameters.Add(new DuckDBParameter("session_id", sessionId));
+            conditions.Add($"session_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (!string.IsNullOrEmpty(providerName))
         {
-            conditions.Add("provider_name = $provider_name");
-            parameters.Add(new DuckDBParameter("provider_name", providerName));
+            conditions.Add($"genai_provider = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = providerName });
         }
 
         if (startAfter.HasValue)
         {
-            conditions.Add("start_time >= $start_after");
-            parameters.Add(new DuckDBParameter("start_after", startAfter.Value));
+            conditions.Add($"start_time >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
         }
 
         if (startBefore.HasValue)
         {
-            conditions.Add("start_time <= $start_before");
-            parameters.Add(new DuckDBParameter("start_before", startBefore.Value));
+            conditions.Add($"start_time <= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = startBefore.Value });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
-        using var cmd = Connection.CreateCommand();
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-                           SELECT trace_id, span_id, parent_span_id, session_id,
-                                  name, kind, start_time, end_time, status_code, status_message,
-                                  provider_name, request_model, tokens_in, tokens_out,
-                                  cost_usd, eval_score, eval_reason, attributes, events
+                           SELECT {SelectColumns}
                            FROM spans
                            {whereClause}
                            ORDER BY start_time DESC
-                           LIMIT $limit
+                           LIMIT ${paramIndex}
                            """;
 
         cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter("limit", limit));
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            spans.Add(MapSpan(reader));
 
         return spans;
     }
 
-    private static SpanRecord MapSpan(DbDataReader reader) =>
-        new()
-        {
-            TraceId = reader.GetString(0),
-            SpanId = reader.GetString(1),
-            ParentSpanId = reader.IsDBNull(2) ? null : reader.GetString(2),
-            SessionId = reader.IsDBNull(3) ? null : reader.GetString(3),
-            Name = reader.GetString(4),
-            Kind = reader.IsDBNull(5) ? null : reader.GetString(5),
-            StartTime = reader.GetDateTime(6),
-            EndTime = reader.GetDateTime(7),
-            StatusCode = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-            StatusMessage = reader.IsDBNull(9) ? null : reader.GetString(9),
-            ProviderName = reader.IsDBNull(10) ? null : reader.GetString(10),
-            RequestModel = reader.IsDBNull(11) ? null : reader.GetString(11),
-            TokensIn = reader.IsDBNull(12) ? null : reader.GetInt32(12),
-            TokensOut = reader.IsDBNull(13) ? null : reader.GetInt32(13),
-            CostUsd = reader.IsDBNull(14) ? null : reader.GetDecimal(14),
-            EvalScore = reader.IsDBNull(15) ? null : (float)reader.GetDouble(15),
-            EvalReason = reader.IsDBNull(16) ? null : reader.GetString(16),
-            Attributes = reader.IsDBNull(17) ? null : reader.GetString(17),
-            Events = reader.IsDBNull(18) ? null : reader.GetString(18)
-        };
-
-    public async Task<int> ArchiveToParquetAsync(
-        string outputDirectory,
-        TimeSpan olderThan,
-        CancellationToken ct = default)
-    {
-        Directory.CreateDirectory(outputDirectory);
-        var now = TimeProvider.System.GetUtcNow();
-        var cutoff = now.UtcDateTime - olderThan;
-        var timestamp = now.ToString("yyyyMMdd_HHmmss");
-
-        using var countCmd = Connection.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time < $cutoff";
-        countCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
-        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
-
-        if (count is 0) return 0;
-
-        var spansFile = Path.Combine(outputDirectory, $"spans_{timestamp}.parquet");
-        using var exportCmd = Connection.CreateCommand();
-        exportCmd.CommandText = $"""
-                                 COPY (SELECT * FROM spans WHERE start_time < $cutoff)
-                                 TO '{spansFile}'
-                                 (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
-                                 """;
-        exportCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
-        await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-
-        using var deleteCmd = Connection.CreateCommand();
-        deleteCmd.CommandText = "DELETE FROM spans WHERE start_time < $cutoff";
-        deleteCmd.Parameters.Add(new DuckDBParameter("cutoff", cutoff));
-        await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-
-        return count;
-    }
-
-    public async Task<IReadOnlyList<SpanRecord>> QueryParquetAsync(
+    public async Task<IReadOnlyList<SpanStorageRow>> QueryParquetAsync(
         string parquetPath,
         string? sessionId = null,
         string? traceId = null,
         DateTime? startAfter = null,
         CancellationToken ct = default)
     {
-        var spans = new List<SpanRecord>();
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var spans = new List<SpanStorageRow>();
         var conditions = new List<string>();
         var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
 
+        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
         if (!string.IsNullOrEmpty(sessionId))
         {
-            conditions.Add("session_id = $session_id");
-            parameters.Add(new DuckDBParameter("session_id", sessionId));
+            conditions.Add($"session_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (!string.IsNullOrEmpty(traceId))
         {
-            conditions.Add("trace_id = $trace_id");
-            parameters.Add(new DuckDBParameter("trace_id", traceId));
+            conditions.Add($"trace_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = traceId });
         }
 
         if (startAfter.HasValue)
         {
-            conditions.Add("start_time >= $start_after");
-            parameters.Add(new DuckDBParameter("start_after", startAfter.Value));
+            conditions.Add($"start_time >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
-        if (parquetPath.Contains('\'') || parquetPath.Contains(';') || parquetPath.Contains("--"))
-            throw new ArgumentException("Invalid parquet path", nameof(parquetPath));
+        var full = Path.GetFullPath(parquetPath);
+        ValidateDuckDbSqlPath(full);
 
-        using var cmd = Connection.CreateCommand();
-        cmd.CommandText = $"SELECT * FROM read_parquet('{parquetPath}') {whereClause}";
-
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"SELECT {SelectColumns} FROM read_parquet('{full}') {whereClause}";
         cmd.Parameters.AddRange(parameters);
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false)) spans.Add(MapSpan(reader));
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            spans.Add(MapSpan(reader));
 
         return spans;
     }
 
     public async Task<StorageStats> GetStorageStatsAsync(CancellationToken ct = default)
     {
-        using var cmd = Connection.CreateCommand();
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               (SELECT COUNT(*) FROM spans) as span_count,
@@ -440,16 +433,16 @@ public sealed class DuckDbStore : IAsyncDisposable
                               (SELECT MAX(start_time) FROM spans) as newest_span
                           """;
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new StorageStats
             {
-                SpanCount = reader.GetInt64(0),
-                SessionCount = reader.GetInt64(1),
-                FeedbackCount = reader.GetInt64(2),
-                OldestSpan = await reader.IsDBNullAsync(3, ct).ConfigureAwait(false) ? null : reader.GetDateTime(3),
-                NewestSpan = await reader.IsDBNullAsync(4, ct).ConfigureAwait(false) ? null : reader.GetDateTime(4)
+                SpanCount = reader.Col(0).GetInt64(0),
+                SessionCount = reader.Col(1).GetInt64(0),
+                FeedbackCount = reader.Col(2).GetInt64(0),
+                OldestSpan = reader.Col(3).AsDateTime,
+                NewestSpan = reader.Col(4).AsDateTime
             };
         }
 
@@ -461,29 +454,34 @@ public sealed class DuckDbStore : IAsyncDisposable
         DateTime? startAfter = null,
         CancellationToken ct = default)
     {
-        var conditions = new List<string> { "provider_name IS NOT NULL" };
-        var parameters = new List<DuckDBParameter>();
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
+        var conditions = new List<string> { "genai_provider IS NOT NULL" };
+        var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
+
+        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
         if (!string.IsNullOrEmpty(sessionId))
         {
-            conditions.Add("session_id = $session_id");
-            parameters.Add(new DuckDBParameter("session_id", sessionId));
+            conditions.Add($"session_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (startAfter.HasValue)
         {
-            conditions.Add("start_time >= $start_after");
-            parameters.Add(new DuckDBParameter("start_after", startAfter.Value));
+            conditions.Add($"start_time >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
         }
 
         var whereClause = string.Join(" AND ", conditions);
 
-        using var cmd = Connection.CreateCommand();
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT
                                COUNT(*) as request_count,
-                               COALESCE(SUM(tokens_in), 0) as total_input_tokens,
-                               COALESCE(SUM(tokens_out), 0) as total_output_tokens,
+                               COALESCE(SUM(genai_input_tokens), 0) as total_input_tokens,
+                               COALESCE(SUM(genai_output_tokens), 0) as total_output_tokens,
                                COALESCE(SUM(cost_usd), 0) as total_cost_usd,
                                AVG(CASE WHEN eval_score IS NOT NULL THEN eval_score END) as avg_eval_score
                            FROM spans
@@ -492,21 +490,375 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         cmd.Parameters.AddRange(parameters);
 
-        using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new GenAiStats
             {
-                RequestCount = reader.GetInt64(0),
-                TotalInputTokens = reader.GetInt64(1),
-                TotalOutputTokens = reader.GetInt64(2),
-                TotalCostUsd = reader.GetDecimal(3),
-                AverageEvalScore = await reader.IsDBNullAsync(4, ct).ConfigureAwait(false)
-                    ? null
-                    : (float)reader.GetDouble(4)
+                RequestCount = reader.Col(0).GetInt64(0),
+                TotalInputTokens = reader.Col(1).GetInt64(0),
+                TotalOutputTokens = reader.Col(2).GetInt64(0),
+                TotalCostUsd = reader.Col(3).GetDecimal(0),
+                AverageEvalScore = reader.Col(4).AsFloat
             };
         }
 
         return new GenAiStats();
     }
+
+    private async Task WriterLoopAsync()
+    {
+        try
+        {
+            await foreach (var job in _jobs.Reader.ReadAllAsync(_cts.Token).ConfigureAwait(false))
+            {
+                try
+                {
+                    await job.ExecuteAsync(Connection, _cts.Token).ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    job.OnAborted(ex);
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected during shutdown
+        }
+        finally
+        {
+            // Drain remaining jobs on shutdown
+            while (_jobs.Reader.TryRead(out var leftover))
+                leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
+        }
+    }
+
+    private async ValueTask<ReadLease> RentReadAsync(CancellationToken ct)
+    {
+        ThrowIfDisposed();
+        await _readGate.WaitAsync(ct).ConfigureAwait(false);
+
+        // In-memory databases cannot share connections, so use the main connection
+        if (_isInMemory)
+            return new ReadLease(this, Connection, true);
+
+        DuckDBConnection con;
+        try
+        {
+            con = _readPool.Get();
+            if (con.State != ConnectionState.Open)
+            {
+                con.Dispose();
+                con = _readPolicy.Create();
+            }
+        }
+        catch
+        {
+            _readGate.Release();
+            throw;
+        }
+
+        return new ReadLease(this, con, false);
+    }
+
+    private void ReturnRead(DuckDBConnection con)
+    {
+        try
+        {
+            if (con.State == ConnectionState.Open)
+                _readPool.Return(con);
+            else
+                con.Dispose();
+        }
+        finally
+        {
+            _readGate.Release();
+        }
+    }
+
+    private static void InitializeSchema(DuckDBConnection con)
+    {
+        using var cmd = con.CreateCommand();
+        cmd.CommandText = Schema;
+        cmd.ExecuteNonQuery();
+    }
+
+    private static async ValueTask WriteBatchInternalAsync(DuckDBConnection con, SpanBatch batch, CancellationToken ct)
+    {
+        if (batch.Spans.Count == 0) return;
+
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        foreach (var span in batch.Spans)
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = InsertSpanSql;
+
+            // DuckDB.NET 1.4.3: Use positional parameters (order must match ? placeholders in InsertSpanSql)
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.StartTime });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.EndTime });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ProviderName ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.RequestModel ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.TokensIn ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.TokensOut ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.CostUsd ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.EvalScore ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.EvalReason ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Attributes ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Events ?? (object)DBNull.Value });
+
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<int> ArchiveInternalAsync(
+        DuckDBConnection con,
+        string outputDirectory,
+        TimeSpan olderThan,
+        CancellationToken ct)
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        var now = TimeProvider.System.GetUtcNow();
+        var cutoff = now.UtcDateTime - olderThan;
+        var timestamp = now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+
+        // DuckDB.NET 1.4.3: Use positional parameters ($1)
+        await using var countCmd = con.CreateCommand();
+        countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time < $1";
+        countCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
+        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+        if (count == 0) return 0;
+
+        var finalPath = Path.GetFullPath(Path.Combine(outputDirectory, $"spans_{timestamp}.parquet"));
+        var tempPath = finalPath + ".tmp";
+
+        ValidateDuckDbSqlPath(finalPath);
+        ValidateDuckDbSqlPath(tempPath);
+
+        await using (var exportCmd = con.CreateCommand())
+        {
+            exportCmd.CommandText = $"""
+                                     COPY (SELECT * FROM spans WHERE start_time < $1)
+                                     TO '{tempPath}'
+                                     (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
+                                     """;
+            exportCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
+            await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        File.Move(tempPath, finalPath, true);
+
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await using var deleteCmd = con.CreateCommand();
+        deleteCmd.Transaction = tx;
+        deleteCmd.CommandText = "DELETE FROM spans WHERE start_time < $1";
+        deleteCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
+        await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+
+        return count;
+    }
+
+    private static void ValidateDuckDbSqlPath(string fullPath)
+    {
+        if (fullPath.Contains('\'') || fullPath.Contains(';') || fullPath.Contains("--") ||
+            fullPath.Contains('\n') || fullPath.Contains('\r') || fullPath.Contains('\0'))
+            throw new ArgumentException("Invalid path characters detected", nameof(fullPath));
+    }
+
+    private static SpanStorageRow MapSpan(DbDataReader reader) =>
+        new()
+        {
+            // Required fields
+            TraceId = reader.GetString(0),
+            SpanId = reader.GetString(1),
+
+            // Nullable fields - fluent access
+            ParentSpanId = reader.Col(2).AsString,
+            Name = reader.GetString(3),
+            Kind = reader.Col(4).AsString,
+
+            // DateTime with fallback (OTLP always has valid timestamps)
+            StartTime = reader.Col(5).GetDateTime(default),
+            EndTime = reader.Col(6).GetDateTime(default),
+            StatusCode = reader.Col(7).AsInt32,
+            StatusMessage = reader.Col(8).AsString,
+
+            // OTel 1.38 attributes
+            ServiceName = reader.Col(9).AsString,
+            SessionId = reader.Col(10).AsString,
+            ProviderName = reader.Col(11).AsString,
+            RequestModel = reader.Col(12).AsString,
+            TokensIn = reader.Col(13).AsInt64,
+            TokensOut = reader.Col(14).AsInt64,
+
+            // qyl extensions
+            CostUsd = reader.Col(15).AsDecimal,
+            EvalScore = reader.Col(16).AsFloat,
+            EvalReason = reader.Col(17).AsString,
+
+            // Flexible storage
+            Attributes = reader.Col(18).AsString,
+            Events = reader.Col(19).AsString
+        };
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+
+    #region Nested Types
+
+    /// <summary>
+    ///     RAII-style lease for pooled read connections.
+    /// </summary>
+    public readonly struct ReadLease : IAsyncDisposable, IDisposable
+    {
+        private readonly DuckDbStore _store;
+        private readonly bool _isShared;
+        public DuckDBConnection Connection { get; }
+
+        internal ReadLease(DuckDbStore store, DuckDBConnection con, bool isShared = false)
+        {
+            _store = store;
+            Connection = con;
+            _isShared = isShared;
+        }
+
+        public void Dispose()
+        {
+            // Don't return shared connections (in-memory mode)
+            if (_isShared)
+            {
+                _store._readGate.Release();
+                return;
+            }
+
+            _store.ReturnRead(Connection);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            Dispose();
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private abstract class WriteJob
+    {
+        public abstract ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct);
+
+        public virtual void OnAborted(Exception error)
+        {
+        }
+    }
+
+    private sealed class FireAndForgetJob : WriteJob
+    {
+        private readonly Func<DuckDBConnection, CancellationToken, ValueTask> _action;
+        private readonly Action<int>? _onDropped;
+        private readonly int _spanCount;
+
+        public FireAndForgetJob(
+            int spanCount,
+            Func<DuckDBConnection, CancellationToken, ValueTask> action,
+            Action<int>? onDropped = null)
+        {
+            _spanCount = spanCount;
+            _action = action;
+            _onDropped = onDropped;
+        }
+
+        public override ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct) => _action(con, ct);
+
+        public override void OnAborted(Exception error) => _onDropped?.Invoke(_spanCount);
+    }
+
+    private sealed class WriteJob<TResult> : WriteJob
+    {
+        private readonly Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> _action;
+
+        private readonly TaskCompletionSource<TResult> _tcs =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public WriteJob(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action) => _action = action;
+
+        public Task<TResult> Task => _tcs.Task;
+
+        public override async ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct)
+        {
+            try
+            {
+                var result = await _action(con, ct).ConfigureAwait(false);
+                _tcs.TrySetResult(result);
+            }
+            catch (OperationCanceledException oce)
+            {
+                _tcs.TrySetCanceled(oce.CancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _tcs.TrySetException(ex);
+            }
+        }
+
+        public override void OnAborted(Exception error)
+        {
+            if (error is OperationCanceledException oce)
+                _tcs.TrySetCanceled(oce.CancellationToken);
+            else
+                _tcs.TrySetException(error);
+        }
+    }
+
+    private sealed class ReadConnectionPolicy : PooledObjectPolicy<DuckDBConnection>
+    {
+        private readonly ConcurrentBag<DuckDBConnection> _created = new();
+        private readonly string _path;
+
+        public ReadConnectionPolicy(string path) => _path = path;
+
+        public override DuckDBConnection Create()
+        {
+            // In-memory databases cannot use READ_ONLY mode
+            var connString = _path == ":memory:"
+                ? $"DataSource={_path}"
+                : $"DataSource={_path};ACCESS_MODE=READ_ONLY";
+
+            var con = new DuckDBConnection(connString);
+            con.Open();
+            _created.Add(con);
+            return con;
+        }
+
+        public override bool Return(DuckDBConnection obj) => obj.State == ConnectionState.Open;
+
+        public void DisposeAll()
+        {
+            while (_created.TryTake(out var con))
+            {
+                try
+                {
+                    con.Dispose();
+                }
+                catch
+                {
+                    /* Best effort cleanup */
+                }
+            }
+        }
+    }
+
+    #endregion
 }

@@ -1,6 +1,8 @@
 # =============================================================================
-# qyl EditorConfig - ROOT (Single Source of Truth)
-# All projects inherit from this file. Use path-based sections for overrides.
+# qyl EditorConfig - ROOT (Formatting + Path Exceptions)
+# =============================================================================
+# Baseline analyzer severities are in .globalconfig
+# This file handles formatting + path-based overrides only
 # =============================================================================
 
 root = true
@@ -14,11 +16,10 @@ trim_trailing_whitespace = true
 insert_final_newline = true
 
 # =============================================================================
-# C# FILES - DEFAULT (STRICT)
+# C# FILES - FORMATTING
 # =============================================================================
 
 [*.cs]
-# Formatting
 dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
@@ -81,59 +82,10 @@ dotnet_naming_rule.namespaces_should_be_pascal_case.style = pascal_case
 dotnet_naming_symbols.namespaces.applicable_kinds = namespace
 
 # =============================================================================
-# ASYNC ANALYZERS (STRICT)
-# =============================================================================
-
-# VSTHRD - Threading Analyzers
-dotnet_diagnostic.VSTHRD001.severity = error # Avoid legacy thread switching
-dotnet_diagnostic.VSTHRD002.severity = error # Avoid problematic synchronous waits
-dotnet_diagnostic.VSTHRD003.severity = error # Avoid awaiting foreign Tasks
-dotnet_diagnostic.VSTHRD010.severity = error # Invoke single-threaded types on Main thread
-dotnet_diagnostic.VSTHRD011.severity = error # Use AsyncLazy<T>
-dotnet_diagnostic.VSTHRD100.severity = error # Avoid async void methods
-dotnet_diagnostic.VSTHRD101.severity = error # Avoid unsupported async delegates
-dotnet_diagnostic.VSTHRD102.severity = error # Implement internal logic asynchronously
-dotnet_diagnostic.VSTHRD103.severity = error # Call async methods when in async method
-dotnet_diagnostic.VSTHRD104.severity = error # Offer async option
-dotnet_diagnostic.VSTHRD105.severity = error # Avoid implicit Task.Result
-dotnet_diagnostic.VSTHRD106.severity = error # Use InvokeAsync for async callbacks
-dotnet_diagnostic.VSTHRD107.severity = error # Await Task within using
-dotnet_diagnostic.VSTHRD110.severity = error # Observe result of async calls
-dotnet_diagnostic.VSTHRD111.severity = warning # ConfigureAwait (warning, not error)
-dotnet_diagnostic.VSTHRD200.severity = error # Use Async suffix
-
-# CA Async Rules
-dotnet_diagnostic.CA2007.severity = warning # ConfigureAwait
-dotnet_diagnostic.CA2008.severity = error # Do not create tasks without TaskScheduler
-dotnet_diagnostic.CA2012.severity = error # Use ValueTasks correctly
-dotnet_diagnostic.CA2016.severity = error # Forward CancellationToken
-
-# =============================================================================
-# GENERAL CODE QUALITY
-# =============================================================================
-
-dotnet_diagnostic.CA1816.severity = error # Dispose pattern
-dotnet_diagnostic.CA1822.severity = warning # Mark members as static
-dotnet_diagnostic.CA1848.severity = warning # Use LoggerMessage delegates
-dotnet_diagnostic.CA1860.severity = error # Avoid using 'Enumerable.Any()' extension method
-dotnet_diagnostic.CA1861.severity = error # Avoid constant arrays as arguments
-dotnet_diagnostic.CA2254.severity = warning # Template should be static
-
-# Namespace naming (allow product name 'qyl' in lowercase - brand decision)
-dotnet_diagnostic.IDE1006.severity = warning # Naming rule violations - warning not error
-
-# XML Documentation
-dotnet_diagnostic.CS1591.severity = none # Missing XML comment (disabled globally)
-
-# BannedApiAnalyzers
-dotnet_diagnostic.RS0030.severity = error # Banned API usage
-
-# =============================================================================
 # GENERATED CODE EXCLUSIONS
 # =============================================================================
 
 [*.g.cs]
-# Generated code - disable all analyzers
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
@@ -146,21 +98,18 @@ dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
 [**/Protos/**/*.cs]
-# Protobuf generated code
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
 [**/generated/**/*.cs]
-# Kiota/TypeSpec generated code
 dotnet_analyzer_diagnostic.severity = none
 generated_code = true
 
 # =============================================================================
-# BUILD TOOLING OVERRIDES (eng/build/)
+# BUILD TOOLING (eng/build/)
 # =============================================================================
 
 [eng/build/**/*.cs]
-# Nuke build code uses reflection and dynamic patterns
 dotnet_diagnostic.CA1822.severity = none # Static members not applicable
 dotnet_diagnostic.CS0649.severity = none # Unassigned fields (Nuke DI)
 dotnet_diagnostic.CS0169.severity = none # Unused fields (Nuke DI)
@@ -168,7 +117,6 @@ dotnet_diagnostic.CA1050.severity = none # Declare types in namespaces (Nuke)
 dotnet_diagnostic.CA2211.severity = none # Non-constant fields (Nuke)
 dotnet_diagnostic.IDE1006.severity = none # Naming (Nuke conventions)
 
-# Relaxed style for build automation
 dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning
 dotnet_style_qualification_for_method = false:warning
@@ -180,31 +128,143 @@ csharp_style_expression_bodied_indexers = true:warning
 csharp_style_expression_bodied_accessors = true:warning
 
 # =============================================================================
-# TEST PROJECT OVERRIDES
+# DTO/CONTRACT FILES (recursive globs)
+# Per dotnet/roslyn-analyzers#1705: DTOs are legitimate exceptions
+# =============================================================================
+
+[src/**/Contracts/**/*.cs]
+dotnet_diagnostic.CA1002.severity = none # List<T> for System.Text.Json
+dotnet_diagnostic.CA1819.severity = none # Array properties in DTOs
+dotnet_diagnostic.CA2227.severity = none # Collection properties settable
+
+[src/**/*Dto.cs]
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA1819.severity = none
+dotnet_diagnostic.CA2227.severity = none
+
+[src/**/*Response.cs]
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA1819.severity = none
+
+[src/**/*Request.cs]
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA1819.severity = none
+
+# =============================================================================
+# GRPC/PROTOBUF (recursive)
+# =============================================================================
+
+[src/**/Grpc/**/*.cs]
+dotnet_diagnostic.CA1002.severity = none # List<T> for protobuf
+dotnet_diagnostic.CA1819.severity = none # Arrays for protobuf
+
+# =============================================================================
+# INGESTION (recursive)
+# =============================================================================
+
+[src/**/Ingestion/**/*.cs]
+dotnet_diagnostic.CA1002.severity = none # OTLP wire format
+
+# =============================================================================
+# STORAGE (recursive)
+# =============================================================================
+
+[src/**/Storage/**/*.cs]
+dotnet_diagnostic.CA2100.severity = none # Parameterized queries - verified safe
+dotnet_diagnostic.CA1034.severity = none # Nested types valid
+dotnet_diagnostic.CA1002.severity = none # List<T> for batch operations
+dotnet_diagnostic.CA1819.severity = none # Array properties for schema
+
+# =============================================================================
+# CONSOLE BRIDGE (recursive)
+# =============================================================================
+
+[src/**/ConsoleBridge/**/*.cs]
+dotnet_diagnostic.CA1054.severity = none # Uri string param for JSON
+dotnet_diagnostic.CA1056.severity = none # Uri string property for JSON
+
+# =============================================================================
+# SERIALIZER CONTEXT
+# =============================================================================
+
+[src/**/QylSerializerContext.cs]
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA1819.severity = none
+
+# =============================================================================
+# MAPPING (recursive)
+# =============================================================================
+
+[src/**/Mapping/**/*.cs]
+dotnet_diagnostic.CA1002.severity = none # List<T> return for JSON DTOs
+
+# =============================================================================
+# MODELS (recursive)
+# =============================================================================
+
+[src/**/Models/**/*.cs]
+dotnet_diagnostic.CA1002.severity = none # List<T> for attribute collection
+
+# =============================================================================
+# STARTUP BANNER
+# =============================================================================
+
+[src/**/StartupBanner.cs]
+dotnet_diagnostic.CA1054.severity = none # String URL for display
+
+# =============================================================================
+# EXTENSIONS (recursive)
+# =============================================================================
+
+[src/**/Extensions/**/*.cs]
+dotnet_diagnostic.CA1034.severity = none # Nested builder types
+
+[src/**/*Extensions.cs]
+dotnet_diagnostic.CA1034.severity = none # C# 14 extension blocks
+
+# =============================================================================
+# AUTH (recursive)
+# =============================================================================
+
+[src/**/Auth/**/*.cs]
+dotnet_diagnostic.CA1819.severity = none # Byte array for token validation
+
+# =============================================================================
+# MCP (recursive)
+# =============================================================================
+
+[src/**/Mcp/**/*.cs]
+dotnet_diagnostic.CA1819.severity = none # Tool definition arrays
+
+# =============================================================================
+# PROGRAM.CS
+# =============================================================================
+
+[src/**/Program.cs]
+dotnet_diagnostic.QYL0002.severity = suggestion # Backward compat fallback
+
+# =============================================================================
+# TESTS
 # =============================================================================
 
 [tests/**/*.cs]
-# Test-specific relaxations
-dotnet_diagnostic.CA1707.severity = none # Underscores in test names OK
-dotnet_diagnostic.CA1816.severity = none # Dispose pattern (test fixtures)
-dotnet_diagnostic.CA2000.severity = none # Dispose objects (test arrangements)
-dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait (tests don't need it)
-
-# xUnit
-dotnet_diagnostic.xUnit1004.severity = warning # Test methods should not be skipped
-
-# =============================================================================
-# EXAMPLE PROJECT OVERRIDES
-# =============================================================================
-
-[examples/**/*.cs]
-# Relaxed for demo code
+dotnet_diagnostic.CA1707.severity = none # Underscores in test names
 dotnet_diagnostic.CA1816.severity = none # Dispose pattern
 dotnet_diagnostic.CA2000.severity = none # Dispose objects
 dotnet_diagnostic.VSTHRD111.severity = none # ConfigureAwait
+dotnet_diagnostic.xUnit1004.severity = warning
 
 # =============================================================================
-# FILE TYPE SPECIFIC
+# EXAMPLES
+# =============================================================================
+
+[examples/**/*.cs]
+dotnet_diagnostic.CA1816.severity = none
+dotnet_diagnostic.CA2000.severity = none
+dotnet_diagnostic.VSTHRD111.severity = none
+
+# =============================================================================
+# FILE TYPES
 # =============================================================================
 
 [*.json]

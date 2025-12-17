@@ -3,17 +3,6 @@
 // Target: .NET 10 / C# 14 | DuckDB.NET 1.4.3 | OTel SemConv 1.38.0
 // =============================================================================
 
-using System.Buffers;
-using System.Collections.Frozen;
-using System.IO.Compression;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using DuckDB.NET.Data;
-using qyl.collector.Models;
-using qyl.collector.Primitives;
-
 namespace qyl.collector.Storage;
 
 // =============================================================================
@@ -65,11 +54,13 @@ public static class DuckDbSchema
                                                "gen_ai.response.id"        VARCHAR,
                                                "gen_ai.response.finish_reasons" VARCHAR[],
 
-                                               -- Agent Attributes (Promoted) - anthropic.*/agents.* registry
-                                               "agents.agent.id"           VARCHAR,
-                                               "agents.agent.name"         VARCHAR,
-                                               "agents.tool.name"          VARCHAR,
-                                               "agents.tool.call_id"       VARCHAR,
+                                               -- Agent & Tool Attributes (OTel 1.38 gen_ai.agent.* / gen_ai.tool.*)
+                                               "gen_ai.agent.id"           VARCHAR,
+                                               "gen_ai.agent.name"         VARCHAR,
+                                               "gen_ai.tool.name"          VARCHAR,
+                                               "gen_ai.tool.call.id"       VARCHAR,
+                                               "gen_ai.tool.type"          VARCHAR,
+                                               "gen_ai.conversation.id"    VARCHAR,
 
                                                -- Session/Request Tracking (Promoted)
                                                "session.id"                VARCHAR,
@@ -290,16 +281,18 @@ public static class PromotedFields
         ["gen_ai.usage.input_tokens"] = new("BIGINT", PromotionReason.Aggregation),
         ["gen_ai.usage.output_tokens"] = new("BIGINT", PromotionReason.Aggregation),
         ["gen_ai.request.temperature"] = new("DOUBLE", PromotionReason.Analytics),
-        ["gen_ai.request.max_tokens"] = new("BIGINT", PromotionReason.Analytics),
+        ["gen_ai.request.max_output_tokens"] = new("BIGINT", PromotionReason.Analytics),
         ["gen_ai.request.top_p"] = new("DOUBLE", PromotionReason.Analytics),
         ["gen_ai.response.id"] = new("VARCHAR", PromotionReason.Correlation),
         ["gen_ai.response.finish_reasons"] = new("VARCHAR[]", PromotionReason.Analytics),
 
-        // Agents (anthropic.*/agents.* registry)
-        ["agents.agent.id"] = new("VARCHAR", PromotionReason.HighCardinality),
-        ["agents.agent.name"] = new("VARCHAR", PromotionReason.Filtering),
-        ["agents.tool.name"] = new("VARCHAR", PromotionReason.HighCardinality),
-        ["agents.tool.call_id"] = new("VARCHAR", PromotionReason.Correlation),
+        // Agent & Tool (OTel 1.38 gen_ai.agent.* / gen_ai.tool.*)
+        ["gen_ai.agent.id"] = new("VARCHAR", PromotionReason.HighCardinality),
+        ["gen_ai.agent.name"] = new("VARCHAR", PromotionReason.Filtering),
+        ["gen_ai.tool.name"] = new("VARCHAR", PromotionReason.HighCardinality),
+        ["gen_ai.tool.call.id"] = new("VARCHAR", PromotionReason.Correlation),
+        ["gen_ai.tool.type"] = new("VARCHAR", PromotionReason.Filtering),
+        ["gen_ai.conversation.id"] = new("VARCHAR", PromotionReason.HighCardinality),
 
         // Session/User
         ["session.id"] = new("VARCHAR", PromotionReason.HighCardinality),
@@ -313,21 +306,14 @@ public static class PromotedFields
 
     /// <summary>
     ///     Large content attributes that should be externalized to span_content table.
+    ///     OTel 1.38: gen_ai.input.messages, gen_ai.output.messages, gen_ai.system_instructions
     /// </summary>
     public static readonly FrozenSet<string> LargeContentAttributes = new[]
     {
-        "gen_ai.prompt", "gen_ai.completion", "gen_ai.request.messages", "gen_ai.response.choices"
+        "gen_ai.input.messages", "gen_ai.output.messages", "gen_ai.system_instructions", "gen_ai.tool.definitions",
+        // Legacy names (deprecated but still need to handle)
+        "gen_ai.prompt", "gen_ai.completion"
     }.ToFrozenSet();
-
-    /// <summary>
-    ///     Deprecated attribute mappings (OTel 1.38 migration).
-    /// </summary>
-    public static readonly FrozenDictionary<string, string> DeprecatedMappings = new Dictionary<string, string>
-    {
-        ["gen_ai.system"] = "gen_ai.provider.name",
-        ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-        ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens"
-    }.ToFrozenDictionary();
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsPromoted(string key) => All.ContainsKey(key);
@@ -335,9 +321,12 @@ public static class PromotedFields
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsLargeContent(string key) => LargeContentAttributes.Contains(key);
 
+    /// <summary>
+    ///     Delegates to SchemaNormalizer.TryGetCurrentName (single source of truth).
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetCurrentName(string key, [NotNullWhen(true)] out string? current) =>
-        DeprecatedMappings.TryGetValue(key, out current);
+        SchemaNormalizer.TryGetCurrentName(key, out current);
 
     public readonly record struct ColumnDef(string DuckDbType, PromotionReason Reason);
 }
@@ -420,7 +409,7 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
             return null;
 
         var compressed = (byte[])reader.GetValue(0);
-        var originalSize = reader.GetInt64(1);
+        var originalSize = reader.Col(1).GetInt64(0);
 
         return DecompressZstd(compressed, (int)originalSize);
     }
@@ -444,9 +433,9 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
-            var contentId = reader.GetString(0);
+            var contentId = reader.Col(0).GetString("");
             var compressed = (byte[])reader.GetValue(1);
-            var originalSize = reader.GetInt64(2);
+            var originalSize = reader.Col(2).GetInt64(0);
             var content = DecompressZstd(compressed, (int)originalSize);
 
             yield return (contentId, content);
@@ -526,8 +515,6 @@ public sealed class LargeContentHandler(DuckDBConnection connection)
 /// </summary>
 public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler contentHandler)
 {
-    private readonly Lock _lock = new();
-
     /// <summary>
     ///     Insert parsed span with automatic attribute routing.
     /// </summary>
@@ -566,16 +553,18 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
     /// </summary>
     [RequiresUnreferencedCode("Serializes unknown span attribute types to JSON")]
     [RequiresDynamicCode("Serializes unknown span attribute types to JSON")]
-    public async ValueTask InsertBatchAsync(
+    public ValueTask InsertBatchAsync(
         IReadOnlyList<ParsedSpan> spans,
         CancellationToken ct = default)
     {
-        if (spans.Count is 0) return;
+        if (spans.Count is 0) return ValueTask.CompletedTask;
+        ct.ThrowIfCancellationRequested();
 
         using var appender = connection.CreateAppender("spans");
 
         foreach (var span in spans)
         {
+            ct.ThrowIfCancellationRequested();
             var (promoted, mapped) = PartitionAttributes(span);
 
             var row = appender.CreateRow();
@@ -615,6 +604,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         }
 
         appender.Close();
+        return ValueTask.CompletedTask;
     }
 
     // Serializes unknown attribute types to JSON - AOT can't statically analyze arbitrary user attributes
@@ -647,29 +637,27 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             promoted["session.id"] = span.SessionId.Value.Value;
 
         // Process remaining attributes
-        if (span.Attributes is not null)
+        if (span.Attributes is null) return (promoted, mapped);
+        foreach (var (key, value) in span.Attributes)
         {
-            foreach (var (key, value) in span.Attributes)
-            {
-                // Handle deprecated mappings
-                var effectiveKey = PromotedFields.TryGetCurrentName(key, out var current)
-                    ? current
-                    : key;
+            // Handle deprecated mappings
+            var effectiveKey = PromotedFields.TryGetCurrentName(key, out var current)
+                ? current
+                : key;
 
-                if (PromotedFields.IsPromoted(effectiveKey))
-                    promoted[effectiveKey] = value;
-                else if (!PromotedFields.IsLargeContent(effectiveKey))
-                    // Convert to string for MAP storage
+            if (PromotedFields.IsPromoted(effectiveKey))
+                promoted[effectiveKey] = value;
+            else if (!PromotedFields.IsLargeContent(effectiveKey))
+                // Convert to string for MAP storage
+            {
+                mapped[effectiveKey] = value switch
                 {
-                    mapped[effectiveKey] = value switch
-                    {
-                        string s => s,
-                        long l => l.ToString(),
-                        double d => d.ToString("G17"),
-                        bool b => b ? "true" : "false",
-                        _ => JsonSerializer.Serialize(value, QylSerializerContext.Default.Options)
-                    };
-                }
+                    string s => s,
+                    long l => l.ToString(),
+                    double d => d.ToString("G17"),
+                    bool b => b ? "true" : "false",
+                    _ => JsonSerializer.Serialize(value, QylSerializerContext.Default.Options)
+                };
             }
         }
 
@@ -739,10 +727,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
         cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
 
         // Promoted field parameters
-        foreach (var (_, value) in promoted)
-        {
-            cmd.Parameters.Add(new DuckDBParameter { Value = value ?? DBNull.Value });
-        }
+        foreach (var (_, value) in promoted) cmd.Parameters.Add(new DuckDBParameter { Value = value ?? DBNull.Value });
 
         // MAP parameter
         cmd.Parameters.Add(new DuckDBParameter { Value = SerializeMap(mapped) });
@@ -763,7 +748,7 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
 
     private static void AppendPromotedFields(IDuckDBAppenderRow row, Dictionary<string, object?> promoted)
     {
-        // Must match schema column order exactly
+        // Must match schema column order exactly (OTel 1.38)
         string[] orderedKeys =
         [
             "service.name",
@@ -781,10 +766,12 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             "gen_ai.request.top_p",
             "gen_ai.response.id",
             "gen_ai.response.finish_reasons",
-            "agents.agent.id",
-            "agents.agent.name",
-            "agents.tool.name",
-            "agents.tool.call_id",
+            "gen_ai.agent.id",
+            "gen_ai.agent.name",
+            "gen_ai.tool.name",
+            "gen_ai.tool.call.id",
+            "gen_ai.tool.type",
+            "gen_ai.conversation.id",
             "session.id",
             "user.id",
             "http.request.id",
@@ -821,425 +808,6 @@ public sealed class SpanStore(DuckDBConnection connection, LargeContentHandler c
             else
                 row.AppendNullValue();
         }
-    }
-}
-
-// =============================================================================
-// PART 5: Roslyn Analyzer - QYL003: Attribute Should Be Promoted
-// =============================================================================
-/*
- * Roslyn Analyzer Implementation (separate project: Qyl.Analyzers)
- *
- * File: QYL003AttributeShouldBePromotedAnalyzer.cs
- */
-
-#if ROSLYN_ANALYZER
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
-using System.Collections.Immutable;
-
-namespace Qyl.Analyzers;
-
-[DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed class QYL003AttributeShouldBePromotedAnalyzer : DiagnosticAnalyzer
-{
-    public const string DiagnosticId = "QYL003";
-
-    private static readonly LocalizableString Title =
-        "Attribute should be promoted";
-
-    private static readonly LocalizableString MessageFormat =
-        "Attribute '{0}' is a promoted field and should use the strongly-typed property instead of SetTag/attributes dictionary";
-
-    private static readonly LocalizableString Description =
-        "Promoted attributes should be set via strongly-typed properties for type safety and DuckDB columnar performance.";
-
-    private static readonly DiagnosticDescriptor Rule = new(
-        DiagnosticId,
-        Title,
-        MessageFormat,
-        "Qyl.Performance",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: Description);
-
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics
-        => [Rule];
-
-    // Promoted field keys that should trigger the warning
-    private static readonly ImmutableHashSet<string> s_promotedFields =
-    [
-        "gen_ai.provider.name",
-        "gen_ai.request.model",
-        "gen_ai.response.model",
-        "gen_ai.operation.name",
-        "gen_ai.usage.input_tokens",
-        "gen_ai.usage.output_tokens",
-        "gen_ai.request.temperature",
-        "gen_ai.request.max_tokens",
-        "gen_ai.request.top_p",
-        "gen_ai.response.id",
-        "session.id",
-        "user.id",
-        "agents.agent.id",
-        "agents.agent.name",
-        "agents.tool.name",
-        "agents.tool.call_id",
-        "exception.type",
-        "exception.message",
-        "service.name",
-        "service.version",
-        "deployment.environment",
-    ];
-
-    // Deprecated fields that should ALSO trigger (with additional message)
-    private static readonly ImmutableDictionary<string, string> s_deprecatedFields =
-        new Dictionary<string, string>
-        {
-            ["gen_ai.system"] = "gen_ai.provider.name",
-            ["gen_ai.usage.prompt_tokens"] = "gen_ai.usage.input_tokens",
-            ["gen_ai.usage.completion_tokens"] = "gen_ai.usage.output_tokens",
-        }.ToImmutableDictionary();
-
-    public override void Initialize(AnalysisContext context)
-    {
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-        context.EnableConcurrentExecution();
-
-        // Analyze invocations like activity.SetTag("key", value)
-        context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
-
-        // Analyze dictionary/collection initializers
-        context.RegisterSyntaxNodeAction(AnalyzeInitializer, SyntaxKind.ObjectInitializerExpression);
-    }
-
-    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
-    {
-        var invocation = (InvocationExpressionSyntax)context.Node;
-
-        // Check for SetTag, AddTag, SetAttribute patterns
-        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
-            return;
-
-        var methodName = memberAccess.Name.Identifier.Text;
-        if (methodName is not ("SetTag" or "AddTag" or "SetAttribute" or "Add"))
-            return;
-
-        // Get the first argument (the key)
-        var arguments = invocation.ArgumentList.Arguments;
-        if (arguments.Count < 1)
-            return;
-
-        var keyArg = arguments[0].Expression;
-        if (keyArg is not LiteralExpressionSyntax literal)
-            return;
-
-        if (literal.Token.Value is not string key)
-            return;
-
-        // Check if it's a promoted field
-        if (s_promotedFields.Contains(key))
-        {
-            var diagnostic = Diagnostic.Create(Rule, literal.GetLocation(), key);
-            context.ReportDiagnostic(diagnostic);
-        }
-        else if (s_deprecatedFields.TryGetValue(key, out var replacement))
-        {
-            // Create enhanced message for deprecated fields
-            var deprecatedRule = new DiagnosticDescriptor(
-                "QYL004",
-                "Deprecated attribute key",
-                $"Attribute '{key}' is deprecated. Use '{replacement}' instead (promoted field)",
-                "Qyl.Compatibility",
-                DiagnosticSeverity.Warning,
-                isEnabledByDefault: true);
-
-            var diagnostic = Diagnostic.Create(deprecatedRule, literal.GetLocation());
-            context.ReportDiagnostic(diagnostic);
-        }
-    }
-
-    private static void AnalyzeInitializer(SyntaxNodeAnalysisContext context)
-    {
-        var initializer = (InitializerExpressionSyntax)context.Node;
-
-        // Check parent type to see if this is an attributes dictionary
-        var parentType = context.SemanticModel.GetTypeInfo(initializer.Parent!).Type;
-        if (parentType is null)
-            return;
-
-        // Check if it's Dictionary<string, ...> or similar
-        if (!parentType.Name.Contains("Dictionary") &&
-            !parentType.Name.Contains("KeyValuePair"))
-            return;
-
-        foreach (var expression in initializer.Expressions)
-        {
-            // Handle { "key", value } syntax
-            if (expression is InitializerExpressionSyntax kvpInit &&
-                kvpInit.Expressions.Count >= 1 &&
-                kvpInit.Expressions[0] is LiteralExpressionSyntax keyLiteral &&
-                keyLiteral.Token.Value is string key)
-            {
-                if (s_promotedFields.Contains(key))
-                {
-                    var diagnostic = Diagnostic.Create(Rule, keyLiteral.GetLocation(), key);
-                    context.ReportDiagnostic(diagnostic);
-                }
-            }
-
-            // Handle ["key"] = value syntax
-            if (expression is AssignmentExpressionSyntax assignment &&
-                assignment.Left is ImplicitElementAccessSyntax elementAccess &&
-                elementAccess.ArgumentList.Arguments.Count == 1 &&
-                elementAccess.ArgumentList.Arguments[0].Expression is LiteralExpressionSyntax indexLiteral &&
-                indexLiteral.Token.Value is string indexKey)
-            {
-                if (s_promotedFields.Contains(indexKey))
-                {
-                    var diagnostic = Diagnostic.Create(Rule, indexLiteral.GetLocation(), indexKey);
-                    context.ReportDiagnostic(diagnostic);
-                }
-            }
-        }
-    }
-}
-
-/// <summary>
-/// Code fix provider for QYL003 - suggests using strongly-typed property.
-/// </summary>
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(QYL003CodeFixProvider))]
-public sealed class QYL003CodeFixProvider : CodeFixProvider
-{
-    public override ImmutableArray<string> FixableDiagnosticIds
-        => ["QYL003", "QYL004"];
-
-    public override FixAllProvider GetFixAllProvider()
-        => WellKnownFixAllProviders.BatchFixer;
-
-    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
-    {
-        var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken);
-        if (root is null) return;
-
-        foreach (var diagnostic in context.Diagnostics)
-        {
-            var diagnosticSpan = diagnostic.Location.SourceSpan;
-            var node = root.FindNode(diagnosticSpan);
-
-            if (node is LiteralExpressionSyntax literal &&
-                literal.Token.Value is string key)
-            {
-                var propertyName = GetPropertyName(key);
-                if (propertyName is null) continue;
-
-                context.RegisterCodeFix(
-                    CodeAction.Create(
-                        title: $"Use {propertyName} property",
-                        createChangedDocument: ct => UsePropertyAsync(
-                            context.Document, literal, propertyName, ct),
-                        equivalenceKey: $"QYL003_{propertyName}"),
-                    diagnostic);
-            }
-        }
-    }
-
-    private static string? GetPropertyName(string attributeKey) => attributeKey switch
-    {
-        "gen_ai.provider.name" or "gen_ai.system" => "ProviderName",
-        "gen_ai.request.model" => "RequestModel",
-        "gen_ai.response.model" => "ResponseModel",
-        "gen_ai.operation.name" => "OperationName",
-        "gen_ai.usage.input_tokens" or "gen_ai.usage.prompt_tokens" => "InputTokens",
-        "gen_ai.usage.output_tokens" or "gen_ai.usage.completion_tokens" => "OutputTokens",
-        "gen_ai.request.temperature" => "Temperature",
-        "gen_ai.request.max_tokens" => "MaxTokens",
-        "session.id" => "SessionId",
-        _ => null
-    };
-
-    private static async Task<Document> UsePropertyAsync(
-        Document document,
-        LiteralExpressionSyntax literal,
-        string propertyName,
-        CancellationToken ct)
-    {
-        var root = await document.GetSyntaxRootAsync(ct);
-        if (root is null) return document;
-
-        // Find the containing invocation
-        var invocation = literal.Ancestors().OfType<InvocationExpressionSyntax>().FirstOrDefault();
-        if (invocation is null) return document;
-
-        // Get the receiver (e.g., 'span' in span.SetTag(...))
-        if (invocation.Expression is not MemberAccessExpressionSyntax memberAccess)
-            return document;
-
-        var receiver = memberAccess.Expression;
-
-        // Get the value argument
-        var arguments = invocation.ArgumentList.Arguments;
-        if (arguments.Count < 2) return document;
-
-        var valueArg = arguments[1].Expression;
-
-        // Create: receiver.PropertyName = value
-        var newAssignment = SyntaxFactory.AssignmentExpression(
-            SyntaxKind.SimpleAssignmentExpression,
-            SyntaxFactory.MemberAccessExpression(
-                SyntaxKind.SimpleMemberAccessExpression,
-                receiver,
-                SyntaxFactory.IdentifierName(propertyName)),
-            valueArg);
-
-        var newStatement = SyntaxFactory.ExpressionStatement(newAssignment)
-            .WithTriviaFrom(invocation.Parent!);
-
-        var newRoot = root.ReplaceNode(invocation.Parent!, newStatement);
-        return document.WithSyntaxRoot(newRoot);
-    }
-}
-#endif
-
-// =============================================================================
-// PART 6: Query Builder with Promoted Field Optimization
-// =============================================================================
-
-/// <summary>
-///     Query builder that automatically uses promoted columns vs MAP access.
-/// </summary>
-public sealed class SpanQueryBuilder
-{
-    private readonly List<string> _groupBy = [];
-    private readonly List<string> _orderBy = [];
-    private readonly Dictionary<string, object> _parameters = [];
-    private readonly List<string> _select = [];
-    private readonly List<string> _where = [];
-    private int? _limit;
-    private int? _offset;
-    private int _paramIndex = 1;
-
-    public SpanQueryBuilder Select(params string[] columns)
-    {
-        foreach (var col in columns) _select.Add(GetColumnAccess(col));
-
-        return this;
-    }
-
-    public SpanQueryBuilder SelectAll()
-    {
-        _select.Add("*");
-        return this;
-    }
-
-    public SpanQueryBuilder Where(string attributeKey, string op, object value)
-    {
-        var param = $"${_paramIndex++}";
-        _parameters[param] = value;
-        _where.Add($"{GetColumnAccess(attributeKey)} {op} {param}");
-        return this;
-    }
-
-    public SpanQueryBuilder WhereTimeRange(UnixNano start, UnixNano end)
-    {
-        var startParam = $"${_paramIndex++}";
-        var endParam = $"${_paramIndex++}";
-        _parameters[startParam] = start.Value;
-        _parameters[endParam] = end.Value;
-        _where.Add($"start_time_unix_nano >= {startParam}");
-        _where.Add($"end_time_unix_nano <= {endParam}");
-        return this;
-    }
-
-    public SpanQueryBuilder WhereSession(SessionId sessionId) => Where("session.id", "=", sessionId.Value);
-
-    public SpanQueryBuilder WhereProvider(string provider) => Where("gen_ai.provider.name", "=", provider);
-
-    public SpanQueryBuilder WhereModel(string model) => Where("gen_ai.request.model", "=", model);
-
-    public SpanQueryBuilder WhereError()
-    {
-        _where.Add("status_code = 2");
-        return this;
-    }
-
-    public SpanQueryBuilder GroupBy(params string[] columns)
-    {
-        foreach (var col in columns) _groupBy.Add(GetColumnAccess(col));
-
-        return this;
-    }
-
-    public SpanQueryBuilder OrderBy(string column, bool descending = false)
-    {
-        var dir = descending ? "DESC" : "ASC";
-        _orderBy.Add($"{GetColumnAccess(column)} {dir}");
-        return this;
-    }
-
-    public SpanQueryBuilder Limit(int limit)
-    {
-        _limit = limit;
-        return this;
-    }
-
-    public SpanQueryBuilder Offset(int offset)
-    {
-        _offset = offset;
-        return this;
-    }
-
-    public (string Sql, Dictionary<string, object> Parameters) Build()
-    {
-        var sql = new StringBuilder();
-
-        sql.Append("SELECT ");
-        sql.Append(_select.Count > 0 ? string.Join(", ", _select) : "*");
-        sql.Append(" FROM spans");
-
-        if (_where.Count > 0)
-        {
-            sql.Append(" WHERE ");
-            sql.Append(string.Join(" AND ", _where));
-        }
-
-        if (_groupBy.Count > 0)
-        {
-            sql.Append(" GROUP BY ");
-            sql.Append(string.Join(", ", _groupBy));
-        }
-
-        if (_orderBy.Count > 0)
-        {
-            sql.Append(" ORDER BY ");
-            sql.Append(string.Join(", ", _orderBy));
-        }
-
-        if (_limit.HasValue) sql.Append($" LIMIT {_limit.Value}");
-
-        if (_offset.HasValue) sql.Append($" OFFSET {_offset.Value}");
-
-        return (sql.ToString(), _parameters);
-    }
-
-    /// <summary>
-    ///     Returns column name for promoted fields, MAP access for others.
-    /// </summary>
-    private static string GetColumnAccess(string attributeKey)
-    {
-        // Core span fields
-        if (attributeKey is "trace_id" or "span_id" or "parent_span_id" or
-            "name" or "kind" or "status_code" or "status_message" or
-            "start_time_unix_nano" or "end_time_unix_nano" or "duration_ns")
-            return attributeKey;
-
-        // Promoted fields - direct column access
-        if (PromotedFields.IsPromoted(attributeKey)) return $"\"{attributeKey}\"";
-
-        // Non-promoted - MAP access
-        return $"attributes['{attributeKey}']";
     }
 }
 
@@ -1341,24 +909,6 @@ await DuckDbSchema.InitializeAsync(connection);
 var contentHandler = new LargeContentHandler(connection);
 var store = new SpanStore(connection, contentHandler);
 await store.InsertSpanAsync(parsedSpan);
-
-// Query with automatic promoted field optimization
-var (sql, parameters) = new SpanQueryBuilder()
-    .Select("trace_id", "span_id", "gen_ai.request.model", "gen_ai.usage.input_tokens")
-    .WhereProvider("anthropic")
-    .WhereTimeRange(startTime, endTime)
-    .OrderBy("start_time_unix_nano", descending: true)
-    .Limit(100)
-    .Build();
-
-// Generated SQL uses promoted columns directly:
-// SELECT trace_id, span_id, "gen_ai.request.model", "gen_ai.usage.input_tokens"
-// FROM spans
-// WHERE "gen_ai.provider.name" = $1
-//   AND start_time_unix_nano >= $2
-//   AND end_time_unix_nano <= $3
-// ORDER BY start_time_unix_nano DESC
-// LIMIT 100
 
 // Top models analytics (uses materialized view)
 var topModels = await connection.QueryAsync("""

@@ -238,7 +238,7 @@ interface ITypeSpec : IHasSolution
                 DashboardTypesDestination
             ];
 
-            foreach (var dir in dirs.Where(d => d.DirectoryExists()))
+            foreach (var dir in dirs.Where(absolutePath => absolutePath.DirectoryExists()))
             {
                 dir.DeleteDirectory();
                 Log.Information("  Deleted: {Dir}", dir);

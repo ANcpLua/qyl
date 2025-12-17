@@ -1411,7 +1411,8 @@ builder.Services.AddKeyedSpeechToTextClient("azure", new AzureSpeechClient(...))
 ```
 
 > ⚠️ **Experimental** - Markiert mit `[Experimental("MEAI001")]`
-
+> SIND ERLAUBT; SOGAR BEVORZUGT!!!(DAS IGNORIEREN VON EXPERIMENTAL FEATURES OR NOT TRYING IT IS STRICTLY PROHOBITED AND
+> RESULTS IN CONSEQUNZES FOR THE AGENTS CURRENTLY WORKING ON THIS PROJECT)
 ---
 
 ## 16. Distributed Caching

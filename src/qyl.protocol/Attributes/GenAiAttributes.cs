@@ -3,8 +3,6 @@
 // SINGLE SOURCE OF TRUTH for all gen_ai.* attribute constants
 // =============================================================================
 
-using System.Diagnostics.CodeAnalysis;
-
 namespace qyl.protocol.Attributes;
 
 /// <summary>
@@ -158,6 +156,16 @@ public static class GenAiAttributes
     public const string ToolCallResult = $"{Prefix}.tool.call.result";
 
     // =========================================================================
+    // Server Attributes (Standard OTel)
+    // =========================================================================
+
+    /// <summary>server.address - GenAI server address (Recommended).</summary>
+    public const string ServerAddress = "server.address";
+
+    /// <summary>server.port - GenAI server port (Conditionally Required).</summary>
+    public const string ServerPort = "server.port";
+
+    // =========================================================================
     // Other Attributes
     // =========================================================================
 
@@ -271,5 +279,43 @@ public static class GenAiAttributes
         /// <summary>Deprecated: Use UsageOutputTokens instead (semconv 1.38).</summary>
         [Obsolete($"Use {nameof(GenAiAttributes)}.{nameof(UsageOutputTokens)} instead (semconv 1.38)")]
         public const string UsageCompletionTokens = "gen_ai.usage.completion_tokens";
+    }
+
+    // =========================================================================
+    // Event Names (OTel v1.38)
+    // =========================================================================
+
+    /// <summary>Semantic names for GenAI Events (structured logs).</summary>
+    [SuppressMessage("Design", "CA1034:Nested types should not be visible",
+        Justification = "Intentionally nested to group event constants")]
+    public static class Events
+    {
+        /// <summary>Event containing full input/output details for an inference operation.</summary>
+        public const string OperationDetails = "gen_ai.client.inference.operation.details";
+
+        /// <summary>Event containing evaluation results.</summary>
+        public const string EvaluationResult = "gen_ai.evaluation.result";
+    }
+
+    // =========================================================================
+    // Metric Names (OTel v1.38)
+    // =========================================================================
+
+    /// <summary>Semantic names for GenAI Metrics.</summary>
+    [SuppressMessage("Design", "CA1034:Nested types should not be visible",
+        Justification = "Intentionally nested to group metric constants")]
+    public static class Metrics
+    {
+        /// <summary>Histogram: Number of input and output tokens used.</summary>
+        public const string TokenUsage = "gen_ai.client.token.usage";
+
+        /// <summary>Histogram: GenAI operation duration in seconds.</summary>
+        public const string OperationDuration = "gen_ai.client.operation.duration";
+
+        /// <summary>Histogram: Server time per output token (decode phase) in seconds.</summary>
+        public const string ServerTimePerOutputToken = "gen_ai.server.time_per_output_token";
+
+        /// <summary>Histogram: Server time to first token (prefill phase) in seconds.</summary>
+        public const string ServerTimeToFirstToken = "gen_ai.server.time_to_first_token";
     }
 }

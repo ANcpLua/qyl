@@ -1,8 +1,3 @@
-using System.Text.Json;
-using qyl.collector.Contracts;
-using qyl.collector.Query;
-using qyl.collector.Storage;
-
 namespace qyl.collector.Mapping;
 
 public static class SpanMapper
@@ -17,7 +12,7 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
+    public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null)
     {
         var startTime = record.StartTime.ToUniversalTime();
         var endTime = record.EndTime.ToUniversalTime();
@@ -47,8 +42,8 @@ public static class SpanMapper
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static List<SpanDto> ToDtos(
-        IEnumerable<SpanRecord> records,
-        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+        IEnumerable<SpanStorageRow> records,
+        Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
     [
         .. records.Select(r =>
         {
@@ -124,7 +119,7 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
     [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
-    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
+    private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record)
     {
         if (record.TokensIn is null && record.TokensOut is null && string.IsNullOrEmpty(record.ProviderName))
             return null;
@@ -155,12 +150,10 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
     [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
-    private static string? ExtractToolName(SpanRecord record)
+    private static string? ExtractToolName(SpanStorageRow record)
     {
         var attrs = ParseAttributes(record.Attributes);
-        if (attrs.TryGetValue("gen_ai.tool.name", out var toolName))
-            return toolName?.ToString();
-        return null;
+        return attrs.TryGetValue("gen_ai.tool.name", out var toolName) ? toolName?.ToString() : null;
     }
 
     [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",

@@ -13,13 +13,14 @@ using Serilog;
     FetchDepth = 0)]
 sealed class Build : NukeBuild,
     IRestore,
-    IChangelog,
+    IVersionize,
     ICoverage,
     ITestContainers,
     IDockerBuild,
     IDockerCompose,
     IFrontend,
-    ITypeSpec
+    ITypeSpec,
+    IGenerate
 {
     Target Print => d => d
         .Unlisted()
@@ -44,10 +45,7 @@ sealed class Build : NukeBuild,
         .Description("Full CI pipeline (backend only)")
         .DependsOn<ICompile>(x => x.Clean)
         .DependsOn<ICoverage>(x => x.Coverage)
-        .Executes(() =>
-        {
-            Log.Information("Backend CI pipeline completed successfully");
-        });
+        .Executes(() => { Log.Information("Backend CI pipeline completed successfully"); });
 
     Target Full => d => d
         .Description("Full CI pipeline (backend + frontend)")

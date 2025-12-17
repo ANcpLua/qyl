@@ -13,9 +13,11 @@ namespace Components;
 [ParameterPrefix(nameof(ITest))]
 interface ITest : ICompile
 {
-    [Parameter("Test filter expression (xUnit v3 query syntax)")] string? TestFilter => null;
+    [Parameter("Test filter expression (xUnit v3 query syntax)")]
+    string? TestFilter => null;
 
-    [Parameter("Stop on first test failure")] bool? StopOnFail => null;
+    [Parameter("Stop on first test failure")]
+    bool? StopOnFail => null;
 
     [Parameter("Show live test output")] bool? LiveOutput => null;
 

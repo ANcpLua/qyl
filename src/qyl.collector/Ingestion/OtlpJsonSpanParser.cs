@@ -3,14 +3,7 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.38.0
 // =============================================================================
 
-using System.Buffers;
 using System.Buffers.Text;
-using System.Collections.Frozen;
-using System.IO.Hashing;
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using qyl.collector.Models;
-using qyl.collector.Primitives;
 
 namespace qyl.collector.Ingestion;
 
@@ -115,22 +108,29 @@ public ref struct OtlpJsonSpanParser
     {
         if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartObject) return null;
 
+        string? serviceName = null;
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
             if (_reader.TokenType == JsonTokenType.PropertyName &&
                 _reader.ValueTextEquals("attributes"u8))
-                return ExtractServiceNameFromAttributes();
-
-            if (_reader.TokenType == JsonTokenType.PropertyName) _reader.Skip();
+            {
+                serviceName = ExtractServiceNameFromAttributes();
+                // Continue to consume the rest of the resource object
+            }
+            else if (_reader.TokenType == JsonTokenType.PropertyName)
+            {
+                _reader.Skip();
+            }
         }
 
-        return null;
+        return serviceName;
     }
 
     private string? ExtractServiceNameFromAttributes()
     {
         if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return null;
 
+        string? serviceName = null;
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndArray)
         {
             if (_reader.TokenType == JsonTokenType.StartObject)
@@ -154,11 +154,13 @@ public ref struct OtlpJsonSpanParser
                     }
                 }
 
-                if (key == "service.name" && value is not null) return value;
+                if (key == "service.name" && value is not null)
+                    serviceName = value;
+                // Continue to consume remaining attributes
             }
         }
 
-        return null;
+        return serviceName;
     }
 
     private void ParseScopeSpans(List<ParsedSpan> results)
@@ -349,8 +351,9 @@ public ref struct OtlpJsonSpanParser
 
                 if (OtlpGenAiAttributes.IsGenAiAttribute(keySpan))
                     ParseGenAiAttributeValue(span, keySpan);
-                else if (OtlpGenAiAttributes.IsAgentsAttribute(keySpan))
-                    ParseAgentsAttributeValue(span, keySpan);
+                // Legacy agents.* prefix - normalize to gen_ai.agent.*/gen_ai.tool.*
+                else if (keySpan.StartsWith("agents."u8))
+                    ParseLegacyAgentsAttributeValue(span, keySpan);
                 else if (keySpan.SequenceEqual("session.id"u8))
                 {
                     var value = ParseAnyValue();
@@ -394,12 +397,19 @@ public ref struct OtlpJsonSpanParser
             _reader.Skip();
     }
 
-    private void ParseAgentsAttributeValue(ParsedSpan span, ReadOnlySpan<byte> keySpan)
+    /// <summary>
+    ///     Parses legacy agents.* attributes and normalizes them to gen_ai.agent.* / gen_ai.tool.*.
+    /// </summary>
+    private void ParseLegacyAgentsAttributeValue(ParsedSpan span, ReadOnlySpan<byte> keySpan)
     {
         var key = Encoding.UTF8.GetString(keySpan);
+
+        // Normalize legacy agents.* to gen_ai.* (see SchemaNormalizer.DeprecatedMappings)
+        var normalizedKey = SchemaNormalizer.Normalize(key);
+
         var value = ParseAnyValueAsObject();
         span.Attributes ??= [];
-        span.Attributes.Add(new KeyValuePair<string, object?>(key, value));
+        span.Attributes.Add(new KeyValuePair<string, object?>(normalizedKey, value));
     }
 
     private ReadOnlySpan<byte> ParseAnyValueSpan()
@@ -636,8 +646,6 @@ public ref struct OtlpJsonSpanParser
         if (utf8.IsEmpty) return string.Empty;
 
         var hash = ComputeHash(utf8);
-        if (InternedStrings.TryGetValue(hash, out var interned)) return interned;
-
-        return Encoding.UTF8.GetString(utf8);
+        return InternedStrings.TryGetValue(hash, out var interned) ? interned : Encoding.UTF8.GetString(utf8);
     }
 }
