@@ -8,7 +8,7 @@
 # This document consolidates architecture specifications.
 # DuckDB 1.4.3 API Guide is now in CLAUDE.md.
 #
-# Last Updated: 2025-12-16
+# Last Updated: 2025-12-18
 # Lead Architect: @ANcpLua
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -31,8 +31,12 @@ meta:
 
 migration_context:
   current_phase: "Phase 3"
-  last_updated: "2025-12-16"
-  build_status: "GREEN"
+  last_updated: "2025-12-18"
+  build_status: "NEEDS_FIX"
+  known_issues:
+    - "SearchValues<string>.ContainsAny() API misuse in Genaisemconvextensions.g.cs"
+    - "ulong to long conversion in SpanRecord.DurationNs and SessionSummary.DurationNs"
+    - "Missing partial modifier on DuckDbSchema class"
 
   phases:
     phase_1:
@@ -41,7 +45,7 @@ migration_context:
       icon: "✅"
       completed_items:
         - "NUKE build system operational"
-        - "ANcpLua.NET.Sdk v1.1.3 integrated via NuGet"
+        - "ANcpLua.NET.Sdk v1.1.8 integrated via NuGet"
         - "Repository cleaned from boilerplate"
         - "global.json SDK pinning configured"
         - "Directory.Build.props/targets established"
