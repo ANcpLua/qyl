@@ -42,14 +42,13 @@
     <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 
-  <!-- .NET 10 Telemetry: Source generators, enrichment, redaction, buffering -->
+  <!-- .NET 10 Telemetry: Source generators, enrichment, redaction, buffering (in Telemetry pkg) -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.Buffering"/>
   </ItemGroup>
 
   <!-- Core dependencies -->

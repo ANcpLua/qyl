@@ -1,0 +1,8 @@
+{
+  "$schema": "https://xunit.net/schema/v3/xunit.v3.runner.schema.json",
+  "diagnostics": false,
+  "methodDisplay": "method",
+  "parallelAlgorithm": "conservative",
+  "maxParallelThreads": 0,
+  "stopOnFail": false
+}

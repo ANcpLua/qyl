@@ -1,0 +1,6 @@
+<Project>
+
+    <!-- Inherit from parent Directory.Build.props -->
+    <Import Project="../Directory.Build.props"/>
+
+</Project>

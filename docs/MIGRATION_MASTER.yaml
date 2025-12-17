@@ -1,0 +1,414 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# qyl — MIGRATION MASTER
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Single Source of Truth for project status, completed work, and next steps.
+# Last Updated: 2025-12-16
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+meta:
+  project: qyl
+  version: 0.1.0-alpha
+  target: net10.0 / C# 14
+  sdk: ANcpLua.NET.Sdk@1.1.8
+  otel_semconv: "1.38.0"
+  duckdb: "1.4.3"
+  status: "Build GREEN"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 1: CURRENT PROJECT STRUCTURE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+structure:
+  projects:
+    qyl.protocol:
+      path: src/qyl.protocol
+      status: STABLE
+      files:
+        - Contracts/ISessionAggregator.cs
+        - Contracts/ISpanStore.cs
+        - Models/SessionSummary.cs
+        - Models/TraceNode.cs
+        - Models/GenAiSpanData.cs
+        - Models/SpanRecord.cs
+        - Primitives/UnixNano.cs
+        - Primitives/SessionId.cs
+        - Attributes/GenAiAttributes.cs
+
+    qyl.collector:
+      path: src/qyl.collector
+      status: MIGRATED
+      files:
+        Storage:
+          - DuckDbStore.cs          # MIGRATED - Read/Write pools, OTel 1.38
+          - DuckDbSchema.cs         # V2 Schema (Promoted Fields) - FUTURE
+          - SpanRecord.cs           # MIGRATED - long tokens, ServiceName
+          - SpanBatch.cs
+          - GenAiStats.cs
+          - StorageStats.cs
+        Query:
+          - SessionQueryService.cs  # NEEDS MIGRATION - OTel 1.38 columns
+        Ingestion:
+          - OtlpJsonSpanParser.cs
+          - OtlpTypes.cs
+          - OtlpAttributes.cs
+          - SchemaNormalizer.cs
+        Pipeline:
+          - SpanIngestionPipeline.cs
+        Realtime:
+          - SseHub.cs
+          - SseEndpoints.cs
+          - TelemetrySseStream.cs
+        Primitives:
+          - TraceId.cs
+          - SpanId.cs
+          - UnixNano.cs
+          - SessionId.cs
+        Auth:
+          - TokenAuth.cs
+          - TokenGenerator.cs
+        Models:
+          - ParsedSpan.cs
+        Extensions:
+          - ActivityExtensions.cs
+        Parsing:
+          - TraceContextParser.cs
+        Mcp:
+          - McpServer.cs
+        Mapping:
+          - Mappers.cs
+        ConsoleBridge:
+          - ConsoleBridge.cs
+        root:
+          - Program.cs
+          - GenAiAttributes.cs
+          - GenAiProviders.cs
+          - GenAiExtractor.cs
+          - QylSerializerContext.cs
+          - QylAttributes.cs
+          - StartupBanner.cs
+          - TracerProviderBuilderExtensions.cs
+
+    qyl.mcp:
+      path: src/qyl.mcp
+      status: MINIMAL
+      files:
+        - Program.cs
+        - Client.cs
+        - Tools/TelemetryTools.cs
+        - Tools/TelemetryJsonContext.cs
+
+    qyl.dashboard:
+      path: src/qyl.dashboard
+      status: SCAFFOLD
+      stack: React 19 + Vite 6 + Tailwind 4 + TanStack Query 5
+      files:
+        - src/App.tsx
+        - src/main.tsx
+        - src/types/generated/  # Kiota generated
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 2: COMPLETED WORK
+# ═══════════════════════════════════════════════════════════════════════════════
+
+completed:
+  - id: M1
+    name: "DuckDbStore OTel 1.38 Migration"
+    date: "2025-12-16"
+    files:
+      - src/qyl.collector/Storage/DuckDbStore.cs
+      - src/qyl.collector/Storage/SpanRecord.cs
+    changes:
+      - "Schema with quoted OTel columns (\"session.id\", \"gen_ai.provider.name\")"
+      - "Separate write connection (channel-buffered)"
+      - "Pooled read connections (ObjectPool + SemaphoreSlim gate)"
+      - "ReadLease RAII struct for connection management"
+      - "WriteJob abstraction (FireAndForget + WriteJob<T>)"
+      - "Metrics (dropped_jobs, dropped_spans)"
+      - "Graceful shutdown (3s+1s timeout)"
+      - "SpanRecord.TokensIn/Out changed to long (BIGINT)"
+      - "SpanRecord.ServiceName added"
+
+  - id: M2
+    name: "Documentation Sync"
+    date: "2025-12-16"
+    files:
+      - CLAUDE.md
+      - docs/qyl-architecture.yaml
+      - docs/architecture/decisions/README.md
+    changes:
+      - "Vertical Slice registry added"
+      - "ADR references integrated"
+      - "Code patterns validated"
+
+  - id: M3
+    name: "Build Infrastructure"
+    date: "2025-12-16"
+    status: "Build GREEN"
+
+  - id: M4
+    name: "SessionQueryService OTel 1.38 Migration"
+    date: "2025-12-16"
+    files:
+      - src/qyl.collector/Query/SessionQueryService.cs
+    changes:
+      - "All SQL queries use OTel 1.38 column names"
+      - "GetSessionsAsync(), GetSessionAsync(), etc. migrated"
+      - "Uses GetInt64() for BIGINT token columns"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 3: IN PROGRESS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+in_progress:
+  - id: WIP1
+    name: "SessionSummary DTO Token Type Fix"
+    file: src/qyl.collector/Query/SessionQueryService.cs
+    priority: HIGH
+    changes_needed:
+      - "InputTokens: int → long (prevent truncation at >2B tokens)"
+      - "OutputTokens: int → long"
+      - "TotalTokens: int → long"
+    note: "DB is BIGINT, DTO should match"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 4: VERTICAL SLICES (Feature Roadmap)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+vertical_slices:
+  pattern: |
+    TypeSpec → Storage → Query → API → MCP → Dashboard
+                    One Feature, Complete
+
+  registry:
+    - id: VS-01
+      name: "Span Ingestion"
+      adr: docs/architecture/decisions/0002-vs01-span-ingestion.md
+      priority: P0
+      status: PARTIAL
+      completed:
+        - DuckDbStore.cs (schema + write path)
+        - SpanRecord.cs
+        - OtlpJsonSpanParser.cs
+      remaining:
+        - Integration tests
+        - OTLP gRPC endpoint
+
+    - id: VS-02
+      name: "List Sessions"
+      adr: docs/architecture/decisions/0003-vs02-list-sessions.md
+      priority: P0
+      status: PARTIAL
+      dependencies: [ VS-01 ]
+      layers:
+        - file: src/qyl.collector/Query/SessionQueryService.cs
+          status: MIGRATED
+        - file: src/qyl.mcp/Tools/GetSessionTool.cs
+          status: NOT_STARTED
+        - file: src/qyl.dashboard/src/pages/SessionsPage.tsx
+          status: NOT_STARTED
+
+    - id: VS-03
+      name: "View Trace Tree"
+      adr: docs/architecture/decisions/0004-vs03-view-trace-tree.md
+      priority: P1
+      status: NOT_STARTED
+      dependencies: [ VS-01 ]
+
+    - id: VS-04
+      name: "GenAI Analytics"
+      adr: docs/architecture/decisions/0005-vs04-genai-analytics.md
+      priority: P1
+      status: NOT_STARTED
+      dependencies: [ VS-01, VS-02 ]
+
+    - id: VS-05
+      name: "Live Streaming"
+      adr: docs/architecture/decisions/0006-vs05-live-streaming.md
+      priority: P2
+      status: PARTIAL
+      completed:
+        - SseHub.cs
+        - SseEndpoints.cs
+      remaining:
+        - Dashboard integration
+
+    - id: VS-06
+      name: "MCP Query Tool"
+      adr: docs/architecture/decisions/0007-vs06-mcp-query-tool.md
+      priority: P2
+      status: NOT_STARTED
+      dependencies: [ VS-01, VS-02 ]
+
+  dependency_graph: |
+    VS-01 ──► VS-02 ──► VS-04
+      │         └────► VS-06
+      ├──► VS-03
+      └──► VS-05
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 5: NEXT TASKS (Prioritized)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+next_tasks:
+  immediate:
+    - id: T1
+      name: "Migrate SessionQueryService.cs"
+      priority: HIGH
+      effort: 30min
+      file: src/qyl.collector/Query/SessionQueryService.cs
+      action: "Update all SQL to OTel 1.38 column names"
+
+    - id: T2
+      name: "Test DuckDbStore integration"
+      priority: HIGH
+      effort: 1h
+      action: "Write integration tests for read/write paths"
+
+  short_term:
+    - id: T3
+      name: "Complete VS-02 (List Sessions)"
+      priority: MEDIUM
+      effort: 2h
+      layers:
+        - SessionQueryService.cs (migration)
+        - REST endpoint in Program.cs
+        - MCP tool (GetSessionTool.cs)
+        - Dashboard page (stub)
+
+    - id: T4
+      name: "Program.cs cleanup"
+      priority: MEDIUM
+      effort: 1h
+      action: "Wire up DuckDbStore with DI, add REST endpoints"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 6: IMPORTED - Paperless.Telemetry (2025-12-16)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+paperless_import:
+  status: IMPORTED
+  date: "2025-12-16"
+  location: "PAPERLESS.TELEMETRY/"
+  description: |
+    OTel Semantic Convention Migration Toolkit imported from Paperless.Telemetry.
+    Files are stored in /PAPERLESS.TELEMETRY/ for reference and gradual integration.
+    NOT part of qyl build - import folder only.
+
+  imported_projects:
+    - folder: "lol.Schema/"
+      files: [ "SchemaCore.cs", "lol.Schema.csproj" ]
+      purpose: "OTel Schema YAML Parsing + Diffing"
+
+    - folder: "lol.Analyzers/"
+      files: [ "DeprecatedAttributeAnalyzer.cs", "DeprecatedAttributeCodeFixProvider.cs", "DeprecatedAttributes.cs", "MissingSchemaUrlAnalyzer.cs" ]
+      purpose: "Roslyn Analyzers for deprecated OTel attributes"
+
+    - folder: "lol.Analyzers.Tests/"
+      files: [ "3 test files", "Verifiers/" ]
+      purpose: "Analyzer test infrastructure"
+
+    - folder: "lol.Collector/"
+      files: [ "OttlGenerator.cs" ]
+      purpose: "Generate OTel Collector OTTL transforms"
+
+    - folder: "lol.Cli/"
+      files: [ "Program.cs" ]
+      purpose: "CLI for schema diff commands"
+
+    - folder: "lol.Tests/"
+      files: [ "8 test files" ]
+      purpose: "Unit tests for schema parsing"
+
+    - folder: "docs/"
+      files: [ "ARCHITECTURE.md", "SEMCONV_MIGRATION_README.md", "WEAVER_INTEGRATION.md" ]
+      purpose: "Documentation"
+
+    - folder: "adrs/"
+      files: [ "0003-semantic-convention-normalization.md", "0004-polyglot-support.md" ]
+      purpose: "Design decisions"
+
+  integration_tasks:
+    - id: PI-1
+      name: "Merge IsInTelemetryContext() into QYL0002"
+      source: "PAPERLESS.TELEMETRY/lol.Analyzers/DeprecatedAttributeAnalyzer.cs:79-129"
+      target: "ANcpLua.NET.Sdk Analyzers"
+      benefit: "Smarter QYL0002 - only warn in actual telemetry code"
+      status: PENDING
+
+    - id: PI-2
+      name: "Use SchemaParser for OTel version tracking"
+      source: "PAPERLESS.TELEMETRY/lol.Schema/SchemaCore.cs"
+      target: "qyl.protocol or eng/tools/"
+      benefit: "Automated OTel semconv migration support"
+      status: PENDING
+
+    - id: PI-3
+      name: "Copy SEMCONV_MIGRATION_README.md"
+      source: "PAPERLESS.TELEMETRY/docs/SEMCONV_MIGRATION_README.md"
+      target: "docs/semconv-migration.md"
+      benefit: "Polyglot SDK version matrix documentation"
+      status: PENDING
+
+  not_imported:
+    - "Dashboard.Web (qyl.dashboard uses React 19)"
+    - "Dashboard.Receiver (qyl.collector uses DuckDB)"
+    - "ZeroCode.* (Zero-code demo apps)"
+    - "TestClient.* (Polyglot test clients)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 7: PATTERNS & RULES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+patterns:
+  concurrency:
+    sync: "Lock _lock = new(); using (_lock.EnterScope()) { ... }"
+    async: "SemaphoreSlim(1,1) for async mutual exclusion"
+    note: "Lock.EnterScope() returns ref struct - cannot cross await boundaries"
+
+  time:
+    banned: "DateTime.Now, DateTime.UtcNow, DateTimeOffset.Now"
+    use: "TimeProvider.System.GetUtcNow()"
+
+  duckdb:
+    otel_columns: "Use quoted names: \"session.id\", \"gen_ai.provider.name\""
+    tokens: "BIGINT (long in C#), not INT"
+    infinity: "Check DuckDBDateOnly.IsInfinity before conversion"
+    package: "DuckDB.NET.Data.Full@1.4.3"
+
+  json:
+    banned: "Newtonsoft.Json"
+    use: "System.Text.Json with [JsonSerializable] context"
+
+  collections:
+    static_lookups: "FrozenDictionary<K,V>, FrozenSet<T>"
+    initialization: "List<T> list = []"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 8: VERIFICATION COMMANDS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+verification:
+  build: "dotnet build -c Release"
+  test: "dotnet test -c Release"
+  run_collector: "dotnet run --project src/qyl.collector"
+  run_dashboard: "npm run dev --prefix src/qyl.dashboard"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SECTION 9: RELATED DOCUMENTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+related_docs:
+  - path: CLAUDE.md
+    purpose: "Root AI context (includes DuckDB 1.4.3 API Guide)"
+
+  - path: docs/qyl-architecture.yaml
+    purpose: "Full architecture specification (SSOT)"
+
+  - path: docs/architecture/decisions/
+    purpose: "Vertical Slice ADRs"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# END OF DOCUMENT
+# ═══════════════════════════════════════════════════════════════════════════════
