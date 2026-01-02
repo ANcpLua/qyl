@@ -51,7 +51,6 @@ sealed class Build : NukeBuild,
         .Description("Full CI pipeline (backend + frontend)")
         .DependsOn<ICompile>(x => x.Clean)
         .DependsOn<ICoverage>(x => x.Coverage)
-        .TryDependsOn<ITypeSpec>(x => x.GenerateAll)
         .DependsOn<IFrontend>(x => x.FrontendBuild)
         .DependsOn<IFrontend>(x => x.FrontendTest)
         .DependsOn<IFrontend>(x => x.FrontendLint)
@@ -74,17 +73,6 @@ sealed class Build : NukeBuild,
             Log.Information("  MCP:        http://localhost:5100/mcp (AI agent queries)");
             Log.Information("");
             Log.Information("  Run 'nuke frontend-dev' in another terminal for hot reload");
-        });
-
-    Target Sync => d => d
-        .Description("Generate clients from TypeSpec and sync to projects")
-        .DependsOn<ITypeSpec>(x => x.GenerateAll)
-        .DependsOn<ITypeSpec>(x => x.SyncGeneratedTypes)
-        .Executes(() =>
-        {
-            Log.Information("Types synced successfully");
-            Log.Information("  TypeScript → src/qyl.dashboard/src/types/generated/");
-            Log.Information("  C#         → src/qyl.collector/Generated/");
         });
 
     Target Demo => d => d

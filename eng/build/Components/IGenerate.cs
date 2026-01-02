@@ -10,7 +10,8 @@ namespace Components;
 
 /// <summary>
 ///     Code generation component using <see cref="QylSchema" /> as single source of truth.
-///     Generates C#, TypeScript, and DuckDB schema files.
+///     Generates C# domain models and DuckDB schema.
+///     Dashboard TypeScript types are generated separately via openapi-typescript from OpenAPI spec.
 /// </summary>
 interface IGenerate : IHasSolution
 {
@@ -24,10 +25,10 @@ interface IGenerate : IHasSolution
     string RootNamespace => TryGetValue(() => RootNamespace) ?? "qyl.protocol";
 
     /// <summary>
-    ///     Generate all code from QylSchema.
+    ///     Generate all code from QylSchema (C# models + DuckDB schema).
     /// </summary>
     Target Generate => d => d
-        .Description("Generate code from QylSchema (C#, TypeScript, DuckDB)")
+        .Description("Generate code from QylSchema (C# models, DuckDB schema)")
         .Executes(() =>
         {
             var force = ForceGenerate ?? false;
@@ -50,11 +51,11 @@ interface IGenerate : IHasSolution
             var schema = QylSchema.Instance;
             var paths = BuildPaths.From(this);
 
-            // Define generators
+            // Define generators (C# for domain models, DuckDB for storage)
+            // TypeScript is NOT generated here - use openapi-typescript from OpenAPI spec instead
             IGenerator[] generators =
             [
                 new CSharpGenerator(),
-                new TypeScriptGenerator(),
                 new DuckDbGenerator()
             ];
 
@@ -68,7 +69,6 @@ interface IGenerate : IHasSolution
 
                 foreach (var (relativePath, content) in outputs)
                 {
-                    // C# goes to qyl.protocol, TS goes to dashboard, DuckDB to collector
                     var absolutePath = GetOutputPath(paths, generator.Name, relativePath);
                     guard.WriteIfAllowed(absolutePath, content, $"{generator.Name}: {relativePath}");
                 }
@@ -77,6 +77,10 @@ interface IGenerate : IHasSolution
             // Summary
             Log.Information("");
             guard.LogSummary(IsServerBuild);
+
+            Log.Information("");
+            Log.Information("Note: Dashboard TypeScript types are generated from OpenAPI spec:");
+            Log.Information("  cd src/qyl.dashboard && npm run generate:types");
         });
 
     /// <summary>
@@ -98,31 +102,6 @@ interface IGenerate : IHasSolution
             foreach (var (relativePath, content) in outputs)
             {
                 var absolutePath = paths.Protocol / relativePath;
-                guard.WriteIfAllowed(absolutePath, content, relativePath);
-            }
-
-            guard.LogSummary(false);
-        });
-
-    /// <summary>
-    ///     Generate only TypeScript types.
-    /// </summary>
-    Target GenerateTypeScript => d => d
-        .Description("Generate only TypeScript from QylSchema")
-        .Executes(() =>
-        {
-            var guard = CreateGuard();
-            var schema = QylSchema.Instance;
-            var paths = BuildPaths.From(this);
-
-            Log.Information("Generating TypeScript from QylSchema...");
-
-            var generator = new TypeScriptGenerator();
-            var outputs = generator.Generate(schema, paths, RootNamespace);
-
-            foreach (var (relativePath, content) in outputs)
-            {
-                var absolutePath = paths.DashboardTypes / relativePath;
                 guard.WriteIfAllowed(absolutePath, content, relativePath);
             }
 
@@ -170,7 +149,6 @@ interface IGenerate : IHasSolution
         generatorName switch
         {
             "CSharp" => paths.Protocol / relativePath,
-            "TypeScript" => paths.DashboardTypes / relativePath,
             "DuckDB" => paths.CollectorStorage / relativePath,
             _ => paths.Generated / relativePath
         };
