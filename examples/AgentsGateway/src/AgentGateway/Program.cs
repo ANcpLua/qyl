@@ -37,8 +37,11 @@ if (builder.Environment.IsProduction())
         .UseAzureMonitor(options => { options.Credential = new DefaultAzureCredential(); });
 }
 
-// Authentication
-builder.Services.AddBotAspNetAuthentication(builder.Configuration);
+// Authentication (skip in Development for testing)
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.AddBotAspNetAuthentication(builder.Configuration);
+}
 
 // AOT-compatible JSON serialization for Gateway Catalog
 builder.Services.ConfigureHttpJsonOptions(options =>

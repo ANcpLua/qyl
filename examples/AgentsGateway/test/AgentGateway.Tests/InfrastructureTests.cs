@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.AI;
 using AgentGateway.Core;
@@ -6,11 +8,28 @@ using Xunit;
 
 namespace AgentGateway.Tests;
 
-public class InfrastructureTests : IClassFixture<WebApplicationFactory<Program>>
+public class TestWebApplicationFactory : WebApplicationFactory<Program>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.UseEnvironment("Development");
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            // Add test configuration that overrides the main app's config
+            var testConfig = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+            if (File.Exists(testConfig))
+            {
+                config.AddJsonFile(testConfig, optional: false);
+            }
+        });
+    }
+}
 
-    public InfrastructureTests(WebApplicationFactory<Program> factory)
+public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
+{
+    private readonly TestWebApplicationFactory _factory;
+
+    public InfrastructureTests(TestWebApplicationFactory factory)
     {
         _factory = factory;
     }
