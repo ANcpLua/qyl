@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>ae44955c-79ee-44f3-b90e-c1fd9d75061d</UserSecretsId>
+        <AssemblyName>AgentGateway</AssemblyName>
+        <RootNamespace>AgentGateway</RootNamespace>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <IsPackable>true</IsPackable>
+        <PackageId>AgentGateway</PackageId>
+        <Version>1.38.0</Version>
+        <Authors>ANcpLua</Authors>
+        <Company>ANcpLua</Company>
+        <Description>A production-ready AI Agent Gateway for multi-provider orchestration, providing dynamic routing, resilience, and secure authentication for Microsoft Agent Framework.</Description>
+        <PackageTags>AI;Agent;Gateway;Multi-Provider;Microsoft.Agents;Router;Teams;OpenAI</PackageTags>
+        <PackageProjectUrl>https://github.com/ANcpLua/AgentGateway</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/ANcpLua/AgentGateway</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <Copyright>Copyright (c) ANcpLua 2025</Copyright>
+        <NoWarn>$(NoWarn);NU5104</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Agents.AI" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.251204.1" />
+        <PackageReference Include="Microsoft.Agents.Authentication.Msal" Version="1.3.176" />
+        <PackageReference Include="Microsoft.Agents.Storage.Blobs" Version="1.3.176" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.1.0" />
+        <PackageReference Include="Microsoft.IdentityModel.Validators" Version="8.15.0" />
+        <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Remove="AgentGateway.Tests\**" />
+        <Content Remove="AgentGateway.Tests\**" />
+        <EmbeddedResource Remove="AgentGateway.Tests\**" />
+        <None Remove="AgentGateway.Tests\**" />
+    </ItemGroup>
+
+</Project>
