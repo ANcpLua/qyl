@@ -11,12 +11,10 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
-  <!-- Language & Framework -->
+  <!-- Language & Framework (SDK provides LangVersion=latest, Nullable=enable, ImplicitUsings=enable) -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <LangVersion>14.0</LangVersion>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- LangVersion, Nullable, ImplicitUsings: Let SDK own these for net10.0 -->
   </PropertyGroup>
 
   <!-- SDK Configuration -->
@@ -34,10 +32,11 @@
     <AnalysisLevel>10.0</AnalysisLevel>
     <AnalysisMode>Recommended</AnalysisMode>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- RS0030/RS0031 removed: SDK BannedSymbols too strict for qyl currently -->
     <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003</WarningsAsErrors>
-    <!-- Suppress SDK BannedSymbols until qyl code is migrated -->
-    <NoWarn>$(NoWarn);RS0030;RS0031</NoWarn>
+    <!-- NU1604: SDK implicit JonSkeet.RoslynAnalyzers conflicts with CPM (known limitation) -->
+    <!-- AL0017: Hardcoded version rule is for SDK development, not consumer projects -->
+    <!-- RS0030: Source generators use banned APIs (ArgumentNullException.ThrowIfNull) -->
+    <NoWarn>$(NoWarn);NU1604;AL0017;RS0030</NoWarn>
   </PropertyGroup>
 
   <!-- AOT -->
