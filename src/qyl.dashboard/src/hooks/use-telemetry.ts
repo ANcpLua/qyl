@@ -171,20 +171,21 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
 // Span utilities
 export function getSpanColor(span: Span): string {
+    const attrs = span.attributes ?? {};
     // GenAI spans
-    if (span.genai || span.attributes['gen_ai.provider.name']) {
+    if (span.genai || attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
     }
     // HTTP spans
-    if (span.attributes['http.method'] || span.attributes['http.request.method']) {
+    if (attrs['http.method'] || attrs['http.request.method']) {
         return 'hsl(var(--span-http))';
     }
     // Database spans
-    if (span.attributes['db.system']) {
+    if (attrs['db.system']) {
         return 'hsl(var(--span-db))';
     }
     // Messaging spans
-    if (span.attributes['messaging.system']) {
+    if (attrs['messaging.system']) {
         return 'hsl(var(--span-message))';
     }
     // Default
@@ -192,16 +193,17 @@ export function getSpanColor(span: Span): string {
 }
 
 export function getSpanTypeLabel(span: Span): string {
-    if (span.genai || span.attributes['gen_ai.provider.name']) {
+    const attrs = span.attributes ?? {};
+    if (span.genai || attrs['gen_ai.provider.name']) {
         return 'GenAI';
     }
-    if (span.attributes['http.method'] || span.attributes['http.request.method']) {
+    if (attrs['http.method'] || attrs['http.request.method']) {
         return 'HTTP';
     }
-    if (span.attributes['db.system']) {
+    if (attrs['db.system']) {
         return 'Database';
     }
-    if (span.attributes['messaging.system']) {
+    if (attrs['messaging.system']) {
         return 'Message';
     }
     return 'Internal';

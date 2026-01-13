@@ -19,7 +19,7 @@ import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
-import type {LogLevel, LogRecord} from '@/types/telemetry';
+import type {LogLevel, LogRecord} from '@/types';
 
 // =============================================================================
 // Configuration

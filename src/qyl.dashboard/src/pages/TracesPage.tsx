@@ -206,13 +206,13 @@ function SpanDetails({span}: { span: Span }) {
             <div>
                 <h4 className="text-sm font-medium mb-2">Attributes</h4>
                 <div className="space-y-1 text-sm">
-                    {Object.entries(span.attributes).map(([key, value]) => (
+                    {Object.entries(span.attributes ?? {}).map(([key, value]) => (
                         <div key={key} className="flex">
                             <span className="text-muted-foreground min-w-32">{key}:</span>
                             <span className="font-mono break-all">{String(value)}</span>
                         </div>
                     ))}
-                    {Object.keys(span.attributes).length === 0 && (
+                    {Object.keys(span.attributes ?? {}).length === 0 && (
                         <p className="text-muted-foreground">No attributes</p>
                     )}
                 </div>
@@ -255,13 +255,13 @@ function SpanDetails({span}: { span: Span }) {
             )}
 
             {/* Events */}
-            {span.events.length > 0 && (
+            {(span.events?.length ?? 0) > 0 && (
                 <>
                     <Separator/>
                     <div>
-                        <h4 className="text-sm font-medium mb-2">Events ({span.events.length})</h4>
+                        <h4 className="text-sm font-medium mb-2">Events ({span.events?.length ?? 0})</h4>
                         <div className="space-y-2">
-                            {span.events.map((event, i) => (
+                            {(span.events ?? []).map((event, i) => (
                                 <div key={i} className="text-sm p-2 bg-muted rounded">
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium">{event.name}</span>
@@ -340,7 +340,7 @@ export function TracesPage() {
             return (
                 span.name.toLowerCase().includes(filterLower) ||
                 span.serviceName.toLowerCase().includes(filterLower) ||
-                Object.values(span.attributes).some(v =>
+                Object.values(span.attributes ?? {}).some(v =>
                     String(v).toLowerCase().includes(filterLower)
                 )
             );

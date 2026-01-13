@@ -18,11 +18,11 @@ import {Badge} from '@/components/ui/badge';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {formatDuration} from '@/hooks/use-telemetry';
-// Using legacy types with message content - OpenAPI schema doesn't include messages yet
-import type {GenAISpanData, Span} from '@/types/telemetry';
+// Using extended types with message content - OpenAPI schema doesn't include messages yet
+import type {GenAiSpanDataExtended, Span} from '@/types';
 
 // Mock GenAI spans
-const mockGenAISpans: (Span & { genai: GenAISpanData })[] = [
+const mockGenAISpans: (Span & { genai: GenAiSpanDataExtended })[] = [
     {
         traceId: 'trace-1',
         spanId: 'span-1',
@@ -105,7 +105,7 @@ const mockGenAISpans: (Span & { genai: GenAISpanData })[] = [
 ];
 
 interface GenAISpanCardProps {
-    span: Span & { genai: GenAISpanData };
+    span: Span & { genai: GenAiSpanDataExtended };
     isExpanded: boolean;
     onToggle: () => void;
 }

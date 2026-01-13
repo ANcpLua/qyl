@@ -12,6 +12,11 @@ namespace qyl.collector.tests.Integration;
 /// </summary>
 public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
+    private static readonly JsonSerializerOptions s_snakeCaseOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+    };
+
     private readonly QylWebApplicationFactory _factory;
     private HttpClient _client = null!;
 
@@ -107,10 +112,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
             .Build();
 
         var batch = new { Spans = new[] { MapSpanToDto(span) } };
-        var json = JsonSerializer.Serialize(batch, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-        });
+        var json = JsonSerializer.Serialize(batch, s_snakeCaseOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync("/api/v1/ingest", content);
@@ -146,8 +148,8 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     private static OtlpExportTraceServiceRequest CreateValidOtlpRequest()
     {
         var now = DateTimeOffset.UtcNow;
-        var startNano = now.ToUnixTimeMilliseconds() * 1_000_000;
-        var endNano = (now.ToUnixTimeMilliseconds() + 100) * 1_000_000;
+        var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
+        var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 100) * 1_000_000);
 
         return new OtlpExportTraceServiceRequest
         {
@@ -194,8 +196,8 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     private static OtlpExportTraceServiceRequest CreateGenAiOtlpRequest()
     {
         var now = DateTimeOffset.UtcNow;
-        var startNano = now.ToUnixTimeMilliseconds() * 1_000_000;
-        var endNano = (now.ToUnixTimeMilliseconds() + 500) * 1_000_000;
+        var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
+        var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 500) * 1_000_000);
 
         return new OtlpExportTraceServiceRequest
         {

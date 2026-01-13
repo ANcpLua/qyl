@@ -47,33 +47,23 @@ interface IDockerBuild : IHasSolution
 
     Target DockerBuildCollector => d => d
         .Description("Build qyl-collector Docker image")
-        .Executes(() =>
-        {
-            var spec = ImageSpecs[0];
-            Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
-
-            DockerBuild(s => s
-                .SetPath(RootDirectory)
-                .SetFile(spec.Dockerfile)
-                .SetTag(spec.Tag)
-                .EnablePull()
-                .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
-        });
+        .Executes(() => BuildSingleImage(ImageSpecs[0]));
 
     Target DockerBuildDashboard => d => d
         .Description("Build qyl-dashboard Docker image")
-        .Executes(() =>
-        {
-            var spec = ImageSpecs[1];
-            Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
+        .Executes(() => BuildSingleImage(ImageSpecs[1]));
 
-            DockerBuild(s => s
-                .SetPath(RootDirectory)
-                .SetFile(spec.Dockerfile)
-                .SetTag(spec.Tag)
-                .EnablePull()
-                .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
-        });
+    private void BuildSingleImage((string Name, AbsolutePath Dockerfile, string Tag) spec)
+    {
+        Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
+
+        DockerBuild(s => s
+            .SetPath(RootDirectory)
+            .SetFile(spec.Dockerfile)
+            .SetTag(spec.Tag)
+            .EnablePull()
+            .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
+    }
 
     Target DockerImagePush => d => d
         .Description("Push Docker images to registry")

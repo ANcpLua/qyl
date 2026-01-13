@@ -199,8 +199,10 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes)
     {
-        var startTime = DateTime.UnixEpoch.AddTicks(span.StartTimeUnixNano / 100);
-        var endTime = DateTime.UnixEpoch.AddTicks(span.EndTimeUnixNano / 100);
+        // Convert nanoseconds to DateTime (ulong nanoseconds -> ticks, 1 tick = 100ns)
+        // Cast to long is safe for DateTime calculation (overflow only in year 30,000+)
+        var startTime = DateTime.UnixEpoch.AddTicks((long)(span.StartTimeUnixNano / 100));
+        var endTime = DateTime.UnixEpoch.AddTicks((long)(span.EndTimeUnixNano / 100));
 
         // Extract gen_ai attributes with schema normalization (fallback to deprecated names)
         var (providerName, requestModel, tokensIn, tokensOut) = ExtractGenAiAttributes(attributes);

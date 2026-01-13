@@ -165,7 +165,7 @@ public sealed class CSharpGenerator : IGenerator
 
             // Guid doesn't support NumberStyles, use simple overload
             // Hex types (UInt128, ulong with x format) need NumberStyles.HexNumber
-            var isHexType = primitive.FormatMethod.Contains("x");
+            var isHexType = primitive.FormatMethod.Contains('x');
             if (primitive.UnderlyingType == "Guid")
                 sb.AppendLine($"        => new({primitive.ParseMethod}(s));");
             else if (isHexType)
@@ -233,7 +233,7 @@ public sealed class CSharpGenerator : IGenerator
         }
 
         // TryFormat for ISpanFormattable (hex types)
-        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains("x"))
+        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains('x'))
         {
             var hexWidth = primitive.UnderlyingType == "UInt128" ? "32" : "16";
             sb.AppendLine("    /// <summary>Tries to format the value into the provided span.</summary>");
@@ -245,7 +245,7 @@ public sealed class CSharpGenerator : IGenerator
         }
 
         // UTF-8 parsing for hex types
-        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains("x"))
+        if (primitive.UnderlyingType is "UInt128" or "ulong" && primitive.FormatMethod.Contains('x'))
         {
             sb.AppendLine("    /// <summary>Parses a UTF-8 span into this type.</summary>");
             sb.AppendLine($"    public static {primitive.Name} Parse(ReadOnlySpan<byte> utf8)");
@@ -431,7 +431,7 @@ public sealed class CSharpGenerator : IGenerator
             // Documentation
             sb.AppendLine("    /// <summary>");
             sb.AppendLine($"    /// {attr.Description}");
-            if (attr.AllowedValues is { Length: > 0 })
+            if (!attr.AllowedValues.IsDefault && attr.AllowedValues.Length > 0)
                 sb.AppendLine($"    /// <para>Allowed values: {string.Join(", ", attr.AllowedValues)}</para>");
             if (attr is { IsDeprecated: true, ReplacedBy: { } replacedBy })
                 sb.AppendLine(

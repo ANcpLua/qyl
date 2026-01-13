@@ -7,6 +7,7 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
 
+[ParameterPrefix(nameof(ICompile))]
 interface ICompile : IHasSolution
 {
     [GitVersion(Framework = "net10.0", NoCache = true, NoFetch = true)]

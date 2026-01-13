@@ -87,14 +87,20 @@ dotnet_naming_symbols.namespaces.applicable_kinds = namespace
 
 [*.g.cs]
 dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
 generated_code = true
 
 [*.generated.cs]
 dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
 generated_code = true
 
 [**/obj/**/*.cs]
 dotnet_analyzer_diagnostic.severity = none
+dotnet_diagnostic.RS0030.severity = none
+dotnet_diagnostic.RS0031.severity = none
 generated_code = true
 
 [**/Protos/**/*.cs]

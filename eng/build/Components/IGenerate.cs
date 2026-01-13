@@ -13,6 +13,7 @@ namespace Components;
 ///     Generates C# domain models and DuckDB schema.
 ///     Dashboard TypeScript types are generated separately via openapi-typescript from OpenAPI spec.
 /// </summary>
+[ParameterPrefix(nameof(IGenerate))]
 interface IGenerate : IHasSolution
 {
     [Parameter("Force overwrite of existing generated files")]

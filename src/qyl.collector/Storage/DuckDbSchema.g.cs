@@ -5,7 +5,7 @@
 //     Source:    eng/build/Domain/CodeGen/QylSchema.cs
 //     Generator: DuckDbGenerator
 //     Output:    DuckDbSchema.g.cs
-//     Generated: 2025-12-17T23:06:27.2478400Z
+//     Generated: 2026-01-13T01:08:46.8080440Z
 // </auto-generated>
 
 #nullable enable
@@ -24,7 +24,7 @@ public static partial class DuckDbSchema
 {
     #region Table Names
 
-    /// <summary>Table: Primary span storage table with promoted gen_ai.* columns</summary>
+    /// <summary>Table: Primary span storage table</summary>
     public const string SpansTable = "spans";
     /// <summary>Table: Materialized view for session aggregation</summary>
     public const string SessionsAggTable = "sessions_agg";
@@ -36,72 +36,32 @@ public static partial class DuckDbSchema
     /// <summary>Column mappings for spans table.</summary>
     public static class Spans
     {
-        /// <summary>W3C trace identifier (VARCHAR)</summary>
+        /// <summary>Trace ID (32 hex chars) (VARCHAR)</summary>
         public const string TraceId = "trace_id";
-        /// <summary>Unique span identifier (VARCHAR)</summary>
+        /// <summary>Span ID (16 hex chars) (VARCHAR)</summary>
         public const string SpanId = "span_id";
-        /// <summary>Parent span identifier (null for root) (VARCHAR)</summary>
+        /// <summary>Parent span ID (null for root spans) (VARCHAR)</summary>
         public const string ParentSpanId = "parent_span_id";
-        /// <summary>Span operation name (VARCHAR)</summary>
-        public const string Name = "name";
-        /// <summary>Span kind (Client, Server, Producer, Consumer, Internal) (TINYINT)</summary>
-        public const string Kind = "kind";
-        /// <summary>Start timestamp in nanoseconds (UBIGINT)</summary>
-        public const string StartTimeUnixNano = "start_time_unix_nano";
-        /// <summary>End timestamp in nanoseconds (UBIGINT)</summary>
-        public const string EndTimeUnixNano = "end_time_unix_nano";
-        /// <summary>Duration in milliseconds (computed) (DOUBLE)</summary>
-        public const string DurationMs = "duration_ms";
-        /// <summary>Span status (Unset, Ok, Error) (TINYINT)</summary>
-        public const string StatusCode = "status_code";
-        /// <summary>Status message for errors (VARCHAR)</summary>
-        public const string StatusMessage = "status_message";
-        /// <summary>Service name from resource (VARCHAR)</summary>
-        public const string ServiceName = "service_name";
-        /// <summary>Service version (VARCHAR)</summary>
-        public const string ServiceVersion = "service_version";
-        /// <summary>gen_ai.provider.name - AI provider (VARCHAR)</summary>
-        public const string ProviderName = "\"gen_ai.provider.name\"";
-        /// <summary>gen_ai.operation.name - Operation type (VARCHAR)</summary>
-        public const string OperationName = "\"gen_ai.operation.name\"";
-        /// <summary>gen_ai.request.model - Requested model (VARCHAR)</summary>
-        public const string RequestModel = "\"gen_ai.request.model\"";
-        /// <summary>gen_ai.response.model - Actual model (VARCHAR)</summary>
-        public const string ResponseModel = "\"gen_ai.response.model\"";
-        /// <summary>gen_ai.usage.input_tokens (BIGINT)</summary>
-        public const string InputTokens = "\"gen_ai.usage.input_tokens\"";
-        /// <summary>gen_ai.usage.output_tokens (BIGINT)</summary>
-        public const string OutputTokens = "\"gen_ai.usage.output_tokens\"";
-        /// <summary>gen_ai.request.temperature (DOUBLE)</summary>
-        public const string Temperature = "\"gen_ai.request.temperature\"";
-        /// <summary>gen_ai.request.max_tokens (BIGINT)</summary>
-        public const string MaxTokens = "\"gen_ai.request.max_tokens\"";
-        /// <summary>gen_ai.response.id (VARCHAR)</summary>
-        public const string ResponseId = "\"gen_ai.response.id\"";
-        /// <summary>gen_ai.response.finish_reasons (VARCHAR[])</summary>
-        public const string FinishReasons = "\"gen_ai.response.finish_reasons\"";
-        /// <summary>gen_ai.agent.id (VARCHAR)</summary>
-        public const string AgentId = "\"gen_ai.agent.id\"";
-        /// <summary>gen_ai.agent.name (VARCHAR)</summary>
-        public const string AgentName = "\"gen_ai.agent.name\"";
-        /// <summary>gen_ai.tool.name (VARCHAR)</summary>
-        public const string ToolName = "\"gen_ai.tool.name\"";
-        /// <summary>gen_ai.tool.call.id (VARCHAR)</summary>
-        public const string ToolCallId = "\"gen_ai.tool.call.id\"";
-        /// <summary>gen_ai.conversation.id (VARCHAR)</summary>
-        public const string ConversationId = "\"gen_ai.conversation.id\"";
-        /// <summary>Session/conversation identifier (VARCHAR)</summary>
+        /// <summary>Session ID for grouping related traces (VARCHAR)</summary>
         public const string SessionId = "session_id";
-        /// <summary>Raw attributes as JSON (JSON)</summary>
-        public const string AttributesJson = "attributes_json";
+        /// <summary>Span name/operation (VARCHAR)</summary>
+        public const string Name = "name";
+        /// <summary>Service name from resource attributes (VARCHAR)</summary>
+        public const string ServiceName = "service_name";
+        /// <summary>Span kind (0=Unspecified, 1=Internal, 2=Server, 3=Client, 4=Producer, 5=Consumer) (TINYINT)</summary>
+        public const string Kind = "kind";
+        /// <summary>Start time in Unix nanoseconds (UBIGINT)</summary>
+        public const string StartTimeUnixNano = "start_time_unix_nano";
+        /// <summary>End time in Unix nanoseconds (UBIGINT)</summary>
+        public const string EndTimeUnixNano = "end_time_unix_nano";
+        /// <summary>Status code (0=Unset, 1=Ok, 2=Error) (TINYINT)</summary>
+        public const string StatusCode = "status_code";
+        /// <summary>Status message (for errors) (VARCHAR)</summary>
+        public const string StatusMessage = "status_message";
         /// <summary>Span events as JSON (JSON)</summary>
         public const string EventsJson = "events_json";
         /// <summary>Span links as JSON (JSON)</summary>
         public const string LinksJson = "links_json";
-        /// <summary>Resource attributes as JSON (JSON)</summary>
-        public const string ResourceAttributesJson = "resource_attributes_json";
-        /// <summary>Record creation timestamp (TIMESTAMPTZ)</summary>
-        public const string CreatedAt = "created_at";
 
         /// <summary>All column names.</summary>
         public static FrozenSet<string> AllColumns { get; } = new HashSet<string>
@@ -109,36 +69,16 @@ public static partial class DuckDbSchema
             TraceId,
             SpanId,
             ParentSpanId,
+            SessionId,
             Name,
+            ServiceName,
             Kind,
             StartTimeUnixNano,
             EndTimeUnixNano,
-            DurationMs,
             StatusCode,
             StatusMessage,
-            ServiceName,
-            ServiceVersion,
-            ProviderName,
-            OperationName,
-            RequestModel,
-            ResponseModel,
-            InputTokens,
-            OutputTokens,
-            Temperature,
-            MaxTokens,
-            ResponseId,
-            FinishReasons,
-            AgentId,
-            AgentName,
-            ToolName,
-            ToolCallId,
-            ConversationId,
-            SessionId,
-            AttributesJson,
             EventsJson,
             LinksJson,
-            ResourceAttributesJson,
-            CreatedAt,
         }.ToFrozenSet();
 
         /// <summary>Maps C# property names to DuckDB column names.</summary>
@@ -147,57 +87,17 @@ public static partial class DuckDbSchema
             [nameof(Models.SpanRecord.TraceId)] = TraceId,
             [nameof(Models.SpanRecord.SpanId)] = SpanId,
             [nameof(Models.SpanRecord.ParentSpanId)] = ParentSpanId,
+            [nameof(Models.SpanRecord.SessionId)] = SessionId,
             [nameof(Models.SpanRecord.Name)] = Name,
+            [nameof(Models.SpanRecord.ServiceName)] = ServiceName,
             [nameof(Models.SpanRecord.Kind)] = Kind,
             [nameof(Models.SpanRecord.StartTimeUnixNano)] = StartTimeUnixNano,
             [nameof(Models.SpanRecord.EndTimeUnixNano)] = EndTimeUnixNano,
-            [nameof(Models.SpanRecord.DurationMs)] = DurationMs,
             [nameof(Models.SpanRecord.StatusCode)] = StatusCode,
             [nameof(Models.SpanRecord.StatusMessage)] = StatusMessage,
-            [nameof(Models.SpanRecord.ServiceName)] = ServiceName,
-            [nameof(Models.SpanRecord.ServiceVersion)] = ServiceVersion,
-            [nameof(Models.SpanRecord.ProviderName)] = ProviderName,
-            [nameof(Models.SpanRecord.OperationName)] = OperationName,
-            [nameof(Models.SpanRecord.RequestModel)] = RequestModel,
-            [nameof(Models.SpanRecord.ResponseModel)] = ResponseModel,
-            [nameof(Models.SpanRecord.InputTokens)] = InputTokens,
-            [nameof(Models.SpanRecord.OutputTokens)] = OutputTokens,
-            [nameof(Models.SpanRecord.Temperature)] = Temperature,
-            [nameof(Models.SpanRecord.MaxTokens)] = MaxTokens,
-            [nameof(Models.SpanRecord.ResponseId)] = ResponseId,
-            [nameof(Models.SpanRecord.FinishReasons)] = FinishReasons,
-            [nameof(Models.SpanRecord.AgentId)] = AgentId,
-            [nameof(Models.SpanRecord.AgentName)] = AgentName,
-            [nameof(Models.SpanRecord.ToolName)] = ToolName,
-            [nameof(Models.SpanRecord.ToolCallId)] = ToolCallId,
-            [nameof(Models.SpanRecord.ConversationId)] = ConversationId,
-            [nameof(Models.SpanRecord.SessionId)] = SessionId,
-            [nameof(Models.SpanRecord.AttributesJson)] = AttributesJson,
             [nameof(Models.SpanRecord.EventsJson)] = EventsJson,
             [nameof(Models.SpanRecord.LinksJson)] = LinksJson,
-            [nameof(Models.SpanRecord.ResourceAttributesJson)] = ResourceAttributesJson,
-            [nameof(Models.SpanRecord.CreatedAt)] = CreatedAt,
         }.ToFrozenDictionary();
-
-        /// <summary>Promoted gen_ai.* columns for fast access.</summary>
-        public static FrozenSet<string> PromotedColumns { get; } = new HashSet<string>
-        {
-            ProviderName,
-            OperationName,
-            RequestModel,
-            ResponseModel,
-            InputTokens,
-            OutputTokens,
-            Temperature,
-            MaxTokens,
-            ResponseId,
-            FinishReasons,
-            AgentId,
-            AgentName,
-            ToolName,
-            ToolCallId,
-            ConversationId,
-        }.ToFrozenSet();
 
         /// <summary>INSERT statement with all columns.</summary>
         public const string InsertSql = @"
@@ -205,35 +105,16 @@ INSERT INTO spans (
     trace_id,
     span_id,
     parent_span_id,
+    session_id,
     name,
+    service_name,
     kind,
     start_time_unix_nano,
     end_time_unix_nano,
-    duration_ms,
     status_code,
     status_message,
-    service_name,
-    service_version,
-    ""gen_ai.provider.name"",
-    ""gen_ai.operation.name"",
-    ""gen_ai.request.model"",
-    ""gen_ai.response.model"",
-    ""gen_ai.usage.input_tokens"",
-    ""gen_ai.usage.output_tokens"",
-    ""gen_ai.request.temperature"",
-    ""gen_ai.request.max_tokens"",
-    ""gen_ai.response.id"",
-    ""gen_ai.response.finish_reasons"",
-    ""gen_ai.agent.id"",
-    ""gen_ai.agent.name"",
-    ""gen_ai.tool.name"",
-    ""gen_ai.tool.call.id"",
-    ""gen_ai.conversation.id"",
-    session_id,
-    attributes_json,
     events_json,
-    links_json,
-    resource_attributes_json
+    links_json
 ) VALUES (
     $1,
     $2,
@@ -247,26 +128,7 @@ INSERT INTO spans (
     $10,
     $11,
     $12,
-    $13,
-    $14,
-    $15,
-    $16,
-    $17,
-    $18,
-    $19,
-    $20,
-    $21,
-    $22,
-    $23,
-    $24,
-    $25,
-    $26,
-    $27,
-    $28,
-    $29,
-    $30,
-    $31,
-    $32
+    $13
 )";
 
         /// <summary>SELECT * statement.</summary>
@@ -310,45 +172,23 @@ CREATE TABLE IF NOT EXISTS spans (
     trace_id VARCHAR NOT NULL,
     span_id VARCHAR NOT NULL,
     parent_span_id VARCHAR,
+    session_id VARCHAR,
     name VARCHAR NOT NULL,
+    service_name VARCHAR,
     kind TINYINT NOT NULL,
     start_time_unix_nano UBIGINT NOT NULL,
     end_time_unix_nano UBIGINT NOT NULL,
-    duration_ms DOUBLE NOT NULL,
     status_code TINYINT NOT NULL,
     status_message VARCHAR,
-    service_name VARCHAR NOT NULL,
-    service_version VARCHAR,
-    ""gen_ai.provider.name"" VARCHAR,
-    ""gen_ai.operation.name"" VARCHAR,
-    ""gen_ai.request.model"" VARCHAR,
-    ""gen_ai.response.model"" VARCHAR,
-    ""gen_ai.usage.input_tokens"" BIGINT,
-    ""gen_ai.usage.output_tokens"" BIGINT,
-    ""gen_ai.request.temperature"" DOUBLE,
-    ""gen_ai.request.max_tokens"" BIGINT,
-    ""gen_ai.response.id"" VARCHAR,
-    ""gen_ai.response.finish_reasons"" VARCHAR[],
-    ""gen_ai.agent.id"" VARCHAR,
-    ""gen_ai.agent.name"" VARCHAR,
-    ""gen_ai.tool.name"" VARCHAR,
-    ""gen_ai.tool.call.id"" VARCHAR,
-    ""gen_ai.conversation.id"" VARCHAR,
-    session_id VARCHAR,
-    attributes_json JSON,
     events_json JSON,
     links_json JSON,
-    resource_attributes_json JSON,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     PRIMARY KEY (span_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
 CREATE INDEX IF NOT EXISTS idx_spans_service ON spans(service_name);
 CREATE INDEX IF NOT EXISTS idx_spans_start_time ON spans(start_time_unix_nano DESC);
-CREATE INDEX IF NOT EXISTS idx_spans_session ON spans(""session.id"");
-CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans(""gen_ai.provider.name"");
-CREATE INDEX IF NOT EXISTS idx_spans_model ON spans(""gen_ai.request.model"");
+CREATE INDEX IF NOT EXISTS idx_spans_session ON spans(session_id);
 ";
 
     #endregion

@@ -5,6 +5,7 @@ global using System.Collections.Concurrent;
 global using System.Collections.Frozen;
 global using System.Data;
 global using System.Data.Common;
+global using System.Globalization;
 global using System.IO.Compression;
 global using System.IO.Hashing;
 global using System.Net.ServerSentEvents;

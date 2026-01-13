@@ -77,9 +77,7 @@ public sealed record BuildPaths(AbsolutePath Root)
 
     public AbsolutePath Tests => Root / "tests";
 
-    public AbsolutePath UnitTests => Tests / "UnitTests";
-
-    public AbsolutePath IntegrationTests => Tests / "IntegrationTests";
+    public AbsolutePath CollectorTests => Tests / "qyl.collector.tests";
 
     public AbsolutePath Examples => Root / "examples";
 

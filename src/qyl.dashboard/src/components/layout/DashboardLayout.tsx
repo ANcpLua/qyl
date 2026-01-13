@@ -5,7 +5,7 @@ import {Sidebar} from './Sidebar';
 import {TopBar} from './TopBar';
 import {useLiveStream} from '@/hooks/use-telemetry';
 import {useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
-import type {Span} from '@/types/telemetry';
+import type {Span} from '@/types';
 
 export function DashboardLayout() {
     const navigate = useNavigate();

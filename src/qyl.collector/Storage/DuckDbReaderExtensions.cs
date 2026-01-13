@@ -64,6 +64,18 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
         get => IsNull ? null : reader.GetInt64(ordinal);
     }
 
+    /// <summary>
+    /// Gets UBIGINT (unsigned 64-bit) value. Required for OTel timestamp columns.
+    /// DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
+    /// </summary>
+    public ulong? AsUInt64
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsNull ? null : reader is DbDataReader db
+            ? (ulong)db.GetFieldValue<decimal>(ordinal)
+            : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+    }
+
     public double? AsDouble
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -149,6 +161,15 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long GetInt64(long defaultValue) => IsNull ? defaultValue : reader.GetInt64(ordinal);
+
+    /// <summary>
+    /// Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel timestamp columns.
+    /// DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ulong GetUInt64(ulong defaultValue) => IsNull ? defaultValue : reader is DbDataReader db
+        ? (ulong)db.GetFieldValue<decimal>(ordinal)
+        : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetDouble(double defaultValue) => IsNull ? defaultValue : reader.GetDouble(ordinal);

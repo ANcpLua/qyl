@@ -4,6 +4,8 @@
 // Target: .NET 10 / C# 14
 // =============================================================================
 
+#pragma warning disable AL0012 // Intentional deprecated attribute references for backward compatibility
+
 namespace qyl.collector.Ingestion;
 
 /// <summary>
@@ -537,8 +539,10 @@ public sealed record OtlpSpan
     public string? ParentSpanId { get; init; }
     public string? Name { get; init; }
     public int? Kind { get; init; }
-    public long StartTimeUnixNano { get; init; }
-    public long EndTimeUnixNano { get; init; }
+    /// <summary>Start time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
+    public ulong StartTimeUnixNano { get; init; }
+    /// <summary>End time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
+    public ulong EndTimeUnixNano { get; init; }
     public OtlpStatus? Status { get; init; }
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
@@ -598,7 +602,20 @@ public sealed class ParsedSpan
     // Raw attributes for non-promoted fields
     public List<KeyValuePair<string, object?>>? Attributes { get; set; }
 
-    public TimeSpan Duration => TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
+    /// <summary>
+    /// Duration as TimeSpan. Returns TimeSpan.Zero if EndTime is before StartTime (clock skew protection).
+    /// </summary>
+    public TimeSpan Duration
+    {
+        get
+        {
+            // Guard against clock skew where EndTime < StartTime
+            if (EndTime.Value < StartTime.Value)
+                return TimeSpan.Zero;
+            // Safe: duration in nanoseconds / 100 = ticks, fits in long for any reasonable duration
+            return TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
+        }
+    }
     public long TotalTokens => InputTokens + OutputTokens;
     public bool IsGenAiSpan => ProviderName is not null || RequestModel is not null;
 }

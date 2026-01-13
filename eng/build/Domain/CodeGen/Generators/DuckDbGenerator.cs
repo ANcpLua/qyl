@@ -43,9 +43,9 @@ public sealed class DuckDbGenerator : IGenerator
 
         sb.Append(GeneratedFileHeaders.Sql(GeneratorName, "schema.sql"));
 
-        // Emit tables
+        // Emit tables with comments for SQL file
         foreach (var table in schema.Tables.Where(t => !t.IsView))
-            EmitTable(sb, table, schema);
+            EmitTable(sb, table, schema, includeComments: true, escapeQuotes: false);
 
         // Emit views
         foreach (var table in schema.Tables.Where(t => t.IsView))
@@ -54,12 +54,43 @@ public sealed class DuckDbGenerator : IGenerator
         return sb.ToString();
     }
 
-    static void EmitTable(StringBuilder sb, TableDefinition table, QylSchema schema)
+    /// <summary>
+    /// Generates DDL for embedding in C# SchemaDdl constant.
+    /// No comments, quotes escaped for verbatim string.
+    /// </summary>
+    static string GenerateSchemaDdl(QylSchema schema)
+    {
+        var sb = new StringBuilder();
+
+        // Tables
+        foreach (var table in schema.Tables.Where(t => !t.IsView))
+            EmitTable(sb, table, schema, includeComments: false, escapeQuotes: true);
+
+        // Indexes
+        foreach (var table in schema.Tables.Where(t => !t.IsView && t.Indexes is { Count: > 0 }))
+        foreach (var index in table.Indexes!)
+        {
+            var unique = index.IsUnique ? "UNIQUE " : "";
+            var columnsList = string.Join(", ", index.Columns.Select(c =>
+            {
+                var escaped = c.Replace("\"", "\"\"");
+                return index.IsDescending ? $"{escaped} DESC" : escaped;
+            }));
+
+            sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columnsList});");
+        }
+
+        return sb.ToString();
+    }
+
+    static void EmitTable(StringBuilder sb, TableDefinition table, QylSchema schema, bool includeComments, bool escapeQuotes)
     {
         var model = schema.Models.FirstOrDefault(m => m.Name == table.ModelName);
         if (model is null) return;
 
-        sb.AppendLine($"-- {table.Description}");
+        if (includeComments)
+            sb.AppendLine($"-- {table.Description}");
+
         sb.AppendLine($"CREATE TABLE IF NOT EXISTS {table.Name} (");
 
         var columns = model.Properties?
@@ -75,12 +106,19 @@ public sealed class DuckDbGenerator : IGenerator
             var defaultValue = GetDefaultValue(prop);
             var defaultClause = defaultValue is not null ? $" DEFAULT {defaultValue}" : "";
 
-            sb.Append($"    {prop.DuckDbColumn} {prop.DuckDbType}{nullConstraint}{defaultClause}");
+            var columnName = escapeQuotes
+                ? prop.DuckDbColumn!.Replace("\"", "\"\"")
+                : prop.DuckDbColumn;
+
+            sb.Append($"    {columnName} {prop.DuckDbType}{nullConstraint}{defaultClause}");
 
             if (!isLast || table.PrimaryKey is not null)
                 sb.Append(',');
 
-            sb.AppendLine($" -- {prop.Description}");
+            if (includeComments)
+                sb.AppendLine($" -- {prop.Description}");
+            else
+                sb.AppendLine();
         }
 
         // Primary key
@@ -90,8 +128,8 @@ public sealed class DuckDbGenerator : IGenerator
         sb.AppendLine(");");
         sb.AppendLine();
 
-        // Indexes
-        if (table.Indexes is { Count: > 0 })
+        // Indexes (only for SQL file with comments)
+        if (includeComments && table.Indexes is { Count: > 0 })
         {
             foreach (var index in table.Indexes)
             {
@@ -289,66 +327,13 @@ public sealed class DuckDbGenerator : IGenerator
         sb.AppendLine();
         sb.AppendLine("    #endregion");
 
-        // DDL
+        // DDL - uses shared GenerateSchemaDdl to avoid duplication with EmitSql
         sb.AppendLine();
         sb.AppendLine("    #region DDL");
         sb.AppendLine();
         sb.AppendLine("    /// <summary>Full schema DDL for initialization.</summary>");
         sb.AppendLine("    public const string SchemaDdl = @\"");
-
-        // Inline the DDL
-        foreach (var table in schema.Tables.Where(t => !t.IsView))
-        {
-            var model = schema.Models.FirstOrDefault(m => m.Name == table.ModelName);
-            if (model is null) continue;
-
-            sb.AppendLine($"CREATE TABLE IF NOT EXISTS {table.Name} (");
-
-            var columns = model.Properties?
-                .Where(p => p.DuckDbColumn is not null)
-                .ToList() ?? [];
-
-            for (var i = 0; i < columns.Count; i++)
-            {
-                var prop = columns[i];
-                var isLast = i == columns.Count - 1 && table.PrimaryKey is null;
-
-                var nullConstraint = prop.IsRequired ? " NOT NULL" : "";
-                var defaultValue = GetDefaultValue(prop);
-                var defaultClause = defaultValue is not null ? $" DEFAULT {defaultValue}" : "";
-
-                // Escape double quotes for verbatim string literal
-                var escapedColumn = prop.DuckDbColumn!.Replace("\"", "\"\"");
-                sb.Append($"    {escapedColumn} {prop.DuckDbType}{nullConstraint}{defaultClause}");
-
-                if (!isLast || table.PrimaryKey is not null)
-                    sb.Append(',');
-
-                sb.AppendLine();
-            }
-
-            if (table.PrimaryKey is not null)
-                sb.AppendLine($"    PRIMARY KEY ({table.PrimaryKey})");
-
-            sb.AppendLine(");");
-            sb.AppendLine();
-        }
-
-        // Indexes
-        foreach (var table in schema.Tables.Where(t => !t.IsView && t.Indexes is { Count: > 0 }))
-        foreach (var index in table.Indexes!)
-        {
-            var unique = index.IsUnique ? "UNIQUE " : "";
-            // Escape double quotes for verbatim string literal
-            var columnsList = string.Join(", ", index.Columns.Select(c =>
-            {
-                var escaped = c.Replace("\"", "\"\"");
-                return index.IsDescending ? $"{escaped} DESC" : escaped;
-            }));
-
-            sb.AppendLine($"CREATE {unique}INDEX IF NOT EXISTS {index.Name} ON {table.Name}({columnsList});");
-        }
-
+        sb.Append(GenerateSchemaDdl(schema));
         sb.AppendLine("\";");
         sb.AppendLine();
         sb.AppendLine("    #endregion");

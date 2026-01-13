@@ -3,8 +3,6 @@
 // Uses [TagName] for OTel-compatible logging
 // =============================================================================
 
-using Microsoft.Extensions.Logging;
-
 namespace qyl.collector.Telemetry;
 
 // =============================================================================

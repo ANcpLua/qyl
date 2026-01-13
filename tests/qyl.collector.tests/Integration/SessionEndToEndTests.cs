@@ -160,8 +160,8 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         string traceId, string spanId, string sessionId)
     {
         var now = DateTimeOffset.UtcNow;
-        var startNano = now.ToUnixTimeMilliseconds() * 1_000_000;
-        var endNano = (now.ToUnixTimeMilliseconds() + 100) * 1_000_000;
+        var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
+        var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 100) * 1_000_000);
 
         return new OtlpExportTraceServiceRequest
         {
@@ -217,8 +217,8 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         long inputTokens, long outputTokens)
     {
         var now = DateTimeOffset.UtcNow;
-        var startNano = now.ToUnixTimeMilliseconds() * 1_000_000;
-        var endNano = (now.ToUnixTimeMilliseconds() + 500) * 1_000_000;
+        var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
+        var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 500) * 1_000_000);
 
         return new OtlpExportTraceServiceRequest
         {
@@ -292,8 +292,8 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
     private static OtlpSpan CreateSpan(string traceId, string spanId, string sessionId, string name)
     {
         var now = DateTimeOffset.UtcNow;
-        var startNano = now.ToUnixTimeMilliseconds() * 1_000_000;
-        var endNano = (now.ToUnixTimeMilliseconds() + 50) * 1_000_000;
+        var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
+        var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 50) * 1_000_000);
 
         return new OtlpSpan
         {

@@ -3,7 +3,6 @@
 // Automatically adds context to all log entries
 // =============================================================================
 
-using System.Diagnostics;
 using Microsoft.Extensions.Diagnostics.Enrichment;
 
 namespace qyl.collector.Telemetry;
@@ -114,25 +113,28 @@ public sealed class QylStorageEnricher : ILogEnricher
 {
     private readonly Func<long> _getSpanCount;
     private readonly Func<long> _getSessionCount;
+    private readonly TimeProvider _timeProvider;
     private long _lastSpanCount;
     private long _lastSessionCount;
-    private DateTime _lastUpdate = DateTime.MinValue;
+    private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
 
-    public QylStorageEnricher(Func<long> getSpanCount, Func<long> getSessionCount)
+    public QylStorageEnricher(Func<long> getSpanCount, Func<long> getSessionCount, TimeProvider? timeProvider = null)
     {
         _getSpanCount = getSpanCount;
         _getSessionCount = getSessionCount;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public void Enrich(IEnrichmentTagCollector collector)
     {
         // Cache expensive storage queries
-        if (DateTime.UtcNow - _lastUpdate > CacheDuration)
+        var now = _timeProvider.GetUtcNow();
+        if (now - _lastUpdate > CacheDuration)
         {
             _lastSpanCount = _getSpanCount();
             _lastSessionCount = _getSessionCount();
-            _lastUpdate = DateTime.UtcNow;
+            _lastUpdate = now;
         }
 
         collector.Add("storage.span_count", _lastSpanCount);

@@ -22,7 +22,7 @@ partial interface IClaudeContext : IHasSolution
         {
             Log.Information("🧠 Compiler started: Resolving Dependency Graph...");
 
-            var chain = ResolveLinkedList(LeafClaude, []);
+            var chain = ResolveLinkedList(LeafClaude, (List<AbsolutePath>)[]);
 
             var compilationUnit = new Dictionary<string, Section>();
             foreach (var node in Enumerable.Reverse(chain))
@@ -51,14 +51,13 @@ partial interface IClaudeContext : IHasSolution
             Log.Information("✅ Artifact validated successfully.");
         });
 
-    private List<AbsolutePath> ResolveLinkedList(AbsolutePath current, List<AbsolutePath> visited)
+    private IEnumerable<AbsolutePath> ResolveLinkedList(AbsolutePath current, ICollection<AbsolutePath> visited)
     {
         while (true)
         {
             if (!current.FileExists())
             {
-                if (visited.Count is 0) return [];
-                throw new InvalidOperationException($"Import target '{current}' not found.");
+                return visited.Count is 0 ? [] : throw new InvalidOperationException($"Import target '{current}' not found.");
             }
 
             if (visited.Contains(current))
@@ -67,7 +66,7 @@ partial interface IClaudeContext : IHasSolution
             visited.Add(current);
 
             var content = current.ReadAllText();
-            var match = MyRegex().Match(content);
+            var match = ImportPathRegex().Match(content);
 
             if (!match.Success) return visited;
             var importPath = match.Groups["path"].Value;
@@ -83,7 +82,7 @@ partial interface IClaudeContext : IHasSolution
         return importPath.Replace("~", home, StringComparison.Ordinal);
     }
 
-    private void MergeLayer(Dictionary<string, Section> context, Dictionary<string, string> layer, string layerName)
+    private void MergeLayer(IDictionary<string, Section> context, Dictionary<string, string> layer, string layerName)
     {
         foreach (var (header, content) in layer)
 
@@ -127,7 +126,7 @@ partial interface IClaudeContext : IHasSolution
         foreach (Match match in regex.Matches(path.ReadAllText()))
         {
             var cleanContent =
-                MyRegex1().Replace(match.Groups["content"].Value, "").Trim();
+                ImportStripRegex().Replace(match.Groups["content"].Value, "").Trim();
             if (!string.IsNullOrWhiteSpace(cleanContent))
                 result[match.Groups["header"].Value.Trim()] = cleanContent;
         }
@@ -159,13 +158,13 @@ partial interface IClaudeContext : IHasSolution
         Log.Information("💾 Compiled Artifact: {Path}", CompiledArtifact);
     }
 
-    [GeneratedRegex("""
-                    ^@import\s+"(?<path>.+)"
-                    """, RegexOptions.Multiline)]
-    private static partial Regex MyRegex();
+    /// <summary>Extracts path from @import "path" directive.</summary>
+    [GeneratedRegex(@"^@import\s+""(?<path>.+)""", RegexOptions.Multiline)]
+    private static partial Regex ImportPathRegex();
 
+    /// <summary>Strips @import directives from content.</summary>
     [GeneratedRegex("^@import.*$", RegexOptions.Multiline)]
-    private static partial Regex MyRegex1();
+    private static partial Regex ImportStripRegex();
 
     private sealed class Section
     {

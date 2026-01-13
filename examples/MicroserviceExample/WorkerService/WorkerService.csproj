@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
   <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
     <NoWarn>$(NoWarn);CA1812</NoWarn>
   </PropertyGroup>
 

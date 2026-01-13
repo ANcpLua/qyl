@@ -11,15 +11,21 @@
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
         <IsAotCompatible>false</IsAotCompatible>
+        <!-- Explicit for test projects - root props removed for SDK ownership but tests need these -->
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
         <!-- CA1707: Underscores in test method names are convention -->
         <!-- VSTHRD111: Use .ConfigureAwait(bool) is not needed in test code -->
         <!-- xUnit1051: CancellationToken suggestion - not critical for tests -->
         <NoWarn>$(NoWarn);CA1707;VSTHRD111;xUnit1051</NoWarn>
     </PropertyGroup>
 
-    <!-- xUnit v3 MTP packages -->
+    <!-- xUnit v3 with MTP v2 packages
+         CRITICAL: Use xunit.v3.mtp-v2 (NOT xunit.v3) for .NET 10 SDK compatibility.
+         Plain xunit.v3 bundles MTP v1 which causes:
+         "Could not load type 'Microsoft.Testing.Platform.Extensions.TestHost.IDataConsumer'" -->
     <ItemGroup>
-        <PackageReference Include="xunit.v3"/>
+        <PackageReference Include="xunit.v3.mtp-v2"/>
         <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
         <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage"/>
     </ItemGroup>

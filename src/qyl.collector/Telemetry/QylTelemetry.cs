@@ -3,10 +3,6 @@
 // Uses ActivitySourceOptions/MeterOptions with OTel Schema URL (new in .NET 10)
 // =============================================================================
 
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-using qyl.collector.Ingestion;
-
 namespace qyl.collector.Telemetry;
 
 /// <summary>
@@ -27,7 +23,7 @@ public static class QylTelemetry
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.SchemaUrl // "https://opentelemetry.io/schemas/1.38.0"
+        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.38.0"
     });
 
     // ==========================================================================
@@ -40,7 +36,7 @@ public static class QylTelemetry
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.SchemaUrl
+        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString()
     });
 
     // ==========================================================================

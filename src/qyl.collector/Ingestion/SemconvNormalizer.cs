@@ -4,8 +4,7 @@
 // Owner: qyl.collector | Based on: ADR-003 Semantic Convention Normalization
 // =============================================================================
 
-using System.Collections.Frozen;
-using qyl.protocol.Primitives;
+#pragma warning disable AL0012 // Intentional deprecated attribute references for migration mapping
 
 namespace qyl.collector.Ingestion;
 

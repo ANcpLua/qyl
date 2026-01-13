@@ -4,6 +4,22 @@
  */
 
 export interface paths {
+    "/api/auth/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_authCheck"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/login": {
         parameters: {
             query?: never;
@@ -13,23 +29,117 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Authenticate with token */
-        post: operations["login"];
+        post: operations["Api_login"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/check": {
+    "/api/logout": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Check authentication status */
-        get: operations["checkAuth"];
+        get?: never;
+        put?: never;
+        post: operations["Api_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_getConsoleLogs"];
+        put?: never;
+        post: operations["Api_ingestConsoleLogs"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_getConsoleErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/console/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_liveConsole"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Api_submitFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ingest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Api_ingestSpans"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_liveStream"];
         put?: never;
         post?: never;
         delete?: never;
@@ -45,8 +155,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List sessions with optional filters */
-        get: operations["getSessions"];
+        get: operations["Api_listSessions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -62,8 +171,23 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get session by ID */
-        get: operations["getSession"];
+        get: operations["Api_getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sessions/{sessionId}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Api_getSessionFeedback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -79,8 +203,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get all spans for a session */
-        get: operations["getSessionSpans"];
+        get: operations["Api_getSessionSpans"];
         put?: never;
         post?: never;
         delete?: never;
@@ -96,25 +219,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get trace by ID */
-        get: operations["getTrace"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Subscribe to live telemetry stream (SSE) */
-        get: operations["subscribeLive"];
+        get: operations["Api_getTrace"];
         put?: never;
         post?: never;
         delete?: never;
@@ -130,9 +235,41 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["healthCheck"];
+        get: operations["health"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mcp/manifest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Mcp_getManifest"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/mcp/tools/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Mcp_callTool"];
         delete?: never;
         options?: never;
         head?: never;
@@ -146,7 +283,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["readinessCheck"];
+        get: operations["ready"];
         put?: never;
         post?: never;
         delete?: never;
@@ -155,224 +292,265 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["otlpIngest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
     schemas: {
+        /** @description Key-value attributes map */
+        Attributes: Record<string, never>;
+        /** @description Auth check response */
+        AuthCheckResponse: {
+            authenticated: boolean;
+        };
+        /** @description Console log batch */
+        ConsoleIngestBatch: {
+            logs: components["schemas"]["ConsoleIngestRequest"][];
+        };
+        /** @description Console log ingest request */
+        ConsoleIngestRequest: {
+            level?: string;
+            message?: string;
+            sessionId?: string;
+            url?: string;
+            stack?: string;
+        };
+        /**
+         * @description Console log level
+         * @enum {string}
+         */
+        ConsoleLevel: "debug" | "log" | "info" | "warn" | "error";
+        /** @description Console log entry */
+        ConsoleLogEntry: {
+            level?: components["schemas"]["ConsoleLevel"];
+            message?: string;
+            sessionId?: string;
+            url?: string;
+            stack?: string;
+            timestamp: components["schemas"]["Timestamp"];
+        };
+        /** @description Error response */
+        ErrorResponse: {
+            error: string;
+            message?: string;
+        };
+        /** @description Feedback response (placeholder) */
+        FeedbackResponse: {
+            feedback: unknown[];
+        };
+        /** @description GenAI-specific span data (OTel semconv 1.38) */
+        GenAiSpanData: {
+            providerName?: string;
+            operationName?: string;
+            requestModel?: string;
+            responseModel?: string;
+            /** Format: int64 */
+            inputTokens?: number;
+            /** Format: int64 */
+            outputTokens?: number;
+            /** Format: int64 */
+            totalTokens?: number;
+            /** Format: double */
+            costUsd?: number;
+            /** Format: double */
+            temperature?: number;
+            /** Format: int32 */
+            maxTokens?: number;
+            finishReason?: string;
+            toolName?: string;
+            toolCallId?: string;
+        };
+        /** @description Health response */
+        HealthResponse: {
+            status: string;
+        };
+        /** @description Login request */
         LoginRequest: {
             token: string;
         };
+        /** @description Login response */
         LoginResponse: {
             success: boolean;
             error?: string;
         };
-        AuthCheckResponse: {
-            authenticated: boolean;
+        /** @description MCP content */
+        McpContent: {
+            type: string;
+            text?: string;
         };
-        Span: {
-            /**
-             * @description W3C trace ID (32 hex chars)
-             * @example 4bf92f3577b34da6a3ce929d0e0e4736
-             */
-            traceId: string;
-            /**
-             * @description Span ID (16 hex chars)
-             * @example 00f067aa0ba902b7
-             */
-            spanId: string;
-            /** @description Parent span ID, null for root spans */
-            parentSpanId?: string | null;
-            /** @description qyl session ID for grouping related traces */
-            sessionId?: string | null;
-            /**
-             * @description Operation name
-             * @example chat openai.chat
-             */
+        /** @description MCP manifest */
+        McpManifest: {
             name: string;
-            kind: components["schemas"]["SpanKind"];
-            status: components["schemas"]["SpanStatus"];
-            statusMessage?: string | null;
-            /**
-             * Format: date-time
-             * @description ISO 8601 timestamp
-             */
-            startTime: string;
-            /** Format: date-time */
-            endTime: string;
-            /**
-             * Format: double
-             * @description Duration in milliseconds (computed)
-             */
-            durationMs: number;
-            /**
-             * @description service.name resource attribute
-             * @example my-ai-app
-             */
-            serviceName: string;
-            /** @description service.version resource attribute */
-            serviceVersion?: string | null;
-            /** @description Span attributes as key-value pairs */
-            attributes: {
-                [key: string]: unknown;
-            };
-            events: components["schemas"]["SpanEvent"][];
-            links?: components["schemas"]["SpanLink"][];
-            /** @description Extracted GenAI semantic convention data (null for non-GenAI spans) */
-            genai?: components["schemas"]["GenAISpanData"];
+            version: string;
+            description: string;
+            tools: components["schemas"]["McpTool"][];
         };
-        /**
-         * @description OpenTelemetry SpanKind
-         * @enum {string}
-         */
-        SpanKind: "unspecified" | "internal" | "server" | "client" | "producer" | "consumer";
-        /**
-         * @description OpenTelemetry StatusCode
-         * @enum {string}
-         */
-        SpanStatus: "unset" | "ok" | "error";
-        SpanEvent: {
+        /** @description MCP response */
+        McpResponse: {
+            content?: components["schemas"]["McpContent"];
+            error?: string;
+            isError: boolean;
+        };
+        /** @description MCP tool definition */
+        McpTool: {
             name: string;
-            /** Format: date-time */
-            timestamp: string;
-            attributes?: {
-                [key: string]: unknown;
-            };
+            description: string;
+            inputSchema?: unknown;
         };
-        SpanLink: {
-            traceId: string;
-            spanId: string;
-            attributes?: {
-                [key: string]: unknown;
-            };
+        /** @description MCP tool call */
+        McpToolCall: {
+            name: string;
+            arguments?: unknown;
         };
-        /**
-         * @description Extracted gen_ai.* attributes per OpenTelemetry Semantic Conventions v1.38.
-         *     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/
-         */
-        GenAISpanData: {
-            /**
-             * @description gen_ai.system (e.g., "openai", "anthropic")
-             * @example openai
-             */
-            providerName?: string;
-            /**
-             * @description gen_ai.operation.name
-             * @example chat
-             */
-            operationName?: string;
-            /**
-             * @description gen_ai.request.model
-             * @example gpt-4o
-             */
-            requestModel?: string | null;
-            /** @description gen_ai.response.model */
-            responseModel?: string | null;
-            /** @description gen_ai.usage.input_tokens */
-            inputTokens?: number | null;
-            /** @description gen_ai.usage.output_tokens */
-            outputTokens?: number | null;
-            /** @description Computed (inputTokens + outputTokens) */
-            totalTokens?: number | null;
-            /**
-             * Format: double
-             * @description qyl.cost.usd - estimated cost
-             */
-            costUsd?: number | null;
-            /**
-             * Format: double
-             * @description gen_ai.request.temperature
-             */
-            temperature?: number | null;
-            /** @description gen_ai.request.max_tokens */
-            maxTokens?: number | null;
-            /**
-             * @description gen_ai.response.finish_reason
-             * @example stop
-             */
-            finishReason?: string | null;
-            /** @description gen_ai.tool.name (for tool call spans) */
-            toolName?: string | null;
-            /** @description gen_ai.tool.call.id */
-            toolCallId?: string | null;
-        };
+        /** @description AI conversation session with aggregated metrics */
         Session: {
-            sessionId: string;
-            /** Format: date-time */
-            startTime: string;
-            /** Format: date-time */
-            lastActivity: string;
-            /**
-             * Format: double
-             * @description Total session duration
-             */
+            sessionId: components["schemas"]["SessionId"];
+            startTime: components["schemas"]["Timestamp"];
+            lastActivity: components["schemas"]["Timestamp"];
+            /** Format: double */
             durationMs: number;
+            /** Format: int64 */
             spanCount: number;
-            traceCount?: number;
+            /** Format: int64 */
+            traceCount: number;
+            /** Format: int64 */
             errorCount: number;
-            /**
-             * Format: double
-             * @description errorCount / spanCount (0.0 - 1.0)
-             */
+            /** Format: double */
             errorRate: number;
-            /** @description All services involved in this session */
             services: string[];
             traceIds: string[];
-            /** @description Activity within last 5 minutes */
             isActive?: boolean;
-            genaiStats: components["schemas"]["SessionGenAIStats"];
-            /** @description Session-level metadata */
-            attributes?: {
-                [key: string]: unknown;
-            };
+            genaiStats: components["schemas"]["SessionGenAiStats"];
+            attributes?: components["schemas"]["Attributes"];
         };
-        /** @description Aggregated GenAI statistics for the session */
-        SessionGenAIStats: {
-            totalInputTokens?: number;
-            totalOutputTokens?: number;
-            totalTokens?: number;
+        /** @description GenAI statistics aggregated at session level */
+        SessionGenAiStats: {
+            /** Format: int64 */
+            totalInputTokens: number;
+            /** Format: int64 */
+            totalOutputTokens: number;
+            /** Format: int64 */
+            totalTokens: number;
             /** Format: double */
-            totalCostUsd?: number;
-            /** @description Number of GenAI spans */
-            requestCount?: number;
-            toolCallCount?: number;
-            /** @description Unique models used */
-            models?: string[];
-            /** @description Unique providers used */
-            providers?: string[];
-            /** @description Most frequently used model */
-            primaryModel?: string | null;
+            totalCostUsd: number;
+            /** Format: int64 */
+            requestCount: number;
+            /** Format: int64 */
+            toolCallCount: number;
+            models: string[];
+            providers: string[];
+            primaryModel?: string;
         };
+        /** @description Session identifier (GUID format) */
+        SessionId: string;
+        /** @description Session list response */
         SessionListResponse: {
             sessions: components["schemas"]["Session"][];
+            /** Format: int32 */
             total: number;
             hasMore: boolean;
         };
+        /** @description OpenTelemetry span */
+        Span: {
+            traceId: components["schemas"]["TraceId"];
+            spanId: components["schemas"]["SpanId"];
+            parentSpanId?: components["schemas"]["SpanId"];
+            sessionId?: components["schemas"]["SessionId"];
+            name: string;
+            kind: components["schemas"]["SpanKind"];
+            status: components["schemas"]["SpanStatus"];
+            statusMessage?: string;
+            startTime: components["schemas"]["Timestamp"];
+            endTime: components["schemas"]["Timestamp"];
+            /** Format: double */
+            durationMs: number;
+            serviceName: string;
+            serviceVersion?: string;
+            attributes?: components["schemas"]["Attributes"];
+            events?: components["schemas"]["SpanEvent"][];
+            links?: components["schemas"]["SpanLink"][];
+            /** @description GenAI-specific data if this is an AI span */
+            genai?: components["schemas"]["GenAiSpanData"];
+        };
+        /** @description Span batch for ingestion */
+        SpanBatch: {
+            spans: components["schemas"]["Span"][];
+        };
+        /** @description Span event (log attached to span) */
+        SpanEvent: {
+            name: string;
+            timestamp: components["schemas"]["Timestamp"];
+            attributes?: components["schemas"]["Attributes"];
+        };
+        /** @description 16-character hex span ID */
+        SpanId: string;
+        /**
+         * @description OpenTelemetry span kind
+         * @enum {string}
+         */
+        SpanKind: "internal" | "server" | "client" | "producer" | "consumer";
+        /** @description Span link (cross-trace reference) */
+        SpanLink: {
+            traceId: components["schemas"]["TraceId"];
+            spanId: components["schemas"]["SpanId"];
+            attributes?: components["schemas"]["Attributes"];
+        };
+        /** @description Span list response */
         SpanListResponse: {
             spans: components["schemas"]["Span"][];
         };
+        /**
+         * @description OpenTelemetry span status
+         * @enum {string}
+         */
+        SpanStatus: "unset" | "ok" | "error";
+        /** @description SSE connected event */
+        SseConnectedEvent: {
+            connectionId: string;
+        };
+        /** @description SSE error data */
+        SseErrorData: {
+            errorType: string;
+            message: string;
+        };
+        /** @description Storage statistics */
+        StorageStats: {
+            /** Format: int64 */
+            spanCount: number;
+            /** Format: int64 */
+            sessionCount: number;
+            /** Format: int64 */
+            feedbackCount: number;
+            oldestSpan?: components["schemas"]["Timestamp"];
+            newestSpan?: components["schemas"]["Timestamp"];
+        };
+        /** @description ISO 8601 timestamp */
+        Timestamp: string;
+        /** @description 32-character hex trace ID (OTel W3C format) */
+        TraceId: string;
+        /** @description Trace response with hierarchy */
         TraceResponse: {
-            traceId?: string;
+            traceId?: components["schemas"]["TraceId"];
             spans: components["schemas"]["Span"][];
             rootSpan?: components["schemas"]["Span"];
             /** Format: double */
             durationMs?: number;
-            status?: components["schemas"]["SpanStatus"];
-        };
-        TelemetryEvent: {
-            /** @enum {string} */
-            eventType: "connected" | "spans" | "metrics" | "logs" | "heartbeat";
-            data?: components["schemas"]["SpanBatch"] | Record<string, never>;
-            /** Format: date-time */
-            timestamp: string;
-        };
-        SpanBatch: {
-            spans: components["schemas"]["Span"][];
-        };
-        HealthResponse: {
-            /** @enum {string} */
-            status: "healthy" | "ready" | "degraded";
+            status?: string;
         };
     };
     responses: never;
@@ -381,11 +559,29 @@ export interface components {
     headers: never;
     pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
 export interface operations {
-    login: {
+    Api_authCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthCheckResponse"];
+                };
+            };
+        };
+    };
+    Api_login: {
         parameters: {
             query?: never;
             header?: never;
@@ -398,17 +594,8 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Login successful */
+            /** @description The request has succeeded. */
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LoginResponse"];
-                };
-            };
-            /** @description Invalid token */
-            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -418,7 +605,7 @@ export interface operations {
             };
         };
     };
-    checkAuth: {
+    Api_logout: {
         parameters: {
             query?: never;
             header?: never;
@@ -427,25 +614,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Auth status */
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AuthCheckResponse"];
+                    "application/json": {
+                        success: boolean;
+                    };
                 };
             };
         };
     };
-    getSessions: {
+    Api_getConsoleLogs: {
         parameters: {
             query?: {
+                session?: string;
+                level?: string;
                 limit?: number;
-                serviceName?: string;
-                from?: string;
-                to?: string;
-                hasErrors?: boolean;
             };
             header?: never;
             path?: never;
@@ -453,7 +640,167 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Session list */
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleLogEntry"][];
+                };
+            };
+        };
+    };
+    Api_ingestConsoleLogs: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConsoleIngestBatch"];
+            };
+        };
+        responses: {
+            /** @description The request has been accepted for processing, but processing has not yet completed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Api_getConsoleErrors: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConsoleLogEntry"][];
+                };
+            };
+        };
+    };
+    Api_liveConsole: {
+        parameters: {
+            query?: {
+                session?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SseConnectedEvent"];
+                };
+            };
+        };
+    };
+    Api_submitFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has been accepted for processing, but processing has not yet completed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Api_ingestSpans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpanBatch"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The request has been accepted for processing, but processing has not yet completed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    Api_liveStream: {
+        parameters: {
+            query?: {
+                session?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SseConnectedEvent"];
+                };
+            };
+        };
+    };
+    Api_listSessions: {
+        parameters: {
+            query?: {
+                limit?: number;
+                serviceName?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -464,18 +811,18 @@ export interface operations {
             };
         };
     };
-    getSession: {
+    Api_getSession: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                sessionId: string;
+                sessionId: components["schemas"]["SessionId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Session details */
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -484,7 +831,7 @@ export interface operations {
                     "application/json": components["schemas"]["Session"];
                 };
             };
-            /** @description Session not found */
+            /** @description The server cannot find the requested resource. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -493,18 +840,40 @@ export interface operations {
             };
         };
     };
-    getSessionSpans: {
+    Api_getSessionFeedback: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                sessionId: string;
+                sessionId: components["schemas"]["SessionId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Spans in session */
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackResponse"];
+                };
+            };
+        };
+    };
+    Api_getSessionSpans: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: components["schemas"]["SessionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -515,18 +884,18 @@ export interface operations {
             };
         };
     };
-    getTrace: {
+    Api_getTrace: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                traceId: string;
+                traceId: components["schemas"]["TraceId"];
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Trace with all spans */
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -535,7 +904,7 @@ export interface operations {
                     "application/json": components["schemas"]["TraceResponse"];
                 };
             };
-            /** @description Trace not found */
+            /** @description The server cannot find the requested resource. */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -544,30 +913,7 @@ export interface operations {
             };
         };
     };
-    subscribeLive: {
-        parameters: {
-            query?: {
-                /** @description Filter by session ID */
-                session?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description SSE stream */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/event-stream": components["schemas"]["TelemetryEvent"];
-                };
-            };
-        };
-    };
-    healthCheck: {
+    health: {
         parameters: {
             query?: never;
             header?: never;
@@ -576,7 +922,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Healthy */
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -587,7 +933,7 @@ export interface operations {
             };
         };
     };
-    readinessCheck: {
+    Mcp_getManifest: {
         parameters: {
             query?: never;
             header?: never;
@@ -596,7 +942,51 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Ready */
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpManifest"];
+                };
+            };
+        };
+    };
+    Mcp_callTool: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["McpToolCall"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["McpResponse"];
+                };
+            };
+        };
+    };
+    ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -604,6 +994,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["HealthResponse"];
                 };
+            };
+        };
+    };
+    otlpIngest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": unknown;
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description The request has been accepted for processing, but processing has not yet completed. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

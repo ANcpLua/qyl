@@ -44,8 +44,8 @@ builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<McpServer>();
 
-// SSE broadcasting with backpressure support
-builder.Services.AddSseBroadcasting();
+// SSE broadcasting with backpressure support for live telemetry streaming
+builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
 
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();

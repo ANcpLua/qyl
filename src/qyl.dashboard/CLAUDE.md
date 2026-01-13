@@ -1,277 +1,105 @@
 # qyl.dashboard
 
-@import "../../CLAUDE.md"
+Inherits: [Root CLAUDE.md](../../CLAUDE.md)
 
-## Scope
+React 19 SPA for viewing sessions, spans, and traces. Communicates with `qyl.collector` via REST + SSE.
 
----
-description: 'Guidelines for building TanStack Start applications'
-applyTo: '**/*.ts, **/*.tsx, **/*.js, **/*.jsx, **/*.css, **/*.scss, **/*.json'
----
+## Architecture
 
-# TanStack Start with Shadcn/ui Development Guide
-
-You are an expert TypeScript developer specializing in TanStack Start applications with modern React patterns.
-
-## Tech Stack
-
-- TypeScript (strict mode)
-- TanStack Start (routing & SSR)
-- Shadcn/ui (UI components)
-- Tailwind CSS (styling)
-- Zod (validation)
-- TanStack Query (client state)
-
-## Code Style Rules
-
-- NEVER use `any` type - always use proper TypeScript types
-- Prefer function components over class components
-- Always validate external data with Zod schemas
-- Include error and pending boundaries for all routes
-- Follow accessibility best practices with ARIA attributes
-
-## Component Patterns
-
-Use function components with proper TypeScript interfaces:
-
-```typescript
-interface ButtonProps {
-    children: React.ReactNode;
-    onClick: () => void;
-    variant?: 'primary' | 'secondary';
-}
-
-export default function Button({children, onClick, variant = 'primary'}: ButtonProps) {
-    return (
-        <button onClick = {onClick}
-    className = {cn(buttonVariants({variant})
-)
-}>
-    {
-        children
-    }
-    </button>
-)
-    ;
-}
+```
+qyl.dashboard ──HTTP/SSE──► qyl.collector:5100
+     │
+     └──► /api/v1/sessions, /api/v1/traces, /api/v1/live
 ```
 
-## Data Fetching
+## Ports and Proxy
 
-Use Route Loaders for:
+| Service   | Port | Notes                              |
+|-----------|------|------------------------------------|
+| Dashboard | 5173 | Vite dev server                    |
+| Collector | 5100 | Proxied via `/api/*` in dev        |
 
-- Initial page data required for rendering
-- SSR requirements
-- SEO-critical data
+Proxy configured in `vite.config.ts` - uses `VITE_API_URL` env var or defaults to `http://localhost:5100`.
 
-Use React Query for:
+## Type Generation
 
-- Frequently updating data
-- Optional/secondary data
-- Client mutations with optimistic updates
+Types are generated from OpenAPI spec via `openapi-typescript`:
+
+```
+core/openapi/openapi.yaml ──► src/types/api.ts (generated)
+                                    │
+                                    └──► src/types/index.ts (re-exports)
+```
+
+### Generated File (DO NOT EDIT)
+
+| File              | Source                     | Regenerate Command      |
+|-------------------|----------------------------|-------------------------|
+| `src/types/api.ts`| `../../core/openapi/openapi.yaml` | `npm run generate:ts`   |
+
+Use type re-exports from `src/types/index.ts`:
 
 ```typescript
-// Route Loader
-export const Route = createFileRoute('/users')({
-    loader: async () => {
-        const users = await fetchUsers()
-        return {users: userListSchema.parse(users)}
-    },
-    component: UserList,
-})
+// Correct
+import type { Span, Session, GenAISpanData } from '@/types';
 
-// React Query
-const {data: stats} = useQuery({
-    queryKey: ['user-stats', userId],
-    queryFn: () => fetchUserStats(userId),
-    refetchInterval: 30000,
+// Wrong - manual type duplication
+type Session = { sessionId: string; /* ... */ };
+```
+
+## SSE Live Stream
+
+Single reconnecting EventSource with TanStack Query cache invalidation:
+
+```typescript
+// In hooks/use-telemetry.ts
+const { isConnected, recentSpans, reconnect } = useLiveStream({
+    sessionFilter: sessionId,
+    onSpans: (batch) => { /* handle */ },
 });
 ```
 
-## Zod Validation
+Key behaviors:
+- Auto-reconnects on disconnect (3s delay)
+- Maintains last 100 spans in memory
+- Invalidates `sessions` query on new spans
 
-Always validate external data. Define schemas in `src/lib/schemas.ts`:
+## Key Components
 
-```typescript
-export const userSchema = z.object({
-    id: z.string(),
-    name: z.string().min(1).max(100),
-    email: z.string().email().optional(),
-    role: z.enum(['admin', 'user']).default('user'),
-})
-
-export type User = z.infer<typeof userSchema>
-
-// Safe parsing
-const result = userSchema.safeParse(data)
-if (!result.success) {
-    console.error('Validation failed:', result.error.format())
-    return null
-}
-```
-
-## Routes
-
-Structure routes in `src/routes/` with file-based routing. Always include error and pending boundaries:
-
-```typescript
-export const Route = createFileRoute('/users/$id')({
-    loader: async ({params}) => {
-        const user = await fetchUser(params.id);
-        return {user: userSchema.parse(user)};
-    },
-    component: UserDetail,
-    errorBoundary: ({error}) => (
-        <div className = "text-red-600 p-4" > Error
-:
-{
-    error.message
-}
-</div>
-),
-pendingBoundary: () => (
-    <div className = "flex items-center justify-center p-4" >
-    <div className = "animate-spin rounded-full h-8 w-8 border-b-2 border-primary" / >
-        </div>
-),
-})
-;
-```
-
-## UI Components
-
-Always prefer Shadcn/ui components over custom ones:
-
-```typescript
-import {Button} from '@/components/ui/button';
-import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
-
-<Card>
-    <CardHeader>
-        <CardTitle>User
-Details < /CardTitle>
-< /CardHeader>
-< CardContent >
-<Button onClick = {handleSave} > Save < /Button>
-    < /CardContent>
-    < /Card>
-```
-
-Use Tailwind for styling with responsive design:
-
-```typescript
-<div className = "flex flex-col gap-4 p-6 md:flex-row md:gap-6" >
-<Button className = "w-full md:w-auto" > Action < /Button>
-    < /div>
-```
-
-## Accessibility
-
-Use semantic HTML first. Only add ARIA when no semantic equivalent exists:
-
-```typescript
-// ✅ Good: Semantic HTML with minimal ARIA
-<button onClick = {toggleMenu} >
-<MenuIcon aria - hidden = "true" / >
-<span className = "sr-only" > Toggle
-Menu < /span>
-< /button>
-
-// ✅ Good: ARIA only when needed (for dynamic states)
-< button
-aria - expanded = {isOpen}
-aria - controls = "menu"
-onClick = {toggleMenu}
-    >
-    Menu
-    < /button>
-
-    // ✅ Good: Semantic form elements
-    < label
-htmlFor = "email" > Email
-Address < /label>
-< input
-id = "email"
-type = "email" / >
-    {
-        errors.email && (
-            <p role = "alert" > {errors.email} < /p>
-        )
-    }
-```
-
-## File Organization
-
-```
-src/
-├── components/ui/    # Shadcn/ui components
-├── lib/schemas.ts    # Zod schemas
-├── routes/          # File-based routes
-└── routes/api/      # Server routes (.ts)
-```
-
-## Import Standards
-
-Use `@/` alias for all internal imports:
-
-```typescript
-// ✅ Good
-import {Button} from '@/components/ui/button'
-import {userSchema} from '@/lib/schemas'
-
-// ❌ Bad
-import {Button} from '../components/ui/button'
-```
-
-## Adding Components
-
-Install Shadcn components when needed:
-
-```bash
-npx shadcn@latest add button card input dialog
-```
-
-## Common Patterns
-
-- Always validate external data with Zod
-- Use route loaders for initial data, React Query for updates
-- Include error/pending boundaries on all routes
-- Prefer Shadcn components over custom UI
-- Use `@/` imports consistently
-- Follow accessibility best practices
--
-
-React frontend for viewing sessions, spans and traces. Talks to `qyl.collector` over REST + SSE only.
-
-## Type Source Rules
-
-Types in `src/qyl.dashboard/src/types/generated/` are generated (Kiota). Do NOT edit them manually.
-
-Correct:
-
-```ts
-import type {SessionDto} from "@/types/generated/models/qyl/sessionDto";
-```
-
-Wrong (manual duplication):
-
-```ts
-type SessionDto = { /* ... */ };
-```
-
-## SSE Pattern
-
-Prefer a single, reconnecting EventSource hook and invalidate TanStack Query caches on new events.
+| Component         | Purpose                           |
+|-------------------|-----------------------------------|
+| `LiveTail.tsx`    | Real-time span stream display     |
+| `GenAIPage.tsx`   | GenAI-specific analytics          |
+| `TracesPage.tsx`  | Trace tree visualization          |
+| `SessionsPage.tsx`| Session list with filters         |
 
 ## Forbidden Actions
 
-- Do not edit files under `src/qyl.dashboard/src/types/generated/`
-- Do not import from any .NET project
-- Do not introduce `any` types for API shapes
+- Do NOT edit `src/types/api.ts` - regenerate from OpenAPI
+- Do NOT import from .NET projects
+- Do NOT duplicate types that exist in `api.ts`
+- Do NOT use `any` for API response shapes
+
+## Known Issues
+
+### Security Vulnerabilities
+
+Run `npm audit fix` to address:
+- `@modelcontextprotocol/sdk` ReDoS (GHSA-8r9q-7v3j-jr4g)
+- `qs` DoS via memory exhaustion (GHSA-6rw7-vpxm-498p)
+
+### Missing Features
+
+- No health check indicator for collector connection status
+- TypeScript types not fully synchronized with `QylSchema.cs`
 
 ## Commands
 
 ```bash
-npm run dev --prefix src/qyl.dashboard
-npm run build --prefix src/qyl.dashboard
+npm run dev          # Start dev server (port 5173)
+npm run build        # Production build
+npm run typecheck    # TypeScript validation
+npm run lint         # ESLint check
+npm run test         # Vitest tests
+npm run generate:ts  # Regenerate types from OpenAPI
 ```

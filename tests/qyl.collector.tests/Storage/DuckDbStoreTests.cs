@@ -1155,15 +1155,12 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
 
         // Output all diagnostics
         var likeCount = byteCompare;
-        long equalsCount = 0;
-        long trimCount = 0;
-        long isNotNullCount = 1;
         var extraInfo = $"\nTypes: session_id={sessionIdType}, trace_id={traceIdType}" +
                         $"\nRaw values: session_id='{rawSessionId}', trace_id='{rawTraceId}'" +
                         $"\nByte compare: {byteCompare}";
 
         // Expected hex for 'param-session-1': 706172616D2D73657373696F6E2D31
-        var expectedHex = BitConverter.ToString(Encoding.UTF8.GetBytes("param-session-1")).Replace("-", "");
+        var expectedHex = Convert.ToHexString(Encoding.UTF8.GetBytes("param-session-1"));
 
         Assert.True(
             likeCount == 1, // byteCompare should be 1

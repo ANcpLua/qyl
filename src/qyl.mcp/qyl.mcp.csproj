@@ -43,6 +43,7 @@
     <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore"/>
     <PackageReference Include="Microsoft.DotNet.ILCompiler"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.NET.ILLink.Tasks"/>
     <PackageReference Include="ModelContextProtocol"/>
     <PackageReference Include="System.ClientModel"/>

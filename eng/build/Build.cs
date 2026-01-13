@@ -48,9 +48,10 @@ sealed class Build : NukeBuild,
         .Executes(() => { Log.Information("Backend CI pipeline completed successfully"); });
 
     Target Full => d => d
-        .Description("Full CI pipeline (backend + frontend)")
+        .Description("Full CI pipeline (backend + frontend + TypeSpec)")
         .DependsOn<ICompile>(x => x.Clean)
         .DependsOn<ICoverage>(x => x.Coverage)
+        .DependsOn<ITypeSpec>(x => x.TypeSpecCompile)
         .DependsOn<IFrontend>(x => x.FrontendBuild)
         .DependsOn<IFrontend>(x => x.FrontendTest)
         .DependsOn<IFrontend>(x => x.FrontendLint)
@@ -58,6 +59,7 @@ sealed class Build : NukeBuild,
         {
             Log.Information("Full CI pipeline completed successfully");
             Log.Information("  Backend:  ✓ Compiled, tested, coverage");
+            Log.Information("  TypeSpec: ✓ Compiled to OpenAPI");
             Log.Information("  Frontend: ✓ Built, tested, linted");
         });
 
@@ -73,16 +75,6 @@ sealed class Build : NukeBuild,
             Log.Information("  MCP:        http://localhost:5100/mcp (AI agent queries)");
             Log.Information("");
             Log.Information("  Run 'nuke frontend-dev' in another terminal for hot reload");
-        });
-
-    Target Demo => d => d
-        .Description("Run the qyl demo with telemetry")
-        .DependsOn<ICompile>(x => x.Compile)
-        .Executes(() =>
-        {
-            Log.Information("Starting qyl demo...");
-            Log.Information("  Make sure qyl.collector is running first!");
-            Log.Information("  Run: dotnet run --project src/qyl.demo");
         });
 
     public static int Main() => Execute<Build>(x => ((ITest)x).Test);

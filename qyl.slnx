@@ -1,77 +1,74 @@
 <Solution>
-    <!-- JUNKYARD folder exists but not in solution - reference only -->
-    <Folder Name="/JUNKYARD/"/>
     <!-- Solution Items - root config files -->
     <Folder Name="/Solution Items/">
-        <File Path=".dockerignore"/>
-        <File Path=".gitignore"/>
-        <File Path="CLAUDE.md"/>
-        <File Path="Directory.Build.props"/>
-        <File Path="Directory.Build.targets"/>
-        <File Path="global.json"/>
+        <File Path=".dockerignore" />
+        <File Path=".gitignore" />
+        <File Path="CLAUDE.md" />
+        <File Path="Directory.Build.props" />
+        <File Path="Directory.Build.targets" />
+        <File Path="global.json" />
     </Folder>
 
     <!-- /docs - Documentation -->
     <Folder Name="/docs/">
-        <File Path="docs/README.md"/>
-        <File Path="docs/ARCHITECTURE.md"/>
-        <File Path="docs/COLLECTOR.md"/>
-        <File Path="docs/FRONTEND.md"/>
-        <File Path="docs/BUILD.md"/>
-        <File Path="docs/qyl-architecture.yaml"/>
-        <File Path="docs\COMPLETE_STRUCTURE.txt"/>
-        <File Path="docs\duckdb_1.4.3.md"/>
-        <File Path="docs\FEATURE_TEMP.md"/>
-        <File Path="docs\qyl-migration-roadmap.yaml"/>
+        <File Path="docs/README.md" />
+        <File Path="docs/ARCHITECTURE.md" />
+        <File Path="docs/COLLECTOR.md" />
+        <File Path="docs/FRONTEND.md" />
+        <File Path="docs/BUILD.md" />
+        <File Path="docs/qyl-architecture.yaml" />
+        <File Path="docs\COMPLETE_STRUCTURE.txt" />
+        <File Path="docs\duckdb_1.4.3.md" />
+        <File Path="docs\FEATURE_TEMP.md" />
+        <File Path="docs\msbuild-nuget-master (4).skill" />
+        <File Path="docs\qyl-migration-roadmap.yaml" />
     </Folder>
 
     <!-- Solution Items - eng/build scripts -->
     <Folder Name="/Solution Items/eng/build scripts/">
-        <File Path="eng/build.cmd"/>
-        <File Path="eng/build.ps1"/>
-        <File Path="eng/build.sh"/>
-        <File Path="eng/compose.yaml"/>
+        <File Path="eng/build.cmd" />
+        <File Path="eng/build.ps1" />
+        <File Path="eng/build.sh" />
+        <File Path="eng/compose.yaml" />
     </Folder>
 
     <!-- Solution Items - eng/MSBuild shared files -->
-    <Folder Name="/Solution Items/eng/"/>
+    <Folder Name="/Solution Items/eng/" />
     <Folder Name="/Solution Items/eng/MSBuild/">
-        <File Path="eng/MSBuild/Shared.props"/>
-        <File Path="eng/MSBuild/Shared.targets"/>
-        <File Path="eng/MSBuild/LegacySupport.targets"/>
+        <File Path="eng/MSBuild/Shared.props" />
+        <File Path="eng/MSBuild/Shared.targets" />
+        <File Path="eng/MSBuild/LegacySupport.targets" />
     </Folder>
 
     <!-- /eng - Build tooling, CLI, Analyzers -->
     <Folder Name="/eng/">
-        <Project Path="eng/build/build.csproj"/>
+        <Project Path="eng/build/build.csproj" />
     </Folder>
 
     <!-- /src - Core libraries -->
     <Folder Name="/src/">
-        <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>
-        <Project Path="src/qyl.collector/qyl.collector.csproj"/>
-        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
-        <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
+        <Project Path="src/qyl.protocol/qyl.protocol.csproj" />
+        <Project Path="src/qyl.collector/qyl.collector.csproj" />
+        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
+        <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
     </Folder>
 
     <!-- /examples - Sample projects -->
     <Folder Name="/examples/">
         <!-- Console example temporarily excluded - needs OpenTelemetry API migration -->
         <!-- <Project Path="examples/Console/Examples.Console.csproj"/> -->
-        <Project Path="examples/qyl.AspNetCore.Example/qyl.AspNetCore.Example.csproj"/>
+        <Project Path="examples/qyl.AspNetCore.Example/qyl.AspNetCore.Example.csproj" />
     </Folder>
 
     <!-- /examples/Microservices - Microservice example projects -->
     <Folder Name="/examples/Microservices/">
-        <Project Path="examples/MicroserviceExample/Utils/Utils.csproj"/>
-        <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj"/>
-        <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj"/>
+        <Project Path="examples/MicroserviceExample/Utils/Utils.csproj" />
+        <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj" />
+        <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj" />
     </Folder>
 
-    <!-- /tests/UnitTests - Unit test projects -->
-    <Folder Name="/tests/UnitTests/">
-        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
-        <Project Path="tests/UnitTests/qyl.mcp.server.tests/qyl.mcp.server.tests.csproj"/>
+    <!-- /tests - Test projects -->
+    <Folder Name="/tests/">
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
     </Folder>
-    <Folder Name="/tests/"/>
 </Solution>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 
 namespace Domain.CodeGen;
 
@@ -15,7 +16,7 @@ namespace Domain.CodeGen;
 /// </summary>
 public sealed class QylSchema
 {
-    static readonly Lazy<QylSchema> LazyInstance = new(() => new QylSchema());
+    static readonly Lazy<QylSchema> LazyInstance = new(static () => new QylSchema());
 
     QylSchema()
     {
@@ -93,174 +94,127 @@ public sealed class QylSchema
     static FrozenSet<ModelDefinition> BuildModels() =>
     [
         // SpanRecord - Flattened span for DuckDB storage
+        // ALIGNED with src/qyl.protocol/Models/SpanRecord.cs
         new(
             "SpanRecord",
-            "Flattened span record optimized for DuckDB columnar storage",
+            "Represents a span record stored in DuckDB and transmitted via API",
             true,
             [
-                new PropertyDefinition("TraceId", "TraceId", "W3C trace identifier", true, DuckDbColumn: "trace_id",
+                // Core span identifiers (string-based for JSON/API compatibility)
+                new PropertyDefinition("TraceId", "string", "Trace ID (32 hex chars)", true, DuckDbColumn: "trace_id",
                     DuckDbType: "VARCHAR"),
-                new PropertyDefinition("SpanId", "SpanId", "Unique span identifier", true, DuckDbColumn: "span_id",
+                new PropertyDefinition("SpanId", "string", "Span ID (16 hex chars)", true, DuckDbColumn: "span_id",
                     DuckDbType: "VARCHAR"),
-                new PropertyDefinition("ParentSpanId", "SpanId?", "Parent span identifier (null for root)", false,
+                new PropertyDefinition("ParentSpanId", "string?", "Parent span ID (null for root spans)", false,
                     DuckDbColumn: "parent_span_id", DuckDbType: "VARCHAR"),
-                new PropertyDefinition("Name", "string", "Span operation name", true, DuckDbColumn: "name",
-                    DuckDbType: "VARCHAR"),
-                new PropertyDefinition("Kind", "SpanKind", "Span kind (Client, Server, Producer, Consumer, Internal)",
-                    true, DuckDbColumn: "kind", DuckDbType: "TINYINT"),
-                new PropertyDefinition("StartTimeUnixNano", "UnixNano", "Start timestamp in nanoseconds", true,
-                    DuckDbColumn: "start_time_unix_nano", DuckDbType: "UBIGINT"),
-                new PropertyDefinition("EndTimeUnixNano", "UnixNano", "End timestamp in nanoseconds", true,
-                    DuckDbColumn: "end_time_unix_nano", DuckDbType: "UBIGINT"),
-                new PropertyDefinition("DurationMs", "double", "Duration in milliseconds (computed)", true,
-                    DuckDbColumn: "duration_ms", DuckDbType: "DOUBLE"),
-                new PropertyDefinition("StatusCode", "StatusCode", "Span status (Unset, Ok, Error)", true,
-                    DuckDbColumn: "status_code", DuckDbType: "TINYINT"),
-                new PropertyDefinition("StatusMessage", "string?", "Status message for errors", false,
-                    DuckDbColumn: "status_message", DuckDbType: "VARCHAR"),
-                new PropertyDefinition("ServiceName", "string", "Service name from resource", true,
-                    DuckDbColumn: "service_name", DuckDbType: "VARCHAR"),
-                new PropertyDefinition("ServiceVersion", "string?", "Service version", false,
-                    DuckDbColumn: "service_version", DuckDbType: "VARCHAR"),
-                // Promoted gen_ai.* attributes (OTel 1.38)
-                new PropertyDefinition("ProviderName", "string?", "gen_ai.provider.name - AI provider", false,
-                    DuckDbColumn: "\"gen_ai.provider.name\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("OperationName", "string?", "gen_ai.operation.name - Operation type", false,
-                    DuckDbColumn: "\"gen_ai.operation.name\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("RequestModel", "string?", "gen_ai.request.model - Requested model", false,
-                    DuckDbColumn: "\"gen_ai.request.model\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("ResponseModel", "string?", "gen_ai.response.model - Actual model", false,
-                    DuckDbColumn: "\"gen_ai.response.model\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("InputTokens", "long?", "gen_ai.usage.input_tokens", false,
-                    DuckDbColumn: "\"gen_ai.usage.input_tokens\"", DuckDbType: "BIGINT", IsPromoted: true),
-                new PropertyDefinition("OutputTokens", "long?", "gen_ai.usage.output_tokens", false,
-                    DuckDbColumn: "\"gen_ai.usage.output_tokens\"", DuckDbType: "BIGINT", IsPromoted: true),
-                new PropertyDefinition("Temperature", "double?", "gen_ai.request.temperature", false,
-                    DuckDbColumn: "\"gen_ai.request.temperature\"", DuckDbType: "DOUBLE", IsPromoted: true),
-                new PropertyDefinition("MaxTokens", "long?", "gen_ai.request.max_tokens", false,
-                    DuckDbColumn: "\"gen_ai.request.max_tokens\"", DuckDbType: "BIGINT", IsPromoted: true),
-                new PropertyDefinition("ResponseId", "string?", "gen_ai.response.id", false,
-                    DuckDbColumn: "\"gen_ai.response.id\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("FinishReasons", "string[]?", "gen_ai.response.finish_reasons", false,
-                    DuckDbColumn: "\"gen_ai.response.finish_reasons\"", DuckDbType: "VARCHAR[]", IsPromoted: true),
-                new PropertyDefinition("AgentId", "string?", "gen_ai.agent.id", false,
-                    DuckDbColumn: "\"gen_ai.agent.id\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("AgentName", "string?", "gen_ai.agent.name", false,
-                    DuckDbColumn: "\"gen_ai.agent.name\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("ToolName", "string?", "gen_ai.tool.name", false,
-                    DuckDbColumn: "\"gen_ai.tool.name\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("ToolCallId", "string?", "gen_ai.tool.call.id", false,
-                    DuckDbColumn: "\"gen_ai.tool.call.id\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                new PropertyDefinition("ConversationId", "string?", "gen_ai.conversation.id", false,
-                    DuckDbColumn: "\"gen_ai.conversation.id\"", DuckDbType: "VARCHAR", IsPromoted: true),
-                // Session tracking
-                new PropertyDefinition("SessionId", "SessionId?", "Session/conversation identifier", false,
+                new PropertyDefinition("SessionId", "string?", "Session ID for grouping related traces", false,
                     DuckDbColumn: "session_id", DuckDbType: "VARCHAR"),
-                // Raw attributes as JSON
-                new PropertyDefinition("AttributesJson", "string?", "Raw attributes as JSON", false,
-                    DuckDbColumn: "attributes_json", DuckDbType: "JSON"),
+                new PropertyDefinition("Name", "string", "Span name/operation", true, DuckDbColumn: "name",
+                    DuckDbType: "VARCHAR"),
+                new PropertyDefinition("ServiceName", "string?", "Service name from resource attributes", false,
+                    DuckDbColumn: "service_name", DuckDbType: "VARCHAR"),
+                new PropertyDefinition("Kind", "int", "Span kind (0=Unspecified, 1=Internal, 2=Server, 3=Client, 4=Producer, 5=Consumer)",
+                    true, "0", DuckDbColumn: "kind", DuckDbType: "TINYINT"),
+                new PropertyDefinition("StartTimeUnixNano", "UnixNano", "Start time in Unix nanoseconds", true,
+                    DuckDbColumn: "start_time_unix_nano", DuckDbType: "UBIGINT"),
+                new PropertyDefinition("EndTimeUnixNano", "UnixNano", "End time in Unix nanoseconds", true,
+                    DuckDbColumn: "end_time_unix_nano", DuckDbType: "UBIGINT"),
+                // Note: DurationNs is computed in runtime as (long)EndTimeUnixNano.Value - (long)StartTimeUnixNano.Value
+                new PropertyDefinition("StatusCode", "int", "Status code (0=Unset, 1=Ok, 2=Error)", true, "0",
+                    DuckDbColumn: "status_code", DuckDbType: "TINYINT"),
+                new PropertyDefinition("StatusMessage", "string?", "Status message (for errors)", false,
+                    DuckDbColumn: "status_message", DuckDbType: "VARCHAR"),
+                // GenAI sub-object (null if not a GenAI span)
+                new PropertyDefinition("GenAi", "GenAiSpanData?", "GenAI-specific data (null if not a GenAI span)", false),
+                // Additional attributes
+                new PropertyDefinition("Attributes", "IReadOnlyDictionary<string, string>?", "Additional attributes as key-value pairs", false),
                 new PropertyDefinition("EventsJson", "string?", "Span events as JSON", false,
                     DuckDbColumn: "events_json", DuckDbType: "JSON"),
                 new PropertyDefinition("LinksJson", "string?", "Span links as JSON", false, DuckDbColumn: "links_json",
-                    DuckDbType: "JSON"),
-                new PropertyDefinition("ResourceAttributesJson", "string?", "Resource attributes as JSON", false,
-                    DuckDbColumn: "resource_attributes_json", DuckDbType: "JSON"),
-                // Metadata
-                new PropertyDefinition("CreatedAt", "DateTimeOffset", "Record creation timestamp", true,
-                    DuckDbColumn: "created_at", DuckDbType: "TIMESTAMPTZ")
+                    DuckDbType: "JSON")
             ]),
 
         // GenAiSpanData - Extracted gen_ai.* attributes (OTel 1.38)
+        // ALIGNED with src/qyl.protocol/Models/GenAiSpanData.cs
         new(
             "GenAiSpanData",
-            "Extracted gen_ai.* semantic convention attributes (OTel 1.38)",
+            "GenAI-specific span data extracted from gen_ai.* semantic conventions (OTel 1.38)",
             true,
             [
                 // Core Required (OTel 1.38)
-                new PropertyDefinition("ProviderName", "string?", "gen_ai.provider.name - AI provider", false),
-                new PropertyDefinition("OperationName", "string?", "gen_ai.operation.name - Operation type", false),
-                new PropertyDefinition("RequestModel", "string?", "gen_ai.request.model - Requested model", false),
-                new PropertyDefinition("ResponseModel", "string?", "gen_ai.response.model - Actual model", false),
+                new PropertyDefinition("ProviderName", "string?", "gen_ai.provider.name - Provider name (openai, anthropic, etc.)", false),
+                new PropertyDefinition("OperationName", "string?", "gen_ai.operation.name - Operation type (chat, text_completion, etc.)", false),
+                new PropertyDefinition("RequestModel", "string?", "gen_ai.request.model - The model ID requested", false),
+                new PropertyDefinition("ResponseModel", "string?", "gen_ai.response.model - The model that served the request", false),
 
                 // Usage (OTel 1.38)
-                new PropertyDefinition("InputTokens", "long?", "gen_ai.usage.input_tokens", false),
-                new PropertyDefinition("OutputTokens", "long?", "gen_ai.usage.output_tokens", false),
+                new PropertyDefinition("InputTokens", "long?", "gen_ai.usage.input_tokens - Number of input tokens", false),
+                new PropertyDefinition("OutputTokens", "long?", "gen_ai.usage.output_tokens - Number of output tokens", false),
+                // Note: TotalTokens is computed in runtime as (InputTokens ?? 0) + (OutputTokens ?? 0)
 
                 // Request Parameters (OTel 1.38)
-                new PropertyDefinition("Temperature", "double?", "gen_ai.request.temperature", false),
-                new PropertyDefinition("TopP", "double?", "gen_ai.request.top_p", false),
-                new PropertyDefinition("TopK", "double?", "gen_ai.request.top_k", false),
-                new PropertyDefinition("MaxTokens", "long?", "gen_ai.request.max_tokens", false),
-                new PropertyDefinition("Seed", "long?", "gen_ai.request.seed", false),
-                new PropertyDefinition("FrequencyPenalty", "double?", "gen_ai.request.frequency_penalty", false),
-                new PropertyDefinition("PresencePenalty", "double?", "gen_ai.request.presence_penalty", false),
-                new PropertyDefinition("ChoiceCount", "int?", "gen_ai.request.choice.count", false),
+                new PropertyDefinition("Temperature", "double?", "gen_ai.request.temperature - Sampling temperature", false),
+                new PropertyDefinition("TopP", "double?", "gen_ai.request.top_p - Top-p sampling parameter", false),
+                new PropertyDefinition("TopK", "double?", "gen_ai.request.top_k - Top-k sampling parameter", false),
+                new PropertyDefinition("MaxTokens", "long?", "gen_ai.request.max_tokens - Maximum tokens requested", false),
+                new PropertyDefinition("Seed", "long?", "gen_ai.request.seed - Random seed for deterministic output", false),
+                new PropertyDefinition("FrequencyPenalty", "double?", "gen_ai.request.frequency_penalty - Frequency penalty", false),
+                new PropertyDefinition("PresencePenalty", "double?", "gen_ai.request.presence_penalty - Presence penalty", false),
+                new PropertyDefinition("ChoiceCount", "int?", "gen_ai.request.choice.count - Number of choices requested", false),
 
                 // Response (OTel 1.38)
-                new PropertyDefinition("ResponseId", "string?", "gen_ai.response.id", false),
-                new PropertyDefinition("FinishReasons", "IReadOnlyList<string>?", "gen_ai.response.finish_reasons",
-                    false),
+                new PropertyDefinition("ResponseId", "string?", "gen_ai.response.id - Response identifier", false),
+                new PropertyDefinition("FinishReasons", "IReadOnlyList<string>?", "gen_ai.response.finish_reasons - Finish reasons", false),
 
                 // Agent (OTel 1.38)
-                new PropertyDefinition("AgentId", "string?", "gen_ai.agent.id", false),
-                new PropertyDefinition("AgentName", "string?", "gen_ai.agent.name", false),
+                new PropertyDefinition("AgentId", "string?", "gen_ai.agent.id - Agent identifier", false),
+                new PropertyDefinition("AgentName", "string?", "gen_ai.agent.name - Agent name (for agent operations)", false),
 
                 // Tool (OTel 1.38)
-                new PropertyDefinition("ToolName", "string?", "gen_ai.tool.name", false),
-                new PropertyDefinition("ToolCallId", "string?", "gen_ai.tool.call.id", false),
-                new PropertyDefinition("ToolType", "string?", "gen_ai.tool.type", false),
+                new PropertyDefinition("ToolName", "string?", "gen_ai.tool.name - Tool name (for tool operations)", false),
+                new PropertyDefinition("ToolCallId", "string?", "gen_ai.tool.call.id - Tool call identifier", false),
+                new PropertyDefinition("ToolType", "string?", "gen_ai.tool.type - Tool type (function, extension, datastore)", false),
 
                 // Conversation (OTel 1.38)
-                new PropertyDefinition("ConversationId", "string?", "gen_ai.conversation.id", false),
-
-                // Computed (qyl extension)
-                new PropertyDefinition("TotalTokens", "long?", "Total tokens (computed: input + output)", false),
-                new PropertyDefinition("CostUsd", "decimal?", "Computed cost in USD (qyl extension)", false),
-                new PropertyDefinition("IsToolCall", "bool", "Whether this is a tool/function call", true, "false"),
-                new PropertyDefinition("IsGenAi", "bool", "Has GenAI attributes", true, "false")
+                new PropertyDefinition("ConversationId", "string?", "gen_ai.conversation.id - Conversation/session identifier", false)
+                // Note: IsGenAi, IsToolCall, IsAgentOperation are computed properties in runtime
             ]),
 
         // SessionSummary - Aggregated session statistics
+        // ALIGNED with src/qyl.protocol/Models/SessionSummary.cs
         new(
             "SessionSummary",
-            "Aggregated statistics for an AI conversation session",
+            "Summary of a session with aggregated metrics",
             true,
             [
-                new PropertyDefinition("SessionId", "SessionId", "Session identifier", true),
-                new PropertyDefinition("ServiceName", "string", "Primary service name", true),
-                new PropertyDefinition("StartTime", "DateTimeOffset", "Session start time", true),
-                new PropertyDefinition("LastActivity", "DateTimeOffset", "Most recent activity", true),
-                new PropertyDefinition("DurationMinutes", "double", "Session duration in minutes", true),
-                new PropertyDefinition("SpanCount", "int", "Total span count", true),
-                new PropertyDefinition("ErrorCount", "int", "Error span count", true),
-                new PropertyDefinition("ErrorRate", "double", "Error rate (0.0 - 1.0)", true),
-                new PropertyDefinition("TotalInputTokens", "long", "Sum of input tokens", true),
-                new PropertyDefinition("TotalOutputTokens", "long", "Sum of output tokens", true),
-                new PropertyDefinition("TotalTokens", "long", "Total tokens (input + output)", true),
-                new PropertyDefinition("TotalCostUsd", "decimal", "Total estimated cost", true),
-                new PropertyDefinition("ToolCallCount", "int", "Number of tool calls", true),
-                new PropertyDefinition("PrimaryModel", "string?", "Most frequently used model", false),
-                new PropertyDefinition("Models", "IReadOnlyList<string>", "All models used", true, "[]"),
-                new PropertyDefinition("IsActive", "bool", "Session still active (recent activity)", true)
+                new PropertyDefinition("SessionId", "string", "Session identifier", true),
+                new PropertyDefinition("ServiceName", "string?", "Primary service name for this session", false),
+                new PropertyDefinition("StartTime", "UnixNano", "Session start time", true),
+                new PropertyDefinition("EndTime", "UnixNano", "Session end time (last span)", true),
+                // Note: DurationNs is computed in runtime as (long)EndTime.Value - (long)StartTime.Value
+                new PropertyDefinition("SpanCount", "int", "Total number of spans in the session", true),
+                new PropertyDefinition("GenAiSpanCount", "int", "Number of GenAI spans in the session", true),
+                new PropertyDefinition("TotalInputTokens", "long", "Total input tokens across all GenAI spans", true),
+                new PropertyDefinition("TotalOutputTokens", "long", "Total output tokens across all GenAI spans", true),
+                // Note: TotalTokens is computed in runtime as TotalInputTokens + TotalOutputTokens
+                new PropertyDefinition("TraceCount", "int", "Number of distinct trace IDs in the session", true),
+                new PropertyDefinition("ErrorCount", "int", "Number of error spans in the session", true),
+                // Note: HasErrors is computed in runtime as ErrorCount > 0
+                new PropertyDefinition("PrimaryProvider", "string?", "Primary GenAI provider used in the session", false),
+                new PropertyDefinition("PrimaryModel", "string?", "Primary model used in the session", false)
             ]),
 
         // TraceNode - Hierarchical trace tree
+        // ALIGNED with src/qyl.protocol/Models/TraceNode.cs
         new(
             "TraceNode",
-            "Hierarchical trace tree node for visualization",
+            "A node in a trace tree. Represents a span with its children",
             true,
             [
-                new PropertyDefinition("TraceId", "TraceId", "Trace identifier", true),
-                new PropertyDefinition("SpanId", "SpanId", "Span identifier", true),
-                new PropertyDefinition("ParentSpanId", "SpanId?", "Parent span identifier", false),
-                new PropertyDefinition("Name", "string", "Operation name", true),
-                new PropertyDefinition("ServiceName", "string", "Service name", true),
-                new PropertyDefinition("StartTime", "DateTimeOffset", "Start timestamp", true),
-                new PropertyDefinition("DurationMs", "double", "Duration in milliseconds", true),
-                new PropertyDefinition("Status", "StatusCode", "Span status", true),
-                new PropertyDefinition("GenAi", "GenAiSpanData?", "Extracted gen_ai data", false),
-                new PropertyDefinition("Children", "IReadOnlyList<TraceNode>", "Child nodes", true, "[]"),
-                new PropertyDefinition("Depth", "int", "Tree depth (0 for root)", true)
+                new PropertyDefinition("Span", "SpanRecord", "The span at this node", true),
+                new PropertyDefinition("Children", "IReadOnlyList<TraceNode>", "Child nodes (spans that have this span as parent)", true, "[]"),
+                new PropertyDefinition("Depth", "int", "Depth in the trace tree (0 for root)", true)
+                // Note: IsRoot, HasChildren, DescendantCount are computed properties in runtime
             ]),
 
         // SpanKind enum
@@ -297,20 +251,22 @@ public sealed class QylSchema
     // Table Definitions
     // ════════════════════════════════════════════════════════════════════════
 
+    // NOTE: Table definitions are kept for DuckDB DDL generation.
+    // The runtime SpanRecord model stores GenAi data as a sub-object,
+    // but the DuckDB storage layer may choose to denormalize this.
+    // This schema represents the LOGICAL model, not necessarily the physical storage.
     static FrozenSet<TableDefinition> BuildTables() =>
     [
         new(
             "spans",
-            "Primary span storage table with promoted gen_ai.* columns",
+            "Primary span storage table",
             "SpanRecord",
             "span_id",
             [
                 new IndexDefinition("idx_spans_trace_id", ["trace_id"]),
                 new IndexDefinition("idx_spans_service", ["service_name"]),
                 new IndexDefinition("idx_spans_start_time", ["start_time_unix_nano"], true),
-                new IndexDefinition("idx_spans_session", ["\"session.id\""]),
-                new IndexDefinition("idx_spans_provider", ["\"gen_ai.provider.name\""]),
-                new IndexDefinition("idx_spans_model", ["\"gen_ai.request.model\""])
+                new IndexDefinition("idx_spans_session", ["session_id"])
             ]),
 
         new(
@@ -320,19 +276,20 @@ public sealed class QylSchema
             IsView: true,
             ViewSql: """
                      SELECT
-                         COALESCE("session.id", trace_id) as session_id,
-                         "service.name" as service_name,
+                         COALESCE(session_id, trace_id) as session_id,
+                         service_name as service_name,
                          MIN(start_time_unix_nano) as start_time,
-                         MAX(end_time_unix_nano) as last_activity,
+                         MAX(end_time_unix_nano) as end_time,
                          COUNT(*) as span_count,
+                         COUNT(*) as gen_ai_span_count,
+                         0 as total_input_tokens,
+                         0 as total_output_tokens,
+                         COUNT(DISTINCT trace_id) as trace_count,
                          COUNT(*) FILTER (WHERE status_code = 2) as error_count,
-                         SUM(COALESCE("gen_ai.usage.input_tokens", 0)) as total_input_tokens,
-                         SUM(COALESCE("gen_ai.usage.output_tokens", 0)) as total_output_tokens,
-                         COUNT(*) FILTER (WHERE "gen_ai.tool.name" IS NOT NULL) as tool_call_count,
-                         MODE("gen_ai.request.model") as primary_model,
-                         LIST(DISTINCT "gen_ai.request.model") FILTER (WHERE "gen_ai.request.model" IS NOT NULL) as models
+                         NULL as primary_provider,
+                         NULL as primary_model
                      FROM spans
-                     GROUP BY COALESCE("session.id", trace_id), "service.name"
+                     GROUP BY COALESCE(session_id, trace_id), service_name
                      """)
     ];
 
@@ -500,9 +457,9 @@ public sealed record IndexDefinition(
     bool IsUnique = false);
 
 public sealed record GenAiAttributeDefinition(
-    string Key,
+    string Name,
     string Type,
     string Description,
-    string[]? AllowedValues = null,
+    ImmutableArray<string> AllowedValues = default,
     bool IsDeprecated = false,
     string? ReplacedBy = null);

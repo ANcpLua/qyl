@@ -39,8 +39,22 @@ public sealed record SpanRecord
     /// <summary>End time in Unix nanoseconds.</summary>
     public UnixNano EndTimeUnixNano { get; init; }
 
-    /// <summary>Duration in nanoseconds (computed).</summary>
-    public long DurationNs => EndTimeUnixNano.Value - StartTimeUnixNano.Value;
+    /// <summary>
+    /// Duration in nanoseconds (computed from EndTime - StartTime).
+    /// Returns 0 if EndTime is before StartTime (clock skew protection).
+    /// Duration fits in long since no reasonable span exceeds 292 years.
+    /// </summary>
+    public long DurationNs
+    {
+        get
+        {
+            // Guard against clock skew where EndTime < StartTime
+            if (EndTimeUnixNano.Value < StartTimeUnixNano.Value)
+                return 0;
+            // Safe cast: duration between two timestamps always fits in long (max ~292 years)
+            return (long)(EndTimeUnixNano.Value - StartTimeUnixNano.Value);
+        }
+    }
 
     /// <summary>Status code (0=Unset, 1=Ok, 2=Error).</summary>
     public int StatusCode { get; init; }

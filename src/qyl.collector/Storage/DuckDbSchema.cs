@@ -9,9 +9,13 @@ namespace qyl.collector.Storage;
 // PART 1: DuckDB Schema DDL - Promoted Fields + MAP(VARCHAR, VARCHAR)
 // =============================================================================
 
-public static class DuckDbSchema
+public static partial class DuckDbSchema
 {
-    public const string Version = "2.0.0";
+    /// <summary>
+    /// Schema version. Increment when schema changes require migration.
+    /// v2.1.0: Changed timestamp columns from BIGINT to UBIGINT (OTel fixed64 compliance).
+    /// </summary>
+    public const string Version = "2.1.0";
 
     /// <summary>
     ///     Core spans table with promoted OTel GenAI fields for columnar performance.
@@ -24,10 +28,10 @@ public static class DuckDbSchema
                                                span_id              VARCHAR(16) NOT NULL,
                                                parent_span_id       VARCHAR(16),
 
-                                               -- Temporal (Partitioning Key)
-                                               start_time_unix_nano BIGINT NOT NULL,
-                                               end_time_unix_nano   BIGINT NOT NULL,
-                                               duration_ns          BIGINT GENERATED ALWAYS AS (end_time_unix_nano - start_time_unix_nano),
+                                               -- Temporal (Partitioning Key) - OTel fixed64 = unsigned 64-bit
+                                               start_time_unix_nano UBIGINT NOT NULL,
+                                               end_time_unix_nano   UBIGINT NOT NULL,
+                                               duration_ns          BIGINT GENERATED ALWAYS AS (CAST(end_time_unix_nano AS BIGINT) - CAST(start_time_unix_nano AS BIGINT)),
 
                                                -- Core Span Fields
                                                name                 VARCHAR NOT NULL,
@@ -114,8 +118,8 @@ public static class DuckDbSchema
     public const string CreateSessionsTable = """
                                               CREATE TABLE IF NOT EXISTS sessions (
                                                   session_id           VARCHAR NOT NULL PRIMARY KEY,
-                                                  first_span_time      BIGINT NOT NULL,
-                                                  last_span_time       BIGINT NOT NULL,
+                                                  first_span_time      UBIGINT NOT NULL,  -- OTel fixed64 = unsigned
+                                                  last_span_time       UBIGINT NOT NULL,  -- OTel fixed64 = unsigned
                                                   span_count           BIGINT NOT NULL DEFAULT 0,
                                                   total_input_tokens   BIGINT NOT NULL DEFAULT 0,
                                                   total_output_tokens  BIGINT NOT NULL DEFAULT 0,

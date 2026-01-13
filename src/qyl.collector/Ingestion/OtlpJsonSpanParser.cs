@@ -275,13 +275,25 @@ public ref struct OtlpJsonSpanParser
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private UnixNano ParseUnixNano()
     {
-        if (_reader.TokenType == JsonTokenType.Number) return new UnixNano((ulong)_reader.GetInt64());
+        // OTel spec: timestamps are fixed64 (unsigned 64-bit)
+        if (_reader.TokenType == JsonTokenType.Number)
+        {
+            // Try ulong first (correct per OTel spec), fall back to long for compatibility
+            if (_reader.TryGetUInt64(out var ulongValue))
+                return new UnixNano(ulongValue);
+            // Fallback: some producers may serialize as signed
+            if (_reader.TryGetInt64(out var longValue) && longValue >= 0)
+                return new UnixNano((ulong)longValue);
+            return UnixNano.Empty;
+        }
 
         if (_reader.TokenType == JsonTokenType.String)
         {
             // OTLP JSON encodes large numbers as strings
             var span = _reader.ValueSpan;
-            if (Utf8Parser.TryParse(span, out long value, out _)) return new UnixNano((ulong)value);
+            // Try unsigned first (correct per OTel spec)
+            if (Utf8Parser.TryParse(span, out ulong ulongValue, out _))
+                return new UnixNano(ulongValue);
         }
 
         return UnixNano.Empty;

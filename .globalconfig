@@ -65,10 +65,19 @@ dotnet_diagnostic.IDE1006.severity = suggestion
 dotnet_diagnostic.CS1591.severity = none # Missing XML comment (disabled globally)
 
 # =============================================================================
+# ANcpLua.Analyzers (AL)
+# =============================================================================
+
+# AL0017: Hardcoded version rule is for SDK development, not consumer projects using CPM
+dotnet_diagnostic.AL0017.severity = none
+
+# =============================================================================
 # ANALYZER INFRASTRUCTURE (RS)
 # =============================================================================
 
-dotnet_diagnostic.RS0030.severity = error # Banned API usage
+# RS0030 severity is controlled by SDK (warning) + EditorConfig patterns
+# Do NOT set to error here - globalconfig at level 100 overrides EditorConfig
+# patterns for generated files, causing false positives from MS source generators
 
 # =============================================================================
 # DTO/WIRE FORMAT EXCEPTIONS

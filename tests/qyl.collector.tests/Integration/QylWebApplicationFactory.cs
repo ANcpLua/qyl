@@ -40,6 +40,9 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
             // Add test token auth
             services.AddSingleton(new TokenAuthOptions { Token = TestToken });
 
+            // Add SSE broadcaster for ingestion endpoints
+            services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
+
             // Create in-memory DuckDB store for tests
             _store = new DuckDbStore(TestConstants.InMemoryDb);
             services.AddSingleton(_store);

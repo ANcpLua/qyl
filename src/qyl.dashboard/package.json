@@ -11,10 +11,10 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "generate:ts": "openapi-typescript ../../core/openapi/openapi.yaml -o src/types/api.ts"
   },
   "dependencies": {
-    "@microsoft/kiota-abstractions": "^1.0.0-preview.99",
     "@radix-ui/react-collapsible": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.15",
@@ -53,6 +53,7 @@
     "globals": "^16.5.0",
     "jsdom": "^27.2.0",
     "msw": "^2.12.3",
+    "openapi-typescript": "^7.10.1",
     "shadcn": "^3.5.1",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",

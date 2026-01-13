@@ -10,42 +10,29 @@ interface IHasSolution : INukeBuild
 {
     [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)!;
 
+    // Build output directories
     AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
-
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
-
     AbsolutePath CoverageDirectory => ArtifactsDirectory / "coverage";
 
-    AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
-
-    AbsolutePath EnvFile => RootDirectory / ".env";
-
+    // Source directories (actual projects)
     AbsolutePath SourceDirectory => RootDirectory / "src";
-
     AbsolutePath CollectorDirectory => SourceDirectory / "qyl.collector";
-
     AbsolutePath DashboardDirectory => SourceDirectory / "qyl.dashboard";
-
-    AbsolutePath GrpcDirectory => SourceDirectory / "qyl.grpc";
-
     AbsolutePath McpServerDirectory => SourceDirectory / "qyl.mcp";
+    AbsolutePath ProtocolDirectory => SourceDirectory / "qyl.protocol";
 
-    AbsolutePath AgentsTelemetryDirectory => SourceDirectory / "qyl.telemetry";
-
-    AbsolutePath SdkAspNetCoreDirectory => SourceDirectory / "qyl.sdk.aspnetcore";
-
-    AbsolutePath DemoDirectory => SourceDirectory / "qyl.demo";
-
+    // Test directories
     AbsolutePath TestsDirectory => RootDirectory / "tests";
+    AbsolutePath CollectorTestsDirectory => TestsDirectory / "qyl.collector.tests";
 
-    AbsolutePath UnitTestsDirectory => TestsDirectory / "UnitTests";
-
-    AbsolutePath IntegrationTestsDirectory => TestsDirectory / "IntegrationTests";
-
+    // Examples
     AbsolutePath ExamplesDirectory => RootDirectory / "examples";
 
-    AbsolutePath AspNetCoreExampleDirectory => ExamplesDirectory / "qyl.AspNetCore.Example";
+    // Docker Compose
+    AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
 
+    // Alias for dashboard (used by frontend targets)
     AbsolutePath WebUiDirectory => DashboardDirectory;
 
     AbsolutePath GetSolutionPath() =>

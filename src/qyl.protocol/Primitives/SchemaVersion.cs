@@ -79,7 +79,7 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
     // =========================================================================
 
     /// <summary>Gets the official OpenTelemetry schema URL for this version.</summary>
-    public string ToSchemaUrl() => $"https://opentelemetry.io/schemas/{this}";
+    public Uri ToSchemaUrl() => new($"https://opentelemetry.io/schemas/{this}");
 
     /// <inheritdoc />
     public override string ToString() => $"{Major}.{Minor}.{Patch}";
@@ -99,7 +99,7 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
     /// <summary>Parses a schema version from a string like "1.38.0".</summary>
     public static SchemaVersion Parse(string version)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(version);
+        Throw.IfNullOrWhitespace(version);
 
         var match = VersionRegex().Match(version);
         if (!match.Success)
@@ -114,7 +114,7 @@ public sealed partial record SchemaVersion : IComparable<SchemaVersion>
     /// <summary>Parses a schema version from a URL like "https://opentelemetry.io/schemas/1.38.0".</summary>
     public static SchemaVersion ParseFromUrl(string schemaUrl)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(schemaUrl);
+        Throw.IfNullOrWhitespace(schemaUrl);
 
         var lastSlash = schemaUrl.LastIndexOf('/');
         if (lastSlash < 0)

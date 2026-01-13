@@ -12,11 +12,6 @@
     <InjectClaudeBrain>true</InjectClaudeBrain>
   </PropertyGroup>
 
-  <!-- SDK Throw class global using -->
-  <ItemGroup>
-    <Using Include="Microsoft.Shared.Diagnostics"/>
-  </ItemGroup>
-
   <ItemGroup>
     <ClaudeCriticalFile Include="Storage/DuckDbStore.cs" Reason="Core persistence - schema changes break data"/>
     <ClaudeCriticalFile Include="Storage/DuckDbSchema.cs" Reason="DDL definitions - must match DuckDbStore"/>
@@ -26,7 +21,6 @@
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
-    <PackageReference Remove="ANcpSdk.AspNetCore.ServiceDefaults"/>
   </ItemGroup>
 
 
