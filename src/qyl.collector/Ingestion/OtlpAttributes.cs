@@ -539,10 +539,13 @@ public sealed record OtlpSpan
     public string? ParentSpanId { get; init; }
     public string? Name { get; init; }
     public int? Kind { get; init; }
+
     /// <summary>Start time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
     public ulong StartTimeUnixNano { get; init; }
+
     /// <summary>End time as unsigned 64-bit nanoseconds (OTel fixed64 wire format).</summary>
     public ulong EndTimeUnixNano { get; init; }
+
     public OtlpStatus? Status { get; init; }
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
@@ -603,7 +606,7 @@ public sealed class ParsedSpan
     public List<KeyValuePair<string, object?>>? Attributes { get; set; }
 
     /// <summary>
-    /// Duration as TimeSpan. Returns TimeSpan.Zero if EndTime is before StartTime (clock skew protection).
+    ///     Duration as TimeSpan. Returns TimeSpan.Zero if EndTime is before StartTime (clock skew protection).
     /// </summary>
     public TimeSpan Duration
     {
@@ -616,6 +619,7 @@ public sealed class ParsedSpan
             return TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
         }
     }
+
     public long TotalTokens => InputTokens + OutputTokens;
     public bool IsGenAiSpan => ProviderName is not null || RequestModel is not null;
 }
@@ -645,4 +649,36 @@ public enum StatusCode : byte
     Unset = 0,
     Ok = 1,
     Error = 2
+}
+
+// =============================================================================
+// OTLP LOGS JSON DTOs
+// =============================================================================
+
+public sealed record OtlpExportLogsServiceRequest
+{
+    public List<OtlpResourceLogs>? ResourceLogs { get; init; }
+}
+
+public sealed record OtlpResourceLogs
+{
+    public OtlpResource? Resource { get; init; }
+    public List<OtlpScopeLogs>? ScopeLogs { get; init; }
+}
+
+public sealed record OtlpScopeLogs
+{
+    public List<OtlpLogRecord>? LogRecords { get; init; }
+}
+
+public sealed record OtlpLogRecord
+{
+    public ulong TimeUnixNano { get; init; }
+    public ulong ObservedTimeUnixNano { get; init; }
+    public int? SeverityNumber { get; init; }
+    public string? SeverityText { get; init; }
+    public OtlpAnyValue? Body { get; init; }
+    public List<OtlpKeyValue>? Attributes { get; init; }
+    public string? TraceId { get; init; }
+    public string? SpanId { get; init; }
 }

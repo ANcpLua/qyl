@@ -6,6 +6,7 @@ import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
+import {CopyableText} from '@/components/ui';
 import {useSessions} from '@/hooks/use-telemetry';
 import type {Session} from '@/types';
 import {getPrimaryService} from '@/types';
@@ -128,8 +129,15 @@ const ResourceRow = memo(function ResourceRow({session}: { session: Session }) {
 
             <div className="flex-1 min-w-0">
                 <div className="font-medium truncate">{getPrimaryService(session)}</div>
-                <div className="text-xs text-muted-foreground">
-                    Session: {session.sessionId.slice(0, 8)}...
+                <div className="flex items-center text-xs text-muted-foreground">
+                    <span className="mr-1">Session:</span>
+                    <CopyableText
+                        value={session.sessionId}
+                        label="Session ID"
+                        truncate
+                        maxWidth="80px"
+                        textClassName="text-xs text-muted-foreground"
+                    />
                 </div>
             </div>
 

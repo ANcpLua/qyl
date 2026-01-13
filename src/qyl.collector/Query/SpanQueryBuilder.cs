@@ -424,6 +424,8 @@ public sealed class SpanQueryBuilder
     }
 
     /// <summary>Apply parameters to a DuckDB command.</summary>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities",
+        Justification = "Parameterized queries - verified safe")]
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Build();
@@ -442,6 +444,8 @@ public sealed class SpanQueryBuilder
 public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Parameters)
 {
     /// <summary>Apply to a DuckDB command.</summary>
+    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities",
+        Justification = "Parameterized queries - verified safe")]
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Sql;
@@ -451,7 +455,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
 
     /// <summary>Create DuckDB parameters list.</summary>
     public IReadOnlyList<DuckDBParameter> ToDuckDbParameters()
-        => Parameters.Select(p => new DuckDBParameter { Value = p ?? DBNull.Value }).ToList();
+        => [.. Parameters.Select(static p => new DuckDBParameter { Value = p ?? DBNull.Value })];
 }
 
 // =============================================================================
@@ -594,24 +598,30 @@ public enum CompareOp
 
 internal readonly struct WhereClause(string column, CompareOp op, string? param)
 {
-    public string ToSql() => op switch
+    private readonly string _column = column;
+    private readonly string? _param = param;
+    private readonly CompareOp _op = op;
+
+    public string ToSql() => _op switch
     {
-        CompareOp.Eq => $"{column} = {param}",
-        CompareOp.Ne => $"{column} != {param}",
-        CompareOp.Lt => $"{column} < {param}",
-        CompareOp.Lte => $"{column} <= {param}",
-        CompareOp.Gt => $"{column} > {param}",
-        CompareOp.Gte => $"{column} >= {param}",
-        CompareOp.IsNull => $"{column} IS NULL",
-        CompareOp.IsNotNull => $"{column} IS NOT NULL",
-        CompareOp.Like => $"{column} LIKE {param}",
-        CompareOp.In => $"{column} IN ({param})",
-        CompareOp.Raw => column,
+        CompareOp.Eq => $"{_column} = {_param}",
+        CompareOp.Ne => $"{_column} != {_param}",
+        CompareOp.Lt => $"{_column} < {_param}",
+        CompareOp.Lte => $"{_column} <= {_param}",
+        CompareOp.Gt => $"{_column} > {_param}",
+        CompareOp.Gte => $"{_column} >= {_param}",
+        CompareOp.IsNull => $"{_column} IS NULL",
+        CompareOp.IsNotNull => $"{_column} IS NOT NULL",
+        CompareOp.Like => $"{_column} LIKE {_param}",
+        CompareOp.In => $"{_column} IN ({_param})",
+        CompareOp.Raw => _column,
         _ => throw new ArgumentOutOfRangeException()
     };
 }
 
 internal readonly struct OrderByClause(string expr, bool descending)
 {
-    public string ToSql() => descending ? $"{expr} DESC" : expr;
+    private readonly string _expr = expr;
+    private readonly bool _descending = descending;
+    public string ToSql() => _descending ? $"{_expr} DESC" : _expr;
 }

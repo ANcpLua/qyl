@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T06:07:10.6792080+00:00
+//     Generated: 2026-01-13T17:07:48.6334300+00:00
 //     Enumeration types (OTel 1.38 semconv)
 // =============================================================================
 // To modify: update TypeSpec in schema/ then run: nuke Generate
@@ -25,7 +25,7 @@ namespace Qyl.Enums
         [System.Runtime.Serialization.EnumMember(Value = "content_filter")]
         ContentFilter = 3,
         [System.Runtime.Serialization.EnumMember(Value = "error")]
-        Error = 4
+        Error = 4,
     }
 
     /// <summary>GenAI operation name</summary>
@@ -47,7 +47,7 @@ namespace Qyl.Enums
         [System.Runtime.Serialization.EnumMember(Value = "invoke_agent")]
         InvokeAgent = 6,
         [System.Runtime.Serialization.EnumMember(Value = "execute_tool")]
-        ExecuteTool = 7
+        ExecuteTool = 7,
     }
 
     /// <summary>Log severity number following OTel specification (1-24)</summary>
@@ -55,19 +55,19 @@ namespace Qyl.Enums
     public enum SeverityNumber
     {
         [System.Runtime.Serialization.EnumMember(Value = "0")]
-        _0 = 0,
+        Unspecified = 0,
         [System.Runtime.Serialization.EnumMember(Value = "1")]
-        _1 = 1,
+        Trace = 1,
         [System.Runtime.Serialization.EnumMember(Value = "5")]
-        _5 = 2,
+        Debug = 2,
         [System.Runtime.Serialization.EnumMember(Value = "9")]
-        _9 = 3,
+        Info = 3,
         [System.Runtime.Serialization.EnumMember(Value = "13")]
-        _13 = 4,
+        Warn = 4,
         [System.Runtime.Serialization.EnumMember(Value = "17")]
-        _17 = 5,
+        Error = 5,
         [System.Runtime.Serialization.EnumMember(Value = "21")]
-        _21 = 6
+        Fatal = 6,
     }
 
     /// <summary>Span kind describing the relationship between spans</summary>
@@ -75,17 +75,17 @@ namespace Qyl.Enums
     public enum SpanKind
     {
         [System.Runtime.Serialization.EnumMember(Value = "0")]
-        _0 = 0,
+        Unspecified = 0,
         [System.Runtime.Serialization.EnumMember(Value = "1")]
-        _1 = 1,
+        Internal = 1,
         [System.Runtime.Serialization.EnumMember(Value = "2")]
-        _2 = 2,
+        Server = 2,
         [System.Runtime.Serialization.EnumMember(Value = "3")]
-        _3 = 3,
+        Client = 3,
         [System.Runtime.Serialization.EnumMember(Value = "4")]
-        _4 = 4,
+        Producer = 4,
         [System.Runtime.Serialization.EnumMember(Value = "5")]
-        _5 = 5
+        Consumer = 5,
     }
 
     /// <summary>Span status code</summary>
@@ -93,11 +93,11 @@ namespace Qyl.Enums
     public enum StatusCode
     {
         [System.Runtime.Serialization.EnumMember(Value = "0")]
-        _0 = 0,
+        Unset = 0,
         [System.Runtime.Serialization.EnumMember(Value = "1")]
-        _1 = 1,
+        Ok = 1,
         [System.Runtime.Serialization.EnumMember(Value = "2")]
-        _2 = 2
+        Error = 2,
     }
 
 }

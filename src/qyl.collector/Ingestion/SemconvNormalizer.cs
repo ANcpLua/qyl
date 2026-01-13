@@ -22,9 +22,6 @@ namespace qyl.collector.Ingestion;
 /// </remarks>
 public static class SemconvNormalizer
 {
-    /// <summary>Target schema version for normalization.</summary>
-    public static SemconvVersion TargetVersion => SemconvVersion.V1_38_0;
-
     /// <summary>
     ///     Attribute renames: old name → new name.
     ///     Frozen dictionary for O(1) lookup on hot path.
@@ -135,8 +132,11 @@ public static class SemconvNormalizer
         // =================================================================
         ["enduser.id"] = "enduser.id",
         ["enduser.role"] = "enduser.role",
-        ["enduser.scope"] = "enduser.scope",
+        ["enduser.scope"] = "enduser.scope"
     }.ToFrozenDictionary();
+
+    /// <summary>Target schema version for normalization.</summary>
+    public static SemconvVersion TargetVersion => SemconvVersion.V1_38_0;
 
     /// <summary>
     ///     Normalizes an attribute name to v1.38.0.

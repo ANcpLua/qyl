@@ -33,5 +33,8 @@ using TypeSpec.JsonSchema;
 @service(#{
   title: "QYL Telemetry API",
 })
+@TypeSpec.OpenAPI.info(#{
+  version: "1.0.0",
+})
 @server("http://localhost:5100", "QYL Collector")
 namespace Qyl;

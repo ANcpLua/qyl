@@ -46,7 +46,7 @@ interface ITypeSpec : IHasSolution
 
     Target TypeSpecCompile => d => d
         .Description("Compile TypeSpec God Schema → OpenAPI 3.1 + JSON Schema")
-        .DependsOn<ITypeSpec>(x => x.TypeSpecInstall)
+        .DependsOn<ITypeSpec>(static x => x.TypeSpecInstall)
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Produces(OpenApiOutput)
         .Produces(JsonSchemaOutput / "**/*.json")
@@ -72,7 +72,9 @@ interface ITypeSpec : IHasSolution
                 Log.Information("  Dashboard: cd src/qyl.dashboard && npm run generate:types");
             }
             else
+            {
                 Log.Warning("OpenAPI output not found at {Output}", OpenApiOutput);
+            }
         });
 
     Target TypeSpecInfo => d => d

@@ -65,15 +65,17 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     }
 
     /// <summary>
-    /// Gets UBIGINT (unsigned 64-bit) value. Required for OTel timestamp columns.
-    /// DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
+    ///     Gets UBIGINT (unsigned 64-bit) value. Required for OTel timestamp columns.
+    ///     DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
     /// </summary>
     public ulong? AsUInt64
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader is DbDataReader db
-            ? (ulong)db.GetFieldValue<decimal>(ordinal)
-            : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+        get => IsNull
+            ? null
+            : reader is DbDataReader db
+                ? (ulong)db.GetFieldValue<decimal>(ordinal)
+                : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
     }
 
     public double? AsDouble
@@ -163,13 +165,15 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     public long GetInt64(long defaultValue) => IsNull ? defaultValue : reader.GetInt64(ordinal);
 
     /// <summary>
-    /// Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel timestamp columns.
-    /// DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
+    ///     Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel timestamp columns.
+    ///     DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public ulong GetUInt64(ulong defaultValue) => IsNull ? defaultValue : reader is DbDataReader db
-        ? (ulong)db.GetFieldValue<decimal>(ordinal)
-        : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+    public ulong GetUInt64(ulong defaultValue) => IsNull
+        ? defaultValue
+        : reader is DbDataReader db
+            ? (ulong)db.GetFieldValue<decimal>(ordinal)
+            : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public double GetDouble(double defaultValue) => IsNull ? defaultValue : reader.GetDouble(ordinal);
@@ -256,6 +260,29 @@ public sealed record StorageStats
     public long FeedbackCount { get; init; }
     public DateTime? OldestSpan { get; init; }
     public DateTime? NewestSpan { get; init; }
+}
+
+/// <summary>
+///     DuckDB storage row for logs. Maps to OTLP log records.
+///     Owner: qyl.collector | For external API use LogRecord from protocol.
+/// </summary>
+public sealed record LogStorageRow
+{
+    public required string LogId { get; init; }
+    public string? TraceId { get; init; }
+    public string? SpanId { get; init; }
+    public string? SessionId { get; init; }
+
+    public required long TimeUnixNano { get; init; }
+    public long? ObservedTimeUnixNano { get; init; }
+
+    public required int SeverityNumber { get; init; }
+    public string? SeverityText { get; init; }
+    public string? Body { get; init; }
+
+    public string? ServiceName { get; init; }
+    public string? AttributesJson { get; init; }
+    public string? ResourceJson { get; init; }
 }
 
 public interface ITelemetrySseBroadcaster : IAsyncDisposable

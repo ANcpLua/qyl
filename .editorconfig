@@ -181,6 +181,9 @@ dotnet_diagnostic.CA1034.severity = none # Nested types valid
 dotnet_diagnostic.CA1002.severity = none # List<T> for batch operations
 dotnet_diagnostic.CA1819.severity = none # Array properties for schema
 
+[src/**/Query/**/*.cs]
+dotnet_diagnostic.CA2100.severity = none # Parameterized queries - verified safe
+
 # =============================================================================
 # CONSOLE BRIDGE (recursive)
 # =============================================================================

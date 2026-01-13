@@ -17,8 +17,7 @@ interface ITest : ICompile
     [Parameter("Stop on first test failure")]
     bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
 
-    [Parameter("Show live test output")]
-    bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
+    [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     Project[] TestProjects =>
         Solution.AllProjects
@@ -39,7 +38,9 @@ interface ITest : ICompile
                 Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
             }
             else
+            {
                 Log.Debug("Testcontainers: Using local Docker configuration");
+            }
         });
 
     Target Test => d => d
@@ -108,12 +109,13 @@ interface ITest : ICompile
 
         // .NET 10 MTP requires explicit --project flag (not positional)
         // --results-directory is a dotnet test arg (before --), MTP args go after --
-        var arguments = $"test --project {projectPath} --configuration {Configuration} --no-build --no-restore --results-directory {TestResultsDirectory} {mtpArgs}";
+        var arguments =
+            $"test --project {projectPath} --configuration {Configuration} --no-build --no-restore --results-directory {TestResultsDirectory} {mtpArgs}";
 
         var process = ProcessTasks.StartProcess(
-            toolPath: ToolPathResolver.GetPathExecutable("dotnet"),
-            arguments: arguments,
-            workingDirectory: RootDirectory,
+            ToolPathResolver.GetPathExecutable("dotnet"),
+            arguments,
+            RootDirectory,
             logOutput: true);
 
         process.AssertWaitForExit();

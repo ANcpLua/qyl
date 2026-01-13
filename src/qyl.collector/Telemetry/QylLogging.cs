@@ -102,7 +102,8 @@ public static partial class Log
     public static partial void GenAiSpanProcessed(
         ILogger logger,
         [TagName("gen_ai.usage.input_tokens")] long inputTokens,
-        [TagName("gen_ai.usage.output_tokens")] long outputTokens,
+        [TagName("gen_ai.usage.output_tokens")]
+        long outputTokens,
         [TagName("gen_ai.provider.name")] string? provider = null,
         [TagName("gen_ai.request.model")] string? model = null);
 

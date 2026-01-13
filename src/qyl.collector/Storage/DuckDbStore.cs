@@ -82,6 +82,25 @@ public sealed class DuckDbStore : IAsyncDisposable
                                       PRIMARY KEY (trace_id, span_id)
                                   );
 
+                                  CREATE TABLE IF NOT EXISTS logs (
+                                      log_id VARCHAR PRIMARY KEY,
+                                      trace_id VARCHAR,
+                                      span_id VARCHAR,
+                                      session_id VARCHAR,
+
+                                      time_unix_nano BIGINT NOT NULL,
+                                      observed_time_unix_nano BIGINT,
+                                      severity_number INT NOT NULL,
+                                      severity_text VARCHAR,
+                                      body VARCHAR,
+
+                                      service_name VARCHAR,
+                                      attributes_json VARCHAR,
+                                      resource_json VARCHAR,
+
+                                      created_at TIMESTAMPTZ DEFAULT now()
+                                  );
+
                                   CREATE TABLE IF NOT EXISTS feedback (
                                       feedback_id VARCHAR PRIMARY KEY,
                                       session_id VARCHAR NOT NULL,
@@ -99,6 +118,11 @@ public sealed class DuckDbStore : IAsyncDisposable
                                   CREATE INDEX IF NOT EXISTS idx_spans_session ON spans (session_id);
                                   CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (genai_provider);
                                   CREATE INDEX IF NOT EXISTS idx_spans_service ON spans (service_name);
+                                  CREATE INDEX IF NOT EXISTS idx_logs_time ON logs (time_unix_nano);
+                                  CREATE INDEX IF NOT EXISTS idx_logs_session ON logs (session_id);
+                                  CREATE INDEX IF NOT EXISTS idx_logs_trace ON logs (trace_id);
+                                  CREATE INDEX IF NOT EXISTS idx_logs_severity ON logs (severity_number);
+                                  CREATE INDEX IF NOT EXISTS idx_logs_service ON logs (service_name);
                                   """;
 
     private const string SelectColumns = """
@@ -506,6 +530,160 @@ public sealed class DuckDbStore : IAsyncDisposable
         return new GenAiStats();
     }
 
+    #region Logs Methods
+
+    private const string InsertLogSql = """
+                                        INSERT INTO logs (
+                                            log_id, trace_id, span_id, session_id,
+                                            time_unix_nano, observed_time_unix_nano,
+                                            severity_number, severity_text, body,
+                                            service_name, attributes_json, resource_json
+                                        ) VALUES (
+                                            $1, $2, $3, $4,
+                                            $5, $6,
+                                            $7, $8, $9,
+                                            $10, $11, $12
+                                        )
+                                        """;
+
+    public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (logs.Count == 0) return;
+
+        await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        foreach (var log in logs)
+        {
+            await using var cmd = Connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = InsertLogSql;
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.LogId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.TimeUnixNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.ObservedTimeUnixNano ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
+
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
+        string? sessionId = null,
+        string? traceId = null,
+        string? severityText = null,
+        int? minSeverity = null,
+        string? search = null,
+        DateTime? after = null,
+        DateTime? before = null,
+        int limit = 500,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var logs = new List<LogStorageRow>();
+        var conditions = new List<string>();
+        var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
+
+        if (!string.IsNullOrEmpty(sessionId))
+        {
+            conditions.Add($"session_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = sessionId });
+        }
+
+        if (!string.IsNullOrEmpty(traceId))
+        {
+            conditions.Add($"trace_id = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = traceId });
+        }
+
+        if (!string.IsNullOrEmpty(severityText))
+        {
+            conditions.Add($"severity_text = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = severityText });
+        }
+
+        if (minSeverity.HasValue)
+        {
+            conditions.Add($"severity_number >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = minSeverity.Value });
+        }
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            conditions.Add($"body LIKE ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = $"%{search}%" });
+        }
+
+        if (after.HasValue)
+        {
+            var nanos = new DateTimeOffset(after.Value, TimeSpan.Zero).ToUnixTimeMilliseconds() * 1_000_000;
+            conditions.Add($"time_unix_nano >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = nanos });
+        }
+
+        if (before.HasValue)
+        {
+            var nanos = new DateTimeOffset(before.Value, TimeSpan.Zero).ToUnixTimeMilliseconds() * 1_000_000;
+            conditions.Add($"time_unix_nano <= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = nanos });
+        }
+
+        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"""
+                           SELECT log_id, trace_id, span_id, session_id,
+                                  time_unix_nano, observed_time_unix_nano,
+                                  severity_number, severity_text, body,
+                                  service_name, attributes_json, resource_json
+                           FROM logs
+                           {whereClause}
+                           ORDER BY time_unix_nano DESC
+                           LIMIT ${paramIndex}
+                           """;
+
+        cmd.Parameters.AddRange(parameters);
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            logs.Add(MapLog(reader));
+
+        return logs;
+    }
+
+    private static LogStorageRow MapLog(DbDataReader reader) =>
+        new()
+        {
+            LogId = reader.GetString(0),
+            TraceId = reader.Col(1).AsString,
+            SpanId = reader.Col(2).AsString,
+            SessionId = reader.Col(3).AsString,
+            TimeUnixNano = reader.Col(4).GetInt64(0),
+            ObservedTimeUnixNano = reader.Col(5).AsInt64,
+            SeverityNumber = reader.Col(6).GetInt32(0),
+            SeverityText = reader.Col(7).AsString,
+            Body = reader.Col(8).AsString,
+            ServiceName = reader.Col(9).AsString,
+            AttributesJson = reader.Col(10).AsString,
+            ResourceJson = reader.Col(11).AsString
+        };
+
+    #endregion
+
     private async Task WriterLoopAsync()
     {
         try
@@ -559,7 +737,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             throw;
         }
 
-        return new ReadLease(this, con, false);
+        return new ReadLease(this, con);
     }
 
     private void ReturnRead(DuckDBConnection con)

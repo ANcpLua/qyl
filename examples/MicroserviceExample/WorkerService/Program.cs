@@ -10,7 +10,7 @@ builder.Services.AddHostedService<Worker>();
 builder.Services.AddSingleton<MessageReceiver>();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(b => b.AddSource(nameof(MessageReceiver)));
+    .WithTracing(static b => b.AddSource(nameof(MessageReceiver)));
 
 var app = builder.Build();
 

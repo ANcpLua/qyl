@@ -14,8 +14,7 @@ interface IDockerBuild : IHasSolution
 
     [Parameter("Docker registry prefix")] string? Registry => TryGetValue(() => Registry);
 
-    [Parameter("Push images after build")]
-    bool? Push => TryGetValue<bool?>(() => Push);
+    [Parameter("Push images after build")] bool? Push => TryGetValue<bool?>(() => Push);
 
     [Parameter("Build images in parallel (default: true)")]
     bool ParallelBuild => true;
@@ -54,18 +53,6 @@ interface IDockerBuild : IHasSolution
         .Description("Build qyl-dashboard Docker image")
         .Executes(() => BuildSingleImage(ImageSpecs[1]));
 
-    private void BuildSingleImage((string Name, AbsolutePath Dockerfile, string Tag) spec)
-    {
-        Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
-
-        DockerBuild(s => s
-            .SetPath(RootDirectory)
-            .SetFile(spec.Dockerfile)
-            .SetTag(spec.Tag)
-            .EnablePull()
-            .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
-    }
-
     Target DockerImagePush => d => d
         .Description("Push Docker images to registry")
         .DependsOn<IDockerBuild>(x => x.DockerImageBuild)
@@ -79,6 +66,18 @@ interface IDockerBuild : IHasSolution
 
             Log.Information("Images pushed successfully");
         });
+
+    private void BuildSingleImage((string Name, AbsolutePath Dockerfile, string Tag) spec)
+    {
+        Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
+
+        DockerBuild(s => s
+            .SetPath(RootDirectory)
+            .SetFile(spec.Dockerfile)
+            .SetTag(spec.Tag)
+            .EnablePull()
+            .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1"));
+    }
 
     private string FormatImageName(string name) =>
         string.IsNullOrEmpty(Registry)

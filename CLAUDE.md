@@ -11,12 +11,12 @@ User App ──OTLP──► qyl.collector ──DuckDB──► Storage
                         └──► REST ──► qyl.mcp ──stdio──► Claude
 ```
 
-| Project | Type | Purpose | Dependencies |
-|---------|------|---------|--------------|
-| `qyl.protocol` | Library | Shared contracts (LEAF) | BCL only |
-| `qyl.collector` | Web API | OTLP ingestion, DuckDB, REST/SSE | protocol |
-| `qyl.mcp` | Console | MCP Server for AI agents | protocol (HTTP to collector) |
-| `qyl.dashboard` | SPA | React 19 frontend | REST/SSE from collector |
+| Project         | Type    | Purpose                          | Dependencies                 |
+|-----------------|---------|----------------------------------|------------------------------|
+| `qyl.protocol`  | Library | Shared contracts (LEAF)          | BCL only                     |
+| `qyl.collector` | Web API | OTLP ingestion, DuckDB, REST/SSE | protocol                     |
+| `qyl.mcp`       | Console | MCP Server for AI agents         | protocol (HTTP to collector) |
+| `qyl.dashboard` | SPA     | React 19 frontend                | REST/SSE from collector      |
 
 ---
 
@@ -29,11 +29,11 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
                     protocol
 ```
 
-| Rule | Constraint |
-|------|------------|
-| `qyl.protocol` | BCL only. No external packages. Leaf dependency. |
-| `qyl.mcp` → `qyl.collector` | **HTTP ONLY**. No ProjectReference. |
-| `qyl.dashboard` → `qyl.collector` | REST/SSE endpoints only |
+| Rule                              | Constraint                                       |
+|-----------------------------------|--------------------------------------------------|
+| `qyl.protocol`                    | BCL only. No external packages. Leaf dependency. |
+| `qyl.mcp` → `qyl.collector`       | **HTTP ONLY**. No ProjectReference.              |
+| `qyl.dashboard` → `qyl.collector` | REST/SSE endpoints only                          |
 
 ---
 
@@ -41,13 +41,13 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
 
 **Golden Rule**: Multiple consumers → `qyl.protocol`. Single consumer → that project.
 
-| Owner | Types | Consumers |
-|-------|-------|-----------|
-| `qyl.protocol` | SessionId, UnixNano, TraceId, SpanId | all |
-| `qyl.protocol` | SpanRecord, SessionSummary, TraceNode | all |
-| `qyl.protocol` | GenAiSpanData, GenAiAttributes | collector, mcp |
-| `qyl.collector` | DuckDbStore, DuckDbSchema, OtlpJsonSpanParser | internal only |
-| `qyl.dashboard` | types/generated/* | internal only |
+| Owner           | Types                                         | Consumers      |
+|-----------------|-----------------------------------------------|----------------|
+| `qyl.protocol`  | SessionId, UnixNano, TraceId, SpanId          | all            |
+| `qyl.protocol`  | SpanRecord, SessionSummary, TraceNode         | all            |
+| `qyl.protocol`  | GenAiSpanData, GenAiAttributes                | collector, mcp |
+| `qyl.collector` | DuckDbStore, DuckDbSchema, OtlpJsonSpanParser | internal only  |
+| `qyl.dashboard` | types/generated/*                             | internal only  |
 
 ### New Type Decision Tree
 
@@ -65,13 +65,13 @@ New Type?
 
 See `eng/MSBuild/BannedSymbols.txt` for full list.
 
-| Category | Required Pattern |
-|----------|------------------|
-| Time | `TimeProvider.System.GetUtcNow()` |
-| Locking | `Lock _lock = new()` |
-| JSON | `System.Text.Json` |
+| Category      | Required Pattern                               |
+|---------------|------------------------------------------------|
+| Time          | `TimeProvider.System.GetUtcNow()`              |
+| Locking       | `Lock _lock = new()`                           |
+| JSON          | `System.Text.Json`                             |
 | String search | `string.Contains('x')` (char overload, CA1847) |
-| Hex convert | `Convert.ToHexString()` (CA1872) |
+| Hex convert   | `Convert.ToHexString()` (CA1872)               |
 
 ---
 
@@ -132,11 +132,11 @@ schema/main.tsp
          • x-primitive: Marks strongly-typed wrappers
 ```
 
-| Pipeline Step | Command | Output |
-|---------------|---------|--------|
-| TypeSpec → OpenAPI | `nuke TypeSpecCompile` | `schema/generated/openapi.yaml` |
-| OpenAPI → TypeScript | `npm run generate:ts` | `dashboard/src/types/api.ts` |
-| OpenAPI → C# | `nuke Generate` | `protocol/*.g.cs`, `collector/Storage/*.g.cs` |
+| Pipeline Step        | Command                | Output                                        |
+|----------------------|------------------------|-----------------------------------------------|
+| TypeSpec → OpenAPI   | `nuke TypeSpecCompile` | `schema/generated/openapi.yaml`               |
+| OpenAPI → TypeScript | `npm run generate:ts`  | `dashboard/src/types/api.ts`                  |
+| OpenAPI → C#         | `nuke Generate`        | `protocol/*.g.cs`, `collector/Storage/*.g.cs` |
 
 ```bash
 nuke TypeSpecCompile          # TypeSpec → OpenAPI
@@ -150,14 +150,14 @@ nuke Generate --ForceGenerate # Overwrite existing
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | .NET 10 / C# 14 |
-| SDK | ANcpLua.NET.Sdk 1.6.2 (from nuget.org) |
-| Storage | DuckDB.NET.Data.Full |
-| OTel | Semantic Conventions v1.38.0 |
+| Layer    | Technology                                     |
+|----------|------------------------------------------------|
+| Runtime  | .NET 10 / C# 14                                |
+| SDK      | ANcpLua.NET.Sdk 1.6.2 (from nuget.org)         |
+| Storage  | DuckDB.NET.Data.Full                           |
+| OTel     | Semantic Conventions v1.38.0                   |
 | Frontend | React 19, Vite 6, Tailwind 4, TanStack Query 5 |
-| Testing | xUnit v3 + Microsoft Testing Platform (MTP) |
+| Testing  | xUnit v3 + Microsoft Testing Platform (MTP)    |
 
 ---
 

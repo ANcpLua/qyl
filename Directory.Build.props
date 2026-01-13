@@ -49,6 +49,19 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <!-- NuGet Package Metadata (for publishable packages) -->
+  <PropertyGroup>
+    <Authors>ancplua</Authors>
+    <Company>qyl</Company>
+    <PackageProjectUrl>https://github.com/ancplua/qyl</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ancplua/qyl</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>opentelemetry;genai;observability;llm;ai;telemetry;mcp</PackageTags>
+    <Copyright>Copyright (c) 2025-2026 ancplua</Copyright>
+  </PropertyGroup>
+
   <!-- CI Detection -->
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' OR '$(TF_BUILD)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>

@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace AgentGateway.Core;
 
 [Flags]
@@ -18,14 +12,9 @@ public enum ProviderCapabilities
     StructuredOutputs = 32
 }
 
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Class)]
 public sealed class ModelProviderAttribute : Attribute
 {
-    public string ProviderId { get; }
-    public string DisplayName { get; }
-    public ProviderCapabilities Capabilities { get; }
-    public string[] AuthSchemes { get; }
-
     public ModelProviderAttribute(
         string providerId,
         string displayName,
@@ -37,6 +26,11 @@ public sealed class ModelProviderAttribute : Attribute
         Capabilities = capabilities;
         AuthSchemes = authSchemes;
     }
+
+    public string ProviderId { get; }
+    public string DisplayName { get; }
+    public ProviderCapabilities Capabilities { get; }
+    public string[] AuthSchemes { get; }
 }
 
 public sealed record ModelInfo(

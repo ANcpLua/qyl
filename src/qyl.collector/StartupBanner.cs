@@ -13,7 +13,13 @@ public static class StartupBanner
                                    ╚══▀▀═╝    ╚═╝   ╚══════╝
                                 """;
 
-    public static void Print(string baseUrl, string token, int port, int grpcPort = 4317)
+    public static void Print(
+        string baseUrl,
+        string token,
+        int port,
+        int grpcPort = 4317,
+        OtlpCorsOptions? corsOptions = null,
+        OtlpApiKeyOptions? apiKeyOptions = null)
     {
         var tokenUrl = $"{baseUrl}?t={token}";
 
@@ -98,6 +104,30 @@ public static class StartupBanner
         Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
         Console.WriteLine("    POST /api/login         - Token authentication");
         Console.ResetColor();
+        Console.WriteLine();
+
+        // OTLP CORS/Auth status
+        if (corsOptions?.IsEnabled == true)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.Write("  OTLP CORS: ");
+            Console.ResetColor();
+            Console.WriteLine(corsOptions.AllowedOrigins);
+        }
+
+        if (apiKeyOptions?.IsApiKeyMode == true)
+        {
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine("  OTLP Auth: API Key required (x-otlp-api-key header)");
+            Console.ResetColor();
+        }
+        else
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine("  OTLP Auth: UNSECURED - telemetry accepted without authentication");
+            Console.ResetColor();
+        }
+
         Console.WriteLine();
     }
 

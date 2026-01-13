@@ -19,8 +19,7 @@ interface IDockerCompose : IHasSolution
     [Parameter("Number of log lines to tail")]
     int? LogTail => TryGetValue<int?>(() => LogTail);
 
-    [Parameter("Target specific service")]
-    string? Service => TryGetValue<string?>(() => Service);
+    [Parameter("Target specific service")] string? Service => TryGetValue(() => Service);
 
     Target DockerUp => d => d
         .Description("Start qyl Docker Compose stack")
@@ -71,11 +70,12 @@ interface IDockerCompose : IHasSolution
             RunDockerCompose(args);
         });
 
-    Target DockerRestart => d => d
-        .Description("Restart qyl Docker Compose stack (down + up)")
-        .DependsOn<IDockerCompose>(x => x.DockerDown)
-        .DependsOn<IDockerCompose>(x => x.DockerUp)
-        .Executes(() => Log.Information("qyl Docker Compose stack restarted"));
+    Target DockerRestart =>
+        static d => d
+            .Description("Restart qyl Docker Compose stack (down + up)")
+            .DependsOn<IDockerCompose>(static x => x.DockerDown)
+            .DependsOn<IDockerCompose>(static x => x.DockerUp)
+            .Executes(static () => Log.Information("qyl Docker Compose stack restarted"));
 
     Target DockerPull => d => d
         .Description("Pull latest Docker images")

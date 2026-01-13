@@ -2,6 +2,7 @@
 // QYL God Schema - Enumerations
 // =============================================================================
 // OTel standard enums with DuckDB storage hints.
+// x-enum-varnames provides member names for C# generation.
 // =============================================================================
 
 import "@typespec/openapi";
@@ -15,6 +16,7 @@ namespace Qyl.Enums;
 @doc("Span kind describing the relationship between spans")
 @TypeSpec.OpenAPI.extension("x-duckdb-type", "TINYINT")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "SpanKind")
+@TypeSpec.OpenAPI.extension("x-enum-varnames", #["Unspecified", "Internal", "Server", "Client", "Producer", "Consumer"])
 enum SpanKind {
   @doc("Default. Unspecified span kind")
   unspecified: 0,
@@ -38,6 +40,7 @@ enum SpanKind {
 @doc("Span status code")
 @TypeSpec.OpenAPI.extension("x-duckdb-type", "TINYINT")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "StatusCode")
+@TypeSpec.OpenAPI.extension("x-enum-varnames", #["Unset", "Ok", "Error"])
 enum StatusCode {
   @doc("Status not set")
   unset: 0,
@@ -56,6 +59,7 @@ enum StatusCode {
 @doc("Log severity number following OTel specification (1-24)")
 @TypeSpec.OpenAPI.extension("x-duckdb-type", "TINYINT")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "SeverityNumber")
+@TypeSpec.OpenAPI.extension("x-enum-varnames", #["Unspecified", "Trace", "Debug", "Info", "Warn", "Error", "Fatal"])
 enum SeverityNumber {
   @doc("Unspecified severity")
   unspecified: 0,
@@ -80,12 +84,11 @@ enum SeverityNumber {
 }
 
 // =============================================================================
-// GenAI Enumerations
+// GenAI Enumerations (String-backed - no x-enum-varnames needed)
 // =============================================================================
 
 @doc("GenAI operation name")
 @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
-@TypeSpec.OpenAPI.extension("x-csharp-type", "string")
 enum GenAiOperationName {
   @doc("Chat completion")
   chat: "chat",
@@ -114,7 +117,6 @@ enum GenAiOperationName {
 
 @doc("GenAI finish reason")
 @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
-@TypeSpec.OpenAPI.extension("x-csharp-type", "string")
 enum GenAiFinishReason {
   @doc("Normal stop")
   stop: "stop",

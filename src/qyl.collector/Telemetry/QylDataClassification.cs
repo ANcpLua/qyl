@@ -83,8 +83,8 @@ public sealed class HashingRedactor : Redactor
     public override int Redact(ReadOnlySpan<char> source, Span<char> destination)
     {
         // Use XxHash64 for speed (non-cryptographic, but fast and stable)
-        var bytes = System.Text.Encoding.UTF8.GetBytes(source.ToString());
-        var hash = System.IO.Hashing.XxHash64.HashToUInt64(bytes);
+        var bytes = Encoding.UTF8.GetBytes(source.ToString());
+        var hash = XxHash64.HashToUInt64(bytes);
 
         var hashString = hash.ToString("x16");
         hashString.AsSpan().CopyTo(destination);

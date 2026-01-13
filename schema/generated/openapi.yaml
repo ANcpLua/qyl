@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: QYL Telemetry API
-  version: 0.0.0
+  version: 1.0.0
 tags:
   - name: Sessions
   - name: Traces
@@ -452,7 +452,6 @@ components:
         - content_filter
         - error
       description: GenAI finish reason
-      x-csharp-type: string
       x-duckdb-type: VARCHAR
     Enums.GenAiOperationName:
       type: string
@@ -466,7 +465,6 @@ components:
         - invoke_agent
         - execute_tool
       description: GenAI operation name
-      x-csharp-type: string
       x-duckdb-type: VARCHAR
     Enums.SeverityNumber:
       type: number
@@ -479,6 +477,14 @@ components:
         - 17
         - 21
       description: Log severity number following OTel specification (1-24)
+      x-enum-varnames:
+        - Unspecified
+        - Trace
+        - Debug
+        - Info
+        - Warn
+        - Error
+        - Fatal
       x-csharp-type: SeverityNumber
       x-duckdb-type: TINYINT
     Enums.SpanKind:
@@ -491,6 +497,13 @@ components:
         - 4
         - 5
       description: Span kind describing the relationship between spans
+      x-enum-varnames:
+        - Unspecified
+        - Internal
+        - Server
+        - Client
+        - Producer
+        - Consumer
       x-csharp-type: SpanKind
       x-duckdb-type: TINYINT
     Enums.StatusCode:
@@ -500,6 +513,10 @@ components:
         - 1
         - 2
       description: Span status code
+      x-enum-varnames:
+        - Unset
+        - Ok
+        - Error
       x-csharp-type: StatusCode
       x-duckdb-type: TINYINT
     Models.GenAiSpanData:
@@ -541,6 +558,85 @@ components:
           description: Estimated cost
       description: Extracted GenAI attributes from a span
       x-csharp-type: GenAiSpanData
+    Models.LogRecord:
+      type: object
+      required:
+        - logId
+        - timeUnixNano
+        - severityNumber
+      properties:
+        logId:
+          type: string
+          description: Unique log record identifier
+          x-duckdb-primary-key: true
+          x-duckdb-column: log_id
+        traceId:
+          allOf:
+            - $ref: '#/components/schemas/Primitives.TraceId'
+          description: Associated trace ID
+          x-duckdb-index: idx_logs_trace_id
+          x-duckdb-column: trace_id
+        spanId:
+          allOf:
+            - $ref: '#/components/schemas/Primitives.SpanId'
+          description: Associated span ID
+          x-duckdb-column: span_id
+        sessionId:
+          allOf:
+            - $ref: '#/components/schemas/Primitives.SessionId'
+          description: Session identifier for grouping related logs
+          x-duckdb-index: idx_logs_session_id
+          x-duckdb-column: session_id
+        timeUnixNano:
+          allOf:
+            - $ref: '#/components/schemas/Primitives.UnixNano'
+          description: Timestamp when the event occurred (nanoseconds since epoch)
+          x-duckdb-index: idx_logs_time
+          x-duckdb-column: time_unix_nano
+        observedTimeUnixNano:
+          allOf:
+            - $ref: '#/components/schemas/Primitives.UnixNano'
+          description: Timestamp when the log was observed/collected
+          x-duckdb-column: observed_time_unix_nano
+        severityNumber:
+          allOf:
+            - $ref: '#/components/schemas/Enums.SeverityNumber'
+          description: Severity number (1-24)
+          x-duckdb-index: idx_logs_severity
+          x-duckdb-column: severity_number
+        severityText:
+          type: string
+          description: Severity text (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)
+          x-duckdb-column: severity_text
+        body:
+          type: string
+          description: Log body - the main content
+          x-duckdb-column: body
+        serviceName:
+          type: string
+          description: Service name from resource attributes
+          x-duckdb-index: idx_logs_service_name
+          x-duckdb-column: service_name
+        attributesJson:
+          type: string
+          description: Log attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: attributes_json
+        resourceJson:
+          type: string
+          description: Resource attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: resource_json
+        createdAt:
+          type: string
+          format: date-time
+          description: Row creation timestamp
+          x-internal: true
+          x-duckdb-type: TIMESTAMP DEFAULT now()
+          x-duckdb-column: created_at
+      description: OpenTelemetry log record for storage and query
+      x-csharp-type: LogRecord
+      x-duckdb-table: logs
     Models.SessionSummary:
       type: object
       required:

@@ -4,6 +4,7 @@
 // =============================================================================
 
 using Microsoft.Extensions.Diagnostics.Buffering;
+using Microsoft.Extensions.Diagnostics.Latency;
 
 namespace qyl.collector.Telemetry;
 
@@ -86,17 +87,22 @@ public static class TelemetryExtensions
 
     /// <summary>
     ///     Configures the application pipeline with telemetry middleware.
-    ///     Skips latency telemetry in Testing environment to avoid service registration issues.
+    ///     Skips latency telemetry in Production with CreateSlimBuilder to avoid service registration issues.
     /// </summary>
     public static IApplicationBuilder UseQylTelemetry(this IApplicationBuilder app)
     {
         var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
-        // Skip latency telemetry in testing environment
+        // Skip latency telemetry in testing environment or when ILatencyContext isn't available
         // WebApplicationFactory with CreateSlimBuilder doesn't properly register all telemetry services
         if (!env.IsEnvironment("Testing"))
         {
-            app.UseRequestLatencyTelemetry();
+            // Check if latency context is actually registered before using middleware
+            var latencyContext = app.ApplicationServices.GetService<ILatencyContext>();
+            if (latencyContext is not null)
+            {
+                app.UseRequestLatencyTelemetry();
+            }
         }
 
         return app;

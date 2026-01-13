@@ -34,3 +34,5 @@ export {
     TooltipContent,
     TooltipProvider,
 } from './tooltip';
+export {CopyButton} from './copy-button';
+export {CopyableText} from './copyable-text';

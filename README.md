@@ -1,5 +1,10 @@
 # qyl.
 
+[![CI](https://github.com/ancplua/qyl/actions/workflows/ci.yml/badge.svg)](https://github.com/ancplua/qyl/actions/workflows/ci.yml)
+[![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-1.38-blueviolet)](https://opentelemetry.io/)
+
 **AI Observability for AI Agents** — An OpenTelemetry backend purpose-built for `gen_ai.*` semantic conventions.
 
 qyl enables AI agents to observe themselves. Point your OTLP exporter at qyl, and your agents can query their own traces, token usage, and performance through the Model Context Protocol.

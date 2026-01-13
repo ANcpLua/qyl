@@ -31,12 +31,11 @@ namespace Domain.CodeGen;
 /// </summary>
 public static class SchemaGenerator
 {
-    const string SchemaSource = "schema/generated/openapi.yaml";
-
     /// <summary>
     ///     Generate all code from OpenAPI schema.
     /// </summary>
-    public static GenerationResult Generate(AbsolutePath openApiPath, AbsolutePath protocolDir, AbsolutePath collectorDir, GenerationGuard guard)
+    public static GenerationResult Generate(AbsolutePath openApiPath, AbsolutePath protocolDir,
+        AbsolutePath collectorDir, GenerationGuard guard)
     {
         var schema = OpenApiSchema.Load(openApiPath);
         Log.Information("Loaded schema: {Title} v{Version} ({Count} definitions)",
@@ -45,52 +44,39 @@ public static class SchemaGenerator
         var files = new List<GeneratedFile>();
 
         // C# Primitives (Qyl.Common namespace)
-        var scalars = schema.Schemas.Where(s => s.IsScalar).ToList();
+        var scalars = schema.Schemas.Where(static s => s.IsScalar).ToList();
         if (scalars.Count > 0)
-        {
             files.Add(new GeneratedFile(
                 protocolDir / "Primitives" / "Scalars.g.cs",
                 GenerateScalars(scalars)));
-        }
 
         // C# Enums (Qyl.Enums namespace)
-        var enums = schema.Schemas.Where(s => s.IsEnum).ToList();
+        var enums = schema.Schemas.Where(static s => s.IsEnum).ToList();
         if (enums.Count > 0)
-        {
             files.Add(new GeneratedFile(
                 protocolDir / "Enums" / "Enums.g.cs",
                 GenerateEnums(enums)));
-        }
 
         // C# Models (grouped by namespace)
-        var models = schema.Schemas.Where(s => !s.IsScalar && !s.IsEnum && s.Type == "object").ToList();
-        var unionTypes = schema.Schemas
-            .Where(s => !s.IsScalar && !s.IsEnum && s.Type != "object")
-            .Select(s => s.Name)
-            .ToHashSet();
+        var models = schema.Schemas.Where(static s => s is { IsScalar: false, IsEnum: false, Type: "object" }).ToList();
 
-        foreach (var group in models.GroupBy(m => GetCSharpNamespace(m.Name)))
+        foreach (var group in models.GroupBy(static m => GetCSharpNamespace(m.Name)))
         {
             var fileName = GetFileNameFromNamespace(group.Key);
             files.Add(new GeneratedFile(
                 protocolDir / "Models" / $"{fileName}.g.cs",
-                GenerateModels(group.Key, group.ToList(), unionTypes)));
+                GenerateModels(group.Key, [.. group])));
         }
 
         // DuckDB Schema
-        var tables = schema.Schemas.Where(s => s.Extensions.ContainsKey("x-duckdb-table")).ToList();
+        var tables = schema.Schemas.Where(static s => s.Extensions.ContainsKey("x-duckdb-table")).ToList();
         if (tables.Count > 0)
-        {
             files.Add(new GeneratedFile(
                 collectorDir / "Storage" / "DuckDbSchema.g.cs",
                 GenerateDuckDb(tables, schema)));
-        }
 
         // Write files using guard
-        foreach (var file in files)
-        {
-            guard.WriteIfAllowed(file.Path, file.Content, file.Path.Name);
-        }
+        foreach (var file in files) guard.WriteIfAllowed(file.Path, file.Content, file.Path.Name);
 
         return new GenerationResult(files.Count, guard.Stats);
     }
@@ -104,44 +90,61 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Strongly-typed scalar primitives");
 
-        foreach (var group in scalars.GroupBy(s => GetCSharpNamespace(s.Name)).OrderBy(g => g.Key))
+        foreach (var group in scalars.GroupBy(static s => GetCSharpNamespace(s.Name)).OrderBy(static g => g.Key))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {group.Key};");
             sb.AppendLine();
 
-            foreach (var scalar in group.OrderBy(s => s.GetTypeName()))
+            foreach (var scalar in group.OrderBy(static s => s.GetTypeName()))
             {
                 var typeName = EscapeKeyword(scalar.GetTypeName());
                 var (underlying, jsonRead, jsonWrite) = GetScalarTypeInfo(scalar.Type, scalar.Format);
                 var isHex = typeName is "TraceId" or "SpanId";
-                var hexLen = typeName == "TraceId" ? 32 : typeName == "SpanId" ? 16 : 0;
+                var hexLen = typeName switch
+                {
+                    "TraceId" => 32,
+                    "SpanId" => 16,
+                    _ => 0
+                };
 
                 AppendXmlDoc(sb, scalar.Description, "");
 
                 // Type declaration
-                sb.AppendLine(CultureInfo.InvariantCulture, $"[System.Text.Json.Serialization.JsonConverter(typeof({typeName}JsonConverter))]");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"[System.Text.Json.Serialization.JsonConverter(typeof({typeName}JsonConverter))]");
                 if (isHex)
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"public readonly partial record struct {typeName}({underlying} Value) : System.IParsable<{typeName}>, System.ISpanFormattable");
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"public readonly partial record struct {typeName}({underlying} Value) : System.IParsable<{typeName}>, System.ISpanFormattable");
                 else
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"public readonly partial record struct {typeName}({underlying} Value)");
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"public readonly partial record struct {typeName}({underlying} Value)");
 
                 sb.AppendLine("{");
 
                 // Implicit conversions
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public static implicit operator {underlying}({typeName} v) => v.Value;");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public static implicit operator {typeName}({underlying} v) => new(v);");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public override string ToString() => {(underlying == "string" ? "Value ?? string.Empty" : "Value.ToString()")};");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    public static implicit operator {underlying}({typeName} v) => v.Value;");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    public static implicit operator {typeName}({underlying} v) => new(v);");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    public override string ToString() => {(underlying == "string" ? "Value ?? string.Empty" : "Value.ToString()")};");
 
                 // Validation
                 if (scalar.Pattern is not null)
                 {
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"    private static readonly System.Text.RegularExpressions.Regex s_pattern = new(@\"{scalar.Pattern.Replace("\"", "\"\"")}\", System.Text.RegularExpressions.RegexOptions.Compiled);");
-                    sb.AppendLine("    public bool IsValid => !string.IsNullOrEmpty(Value) && s_pattern.IsMatch(Value);");
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"    private static readonly System.Text.RegularExpressions.Regex s_pattern = new(@\"{scalar.Pattern.Replace("\"", "\"\"")}\", System.Text.RegularExpressions.RegexOptions.Compiled);");
+                    sb.AppendLine(
+                        "    public bool IsValid => !string.IsNullOrEmpty(Value) && s_pattern.IsMatch(Value);");
                 }
                 else if (underlying == "string")
+                {
                     sb.AppendLine("    public bool IsValid => !string.IsNullOrEmpty(Value);");
+                }
                 else
+                {
                     sb.AppendLine("    public bool IsValid => true;");
+                }
 
                 // Hex parsing for TraceId/SpanId
                 if (isHex) AppendHexParsing(sb, typeName, hexLen);
@@ -150,10 +153,13 @@ public static class SchemaGenerator
                 sb.AppendLine();
 
                 // JSON Converter
-                sb.AppendLine(CultureInfo.InvariantCulture, $"file sealed class {typeName}JsonConverter : System.Text.Json.Serialization.JsonConverter<{typeName}>");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"file sealed class {typeName}JsonConverter : System.Text.Json.Serialization.JsonConverter<{typeName}>");
                 sb.AppendLine("{");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public override {typeName} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new({jsonRead});");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public override void Write(System.Text.Json.Utf8JsonWriter writer, {typeName} value, System.Text.Json.JsonSerializerOptions options) => {jsonWrite};");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    public override {typeName} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new({jsonRead});");
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    public override void Write(System.Text.Json.Utf8JsonWriter writer, {typeName} value, System.Text.Json.JsonSerializerOptions options) => {jsonWrite};");
                 sb.AppendLine("}");
                 sb.AppendLine();
             }
@@ -167,51 +173,65 @@ public static class SchemaGenerator
         var zeros = new string('0', len);
         sb.AppendLine();
         sb.AppendLine(CultureInfo.InvariantCulture, $"    public static {typeName} Empty => new(\"{zeros}\");");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public bool IsEmpty => string.IsNullOrEmpty(Value) || Value == \"{zeros}\";");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"    public bool IsEmpty => string.IsNullOrEmpty(Value) || Value == \"{zeros}\";");
         sb.AppendLine();
 
         // IParsable<T> - string
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static {typeName} Parse(string s, IFormatProvider? provider) => TryParse(s, provider, out var r) ? r : throw new FormatException($\"Invalid {typeName}: {{s}}\");");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static bool TryParse(string? s, IFormatProvider? provider, out {typeName} result)");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"    public static {typeName} Parse(string s, IFormatProvider? provider) => TryParse(s, provider, out var r) ? r : throw new FormatException($\"Invalid {typeName}: {{s}}\");");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"    public static bool TryParse(string? s, IFormatProvider? provider, out {typeName} result)");
         sb.AppendLine("    {");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"        if (s is {{ Length: {len} }} && IsValidHex(s.AsSpan())) {{ result = new(s); return true; }}");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"        if (s is {{ Length: {len} }} && IsValidHex(s.AsSpan())) {{ result = new(s); return true; }}");
         sb.AppendLine("        result = default; return false;");
         sb.AppendLine("    }");
 
         // ReadOnlySpan<char> - hot-path
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out {typeName} result)");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"    public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out {typeName} result)");
         sb.AppendLine("    {");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"        if (s.Length == {len} && IsValidHex(s)) {{ result = new(new string(s)); return true; }}");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"        if (s.Length == {len} && IsValidHex(s)) {{ result = new(new string(s)); return true; }}");
         sb.AppendLine("        result = default; return false;");
         sb.AppendLine("    }");
 
-        // ReadOnlySpan<byte> - UTF-8 JSON hot-path (used by Utf8JsonReader)
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public static bool TryParse(ReadOnlySpan<byte> utf8, IFormatProvider? provider, out {typeName} result)");
+        // ReadOnlySpan<byte> - UTF8 hot-path
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"    public static bool TryParse(ReadOnlySpan<byte> utf8, IFormatProvider? provider, out {typeName} result)");
         sb.AppendLine("    {");
         sb.AppendLine(CultureInfo.InvariantCulture, $"        if (utf8.Length == {len} && IsValidHexUtf8(utf8))");
         sb.AppendLine("        {");
         sb.AppendLine(CultureInfo.InvariantCulture, $"            Span<char> chars = stackalloc char[{len}];");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"            for (var i = 0; i < {len}; i++) chars[i] = (char)utf8[i];");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"            for (var i = 0; i < {len}; i++) chars[i] = (char)utf8[i];");
         sb.AppendLine("            result = new(new string(chars)); return true;");
         sb.AppendLine("        }");
         sb.AppendLine("        result = default; return false;");
         sb.AppendLine("    }");
 
         // ISpanFormattable
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public bool TryFormat(Span<char> dest, out int written, ReadOnlySpan<char> format, IFormatProvider? provider)");
+        sb.AppendLine(
+            "    public bool TryFormat(Span<char> dest, out int written, ReadOnlySpan<char> format, IFormatProvider? provider)");
         sb.AppendLine("    {");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"        if (dest.Length < {len} || string.IsNullOrEmpty(Value)) {{ written = 0; return false; }}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"        Value.AsSpan().CopyTo(dest); written = {len}; return true;");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"        if (dest.Length < {len} || string.IsNullOrEmpty(Value)) {{ written = 0; return false; }}");
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"        Value.AsSpan().CopyTo(dest); written = {len}; return true;");
         sb.AppendLine("    }");
-        sb.AppendLine("    string IFormattable.ToString(string? format, IFormatProvider? provider) => Value ?? string.Empty;");
+        sb.AppendLine(
+            "    string IFormattable.ToString(string? format, IFormatProvider? provider) => Value ?? string.Empty;");
 
-        // Helpers
-        sb.AppendLine("    static bool IsValidHex(ReadOnlySpan<char> s) { foreach (var c in s) if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) return false; return true; }");
-        sb.AppendLine("    static bool IsValidHexUtf8(ReadOnlySpan<byte> s) { foreach (var b in s) if (!((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F'))) return false; return true; }");
+        // Hex validation helpers
+        sb.AppendLine(
+            "    static bool IsValidHex(ReadOnlySpan<char> s) { foreach (var c in s) if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F'))) return false; return true; }");
+        sb.AppendLine(
+            "    static bool IsValidHexUtf8(ReadOnlySpan<byte> s) { foreach (var b in s) if (!((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F'))) return false; return true; }");
     }
 
     // ════════════════════════════════════════════════════════════════════════════
-    // C# ENUMS - OTel semantic convention enums
+    // C# ENUMS - Integer and string-backed enumerations
     // ════════════════════════════════════════════════════════════════════════════
 
     static string GenerateEnums(List<SchemaDefinition> enums)
@@ -219,73 +239,178 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Enumeration types (OTel 1.38 semconv)");
 
-        foreach (var group in enums.GroupBy(e => GetCSharpNamespace(e.Name)).OrderBy(g => g.Key))
+        sb.AppendLine("namespace Qyl.Enums");
+        sb.AppendLine("{");
+
+        foreach (var enumDef in enums.OrderBy(static e => e.GetTypeName()))
         {
-            sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {group.Key}");
-            sb.AppendLine("{");
+            var typeName = EscapeKeyword(enumDef.GetTypeName());
+            var isIntegerEnum = enumDef.Type == "integer";
+            var enumVarNames = enumDef.GetEnumVarNames();
 
-            foreach (var enumDef in group.OrderBy(e => e.GetTypeName()))
+            AppendXmlDoc(sb, enumDef.Description, "    ");
+
+            // Use appropriate JSON converter
+            if (isIntegerEnum)
+                // Integer enums: serialize as integers
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonNumberEnumConverter<{typeName}>))]");
+            else
+                // String enums: serialize as strings
+                sb.AppendLine(CultureInfo.InvariantCulture,
+                    $"    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<{typeName}>))]");
+
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    public enum {typeName}");
+            sb.AppendLine("    {");
+
+            for (var i = 0; i < enumDef.EnumValues.Length; i++)
             {
-                var typeName = enumDef.GetTypeName();
-                AppendXmlDoc(sb, enumDef.Description, "    ");
+                var rawValue = enumDef.EnumValues[i];
 
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<{typeName}>))]");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public enum {typeName}");
-                sb.AppendLine("    {");
+                // Determine member name
+                string memberName;
+                if (i < enumVarNames.Length)
+                    // Use x-enum-varnames if available
+                    memberName = enumVarNames[i];
+                else if (isIntegerEnum)
+                    // Integer enum without varnames - try to infer from common patterns
+                    memberName = InferEnumMemberName(typeName, rawValue);
+                else
+                    // String enum - convert value to PascalCase
+                    memberName = ToPascalCase(rawValue);
 
-                for (var i = 0; i < enumDef.EnumValues.Length; i++)
+                memberName = EscapeKeyword(memberName);
+
+                // Emit member
+                if (isIntegerEnum)
                 {
-                    var value = enumDef.EnumValues[i];
-                    var member = EscapeKeyword(ToPascalCase(value));
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        [System.Runtime.Serialization.EnumMember(Value = \"{value}\")]");
-                    sb.Append(CultureInfo.InvariantCulture, $"        {member} = {i}");
-                    sb.AppendLine(i < enumDef.EnumValues.Length - 1 ? "," : "");
+                    // Integer enum: memberName = value
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {memberName} = {rawValue},");
                 }
-
-                sb.AppendLine("    }");
-                sb.AppendLine();
+                else
+                {
+                    // String enum: need EnumMember for serialization
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"        [System.Runtime.Serialization.EnumMember(Value = \"{rawValue}\")]");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {memberName} = {i},");
+                }
             }
 
-            sb.AppendLine("}");
+            sb.AppendLine("    }");
             sb.AppendLine();
         }
+
+        sb.AppendLine("}");
+        sb.AppendLine();
 
         return sb.ToString();
     }
 
+    /// <summary>
+    ///     Infer enum member name for integer enums without x-enum-varnames.
+    /// </summary>
+    static string InferEnumMemberName(string enumTypeName, string value) =>
+        // For well-known OTel enums, provide proper names
+        enumTypeName switch
+        {
+            "SpanKind" => value switch
+            {
+                "0" => "Unspecified",
+                "1" => "Internal",
+                "2" => "Server",
+                "3" => "Client",
+                "4" => "Producer",
+                "5" => "Consumer",
+                _ => $"Value{value}"
+            },
+            "StatusCode" => value switch
+            {
+                "0" => "Unset",
+                "1" => "Ok",
+                "2" => "Error",
+                _ => $"Value{value}"
+            },
+            "SeverityNumber" => value switch
+            {
+                "0" => "Unspecified",
+                "1" => "Trace",
+                "5" => "Debug",
+                "9" => "Info",
+                "13" => "Warn",
+                "17" => "Error",
+                "21" => "Fatal",
+                _ => $"Value{value}"
+            },
+            _ => $"Value{value}"
+        };
+
+    /// <summary>
+    ///     Convert snake_case or kebab-case to PascalCase.
+    /// </summary>
+    static string ToPascalCase(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return "Unknown";
+
+        var sb = new StringBuilder();
+        var capitalizeNext = true;
+
+        foreach (var c in value)
+            if (c is '_' or '-' or ' ')
+            {
+                capitalizeNext = true;
+            }
+            else if (capitalizeNext)
+            {
+                sb.Append(char.ToUpperInvariant(c));
+                capitalizeNext = false;
+            }
+            else
+            {
+                sb.Append(c);
+            }
+
+        return sb.Length > 0 ? sb.ToString() : "Unknown";
+    }
+
     // ════════════════════════════════════════════════════════════════════════════
-    // C# MODELS - Domain records (SpanRecord, SessionSummary, etc.)
+    // C# MODELS - Record types with JSON serialization
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateModels(string ns, List<SchemaDefinition> models, HashSet<string> unionTypes)
+    static string GenerateModels(string ns, List<SchemaDefinition> models)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, $"Models for {ns}");
 
+        sb.AppendLine("using System;");
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Text.Json.Serialization;");
         sb.AppendLine();
         sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {ns};");
         sb.AppendLine();
 
-        foreach (var model in models.OrderBy(m => m.GetTypeName()))
+        foreach (var model in models.OrderBy(static m => m.GetTypeName()))
         {
-            AppendXmlDoc(sb, model.Description, "");
+            var typeName = EscapeKeyword(model.GetTypeName());
 
-            sb.AppendLine(CultureInfo.InvariantCulture, $"public sealed record {model.GetTypeName()}");
+            AppendXmlDoc(sb, model.Description, "");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"public sealed record {typeName}");
             sb.AppendLine("{");
 
             foreach (var prop in model.Properties)
             {
-                var propName = EscapeKeyword(ToPascalCase(prop.Name));
-                var propType = GetCSharpType(prop, unionTypes);
-                var nullable = prop.IsRequired ? "" : "?";
-                // Required non-nullable reference types need 'required' to satisfy CS8618
-                var required = prop.IsRequired && IsReferenceType(propType) ? "required " : "";
+                var propName = ToPascalCase(prop.Name);
+                var propType = ResolveCSharpType(prop);
+                var isNullable = !prop.IsRequired;
 
                 AppendXmlDoc(sb, prop.Description, "    ");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    [JsonPropertyName(\"{prop.Name}\")]");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public {required}{propType}{nullable} {propName} {{ get; init; }}");
+
+                if (isNullable)
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    public {propType}? {propName} {{ get; init; }}");
+                else
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"    public required {propType} {propName} {{ get; init; }}");
+
                 sb.AppendLine();
             }
 
@@ -296,8 +421,61 @@ public static class SchemaGenerator
         return sb.ToString();
     }
 
+    static string ResolveCSharpType(SchemaProperty prop)
+    {
+        // Check for x-csharp-type override
+        if (prop.Extensions.TryGetValue("x-csharp-type", out var csType))
+            return csType;
+
+        // Handle $ref
+        if (prop.RefPath is not null)
+        {
+            var refTypeName = prop.GetRefTypeName()!;
+
+            // Map namespace-qualified refs to C# types
+            if (refTypeName.StartsWith("Primitives.", StringComparison.Ordinal))
+                return $"global::Qyl.Common.{refTypeName[11..]}";
+            if (refTypeName.StartsWith("Enums.", StringComparison.Ordinal))
+                return $"global::Qyl.Enums.{refTypeName[6..]}";
+            return refTypeName.StartsWith("Models.", StringComparison.Ordinal)
+                ? $"global::Qyl.Models.{refTypeName[7..]}"
+                : refTypeName;
+        }
+
+        // Handle arrays
+        if (prop.Type == "array")
+        {
+            var itemType = prop.ItemsRef is not null
+                ? ResolveCSharpType(
+                    new SchemaProperty(prop.Name, null, null, null, prop.ItemsRef, null, null, true, []))
+                : MapOpenApiType(prop.ItemsType, null);
+            return $"IReadOnlyList<{itemType}>";
+        }
+
+        // Map primitive types
+        return MapOpenApiType(prop.Type, prop.Format);
+    }
+
+    static string MapOpenApiType(string? type, string? format) => (type, format) switch
+    {
+        ("string", "date-time") => "DateTimeOffset",
+        ("string", "date") => "DateOnly",
+        ("string", "time") => "TimeOnly",
+        ("string", "uuid") => "Guid",
+        ("string", "byte") => "ReadOnlyMemory<byte>",
+        ("string", _) => "string",
+        ("integer", "int32") => "int",
+        ("integer", "int64") => "long",
+        ("integer", _) => "int",
+        ("number", "float") => "float",
+        ("number", "double") => "double",
+        ("number", _) => "double",
+        ("boolean", _) => "bool",
+        _ => "object"
+    };
+
     // ════════════════════════════════════════════════════════════════════════════
-    // DUCKDB SCHEMA - Storage DDL
+    // DUCKDB SCHEMA - DDL generation
     // ════════════════════════════════════════════════════════════════════════════
 
     static string GenerateDuckDb(List<SchemaDefinition> tables, OpenApiSchema schema)
@@ -305,67 +483,138 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "DuckDB schema definitions");
 
+        var version = int.Parse(DateTimeOffset.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+            CultureInfo.InvariantCulture);
+
         sb.AppendLine("namespace qyl.collector.Storage;");
         sb.AppendLine();
         sb.AppendLine("/// <summary>DuckDB schema from TypeSpec God Schema.</summary>");
         sb.AppendLine("public static partial class DuckDbSchema");
         sb.AppendLine("{");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"    public const int Version = {GetSchemaVersion()};");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"    public const int Version = {version};");
         sb.AppendLine();
 
-        foreach (var table in tables)
+        var tableNames = new List<string>();
+        var indexes = new List<string>();
+
+        foreach (var table in tables.OrderBy(static t => t.Extensions["x-duckdb-table"]))
         {
             var tableName = table.Extensions["x-duckdb-table"];
-            var className = ToPascalCase(tableName);
+            var constName = ToPascalCase(tableName) + "Ddl";
+            tableNames.Add(constName);
 
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    public const string {className}Ddl = \"\"\"");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"    public const string {constName} = \"\"\"");
             sb.AppendLine(CultureInfo.InvariantCulture, $"        CREATE TABLE IF NOT EXISTS {tableName} (");
 
-            var cols = new List<string>();
-            string? pk = null;
+            var columns = new List<string>();
+            string? primaryKey = null;
 
-            foreach (var prop in table.Properties.Where(p => !p.Extensions.ContainsKey("x-internal")))
+            foreach (var prop in table.Properties)
             {
-                var colName = prop.Extensions.TryGetValue("x-duckdb-column", out var col) ? col : ToSnakeCase(prop.Name);
-                var colType = GetDuckDbType(prop, schema);
-                cols.Add($"            {colName} {colType}{(prop.IsRequired ? " NOT NULL" : "")}");
-                if (prop.Extensions.TryGetValue("x-duckdb-primary-key", out var isPk) && isPk == "true") pk = colName;
+                var columnName = prop.Extensions.TryGetValue("x-duckdb-column", out var col)
+                    ? col
+                    : ToSnakeCase(prop.Name);
+                var columnType = ResolveDuckDbType(prop, schema);
+                var isRequired = prop.IsRequired;
+
+                var columnDef = $"            {columnName} {columnType}";
+                if (isRequired && !columnType.Contains("DEFAULT", StringComparison.OrdinalIgnoreCase))
+                    columnDef += " NOT NULL";
+
+                columns.Add(columnDef);
+
+                if (prop.Extensions.ContainsKey("x-duckdb-primary-key"))
+                    primaryKey = columnName;
+
+                if (prop.Extensions.TryGetValue("x-duckdb-index", out var indexName))
+                    indexes.Add($"CREATE INDEX IF NOT EXISTS {indexName} ON {tableName}({columnName});");
             }
 
-            cols.Add("            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
-            if (pk is not null) cols.Add($"            PRIMARY KEY ({pk})");
+            // Add created_at if not present
+            if (!table.Properties.Any(static p => p.Name == "createdAt"))
+                columns.Add("            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
-            sb.AppendLine(string.Join(",\n", cols));
+            sb.AppendLine(string.Join(",\n", columns));
+
+            if (primaryKey is not null)
+                sb.AppendLine(CultureInfo.InvariantCulture, $"            PRIMARY KEY ({primaryKey})");
+
             sb.AppendLine("        );");
             sb.AppendLine("        \"\"\";");
             sb.AppendLine();
         }
 
-        // Combined DDL
+        // GetSchemaDdl method
         sb.AppendLine("    public static string GetSchemaDdl() =>");
         sb.AppendLine("        $\"\"\"");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"        -- QYL DuckDB Schema v{GetSchemaVersion()}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"        -- QYL DuckDB Schema v{version}");
+        foreach (var name in tableNames)
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        {{{name}}}");
+        foreach (var index in indexes)
+            sb.AppendLine(CultureInfo.InvariantCulture, $"        {index}");
+        sb.AppendLine("        \"\"\";");
 
-        foreach (var table in tables)
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    static string ResolveDuckDbType(SchemaProperty prop, OpenApiSchema schema)
+    {
+        // Check for explicit x-duckdb-type
+        if (prop.Extensions.TryGetValue("x-duckdb-type", out var duckType))
+            return duckType;
+
+        // Handle $ref - look up the referenced type
+        if (prop.RefPath is not null)
         {
-            var className = ToPascalCase(table.Extensions["x-duckdb-table"]);
-            sb.AppendLine(CultureInfo.InvariantCulture, $"        {{{className}Ddl}}");
+            var refTypeName = prop.GetRefTypeName();
+            var refSchema = schema.Schemas.FirstOrDefault(s => s.Name == refTypeName);
+
+            if (refSchema is not null)
+                return refSchema.Extensions.TryGetValue("x-duckdb-type", out var refDuckType)
+                    ? refDuckType
+                    :
+                    // Fall back to type mapping
+                    MapOpenApiTypeToDuckDb(refSchema.Type, refSchema.Format);
         }
 
-        // Indexes
-        foreach (var table in tables)
+        return MapOpenApiTypeToDuckDb(prop.Type, prop.Format);
+    }
+
+    static string MapOpenApiTypeToDuckDb(string? type, string? format) => (type, format) switch
+    {
+        ("string", "date-time") => "TIMESTAMP",
+        ("string", "date") => "DATE",
+        ("string", _) => "VARCHAR",
+        ("integer", "int32") => "INTEGER",
+        ("integer", "int64") => "BIGINT",
+        ("integer", _) => "INTEGER",
+        ("number", "float") => "FLOAT",
+        ("number", "double") => "DOUBLE",
+        ("number", _) => "DOUBLE",
+        ("boolean", _) => "BOOLEAN",
+        _ => "VARCHAR"
+    };
+
+    static string ToSnakeCase(string value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+
+        var sb = new StringBuilder();
+        for (var i = 0; i < value.Length; i++)
         {
-            var tableName = table.Extensions["x-duckdb-table"];
-            foreach (var prop in table.Properties.Where(p => p.Extensions.ContainsKey("x-duckdb-index")))
+            var c = value[i];
+            if (char.IsUpper(c))
             {
-                var idx = prop.Extensions["x-duckdb-index"];
-                var col = prop.Extensions.TryGetValue("x-duckdb-column", out var c) ? c : ToSnakeCase(prop.Name);
-                sb.AppendLine(CultureInfo.InvariantCulture, $"        CREATE INDEX IF NOT EXISTS {idx} ON {tableName}({col});");
+                if (i > 0) sb.Append('_');
+                sb.Append(char.ToLowerInvariant(c));
+            }
+            else
+            {
+                sb.Append(c);
             }
         }
-
-        sb.AppendLine("        \"\"\";");
-        sb.AppendLine("}");
 
         return sb.ToString();
     }
@@ -376,12 +625,11 @@ public static class SchemaGenerator
 
     static void AppendCSharpHeader(StringBuilder sb, string description)
     {
-        var timestamp = TimeProvider.System.GetUtcNow().ToString("o", CultureInfo.InvariantCulture);
         sb.AppendLine("// =============================================================================");
         sb.AppendLine("// AUTO-GENERATED FILE - DO NOT EDIT");
         sb.AppendLine("// =============================================================================");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"//     Source:    {SchemaSource}");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"//     Generated: {timestamp}");
+        sb.AppendLine("//     Source:    schema/generated/openapi.yaml");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"//     Generated: {DateTimeOffset.UtcNow:O}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"//     {description}");
         sb.AppendLine("// =============================================================================");
         sb.AppendLine("// To modify: update TypeSpec in schema/ then run: nuke Generate");
@@ -393,228 +641,91 @@ public static class SchemaGenerator
 
     static void AppendXmlDoc(StringBuilder sb, string? description, string indent)
     {
-        if (description is null) return;
-        sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}/// <summary>{EscapeXml(description)}</summary>");
+        if (string.IsNullOrWhiteSpace(description)) return;
+        var escaped = description.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}/// <summary>{escaped}</summary>");
     }
 
-    static (string Type, string Read, string Write) GetScalarTypeInfo(string? type, string? format) => type switch
+    static string GetCSharpNamespace(string schemaName)
     {
-        "integer" when format == "int32" => ("int", "reader.GetInt32()", "writer.WriteNumberValue(value.Value)"),
-        "integer" => ("long", "reader.GetInt64()", "writer.WriteNumberValue(value.Value)"),
-        "number" when format == "float" => ("float", "(float)reader.GetDouble()", "writer.WriteNumberValue(value.Value)"),
-        "number" => ("double", "reader.GetDouble()", "writer.WriteNumberValue(value.Value)"),
-        _ => ("string", "reader.GetString() ?? string.Empty", "writer.WriteStringValue(value.Value)")
-    };
-
-    static string GetCSharpType(SchemaProperty prop, HashSet<string> unionTypes)
-    {
-        if (prop.RefPath is not null)
-        {
-            var refType = prop.GetRefTypeName();
-            if (refType is not null && !unionTypes.Contains(refType))
-                return $"global::{MapNamespace(refType)}";
-            return "object";
-        }
-
-        if (prop.Type == "array")
-        {
-            if (prop.ItemsRef is not null)
-            {
-                var itemType = prop.GetItemsTypeName();
-                if (itemType is not null) return $"IReadOnlyList<global::{MapNamespace(itemType)}>";
-            }
-            return $"IReadOnlyList<{MapPrimitive(prop.ItemsType, prop.Format)}>";
-        }
-
-        return MapPrimitive(prop.Type, prop.Format);
+        if (schemaName.StartsWith("Primitives.", StringComparison.Ordinal)) return "Qyl.Common";
+        if (schemaName.StartsWith("Enums.", StringComparison.Ordinal)) return "Qyl.Enums";
+        if (schemaName.StartsWith("Models.", StringComparison.Ordinal)) return "Qyl.Models";
+        return schemaName.StartsWith("Api.", StringComparison.Ordinal) ? "Qyl.Api" : "Qyl";
     }
 
-    static string MapNamespace(string name) => name switch
+    static string GetFileNameFromNamespace(string ns) => ns switch
     {
-        _ when name.StartsWith("Primitives.", StringComparison.Ordinal) => $"Qyl.Common.{name["Primitives.".Length..]}",
-        _ when name.StartsWith("Models.", StringComparison.Ordinal) => $"Qyl.Models.{name["Models.".Length..]}",
-        _ when name.StartsWith("Enums.", StringComparison.Ordinal) => $"Qyl.Enums.{name["Enums.".Length..]}",
-        _ when name.StartsWith("Api.", StringComparison.Ordinal) => $"Qyl.Api.{name["Api.".Length..]}",
-        _ => $"Qyl.{name}"
+        "Qyl.Common" => "Scalars",
+        "Qyl.Enums" => "Enums",
+        "Qyl.Models" => "Models",
+        "Qyl.Api" => "Api",
+        _ => "Types"
     };
 
-    static string MapPrimitive(string? type, string? format) => type switch
-    {
-        "string" when format == "date-time" => "DateTimeOffset",
-        "string" when format == "uuid" => "Guid",
-        "string" => "string",
-        "integer" when format == "int32" => "int",
-        "integer" => "long",
-        "number" when format == "float" => "float",
-        "number" => "double",
-        "boolean" => "bool",
-        "object" => "IDictionary<string, object>",
-        _ => "object"
-    };
-
-    static bool IsReferenceType(string propType) =>
-        propType is "string" or "object" ||
-        propType.StartsWith("IReadOnlyList<", StringComparison.Ordinal) ||
-        propType.StartsWith("IDictionary<", StringComparison.Ordinal) ||
-        propType.StartsWith("global::", StringComparison.Ordinal);
-
-    static string GetDuckDbType(SchemaProperty prop, OpenApiSchema schema)
-    {
-        if (prop.Extensions.TryGetValue("x-duckdb-type", out var t)) return t;
-
-        if (prop.RefPath is not null)
+    static (string CSharpType, string JsonRead, string JsonWrite) GetScalarTypeInfo(string? type, string? format) =>
+        (type, format) switch
         {
-            var refName = prop.GetRefTypeName();
-            var refSchema = schema.Schemas.FirstOrDefault(s => s.Name == refName);
-            if (refSchema?.Extensions.TryGetValue("x-duckdb-type", out var rt) == true) return rt;
-
-            return refName switch
-            {
-                "Primitives.TraceId" => "VARCHAR(32)",
-                "Primitives.SpanId" => "VARCHAR(16)",
-                "Primitives.SessionId" => "VARCHAR(32)",
-                "Primitives.UnixNano" or "Primitives.DurationNs" => "UBIGINT",
-                "Primitives.TokenCount" or "Primitives.Count" => "BIGINT",
-                "Primitives.CostUsd" or "Primitives.Temperature" => "DOUBLE",
-                "Enums.SpanKind" or "Enums.StatusCode" => "TINYINT",
-                _ => "JSON"
-            };
-        }
-
-        return prop.Type switch
-        {
-            "string" when prop.Format == "date-time" => "TIMESTAMP",
-            "string" when prop.Format == "uuid" => "UUID",
-            "string" => "VARCHAR",
-            "integer" when prop.Format == "int32" => "INTEGER",
-            "integer" => "BIGINT",
-            "number" => "DOUBLE",
-            "boolean" => "BOOLEAN",
-            "array" or "object" => "JSON",
-            _ => "VARCHAR"
+            ("string", _) => ("string", "reader.GetString() ?? string.Empty", "writer.WriteStringValue(value.Value)"),
+            ("integer", "int64") => ("long", "reader.GetInt64()", "writer.WriteNumberValue(value.Value)"),
+            ("integer", _) => ("int", "reader.GetInt32()", "writer.WriteNumberValue(value.Value)"),
+            ("number", "double") => ("double", "reader.GetDouble()", "writer.WriteNumberValue(value.Value)"),
+            ("number", "float") => ("float", "reader.GetSingle()", "writer.WriteNumberValue(value.Value)"),
+            ("number", _) => ("double", "reader.GetDouble()", "writer.WriteNumberValue(value.Value)"),
+            ("boolean", _) => ("bool", "reader.GetBoolean()", "writer.WriteBooleanValue(value.Value)"),
+            _ => ("string", "reader.GetString() ?? string.Empty", "writer.WriteStringValue(value.Value)")
         };
-    }
 
-    static string GetCSharpNamespace(string name)
+    static string EscapeKeyword(string name) => name switch
     {
-        var lastDot = name.LastIndexOf('.');
-        if (lastDot <= 0) return "Qyl";
-        var ns = name[..lastDot];
-        return ns switch
-        {
-            "Primitives" => "Qyl.Common",
-            "Models" => "Qyl.Models",
-            "Enums" => "Qyl.Enums",
-            "Api" => "Qyl.Api",
-            _ => $"Qyl.{ns}"
-        };
-    }
-
-    static string GetFileNameFromNamespace(string ns) => ns[(ns.LastIndexOf('.') + 1)..];
-
-    static string ToPascalCase(string value)
-    {
-        if (string.IsNullOrEmpty(value)) return value;
-        var sb = new StringBuilder();
-        var cap = true;
-        foreach (var c in value)
-        {
-            if (c is '_' or '-' or '.') { cap = true; continue; }
-            sb.Append(cap ? char.ToUpperInvariant(c) : c);
-            cap = false;
-        }
-        var result = sb.ToString();
-        return result.Length > 0 && char.IsDigit(result[0]) ? "_" + result : result;
-    }
-
-    static string ToSnakeCase(string value)
-    {
-        if (string.IsNullOrEmpty(value)) return value;
-        var sb = new StringBuilder();
-        foreach (var c in value)
-        {
-            if (char.IsUpper(c) && sb.Length > 0) sb.Append('_');
-            sb.Append(char.ToLowerInvariant(c));
-        }
-        return sb.ToString();
-    }
-
-    static string EscapeKeyword(string name) =>
-        s_keywords.Contains(name) ? $"@{name}" : name;
-
-    static string EscapeXml(string text) =>
-        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
-
-    static int GetSchemaVersion()
-    {
-        var now = TimeProvider.System.GetUtcNow();
-        return now.Year * 10000 + now.Month * 100 + now.Day;
-    }
-
-    static readonly HashSet<string> s_keywords =
-    [
-        "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
-        "class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else",
-        "enum", "event", "explicit", "extern", "false", "finally", "fixed", "float", "for",
-        "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
-        "long", "namespace", "new", "null", "object", "operator", "out", "override", "params",
-        "private", "protected", "public", "readonly", "ref", "return", "sbyte", "sealed", "short",
-        "sizeof", "stackalloc", "static", "string", "struct", "switch", "this", "throw", "true",
-        "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual",
-        "void", "volatile", "while", "unknown"
-    ];
+        "abstract" or "as" or "base" or "bool" or "break" or "byte" or "case" or "catch" or "char" or "checked"
+            or "class" or "const" or "continue" or "decimal" or "default" or "delegate" or "do" or "double"
+            or "else" or "enum" or "event" or "explicit" or "extern" or "false" or "finally" or "fixed"
+            or "float" or "for" or "foreach" or "goto" or "if" or "implicit" or "in" or "int" or "interface"
+            or "internal" or "is" or "lock" or "long" or "namespace" or "new" or "null" or "object" or "operator"
+            or "out" or "override" or "params" or "private" or "protected" or "public" or "readonly" or "ref"
+            or "return" or "sbyte" or "sealed" or "short" or "sizeof" or "stackalloc" or "static" or "string"
+            or "struct" or "switch" or "this" or "throw" or "true" or "try" or "typeof" or "uint" or "ulong"
+            or "unchecked" or "unsafe" or "ushort" or "using" or "virtual" or "void" or "volatile" or "while"
+            => $"@{name}",
+        _ => name
+    };
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// OPENAPI SCHEMA - YAML parsing
+// OPENAPI SCHEMA PARSER
 // ════════════════════════════════════════════════════════════════════════════════
 
-/// <summary>OpenAPI 3.1 schema parsed from YAML.</summary>
-public sealed class OpenApiSchema
+/// <summary>Parsed OpenAPI schema.</summary>
+public sealed record OpenApiSchema(
+    string Title,
+    string Version,
+    ImmutableArray<SchemaDefinition> Schemas)
 {
-    OpenApiSchema(string title, string version, ImmutableArray<SchemaDefinition> schemas)
-    {
-        Title = title;
-        Version = version;
-        Schemas = schemas;
-    }
-
-    public string Title { get; }
-    public string Version { get; }
-    public ImmutableArray<SchemaDefinition> Schemas { get; }
-
     public static OpenApiSchema Load(AbsolutePath path)
     {
-        var yaml = new YamlStream();
         using var reader = new StreamReader(path);
+        var yaml = new YamlStream();
         yaml.Load(reader);
 
         var root = (YamlMappingNode)yaml.Documents[0].RootNode;
-        var info = GetMapping(root, "info");
-        var title = info is not null ? GetString(info, "title") ?? "Unknown" : "Unknown";
-        var version = info is not null ? GetString(info, "version") ?? "1.0.0" : "1.0.0";
+        var info = GetMapping(root, "info")!;
+        var title = GetString(info, "title") ?? "API";
+        var version = GetString(info, "version") ?? "0.0.0";
 
-        var schemas = ImmutableArray<SchemaDefinition>.Empty;
-        if (root.Children.TryGetValue("components", out var comp) &&
-            comp is YamlMappingNode components &&
-            components.Children.TryGetValue("schemas", out var sch) &&
-            sch is YamlMappingNode schemasMap)
-        {
-            schemas = ParseSchemas(schemasMap);
-        }
+        var schemas = ImmutableArray.CreateBuilder<SchemaDefinition>();
+        var components = GetMapping(root, "components");
+        var schemasNode = components is not null ? GetMapping(components, "schemas") : null;
 
-        return new OpenApiSchema(title, version, schemas);
-    }
+        if (schemasNode is not null)
+            foreach (var (keyNode, valueNode) in schemasNode.Children)
+            {
+                var name = ((YamlScalarNode)keyNode).Value!;
+                if (valueNode is YamlMappingNode schemaNode)
+                    schemas.Add(ParseSchema(name, schemaNode));
+            }
 
-    static ImmutableArray<SchemaDefinition> ParseSchemas(YamlMappingNode map)
-    {
-        var builder = ImmutableArray.CreateBuilder<SchemaDefinition>();
-        foreach (var (keyNode, valueNode) in map.Children)
-        {
-            var name = ((YamlScalarNode)keyNode).Value ?? "";
-            if (valueNode is YamlMappingNode node) builder.Add(ParseSchema(name, node));
-        }
-        return builder.ToImmutable();
+        return new OpenApiSchema(title, version, schemas.ToImmutable());
     }
 
     static SchemaDefinition ParseSchema(string name, YamlMappingNode node)
@@ -624,32 +735,36 @@ public sealed class OpenApiSchema
         var format = GetString(node, "format");
         var pattern = GetString(node, "pattern");
         var enumValues = GetStringArray(node, "enum");
-        var required = GetStringArray(node, "required");
-
-        var properties = ImmutableArray<SchemaProperty>.Empty;
-        if (node.Children.TryGetValue("properties", out var propsNode) && propsNode is YamlMappingNode propsMap)
-            properties = ParseProperties(propsMap, required);
-
         var extensions = ParseExtensions(node);
-        var hasAllOf = node.Children.ContainsKey("allOf");
-        var hasAnyOf = node.Children.ContainsKey("anyOf") || node.Children.ContainsKey("oneOf");
 
-        var isScalar = type is "string" or "integer" or "number" &&
-                       properties.Length == 0 && enumValues.Length == 0 &&
-                       !hasAllOf && !hasAnyOf && name.Contains('.');
+        // Determine if scalar (primitive wrapper)
+        var isScalar = extensions.ContainsKey("x-csharp-struct") ||
+                       (type is "string" or "integer" or "number" && enumValues.Length == 0 &&
+                        !GetMapping(node, "properties")?.Children.Any() == true);
 
-        return new SchemaDefinition(name, type, description, format, pattern, enumValues, properties, extensions, isScalar, enumValues.Length > 0);
-    }
+        // Determine if enum
+        var isEnum = enumValues.Length > 0;
 
-    static ImmutableArray<SchemaProperty> ParseProperties(YamlMappingNode map, ImmutableArray<string> required)
-    {
-        var builder = ImmutableArray.CreateBuilder<SchemaProperty>();
-        foreach (var (keyNode, valueNode) in map.Children)
+        // Parse properties for objects
+        var properties = ImmutableArray<SchemaProperty>.Empty;
+        var propsNode = GetMapping(node, "properties");
+        var required = GetStringArray(node, "required").ToHashSet();
+
+        if (propsNode is not null)
         {
-            var name = ((YamlScalarNode)keyNode).Value ?? "";
-            if (valueNode is YamlMappingNode node) builder.Add(ParseProperty(name, node, required.Contains(name)));
+            var propsBuilder = ImmutableArray.CreateBuilder<SchemaProperty>();
+            foreach (var (keyNode, valueNode) in propsNode.Children)
+            {
+                var propName = ((YamlScalarNode)keyNode).Value!;
+                if (valueNode is YamlMappingNode propNode)
+                    propsBuilder.Add(ParseProperty(propName, propNode, required.Contains(propName)));
+            }
+
+            properties = propsBuilder.ToImmutable();
         }
-        return builder.ToImmutable();
+
+        return new SchemaDefinition(name, type, description, format, pattern, enumValues, properties, extensions,
+            isScalar, isEnum);
     }
 
     static SchemaProperty ParseProperty(string name, YamlMappingNode node, bool isRequired)
@@ -657,21 +772,26 @@ public sealed class OpenApiSchema
         var type = GetString(node, "type");
         var format = GetString(node, "format");
         var description = GetString(node, "description");
-        var refPath = GetRef(node);
 
-        if (refPath is null && node.Children.TryGetValue("allOf", out var allOfNode) &&
-            allOfNode is YamlSequenceNode { Children.Count: > 0 } allOfSeq &&
-            allOfSeq.Children[0] is YamlMappingNode firstAllOf)
-            refPath = GetRef(firstAllOf);
+        // Handle allOf (TypeSpec wraps refs in allOf)
+        var allOf = node.Children.TryGetValue("allOf", out var allOfNode) && allOfNode is YamlSequenceNode seq
+            ? seq.Children.OfType<YamlMappingNode>().FirstOrDefault()
+            : null;
 
-        string? itemsRef = null, itemsType = null;
-        if (type == "array" && node.Children.TryGetValue("items", out var itemsNode) && itemsNode is YamlMappingNode itemsMap)
+        var refPath = GetRef(node) ?? (allOf is not null ? GetRef(allOf) : null);
+
+        // Handle arrays
+        string? itemsRef = null;
+        string? itemsType = null;
+        var items = GetMapping(node, "items");
+        if (items is not null)
         {
-            itemsRef = GetRef(itemsMap);
-            itemsType = GetString(itemsMap, "type");
+            itemsRef = GetRef(items);
+            itemsType = GetString(items, "type");
         }
 
-        return new SchemaProperty(name, type, format, description, refPath, itemsRef, itemsType, isRequired, ParseExtensions(node));
+        return new SchemaProperty(name, type, format, description, refPath, itemsRef, itemsType, isRequired,
+            ParseExtensions(node));
     }
 
     static ImmutableDictionary<string, string> ParseExtensions(YamlMappingNode node)
@@ -680,9 +800,16 @@ public sealed class OpenApiSchema
         foreach (var (keyNode, valueNode) in node.Children)
         {
             var key = ((YamlScalarNode)keyNode).Value ?? "";
-            if (key.StartsWith("x-", StringComparison.Ordinal) && valueNode is YamlScalarNode scalar)
-                builder[key] = scalar.Value ?? "";
+            if (key.StartsWith("x-", StringComparison.Ordinal))
+                builder[key] = valueNode switch
+                {
+                    YamlScalarNode scalar => scalar.Value ?? "",
+                    YamlSequenceNode seq => string.Join(",",
+                        seq.Children.OfType<YamlScalarNode>().Select(static s => s.Value)),
+                    _ => builder[key]
+                };
         }
+
         return builder.ToImmutable();
     }
 
@@ -698,7 +825,11 @@ public sealed class OpenApiSchema
     static ImmutableArray<string> GetStringArray(YamlMappingNode parent, string key)
     {
         if (parent.Children.TryGetValue(key, out var node) && node is YamlSequenceNode seq)
-            return [..seq.Children.OfType<YamlScalarNode>().Select(s => s.Value ?? "").Where(s => s.Length > 0)];
+            return
+            [
+                ..seq.Children.OfType<YamlScalarNode>().Select(static s => s.Value ?? "")
+                    .Where(static s => s.Length > 0)
+            ];
         return [];
     }
 }
@@ -717,6 +848,14 @@ public sealed record SchemaDefinition(
     bool IsEnum)
 {
     public string GetTypeName() => Name[(Name.LastIndexOf('.') + 1)..];
+
+    /// <summary>Get enum member names from x-enum-varnames extension.</summary>
+    public ImmutableArray<string> GetEnumVarNames()
+    {
+        if (Extensions.TryGetValue("x-enum-varnames", out var varnames) && !string.IsNullOrEmpty(varnames))
+            return [..varnames.Split(',').Select(static s => s.Trim())];
+        return [];
+    }
 }
 
 /// <summary>OpenAPI property definition.</summary>
@@ -732,20 +871,29 @@ public sealed record SchemaProperty(
     ImmutableDictionary<string, string> Extensions)
 {
     const string RefPrefix = "#/components/schemas/";
-    public string? GetRefTypeName() => RefPath?.StartsWith(RefPrefix, StringComparison.Ordinal) == true ? RefPath[RefPrefix.Length..] : RefPath;
-    public string? GetItemsTypeName() => ItemsRef?.StartsWith(RefPrefix, StringComparison.Ordinal) == true ? ItemsRef[RefPrefix.Length..] : ItemsRef;
+
+    public string? GetRefTypeName() => RefPath?.StartsWith(RefPrefix, StringComparison.Ordinal) == true
+        ? RefPath[RefPrefix.Length..]
+        : RefPath;
 }
 
 /// <summary>Generation output.</summary>
 public readonly record struct GeneratedFile(AbsolutePath Path, string Content);
-public readonly record struct GenerationResult(int FileCount, GenerationStats Stats);
+
+/// <summary>Generation result with statistics.</summary>
+public readonly record struct GenerationResult(int FileCount, GenerationStats Stats)
+{
+    /// <summary>Summary for logging.</summary>
+    public override string ToString() =>
+        $"Generated {FileCount} files ({Stats.GeneratedCount} new, {Stats.UpdatedCount} updated)";
+}
 
 // ════════════════════════════════════════════════════════════════════════════════
 // GENERATION GUARD - Write control
 // ════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Controls file overwrites during generation.</summary>
-public sealed class GenerationGuard
+public sealed partial class GenerationGuard
 {
     public GenerationGuard(bool force = false, bool dryRun = false, bool skipExisting = false)
     {
@@ -783,22 +931,21 @@ public sealed class GenerationGuard
                 return;
             }
 
-            if (!Force && SkipExisting)
+            switch (Force)
             {
-                Log.Information("  [SKIP] {Description} (use --igenerate-force-generate)", description);
-                Stats.IncrementSkipped();
-                return;
+                case false when SkipExisting:
+                    Log.Information("  [SKIP] {Description} (use --igenerate-force-generate)", description);
+                    Stats.IncrementSkipped();
+                    return;
+                case false:
+                    Log.Warning("  [SKIP] {Description} (use --igenerate-force-generate to overwrite)", description);
+                    Stats.IncrementSkipped();
+                    return;
+                default:
+                    Log.Information("  [UPDATE] {Description}", description);
+                    Stats.IncrementUpdated();
+                    break;
             }
-
-            if (!Force)
-            {
-                Log.Warning("  [SKIP] {Description} (use --igenerate-force-generate to overwrite)", description);
-                Stats.IncrementSkipped();
-                return;
-            }
-
-            Log.Information("  [UPDATE] {Description}", description);
-            Stats.IncrementUpdated();
         }
         else
         {
@@ -822,7 +969,8 @@ public sealed class GenerationGuard
         if (Stats.DryRunCount > 0) Log.Information("  Dry Run:     {Count} files", Stats.DryRunCount);
 
         if (NukeBuild.IsServerBuild && Stats.SkippedCount > 0 && !Force && failOnStaleInCi)
-            throw new InvalidOperationException($"CI: {Stats.SkippedCount} stale files. Run 'nuke Generate --igenerate-force-generate'.");
+            throw new InvalidOperationException(
+                $"CI: {Stats.SkippedCount} stale files. Run 'nuke Generate --igenerate-force-generate'.");
 
         Log.Information("═══════════════════════════════════════════════════════════════");
     }
@@ -830,8 +978,11 @@ public sealed class GenerationGuard
     static string NormalizeForComparison(string content)
     {
         content = content.ReplaceLineEndings("\n");
-        return Regex.Replace(content, @"^(//|--)\s+Generated:\s+\d{4}-\d{2}-\d{2}T.*$", "$1     Generated: [TIMESTAMP]", RegexOptions.Multiline);
+        return MyRegex().Replace(content, "$1     Generated: [TIMESTAMP]");
     }
+
+    [GeneratedRegex(@"^(//|--)\s+Generated:\s+\d{4}-\d{2}-\d{2}T.*$", RegexOptions.Multiline)]
+    private static partial Regex MyRegex();
 }
 
 /// <summary>Thread-safe generation statistics.</summary>

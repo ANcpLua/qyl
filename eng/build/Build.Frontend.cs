@@ -24,7 +24,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendBuild => d => d
         .Description("Build frontend for production (tsc + vite build)")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Produces(DashboardDistDirectory / "**/*")
         .Executes(() =>
         {
@@ -39,7 +39,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendTest => d => d
         .Description("Run frontend tests (Vitest)")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Running frontend tests...");
@@ -52,7 +52,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendCoverage => d => d
         .Description("Run frontend tests with coverage")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Running frontend tests with coverage...");
@@ -64,7 +64,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendLint => d => d
         .Description("Lint frontend code (ESLint)")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Linting frontend code...");
@@ -76,7 +76,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendLintFix => d => d
         .Description("Fix frontend linting issues")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Fixing frontend linting issues...");
@@ -88,7 +88,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendDev => d => d
         .Description("Start frontend dev server (Vite)")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Starting Vite dev server for qyl.dashboard...");
@@ -112,7 +112,7 @@ interface IFrontend : IHasSolution
 
     Target FrontendTypeCheck => d => d
         .Description("Type check frontend (tsc --noEmit)")
-        .DependsOn<IFrontend>(x => x.FrontendInstall)
+        .DependsOn<IFrontend>(static x => x.FrontendInstall)
         .Executes(() =>
         {
             Log.Information("Type checking frontend...");

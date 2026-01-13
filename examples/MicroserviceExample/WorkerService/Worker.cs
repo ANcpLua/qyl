@@ -7,10 +7,12 @@ namespace WorkerService;
 
 internal sealed class Worker(MessageReceiver messageReceiver) : BackgroundService
 {
+    private readonly MessageReceiver _messageReceiver = messageReceiver;
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         stoppingToken.ThrowIfCancellationRequested();
 
-        await messageReceiver.StartConsumerAsync().ConfigureAwait(false);
+        await _messageReceiver.StartConsumerAsync().ConfigureAwait(false);
     }
 }

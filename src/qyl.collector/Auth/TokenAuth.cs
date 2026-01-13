@@ -25,7 +25,7 @@ public sealed class TokenAuthOptions
 
     public string QueryParameterName { get; set; } = "t";
 
-    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces"];
+    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces", "/api/login", "/api/auth/check"];
 }
 
 public sealed class TokenAuthMiddleware

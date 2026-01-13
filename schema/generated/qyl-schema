@@ -363,6 +363,87 @@
                 }
             },
             "description": "Extracted GenAI attributes from a span"
+        },
+        "LogRecord": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "LogRecord.json",
+            "type": "object",
+            "properties": {
+                "logId": {
+                    "type": "string",
+                    "description": "Unique log record identifier"
+                },
+                "traceId": {
+                    "$ref": "TraceId.json",
+                    "description": "Associated trace ID"
+                },
+                "spanId": {
+                    "$ref": "SpanId.json",
+                    "description": "Associated span ID"
+                },
+                "sessionId": {
+                    "$ref": "SessionId.json",
+                    "description": "Session identifier for grouping related logs"
+                },
+                "timeUnixNano": {
+                    "$ref": "UnixNano.json",
+                    "description": "Timestamp when the event occurred (nanoseconds since epoch)"
+                },
+                "observedTimeUnixNano": {
+                    "$ref": "UnixNano.json",
+                    "description": "Timestamp when the log was observed/collected"
+                },
+                "severityNumber": {
+                    "$ref": "#/$defs/SeverityNumber",
+                    "description": "Severity number (1-24)"
+                },
+                "severityText": {
+                    "type": "string",
+                    "description": "Severity text (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)"
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Log body - the main content"
+                },
+                "serviceName": {
+                    "type": "string",
+                    "description": "Service name from resource attributes"
+                },
+                "attributesJson": {
+                    "type": "string",
+                    "description": "Log attributes as JSON"
+                },
+                "resourceJson": {
+                    "type": "string",
+                    "description": "Resource attributes as JSON"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Row creation timestamp"
+                }
+            },
+            "required": [
+                "logId",
+                "timeUnixNano",
+                "severityNumber"
+            ],
+            "description": "OpenTelemetry log record for storage and query",
+            "$defs": {
+                "SeverityNumber": {
+                    "type": "number",
+                    "enum": [
+                        0,
+                        1,
+                        5,
+                        9,
+                        13,
+                        17,
+                        21
+                    ],
+                    "description": "Log severity number following OTel specification (1-24)"
+                }
+            }
         }
     }
 }

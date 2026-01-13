@@ -1,13 +1,6 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Retry;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace AgentGateway.Core;
 
@@ -22,11 +15,8 @@ public sealed class HeaderSelectionPolicy : IProviderSelectionPolicy
     {
         var provider = http?.Request.Headers["X-Provider"].ToString();
         var model = http?.Request.Headers["X-Model"].ToString();
-        
-        if (!string.IsNullOrWhiteSpace(provider))
-        {
-            return (provider, string.IsNullOrWhiteSpace(model) ? null : model);
-        }
+
+        if (!string.IsNullOrWhiteSpace(provider)) return (provider, string.IsNullOrWhiteSpace(model) ? null : model);
 
         var def = cfg["Providers:DefaultProvider"] ?? "openai";
         return (def, null);
@@ -35,16 +25,16 @@ public sealed class HeaderSelectionPolicy : IProviderSelectionPolicy
 
 public sealed class ProviderRouterChatClient : IChatClient
 {
-    private readonly IProviderRegistry _registry;
-    private readonly IProviderSelectionPolicy _policy;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IHttpContextAccessor _http;
     private readonly IConfiguration _cfg;
+    private readonly IHttpContextAccessor _http;
     private readonly ResiliencePipeline _pipeline;
+    private readonly IProviderSelectionPolicy _policy;
+    private readonly IProviderRegistry _registry;
+    private readonly IServiceProvider _serviceProvider;
 
     public ProviderRouterChatClient(
-        IProviderRegistry registry, 
-        IProviderSelectionPolicy policy, 
+        IProviderRegistry registry,
+        IProviderSelectionPolicy policy,
         IServiceProvider serviceProvider,
         IHttpContextAccessor http,
         IConfiguration cfg)
@@ -66,9 +56,12 @@ public sealed class ProviderRouterChatClient : IChatClient
             .Build();
     }
 
-    public void Dispose() { }
+    public void Dispose()
+    {
+    }
 
-    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null,
+        CancellationToken cancellationToken = default)
     {
         return _pipeline.ExecuteAsync(async ct =>
         {
@@ -78,12 +71,14 @@ public sealed class ProviderRouterChatClient : IChatClient
                 options ??= new ChatOptions();
                 options.ModelId = modelId;
             }
+
             var client = _registry.Resolve(providerId, _serviceProvider);
             return await client.GetResponseAsync(chatMessages, options, ct);
         }, cancellationToken).AsTask();
     }
 
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null, CancellationToken cancellationToken = default)
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> chatMessages,
+        ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
         var (providerId, modelId) = _policy.Select(options, _http.HttpContext, _cfg);
         if (modelId != null)
@@ -91,6 +86,7 @@ public sealed class ProviderRouterChatClient : IChatClient
             options ??= new ChatOptions();
             options.ModelId = modelId;
         }
+
         var client = _registry.Resolve(providerId, _serviceProvider);
         return client.GetStreamingResponseAsync(chatMessages, options, cancellationToken);
     }

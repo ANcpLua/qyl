@@ -1,3 +1,4 @@
+using System.IO;
 using Context;
 using Domain.CodeGen;
 using Nuke.Common;
@@ -25,7 +26,7 @@ interface IGenerate : IHasSolution
     /// </summary>
     Target Generate => d => d
         .Description("Generate code from TypeSpec God Schema")
-        .DependsOn<ITypeSpec>(x => x.TypeSpecCompile)
+        .DependsOn<ITypeSpec>(static x => x.TypeSpecCompile)
         .Executes(() =>
         {
             var force = ForceGenerate ?? false;
@@ -48,11 +49,11 @@ interface IGenerate : IHasSolution
             {
                 Log.Error("OpenAPI spec not found: {Path}", openApiPath);
                 Log.Error("Run 'nuke TypeSpecCompile' first.");
-                throw new System.IO.FileNotFoundException("OpenAPI spec not found", openApiPath);
+                throw new FileNotFoundException("OpenAPI spec not found", openApiPath);
             }
 
             // One call generates everything
-            var result = SchemaGenerator.Generate(openApiPath, paths.Protocol, paths.Collector, guard);
+            _ = SchemaGenerator.Generate(openApiPath, paths.Protocol, paths.Collector, guard);
 
             Log.Information("");
             guard.LogSummary(IsServerBuild);

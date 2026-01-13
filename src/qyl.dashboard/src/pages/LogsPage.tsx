@@ -11,12 +11,14 @@ import {
     Filter,
     Info,
     Skull,
+    X,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {CopyableText} from '@/components/ui';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
 import type {LogLevel, LogRecord} from '@/types';
@@ -114,12 +116,23 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <h4 className="text-xs font-medium text-muted-foreground mb-1">Trace ID</h4>
-                                    <span className="text-sm font-mono text-primary">{log.traceId}</span>
+                                    <CopyableText
+                                        value={log.traceId}
+                                        label="Trace ID"
+                                        textClassName="text-primary"
+                                        truncate
+                                        maxWidth="180px"
+                                    />
                                 </div>
                                 {log.spanId && (
                                     <div>
                                         <h4 className="text-xs font-medium text-muted-foreground mb-1">Span ID</h4>
-                                        <span className="text-sm font-mono">{log.spanId}</span>
+                                        <CopyableText
+                                            value={log.spanId}
+                                            label="Span ID"
+                                            truncate
+                                            maxWidth="180px"
+                                        />
                                     </div>
                                 )}
                             </div>
@@ -131,9 +144,15 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                                 <h4 className="text-xs font-medium text-muted-foreground mb-1">Attributes</h4>
                                 <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(log.attributes).map(([key, value]) => (
-                                        <div key={key} className="text-sm">
+                                        <div key={key} className="flex items-center text-sm">
                                             <span className="text-muted-foreground">{key}:</span>
-                                            <span className="ml-2 font-mono">{String(value)}</span>
+                                            <CopyableText
+                                                value={String(value)}
+                                                label={key}
+                                                className="ml-2"
+                                                truncate
+                                                maxWidth="150px"
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -558,6 +577,58 @@ export function LogsPage() {
                     {isLive ? (isConnected ? 'Live' : 'Connecting...') : 'Paused'}
                 </Button>
             </div>
+
+            {/* Active Filters */}
+            {(filterText || minLevel !== 'trace' || selectedService !== 'all') && (
+                <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
+                    <span className="text-xs text-muted-foreground">Active filters:</span>
+                    {filterText && (
+                        <Badge variant="secondary" className="gap-1 pr-1">
+                            search: {filterText}
+                            <button
+                                onClick={() => setFilterText('')}
+                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                            >
+                                <X className="h-3 w-3"/>
+                            </button>
+                        </Badge>
+                    )}
+                    {minLevel !== 'trace' && (
+                        <Badge variant="secondary" className="gap-1 pr-1">
+                            min level: {minLevel}
+                            <button
+                                onClick={() => setMinLevel('trace')}
+                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                            >
+                                <X className="h-3 w-3"/>
+                            </button>
+                        </Badge>
+                    )}
+                    {selectedService !== 'all' && (
+                        <Badge variant="secondary" className="gap-1 pr-1">
+                            service: {selectedService}
+                            <button
+                                onClick={() => setSelectedService('all')}
+                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                            >
+                                <X className="h-3 w-3"/>
+                            </button>
+                        </Badge>
+                    )}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => {
+                            setFilterText('');
+                            setMinLevel('trace');
+                            setSelectedService('all');
+                        }}
+                    >
+                        Clear all
+                    </Button>
+                </div>
+            )}
 
             {/* Virtualized Logs */}
             <div

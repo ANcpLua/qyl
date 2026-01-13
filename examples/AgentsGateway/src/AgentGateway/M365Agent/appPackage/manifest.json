@@ -25,12 +25,22 @@
   "bots": [
     {
       "botId": "${{BOT_ID}}",
-      "scopes": [ "copilot", "personal", "team", "groupChat" ],
+      "scopes": [
+        "copilot",
+        "personal",
+        "team",
+        "groupChat"
+      ],
       "supportsFiles": false,
       "isNotificationOnly": false,
       "commandLists": [
         {
-          "scopes": [ "copilot", "personal", "team", "groupChat" ],
+          "scopes": [
+            "copilot",
+            "personal",
+            "team",
+            "groupChat"
+          ],
           "commands": [
             {
               "title": "Say hi to the bot",

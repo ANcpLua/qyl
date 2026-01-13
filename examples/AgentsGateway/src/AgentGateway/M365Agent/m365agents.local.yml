@@ -26,8 +26,8 @@ provision:
   - uses: aadApp/update
     with:
       manifestPath: ./infra/entra/entra.bot.manifest.json
-      outputFilePath : ./infra/entra/build/entra.bot.manifest.${{TEAMSFX_ENV}}.json
-  
+      outputFilePath: ./infra/entra/build/entra.bot.manifest.${{TEAMSFX_ENV}}.json
+
   - uses: aadApp/create
     with:
       name: ${{APP_INTERNAL_NAME}}-graph-${{APP_NAME_SUFFIX}}
@@ -42,7 +42,7 @@ provision:
   - uses: aadApp/update
     with:
       manifestPath: ./infra/entra/entra.graph.manifest.json
-      outputFilePath : ./infra/entra/build/entra.graph.manifest.${{TEAMSFX_ENV}}.json
+      outputFilePath: ./infra/entra/build/entra.graph.manifest.${{TEAMSFX_ENV}}.json
 
   - uses: arm/deploy
     with:

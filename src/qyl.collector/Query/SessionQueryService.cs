@@ -10,6 +10,7 @@ namespace qyl.collector.Query;
 /// </summary>
 public sealed class SessionQueryService(DuckDBConnection connection)
 {
+    private readonly DuckDBConnection _connection = connection;
     // =========================================================================
     // List Sessions
     // =========================================================================
@@ -23,7 +24,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     {
         // Using raw SQL for complex COALESCE + GROUP BY pattern
         // SpanQueryBuilder is better for simpler queries
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
@@ -55,7 +56,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
 
     public async Task<SessionSummary?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
@@ -96,7 +97,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .LimitParam(2)
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -132,7 +133,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .WhereRaw("($2::TIMESTAMP IS NULL OR start_time >= $2)")
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
 
@@ -183,7 +184,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .LimitParam(2)
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter { Value = after ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -227,7 +228,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .WhereRaw("($2::TIMESTAMP IS NULL OR start_time >= $2)")
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
 
@@ -260,7 +261,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .OrderBy(SpanColumn.StartTime)
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
@@ -294,7 +295,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .Limit(limit)
             .Build();
 
-        await using var cmd = connection.CreateCommand();
+        await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
 
         if (sessionId is not null)

@@ -16,23 +16,12 @@ namespace qyl.collector.Dashboard;
 /// </summary>
 public sealed partial class EmbeddedDashboardMiddleware
 {
-    [LoggerMessage(
-        EventId = 9000,
-        Level = LogLevel.Debug,
-        Message = "Loaded embedded resource: {Path} ({Size} bytes)")]
-    private partial void LogResourceLoaded(string path, int size);
-
-    [LoggerMessage(
-        EventId = 9001,
-        Level = LogLevel.Information,
-        Message = "Loaded {Count} embedded dashboard resources")]
-    private partial void LogResourcesLoaded(int count);
+    private readonly string _basePath;
+    private readonly CachedResource? _indexHtml;
+    private readonly ILogger<EmbeddedDashboardMiddleware> _logger;
 
     private readonly RequestDelegate _next;
     private readonly FrozenDictionary<string, CachedResource> _resources;
-    private readonly ILogger<EmbeddedDashboardMiddleware> _logger;
-    private readonly string _basePath;
-    private readonly CachedResource? _indexHtml;
 
     public EmbeddedDashboardMiddleware(
         RequestDelegate next,
@@ -45,6 +34,18 @@ public sealed partial class EmbeddedDashboardMiddleware
         _resources = LoadEmbeddedResources();
         _resources.TryGetValue("index.html", out _indexHtml);
     }
+
+    [LoggerMessage(
+        EventId = 9000,
+        Level = LogLevel.Debug,
+        Message = "Loaded embedded resource: {Path} ({Size} bytes)")]
+    private partial void LogResourceLoaded(string path, int size);
+
+    [LoggerMessage(
+        EventId = 9001,
+        Level = LogLevel.Information,
+        Message = "Loaded {Count} embedded dashboard resources")]
+    private partial void LogResourcesLoaded(int count);
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -101,11 +102,13 @@ public sealed partial class EmbeddedDashboardMiddleware
 
         // Serve compressed if client supports and we have compressed version
         var acceptEncoding = context.Request.Headers.AcceptEncoding.ToString();
-        if (resource.CompressedContent is not null && acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
+        if (resource.CompressedContent is not null &&
+            acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
         {
             context.Response.Headers.ContentEncoding = "gzip";
             context.Response.ContentLength = resource.CompressedContent.Length;
-            await context.Response.Body.WriteAsync(resource.CompressedContent, context.RequestAborted).ConfigureAwait(false);
+            await context.Response.Body.WriteAsync(resource.CompressedContent, context.RequestAborted)
+                .ConfigureAwait(false);
         }
         else
         {
@@ -125,8 +128,7 @@ public sealed partial class EmbeddedDashboardMiddleware
             if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            using var stream = assembly.GetManifestResourceStream(name);
-            if (stream is null) continue;
+            if (assembly.GetManifestResourceStream(name) is not { } stream) continue;
 
             var content = new byte[stream.Length];
             _ = stream.Read(content, 0, content.Length);
@@ -148,10 +150,11 @@ public sealed partial class EmbeddedDashboardMiddleware
             if (content.Length > 1024) // Only compress files > 1KB
             {
                 using var ms = new MemoryStream();
-                using (var gzip = new GZipStream(ms, CompressionLevel.Optimal, leaveOpen: true))
+                using (var gzip = new GZipStream(ms, CompressionLevel.Optimal, true))
                 {
                     gzip.Write(content, 0, content.Length);
                 }
+
                 var gzipped = ms.ToArray();
                 if (gzipped.Length < content.Length * 0.9) // Only use if >10% smaller
                 {
@@ -223,8 +226,6 @@ public static class EmbeddedDashboardExtensions
     /// </summary>
     public static IApplicationBuilder UseEmbeddedDashboard(
         this IApplicationBuilder app,
-        string basePath = "")
-    {
-        return app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
-    }
+        string basePath = "") =>
+        app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
 }

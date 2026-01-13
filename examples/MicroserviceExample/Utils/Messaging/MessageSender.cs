@@ -13,6 +13,7 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
 {
     private static readonly ActivitySource ActivitySource = new(nameof(MessageSender));
     private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
+    private readonly ILogger<MessageSender> _logger = logger;
     private IChannel? _channel;
 
     private IConnection? _connection;
@@ -35,7 +36,7 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
 
             // Start an activity with a name following the semantic convention of the OpenTelemetry messaging specification.
             // https://github.com/open-telemetry/semantic-conventions/blob/main/docs/messaging/messaging-spans.md#span-name
-            var activityName = $"{RabbitMqHelper.TestQueueName} send";
+            const string activityName = $"{RabbitMqHelper.TestQueueName} send";
 
             using var activity = ActivitySource.StartActivity(activityName, ActivityKind.Producer);
             var props = new BasicProperties();
@@ -65,13 +66,13 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
                 props,
                 Encoding.UTF8.GetBytes(body)).ConfigureAwait(false);
 
-            logger.MessageSent(body);
+            _logger.MessageSent(body);
 
             return body;
         }
         catch (Exception ex)
         {
-            logger.MessagePublishingFailed(ex);
+            _logger.MessagePublishingFailed(ex);
             throw;
         }
     }
@@ -86,7 +87,7 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
         }
         catch (Exception ex)
         {
-            logger.FailedToInjectTraceContext(ex);
+            _logger.FailedToInjectTraceContext(ex);
         }
     }
 }

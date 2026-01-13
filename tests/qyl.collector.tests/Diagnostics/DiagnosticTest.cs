@@ -40,7 +40,9 @@ public class DiagnosticTest : IAsyncLifetime
         {
             var traceId = checkReader.GetString(0);
             var sessionId = checkReader.IsDBNull(1) ? "NULL" : checkReader.GetString(1);
-            var statusCode = checkReader.IsDBNull(2) ? "NULL" : checkReader.GetInt32(2).ToString(CultureInfo.InvariantCulture);
+            var statusCode = checkReader.IsDBNull(2)
+                ? "NULL"
+                : checkReader.GetInt32(2).ToString(CultureInfo.InvariantCulture);
             var startTime = checkReader.IsDBNull(3) ? "NULL" : checkReader.GetDateTime(3).ToString("o");
             Console.WriteLine(
                 $"  trace={traceId}, session={sessionId}, status_code={statusCode}, start_time={startTime}");

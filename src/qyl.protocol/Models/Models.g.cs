@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T06:38:41.3817060+00:00
+//     Generated: 2026-01-13T17:07:48.6342370+00:00
 //     Models for Qyl.Models
 // =============================================================================
 // To modify: update TypeSpec in schema/ then run: nuke Generate
@@ -10,6 +10,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -57,6 +58,63 @@ public sealed record GenAiSpanData
     /// <summary>Estimated cost</summary>
     [JsonPropertyName("costUsd")]
     public global::Qyl.Common.CostUsd? CostUsd { get; init; }
+
+}
+
+/// <summary>OpenTelemetry log record for storage and query</summary>
+public sealed record LogRecord
+{
+    /// <summary>Unique log record identifier</summary>
+    [JsonPropertyName("logId")]
+    public required string LogId { get; init; }
+
+    /// <summary>Associated trace ID</summary>
+    [JsonPropertyName("traceId")]
+    public global::Qyl.Common.TraceId? TraceId { get; init; }
+
+    /// <summary>Associated span ID</summary>
+    [JsonPropertyName("spanId")]
+    public global::Qyl.Common.SpanId? SpanId { get; init; }
+
+    /// <summary>Session identifier for grouping related logs</summary>
+    [JsonPropertyName("sessionId")]
+    public global::Qyl.Common.SessionId? SessionId { get; init; }
+
+    /// <summary>Timestamp when the event occurred (nanoseconds since epoch)</summary>
+    [JsonPropertyName("timeUnixNano")]
+    public required global::Qyl.Common.UnixNano TimeUnixNano { get; init; }
+
+    /// <summary>Timestamp when the log was observed/collected</summary>
+    [JsonPropertyName("observedTimeUnixNano")]
+    public global::Qyl.Common.UnixNano? ObservedTimeUnixNano { get; init; }
+
+    /// <summary>Severity number (1-24)</summary>
+    [JsonPropertyName("severityNumber")]
+    public required global::Qyl.Enums.SeverityNumber SeverityNumber { get; init; }
+
+    /// <summary>Severity text (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)</summary>
+    [JsonPropertyName("severityText")]
+    public string? SeverityText { get; init; }
+
+    /// <summary>Log body - the main content</summary>
+    [JsonPropertyName("body")]
+    public string? Body { get; init; }
+
+    /// <summary>Service name from resource attributes</summary>
+    [JsonPropertyName("serviceName")]
+    public string? ServiceName { get; init; }
+
+    /// <summary>Log attributes as JSON</summary>
+    [JsonPropertyName("attributesJson")]
+    public string? AttributesJson { get; init; }
+
+    /// <summary>Resource attributes as JSON</summary>
+    [JsonPropertyName("resourceJson")]
+    public string? ResourceJson { get; init; }
+
+    /// <summary>Row creation timestamp</summary>
+    [JsonPropertyName("createdAt")]
+    public DateTimeOffset? CreatedAt { get; init; }
 
 }
 
@@ -227,7 +285,7 @@ public sealed record TraceNode
 
     /// <summary>Depth in tree (0 = root)</summary>
     [JsonPropertyName("depth")]
-    public int Depth { get; init; }
+    public required int Depth { get; init; }
 
 }
 

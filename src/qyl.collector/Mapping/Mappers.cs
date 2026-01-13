@@ -104,7 +104,7 @@ public static class SpanMapper
         try
         {
             var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
-            return events?.Select(e => new SpanEventDto
+            return events?.Select(static e => new SpanEventDto
             {
                 Name = e.Name ?? "unknown",
                 Timestamp = e.Timestamp?.ToString("O") ?? TimeProvider.System.GetUtcNow().ToString("O"),

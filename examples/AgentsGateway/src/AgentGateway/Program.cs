@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Reflection;
+using AgentGateway.Core;
 using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
-using AgentGateway.Core;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.DevUI;
 using Microsoft.Agents.AI.Hosting;
@@ -22,7 +22,6 @@ builder.Services.AddHttpContextAccessor();
 
 // Telemetry with standard tagging
 if (builder.Environment.IsProduction())
-{
     builder.Services.AddOpenTelemetry()
         .WithTracing(tracerProviderBuilder =>
             tracerProviderBuilder.AddHttpClientInstrumentation(options =>
@@ -35,13 +34,9 @@ if (builder.Environment.IsProduction())
                 };
             }))
         .UseAzureMonitor(options => { options.Credential = new DefaultAzureCredential(); });
-}
 
 // Authentication (skip in Development for testing)
-if (!builder.Environment.IsDevelopment())
-{
-    builder.Services.AddBotAspNetAuthentication(builder.Configuration);
-}
+if (!builder.Environment.IsDevelopment()) builder.Services.AddBotAspNetAuthentication(builder.Configuration);
 
 // AOT-compatible JSON serialization for Gateway Catalog
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -50,21 +45,16 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // Storage
-builder.Services.AddSingleton<IStorage>((sp) => 
+builder.Services.AddSingleton<IStorage>(sp =>
 {
     var containerName = builder.Configuration["BlobsStorageOptions:ContainerName"] ?? "state";
-    if (builder.Environment.IsDevelopment())
-    {
-        return new BlobsStorage("UseDevelopmentStorage=true", containerName);
-    }
-    else
-    {
-        var storageAccountName = builder.Configuration["BlobsStorageOptions:StorageAccountName"];
-        return new BlobsStorage(
-            new Uri($"https://{storageAccountName}.blob.core.windows.net/{containerName}"),
-            new DefaultAzureCredential()
-        );
-    }
+    if (builder.Environment.IsDevelopment()) return new BlobsStorage("UseDevelopmentStorage=true", containerName);
+
+    var storageAccountName = builder.Configuration["BlobsStorageOptions:StorageAccountName"];
+    return new BlobsStorage(
+        new Uri($"https://{storageAccountName}.blob.core.windows.net/{containerName}"),
+        new DefaultAzureCredential()
+    );
 });
 
 // --- 2. AI Router & Provider Discovery ---
@@ -89,7 +79,7 @@ builder.AddAIAgent("editor", (sp, key) =>
 });
 
 builder.AddWorkflow("publisher", (sp, key) => AgentWorkflowBuilder.BuildSequential(
-    workflowName: key,
+    key,
     sp.GetRequiredKeyedService<AIAgent>("writer"),
     sp.GetRequiredKeyedService<AIAgent>("editor")
 )).AddAsAIAgent();
@@ -124,12 +114,12 @@ app.MapGet("/v1/catalog/providers/{id}/models", async (string id, IProviderRegis
 
 app.MapGet("/healthz", () => Results.Ok(new { Status = "Healthy" }));
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapDevUI();
-}
+if (app.Environment.IsDevelopment()) app.MapDevUI();
 
 app.Run();
 
 [Description("Formats the story for publication.")]
-string FormatStory(string title, string story) => $"**Title**: {title}\n\n{story}";
+string FormatStory(string title, string story)
+{
+    return $"**Title**: {title}\n\n{story}";
+}

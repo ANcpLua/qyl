@@ -6,7 +6,7 @@
  * Regenerate with: npm run generate:ts
  */
 
-import type { components, operations, paths } from './api';
+import type {components, operations, paths} from './api';
 
 // =============================================================================
 // Schemas (Canonical Names from God Schema)
@@ -42,39 +42,39 @@ export type ApiPaths = paths;
 
 export type LiveStreamQuery = operations['Live_stream']['parameters']['query'];
 export type LiveStreamResponse =
-  operations['Live_stream']['responses']['200']['content']['text/event-stream'];
+    operations['Live_stream']['responses']['200']['content']['text/event-stream'];
 
 export type ListSessionsQuery = operations['Sessions_list']['parameters']['query'];
 export type ListSessionsResponse =
-  operations['Sessions_list']['responses']['200']['content']['application/json'];
+    operations['Sessions_list']['responses']['200']['content']['application/json'];
 
 export type GetSessionPath = operations['Sessions_get']['parameters']['path'];
 export type GetSessionResponse =
-  operations['Sessions_get']['responses']['200']['content']['application/json'];
+    operations['Sessions_get']['responses']['200']['content']['application/json'];
 
 export type GetSessionSpansPath = operations['Sessions_getSpans']['parameters']['path'];
 export type GetSessionSpansQuery = operations['Sessions_getSpans']['parameters']['query'];
 export type GetSessionSpansResponse =
-  operations['Sessions_getSpans']['responses']['200']['content']['application/json'];
+    operations['Sessions_getSpans']['responses']['200']['content']['application/json'];
 
 export type ListSpansQuery = operations['Spans_list']['parameters']['query'];
 export type ListSpansResponse =
-  operations['Spans_list']['responses']['200']['content']['application/json'];
+    operations['Spans_list']['responses']['200']['content']['application/json'];
 
 export type GetSpanPath = operations['Spans_get']['parameters']['path'];
 export type GetSpanResponse =
-  operations['Spans_get']['responses']['200']['content']['application/json'];
+    operations['Spans_get']['responses']['200']['content']['application/json'];
 
 export type GetTracePath = operations['Traces_get']['parameters']['path'];
 export type GetTraceResponse =
-  operations['Traces_get']['responses']['200']['content']['application/json'];
+    operations['Traces_get']['responses']['200']['content']['application/json'];
 
 export type GetTraceSpansPath = operations['Traces_getSpans']['parameters']['path'];
 export type GetTraceSpansResponse =
-  operations['Traces_getSpans']['responses']['200']['content']['application/json'];
+    operations['Traces_getSpans']['responses']['200']['content']['application/json'];
 
 export type HealthResponse =
-  operations['Health_check']['responses']['200']['content']['application/json'];
+    operations['Health_check']['responses']['200']['content']['application/json'];
 
 // =============================================================================
 // Type Aliases for Backward Compatibility
@@ -89,53 +89,53 @@ export type Session = SessionSummary;
 
 /** Convert nanoseconds to milliseconds */
 export function nsToMs(ns: number): number {
-  return ns / 1_000_000;
+    return ns / 1_000_000;
 }
 
 /** Convert nanoseconds timestamp to ISO string */
 export function nanoToIso(nanos: number): string {
-  return new Date(nanos / 1_000_000).toISOString();
+    return new Date(nanos / 1_000_000).toISOString();
 }
 
 /** Parse JSON safely, returning empty object on failure */
 export function parseJson<T>(json: string | undefined | null, fallback: T): T {
-  if (!json) return fallback;
-  try {
-    return JSON.parse(json) as T;
-  } catch {
-    return fallback;
-  }
+    if (!json) return fallback;
+    try {
+        return JSON.parse(json) as T;
+    } catch {
+        return fallback;
+    }
 }
 
 /** Get parsed attributes from SpanRecord */
 export function getAttributes(span: SpanRecord): Record<string, unknown> {
-  return parseJson(span.attributesJson, {});
+    return parseJson(span.attributesJson, {});
 }
 
 /** Get parsed resource from SpanRecord */
 export function getResource(span: SpanRecord): Record<string, unknown> | undefined {
-  return span.resourceJson ? parseJson(span.resourceJson, {}) : undefined;
+    return span.resourceJson ? parseJson(span.resourceJson, {}) : undefined;
 }
 
 /** Calculate total tokens from SpanRecord */
 export function getTotalTokens(span: SpanRecord): number | undefined {
-  const input = span.genAiInputTokens ?? 0;
-  const output = span.genAiOutputTokens ?? 0;
-  return input + output || undefined;
+    const input = span.genAiInputTokens ?? 0;
+    const output = span.genAiOutputTokens ?? 0;
+    return input + output || undefined;
 }
 
 /** Flatten trace tree to array of spans */
 export function flattenTraceTree(node: TraceNode): SpanRecord[] {
-  const spans: SpanRecord[] = [node.span];
-  for (const child of node.children) {
-    spans.push(...flattenTraceTree(child));
-  }
-  return spans;
+    const spans: SpanRecord[] = [node.span];
+    for (const child of node.children) {
+        spans.push(...flattenTraceTree(child));
+    }
+    return spans;
 }
 
 /** Get primary service name from session */
 export function getPrimaryService(session: SessionSummary): string {
-  return session.serviceName ?? session.genAiSystem ?? 'unknown';
+    return session.serviceName ?? session.genAiSystem ?? 'unknown';
 }
 
 // =============================================================================
@@ -149,21 +149,21 @@ export const STATUS_ERROR = 2 as StatusCode;
 
 /** Check if span has error status */
 export function isErrorSpan(span: SpanRecord): boolean {
-  return span.statusCode === STATUS_ERROR;
+    return span.statusCode === STATUS_ERROR;
 }
 
 /** Get status label */
 export function getStatusLabel(code: StatusCode): string {
-  switch (code) {
-    case STATUS_UNSET:
-      return 'unset';
-    case STATUS_OK:
-      return 'ok';
-    case STATUS_ERROR:
-      return 'error';
-    default:
-      return 'unknown';
-  }
+    switch (code) {
+        case STATUS_UNSET:
+            return 'unset';
+        case STATUS_OK:
+            return 'ok';
+        case STATUS_ERROR:
+            return 'error';
+        default:
+            return 'unknown';
+    }
 }
 
 // =============================================================================
@@ -175,14 +175,14 @@ export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 /** Log record for LogsPage */
 export interface LogRecord {
-  timestamp: string;
-  observedTimestamp: string;
-  traceId?: string;
-  spanId?: string;
-  severityNumber: number;
-  severityText: LogLevel;
-  body: string;
-  attributes: Record<string, string | number | boolean | string[] | number[] | boolean[]>;
-  serviceName: string;
-  serviceVersion?: string;
+    timestamp: string;
+    observedTimestamp: string;
+    traceId?: string;
+    spanId?: string;
+    severityNumber: number;
+    severityText: LogLevel;
+    body: string;
+    attributes: Record<string, string | number | boolean | string[] | number[] | boolean[]>;
+    serviceName: string;
+    serviceVersion?: string;
 }

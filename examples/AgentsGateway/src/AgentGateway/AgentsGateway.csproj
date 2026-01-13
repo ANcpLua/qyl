@@ -25,34 +25,34 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Agents.AI" />
-        <PackageReference Include="Microsoft.Agents.AI.Abstractions" />
-        <PackageReference Include="Microsoft.Agents.AI.A2A" />
-        <PackageReference Include="Microsoft.Agents.AI.DevUI" />
-        <PackageReference Include="Microsoft.Agents.AI.Hosting" />
-        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A" />
-        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" />
-        <PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI" />
-        <PackageReference Include="Microsoft.Agents.AI.OpenAI" />
-        <PackageReference Include="Microsoft.Agents.AI.Workflows" />
-        <PackageReference Include="Microsoft.Agents.Authentication.Msal" />
-        <PackageReference Include="Microsoft.Agents.Storage.Blobs" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
-        <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
-        <PackageReference Include="Microsoft.IdentityModel.Validators" />
-        <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
-        <PackageReference Include="OpenTelemetry.Instrumentation.Http" />
+        <PackageReference Include="Microsoft.Agents.AI"/>
+        <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
+        <PackageReference Include="Microsoft.Agents.AI.A2A"/>
+        <PackageReference Include="Microsoft.Agents.AI.DevUI"/>
+        <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A"/>
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore"/>
+        <PackageReference Include="Microsoft.Agents.AI.Hosting.OpenAI"/>
+        <PackageReference Include="Microsoft.Agents.AI.OpenAI"/>
+        <PackageReference Include="Microsoft.Agents.AI.Workflows"/>
+        <PackageReference Include="Microsoft.Agents.Authentication.Msal"/>
+        <PackageReference Include="Microsoft.Agents.Storage.Blobs"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+        <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+        <PackageReference Include="Microsoft.IdentityModel.Validators"/>
+        <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore"/>
+        <PackageReference Include="OpenTelemetry.Instrumentation.Http"/>
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Remove="AgentGateway.Tests\**" />
-        <Content Remove="AgentGateway.Tests\**" />
-        <EmbeddedResource Remove="AgentGateway.Tests\**" />
-        <None Remove="AgentGateway.Tests\**" />
+        <Compile Remove="AgentGateway.Tests\**"/>
+        <Content Remove="AgentGateway.Tests\**"/>
+        <EmbeddedResource Remove="AgentGateway.Tests\**"/>
+        <None Remove="AgentGateway.Tests\**"/>
     </ItemGroup>
 
 </Project>

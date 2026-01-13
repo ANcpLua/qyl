@@ -276,4 +276,96 @@ public static class OtlpConverter
     }
 
     #endregion
+
+    #region Logs Conversion
+
+    /// <summary>
+    ///     Converts HTTP OTLP JSON log request to storage rows.
+    ///     Used by: Program.cs (POST /v1/logs)
+    /// </summary>
+    public static List<LogStorageRow> ConvertLogsToStorageRows(OtlpExportLogsServiceRequest otlp)
+    {
+        var logs = new List<LogStorageRow>();
+
+        foreach (var resourceLogs in otlp.ResourceLogs ?? [])
+        {
+            var serviceName = resourceLogs.Resource?.Attributes?
+                                  .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue
+                              ?? "unknown";
+
+            var resourceJson = SerializeAttributes(resourceLogs.Resource?.Attributes);
+
+            foreach (var scopeLogs in resourceLogs.ScopeLogs ?? [])
+            foreach (var log in scopeLogs.LogRecords ?? [])
+            {
+                logs.Add(CreateLogStorageRow(log, serviceName, resourceJson));
+            }
+        }
+
+        return logs;
+    }
+
+    private static LogStorageRow CreateLogStorageRow(
+        OtlpLogRecord log,
+        string serviceName,
+        string? resourceJson)
+    {
+        var sessionId = log.Attributes?
+            .FirstOrDefault(a => a.Key == "session.id")?.Value?.StringValue;
+
+        var body = log.Body?.StringValue
+                   ?? log.Body?.IntValue?.ToString()
+                   ?? log.Body?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
+                   ?? log.Body?.BoolValue?.ToString();
+
+        var severityText = log.SeverityText ?? SeverityNumberToText(log.SeverityNumber ?? 0);
+
+        return new LogStorageRow
+        {
+            LogId = Guid.NewGuid().ToString("N"),
+            TraceId = string.IsNullOrEmpty(log.TraceId) ? null : log.TraceId,
+            SpanId = string.IsNullOrEmpty(log.SpanId) ? null : log.SpanId,
+            SessionId = sessionId,
+            TimeUnixNano = (long)log.TimeUnixNano,
+            ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? (long)log.ObservedTimeUnixNano : null,
+            SeverityNumber = log.SeverityNumber ?? 0,
+            SeverityText = severityText,
+            Body = body,
+            ServiceName = serviceName,
+            AttributesJson = SerializeAttributes(log.Attributes),
+            ResourceJson = resourceJson
+        };
+    }
+
+    private static string? SerializeAttributes(List<OtlpKeyValue>? attributes)
+    {
+        if (attributes is null || attributes.Count == 0) return null;
+
+        var dict = new Dictionary<string, string>(attributes.Count);
+        foreach (var attr in attributes)
+        {
+            if (attr.Key is null) continue;
+            var value = attr.Value?.StringValue
+                        ?? attr.Value?.IntValue?.ToString()
+                        ?? attr.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
+                        ?? attr.Value?.BoolValue?.ToString()
+                        ?? "";
+            dict[attr.Key] = value;
+        }
+
+        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+    }
+
+    private static string SeverityNumberToText(int severityNumber) => severityNumber switch
+    {
+        >= 1 and <= 4 => "TRACE",
+        >= 5 and <= 8 => "DEBUG",
+        >= 9 and <= 12 => "INFO",
+        >= 13 and <= 16 => "WARN",
+        >= 17 and <= 20 => "ERROR",
+        >= 21 => "FATAL",
+        _ => "UNSPECIFIED"
+    };
+
+    #endregion
 }

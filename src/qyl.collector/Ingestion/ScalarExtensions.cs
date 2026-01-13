@@ -36,6 +36,7 @@ public static class ScalarExtensions
                 result = default;
                 return false;
             }
+
             chars[i] = (char)b;
         }
 
@@ -87,6 +88,7 @@ public static class ScalarExtensions
                 result = default;
                 return false;
             }
+
             chars[i] = (char)b;
         }
 

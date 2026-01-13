@@ -275,3 +275,91 @@ model GenAiSpanData {
   @doc("Estimated cost")
   costUsd?: CostUsd;
 }
+
+// =============================================================================
+// LogRecord - OTLP Log Storage Model
+// =============================================================================
+
+@jsonSchema
+@doc("OpenTelemetry log record for storage and query")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "logs")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "LogRecord")
+model LogRecord {
+  // === Identifiers ===
+
+  @doc("Unique log record identifier")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "log_id")
+  @TypeSpec.OpenAPI.extension("x-duckdb-primary-key", true)
+  logId: string;
+
+  @doc("Associated trace ID")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "trace_id")
+  @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_logs_trace_id")
+  traceId?: TraceId;
+
+  @doc("Associated span ID")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "span_id")
+  spanId?: SpanId;
+
+  // === Session Grouping ===
+
+  @doc("Session identifier for grouping related logs")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "session_id")
+  @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_logs_session_id")
+  sessionId?: SessionId;
+
+  // === Timing ===
+
+  @doc("Timestamp when the event occurred (nanoseconds since epoch)")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "time_unix_nano")
+  @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_logs_time")
+  timeUnixNano: UnixNano;
+
+  @doc("Timestamp when the log was observed/collected")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "observed_time_unix_nano")
+  observedTimeUnixNano?: UnixNano;
+
+  // === Severity ===
+
+  @doc("Severity number (1-24)")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "severity_number")
+  @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_logs_severity")
+  severityNumber: SeverityNumber;
+
+  @doc("Severity text (TRACE, DEBUG, INFO, WARN, ERROR, FATAL)")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "severity_text")
+  severityText?: string;
+
+  // === Content ===
+
+  @doc("Log body - the main content")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "body")
+  body?: string;
+
+  // === Service Info ===
+
+  @doc("Service name from resource attributes")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "service_name")
+  @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_logs_service_name")
+  serviceName?: string;
+
+  // === Attributes (JSON Blob) ===
+
+  @doc("Log attributes as JSON")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "attributes_json")
+  @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
+  attributesJson?: string;
+
+  @doc("Resource attributes as JSON")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "resource_json")
+  @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
+  resourceJson?: string;
+
+  // === Internal Storage Fields ===
+
+  @doc("Row creation timestamp")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "created_at")
+  @TypeSpec.OpenAPI.extension("x-duckdb-type", "TIMESTAMP DEFAULT now()")
+  @TypeSpec.OpenAPI.extension("x-internal", true)
+  createdAt?: utcDateTime;
+}

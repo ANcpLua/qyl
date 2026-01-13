@@ -35,30 +35,8 @@ public static class QylTelemetry
     /// </summary>
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
-        Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString()
+        Version = ServiceVersion, TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString()
     });
-
-    // ==========================================================================
-    // Activity Names (following OTel GenAI semantic conventions)
-    // ==========================================================================
-
-    public static class Activities
-    {
-        // Ingestion
-        public const string IngestSpans = "qyl.ingest_spans";
-        public const string IngestOtlpJson = "qyl.ingest_otlp_json";
-        public const string IngestOtlpGrpc = "qyl.ingest_otlp_grpc";
-
-        // Storage
-        public const string StoreSpans = "qyl.store_spans";
-        public const string QuerySpans = "qyl.query_spans";
-        public const string QuerySessions = "qyl.query_sessions";
-
-        // GenAI specific
-        public const string ExtractGenAi = "qyl.extract_genai";
-        public const string NormalizeAttributes = "qyl.normalize_attributes";
-    }
 
     // ==========================================================================
     // Helper Methods
@@ -111,15 +89,30 @@ public static class QylTelemetry
     public static void RecordIngestionEvent(
         this Activity activity,
         int spanCount,
-        bool hasGenAi = false)
-    {
+        bool hasGenAi = false) =>
         activity.AddEvent(new ActivityEvent(
             "spans.ingested",
-            tags: new ActivityTagsCollection
-            {
-                ["span.count"] = spanCount,
-                ["has_genai"] = hasGenAi
-            }));
+            tags: new ActivityTagsCollection { ["span.count"] = spanCount, ["has_genai"] = hasGenAi }));
+
+    // ==========================================================================
+    // Activity Names (following OTel GenAI semantic conventions)
+    // ==========================================================================
+
+    public static class Activities
+    {
+        // Ingestion
+        public const string IngestSpans = "qyl.ingest_spans";
+        public const string IngestOtlpJson = "qyl.ingest_otlp_json";
+        public const string IngestOtlpGrpc = "qyl.ingest_otlp_grpc";
+
+        // Storage
+        public const string StoreSpans = "qyl.store_spans";
+        public const string QuerySpans = "qyl.query_spans";
+        public const string QuerySessions = "qyl.query_sessions";
+
+        // GenAI specific
+        public const string ExtractGenAi = "qyl.extract_genai";
+        public const string NormalizeAttributes = "qyl.normalize_attributes";
     }
 }
 
@@ -136,36 +129,36 @@ public static class QylMetrics
     public static readonly Counter<long> SpansIngested =
         QylTelemetry.Meter.CreateCounter<long>(
             "qyl.spans.ingested",
-            unit: "{span}",
-            description: "Number of spans ingested");
+            "{span}",
+            "Number of spans ingested");
 
     /// <summary>GenAI spans ingested counter.</summary>
     public static readonly Counter<long> GenAiSpansIngested =
         QylTelemetry.Meter.CreateCounter<long>(
             "qyl.genai_spans.ingested",
-            unit: "{span}",
-            description: "Number of GenAI spans ingested");
+            "{span}",
+            "Number of GenAI spans ingested");
 
     /// <summary>Sessions created counter.</summary>
     public static readonly Counter<long> SessionsCreated =
         QylTelemetry.Meter.CreateCounter<long>(
             "qyl.sessions.created",
-            unit: "{session}",
-            description: "Number of sessions created");
+            "{session}",
+            "Number of sessions created");
 
     /// <summary>Tokens processed counter.</summary>
     public static readonly Counter<long> TokensProcessed =
         QylTelemetry.Meter.CreateCounter<long>(
             "qyl.tokens.processed",
-            unit: "{token}",
-            description: "Number of tokens processed (input + output)");
+            "{token}",
+            "Number of tokens processed (input + output)");
 
     /// <summary>Ingestion errors counter.</summary>
     public static readonly Counter<long> IngestionErrors =
         QylTelemetry.Meter.CreateCounter<long>(
             "qyl.ingestion.errors",
-            unit: "{error}",
-            description: "Number of ingestion errors");
+            "{error}",
+            "Number of ingestion errors");
 
     // ==========================================================================
     // Histograms
@@ -175,22 +168,22 @@ public static class QylMetrics
     public static readonly Histogram<double> IngestionDuration =
         QylTelemetry.Meter.CreateHistogram<double>(
             "qyl.ingestion.duration",
-            unit: "s",
-            description: "Time to ingest a batch of spans");
+            "s",
+            "Time to ingest a batch of spans");
 
     /// <summary>Query duration histogram.</summary>
     public static readonly Histogram<double> QueryDuration =
         QylTelemetry.Meter.CreateHistogram<double>(
             "qyl.query.duration",
-            unit: "s",
-            description: "Time to execute a query");
+            "s",
+            "Time to execute a query");
 
     /// <summary>Batch size histogram.</summary>
     public static readonly Histogram<int> BatchSize =
         QylTelemetry.Meter.CreateHistogram<int>(
             "qyl.batch.size",
-            unit: "{span}",
-            description: "Number of spans per ingestion batch");
+            "{span}",
+            "Number of spans per ingestion batch");
 
     // ==========================================================================
     // Gauges (UpDownCounters for current values)
@@ -200,16 +193,16 @@ public static class QylMetrics
     public static readonly UpDownCounter<long> ActiveSessions =
         QylTelemetry.Meter.CreateUpDownCounter<long>(
             "qyl.sessions.active",
-            unit: "{session}",
-            description: "Number of active sessions");
+            "{session}",
+            "Number of active sessions");
 
     /// <summary>Storage size gauge (approximate).</summary>
     public static readonly ObservableGauge<long> StorageSize =
         QylTelemetry.Meter.CreateObservableGauge(
             "qyl.storage.size",
             () => GetStorageSizeBytes(),
-            unit: "By",
-            description: "Approximate storage size in bytes");
+            "By",
+            "Approximate storage size in bytes");
 
     // ==========================================================================
     // Helper Methods
@@ -251,18 +244,13 @@ public static class QylMetrics
     /// </summary>
     public static void RecordError(string errorType, string? provider = null)
     {
-        var tags = new TagList
-        {
-            { "error.type", errorType }
-        };
+        var tags = new TagList { { "error.type", errorType } };
         if (provider is not null) tags.Add("gen_ai.provider.name", provider);
 
         IngestionErrors.Add(1, tags);
     }
 
-    private static long GetStorageSizeBytes()
-    {
+    private static long GetStorageSizeBytes() =>
         // TODO: Implement actual storage size query
-        return 0;
-    }
+        0;
 }

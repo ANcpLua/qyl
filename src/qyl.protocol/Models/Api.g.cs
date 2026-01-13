@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T06:38:41.3814630+00:00
+//     Generated: 2026-01-13T12:32:38.8072390+00:00
 //     Models for Qyl.Api
 // =============================================================================
 // To modify: update TypeSpec in schema/ then run: nuke Generate
@@ -10,6 +10,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 

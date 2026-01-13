@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document covers the evolution of telemetry, logging, and observability features across .NET 8, 9, and 10, focusing on source generators, `Microsoft.Extensions.Telemetry.*` packages, and the underlying `System.Diagnostics` APIs.
+This document covers the evolution of telemetry, logging, and observability features across .NET 8, 9, and 10, focusing
+on source generators, `Microsoft.Extensions.Telemetry.*` packages, and the underlying `System.Diagnostics` APIs.
 
 ## Package Versions (Directory.Packages.props)
 
@@ -672,23 +673,23 @@ public class OrderService
 
 ## 7. Source Generator Comparison Table
 
-| Feature | .NET 6/7 | .NET 8 | .NET 9 | .NET 10 |
-|---------|----------|--------|--------|---------|
-| **Basic [LoggerMessage]** | Yes | Yes | Yes | Yes |
-| **Extension method style** | Yes | Yes | Yes | Yes |
-| **Instance method style** | Yes | Yes | Yes | Yes |
-| **Dynamic log level** | Yes | Yes | Yes | Yes |
-| **[LogProperties]** | No | Yes | Yes | Yes |
-| **[TagName] (OTel semconv)** | No | Yes | Yes | Yes |
-| **[TagProvider]** | No | No | Yes | Yes |
-| **Primary constructor logger** | No | No | Yes | Yes |
-| **LoggerMessageState pooling** | No | Yes | Yes | Yes |
-| **Data redaction** | No | Yes | Yes | Yes |
-| **Log enrichment** | No | Yes | Yes | Yes |
-| **Log buffering** | No | No | Yes | Yes |
-| **Log sampling** | No | No | Yes | Yes |
-| **ActivitySource schema URL** | No | No | No | Yes |
-| **Activity Links/Events serialization** | No | No | No | Yes |
+| Feature                                 | .NET 6/7 | .NET 8 | .NET 9 | .NET 10 |
+|-----------------------------------------|----------|--------|--------|---------|
+| **Basic [LoggerMessage]**               | Yes      | Yes    | Yes    | Yes     |
+| **Extension method style**              | Yes      | Yes    | Yes    | Yes     |
+| **Instance method style**               | Yes      | Yes    | Yes    | Yes     |
+| **Dynamic log level**                   | Yes      | Yes    | Yes    | Yes     |
+| **[LogProperties]**                     | No       | Yes    | Yes    | Yes     |
+| **[TagName] (OTel semconv)**            | No       | Yes    | Yes    | Yes     |
+| **[TagProvider]**                       | No       | No     | Yes    | Yes     |
+| **Primary constructor logger**          | No       | No     | Yes    | Yes     |
+| **LoggerMessageState pooling**          | No       | Yes    | Yes    | Yes     |
+| **Data redaction**                      | No       | Yes    | Yes    | Yes     |
+| **Log enrichment**                      | No       | Yes    | Yes    | Yes     |
+| **Log buffering**                       | No       | No     | Yes    | Yes     |
+| **Log sampling**                        | No       | No     | Yes    | Yes     |
+| **ActivitySource schema URL**           | No       | No     | No     | Yes     |
+| **Activity Links/Events serialization** | No       | No     | No     | Yes     |
 
 ---
 

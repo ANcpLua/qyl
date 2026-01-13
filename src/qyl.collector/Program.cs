@@ -44,6 +44,24 @@ builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<McpServer>();
 
+// OTLP CORS configuration
+var otlpCorsOptions = new OtlpCorsOptions
+{
+    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
+    AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
+};
+
+// OTLP API key configuration
+var otlpApiKeyOptions = new OtlpApiKeyOptions
+{
+    AuthMode = builder.Configuration["QYL_OTLP_AUTH_MODE"] ?? "Unsecured",
+    PrimaryApiKey = builder.Configuration["QYL_OTLP_PRIMARY_API_KEY"],
+    SecondaryApiKey = builder.Configuration["QYL_OTLP_SECONDARY_API_KEY"]
+};
+
+builder.Services.AddSingleton(otlpCorsOptions);
+builder.Services.AddSingleton(otlpApiKeyOptions);
+
 // SSE broadcasting with backpressure support for live telemetry streaming
 builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
 
@@ -57,6 +75,14 @@ builder.Services.AddSingleton(sp =>
 });
 
 var app = builder.Build();
+
+// OTLP middleware (before token auth - OTLP has its own auth)
+if (otlpCorsOptions.IsEnabled)
+{
+    app.UseMiddleware<OtlpCorsMiddleware>(otlpCorsOptions);
+}
+
+app.UseMiddleware<OtlpApiKeyMiddleware>(otlpApiKeyOptions);
 
 var options = app.Services.GetRequiredService<TokenAuthOptions>();
 
@@ -112,7 +138,7 @@ app.MapGet("/api/auth/check", (HttpContext context) =>
                       Encoding.UTF8.GetBytes(cookieToken),
                       Encoding.UTF8.GetBytes(token));
 
-    return Results.Ok(new { authenticated = isValid });
+    return Results.Ok(new AuthCheckResponse(isValid));
 });
 
 app.MapGet("/api/v1/sessions",
@@ -197,6 +223,31 @@ app.MapPost("/v1/traces", async (
     }
 });
 
+// OTLP Logs ingestion endpoint
+app.MapPost("/v1/logs", async (
+    HttpContext context,
+    DuckDbStore store) =>
+{
+    try
+    {
+        var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportLogsServiceRequest>(
+            QylSerializerContext.Default.OtlpExportLogsServiceRequest);
+
+        if (otlpData?.ResourceLogs is null) return Results.BadRequest(new ErrorResponse("Invalid OTLP logs format"));
+
+        var logs = OtlpConverter.ConvertLogsToStorageRows(otlpData);
+        if (logs.Count is 0) return Results.Accepted();
+
+        await store.InsertLogsAsync(logs);
+
+        return Results.Accepted();
+    }
+    catch (Exception ex)
+    {
+        return Results.BadRequest(new ErrorResponse("OTLP logs parse error", ex.Message));
+    }
+});
+
 app.MapPost("/api/v1/feedback", () => Results.Accepted());
 app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
     Results.Ok(new { feedback = Array.Empty<object>() }));
@@ -206,6 +257,29 @@ app.MapPost("/api/v1/console", (ConsoleIngestBatch batch, FrontendConsole consol
     foreach (var req in batch.Logs)
         console.Ingest(req);
     return Results.Accepted();
+});
+
+// OTLP Logs REST query endpoint
+app.MapGet("/api/v1/logs", async (
+    DuckDbStore store,
+    string? session,
+    string? trace,
+    string? level,
+    string? search,
+    int? minSeverity,
+    int? limit,
+    CancellationToken ct) =>
+{
+    var logs = await store.GetLogsAsync(
+        sessionId: session,
+        traceId: trace,
+        severityText: level,
+        minSeverity: minSeverity,
+        search: search,
+        limit: limit ?? 500,
+        ct: ct);
+
+    return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
 });
 
 app.MapGet("/api/v1/console", (FrontendConsole console, string? session, string? level, int? limit) =>
@@ -290,7 +364,7 @@ app.MapFallback(async context =>
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
 // No need to set app.Urls when using explicit Kestrel configuration
 
-StartupBanner.Print($"http://localhost:{port}", token, port, grpcPort);
+StartupBanner.Print($"http://localhost:{port}", token, port, grpcPort, otlpCorsOptions, otlpApiKeyOptions);
 
 app.Run();
 
@@ -1070,6 +1144,12 @@ namespace qyl.collector
     [JsonSerializable(typeof(OtlpStatus))]
     [JsonSerializable(typeof(OtlpKeyValue))]
     [JsonSerializable(typeof(OtlpAnyValue))]
+    [JsonSerializable(typeof(OtlpExportLogsServiceRequest))]
+    [JsonSerializable(typeof(OtlpResourceLogs))]
+    [JsonSerializable(typeof(OtlpScopeLogs))]
+    [JsonSerializable(typeof(OtlpLogRecord))]
+    [JsonSerializable(typeof(LogStorageRow))]
+    [JsonSerializable(typeof(List<LogStorageRow>))]
     [JsonSerializable(typeof(string[]))]
     [JsonSerializable(typeof(OtlpEventJson[]))]
     public partial class QylSerializerContext : JsonSerializerContext;

@@ -57,10 +57,7 @@ public sealed class QylRequestEnricher : ILogEnricher
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
-    {
-        _httpContextAccessor = httpContextAccessor;
-    }
+    public QylRequestEnricher(IHttpContextAccessor httpContextAccessor) => _httpContextAccessor = httpContextAccessor;
 
     public void Enrich(IEnrichmentTagCollector collector)
     {
@@ -111,13 +108,13 @@ public sealed class QylRequestEnricher : ILogEnricher
 /// </summary>
 public sealed class QylStorageEnricher : ILogEnricher
 {
-    private readonly Func<long> _getSpanCount;
-    private readonly Func<long> _getSessionCount;
-    private readonly TimeProvider _timeProvider;
-    private long _lastSpanCount;
-    private long _lastSessionCount;
-    private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
     private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+    private readonly Func<long> _getSessionCount;
+    private readonly Func<long> _getSpanCount;
+    private readonly TimeProvider _timeProvider;
+    private long _lastSessionCount;
+    private long _lastSpanCount;
+    private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
 
     public QylStorageEnricher(Func<long> getSpanCount, Func<long> getSessionCount, TimeProvider? timeProvider = null)
     {

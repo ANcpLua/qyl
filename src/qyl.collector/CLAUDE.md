@@ -14,36 +14,36 @@ OTLP (gRPC/HTTP) ──► Ingestion ──► DuckDB ──► REST/SSE ──�
 
 ## Project Info
 
-| Property | Value |
-|----------|-------|
-| Layer | Backend API |
-| Framework | net10.0 |
-| Ports | 5100 (HTTP), 4317 (gRPC) |
-| Storage | DuckDB (embedded) |
+| Property  | Value                    |
+|-----------|--------------------------|
+| Layer     | Backend API              |
+| Framework | net10.0                  |
+| Ports     | 5100 (HTTP), 4317 (gRPC) |
+| Storage   | DuckDB (embedded)        |
 
 ## Directory Structure
 
-| Directory | Purpose |
-|-----------|---------|
-| `Ingestion/` | OTLP parsing, attribute normalization |
-| `Storage/` | DuckDB schema, store, reader extensions |
-| `Query/` | Session/span query services |
-| `Endpoints/` | REST API endpoints |
-| `Realtime/` | SSE live streaming |
-| `Mcp/` | MCP server for AI agents |
-| `Grpc/` | gRPC OTLP receiver |
-| `Telemetry/` | Self-instrumentation |
+| Directory    | Purpose                                 |
+|--------------|-----------------------------------------|
+| `Ingestion/` | OTLP parsing, attribute normalization   |
+| `Storage/`   | DuckDB schema, store, reader extensions |
+| `Query/`     | Session/span query services             |
+| `Endpoints/` | REST API endpoints                      |
+| `Realtime/`  | SSE live streaming                      |
+| `Mcp/`       | MCP server for AI agents                |
+| `Grpc/`      | gRPC OTLP receiver                      |
+| `Telemetry/` | Self-instrumentation                    |
 
 ## Critical Files
 
-| File | Reason |
-|------|--------|
-| `Storage/DuckDbStore.cs` | Core persistence - schema changes break data |
-| `Storage/DuckDbSchema.cs` | Manual DDL extensions |
-| `Storage/DuckDbSchema.g.cs` | Generated DDL from TypeSpec |
-| `Ingestion/OtlpJsonSpanParser.cs` | OTLP/JSON parsing - hot path |
-| `Ingestion/SemconvNormalizer.cs` | OTel attribute normalization |
-| `Program.cs` | DI registration, endpoint mapping |
+| File                              | Reason                                       |
+|-----------------------------------|----------------------------------------------|
+| `Storage/DuckDbStore.cs`          | Core persistence - schema changes break data |
+| `Storage/DuckDbSchema.cs`         | Manual DDL extensions                        |
+| `Storage/DuckDbSchema.g.cs`       | Generated DDL from TypeSpec                  |
+| `Ingestion/OtlpJsonSpanParser.cs` | OTLP/JSON parsing - hot path                 |
+| `Ingestion/SemconvNormalizer.cs`  | OTel attribute normalization                 |
+| `Program.cs`                      | DI registration, endpoint mapping            |
 
 ## Key Patterns
 
@@ -55,11 +55,11 @@ OTLP Request → OtlpJsonSpanParser → SemconvNormalizer → SpanRecord → Duc
 
 ### Generated vs Manual Code
 
-| Type | Source |
-|------|--------|
+| Type                | Source                                      |
+|---------------------|---------------------------------------------|
 | `DuckDbSchema.g.cs` | Generated from TypeSpec via `nuke Generate` |
-| `DuckDbSchema.cs` | Manual extensions (indexes, views) |
-| `CollectorTypes.cs` | Internal ingestion types |
+| `DuckDbSchema.cs`   | Manual extensions (indexes, views)          |
+| `CollectorTypes.cs` | Internal ingestion types                    |
 
 ## Commands
 

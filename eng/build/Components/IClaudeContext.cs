@@ -25,7 +25,7 @@ partial interface IClaudeContext : IHasSolution
             var chain = ResolveLinkedList(LeafClaude, (List<AbsolutePath>)[]);
 
             var compilationUnit = new Dictionary<string, Section>();
-            foreach (var node in Enumerable.Reverse(chain))
+            foreach (var node in chain.Reverse())
             {
                 var layer = ParseNode(node);
                 MergeLayer(compilationUnit, layer, node.Name);
@@ -56,9 +56,9 @@ partial interface IClaudeContext : IHasSolution
         while (true)
         {
             if (!current.FileExists())
-            {
-                return visited.Count is 0 ? [] : throw new InvalidOperationException($"Import target '{current}' not found.");
-            }
+                return visited.Count is 0
+                    ? []
+                    : throw new InvalidOperationException($"Import target '{current}' not found.");
 
             if (visited.Contains(current))
                 throw new InvalidOperationException($"Cycle detected: {current} imports itself.");
@@ -111,10 +111,12 @@ partial interface IClaudeContext : IHasSolution
             }
 
             else
+            {
                 context[header] = new Section
                 {
                     Content = content
                 };
+            }
     }
 
     private Dictionary<string, string> ParseNode(AbsolutePath path)

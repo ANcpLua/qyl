@@ -1,6 +1,7 @@
 # AgentGateway
 
-A production-ready AI Agent Gateway for multi-provider orchestration. This library enables dynamic routing between AI providers (OpenAI, GitHub Models, Ollama, etc.) while providing robust infrastructure for Microsoft Agent Framework.
+A production-ready AI Agent Gateway for multi-provider orchestration. This library enables dynamic routing between AI
+providers (OpenAI, GitHub Models, Ollama, etc.) while providing robust infrastructure for Microsoft Agent Framework.
 
 ## Features
 

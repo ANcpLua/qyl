@@ -59,7 +59,9 @@ public sealed class FrontendConsole
 
     private sealed class Sub(FrontendConsole b, string id) : IDisposable
     {
-        public void Dispose() => b._subs.TryRemove(id, out _);
+        private readonly FrontendConsole _b = b;
+        private readonly string _id = id;
+        public void Dispose() => _b._subs.TryRemove(_id, out _);
     }
 }
 
