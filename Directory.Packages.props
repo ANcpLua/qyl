@@ -34,6 +34,14 @@
     <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="10.1.0"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="10.1.0"/>
     <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="10.1.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.1"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="10.1.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="10.1.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.1.0"/>
+    <!-- TCP probes require preview: Microsoft.Extensions.Diagnostics.Probes (K8s-specific, optional) -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.1.0"/>
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="10.1.0"/>
+    <PackageVersion Include="Microsoft.Extensions.ObjectPool.DependencyInjection" Version="10.1.0"/>
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1"/>
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.1"/>
@@ -70,7 +78,7 @@
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0"/>
     <!-- Analyzers (required by ANcpLua.NET.Sdk 1.6.2) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101"/>
-    <PackageVersion Include="ANcpLua.Analyzers" Version="1.5.3"/>
+    <PackageVersion Include="ANcpLua.Analyzers" Version="1.6.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4"/>
     <PackageVersion Include="JonSkeet.RoslynAnalyzers" Version="1.0.0-beta.6"/>
     <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.5"/>
