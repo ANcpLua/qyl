@@ -83,7 +83,7 @@ jobs:
         working-directory: src/qyl.dashboard
         run: |
           # Skip if no test files exist (vitest exits 1 with no tests)
-          if find . -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
+          if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
             npm run test -- --run --reporter=verbose
           else
             echo "No test files found, skipping tests"
@@ -123,7 +123,7 @@ jobs:
         working-directory: src/qyl.dashboard
         run: |
           # Skip if no test files exist
-          if find . -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
+          if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
             npm run test:coverage
           else
             echo "No test files found, skipping coverage"
