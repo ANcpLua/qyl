@@ -370,7 +370,7 @@ public ref struct OtlpJsonSpanParser
                 {
                     var value = ParseAnyValue();
                     if (value is string s && Guid.TryParse(s, out var guid))
-                        span.SessionId = new SessionId(guid);
+                        span.SessionId = new SessionId(guid.ToString("N"));
                 }
                 else
                 {

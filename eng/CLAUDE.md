@@ -22,7 +22,7 @@ eng/
 │   │   ├── ICompile.cs           # Solution build targets
 │   │   ├── ITest.cs              # MTP test runner
 │   │   ├── ICoverage.cs          # Coverage collection + reports
-│   │   ├── IGenerate.cs          # Schema code generation
+│   │   ├── IGenerate.cs          # OpenAPI → C#/DuckDB generation
 │   │   ├── IDockerBuild.cs       # Docker image builds
 │   │   ├── IDockerCompose.cs     # Docker Compose orchestration
 │   │   ├── IVersionize.cs        # Changelog/release automation
@@ -32,9 +32,12 @@ eng/
 │   ├── Context/
 │   │   └── BuildPaths.cs         # Centralized path constants
 │   └── Domain/CodeGen/
-│       ├── QylSchema.cs          # Schema definitions (SSOT)
+│       ├── OpenApiSchema.cs      # OpenAPI YAML parser
+│       ├── GeneratedFileHeaders.cs # Standard file headers
 │       ├── GenerationGuard.cs    # Write control (CI vs local)
-│       └── Generators/           # Code generators
+│       └── Generators/           # IGenerator implementations
+│           ├── OpenApiCSharpGenerator.cs  # → protocol/*.g.cs
+│           └── OpenApiDuckDbGenerator.cs  # → collector/Storage/*.g.cs
 ├── MSBuild/                  # Shared .props/.targets
 └── build.{sh,cmd}            # Entry scripts
 ```
@@ -49,7 +52,7 @@ Build logic is split into interface-based components that compose via `TryDepend
 | `ICompile` | Solution build, restore, clean | `Compile`, `Clean` |
 | `ITest` | MTP test execution | `Test` |
 | `ICoverage` | Coverage collection + HTML reports | `Coverage` |
-| `IGenerate` | QylSchema code generation | `Generate` |
+| `IGenerate` | OpenAPI → C#/DuckDB generation | `Generate` |
 | `IFrontend` | Dashboard npm build/dev | `FrontendBuild`, `FrontendDev` |
 | `ITypeSpec` | TypeSpec → OpenAPI compilation | `TypeSpecCompile` |
 | `IDockerBuild` | Docker image builds | `DockerImageBuild` |
@@ -75,25 +78,41 @@ mtp.ReportTrx("results.trx")
 
 MTP exit code 8 (zero tests matched) is ignored by default.
 
-## Code Generator Architecture
+## Code Generator Architecture (God Schema)
 
-`eng/build/Domain/CodeGen/` contains the generation pipeline:
+TypeSpec is the single source of truth. All types flow from `schema/main.tsp`:
 
 ```
-QylSchema.cs (definitions)
+schema/main.tsp (SSOT)
      │
-     ├─► CSharpGenerator    → protocol/*.g.cs
-     └─► DuckDbGenerator    → collector/Storage/DuckDbSchema.g.cs
+     └─► ITypeSpec.TypeSpecCompile
+              │
+              └─► schema/generated/openapi.yaml
+                       │
+                       ├─► openapi-typescript  → dashboard/src/types/api.ts
+                       │
+                       └─► IGenerate.Generate
+                                │
+                                ├─► OpenApiCSharpGenerator  → protocol/*.g.cs
+                                └─► OpenApiDuckDbGenerator  → collector/Storage/*.g.cs
 ```
 
-Generators implement `IGenerator`:
+OpenAPI generators in `eng/build/Domain/CodeGen/Generators/` read from `openapi.yaml` and use x-extensions:
+
+| Extension | Purpose | Example |
+|-----------|---------|---------|
+| `x-csharp-type` | C# type override | `"long"` for tokens |
+| `x-duckdb-type` | DuckDB column type | `"BIGINT"` |
+| `x-primitive` | Marks strongly-typed wrapper | `true` |
+
+Generators implement `IOpenApiGenerator`:
 
 ```csharp
-interface IGenerator
+interface IOpenApiGenerator
 {
     string Name { get; }
     IEnumerable<(string RelativePath, string Content)> Generate(
-        QylSchema schema, BuildPaths paths, string rootNamespace);
+        OpenApiDocument document, BuildPaths paths, string rootNamespace);
 }
 ```
 

@@ -1,5 +1,6 @@
 using System.IO;
 using Components;
+using Context;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
@@ -8,21 +9,26 @@ using Serilog;
 
 /// <summary>
 ///     TypeSpec compilation for API contract generation.
-///     Generates OpenAPI 3.1 spec from TypeSpec source.
+///     Generates OpenAPI 3.1 spec from TypeSpec God Schema.
 ///     Dashboard types are generated separately via openapi-typescript (npm run generate:types).
 /// </summary>
 [ParameterPrefix(nameof(ITypeSpec))]
 interface ITypeSpec : IHasSolution
 {
-    AbsolutePath TypeSpecDirectory => RootDirectory / "core" / "specs";
+    /// <summary>
+    ///     TypeSpec source directory (God Schema - Single Source of Truth).
+    /// </summary>
+    AbsolutePath TypeSpecDirectory => RootDirectory / "schema";
 
     AbsolutePath TypeSpecEntry => TypeSpecDirectory / "main.tsp";
 
     AbsolutePath TypeSpecConfig => TypeSpecDirectory / "tspconfig.yaml";
 
-    AbsolutePath OpenApiOutput => RootDirectory / "core" / "openapi" / "openapi.yaml";
+    AbsolutePath TypeSpecGenerated => TypeSpecDirectory / "generated";
 
-    AbsolutePath JsonSchemaOutput => RootDirectory / "core" / "schemas";
+    AbsolutePath OpenApiOutput => TypeSpecGenerated / "openapi.yaml";
+
+    AbsolutePath JsonSchemaOutput => TypeSpecGenerated;
 
     Target TypeSpecInstall => d => d
         .Description("Install TypeSpec dependencies")
@@ -39,19 +45,18 @@ interface ITypeSpec : IHasSolution
         });
 
     Target TypeSpecCompile => d => d
-        .Description("Compile TypeSpec → OpenAPI 3.1 + JSON Schema")
+        .Description("Compile TypeSpec God Schema → OpenAPI 3.1 + JSON Schema")
         .DependsOn<ITypeSpec>(x => x.TypeSpecInstall)
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Produces(OpenApiOutput)
         .Produces(JsonSchemaOutput / "**/*.json")
         .Executes(() =>
         {
-            Log.Information("Compiling TypeSpec...");
+            Log.Information("Compiling TypeSpec God Schema...");
             Log.Information("  Entry:  {Entry}", TypeSpecEntry);
             Log.Information("  Config: {Config}", TypeSpecConfig);
 
-            OpenApiOutput.Parent.CreateDirectory();
-            JsonSchemaOutput.CreateDirectory();
+            TypeSpecGenerated.CreateDirectory();
 
             NpmTasks.NpmRun(s => s
                 .SetProcessWorkingDirectory<NpmRunSettings>(TypeSpecDirectory)
@@ -63,20 +68,23 @@ interface ITypeSpec : IHasSolution
                 Log.Information("OpenAPI generated: {Output} ({Size:N0} bytes)", OpenApiOutput, size);
                 Log.Information("");
                 Log.Information("Next steps:");
-                Log.Information("  Dashboard types: cd src/qyl.dashboard && npm run generate:types");
+                Log.Information("  C#/DuckDB: nuke Generate");
+                Log.Information("  Dashboard: cd src/qyl.dashboard && npm run generate:types");
             }
             else
                 Log.Warning("OpenAPI output not found at {Output}", OpenApiOutput);
         });
 
     Target TypeSpecInfo => d => d
-        .Description("Show TypeSpec configuration and status")
+        .Description("Show TypeSpec God Schema configuration and status")
         .Executes(() =>
         {
+            var paths = BuildPaths.From(this);
+
             Log.Information("══════════════════════════════════════════════════════════════");
-            Log.Information("  qyl TypeSpec Configuration");
+            Log.Information("  qyl TypeSpec God Schema Configuration");
             Log.Information("══════════════════════════════════════════════════════════════");
-            Log.Information("  Source:");
+            Log.Information("  Source (God Schema):");
             Log.Information("    TypeSpec Dir : {Path} ({Exists})",
                 TypeSpecDirectory, TypeSpecDirectory.DirectoryExists() ? "exists" : "MISSING");
             Log.Information("    Entry Point  : {Path} ({Exists})",
@@ -84,15 +92,19 @@ interface ITypeSpec : IHasSolution
             Log.Information("    Config       : {Path} ({Exists})",
                 TypeSpecConfig, TypeSpecConfig.FileExists() ? "exists" : "MISSING");
             Log.Information("══════════════════════════════════════════════════════════════");
-            Log.Information("  Output:");
+            Log.Information("  Generated Output:");
+            Log.Information("    Generated Dir: {Path} ({Exists})",
+                TypeSpecGenerated, TypeSpecGenerated.DirectoryExists() ? "exists" : "not generated");
             Log.Information("    OpenAPI      : {Path} ({Exists})",
                 OpenApiOutput, OpenApiOutput.FileExists() ? "exists" : "not generated");
-            Log.Information("    JSON Schema  : {Path} ({Exists})",
-                JsonSchemaOutput, JsonSchemaOutput.DirectoryExists() ? "exists" : "not generated");
+            Log.Information("══════════════════════════════════════════════════════════════");
+            Log.Information("  Generation Flow:");
+            Log.Information("    schema/*.tsp → schema/generated/openapi.yaml → C#/DuckDB/TypeScript");
             Log.Information("══════════════════════════════════════════════════════════════");
             Log.Information("  Usage:");
-            Log.Information("    nuke TypeSpecCompile           # Generate OpenAPI from TypeSpec");
-            Log.Information("    npm run generate:types         # Generate dashboard types from OpenAPI");
+            Log.Information("    nuke TypeSpecCompile    # Generate OpenAPI from God Schema");
+            Log.Information("    nuke Generate           # Generate C#/DuckDB from OpenAPI");
+            Log.Information("    npm run generate:types  # Generate dashboard TS from OpenAPI");
             Log.Information("══════════════════════════════════════════════════════════════");
         });
 
@@ -102,16 +114,10 @@ interface ITypeSpec : IHasSolution
         {
             Log.Information("Cleaning TypeSpec artifacts...");
 
-            if (JsonSchemaOutput.DirectoryExists())
+            if (TypeSpecGenerated.DirectoryExists())
             {
-                JsonSchemaOutput.DeleteDirectory();
-                Log.Information("  Deleted: {Dir}", JsonSchemaOutput);
-            }
-
-            if (OpenApiOutput.FileExists())
-            {
-                OpenApiOutput.DeleteFile();
-                Log.Information("  Deleted: {File}", OpenApiOutput);
+                TypeSpecGenerated.DeleteDirectory();
+                Log.Information("  Deleted: {Dir}", TypeSpecGenerated);
             }
 
             Log.Information("TypeSpec artifacts cleaned");

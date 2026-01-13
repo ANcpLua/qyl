@@ -21,30 +21,60 @@ qyl.dashboard ──HTTP/SSE──► qyl.collector:5100
 
 Proxy configured in `vite.config.ts` - uses `VITE_API_URL` env var or defaults to `http://localhost:5100`.
 
-## Type Generation
+## Type Generation (God Schema)
 
-Types are generated from OpenAPI spec via `openapi-typescript`:
+Types flow from TypeSpec through OpenAPI to TypeScript:
 
 ```
-core/openapi/openapi.yaml ──► src/types/api.ts (generated)
-                                    │
-                                    └──► src/types/index.ts (re-exports)
+schema/main.tsp (SSOT)
+     │
+     └─► schema/generated/openapi.yaml
+              │
+              └─► openapi-typescript
+                       │
+                       └─► src/types/api.ts (generated)
+                                │
+                                └─► src/types/index.ts (re-exports + utilities)
 ```
 
-### Generated File (DO NOT EDIT)
+### Generated vs Manual Files
 
-| File              | Source                     | Regenerate Command      |
-|-------------------|----------------------------|-------------------------|
-| `src/types/api.ts`| `../../core/openapi/openapi.yaml` | `npm run generate:ts`   |
+| File | Type | Source |
+|------|------|--------|
+| `src/types/api.ts` | Generated | OpenAPI schema via `npm run generate:ts` |
+| `src/types/index.ts` | Manual | Re-exports + utility functions |
 
-Use type re-exports from `src/types/index.ts`:
+### Type Usage
+
+Components use `SpanRecord` directly from OpenAPI with utility functions:
 
 ```typescript
-// Correct
-import type { Span, Session, GenAISpanData } from '@/types';
+// Import types and utilities
+import type { SpanRecord, StatusCode } from '@/types';
+import { nsToMs, nanoToIso, getAttributes, getTotalTokens, STATUS_ERROR } from '@/types';
 
-// Wrong - manual type duplication
-type Session = { sessionId: string; /* ... */ };
+// Use SpanRecord fields directly
+const durationMs = nsToMs(span.durationNs);
+const startTime = nanoToIso(span.startTimeUnixNano);
+const attrs = getAttributes(span);  // Parses attributesJson
+const isError = span.statusCode === STATUS_ERROR;
+
+// Access GenAI fields directly (flat, not nested)
+span.genAiSystem          // Provider name (openai, anthropic)
+span.genAiRequestModel    // Requested model
+span.genAiInputTokens     // Token counts
+span.genAiCostUsd         // Cost
+```
+
+Import from `@/types` only:
+
+```typescript
+// Correct - use SpanRecord directly
+import type { SpanRecord, Session } from '@/types';
+import { nsToMs, getAttributes, getTotalTokens } from '@/types';
+
+// Wrong - direct api.ts import
+import type { components } from '@/types/api';
 ```
 
 ## SSE Live Stream
@@ -91,7 +121,6 @@ Run `npm audit fix` to address:
 ### Missing Features
 
 - No health check indicator for collector connection status
-- TypeScript types not fully synchronized with `QylSchema.cs`
 
 ## Commands
 

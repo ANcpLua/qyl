@@ -14,7 +14,8 @@ interface IDockerBuild : IHasSolution
 
     [Parameter("Docker registry prefix")] string? Registry => TryGetValue(() => Registry);
 
-    [Parameter("Push images after build")] bool? Push => null;
+    [Parameter("Push images after build")]
+    bool? Push => TryGetValue<bool?>(() => Push);
 
     [Parameter("Build images in parallel (default: true)")]
     bool ParallelBuild => true;

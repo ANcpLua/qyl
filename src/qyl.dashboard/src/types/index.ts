@@ -1,210 +1,188 @@
 /**
- * qyl API Types
- *
- * This file re-exports generated types from the OpenAPI spec with convenient aliases.
+ * qyl API Types (aligned to OTel schema 1.38.0)
  * DO NOT edit api.ts directly - it's auto-generated from openapi.yaml
  *
- * Type Pipeline: TypeSpec → OpenAPI → openapi-typescript → api.ts → index.ts
+ * Type Pipeline: TypeSpec -> OpenAPI -> openapi-typescript -> api.ts -> index.ts
  * Regenerate with: npm run generate:ts
  */
 
-import type {components, operations, paths} from './api';
+import type { components, operations, paths } from './api';
 
 // =============================================================================
-// Core Types - Re-exported with convenient names
+// Schemas (Canonical Names from God Schema)
 // =============================================================================
+export type ApiError = components['schemas']['Api.ApiError'];
 
-/** OpenTelemetry Span with GenAI extensions */
-export type Span = components['schemas']['Span'];
+export type GenAiSpanData = components['schemas']['Models.GenAiSpanData'];
+export type SessionSummary = components['schemas']['Models.SessionSummary'];
+export type SpanRecord = components['schemas']['Models.SpanRecord'];
+export type TraceNode = components['schemas']['Models.TraceNode'];
 
-/** GenAI-specific data extracted from span attributes (OTel semconv 1.38) */
-export type GenAiSpanData = components['schemas']['GenAiSpanData'];
+export type TraceId = components['schemas']['Primitives.TraceId'];
+export type SpanId = components['schemas']['Primitives.SpanId'];
+export type SessionId = components['schemas']['Primitives.SessionId'];
+export type UnixNano = components['schemas']['Primitives.UnixNano'];
+export type DurationNs = components['schemas']['Primitives.DurationNs'];
+export type TokenCount = components['schemas']['Primitives.TokenCount'];
+export type Temperature = components['schemas']['Primitives.Temperature'];
+export type CostUsd = components['schemas']['Primitives.CostUsd'];
+export type Count = components['schemas']['Primitives.Count'];
 
-/** Span event (logs attached to spans) */
-export type SpanEvent = components['schemas']['SpanEvent'];
-
-/** Span link (cross-trace references) */
-export type SpanLink = components['schemas']['SpanLink'];
-
-/** OpenTelemetry SpanKind */
-export type SpanKind = components['schemas']['SpanKind'];
-
-/** OpenTelemetry StatusCode */
-export type SpanStatus = components['schemas']['SpanStatus'];
-
-/** Key-value attributes map */
-export type Attributes = components['schemas']['Attributes'];
-
-// =============================================================================
-// Session Types
-// =============================================================================
-
-/** Aggregated session with GenAI statistics */
-export type Session = components['schemas']['Session'];
-
-/** GenAI statistics aggregated at session level */
-export type SessionGenAiStats = components['schemas']['SessionGenAiStats'];
+export type SpanKind = components['schemas']['Enums.SpanKind'];
+export type StatusCode = components['schemas']['Enums.StatusCode'];
+export type SeverityNumber = components['schemas']['Enums.SeverityNumber'];
+export type GenAiOperationName = components['schemas']['Enums.GenAiOperationName'];
+export type GenAiFinishReason = components['schemas']['Enums.GenAiFinishReason'];
 
 // =============================================================================
-// Response Types
+// Operations (from api.ts)
 // =============================================================================
-
-export type SessionListResponse = components['schemas']['SessionListResponse'];
-export type SpanListResponse = components['schemas']['SpanListResponse'];
-export type TraceResponse = components['schemas']['TraceResponse'];
-export type SpanBatch = components['schemas']['SpanBatch'];
-
-// =============================================================================
-// Console Log Types
-// =============================================================================
-
-export type ConsoleLogEntry = components['schemas']['ConsoleLogEntry'];
-export type ConsoleLevel = components['schemas']['ConsoleLevel'];
-
-// =============================================================================
-// SSE Types
-// =============================================================================
-
-export type SseConnectedEvent = components['schemas']['SseConnectedEvent'];
-
-// =============================================================================
-// Auth Types
-// =============================================================================
-
-export type LoginRequest = components['schemas']['LoginRequest'];
-export type LoginResponse = components['schemas']['LoginResponse'];
-export type AuthCheckResponse = components['schemas']['AuthCheckResponse'];
-
-// =============================================================================
-// Health Types
-// =============================================================================
-
-export type HealthResponse = components['schemas']['HealthResponse'];
-
-// =============================================================================
-// API Operations - For type-safe fetch wrappers
-// =============================================================================
-
 export type ApiOperations = operations;
 export type ApiPaths = paths;
 
-// Operation-specific types for building API clients
-export type ListSessionsParams = operations['Api_listSessions']['parameters']['query'];
-export type ListSessionsResponse = operations['Api_listSessions']['responses']['200']['content']['application/json'];
+export type LiveStreamQuery = operations['Live_stream']['parameters']['query'];
+export type LiveStreamResponse =
+  operations['Live_stream']['responses']['200']['content']['text/event-stream'];
 
-export type GetSessionParams = operations['Api_getSession']['parameters']['path'];
-export type GetTraceParams = operations['Api_getTrace']['parameters']['path'];
+export type ListSessionsQuery = operations['Sessions_list']['parameters']['query'];
+export type ListSessionsResponse =
+  operations['Sessions_list']['responses']['200']['content']['application/json'];
 
-// =============================================================================
-// Type Guards - Runtime validation
-// =============================================================================
+export type GetSessionPath = operations['Sessions_get']['parameters']['path'];
+export type GetSessionResponse =
+  operations['Sessions_get']['responses']['200']['content']['application/json'];
 
-export function isSpanKind(value: string): value is SpanKind {
-    return ['internal', 'server', 'client', 'producer', 'consumer'].includes(value);
-}
+export type GetSessionSpansPath = operations['Sessions_getSpans']['parameters']['path'];
+export type GetSessionSpansQuery = operations['Sessions_getSpans']['parameters']['query'];
+export type GetSessionSpansResponse =
+  operations['Sessions_getSpans']['responses']['200']['content']['application/json'];
 
-export function isSpanStatus(value: string): value is SpanStatus {
-    return ['unset', 'ok', 'error'].includes(value);
-}
+export type ListSpansQuery = operations['Spans_list']['parameters']['query'];
+export type ListSpansResponse =
+  operations['Spans_list']['responses']['200']['content']['application/json'];
 
-export function isGenAiSpan(span: Span): span is Span & { genai: GenAiSpanData } {
-    return span.genai !== null && span.genai !== undefined;
-}
+export type GetSpanPath = operations['Spans_get']['parameters']['path'];
+export type GetSpanResponse =
+  operations['Spans_get']['responses']['200']['content']['application/json'];
 
-export function hasErrors(session: Session): boolean {
-    return session.errorCount > 0;
-}
+export type GetTracePath = operations['Traces_get']['parameters']['path'];
+export type GetTraceResponse =
+  operations['Traces_get']['responses']['200']['content']['application/json'];
 
-// =============================================================================
-// Utility Types
-// =============================================================================
+export type GetTraceSpansPath = operations['Traces_getSpans']['parameters']['path'];
+export type GetTraceSpansResponse =
+  operations['Traces_getSpans']['responses']['200']['content']['application/json'];
 
-/** Span with guaranteed GenAI data */
-export type GenAiSpan = Span & { genai: GenAiSpanData };
-
-/** Filter all GenAI spans from a list */
-export function filterGenAiSpans(spans: Span[]): GenAiSpan[] {
-    return spans.filter(isGenAiSpan);
-}
-
-/** Calculate total tokens for a span */
-export function getTotalTokens(span: Span): number | null {
-    if (!span.genai) return null;
-    const {inputTokens, outputTokens} = span.genai;
-    if (inputTokens == null && outputTokens == null) return null;
-    return (inputTokens ?? 0) + (outputTokens ?? 0);
-}
-
-/** Format duration in human-readable form */
-export function formatDuration(ms: number): string {
-    if (ms < 1) return `${(ms * 1000).toFixed(0)}μs`;
-    if (ms < 1000) return `${ms.toFixed(1)}ms`;
-    if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
-    return `${(ms / 60000).toFixed(1)}m`;
-}
-
-/** Get primary service from session (first in array) */
-export function getPrimaryService(session: Session): string {
-    return session.services[0] ?? 'unknown';
-}
+export type HealthResponse =
+  operations['Health_check']['responses']['200']['content']['application/json'];
 
 // =============================================================================
-// Extended Types - For UI features not yet in API
-// These types extend the API for mock/preview features.
+// Type Aliases for Backward Compatibility
 // =============================================================================
 
-/** Extended GenAI message (for chat display, not in API yet) */
-export interface GenAiMessage {
-    role: string;
-    content?: string;
-    toolCalls?: GenAiToolCall[];
+/** Session is alias for SessionSummary */
+export type Session = SessionSummary;
+
+// =============================================================================
+// Utility Functions for Working with SpanRecord
+// =============================================================================
+
+/** Convert nanoseconds to milliseconds */
+export function nsToMs(ns: number): number {
+  return ns / 1_000_000;
 }
 
-/** Extended GenAI tool call (for chat display, not in API yet) */
-export interface GenAiToolCall {
-    id: string;
-    type: string;
-    function: {
-        name: string;
-        arguments: string;
-    };
+/** Convert nanoseconds timestamp to ISO string */
+export function nanoToIso(nanos: number): string {
+  return new Date(nanos / 1_000_000).toISOString();
 }
 
-/** Extended GenAI span data with message content (for GenAIPage mock data) */
-export interface GenAiSpanDataExtended extends GenAiSpanData {
-    finishReasons?: string[];
-    inputMessages?: GenAiMessage[];
-    outputMessages?: GenAiMessage[];
-    toolCalls?: GenAiToolCall[];
+/** Parse JSON safely, returning empty object on failure */
+export function parseJson<T>(json: string | undefined | null, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json) as T;
+  } catch {
+    return fallback;
+  }
 }
 
-/** Log level for OTel logs (differs from ConsoleLevel) */
+/** Get parsed attributes from SpanRecord */
+export function getAttributes(span: SpanRecord): Record<string, unknown> {
+  return parseJson(span.attributesJson, {});
+}
+
+/** Get parsed resource from SpanRecord */
+export function getResource(span: SpanRecord): Record<string, unknown> | undefined {
+  return span.resourceJson ? parseJson(span.resourceJson, {}) : undefined;
+}
+
+/** Calculate total tokens from SpanRecord */
+export function getTotalTokens(span: SpanRecord): number | undefined {
+  const input = span.genAiInputTokens ?? 0;
+  const output = span.genAiOutputTokens ?? 0;
+  return input + output || undefined;
+}
+
+/** Flatten trace tree to array of spans */
+export function flattenTraceTree(node: TraceNode): SpanRecord[] {
+  const spans: SpanRecord[] = [node.span];
+  for (const child of node.children) {
+    spans.push(...flattenTraceTree(child));
+  }
+  return spans;
+}
+
+/** Get primary service name from session */
+export function getPrimaryService(session: SessionSummary): string {
+  return session.serviceName ?? session.genAiSystem ?? 'unknown';
+}
+
+// =============================================================================
+// Status Code Helpers
+// =============================================================================
+
+/** StatusCode enum values */
+export const STATUS_UNSET = 0 as StatusCode;
+export const STATUS_OK = 1 as StatusCode;
+export const STATUS_ERROR = 2 as StatusCode;
+
+/** Check if span has error status */
+export function isErrorSpan(span: SpanRecord): boolean {
+  return span.statusCode === STATUS_ERROR;
+}
+
+/** Get status label */
+export function getStatusLabel(code: StatusCode): string {
+  switch (code) {
+    case STATUS_UNSET:
+      return 'unset';
+    case STATUS_OK:
+      return 'ok';
+    case STATUS_ERROR:
+      return 'error';
+    default:
+      return 'unknown';
+  }
+}
+
+// =============================================================================
+// Log Types (not in OpenAPI schema - logs endpoint TBD)
+// =============================================================================
+
+/** Log level for UI display */
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
-/** OTel Log Record (for LogsPage - endpoint not yet implemented) */
+/** Log record for LogsPage */
 export interface LogRecord {
-    timestamp: string;
-    observedTimestamp: string;
-    traceId?: string;
-    spanId?: string;
-    severityNumber: number;
-    severityText: LogLevel;
-    body: string;
-    attributes: Record<string, string | number | boolean | string[] | number[] | boolean[]>;
-    serviceName: string;
-    serviceVersion?: string;
+  timestamp: string;
+  observedTimestamp: string;
+  traceId?: string;
+  spanId?: string;
+  severityNumber: number;
+  severityText: LogLevel;
+  body: string;
+  attributes: Record<string, string | number | boolean | string[] | number[] | boolean[]>;
+  serviceName: string;
+  serviceVersion?: string;
 }
-
-// =============================================================================
-// Legacy Type Aliases - For backwards compatibility during migration
-// TODO: Remove these after updating all imports
-// =============================================================================
-
-/** @deprecated Use GenAiSpanData instead */
-export type GenAISpanData = GenAiSpanData;
-
-/** @deprecated Use SessionGenAiStats instead */
-export type SessionGenAIStats = SessionGenAiStats;
-
-/** @deprecated Use GenAiSpan instead */
-export type GenAISpan = GenAiSpan;

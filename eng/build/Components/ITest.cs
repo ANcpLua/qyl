@@ -4,9 +4,7 @@ using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
 using Serilog;
-using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
 
@@ -14,35 +12,53 @@ namespace Components;
 interface ITest : ICompile
 {
     [Parameter("Test filter expression (xUnit v3 query syntax)")]
-    string? TestFilter => null;
+    string? TestFilter => TryGetValue<string?>(() => TestFilter);
 
     [Parameter("Stop on first test failure")]
-    bool? StopOnFail => null;
+    bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
 
-    [Parameter("Show live test output")] bool? LiveOutput => null;
+    [Parameter("Show live test output")]
+    bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     Project[] TestProjects =>
         Solution.AllProjects
             .Where(p => p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
             .ToArray();
 
+    Target SetupTestcontainers => d => d
+        .Description("Configure Testcontainers for CI")
+        .Unlisted()
+        .Executes(() =>
+        {
+            if (IsServerBuild)
+            {
+                Environment.SetEnvironmentVariable("DOCKER_HOST", "unix:///var/run/docker.sock");
+                Environment.SetEnvironmentVariable("TESTCONTAINERS_RYUK_DISABLED", "false");
+
+                Log.Information("Testcontainers: Configured for CI");
+                Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
+            }
+            else
+                Log.Debug("Testcontainers: Using local Docker configuration");
+        });
+
     Target Test => d => d
         .Description("Run all tests")
-        .DependsOn<ICompile>(x => x.Compile)
-        .TryDependsOn<ITestContainers>()
+        .DependsOn(Compile)
+        .DependsOn(SetupTestcontainers)
         .Executes(() => RunTests(new TestOptions(TestFilter)));
 
     Target UnitTests => d => d
         .Description("Run unit tests only")
-        .DependsOn<ICompile>(x => x.Compile)
+        .DependsOn(Compile)
         .Executes(() => RunTests(new TestOptions(
             NamespaceFilter: "*.Unit.*",
             ReportPrefix: "Unit")));
 
     Target IntegrationTests => d => d
         .Description("Run integration tests only")
-        .DependsOn<ICompile>(x => x.Compile)
-        .TryDependsOn<ITestContainers>()
+        .DependsOn(Compile)
+        .DependsOn(SetupTestcontainers)
         .Executes(() => RunTests(new TestOptions(
             NamespaceFilter: "*.Integration.*",
             ReportPrefix: "Integration")));
@@ -60,8 +76,8 @@ interface ITest : ICompile
 
         Log.Information("Running tests: {Project}", project.Name);
 
+        // MTP args (go after --)
         var mtp = MtpExtensions.Mtp()
-            .ResultsDirectory(TestResultsDirectory)
             .ReportTrx(reportName)
             .IgnoreExitCode(8);
 
@@ -86,26 +102,27 @@ interface ITest : ICompile
     void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
     {
         var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
-        var settings = new DotNetTestSettings()
-            .SetProjectFile(projectPath)
-            .SetConfiguration(Configuration)
-            .EnableNoBuild()
-            .EnableNoRestore()
-            .SetProcessWorkingDirectory(RootDirectory)
-            .SetProcessExitHandler(process =>
-            {
-                if (process.ExitCode is not (0 or 8))
-                    process.AssertZeroExitCode();
 
-                if (process.ExitCode is 8)
-                    Log.Warning("Zero tests matched filter (exit code 8)");
-            });
+        // Build MTP args for post-"--" section
+        var mtpArgs = mtp.BuildProcessArgs();
 
-        var mtpArgs = mtp.BuildArgs();
-        if (mtpArgs.Count > 0)
-            settings = settings.AddProcessAdditionalArguments(["--", .. mtpArgs]);
+        // .NET 10 MTP requires explicit --project flag (not positional)
+        // --results-directory is a dotnet test arg (before --), MTP args go after --
+        var arguments = $"test --project {projectPath} --configuration {Configuration} --no-build --no-restore --results-directory {TestResultsDirectory} {mtpArgs}";
 
-        DotNetTest(settings);
+        var process = ProcessTasks.StartProcess(
+            toolPath: ToolPathResolver.GetPathExecutable("dotnet"),
+            arguments: arguments,
+            workingDirectory: RootDirectory,
+            logOutput: true);
+
+        process.AssertWaitForExit();
+
+        if (process.ExitCode is not (0 or 8))
+            throw new InvalidOperationException($"dotnet test failed with exit code {process.ExitCode}");
+
+        if (process.ExitCode is 8)
+            Log.Warning("Zero tests matched filter (exit code 8)");
     }
 
     public readonly record struct TestOptions(

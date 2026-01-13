@@ -27,6 +27,8 @@
         <!-- Core NUKE (versions via CPM) -->
         <PackageReference Include="Nuke.Common"/>
         <PackageReference Include="Nuke.Components"/>
+        <!-- OpenAPI YAML parsing for TypeSpec God Schema pipeline -->
+        <PackageReference Include="YamlDotNet"/>
     </ItemGroup>
 
 </Project>

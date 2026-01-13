@@ -96,6 +96,8 @@
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="10.1.0" />
     <PackageVersion Include="Nuke.Components" Version="10.1.0" />
+    <!-- OpenAPI YAML Parsing (for TypeSpec God Schema pipeline) -->
+    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
     <!-- CLI -->
     <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
     <!-- Console example dependencies -->

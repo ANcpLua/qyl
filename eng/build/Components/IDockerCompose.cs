@@ -8,18 +8,19 @@ namespace Components;
 interface IDockerCompose : IHasSolution
 {
     [Parameter("Build images before starting (--build)")]
-    bool? DockerBuild => null;
+    bool? DockerBuild => TryGetValue<bool?>(() => DockerBuild);
 
     [Parameter("Force recreate containers (--force-recreate)")]
-    bool? ForceRecreate => null;
+    bool? ForceRecreate => TryGetValue<bool?>(() => ForceRecreate);
 
     [Parameter("Remove volumes on down (-v)")]
-    bool? RemoveVolumes => null;
+    bool? RemoveVolumes => TryGetValue<bool?>(() => RemoveVolumes);
 
     [Parameter("Number of log lines to tail")]
-    int? LogTail => null;
+    int? LogTail => TryGetValue<int?>(() => LogTail);
 
-    [Parameter("Target specific service")] string? Service => null;
+    [Parameter("Target specific service")]
+    string? Service => TryGetValue<string?>(() => Service);
 
     Target DockerUp => d => d
         .Description("Start qyl Docker Compose stack")

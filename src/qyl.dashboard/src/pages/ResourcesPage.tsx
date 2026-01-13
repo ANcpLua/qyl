@@ -74,7 +74,7 @@ function ResourceCard({session}: { session: Session }) {
                 </div>
 
                 {/* GenAI stats if available */}
-                {session.genaiStats && (
+                {(session.totalInputTokens > 0 || session.totalOutputTokens > 0) && (
                     <div className="mt-4 pt-4 border-t border-border">
                         <div className="flex items-center gap-2 mb-2">
                             <Zap className="w-4 h-4 text-violet-500"/>
@@ -84,18 +84,18 @@ function ResourceCard({session}: { session: Session }) {
                             <div>
                                 <div className="text-muted-foreground">Tokens In</div>
                                 <div
-                                    className="font-mono">{(session.genaiStats.totalInputTokens ?? 0).toLocaleString()}</div>
+                                    className="font-mono">{session.totalInputTokens.toLocaleString()}</div>
                             </div>
                             <div>
                                 <div className="text-muted-foreground">Tokens Out</div>
                                 <div className="font-mono">
-                                    {(session.genaiStats.totalOutputTokens ?? 0).toLocaleString()}
+                                    {session.totalOutputTokens.toLocaleString()}
                                 </div>
                             </div>
                             <div>
                                 <div className="text-muted-foreground">Cost</div>
                                 <div className="font-mono text-green-500">
-                                    ${(session.genaiStats.totalCostUsd ?? 0).toFixed(4)}
+                                    ${session.totalCostUsd.toFixed(4)}
                                 </div>
                             </div>
                         </div>

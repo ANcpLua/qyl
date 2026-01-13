@@ -23,7 +23,7 @@ namespace qyl.collector.Ingestion;
 public static class SemconvNormalizer
 {
     /// <summary>Target schema version for normalization.</summary>
-    public static SchemaVersion TargetVersion => SchemaVersion.V1_38_0;
+    public static SemconvVersion TargetVersion => SemconvVersion.V1_38_0;
 
     /// <summary>
     ///     Attribute renames: old name → new name.

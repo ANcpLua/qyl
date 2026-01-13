@@ -10,14 +10,20 @@ namespace Context;
 public sealed record BuildPaths(AbsolutePath Root)
 {
     // ════════════════════════════════════════════════════════════════════════
-    // Core
+    // Schema (God Schema - Single Source of Truth)
+    // ════════════════════════════════════════════════════════════════════════
+
+    public AbsolutePath Schema => Root / "schema";
+
+    public AbsolutePath SchemaGenerated => Schema / "generated";
+
+    public AbsolutePath OpenApi => SchemaGenerated;
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Core (Legacy - kept for compatibility)
     // ════════════════════════════════════════════════════════════════════════
 
     public AbsolutePath Core => Root / "core";
-
-    public AbsolutePath Specs => Core / "specs";
-
-    public AbsolutePath OpenApi => Core / "openapi";
 
     // ════════════════════════════════════════════════════════════════════════
     // Generated Outputs

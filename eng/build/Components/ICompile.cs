@@ -1,11 +1,21 @@
+using System.ComponentModel;
 using Nuke.Common;
 using Nuke.Common.IO;
+using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.GitVersion;
 using Serilog;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 
 namespace Components;
+
+[TypeConverter(typeof(TypeConverter<Configuration>))]
+sealed class Configuration : Enumeration
+{
+    public static readonly Configuration Debug = new() { Value = nameof(Debug) };
+    public static readonly Configuration Release = new() { Value = nameof(Release) };
+    public static implicit operator string(Configuration c) => c.Value;
+}
 
 [ParameterPrefix(nameof(ICompile))]
 interface ICompile : IHasSolution
@@ -17,9 +27,17 @@ interface ICompile : IHasSolution
     Configuration Configuration => TryGetValue(() => Configuration)
                                    ?? (IsLocalBuild ? Configuration.Debug : Configuration.Release);
 
+    Target Restore => d => d
+        .Description("Restore NuGet packages")
+        .Executes(() =>
+        {
+            DotNetRestore(s => s.SetProjectFile(GetSolutionPath()));
+            Log.Information("Restored: {Solution}", Solution.FileName);
+        });
+
     Target Compile => d => d
         .Description("Build the solution")
-        .TryDependsOn<IRestore>()
+        .DependsOn(Restore)
         .Executes(() =>
         {
             var settings = new DotNetBuildSettings()
@@ -44,7 +62,7 @@ interface ICompile : IHasSolution
 
     Target Clean => d => d
         .Description("Clean build outputs")
-        .TryBefore<IRestore>()
+        .Before(Restore)
         .Executes(() =>
         {
             RootDirectory.GlobDirectories("**/bin", "**/obj").DeleteDirectories();

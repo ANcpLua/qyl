@@ -1,0 +1,368 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "qyl-schema",
+    "$defs": {
+        "TraceId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TraceId.json",
+            "type": "string",
+            "examples": [
+                "0af7651916cd43dd8448eb211c80319c"
+            ],
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[a-f0-9]{32}$",
+            "description": "Unique trace identifier (32 lowercase hex characters)"
+        },
+        "SpanId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SpanId.json",
+            "type": "string",
+            "examples": [
+                "b7ad6b7169203331"
+            ],
+            "minLength": 16,
+            "maxLength": 16,
+            "pattern": "^[a-f0-9]{16}$",
+            "description": "Unique span identifier (16 lowercase hex characters)"
+        },
+        "SessionId": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SessionId.json",
+            "type": "string",
+            "examples": [
+                "550e8400e29b41d4a716446655440000"
+            ],
+            "minLength": 32,
+            "maxLength": 32,
+            "pattern": "^[a-f0-9]{32}$",
+            "description": "Session identifier (GUID without hyphens)"
+        },
+        "UnixNano": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "UnixNano.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Unix timestamp in nanoseconds since epoch"
+        },
+        "DurationNs": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "DurationNs.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Duration in nanoseconds"
+        },
+        "TokenCount": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TokenCount.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Token count for LLM operations"
+        },
+        "Count": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Count.json",
+            "type": "string",
+            "minimum": 0,
+            "description": "Generic non-negative counter"
+        },
+        "CostUsd": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "CostUsd.json",
+            "type": "number",
+            "minimum": 0,
+            "description": "Cost in USD (floating point)"
+        },
+        "Temperature": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Temperature.json",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Temperature setting for LLM requests (0.0-2.0)"
+        },
+        "SpanRecord": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SpanRecord.json",
+            "type": "object",
+            "properties": {
+                "spanId": {
+                    "$ref": "SpanId.json",
+                    "description": "Unique span identifier"
+                },
+                "traceId": {
+                    "$ref": "TraceId.json",
+                    "description": "Trace identifier"
+                },
+                "parentSpanId": {
+                    "$ref": "SpanId.json",
+                    "description": "Parent span identifier (null for root spans)"
+                },
+                "sessionId": {
+                    "$ref": "SessionId.json",
+                    "description": "Session identifier for grouping related traces"
+                },
+                "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Human-readable span name"
+                },
+                "kind": {
+                    "$ref": "#/$defs/SpanKind",
+                    "description": "Span kind"
+                },
+                "startTimeUnixNano": {
+                    "$ref": "UnixNano.json",
+                    "description": "Start timestamp in nanoseconds since epoch"
+                },
+                "endTimeUnixNano": {
+                    "$ref": "UnixNano.json",
+                    "description": "End timestamp in nanoseconds since epoch"
+                },
+                "durationNs": {
+                    "$ref": "DurationNs.json",
+                    "description": "Duration in nanoseconds"
+                },
+                "statusCode": {
+                    "$ref": "#/$defs/StatusCode",
+                    "description": "Span status code"
+                },
+                "statusMessage": {
+                    "type": "string",
+                    "description": "Status message (only for ERROR status)"
+                },
+                "serviceName": {
+                    "type": "string",
+                    "description": "Service name from resource attributes"
+                },
+                "genAiSystem": {
+                    "type": "string",
+                    "description": "GenAI provider/system (e.g., openai, anthropic)"
+                },
+                "genAiRequestModel": {
+                    "type": "string",
+                    "description": "Requested model name"
+                },
+                "genAiResponseModel": {
+                    "type": "string",
+                    "description": "Actual response model name"
+                },
+                "genAiInputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Input/prompt tokens"
+                },
+                "genAiOutputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Output/completion tokens"
+                },
+                "genAiTemperature": {
+                    "$ref": "Temperature.json",
+                    "description": "Request temperature"
+                },
+                "genAiStopReason": {
+                    "type": "string",
+                    "description": "Response finish reason"
+                },
+                "genAiToolName": {
+                    "type": "string",
+                    "description": "Tool name for tool calls"
+                },
+                "genAiToolCallId": {
+                    "type": "string",
+                    "description": "Tool call ID"
+                },
+                "genAiCostUsd": {
+                    "$ref": "CostUsd.json",
+                    "description": "Estimated cost in USD"
+                },
+                "attributesJson": {
+                    "type": "string",
+                    "description": "All span attributes as JSON"
+                },
+                "resourceJson": {
+                    "type": "string",
+                    "description": "Resource attributes as JSON"
+                },
+                "createdAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Row creation timestamp"
+                }
+            },
+            "required": [
+                "spanId",
+                "traceId",
+                "name",
+                "kind",
+                "startTimeUnixNano",
+                "endTimeUnixNano",
+                "durationNs",
+                "statusCode"
+            ],
+            "description": "OpenTelemetry span record for storage and query",
+            "$defs": {
+                "SpanKind": {
+                    "type": "number",
+                    "enum": [
+                        0,
+                        1,
+                        2,
+                        3,
+                        4,
+                        5
+                    ],
+                    "description": "Span kind describing the relationship between spans"
+                },
+                "StatusCode": {
+                    "type": "number",
+                    "enum": [
+                        0,
+                        1,
+                        2
+                    ],
+                    "description": "Span status code"
+                }
+            }
+        },
+        "SessionSummary": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "SessionSummary.json",
+            "type": "object",
+            "properties": {
+                "sessionId": {
+                    "$ref": "SessionId.json",
+                    "description": "Session identifier"
+                },
+                "startTime": {
+                    "$ref": "UnixNano.json",
+                    "description": "First span timestamp"
+                },
+                "endTime": {
+                    "$ref": "UnixNano.json",
+                    "description": "Last span timestamp"
+                },
+                "spanCount": {
+                    "$ref": "Count.json",
+                    "description": "Total span count"
+                },
+                "errorCount": {
+                    "$ref": "Count.json",
+                    "description": "Error span count"
+                },
+                "totalInputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Total input tokens"
+                },
+                "totalOutputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Total output tokens"
+                },
+                "totalCostUsd": {
+                    "$ref": "CostUsd.json",
+                    "description": "Total cost in USD"
+                },
+                "serviceName": {
+                    "type": "string",
+                    "description": "Primary service name"
+                },
+                "genAiSystem": {
+                    "type": "string",
+                    "description": "Primary GenAI provider"
+                },
+                "genAiModel": {
+                    "type": "string",
+                    "description": "Primary model used"
+                }
+            },
+            "required": [
+                "sessionId",
+                "startTime",
+                "endTime",
+                "spanCount",
+                "errorCount",
+                "totalInputTokens",
+                "totalOutputTokens",
+                "totalCostUsd"
+            ],
+            "description": "Session summary with aggregated metrics"
+        },
+        "TraceNode": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "TraceNode.json",
+            "type": "object",
+            "properties": {
+                "span": {
+                    "$ref": "SpanRecord.json",
+                    "description": "Span data"
+                },
+                "children": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "TraceNode.json"
+                    },
+                    "description": "Child spans"
+                },
+                "depth": {
+                    "type": "integer",
+                    "minimum": -2147483648,
+                    "maximum": 2147483647,
+                    "description": "Depth in tree (0 = root)"
+                }
+            },
+            "required": [
+                "span",
+                "children",
+                "depth"
+            ],
+            "description": "Trace tree node for hierarchical span display"
+        },
+        "GenAiSpanData": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "GenAiSpanData.json",
+            "type": "object",
+            "properties": {
+                "system": {
+                    "type": "string",
+                    "description": "Provider/system name"
+                },
+                "requestModel": {
+                    "type": "string",
+                    "description": "Requested model"
+                },
+                "responseModel": {
+                    "type": "string",
+                    "description": "Response model"
+                },
+                "inputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Input tokens"
+                },
+                "outputTokens": {
+                    "$ref": "TokenCount.json",
+                    "description": "Output tokens"
+                },
+                "temperature": {
+                    "$ref": "Temperature.json",
+                    "description": "Temperature"
+                },
+                "stopReason": {
+                    "type": "string",
+                    "description": "Finish reason"
+                },
+                "toolName": {
+                    "type": "string",
+                    "description": "Tool name"
+                },
+                "toolCallId": {
+                    "type": "string",
+                    "description": "Tool call ID"
+                },
+                "costUsd": {
+                    "$ref": "CostUsd.json",
+                    "description": "Estimated cost"
+                }
+            },
+            "description": "Extracted GenAI attributes from a span"
+        }
+    }
+}

@@ -5,7 +5,7 @@ import {Sidebar} from './Sidebar';
 import {TopBar} from './TopBar';
 import {useLiveStream} from '@/hooks/use-telemetry';
 import {useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
-import type {Span} from '@/types';
+import type {SpanRecord} from '@/types';
 
 export function DashboardLayout() {
     const navigate = useNavigate();
@@ -63,7 +63,7 @@ export function DashboardLayout() {
 interface DashboardContext {
     isLive: boolean;
     timeRange: string;
-    recentSpans: Span[];
+    recentSpans: SpanRecord[];
     reconnect: () => void;
 }
 

@@ -12,10 +12,8 @@ using Serilog;
     InvokedTargets = [nameof(ITest.Test)],
     FetchDepth = 0)]
 sealed class Build : NukeBuild,
-    IRestore,
     IVersionize,
     ICoverage,
-    ITestContainers,
     IDockerBuild,
     IDockerCompose,
     IFrontend,

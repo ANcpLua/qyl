@@ -84,8 +84,8 @@ public sealed class MtpArgumentsBuilder
         return AddOption("--report-junit-filename", filename);
     }
 
-    public MtpArgumentsBuilder ResultsDirectory(AbsolutePath path)
-        => AddOption("--results-directory", path.ToString());
+    // NOTE: --results-directory is a 'dotnet test' arg, not MTP.
+    // It must come BEFORE the -- separator in ITest.cs
 
     public MtpArgumentsBuilder StopOnFail() => AddFlag("--stop-on-fail");
 

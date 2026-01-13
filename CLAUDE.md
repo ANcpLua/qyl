@@ -114,22 +114,37 @@ private static readonly JsonSerializerOptions s_options = new() { /* ... */ };
 
 ---
 
-## Code Generation
+## Code Generation (God Schema)
 
-**Single Source of Truth**: `eng/build/Domain/CodeGen/QylSchema.cs`
+**Single Source of Truth**: `schema/main.tsp` (TypeSpec)
 
-| Generator | Output | Location |
-|-----------|--------|----------|
-| CSharpGenerator | `*.g.cs` | protocol/, collector/Storage/ |
-| TypeScriptGenerator | `models.ts` | dashboard/src/types/generated/ |
-| DuckDbGenerator | `DuckDbSchema.g.cs` | collector/Storage/ |
+```
+schema/main.tsp
+     │
+     ├─► nuke TypeSpecCompile ──► schema/generated/openapi.yaml
+     │                                    │
+     │                                    ├─► npm run generate:ts ──► dashboard/src/types/api.ts
+     │                                    └─► nuke Generate ──► protocol/*.g.cs, collector/Storage/*.g.cs
+     │
+     └─► x-extensions in OpenAPI provide target-specific hints:
+         • x-csharp-type: C# type mapping
+         • x-duckdb-type: DuckDB column type
+         • x-primitive: Marks strongly-typed wrappers
+```
+
+| Pipeline Step | Command | Output |
+|---------------|---------|--------|
+| TypeSpec → OpenAPI | `nuke TypeSpecCompile` | `schema/generated/openapi.yaml` |
+| OpenAPI → TypeScript | `npm run generate:ts` | `dashboard/src/types/api.ts` |
+| OpenAPI → C# | `nuke Generate` | `protocol/*.g.cs`, `collector/Storage/*.g.cs` |
 
 ```bash
-nuke Generate                 # All generators
+nuke TypeSpecCompile          # TypeSpec → OpenAPI
+nuke Generate                 # OpenAPI → C#/DuckDB
 nuke Generate --ForceGenerate # Overwrite existing
 ```
 
-**Never edit `*.g.cs` files manually.**
+**Never edit generated files manually** (`*.g.cs`, `api.ts`, `openapi.yaml`).
 
 ---
 
