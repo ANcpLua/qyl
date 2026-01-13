@@ -17,18 +17,51 @@ core/specs/*.tsp → core/openapi/openapi.yaml → dashboard/src/types/api.ts
 
 ```
 core/
-├── specs/              # TypeSpec source files
-│   ├── main.tsp        # Entry point
-│   ├── tspconfig.yaml  # Compiler config
-│   ├── api/            # HTTP route definitions
-│   ├── common/         # Shared types
-│   ├── domains/        # Domain models (genai, etc.)
-│   └── otel/           # OpenTelemetry models
-├── openapi/            # Generated output
-│   └── openapi.yaml    # OpenAPI 3.1 spec (188KB)
-└── schemas/            # JSON Schema output
-    └── qyl-telemetry   # Schema bundle
+├── specs/                    # TypeSpec source files (50+ models)
+│   ├── main.tsp              # Entry point with all imports
+│   ├── tspconfig.yaml        # Compiler config
+│   ├── api/                  # HTTP route definitions
+│   │   ├── routes.tsp        # REST endpoints
+│   │   └── streaming.tsp     # SSE streaming endpoints
+│   ├── common/               # Shared infrastructure
+│   │   ├── types.tsp         # Base types, scalars
+│   │   ├── errors.tsp        # Error models
+│   │   └── pagination.tsp    # Pagination utilities
+│   ├── otel/                 # OpenTelemetry core models
+│   │   ├── enums.tsp         # SpanKind, StatusCode
+│   │   ├── resource.tsp      # Resource attributes
+│   │   ├── span.tsp          # Span model
+│   │   ├── logs.tsp          # Log records
+│   │   └── metrics.tsp       # Metrics model
+│   └── domains/              # OTel semantic convention domains
+│       ├── ai/               # gen_ai.*, code.*, cli.*
+│       ├── security/         # network.*, dns.*, tls.*
+│       ├── transport/        # http.*, rpc.*, messaging.*, signalr.*
+│       ├── infra/            # host.*, container.*, k8s.*, cloud.*
+│       ├── runtime/          # process.*, thread.*, dotnet.*, aspnetcore.*
+│       ├── data/             # db.*, file.*, elasticsearch.*, vcs.*
+│       ├── observe/          # session.*, browser.*, feature_flag.*
+│       ├── ops/              # cicd.*, deployment.*
+│       └── identity/         # user.*, geo.*
+├── openapi/                  # Generated output
+│   └── openapi.yaml          # OpenAPI 3.1 spec
+└── schemas/                  # JSON Schema output
+    └── qyl-telemetry         # Schema bundle
 ```
+
+## Domain Coverage
+
+| Domain | Files | OTel Namespaces |
+|--------|-------|-----------------|
+| AI | 3 | `gen_ai.*`, `code.*`, `cli.*` |
+| Security | 4 | `network.*`, `dns.*`, `tls.*`, `security_rule.*` |
+| Transport | 7 | `http.*`, `rpc.*`, `messaging.*`, `url.*`, `signalr.*`, `kestrel.*`, `user_agent.*` |
+| Infrastructure | 7 | `host.*`, `container.*`, `k8s.*`, `cloud.*`, `faas.*`, `os.*`, `webengine.*` |
+| Runtime | 5 | `process.*`, `system.*`, `thread.*`, `dotnet.*`, `aspnetcore.*` |
+| Data | 5 | `db.*`, `file.*`, `elasticsearch.*`, `vcs.*`, `artifact.*` |
+| Observe | 8 | `session.*`, `browser.*`, `feature_flag.*`, `exception.*`, `otel.*`, `log.*`, `error.*`, `test.*` |
+| Ops | 2 | `cicd.*`, `deployment.*` |
+| Identity | 2 | `user.*`, `geo.*` |
 
 ## Commands
 
@@ -44,6 +77,9 @@ nuke TypeSpecInfo
 
 # Delete all generated files
 nuke TypeSpecClean
+
+# Direct compilation (for debugging)
+cd core/specs && npm run compile
 ```
 
 ### Dashboard Type Generation
@@ -83,6 +119,9 @@ gen_ai.usage.completion_tokens → gen_ai.usage.output_tokens
 | `@typespec/compiler` | 1.7.0 | Core compiler |
 | `@typespec/http` | 1.7.0 | HTTP decorators |
 | `@typespec/openapi3` | 1.7.0 | OpenAPI emitter |
+| `@typespec/versioning` | 1.7.0 | API versioning |
+| `@typespec/sse` | 1.7.0 | Server-Sent Events |
+| `@typespec/events` | 1.7.0 | Event definitions |
 | `openapi-typescript` | 7.x | TypeScript types from OpenAPI |
 
 ## Troubleshooting
@@ -101,3 +140,6 @@ cd core/specs && npm install --legacy-peer-deps
 ```bash
 nuke TypeSpecClean && nuke TypeSpecCompile
 ```
+
+### Stream warnings (expected)
+TypeSpec emits warnings about `streams-not-supported` for SSE endpoints - these are informational only (OpenAPI 3.1 limitation, full support in 3.2).
