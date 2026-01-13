@@ -14,7 +14,7 @@ Your App ──OTLP──► qyl.collector ──DuckDB──► Storage
 ## Quick Start
 
 ```bash
-# Start the collector (generates auth token on first run)
+# Start the collector
 dotnet run --project src/qyl.collector
 
 # Output:
@@ -23,7 +23,6 @@ dotnet run --project src/qyl.collector
 #   Dashboard:   http://localhost:5100
 #   OTLP gRPC:   localhost:4317
 #   OTLP HTTP:   localhost:5100/v1/traces
-#   Token:       abc123...
 ```
 
 Point any OpenTelemetry SDK at `localhost:4317` (gRPC) or `localhost:5100/v1/traces` (HTTP).
@@ -36,6 +35,58 @@ Point any OpenTelemetry SDK at `localhost:4317` (gRPC) or `localhost:5100/v1/tra
 | Agents can't introspect their own behavior | MCP server lets Claude query its own traces |
 | External databases add operational overhead | Embedded DuckDB — single binary, zero config |
 | Token costs are invisible | First-class token tracking with cost attribution |
+
+## Architecture
+
+```
+schema/main.tsp (TypeSpec)
+     │
+     └─► openapi.yaml
+              │
+              ├─► C# types (protocol/*.g.cs)
+              ├─► DuckDB schema (collector/Storage/*.g.cs)
+              └─► TypeScript (dashboard/src/types/api.ts)
+```
+
+### Components
+
+| Component | Port | Purpose |
+|-----------|------|---------|
+| `qyl.collector` | 5100 (HTTP), 4317 (gRPC) | OTLP ingestion, REST API, SSE streaming |
+| `qyl.dashboard` | 5173 | React 19 SPA for visualization |
+| `qyl.mcp` | stdio | MCP server for AI agent integration |
+| `qyl.protocol` | — | Shared type contracts (BCL only) |
+
+### Dependency Graph
+
+```
+dashboard ──HTTP──► collector ◄──HTTP── mcp
+                        │
+                        ▼
+                    protocol (BCL only)
+```
+
+## Schema-First Development
+
+TypeSpec is the **single source of truth**. All types flow from `schema/main.tsp`:
+
+```bash
+# Generate everything from TypeSpec
+./eng/build.sh Generate
+
+# Or with force overwrite
+./eng/build.sh Generate --igenerate-force-generate true
+```
+
+This generates:
+- `schema/generated/openapi.yaml` — OpenAPI 3.1 spec
+- `src/qyl.protocol/Primitives/Scalars.g.cs` — Strongly-typed IDs
+- `src/qyl.protocol/Enums/Enums.g.cs` — OTel enums
+- `src/qyl.protocol/Models/*.g.cs` — Domain models
+- `src/qyl.collector/Storage/DuckDbSchema.g.cs` — DDL
+- `src/qyl.dashboard/src/types/api.ts` — TypeScript types
+
+**Never edit `*.g.cs` or generated TypeScript files manually.**
 
 ## Features
 
@@ -54,14 +105,13 @@ qyl understands OpenTelemetry's [gen_ai semantic conventions](https://openteleme
 qyl exposes telemetry to AI agents via the [Model Context Protocol](https://modelcontextprotocol.io/):
 
 ```json
-// Claude can call these tools to understand its own behavior
 {
   "tools": [
-    "qyl.search_agent_runs",   // Find runs by provider/model/error
-    "qyl.get_agent_run",       // Get single run details
-    "qyl.get_token_usage",     // Token usage by agent/model
-    "qyl.list_errors",         // Recent errors with stack traces
-    "qyl.get_latency_stats"    // P50/P95/P99 latency
+    "qyl.search_agent_runs",
+    "qyl.get_agent_run",
+    "qyl.get_token_usage",
+    "qyl.list_errors",
+    "qyl.get_latency_stats"
   ]
 }
 ```
@@ -80,22 +130,57 @@ DuckDB provides:
 - **Columnar**: Fast analytical queries on telemetry data
 - **Portable**: Single file, easy backup and migration
 
-## Architecture
+## Development
 
-| Component | Port | Purpose |
-|-----------|------|---------|
-| `qyl.collector` | 5100 (HTTP), 4317 (gRPC) | OTLP ingestion, REST API, SSE streaming |
-| `qyl.dashboard` | 5173 | React SPA for visualization |
-| `qyl.mcp` | stdio | MCP server for AI agent integration |
-| `qyl.protocol` | — | Shared type contracts |
+### Prerequisites
 
-### Dependency Graph
+- .NET 10 SDK
+- Node.js 22+
+- Docker (for integration tests)
 
+### Commands
+
+```bash
+# Build everything
+./eng/build.sh Compile
+
+# Run all tests (140 tests)
+./eng/build.sh Test
+
+# Run with coverage
+./eng/build.sh Coverage
+
+# Start development environment
+./eng/build.sh Dev
+
+# Full CI pipeline
+./eng/build.sh Full
 ```
-dashboard ──HTTP──► collector ◄──HTTP── mcp
-                        │
-                        ▼
-                    protocol (BCL only)
+
+### Running Locally
+
+```bash
+# Terminal 1: Collector
+dotnet run --project src/qyl.collector
+
+# Terminal 2: Dashboard
+cd src/qyl.dashboard && npm run dev
+
+# Terminal 3: Send test traces
+# Point any OTLP exporter at localhost:4317
+```
+
+### Code Generation
+
+```bash
+# Compile TypeSpec → OpenAPI
+./eng/build.sh TypeSpecCompile
+
+# Generate C#/DuckDB from OpenAPI
+./eng/build.sh Generate --igenerate-force-generate true
+
+# Generate TypeScript types
+cd src/qyl.dashboard && npm run generate:ts
 ```
 
 ## Configuration
@@ -104,7 +189,6 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
 |---------------------|---------|-------------|
 | `QYL_PORT` | `5100` | HTTP/REST API port |
 | `QYL_GRPC_PORT` | `4317` | OTLP gRPC port |
-| `QYL_TOKEN` | (generated) | Dashboard auth token |
 | `QYL_DATA_PATH` | `qyl.duckdb` | DuckDB file location |
 
 ## API Endpoints
@@ -120,7 +204,7 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/v1/sessions` | GET | List sessions with optional filters |
+| `/api/v1/sessions` | GET | List sessions with filters |
 | `/api/v1/sessions/{id}` | GET | Get session details |
 | `/api/v1/sessions/{id}/spans` | GET | Get spans for session |
 | `/api/v1/traces/{traceId}` | GET | Get trace tree |
@@ -133,45 +217,48 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
 | `/mcp/manifest` | GET | MCP tool manifest |
 | `/mcp/tools/call` | POST | Execute MCP tool |
 
-## Tech Stack
-
-- **Runtime**: .NET 10 / C# 14
-- **Storage**: DuckDB (embedded columnar database)
-- **Frontend**: React 19, Vite 6, Tailwind 4, TanStack Query 5
-- **Protocols**: OpenTelemetry (OTLP), Model Context Protocol (MCP)
-- **SDK**: ANcpLua.NET.Sdk 1.6.2
-- **Testing**: xUnit v3 + Microsoft Testing Platform (MTP)
-
-## Development
-
-```bash
-# Run collector
-dotnet run --project src/qyl.collector
-
-# Run dashboard (separate terminal)
-cd src/qyl.dashboard && npm run dev
-
-# Run tests
-dotnet test
-
-# Generate code from schema
-nuke Generate --ForceGenerate
-```
-
 ## Project Structure
 
 ```
 qyl/
+├── schema/                      # TypeSpec (SSOT)
+│   ├── main.tsp                 # Entry point
+│   ├── primitives.tsp           # TraceId, SpanId, etc.
+│   ├── enums.tsp                # SpanKind, StatusCode
+│   ├── models.tsp               # SpanRecord, SessionSummary
+│   ├── api.tsp                  # REST API schemas
+│   └── generated/               # Build output
+│       └── openapi.yaml
 ├── src/
-│   ├── qyl.protocol/     # Shared types (BCL only, leaf dependency)
-│   ├── qyl.collector/    # Backend: OTLP ingestion, DuckDB, REST API
-│   ├── qyl.mcp/          # MCP server for AI agent integration
-│   └── qyl.dashboard/    # React 19 SPA
+│   ├── qyl.protocol/            # Shared types (BCL only)
+│   │   ├── Primitives/*.g.cs
+│   │   ├── Enums/*.g.cs
+│   │   └── Models/*.g.cs
+│   ├── qyl.collector/           # Backend
+│   │   ├── Storage/DuckDbSchema.g.cs
+│   │   └── Ingestion/
+│   ├── qyl.mcp/                 # MCP server
+│   └── qyl.dashboard/           # React 19 SPA
+│       └── src/types/api.ts
 ├── tests/
 │   └── qyl.collector.tests/
 └── eng/
-    └── build/Domain/CodeGen/  # Schema → code generators
+    └── build/                   # NUKE build system
+        └── Domain/CodeGen/      # OpenAPI generators
 ```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Runtime | .NET 10 / C# 14 |
+| Schema | TypeSpec → OpenAPI 3.1 |
+| Storage | DuckDB (embedded columnar) |
+| Frontend | React 19, Vite 6, Tailwind 4, TanStack Query 5 |
+| Protocols | OpenTelemetry (OTLP), Model Context Protocol (MCP) |
+| Build | NUKE |
+| Testing | xUnit v3 + Microsoft Testing Platform |
+| SDK | ANcpLua.NET.Sdk 1.6.2 |
 
 ## License
 

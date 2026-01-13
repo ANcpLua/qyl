@@ -39,10 +39,11 @@ jobs:
 
       - name: Test
         run: |
+          # .NET 10 uses Microsoft Testing Platform (MTP), not VSTest
+          # MTP arguments go after -- separator
           dotnet test --configuration Release --no-build \
-            --verbosity normal \
-            --logger "trx;LogFileName=test-results.trx" \
-            --results-directory ./TestResults
+            --results-directory ./TestResults \
+            -- --report-trx --report-trx-filename test-results.trx
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -80,7 +81,13 @@ jobs:
 
       - name: Test
         working-directory: src/qyl.dashboard
-        run: npm run test -- --run --reporter=verbose
+        run: |
+          # Skip if no test files exist (vitest exits 1 with no tests)
+          if find . -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
+            npm run test -- --run --reporter=verbose
+          else
+            echo "No test files found, skipping tests"
+          fi
 
       - name: Build
         working-directory: src/qyl.dashboard
@@ -114,9 +121,16 @@ jobs:
 
       - name: Run tests with coverage
         working-directory: src/qyl.dashboard
-        run: npm run test:coverage
+        run: |
+          # Skip if no test files exist
+          if find . -name "*.test.ts" -o -name "*.spec.ts" | grep -q .; then
+            npm run test:coverage
+          else
+            echo "No test files found, skipping coverage"
+          fi
 
       - name: Upload coverage report
+        if: hashFiles('src/qyl.dashboard/coverage/**') != ''
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
