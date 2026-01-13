@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T06:07:10.6799280+00:00
+//     Generated: 2026-01-13T06:38:41.3817060+00:00
 //     Models for Qyl.Models
 // =============================================================================
 // To modify: update TypeSpec in schema/ then run: nuke Generate
@@ -65,35 +65,35 @@ public sealed record SessionSummary
 {
     /// <summary>Session identifier</summary>
     [JsonPropertyName("sessionId")]
-    public global::Qyl.Common.SessionId SessionId { get; init; }
+    public required global::Qyl.Common.SessionId SessionId { get; init; }
 
     /// <summary>First span timestamp</summary>
     [JsonPropertyName("startTime")]
-    public global::Qyl.Common.UnixNano StartTime { get; init; }
+    public required global::Qyl.Common.UnixNano StartTime { get; init; }
 
     /// <summary>Last span timestamp</summary>
     [JsonPropertyName("endTime")]
-    public global::Qyl.Common.UnixNano EndTime { get; init; }
+    public required global::Qyl.Common.UnixNano EndTime { get; init; }
 
     /// <summary>Total span count</summary>
     [JsonPropertyName("spanCount")]
-    public global::Qyl.Common.Count SpanCount { get; init; }
+    public required global::Qyl.Common.Count SpanCount { get; init; }
 
     /// <summary>Error span count</summary>
     [JsonPropertyName("errorCount")]
-    public global::Qyl.Common.Count ErrorCount { get; init; }
+    public required global::Qyl.Common.Count ErrorCount { get; init; }
 
     /// <summary>Total input tokens</summary>
     [JsonPropertyName("totalInputTokens")]
-    public global::Qyl.Common.TokenCount TotalInputTokens { get; init; }
+    public required global::Qyl.Common.TokenCount TotalInputTokens { get; init; }
 
     /// <summary>Total output tokens</summary>
     [JsonPropertyName("totalOutputTokens")]
-    public global::Qyl.Common.TokenCount TotalOutputTokens { get; init; }
+    public required global::Qyl.Common.TokenCount TotalOutputTokens { get; init; }
 
     /// <summary>Total cost in USD</summary>
     [JsonPropertyName("totalCostUsd")]
-    public global::Qyl.Common.CostUsd TotalCostUsd { get; init; }
+    public required global::Qyl.Common.CostUsd TotalCostUsd { get; init; }
 
     /// <summary>Primary service name</summary>
     [JsonPropertyName("serviceName")]
@@ -114,11 +114,11 @@ public sealed record SpanRecord
 {
     /// <summary>Unique span identifier</summary>
     [JsonPropertyName("spanId")]
-    public global::Qyl.Common.SpanId SpanId { get; init; }
+    public required global::Qyl.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("traceId")]
-    public global::Qyl.Common.TraceId TraceId { get; init; }
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parentSpanId")]
@@ -130,27 +130,27 @@ public sealed record SpanRecord
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]
-    public string Name { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>Span kind</summary>
     [JsonPropertyName("kind")]
-    public global::Qyl.Enums.SpanKind Kind { get; init; }
+    public required global::Qyl.Enums.SpanKind Kind { get; init; }
 
     /// <summary>Start timestamp in nanoseconds since epoch</summary>
     [JsonPropertyName("startTimeUnixNano")]
-    public global::Qyl.Common.UnixNano StartTimeUnixNano { get; init; }
+    public required global::Qyl.Common.UnixNano StartTimeUnixNano { get; init; }
 
     /// <summary>End timestamp in nanoseconds since epoch</summary>
     [JsonPropertyName("endTimeUnixNano")]
-    public global::Qyl.Common.UnixNano EndTimeUnixNano { get; init; }
+    public required global::Qyl.Common.UnixNano EndTimeUnixNano { get; init; }
 
     /// <summary>Duration in nanoseconds</summary>
     [JsonPropertyName("durationNs")]
-    public global::Qyl.Common.DurationNs DurationNs { get; init; }
+    public required global::Qyl.Common.DurationNs DurationNs { get; init; }
 
     /// <summary>Span status code</summary>
     [JsonPropertyName("statusCode")]
-    public global::Qyl.Enums.StatusCode StatusCode { get; init; }
+    public required global::Qyl.Enums.StatusCode StatusCode { get; init; }
 
     /// <summary>Status message (only for ERROR status)</summary>
     [JsonPropertyName("statusMessage")]
@@ -219,11 +219,11 @@ public sealed record TraceNode
 {
     /// <summary>Span data</summary>
     [JsonPropertyName("span")]
-    public global::Qyl.Models.SpanRecord Span { get; init; }
+    public required global::Qyl.Models.SpanRecord Span { get; init; }
 
     /// <summary>Child spans</summary>
     [JsonPropertyName("children")]
-    public IReadOnlyList<global::Qyl.Models.TraceNode> Children { get; init; }
+    public required IReadOnlyList<global::Qyl.Models.TraceNode> Children { get; init; }
 
     /// <summary>Depth in tree (0 = root)</summary>
     [JsonPropertyName("depth")]

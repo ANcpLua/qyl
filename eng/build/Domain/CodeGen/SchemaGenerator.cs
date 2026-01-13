@@ -280,10 +280,12 @@ public static class SchemaGenerator
                 var propName = EscapeKeyword(ToPascalCase(prop.Name));
                 var propType = GetCSharpType(prop, unionTypes);
                 var nullable = prop.IsRequired ? "" : "?";
+                // Required non-nullable reference types need 'required' to satisfy CS8618
+                var required = prop.IsRequired && IsReferenceType(propType) ? "required " : "";
 
                 AppendXmlDoc(sb, prop.Description, "    ");
                 sb.AppendLine(CultureInfo.InvariantCulture, $"    [JsonPropertyName(\"{prop.Name}\")]");
-                sb.AppendLine(CultureInfo.InvariantCulture, $"    public {propType}{nullable} {propName} {{ get; init; }}");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"    public {required}{propType}{nullable} {propName} {{ get; init; }}");
                 sb.AppendLine();
             }
 
@@ -449,6 +451,12 @@ public static class SchemaGenerator
         "object" => "IDictionary<string, object>",
         _ => "object"
     };
+
+    static bool IsReferenceType(string propType) =>
+        propType is "string" or "object" ||
+        propType.StartsWith("IReadOnlyList<", StringComparison.Ordinal) ||
+        propType.StartsWith("IDictionary<", StringComparison.Ordinal) ||
+        propType.StartsWith("global::", StringComparison.Ordinal);
 
     static string GetDuckDbType(SchemaProperty prop, OpenApiSchema schema)
     {

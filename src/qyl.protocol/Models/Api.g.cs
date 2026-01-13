@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T06:07:10.6797040+00:00
+//     Generated: 2026-01-13T06:38:41.3814630+00:00
 //     Models for Qyl.Api
 // =============================================================================
 // To modify: update TypeSpec in schema/ then run: nuke Generate
@@ -20,11 +20,11 @@ public sealed record ApiError
 {
     /// <summary>Error code</summary>
     [JsonPropertyName("code")]
-    public string Code { get; init; }
+    public required string Code { get; init; }
 
     /// <summary>Error message</summary>
     [JsonPropertyName("message")]
-    public string Message { get; init; }
+    public required string Message { get; init; }
 
     /// <summary>Additional details</summary>
     [JsonPropertyName("details")]
