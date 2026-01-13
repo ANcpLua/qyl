@@ -39,8 +39,9 @@ packages/
 *.svclog
 *.scc
 
-# Build tools
-.nuke/
+# Build tools (keep .nuke/parameters.json for NUKE root detection)
+.nuke/temp/
+.nuke/build.schema.json
 
 # Node.js / npm
 node_modules/
