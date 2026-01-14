@@ -36,15 +36,18 @@ enum GenAiVersions {
   @doc("Deprecated gen_ai.system (OTel 1.37)")
   v1_37: "1.37.0",
 
-  @doc("Current version with full agent support (OTel 1.38)")
+  @doc("GenAI.Agent support (OTel 1.38)")
   v1_38: "1.38.0",
+
+  @doc("Current version (OTel 1.39)")
+  v1_39: "1.39.0",
 }
 
 // =============================================================================
-// GenAI Span Attributes (Complete OTel v1.38)
+// GenAI Span Attributes (Complete OTel v1.39)
 // =============================================================================
 
-@doc("GenAI span attributes following OTel Semantic Conventions v1.38")
+@doc("GenAI span attributes following OTel Semantic Conventions v1.39")
 model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
   // Provider & System (REQUIRED)

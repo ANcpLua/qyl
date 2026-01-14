@@ -8,7 +8,7 @@
   <!-- OTel Configuration -->
   <PropertyGroup>
     <QylOTelEnabled Condition="'$(QylOTelEnabled)' == ''">true</QylOTelEnabled>
-    <QylOTelSemConvVersion>1.38.0</QylOTelSemConvVersion>
+    <QylOTelSemConvVersion>1.39.0</QylOTelSemConvVersion>
     <QylJsonNamingPolicy>SnakeCaseLower</QylJsonNamingPolicy>
   </PropertyGroup>
 

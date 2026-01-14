@@ -38,6 +38,8 @@ public static class SchemaVersion
 public readonly record struct SemconvVersion(string Version, string SchemaUrl)
 {
     public static readonly SemconvVersion V1_38_0 = new("1.38.0", "https://opentelemetry.io/schemas/1.38.0");
+    public static readonly SemconvVersion V1_39_0 = new("1.39.0", "https://opentelemetry.io/schemas/1.39.0");
+    public static readonly SemconvVersion Current = V1_39_0;
 
     /// <summary>Get the schema URL for this version.</summary>
     public Uri ToSchemaUrl() => new(SchemaUrl);

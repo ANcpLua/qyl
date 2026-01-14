@@ -105,11 +105,11 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         return new OllamaChatRequest
         {
             Model = options?.ModelId ?? _defaultModel,
-            Messages = messages.Select(m => new OllamaMessage
+            Messages = [.. messages.Select(m => new OllamaMessage
             {
                 Role = m.Role.Value,
                 Content = m.Text ?? string.Empty
-            }).ToList(),
+            })],
             Stream = stream,
             Options = options?.Temperature is { } temp
                 ? new OllamaOptions { Temperature = temp }

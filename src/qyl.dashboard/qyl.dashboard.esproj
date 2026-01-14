@@ -42,7 +42,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Script Include="src\components\LiveTail.tsx"/>
         <Script Include="vitest.config.ts"/>
     </ItemGroup>
 

@@ -85,24 +85,24 @@ public sealed class ReplayTools
                  """)]
     public async Task<string> GetSessionTranscriptAsync(
         [Description("The session ID to get transcript for")]
-        string session_id)
+        string sessionId)
     {
         try
         {
             var response = await _client.GetFromJsonAsync<SpanListResponse>(
-                $"/api/v1/sessions/{Uri.EscapeDataString(session_id)}/spans",
+                $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count == 0)
-                return $"Session '{session_id}' not found or has no spans";
+                return $"Session '{sessionId}' not found or has no spans";
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Session Transcript: {session_id}");
+            sb.AppendLine($"# Session Transcript: {sessionId}");
             sb.AppendLine($"Total Spans: {response.Items.Count}");
             sb.AppendLine();
 
             // Sort by start time
-            var sortedSpans = response.Items.OrderBy(s => s.StartTimeUnixNano).ToList();
+            var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
 
             foreach (var span in sortedSpans)
             {
@@ -166,11 +166,7 @@ public sealed class ReplayTools
     {
         try
         {
-            var response = await _client.GetFromJsonAsync<TraceResponse>(
-                $"/api/v1/traces/{Uri.EscapeDataString(trace_id)}",
-                ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false);
-
-            if (response is null)
+            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(trace_id)}", ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
                 return $"Trace '{trace_id}' not found";
 
             var sb = new StringBuilder();
@@ -223,7 +219,7 @@ public sealed class ReplayTools
                 $"/api/v1/sessions/{Uri.EscapeDataString(session_id)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
-            if (response?.Items is null || response.Items.Count == 0)
+            if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{session_id}' not found or has no spans";
 
             var errorSpans = response.Items.Where(s => s.StatusCode == 2).ToList();

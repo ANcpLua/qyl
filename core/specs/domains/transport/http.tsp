@@ -25,15 +25,18 @@ enum HttpVersions {
   @doc("Stable HTTP semconv")
   v1_23: "1.23.0",
 
-  @doc("Current HTTP semconv")
+  @doc("HTTP semconv v1.38")
   v1_38: "1.38.0",
+
+  @doc("Current HTTP semconv")
+  v1_39: "1.39.0",
 }
 
 // =============================================================================
-// HTTP Span Attributes (Complete OTel v1.38)
+// HTTP Span Attributes (Complete OTel v1.39)
 // =============================================================================
 
-@doc("HTTP span attributes following OTel Semantic Conventions v1.38")
+@doc("HTTP span attributes following OTel Semantic Conventions v1.39")
 model HttpAttributes {
   // ---------------------------------------------------------------------------
   // Common Attributes (Client & Server)

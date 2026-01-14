@@ -32,7 +32,7 @@ dashboard ──HTTP──► collector ◄──HTTP── mcp
 - **Runtime:** .NET 10 / C# 14
 - **SDK:** ANcpLua.NET.Sdk@1.1.8
 - **Storage:** DuckDB.NET.Data.Full@1.4.3
-- **OTel:** Semantic Conventions v1.38.0
+- **OTel:** Semantic Conventions v1.39.0
 - **Frontend:** React 19, Vite 6, Tailwind 4, TanStack Query 5
 
 ---

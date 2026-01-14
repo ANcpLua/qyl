@@ -20,7 +20,7 @@ partial interface IClaudeContext : IHasSolution
         .Description("Compiles the CLAUDE.md dependency chain into a flattened context file")
         .Executes(() =>
         {
-            Log.Information("🧠 Compiler started: Resolving Dependency Graph...");
+            Log.Information("Compiler started: Resolving Dependency Graph...");
 
             var chain = ResolveLinkedList(LeafClaude, (List<AbsolutePath>)[]);
 
@@ -122,8 +122,7 @@ partial interface IClaudeContext : IHasSolution
     private Dictionary<string, string> ParseNode(AbsolutePath path)
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var regex = new Regex(@"^##\s+(?<header>.+?)\r?\n(?<content>.*?)(?=^##|\z)",
-            RegexOptions.Multiline | RegexOptions.Singleline);
+        var regex = MyRegex();
 
         foreach (Match match in regex.Matches(path.ReadAllText()))
         {
@@ -145,7 +144,7 @@ partial interface IClaudeContext : IHasSolution
         sb.AppendLine("");
         sb.AppendLine();
 
-        var sortedKeys = context.Keys.OrderBy(k =>
+        var sortedKeys = context.Keys.OrderBy(static k =>
             k.Contains("Security", StringComparison.Ordinal) ? 0 :
             k.Contains("Commands", StringComparison.Ordinal) ? 1 : 99);
 
@@ -161,7 +160,9 @@ partial interface IClaudeContext : IHasSolution
     }
 
     /// <summary>Extracts path from @import "path" directive.</summary>
-    [GeneratedRegex(@"^@import\s+""(?<path>.+)""", RegexOptions.Multiline)]
+    [GeneratedRegex("""
+                    ^@import\s+"(?<path>.+)"
+                    """, RegexOptions.Multiline)]
     private static partial Regex ImportPathRegex();
 
     /// <summary>Strips @import directives from content.</summary>
@@ -173,4 +174,8 @@ partial interface IClaudeContext : IHasSolution
         public required string Content;
         public bool Locked;
     }
+
+    [GeneratedRegex(@"^##\s+(?<header>.+?)\r?\n(?<content>.*?)(?=^##|\z)",
+        RegexOptions.Multiline | RegexOptions.Singleline)]
+    private static partial Regex MyRegex();
 }

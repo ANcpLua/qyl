@@ -3,7 +3,7 @@
 [![CI](https://github.com/ancplua/qyl/actions/workflows/ci.yml/badge.svg)](https://github.com/ancplua/qyl/actions/workflows/ci.yml)
 [![.NET 10](https://img.shields.io/badge/.NET-10.0-512BD4)](https://dotnet.microsoft.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-1.38-blueviolet)](https://opentelemetry.io/)
+[![OpenTelemetry](https://img.shields.io/badge/OpenTelemetry-1.39-blueviolet)](https://opentelemetry.io/)
 
 **AI Observability for AI Agents** — An OpenTelemetry backend purpose-built for `gen_ai.*` semantic conventions.
 
@@ -97,7 +97,7 @@ This generates:
 
 ### GenAI-Native Telemetry
 
-qyl understands OpenTelemetry's [gen_ai semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) (v1.38):
+qyl understands OpenTelemetry's [gen_ai semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/) (v1.39):
 
 - **Token usage**: `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`
 - **Model attribution**: `gen_ai.request.model`, `gen_ai.response.model`

@@ -9,6 +9,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 {
     // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named ($param_name).
     private const string InsertSpanSql = """
+                                         -- noinspection SqlNoDataSourceInspectionForFile
                                          INSERT INTO spans (
                                              trace_id, span_id, parent_span_id,
                                              name, kind, start_time, end_time, status_code, status_message,
@@ -135,6 +136,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                                          """;
 
     private readonly CancellationTokenSource _cts = new();
+    private readonly string _databasePath;
     private readonly Counter<long> _droppedJobs;
     private readonly Counter<long> _droppedSpans;
     private readonly bool _isInMemory;
@@ -156,6 +158,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         int maxConcurrentReads = 8,
         int maxRetainedReadConnections = 16)
     {
+        _databasePath = databasePath;
         _isInMemory = databasePath == ":memory:";
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
@@ -528,6 +531,52 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
 
         return new GenAiStats();
+    }
+
+    /// <summary>
+    ///     Gets the approximate storage size in bytes.
+    ///     For file-based databases, returns the file size.
+    ///     For in-memory databases, queries DuckDB's internal memory usage.
+    /// </summary>
+    public long GetStorageSizeBytes()
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+            return 0;
+
+        // For file-based databases, use file size (fast, no DB query needed)
+        if (!_isInMemory)
+        {
+            try
+            {
+                var fileInfo = new FileInfo(_databasePath);
+                if (fileInfo.Exists)
+                    return fileInfo.Length;
+            }
+            catch
+            {
+                // Fall through to return 0 if file access fails
+            }
+
+            return 0;
+        }
+
+        // For in-memory databases, query DuckDB's memory usage via PRAGMA
+        try
+        {
+            using var cmd = Connection.CreateCommand();
+            cmd.CommandText = "SELECT database_size FROM pragma_database_size()";
+            var result = cmd.ExecuteScalar();
+            if (result is long size)
+                return size;
+            if (result is string sizeStr && long.TryParse(sizeStr, out var parsed))
+                return parsed;
+        }
+        catch
+        {
+            // Return 0 if query fails
+        }
+
+        return 0;
     }
 
     #region Logs Methods

@@ -3,18 +3,18 @@ using qyl.collector.Ingestion;
 namespace qyl.collector.tests.Ingestion;
 
 /// <summary>
-///     Unit tests for SchemaNormalizer - OTel 1.38 attribute migration.
-///     Tests VS-01 acceptance criteria: Deprecated attributes migrated to v1.38.
+///     Unit tests for SchemaNormalizer - OTel 1.39 attribute migration.
+///     Tests VS-01 acceptance criteria: Deprecated attributes migrated to v1.39.
 /// </summary>
 public sealed class SchemaNormalizerTests
 {
     #region Schema Version
 
     [Fact]
-    public void SchemaVersion_IsOtel138()
+    public void SchemaVersion_IsOtel139()
     {
-        Assert.Equal("1.38.0", OtlpSchemaVersion.Version);
-        Assert.Equal("https://opentelemetry.io/schemas/1.38.0", OtlpSchemaVersion.SchemaUrl);
+        Assert.Equal("1.39.0", OtlpSchemaVersion.Version);
+        Assert.Equal("https://opentelemetry.io/schemas/1.39.0", OtlpSchemaVersion.SchemaUrl);
     }
 
     #endregion

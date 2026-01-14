@@ -56,7 +56,7 @@ prompt: |
   - Invalid span structures
   - OTLP parsing errors
 
-  Reference v1.38.0 spec.
+  Reference v1.39.0 spec.
 ```
 
 ### Agent DELTA: Type Safety

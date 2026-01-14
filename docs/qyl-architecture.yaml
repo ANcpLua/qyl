@@ -22,7 +22,7 @@ meta:
   version: 1.0.0
   target_framework: net10.0
   language_version: "C# 14"
-  otel_semconv_version: "1.38.0"
+  otel_semconv_version: "1.39.0"
   solution: "qyl.slnx"  # VS 17.12+
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -547,11 +547,11 @@ storage:
       use_case: "P/Invoke + bundled DuckDB"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# OTEL SEMANTIC CONVENTIONS v1.38
+# OTEL SEMANTIC CONVENTIONS v1.39
 # ═══════════════════════════════════════════════════════════════════════════════
 
 otel_semconv:
-  version: "1.38.0"
+  version: "1.39.0"
 
   gen_ai_attributes:
     current:

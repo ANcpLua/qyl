@@ -12,7 +12,7 @@ namespace Components;
 interface ITest : ICompile
 {
     [Parameter("Test filter expression (xUnit v3 query syntax)")]
-    string? TestFilter => TryGetValue<string?>(() => TestFilter);
+    string? TestFilter => TryGetValue(() => TestFilter);
 
     [Parameter("Stop on first test failure")]
     bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
@@ -20,9 +20,7 @@ interface ITest : ICompile
     [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     Project[] TestProjects =>
-        Solution.AllProjects
-            .Where(p => p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
-            .ToArray();
+        [.. Solution.AllProjects.Where(p => p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)];
 
     Target SetupTestcontainers => d => d
         .Description("Configure Testcontainers for CI")

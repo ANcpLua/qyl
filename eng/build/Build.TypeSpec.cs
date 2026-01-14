@@ -81,7 +81,7 @@ interface ITypeSpec : IHasSolution
         .Description("Show TypeSpec God Schema configuration and status")
         .Executes(() =>
         {
-            var paths = BuildPaths.From(this);
+            BuildPaths.From(this);
 
             Log.Information("══════════════════════════════════════════════════════════════");
             Log.Information("  qyl TypeSpec God Schema Configuration");

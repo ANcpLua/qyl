@@ -27,7 +27,7 @@ All primitives implement `ISpanParsable<T>`, `IEquatable<T>`, `IComparable<T>`.
 | `SpanRecord`     | Core span representation (storage + API)  |
 | `SessionSummary` | Aggregated session metrics                |
 | `TraceNode`      | Hierarchical trace tree node              |
-| `GenAiSpanData`  | Extracted gen_ai.* attributes (OTel 1.38) |
+| `GenAiSpanData`  | Extracted gen_ai.* attributes (OTel 1.39) |
 
 ### Contracts/
 
