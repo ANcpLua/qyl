@@ -76,7 +76,7 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.1.0"/>
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0"/>
-    <!-- Analyzers (required by ANcpLua.NET.Sdk 1.6.2) -->
+    <!-- Analyzers (required by ANcpLua.NET.Sdk 1.6.3) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101"/>
     <PackageVersion Include="ANcpLua.Analyzers" Version="1.6.1"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4"/>

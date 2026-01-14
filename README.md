@@ -263,7 +263,7 @@ qyl/
 | Protocols | OpenTelemetry (OTLP), Model Context Protocol (MCP) |
 | Build | NUKE |
 | Testing | xUnit v3 + Microsoft Testing Platform |
-| SDK | ANcpLua.NET.Sdk 1.6.2 |
+| SDK | ANcpLua.NET.Sdk 1.6.3 |
 
 ## License
 

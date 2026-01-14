@@ -153,9 +153,9 @@ nuke Generate --ForceGenerate # Overwrite existing
 | Layer    | Technology                                     |
 |----------|------------------------------------------------|
 | Runtime  | .NET 10 / C# 14                                |
-| SDK      | ANcpLua.NET.Sdk 1.6.2 (from nuget.org)         |
+| SDK      | ANcpLua.NET.Sdk 1.6.3 (from nuget.org)         |
 | Storage  | DuckDB.NET.Data.Full                           |
-| OTel     | Semantic Conventions v1.38.0                   |
+| OTel     | Semantic Conventions v1.39.0                   |
 | Frontend | React 19, Vite 6, Tailwind 4, TanStack Query 5 |
 | Testing  | xUnit v3 + Microsoft Testing Platform (MTP)    |
 

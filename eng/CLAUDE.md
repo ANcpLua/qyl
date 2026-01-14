@@ -123,14 +123,14 @@ interface IOpenApiGenerator
 ## MSBuild Infrastructure
 
 `eng/MSBuild/Shared.props` provides OTel configuration:
-- `QylOTelSemConvVersion` = 1.38.0
+- `QylOTelSemConvVersion` = 1.39.0
 - Global usings for `System.Diagnostics` and `System.Diagnostics.Metrics`
 
 `eng/build/Directory.Build.props` relaxes analyzer rules for build automation code (RS0030 disabled, AOT not required, XML docs optional).
 
 ## SDK Configuration
 
-qyl uses ANcpLua.NET.Sdk 1.6.2 from nuget.org:
+qyl uses ANcpLua.NET.Sdk 1.6.3 from nuget.org:
 
 | File | Purpose |
 |------|---------|
