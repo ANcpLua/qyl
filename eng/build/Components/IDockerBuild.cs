@@ -37,12 +37,12 @@ interface IDockerBuild : IHasSolution
                     .SetPath(RootDirectory)
                     .EnablePull()
                     .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1")
-                    .CombineWith(ImageSpecs, (settings, img) => settings
+                    .CombineWith(ImageSpecs, static (settings, img) => settings
                         .SetFile(img.Dockerfile)
                         .SetTag(img.Tag)),
                 ParallelBuild ? 2 : 1);
 
-            foreach (var img in ImageSpecs) Log.Information("Built: {Tag}", img.Tag);
+            foreach (var (_, _, tag) in ImageSpecs) Log.Information("Built: {Tag}", tag);
         });
 
     Target DockerBuildCollector => d => d
@@ -55,13 +55,13 @@ interface IDockerBuild : IHasSolution
 
     Target DockerImagePush => d => d
         .Description("Push Docker images to registry")
-        .DependsOn<IDockerBuild>(x => x.DockerImageBuild)
+        .DependsOn<IDockerBuild>(static x => x.DockerImageBuild)
         .Executes(() =>
         {
             Log.Information("Pushing images to registry: {Registry}", Registry);
 
             DockerPush(s => s
-                    .CombineWith(ImageSpecs, (settings, img) => settings.SetName(img.Tag)),
+                    .CombineWith(ImageSpecs, static (settings, img) => settings.SetName(img.Tag)),
                 ParallelBuild ? 2 : 1);
 
             Log.Information("Images pushed successfully");

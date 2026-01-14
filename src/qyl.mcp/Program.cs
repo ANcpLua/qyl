@@ -10,13 +10,15 @@ builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
 builder.Services.AddSingleton<ITelemetryStore>(InMemoryTelemetryStore.Instance);
 
-// HTTP client for collector API
+// HTTP client for collector API with resilience (retry, circuit breaker)
 var collectorUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
 builder.Services.AddHttpClient<ReplayTools>(client =>
 {
     client.BaseAddress = new Uri(collectorUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddExtendedHttpClientLogging()
+.AddStandardResilienceHandler();
 
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);

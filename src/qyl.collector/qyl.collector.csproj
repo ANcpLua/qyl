@@ -14,7 +14,6 @@
 
   <ItemGroup>
     <ClaudeCriticalFile Include="Storage/DuckDbStore.cs" Reason="Core persistence - schema changes break data"/>
-    <ClaudeCriticalFile Include="Storage/DuckDbSchema.cs" Reason="DDL definitions - must match DuckDbStore"/>
     <ClaudeCriticalFile Include="Program.cs" Reason="DI registration - service configuration"/>
   </ItemGroup>
 
@@ -43,6 +42,18 @@
     <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
+  </ItemGroup>
+
+  <!-- .NET 10 DI Lifecycle: AsyncState, auto-activation, object pooling -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation"/>
+    <PackageReference Include="Microsoft.Extensions.AsyncState"/>
+    <PackageReference Include="Microsoft.Extensions.ObjectPool.DependencyInjection"/>
   </ItemGroup>
 
   <!-- Core dependencies -->

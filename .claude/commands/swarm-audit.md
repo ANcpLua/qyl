@@ -70,7 +70,7 @@ prompt: |
   MISSION: Validate OpenTelemetry semantic conventions compliance.
 
   CHECK:
-  1. gen_ai.* attribute names match v1.38.0 spec
+  1. gen_ai.* attribute names match v1.39.0 spec
   2. Span naming follows OTel conventions
   3. Resource attributes correct
   4. No custom attributes where standard exists
@@ -196,7 +196,7 @@ prompt: |
 ### Agent 1: Semantic Conventions
 ```yaml
 subagent_type: otel-librarian
-prompt: Verify gen_ai.* attributes match OTel v1.38.0 spec
+prompt: Verify gen_ai.* attributes match OTel v1.39.0 spec
 ```
 
 ### Agent 2: Span Structure

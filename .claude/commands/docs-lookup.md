@@ -25,7 +25,7 @@ prompt: |
   5. Best practices
 
   Context: qyl is building an AI observability platform
-  using OTel gen_ai.* semantic conventions v1.38.0
+  using OTel gen_ai.* semantic conventions v1.39.0
 
   Provide:
   - Relevant convention details

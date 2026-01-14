@@ -246,8 +246,8 @@ public static class CoverageSummaryConverter
             jsonSummary.Files.Add(new CoverageFileDto
             {
                 Path = filePath,
-                Lines = file.Lines.ToList(),
-                Branches = file.Branches.ToList()
+                Lines = [.. file.Lines],
+                Branches = [.. file.Branches]
             });
 
             XElement xmlFile = new("file", new XAttribute("path", filePath));

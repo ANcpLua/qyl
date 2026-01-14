@@ -1,9 +1,10 @@
 // =============================================================================
 // qyl Telemetry DI Extensions - .NET 10 Full Setup
-// Configures logging enrichment, redaction, buffering
+// Configures logging enrichment, redaction, buffering, HTTP logging
 // =============================================================================
 
 using Microsoft.Extensions.Diagnostics.Buffering;
+using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
 using Microsoft.Extensions.Diagnostics.Latency;
 
 namespace qyl.collector.Telemetry;
@@ -25,6 +26,15 @@ public static class TelemetryExtensions
 
         // Configure redaction
         services.AddRedaction(builder => builder.AddQylRedactors());
+
+        // HTTP logging for incoming requests (redaction applied via AddRedaction above)
+        services.AddHttpLogging();
+
+        // Exception summarization for safe error logging
+        services.AddExceptionSummarizer(builder =>
+        {
+            builder.AddHttpProvider();
+        });
 
         // Configure logging with enrichment, redaction, and buffering
         services.AddLogging(logging =>
@@ -82,6 +92,10 @@ public static class TelemetryExtensions
         // Add latency context
         services.AddLatencyContext();
 
+        // AsyncState for request-scoped context across async boundaries
+        services.AddAsyncState();
+        services.AddLogEnricher<SpanContextEnricher>();
+
         return services;
     }
 
@@ -92,6 +106,9 @@ public static class TelemetryExtensions
     public static IApplicationBuilder UseQylTelemetry(this IApplicationBuilder app)
     {
         var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
+
+        // HTTP logging with redaction
+        app.UseHttpLogging();
 
         // Skip latency telemetry in testing environment or when ILatencyContext isn't available
         // WebApplicationFactory with CreateSlimBuilder doesn't properly register all telemetry services

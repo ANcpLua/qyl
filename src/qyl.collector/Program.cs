@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using qyl.collector;
 using qyl.collector.Auth;
 using qyl.collector.Grpc;
+using qyl.collector.Health;
 using qyl.collector.Mapping;
 using qyl.collector.Mcp;
 using qyl.collector.Telemetry;
@@ -68,6 +69,12 @@ builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();
 
+// Health checks with DuckDB connectivity
+builder.Services.AddQylHealthChecks();
+
+// Auto-activation for fail-fast at startup (catch config errors immediately)
+builder.Services.ActivateSingleton<DuckDbStore>();
+
 builder.Services.AddSingleton(sp =>
 {
     var store = sp.GetRequiredService<DuckDbStore>();
@@ -75,6 +82,10 @@ builder.Services.AddSingleton(sp =>
 });
 
 var app = builder.Build();
+
+// Register storage size callback for metrics (bridges DI-managed store with static metrics)
+var duckDbStore = app.Services.GetRequiredService<DuckDbStore>();
+QylMetrics.RegisterStorageSizeCallback(duckDbStore.GetStorageSizeBytes);
 
 // OTLP middleware (before token auth - OTLP has its own auth)
 if (otlpCorsOptions.IsEnabled)
@@ -338,8 +349,33 @@ app.MapPost("/mcp/tools/call", async (McpToolCall call, McpServer mcp, Cancellat
     return response.IsError ? Results.BadRequest(response) : Results.Ok(response);
 });
 
-app.MapGet("/health", () => Results.Ok(new { status = "healthy" }));
-app.MapGet("/ready", () => Results.Ok(new { status = "ready" }));
+// Health check endpoints - use custom handlers that call IHealthCheckService
+app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
+{
+    var healthService = sp.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+    if (healthService is null)
+        return Results.Ok(new HealthResponse("healthy"));
+
+    var result = await healthService.CheckHealthAsync(ct).ConfigureAwait(false);
+    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+        return Results.Ok(new HealthResponse("healthy"));
+
+    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+}).WithName("LivenessCheck");
+
+app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
+{
+    var healthService = sp.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+    if (healthService is null)
+        return Results.Ok(new HealthResponse("ready"));
+
+    var result = await healthService.CheckHealthAsync(
+        c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
+    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+        return Results.Ok(new HealthResponse("ready"));
+
+    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+}).WithName("ReadinessCheck");
 
 app.MapFallback(async context =>
 {
@@ -357,7 +393,6 @@ app.MapFallback(async context =>
     if (File.Exists(indexPath))
         await context.Response.SendFileAsync(indexPath).ConfigureAwait(false);
     else
-
         await context.Response.WriteAsync(GetFallbackHtml()).ConfigureAwait(false);
 });
 

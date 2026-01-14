@@ -1,5 +1,5 @@
 // =============================================================================
-// qyl OTLP Ingestion - OTel GenAI Semantic Conventions v1.38.0
+// qyl OTLP Ingestion - OTel GenAI Semantic Conventions v1.39.0
 // https://opentelemetry.io/docs/specs/semconv/gen-ai/
 // Target: .NET 10 / C# 14
 // =============================================================================
@@ -9,7 +9,7 @@
 namespace qyl.collector.Ingestion;
 
 /// <summary>
-///     OTel GenAI Semantic Conventions v1.38.0 - UTF-8 attribute keys for zero-allocation parsing.
+///     OTel GenAI Semantic Conventions v1.39.0 - UTF-8 attribute keys for zero-allocation parsing.
 ///     Uses direct StartsWith checks for prefix matching (NOT SearchValues which is for substring).
 /// </summary>
 public static class OtlpGenAiAttributes
@@ -430,8 +430,8 @@ public static class OtlpGenAiProviders
 
 public static class OtlpSchemaVersion
 {
-    public const string Version = "1.38.0";
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
+    public const string Version = "1.39.0";
+    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 }
 
 // =============================================================================

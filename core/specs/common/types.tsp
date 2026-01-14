@@ -31,8 +31,11 @@ enum OTelVersion {
   @doc("OTel Semconv v1.30 - Database updates")
   v1_30: "1.30.0",
 
-  @doc("OTel Semconv v1.38 - Current version with GenAI.Agent")
+  @doc("OTel Semconv v1.38 - GenAI.Agent support")
   v1_38: "1.38.0",
+
+  @doc("OTel Semconv v1.39 - Current version (RPC metadata consolidation)")
+  v1_39: "1.39.0",
 }
 
 // =============================================================================

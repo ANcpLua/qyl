@@ -65,7 +65,7 @@ public static class SchemaGenerator
             var fileName = GetFileNameFromNamespace(group.Key);
             files.Add(new GeneratedFile(
                 protocolDir / "Models" / $"{fileName}.g.cs",
-                GenerateModels(group.Key, [.. group])));
+                GenerateModels(group.Key, (List<SchemaDefinition>)[.. group])));
         }
 
         // DuckDB Schema
@@ -85,7 +85,7 @@ public static class SchemaGenerator
     // C# SCALARS - Strongly-typed primitives (TraceId, SpanId, SessionId, etc.)
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateScalars(List<SchemaDefinition> scalars)
+    static string GenerateScalars(IEnumerable<SchemaDefinition> scalars)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Strongly-typed scalar primitives");
@@ -234,7 +234,7 @@ public static class SchemaGenerator
     // C# ENUMS - Integer and string-backed enumerations
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateEnums(List<SchemaDefinition> enums)
+    static string GenerateEnums(IEnumerable<SchemaDefinition> enums)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Enumeration types (OTel 1.38 semconv)");
@@ -376,7 +376,7 @@ public static class SchemaGenerator
     // C# MODELS - Record types with JSON serialization
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateModels(string ns, List<SchemaDefinition> models)
+    static string GenerateModels(string ns, IEnumerable<SchemaDefinition> models)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, $"Models for {ns}");
@@ -478,7 +478,7 @@ public static class SchemaGenerator
     // DUCKDB SCHEMA - DDL generation
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateDuckDb(List<SchemaDefinition> tables, OpenApiSchema schema)
+    static string GenerateDuckDb(IEnumerable<SchemaDefinition> tables, OpenApiSchema schema)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "DuckDB schema definitions");

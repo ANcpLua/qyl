@@ -25,15 +25,18 @@ enum DbVersions {
   @doc("Stable DB semconv with namespace")
   v1_24: "1.24.0",
 
-  @doc("Current DB semconv")
+  @doc("DB semconv v1.38")
   v1_38: "1.38.0",
+
+  @doc("Current DB semconv")
+  v1_39: "1.39.0",
 }
 
 // =============================================================================
-// Database Span Attributes (Complete OTel v1.38)
+// Database Span Attributes (Complete OTel v1.39)
 // =============================================================================
 
-@doc("Database span attributes following OTel Semantic Conventions v1.38")
+@doc("Database span attributes following OTel Semantic Conventions v1.39")
 model DbAttributes {
   // ---------------------------------------------------------------------------
   // System & Connection

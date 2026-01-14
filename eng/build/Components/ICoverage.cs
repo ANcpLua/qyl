@@ -97,9 +97,9 @@ interface ICoverage : ITest
         }
     }
 
-    private static Dictionary<string, object> ParseCoverageSummary(string[] lines)
+    private static Dictionary<string, object> ParseCoverageSummary(IEnumerable<string> lines)
     {
-        Dictionary<string, object> metrics = new();
+        Dictionary<string, object> metrics = [];
 
         foreach (var line in lines)
             if (line.Contains("Line coverage:", StringComparison.Ordinal))

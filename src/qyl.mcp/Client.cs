@@ -134,10 +134,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            $"{GenAiAttributes.InvokeAgent} {agentName}");
-
-        if (activity is null) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.InvokeAgent} {agentName}") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
         activity.SetTag(GenAiAttributes.AgentName, agentName);
@@ -146,10 +143,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            $"{GenAiAttributes.ExecuteTool} {toolName}");
-
-        if (activity is null) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.ExecuteTool} {toolName}") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
         activity.SetTag(GenAiAttributes.ToolName, toolName);
@@ -162,10 +156,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
     {
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            "token_usage");
-
-        if (activity is null) return;
+        if (TelemetryConstants.ActivitySource.StartActivity("token_usage") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
@@ -174,10 +165,7 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackError(string agentName, Exception exception)
     {
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            "error");
-
-        if (activity is null) return;
+        if (TelemetryConstants.ActivitySource.StartActivity("error") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag(GenAiAttributes.ErrorType, exception.GetType().Name);
@@ -237,7 +225,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         }
         catch (Exception ex)
         {
-            var elapsed = TimeProvider.System.GetElapsedTime(startTime);
+            TimeProvider.System.GetElapsedTime(startTime);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
             activity?.AddException(ex);
             _collector.TrackError(_agentName, ex);

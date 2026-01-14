@@ -18,12 +18,12 @@ public static class QylTelemetry
     // ==========================================================================
 
     /// <summary>
-    ///     ActivitySource for distributed tracing with OTel 1.38 schema URL.
+    ///     ActivitySource for distributed tracing with OTel 1.39 schema URL.
     /// </summary>
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.38.0"
+        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
     });
 
     // ==========================================================================
@@ -122,6 +122,19 @@ public static class QylTelemetry
 public static class QylMetrics
 {
     // ==========================================================================
+    // Storage Size Callback (bridging static metrics with DI-managed store)
+    // ==========================================================================
+
+    private static Func<long>? s_storageSizeCallback;
+
+    /// <summary>
+    ///     Registers the callback for storage size metrics.
+    ///     Called during startup after DuckDbStore is instantiated.
+    /// </summary>
+    public static void RegisterStorageSizeCallback(Func<long> callback) =>
+        s_storageSizeCallback = callback;
+
+    // ==========================================================================
     // Counters
     // ==========================================================================
 
@@ -200,7 +213,7 @@ public static class QylMetrics
     public static readonly ObservableGauge<long> StorageSize =
         QylTelemetry.Meter.CreateObservableGauge(
             "qyl.storage.size",
-            () => GetStorageSizeBytes(),
+            GetStorageSizeBytes,
             "By",
             "Approximate storage size in bytes");
 
@@ -251,6 +264,5 @@ public static class QylMetrics
     }
 
     private static long GetStorageSizeBytes() =>
-        // TODO: Implement actual storage size query
-        0;
+        s_storageSizeCallback?.Invoke() ?? 0;
 }

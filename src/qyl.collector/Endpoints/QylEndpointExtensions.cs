@@ -32,7 +32,7 @@ public static class QylEndpointExtensions
         endpoints.MapIngestionEndpoints();
         endpoints.MapConsoleEndpoints();
         endpoints.MapMcpEndpoints();
-        endpoints.MapHealthEndpoints();
+        // Health endpoints are mapped in Program.cs with HealthCheckService integration
         endpoints.MapFeedbackEndpoints();
         endpoints.MapSseEndpoints();
 
@@ -358,26 +358,6 @@ public static class QylEndpointExtensions
             .WithDescription("Execute an MCP tool");
 
         return group;
-    }
-
-    /// <summary>
-    ///     Maps health check endpoints.
-    /// </summary>
-    public static IEndpointRouteBuilder MapHealthEndpoints(this IEndpointRouteBuilder endpoints)
-    {
-        Throw.IfNull(endpoints);
-
-        endpoints.MapGet("/health", () => Results.Ok(new HealthResponse("healthy")))
-            .WithTags("Health")
-            .WithName("HealthCheck")
-            .WithDescription("Liveness probe");
-
-        endpoints.MapGet("/ready", () => Results.Ok(new HealthResponse("ready")))
-            .WithTags("Health")
-            .WithName("ReadinessCheck")
-            .WithDescription("Readiness probe");
-
-        return endpoints;
     }
 
     /// <summary>

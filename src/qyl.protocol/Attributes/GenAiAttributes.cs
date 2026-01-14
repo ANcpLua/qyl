@@ -1,13 +1,13 @@
 // =============================================================================
 // qyl.protocol - GenAI Semantic Convention Attributes
-// OTel 1.38 gen_ai.* attribute constants
+// OTel 1.39 gen_ai.* attribute constants
 // Owner: qyl.protocol | Consumers: collector, mcp
 // =============================================================================
 
 namespace qyl.protocol.Attributes;
 
 /// <summary>
-///     OTel 1.38 GenAI semantic convention attribute keys.
+///     OTel 1.39 GenAI semantic convention attribute keys.
 /// </summary>
 public static class GenAiAttributes
 {
@@ -15,14 +15,14 @@ public static class GenAiAttributes
     // Schema & Instrumentation
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>OTel 1.38 schema URL.</summary>
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
+    /// <summary>OTel 1.39 schema URL.</summary>
+    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 
     /// <summary>ActivitySource name for GenAI instrumentation.</summary>
     public const string SourceName = "OpenTelemetry.Instrumentation.GenAI";
 
     // ═══════════════════════════════════════════════════════════════════════
-    // Provider & System (OTel 1.38)
+    // Provider & System (OTel 1.39)
     // ═══════════════════════════════════════════════════════════════════════
 
     /// <summary>gen_ai.provider.name - The name of the GenAI provider.</summary>

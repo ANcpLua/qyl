@@ -1,7 +1,7 @@
 # core/ — TypeSpec API Contract Pipeline
 
 > **Status:** Active (TypeSpec → OpenAPI → openapi-typescript)
-> **OTel SemConv:** 1.38.0
+> **OTel SemConv:** 1.39.0
 
 ## Architecture
 
@@ -97,7 +97,7 @@ npm run generate:ts   # openapi.yaml → src/types/api.ts
 | `@discriminator("field")` | `@discriminated(#{ envelope: "none" })` |
 | `@encodedName("application/json", "snake_case")` | camelCase JSON |
 
-## OTel 1.38 GenAI Compliance
+## OTel 1.39 GenAI Compliance
 
 **Required attributes:**
 ```

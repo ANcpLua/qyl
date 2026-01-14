@@ -61,8 +61,7 @@ public sealed class QylRequestEnricher : ILogEnricher
 
     public void Enrich(IEnrichmentTagCollector collector)
     {
-        var context = _httpContextAccessor.HttpContext;
-        if (context is null) return;
+        if (_httpContextAccessor.HttpContext is not { } context) return;
 
         // Request identification
         collector.Add("http.request.id", context.TraceIdentifier);

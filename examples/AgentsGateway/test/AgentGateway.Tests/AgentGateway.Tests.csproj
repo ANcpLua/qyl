@@ -12,6 +12,8 @@
     <ItemGroup>
         <!-- xUnit v3 with MTP v2 - replaces xunit.v3, xunit.runner.visualstudio, Microsoft.NET.Test.Sdk -->
         <PackageReference Include="xunit.v3.mtp-v2"/>
+        <!-- Required for TRX reporting in CI (enables report-trx option) -->
+        <PackageReference Include="Microsoft.Testing.Extensions.TrxReport"/>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
         <PackageReference Include="Microsoft.Extensions.Configuration"/>
     </ItemGroup>
