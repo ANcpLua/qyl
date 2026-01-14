@@ -15,7 +15,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     // List Sessions
     // =========================================================================
 
-    public async Task<IReadOnlyList<SessionSummary>> GetSessionsAsync(
+    public async Task<IReadOnlyList<SessionQueryRow>> GetSessionsAsync(
         int limit = 100,
         int offset = 0,
         string? sessionFilter = null,
@@ -54,7 +54,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     // Get Single Session
     // =========================================================================
 
-    public async Task<SessionSummary?> GetSessionAsync(string sessionId, CancellationToken ct = default)
+    public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
         await using var cmd = _connection.CreateCommand();
         cmd.CommandText = """
@@ -332,9 +332,9 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
 
-    private static async Task<List<SessionSummary>> ExecuteSessionQueryAsync(DuckDBCommand cmd, CancellationToken ct)
+    private static async Task<List<SessionQueryRow>> ExecuteSessionQueryAsync(DuckDBCommand cmd, CancellationToken ct)
     {
-        var sessions = new List<SessionSummary>();
+        var sessions = new List<SessionQueryRow>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
 
         while (await reader.ReadAsync(ct))
@@ -350,7 +350,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             var inputTokens = reader.Col(6).GetInt64(0);
             var outputTokens = reader.Col(7).GetInt64(0);
 
-            sessions.Add(new SessionSummary
+            sessions.Add(new SessionQueryRow
             {
                 SessionId = reader.GetString(0),
                 StartTime = startTime,
@@ -430,7 +430,11 @@ public sealed class SessionQueryService(DuckDBConnection connection)
 // DTOs
 // =============================================================================
 
-public sealed record SessionSummary
+/// <summary>
+///     Internal query result for session aggregation.
+///     Not the same as Qyl.Models.SessionQueryRow (protocol type).
+/// </summary>
+public sealed record SessionQueryRow
 {
     public required string SessionId { get; init; }
     public DateTime StartTime { get; init; }
