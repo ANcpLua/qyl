@@ -129,7 +129,7 @@ public static class SpanMapper
 
 public static class SessionMapper
 {
-    public static SessionDto ToDto(SessionSummary summary)
+    public static SessionDto ToDto(SessionQueryRow summary)
     {
         var startTime = summary.StartTime.ToUniversalTime();
         var lastActivity = summary.LastActivity.ToUniversalTime();
@@ -163,15 +163,15 @@ public static class SessionMapper
         };
     }
 
-    public static List<SessionDto> ToDtos(IEnumerable<SessionSummary> summaries) => [.. summaries.Select(ToDto)];
+    public static List<SessionDto> ToDtos(IEnumerable<SessionQueryRow> summaries) => [.. summaries.Select(ToDto)];
 
     public static SessionListResponseDto ToListResponse(
-        IEnumerable<SessionSummary> summaries,
+        IEnumerable<SessionQueryRow> summaries,
         int total,
         bool hasMore) =>
         new() { Sessions = ToDtos(summaries), Total = total, HasMore = hasMore };
 
-    private static List<string> ExtractProviders(SessionSummary summary)
+    private static List<string> ExtractProviders(SessionQueryRow summary)
     {
         var providers = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
