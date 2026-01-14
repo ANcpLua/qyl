@@ -313,7 +313,7 @@ projects:
         types:
           - "index.ts"
           - "api.ts"  # Manual types (deprecated)
-          generated: "Kiota output (DO NOT EDIT)"
+          generated: "Kiota output "
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # DEPENDENCY GRAPH (ENFORCE STRICTLY)

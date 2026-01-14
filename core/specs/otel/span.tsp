@@ -5,11 +5,13 @@
 // =============================================================================
 
 import "@typespec/http";
+import "@typespec/openapi";
 import "../common/types.tsp";
 import "./enums.tsp";
 import "./resource.tsp";
 
 using TypeSpec.Http;
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
@@ -21,6 +23,8 @@ namespace Qyl.OTel.Traces;
 // =============================================================================
 
 @doc("OpenTelemetry Span representing a single operation in a distributed trace")
+@extension("x-duckdb-table", "spans")
+@extension("x-csharp-type", "SpanStorageRow")
 model Span {
   @doc("Unique span identifier (16 hex chars)")
   @key

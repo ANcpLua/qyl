@@ -7,9 +7,11 @@
 
 import "@typespec/versioning";
 import "@typespec/json-schema";
+import "@typespec/openapi";
 
 using TypeSpec.Versioning;
 using TypeSpec.JsonSchema;
+using TypeSpec.OpenAPI;
 
 namespace Qyl.Common;
 
@@ -48,6 +50,9 @@ enum OTelVersion {
 @minLength(32)
 @maxLength(32)
 @example("0af7651916cd43dd8448eb211c80319c")
+@extension("x-duckdb-type", "VARCHAR(32)")
+@extension("x-csharp-struct", true)
+@extension("x-csharp-type", "TraceId")
 scalar TraceId extends string;
 
 @jsonSchema
@@ -56,6 +61,9 @@ scalar TraceId extends string;
 @minLength(16)
 @maxLength(16)
 @example("b7ad6b7169203331")
+@extension("x-duckdb-type", "VARCHAR(16)")
+@extension("x-csharp-struct", true)
+@extension("x-csharp-type", "SpanId")
 scalar SpanId extends string;
 
 @jsonSchema
@@ -73,6 +81,9 @@ scalar TraceState extends string;
 @doc("Unique session identifier")
 @minLength(1)
 @maxLength(128)
+@extension("x-duckdb-type", "VARCHAR(128)")
+@extension("x-csharp-struct", true)
+@extension("x-csharp-type", "SessionId")
 scalar SessionId extends string;
 
 @jsonSchema
@@ -93,16 +104,23 @@ scalar Timestamp extends utcDateTime;
 @jsonSchema
 @doc("Unix timestamp in nanoseconds since epoch")
 @encode(DateTimeKnownEncoding.unixTimestamp, int64)
+@extension("x-duckdb-type", "UBIGINT")
+@extension("x-csharp-struct", true)
+@extension("x-csharp-type", "UnixNano")
 scalar UnixNanos extends utcDateTime;
 
 @jsonSchema
 @doc("Duration in nanoseconds")
 @minValue(0)
+@extension("x-duckdb-type", "UBIGINT")
+@extension("x-csharp-type", "long")
 scalar DurationNs extends int64;
 
 @jsonSchema
 @doc("Duration in milliseconds")
 @minValue(0)
+@extension("x-duckdb-type", "DOUBLE")
+@extension("x-csharp-type", "double")
 scalar DurationMs extends float64;
 
 @jsonSchema
@@ -138,6 +156,8 @@ scalar IpAddress extends string;
 @doc("Network port number (1-65535)")
 @minValue(1)
 @maxValue(65535)
+@extension("x-duckdb-type", "INTEGER")
+@extension("x-csharp-type", "int")
 scalar Port extends int32;
 
 @jsonSchema
@@ -153,29 +173,58 @@ scalar MacAddress extends string;
 @jsonSchema
 @doc("Size in bytes")
 @minValue(0)
+@extension("x-duckdb-type", "BIGINT")
+@extension("x-csharp-type", "long")
 scalar ByteSize extends int64;
 
 @jsonSchema
 @doc("Token count (for LLM operations)")
 @minValue(0)
+@extension("x-duckdb-type", "BIGINT")
+@extension("x-csharp-type", "long")
 scalar TokenCount extends int64;
 
 @jsonSchema
 @doc("Generic non-negative counter")
 @minValue(0)
+@extension("x-duckdb-type", "BIGINT")
+@extension("x-csharp-type", "long")
 scalar Count extends int64;
 
 @jsonSchema
 @doc("Percentage value (0.0 to 100.0)")
 @minValue(0.0)
 @maxValue(100.0)
+@extension("x-duckdb-type", "DOUBLE")
+@extension("x-csharp-type", "double")
 scalar Percentage extends float64;
 
 @jsonSchema
 @doc("Ratio value (0.0 to 1.0)")
 @minValue(0.0)
 @maxValue(1.0)
+@extension("x-duckdb-type", "DOUBLE")
+@extension("x-csharp-type", "double")
 scalar Ratio extends float64;
+
+// =============================================================================
+// GenAI-Specific Scalars
+// =============================================================================
+
+@jsonSchema
+@doc("Cost in USD (floating point)")
+@minValue(0)
+@extension("x-duckdb-type", "DOUBLE")
+@extension("x-csharp-type", "double")
+scalar CostUsd extends float64;
+
+@jsonSchema
+@doc("Temperature setting for LLM requests (0.0-2.0)")
+@minValue(0)
+@maxValue(2)
+@extension("x-duckdb-type", "DOUBLE")
+@extension("x-csharp-type", "double")
+scalar Temperature extends float64;
 
 // =============================================================================
 // Semantic Scalars - Special Purpose Types

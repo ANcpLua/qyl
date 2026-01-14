@@ -5,11 +5,13 @@
 // =============================================================================
 
 import "@typespec/http";
+import "@typespec/openapi";
 import "../common/types.tsp";
 import "./enums.tsp";
 import "./resource.tsp";
 
 using TypeSpec.Http;
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 using Qyl.OTel.Enums;
 using Qyl.OTel.Resource;
@@ -21,6 +23,8 @@ namespace Qyl.OTel.Logs;
 // =============================================================================
 
 @doc("OpenTelemetry Log Record")
+@extension("x-duckdb-table", "logs")
+@extension("x-csharp-type", "LogStorageRow")
 model LogRecord {
   @doc("Timestamp when the event occurred (nanoseconds since epoch)")
   @encodedName("application/json", "time_unix_nano")

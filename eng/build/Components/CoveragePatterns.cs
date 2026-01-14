@@ -23,8 +23,8 @@ public sealed record ExclusionRule(
         MatchesPath(normalizedPath) || MatchesSuffix(normalizedPath);
 
     bool MatchesPath(string path) =>
-        PathContains is { Length: > 0 } paths &&
-        Array.Exists(paths, p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
+        PathContains is { Length: > 0 } &&
+        Array.Exists(PathContains, p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
 
     bool MatchesSuffix(string path) =>
         FileSuffixes is { Length: > 0 } suffixes &&

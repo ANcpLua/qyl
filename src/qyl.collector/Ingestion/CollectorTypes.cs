@@ -29,7 +29,7 @@ public readonly record struct UnixNano(ulong Value)
 public static class SchemaVersion
 {
     /// <summary>Current target schema version.</summary>
-    public static readonly SemconvVersion Current = SemconvVersion.V1_38_0;
+    public static readonly SemconvVersion Current = SemconvVersion.V1_39_0;
 }
 
 /// <summary>
