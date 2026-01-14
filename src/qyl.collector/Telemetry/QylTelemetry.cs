@@ -31,7 +31,7 @@ public static class QylTelemetry
     // ==========================================================================
 
     /// <summary>
-    ///     Meter for metrics collection with OTel 1.38 schema URL.
+    ///     Meter for metrics collection with OTel 1.39 schema URL.
     /// </summary>
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
