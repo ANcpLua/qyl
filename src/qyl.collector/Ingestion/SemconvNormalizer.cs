@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.collector - Semantic Convention Normalizer
-// Normalizes OTel attribute names from any schema version to v1.38.0
+// Normalizes OTel attribute names from any schema version to v1.39.0
 // Owner: qyl.collector | Based on: ADR-003 Semantic Convention Normalization
 // =============================================================================
 
@@ -9,7 +9,7 @@
 namespace qyl.collector.Ingestion;
 
 /// <summary>
-///     Normalizes OpenTelemetry semantic convention attribute names to v1.38.0.
+///     Normalizes OpenTelemetry semantic convention attribute names to v1.39.0.
 ///     Handles telemetry from apps using different SDK versions with different attribute names.
 /// </summary>
 /// <remarks>
@@ -139,7 +139,7 @@ public static class SemconvNormalizer
     public static SemconvVersion TargetVersion => SemconvVersion.V1_38_0;
 
     /// <summary>
-    ///     Normalizes an attribute name to v1.38.0.
+    ///     Normalizes an attribute name to v1.39.0.
     ///     Returns the original name if no rename is needed.
     /// </summary>
     /// <param name="attributeName">The attribute name to normalize.</param>
@@ -148,7 +148,7 @@ public static class SemconvNormalizer
         AttributeRenames.GetValueOrDefault(attributeName, attributeName);
 
     /// <summary>
-    ///     Normalizes an attribute name to v1.38.0.
+    ///     Normalizes an attribute name to v1.39.0.
     ///     Returns the original name if no rename is needed.
     /// </summary>
     /// <param name="attributeName">The attribute name to normalize.</param>

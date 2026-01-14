@@ -23,7 +23,7 @@ meta:
   target_framework: net10.0
   language_version: "C# 14"
   otel_semconv_version: "1.39.0"
-  solution: "qyl.slnx"  # VS 17.12+
+  solution: "qyl.slnx"  # VS 18+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MIGRATION CONTEXT — Current Project Status
@@ -56,7 +56,7 @@ migration_context:
       status: "COMPLETED"
       icon: "✅"
       completed_items:
-        - "DuckDbStore.cs - OTel 1.38 schema with quoted columns"
+        - "DuckDbStore.cs - OTel 1.39 schema with quoted columns"
         - "DuckDbStore.cs - Separate write connection (channel-buffered)"
         - "DuckDbStore.cs - Pooled read connections (ObjectPool + SemaphoreSlim)"
         - "DuckDbStore.cs - ReadLease RAII struct"
@@ -71,7 +71,7 @@ migration_context:
       status: "IN_PROGRESS"
       icon: "⏳"
       current_tasks:
-        - "SessionQueryService.cs - Migrate to OTel 1.38 columns"
+        - "SessionQueryService.cs - Migrate to OTel 1.39 columns"
         - "Program.cs - Wire up DuckDbStore with DI"
         - "Program.cs - Add REST endpoints"
       next_steps:
@@ -196,7 +196,7 @@ projects:
         - "SessionSummary.cs" # Aggregated session
         - "TraceNode.cs"      # Hierarchical trace tree
       Attributes:
-        - "GenAiAttributes.cs"  # OTel 1.38 gen_ai.* constants
+        - "GenAiAttributes.cs"  # OTel 1.39 gen_ai.* constants
       Contracts:
         - "ISpanStore.cs"           # Storage abstraction
         - "ISessionAggregator.cs"   # Aggregation abstraction
@@ -220,7 +220,7 @@ projects:
         - "OtlpJsonSpanParser.cs"   # Zero-allocation JSON parser
         - "OtlpAttributes.cs"       # OTLP attribute constants
         - "OtlpTypes.cs"            # OTLP DTOs
-        - "SchemaNormalizer.cs"     # Migrate deprecated attrs to 1.38
+        - "SchemaNormalizer.cs"     # Migrate deprecated attrs to 1.39
       Storage:
         - "DuckDbStore.cs"    # ISpanStore impl (Lock class)
         - "DuckDbSchema.cs"   # DDL + migrations (SINGLE SOURCE)
@@ -252,7 +252,7 @@ projects:
         - "ParsedSpan.cs"   # Parsed span representation
       root:
         - "Program.cs"              # Entry point, DI, endpoints
-        - "GenAiAttributes.cs"      # OTel 1.38 gen_ai.* constants
+        - "GenAiAttributes.cs"      # OTel 1.39 gen_ai.* constants
         - "GenAiProviders.cs"       # Provider detection from host
         - "GenAiExtractor.cs"       # Extract gen_ai.* attributes
         - "QylSerializerContext.cs" # AOT JsonSerializerContext
@@ -370,13 +370,13 @@ typespec:
         - "spans.tsp"           # SpanRecord, SpanData
         - "sessions.tsp"        # SessionSummary
         - "traces.tsp"          # TraceNode
-        - "genai.tsp"           # GenAiSpanData (OTel 1.38)
+        - "genai.tsp"           # GenAiSpanData (OTel 1.39)
         - "errors.tsp"          # ErrorResponse
       storage:
         - "decorators.tsp"      # @table, @column, @index, @promoted
         - "tables.tsp"          # spans table definition
       otel:
-        - "semconv.tsp"         # gen_ai.* attributes (v1.38)
+        - "semconv.tsp"         # gen_ai.* attributes (v1.39)
         - "resource.tsp"        # service.name, etc.
 
     emitters:
@@ -809,7 +809,7 @@ vertical_slices:
       priority: P0
       depends_on: [ VS-01 ]
       status: IN_PROGRESS
-      current: "SessionQueryService.cs OTel 1.38 migration"
+      current: "SessionQueryService.cs OTel 1.39 migration"
 
     - id: VS-03
       name: "View Trace Tree"

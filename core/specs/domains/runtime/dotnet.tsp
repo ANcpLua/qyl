@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - .NET Runtime Semantic Conventions (OTel v1.38)
+// QYL v2.0 - .NET Runtime Semantic Conventions (OTel v1.39)
 // =============================================================================
 // .NET-specific runtime telemetry attributes and metrics.
 // =============================================================================

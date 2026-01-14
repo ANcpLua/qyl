@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - ASP.NET Core Semantic Conventions (OTel v1.38)
+// QYL v2.0 - ASP.NET Core Semantic Conventions (OTel v1.39)
 // =============================================================================
 // ASP.NET Core web framework telemetry attributes and metrics.
 // =============================================================================

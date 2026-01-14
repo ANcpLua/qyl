@@ -1,11 +1,13 @@
 // =============================================================================
-// QYL v2.0 - Session Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Session Semantic Conventions (OTel v1.39)
 // =============================================================================
 // User session telemetry attributes.
 // =============================================================================
 
+import "@typespec/openapi";
 import "../../common/types.tsp";
 
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 
 namespace Qyl.Domains.Observe.Session;
@@ -61,6 +63,8 @@ enum SessionEventName {
 // =============================================================================
 
 @doc("Complete session entity with aggregated data")
+@extension("x-duckdb-table", "session_entities")
+@extension("x-csharp-type", "SessionEntity")
 model SessionEntity {
   @doc("Session ID")
   @key

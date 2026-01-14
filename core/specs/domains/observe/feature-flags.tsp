@@ -1,6 +1,6 @@
 
 // =============================================================================
-// QYL v2.0 - Feature Flags Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Feature Flags Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Feature flag evaluation telemetry attributes.
 // Aligned with official OTel registry.yaml
@@ -69,10 +69,10 @@ model FeatureFlagObjectValue {
 }
 
 // =============================================================================
-// Feature Flag Attributes (OTel v1.38 registry.yaml)
+// Feature Flag Attributes (OTel v1.39 registry.yaml)
 // =============================================================================
 
-@doc("Feature flag span/event attributes per OTel v1.38")
+@doc("Feature flag span/event attributes per OTel v1.39")
 model FeatureFlagAttributes {
   @doc("The lookup key of the feature flag")
   @encodedName("application/json", "feature_flag.key")
@@ -108,10 +108,10 @@ model FeatureFlagAttributes {
 }
 
 // =============================================================================
-// Feature Flag Result Reason (OTel v1.38 exact values)
+// Feature Flag Result Reason (OTel v1.39 exact values)
 // =============================================================================
 
-@doc("Feature flag result reason codes per OTel v1.38")
+@doc("Feature flag result reason codes per OTel v1.39")
 enum FeatureFlagResultReason {
   @doc("The resolved value is static (no dynamic evaluation)")
   static: "static",

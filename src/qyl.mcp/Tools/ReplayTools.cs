@@ -279,7 +279,7 @@ internal sealed record SessionSummary(
     [property: JsonPropertyName("total_output_tokens")]
     long TotalOutputTokens,
     [property: JsonPropertyName("total_cost_usd")]
-    decimal TotalCostUsd,
+    double TotalCostUsd,
     [property: JsonPropertyName("start_time")]
     string StartTime);
 
@@ -311,7 +311,7 @@ internal sealed record SpanDto(
     [property: JsonPropertyName("gen_ai_output_tokens")]
     long? GenAiOutputTokens,
     [property: JsonPropertyName("gen_ai_cost_usd")]
-    decimal? GenAiCostUsd);
+    double? GenAiCostUsd);
 
 internal sealed record TraceResponse(
     [property: JsonPropertyName("trace_id")]

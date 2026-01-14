@@ -459,11 +459,12 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
 }
 
 // =============================================================================
-// SpanColumn - Type-safe column references (snake_case column names)
+// SpanColumn - Type-safe column references matching DuckDbSchema.g.cs
 // =============================================================================
 
 /// <summary>
-///     Span table columns using snake_case names (no quoting needed).
+///     Span table columns using snake_case names matching the generated schema.
+///     Column names must match DuckDbSchema.SpansDdl exactly.
 /// </summary>
 public readonly struct SpanColumn
 {
@@ -480,91 +481,59 @@ public readonly struct SpanColumn
     // =========================================================================
     // Identity columns
     // =========================================================================
-    public static SpanColumn TraceId => new("trace_id");
     public static SpanColumn SpanId => new("span_id");
+    public static SpanColumn TraceId => new("trace_id");
     public static SpanColumn ParentSpanId => new("parent_span_id");
-
-    // =========================================================================
-    // Temporal columns
-    // =========================================================================
-    public static SpanColumn StartTimeUnixNano => new("start_time_unix_nano");
-    public static SpanColumn EndTimeUnixNano => new("end_time_unix_nano");
-    public static SpanColumn DurationNs => new("duration_ns");
-    public static SpanColumn DurationMs => new("duration_ms");
-    public static SpanColumn StartTime => new("start_time");
-    public static SpanColumn EndTime => new("end_time");
+    public static SpanColumn SessionId => new("session_id");
 
     // =========================================================================
     // Core span columns
     // =========================================================================
     public static SpanColumn Name => new("name");
     public static SpanColumn Kind => new("kind");
+
+    // =========================================================================
+    // Temporal columns (UBIGINT in schema)
+    // =========================================================================
+    public static SpanColumn StartTimeUnixNano => new("start_time_unix_nano");
+    public static SpanColumn EndTimeUnixNano => new("end_time_unix_nano");
+    public static SpanColumn DurationNs => new("duration_ns");
+
+    // =========================================================================
+    // Status columns
+    // =========================================================================
     public static SpanColumn StatusCode => new("status_code");
     public static SpanColumn StatusMessage => new("status_message");
 
     // =========================================================================
-    // Resource attributes (snake_case)
+    // Resource columns
     // =========================================================================
     public static SpanColumn ServiceName => new("service_name");
-    public static SpanColumn ServiceVersion => new("service_version");
-    public static SpanColumn ServiceNamespace => new("service_namespace");
-    public static SpanColumn DeploymentEnvironment => new("deployment_environment");
 
     // =========================================================================
-    // GenAI attributes (snake_case)
+    // GenAI columns (OTel 1.39 semantic conventions)
     // =========================================================================
-    public static SpanColumn GenAiProviderName => new("genai_provider");
-    public static SpanColumn GenAiRequestModel => new("genai_request_model");
-    public static SpanColumn GenAiResponseModel => new("genai_response_model");
-    public static SpanColumn GenAiOperationName => new("genai_operation");
-    public static SpanColumn GenAiInputTokens => new("genai_input_tokens");
-    public static SpanColumn GenAiOutputTokens => new("genai_output_tokens");
-    public static SpanColumn GenAiTemperature => new("genai_temperature");
-    public static SpanColumn GenAiMaxTokens => new("genai_max_tokens");
-    public static SpanColumn GenAiTopP => new("genai_top_p");
-    public static SpanColumn GenAiResponseId => new("genai_response_id");
-    public static SpanColumn GenAiFinishReasons => new("genai_finish_reasons");
+    public static SpanColumn GenAiSystem => new("gen_ai_system");
+    public static SpanColumn GenAiRequestModel => new("gen_ai_request_model");
+    public static SpanColumn GenAiResponseModel => new("gen_ai_response_model");
+    public static SpanColumn GenAiInputTokens => new("gen_ai_input_tokens");
+    public static SpanColumn GenAiOutputTokens => new("gen_ai_output_tokens");
+    public static SpanColumn GenAiTemperature => new("gen_ai_temperature");
+    public static SpanColumn GenAiStopReason => new("gen_ai_stop_reason");
+    public static SpanColumn GenAiToolName => new("gen_ai_tool_name");
+    public static SpanColumn GenAiToolCallId => new("gen_ai_tool_call_id");
+    public static SpanColumn GenAiCostUsd => new("gen_ai_cost_usd");
 
     // =========================================================================
-    // Agent attributes (snake_case)
+    // Flexible storage (JSON columns)
     // =========================================================================
-    public static SpanColumn AgentId => new("agent_id");
-    public static SpanColumn AgentName => new("agent_name");
-    public static SpanColumn ToolName => new("tool_name");
-    public static SpanColumn ToolCallId => new("tool_call_id");
+    public static SpanColumn AttributesJson => new("attributes_json");
+    public static SpanColumn ResourceJson => new("resource_json");
 
     // =========================================================================
-    // Session/User attributes (snake_case)
+    // Metadata
     // =========================================================================
-    public static SpanColumn SessionId => new("session_id");
-    public static SpanColumn UserId => new("user_id");
-    public static SpanColumn HttpRequestId => new("http_request_id");
-
-    // =========================================================================
-    // Error attributes (snake_case)
-    // =========================================================================
-    public static SpanColumn ExceptionType => new("exception_type");
-    public static SpanColumn ExceptionMessage => new("exception_message");
-
-    // =========================================================================
-    // Content references (snake_case)
-    // =========================================================================
-    public static SpanColumn GenAiPromptRef => new("genai_prompt_ref");
-    public static SpanColumn GenAiCompletionRef => new("genai_completion_ref");
-
-    // =========================================================================
-    // Flexible storage
-    // =========================================================================
-    public static SpanColumn Attributes => new("attributes");
-    public static SpanColumn Events => new("events");
-    public static SpanColumn Links => new("links");
-
-    // =========================================================================
-    // qyl extensions
-    // =========================================================================
-    public static SpanColumn CostUsd => new("cost_usd");
-    public static SpanColumn EvalScore => new("eval_score");
-    public static SpanColumn EvalReason => new("eval_reason");
+    public static SpanColumn CreatedAt => new("created_at");
 
     // =========================================================================
     // Factory for custom/dynamic columns
@@ -574,7 +543,7 @@ public readonly struct SpanColumn
     public static SpanColumn Column(string name) => new(name);
 
     /// <summary>Access non-promoted attribute via JSON extraction.</summary>
-    public static string JsonExtract(string attributeKey) => $"attributes->'{attributeKey}'";
+    public static string JsonExtract(string attributeKey) => $"attributes_json->'{attributeKey}'";
 }
 
 // =============================================================================

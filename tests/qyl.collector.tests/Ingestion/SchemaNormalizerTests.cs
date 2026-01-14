@@ -115,7 +115,7 @@ public sealed class SchemaNormalizerTests
 
     #endregion
 
-    #region Token Usage Migration (v1.38)
+    #region Token Usage Migration (v1.39)
 
     [Fact]
     public void Normalize_PromptTokens_MapsToInputTokens()
@@ -151,7 +151,7 @@ public sealed class SchemaNormalizerTests
 
     #endregion
 
-    #region Legacy Agents.* Migration (OTel 1.38)
+    #region Legacy Agents.* Migration (OTel 1.39)
 
     [Fact]
     public void Normalize_LegacyAgentsAgentId_MapsToGenAiAgentId()

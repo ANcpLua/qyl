@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl OTLP Conversion - Single Source of Truth for OTLP → SpanStorageRow
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.38.0
+// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
 // =============================================================================
 
 using qyl.collector.Grpc;
@@ -99,47 +99,41 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes)
     {
-        // Convert nanoseconds to DateTime (ulong nanoseconds -> ticks, 1 tick = 100ns)
-        var startTime = DateTime.UnixEpoch.AddTicks((long)(span.StartTimeUnixNano / 100));
-        var endTime = DateTime.UnixEpoch.AddTicks((long)(span.EndTimeUnixNano / 100));
+        // Store nanoseconds directly as UBIGINT (ulong)
+        var startNano = span.StartTimeUnixNano;
+        var endNano = span.EndTimeUnixNano;
+        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
 
         // Extract gen_ai attributes with schema normalization (fallback to deprecated names)
-        var (providerName, requestModel, tokensIn, tokensOut) = ExtractGenAiAttributes(attributes);
+        var genAi = ExtractGenAiAttributes(attributes);
 
         return new SpanStorageRow
         {
-            TraceId = span.TraceId ?? "",
             SpanId = span.SpanId ?? "",
+            TraceId = span.TraceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
             SessionId = attributes.GetValueOrDefault("session.id"),
-            ServiceName = serviceName,
             Name = span.Name ?? "unknown",
-            Kind = ConvertSpanKind(span.Kind),
-            StartTime = startTime,
-            EndTime = endTime,
-            StatusCode = span.Status?.Code,
+            Kind = ConvertSpanKindToByte(span.Kind),
+            StartTimeUnixNano = startNano,
+            EndTimeUnixNano = endNano,
+            DurationNs = durationNs,
+            StatusCode = ConvertStatusCodeToByte(span.Status?.Code),
             StatusMessage = string.IsNullOrEmpty(span.Status?.Message) ? null : span.Status.Message,
-            ProviderName = providerName,
-            RequestModel = requestModel,
-            TokensIn = tokensIn,
-            TokensOut = tokensOut,
-            CostUsd = null,
-            Attributes = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            Events = span.Events?.Count > 0 ? SerializeProtoEvents(span.Events) : null
+            ServiceName = serviceName,
+            GenAiSystem = genAi.ProviderName,
+            GenAiRequestModel = genAi.RequestModel,
+            GenAiResponseModel = genAi.ResponseModel,
+            GenAiInputTokens = genAi.TokensIn,
+            GenAiOutputTokens = genAi.TokensOut,
+            GenAiTemperature = genAi.Temperature,
+            GenAiStopReason = genAi.StopReason,
+            GenAiToolName = genAi.ToolName,
+            GenAiToolCallId = genAi.ToolCallId,
+            GenAiCostUsd = genAi.CostUsd,
+            AttributesJson = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+            ResourceJson = null
         };
-    }
-
-    private static string SerializeProtoEvents(List<OtlpSpanEventProto> events)
-    {
-        var eventList = events.Select(e => new OtlpEventJson(
-            e.Name,
-            e.TimeUnixNano,
-            e.Attributes?.ToDictionary(
-                a => a.Key ?? "",
-                a => ConvertAnyValueToString(a.Value))
-        )).ToArray();
-
-        return JsonSerializer.Serialize(eventList, QylSerializerContext.Default.OtlpEventJsonArray);
     }
 
     #endregion
@@ -199,34 +193,40 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes)
     {
-        // Convert nanoseconds to DateTime (ulong nanoseconds -> ticks, 1 tick = 100ns)
-        // Cast to long is safe for DateTime calculation (overflow only in year 30,000+)
-        var startTime = DateTime.UnixEpoch.AddTicks((long)(span.StartTimeUnixNano / 100));
-        var endTime = DateTime.UnixEpoch.AddTicks((long)(span.EndTimeUnixNano / 100));
+        // Store nanoseconds directly as UBIGINT (ulong)
+        var startNano = span.StartTimeUnixNano;
+        var endNano = span.EndTimeUnixNano;
+        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
 
         // Extract gen_ai attributes with schema normalization (fallback to deprecated names)
-        var (providerName, requestModel, tokensIn, tokensOut) = ExtractGenAiAttributes(attributes);
+        var genAi = ExtractGenAiAttributes(attributes);
 
         return new SpanStorageRow
         {
-            TraceId = span.TraceId ?? "",
             SpanId = span.SpanId ?? "",
+            TraceId = span.TraceId ?? "",
             ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
             SessionId = attributes.GetValueOrDefault("session.id"),
-            ServiceName = serviceName,
             Name = span.Name ?? "unknown",
-            Kind = ConvertSpanKind(span.Kind),
-            StartTime = startTime,
-            EndTime = endTime,
-            StatusCode = span.Status?.Code,
+            Kind = ConvertSpanKindToByte(span.Kind),
+            StartTimeUnixNano = startNano,
+            EndTimeUnixNano = endNano,
+            DurationNs = durationNs,
+            StatusCode = ConvertStatusCodeToByte(span.Status?.Code),
             StatusMessage = span.Status?.Message,
-            ProviderName = providerName,
-            RequestModel = requestModel,
-            TokensIn = tokensIn,
-            TokensOut = tokensOut,
-            CostUsd = null,
-            Attributes = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            Events = null // JSON endpoint doesn't include events currently
+            ServiceName = serviceName,
+            GenAiSystem = genAi.ProviderName,
+            GenAiRequestModel = genAi.RequestModel,
+            GenAiResponseModel = genAi.ResponseModel,
+            GenAiInputTokens = genAi.TokensIn,
+            GenAiOutputTokens = genAi.TokensOut,
+            GenAiTemperature = genAi.Temperature,
+            GenAiStopReason = genAi.StopReason,
+            GenAiToolName = genAi.ToolName,
+            GenAiToolCallId = genAi.ToolCallId,
+            GenAiCostUsd = genAi.CostUsd,
+            AttributesJson = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+            ResourceJson = null
         };
     }
 
@@ -235,16 +235,31 @@ public static class OtlpConverter
     #region Shared Helpers
 
     /// <summary>
+    ///     GenAI attribute extraction result.
+    /// </summary>
+    private readonly record struct GenAiData(
+        string? ProviderName,
+        string? RequestModel,
+        string? ResponseModel,
+        long? TokensIn,
+        long? TokensOut,
+        double? Temperature,
+        string? StopReason,
+        string? ToolName,
+        string? ToolCallId,
+        double? CostUsd);
+
+    /// <summary>
     ///     Extracts GenAI attributes with fallback to deprecated OTel 1.38 names.
     /// </summary>
 #pragma warning disable QYL0002 // Fallback to deprecated attributes for backward compatibility
-    private static (string? ProviderName, string? RequestModel, long? TokensIn, long? TokensOut)
-        ExtractGenAiAttributes(Dictionary<string, string> attributes)
+    private static GenAiData ExtractGenAiAttributes(Dictionary<string, string> attributes)
     {
         var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
                            ?? attributes.GetValueOrDefault("gen_ai.system");
 
         var requestModel = attributes.GetValueOrDefault("gen_ai.request.model");
+        var responseModel = attributes.GetValueOrDefault("gen_ai.response.model");
 
         var tokensIn = ParseNullableLong(
             attributes.GetValueOrDefault("gen_ai.usage.input_tokens")
@@ -254,25 +269,52 @@ public static class OtlpConverter
             attributes.GetValueOrDefault("gen_ai.usage.output_tokens")
             ?? attributes.GetValueOrDefault("gen_ai.usage.completion_tokens"));
 
-        return (providerName, requestModel, tokensIn, tokensOut);
+        var temperature = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.request.temperature"));
+        var stopReason = attributes.GetValueOrDefault("gen_ai.response.finish_reason");
+        var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
+        var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
+        var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));
+
+        return new GenAiData(
+            providerName, requestModel, responseModel,
+            tokensIn, tokensOut, temperature, stopReason,
+            toolName, toolCallId, costUsd);
     }
 #pragma warning restore QYL0002
 
-    private static string? ConvertSpanKind(int? kind) =>
-        kind switch
-        {
-            1 => "INTERNAL",
-            2 => "SERVER",
-            3 => "CLIENT",
-            4 => "PRODUCER",
-            5 => "CONSUMER",
-            _ => null
-        };
+    /// <summary>
+    ///     Converts SpanKind int to byte (TINYINT in DuckDB).
+    /// </summary>
+    private static byte ConvertSpanKindToByte(int? kind) => kind switch
+    {
+        1 => 1, // INTERNAL
+        2 => 2, // SERVER
+        3 => 3, // CLIENT
+        4 => 4, // PRODUCER
+        5 => 5, // CONSUMER
+        _ => 0  // UNSPECIFIED
+    };
+
+    /// <summary>
+    ///     Converts StatusCode int to byte (TINYINT in DuckDB).
+    /// </summary>
+    private static byte ConvertStatusCodeToByte(int? code) => code switch
+    {
+        1 => 1, // OK
+        2 => 2, // ERROR
+        _ => 0  // UNSET
+    };
 
     private static long? ParseNullableLong(string? value)
     {
         if (string.IsNullOrEmpty(value)) return null;
         return long.TryParse(value, out var result) ? result : null;
+    }
+
+    private static double? ParseNullableDouble(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return null;
+        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
     }
 
     #endregion
@@ -318,7 +360,8 @@ public static class OtlpConverter
                    ?? log.Body?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
                    ?? log.Body?.BoolValue?.ToString();
 
-        var severityText = log.SeverityText ?? SeverityNumberToText(log.SeverityNumber ?? 0);
+        var severityNumber = log.SeverityNumber ?? 0;
+        var severityText = log.SeverityText ?? SeverityNumberToText(severityNumber);
 
         return new LogStorageRow
         {
@@ -326,9 +369,9 @@ public static class OtlpConverter
             TraceId = string.IsNullOrEmpty(log.TraceId) ? null : log.TraceId,
             SpanId = string.IsNullOrEmpty(log.SpanId) ? null : log.SpanId,
             SessionId = sessionId,
-            TimeUnixNano = (long)log.TimeUnixNano,
-            ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? (long)log.ObservedTimeUnixNano : null,
-            SeverityNumber = log.SeverityNumber ?? 0,
+            TimeUnixNano = log.TimeUnixNano, // ulong - store directly
+            ObservedTimeUnixNano = log.ObservedTimeUnixNano > 0 ? log.ObservedTimeUnixNano : null,
+            SeverityNumber = (byte)Math.Clamp(severityNumber, 0, 24), // TINYINT (byte)
             SeverityText = severityText,
             Body = body,
             ServiceName = serviceName,

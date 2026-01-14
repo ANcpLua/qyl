@@ -34,7 +34,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Assert
         Assert.Equal(0, stats.SpanCount);
         Assert.Equal(0, stats.SessionCount);
-        Assert.Equal(0, stats.FeedbackCount);
+        Assert.Equal(0, stats.LogCount);
     }
 
     [Fact]
@@ -50,24 +50,24 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Contains(("trace_id", "VARCHAR"), columns);
         Assert.Contains(("span_id", "VARCHAR"), columns);
 
-        // Snake_case columns (renamed from OTel dotted names to avoid DuckDB.NET parameter binding bug)
+        // Snake_case columns for new schema
         var names = columns.ConvertAll(c => c.Name);
         Assert.Contains("service_name", names);
         Assert.Contains("session_id", names);
-        Assert.Contains("genai_provider", names);
-        Assert.Contains("genai_input_tokens", names);
-        Assert.Contains("genai_output_tokens", names);
-
-        // Generated column
-        Assert.Contains(("duration_ms", "DOUBLE"), columns);
+        Assert.Contains("gen_ai_system", names);
+        Assert.Contains("gen_ai_input_tokens", names);
+        Assert.Contains("gen_ai_output_tokens", names);
+        Assert.Contains("start_time_unix_nano", names);
+        Assert.Contains("end_time_unix_nano", names);
+        Assert.Contains("duration_ns", names);
     }
 
     [Fact]
-    public async Task InitializeAsync_CreatesSessions_And_FeedbackTables()
+    public async Task InitializeAsync_CreatesSessions_And_LogsTables()
     {
         // Act & Assert
         Assert.True(await _store.Connection.TableExistsAsync("sessions"));
-        Assert.True(await _store.Connection.TableExistsAsync("feedback"));
+        Assert.True(await _store.Connection.TableExistsAsync("logs"));
     }
 
     [Fact]
@@ -123,10 +123,10 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal(TestConstants.TraceDefault, retrieved.TraceId);
         Assert.Equal(TestConstants.SpanDefault, retrieved.SpanId);
         Assert.Equal(TestConstants.SessionDefault, retrieved.SessionId);
-        Assert.Equal(TestConstants.ProviderOpenAi, retrieved.ProviderName);
-        Assert.Equal(TestConstants.TokensInDefault, retrieved.TokensIn);
-        Assert.Equal(TestConstants.TokensOutDefault, retrieved.TokensOut);
-        Assert.Equal(TestConstants.CostDefault, retrieved.CostUsd);
+        Assert.Equal(TestConstants.ProviderOpenAi, retrieved.GenAiSystem);
+        Assert.Equal(TestConstants.TokensInDefault, retrieved.GenAiInputTokens);
+        Assert.Equal(TestConstants.TokensOutDefault, retrieved.GenAiOutputTokens);
+        Assert.Equal((double)TestConstants.CostDefault, retrieved.GenAiCostUsd);
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
             "trace-002",
             TestConstants.SessionMultiple,
             TestConstants.BatchSizeSmall,
-            DateTime.UtcNow);
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         // Act
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
@@ -153,11 +153,11 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task InsertDuplicateSpan_UpdatesExistingRecord()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var span1 = SpanBuilder.Create(TestConstants.TraceDuplicate, TestConstants.SpanDuplicate)
             .WithTiming(now, TestConstants.DurationMediumMs)
-            .WithStatusCode(null)
+            .WithStatusCode(0)
             .WithTokens(TestConstants.TokensInSmall, TestConstants.TokensOutSmall)
             .Build();
 
@@ -179,9 +179,11 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Single(results);
 
         var retrieved = results[0];
-        Assert.Equal(TestConstants.DurationDefaultMs, (retrieved.EndTime - now).TotalMilliseconds, 0.5);
-        Assert.Equal(15, retrieved.TokensIn);
-        Assert.Equal(25, retrieved.TokensOut);
+        // DurationNs should match the second span's duration (100ms = 100_000_000 ns)
+        var expectedDurationNs = (ulong)(TestConstants.DurationDefaultMs * 1_000_000);
+        Assert.Equal(expectedDurationNs, retrieved.DurationNs);
+        Assert.Equal(15, retrieved.GenAiInputTokens);
+        Assert.Equal(25, retrieved.GenAiOutputTokens);
     }
 
     [Fact]
@@ -190,12 +192,11 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Arrange
         var span = SpanBuilder.Minimal(TestConstants.TraceNullable, TestConstants.SpanNullable)
             .WithParentSpanId(null)
-            .WithStatusCode(null)
+            .WithStatusCode(0)
             .WithSessionId(null)
             .WithProvider(null)
             .WithTokens(null, null)
             .WithCost(null)
-            .WithEval(null)
             .Build();
 
         // Act
@@ -206,14 +207,14 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Single(results);
         var retrieved = results[0];
         Assert.Null(retrieved.ParentSpanId);
-        Assert.Null(retrieved.Kind);
-        Assert.Null(retrieved.StatusCode);
+        // Kind and StatusCode are now byte (not nullable) - 0 means unspecified/unset
+        Assert.Equal((byte)0, retrieved.Kind);
+        Assert.Equal((byte)0, retrieved.StatusCode);
         Assert.Null(retrieved.SessionId);
-        Assert.Null(retrieved.ProviderName);
-        Assert.Null(retrieved.TokensIn);
-        Assert.Null(retrieved.TokensOut);
-        Assert.Null(retrieved.CostUsd);
-        Assert.Null(retrieved.EvalScore);
+        Assert.Null(retrieved.GenAiSystem);
+        Assert.Null(retrieved.GenAiInputTokens);
+        Assert.Null(retrieved.GenAiOutputTokens);
+        Assert.Null(retrieved.GenAiCostUsd);
     }
 
     #endregion
@@ -224,7 +225,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task GetTrace_ReturnsAllSpansInTraceOrderedByTime()
     {
         // Arrange
-        var batch = SpanFactory.CreateHierarchy(TestConstants.TraceHierarchy, DateTime.UtcNow);
+        var batch = SpanFactory.CreateHierarchy(TestConstants.TraceHierarchy, TimeProvider.System.GetUtcNow().UtcDateTime);
 
         // Act
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
@@ -263,7 +264,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     {
         // Arrange
         using var tempDir = new TempDirectory();
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = SpanFactory.CreateArchiveTestData(TestConstants.SessionArchive, now);
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
@@ -294,7 +295,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         using var tempDir = new TempDirectory();
         var span = SpanBuilder.Create("trace-recent", "span-recent")
             .WithName("recent")
-            .WithTiming(DateTime.UtcNow, TestConstants.DurationShortMs)
+            .WithTiming(TimeProvider.System.GetUtcNow().UtcDateTime, TestConstants.DurationShortMs)
             .Build();
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
@@ -309,93 +310,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Empty(tempDir.GetParquetFiles());
     }
 
-    [Fact]
-    public async Task QueryParquet_ReadsArchivedFile()
-    {
-        // Arrange
-        using var tempDir = new TempDirectory();
-        var now = DateTime.UtcNow;
-        var oldTime = now.AddDays(-TestConstants.ArchiveDaysOld);
-
-        var batch = new SpanBatch(
-        [
-            SpanBuilder.Create("trace-old1", "span-old1")
-                .WithName("archived")
-                .WithSessionId(TestConstants.SessionArchive)
-                .AtTime(oldTime, 0, TestConstants.DurationMediumMs)
-                .Build(),
-            SpanBuilder.Create("trace-old2", "span-old2")
-                .WithName("archived2")
-                .WithSessionId(TestConstants.SessionArchive)
-                .AtTime(oldTime.AddDays(1), 0, TestConstants.DurationMediumMs)
-                .Build(),
-            SpanBuilder.Create("trace-recent", "span-recent")
-                .WithName("recent")
-                .WithSessionId(TestConstants.SessionArchive)
-                .AtTime(now, 0, TestConstants.DurationShortMs)
-                .Build()
-        ]);
-
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
-
-        // Act
-        await _store.ArchiveToParquetAsync(tempDir.Path, TimeSpan.FromDays(TestConstants.ArchiveCutoffDays));
-        await DuckDbTestHelpers.WaitForArchive();
-
-        var parquetFiles = tempDir.GetParquetFiles();
-        Assert.Single(parquetFiles);
-
-        var archivedSpans = await _store.QueryParquetAsync(parquetFiles[0]);
-
-        // Assert
-        Assert.Equal(2, archivedSpans.Count);
-        Assert.All(archivedSpans, s => Assert.Contains(s.TraceId, TestConstants.ExpectedArchivedTraces));
-    }
-
-    [Fact]
-    public async Task QueryParquet_WithFilters_ReturnsFilteredResults()
-    {
-        // Arrange
-        using var tempDir = new TempDirectory();
-        var oldTime = DateTime.UtcNow.AddDays(-TestConstants.ArchiveDaysOld);
-
-        var batch = new SpanBatch(
-        [
-            SpanBuilder.Create("trace-archive1", "span-a1")
-                .WithName("op1")
-                .WithSessionId("session-a")
-                .AtTime(oldTime, 0, TestConstants.DurationShortMs)
-                .Build(),
-            SpanBuilder.Create("trace-archive1", "span-a2")
-                .WithName("op2")
-                .WithSessionId("session-a")
-                .AtTime(oldTime, 20, TestConstants.DurationShortMs)
-                .Build(),
-            SpanBuilder.Create("trace-archive2", "span-b1")
-                .WithName("op3")
-                .WithSessionId("session-b")
-                .AtTime(oldTime, 40, TestConstants.DurationShortMs)
-                .Build()
-        ]);
-
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
-        await _store.ArchiveToParquetAsync(tempDir.Path, TimeSpan.FromDays(TestConstants.ArchiveCutoffDays));
-        await DuckDbTestHelpers.WaitForArchive();
-
-        var parquetFile = tempDir.GetParquetFiles()[0];
-
-        // Act
-        var byTrace = await _store.QueryParquetAsync(parquetFile, traceId: "trace-archive1");
-        var bySession = await _store.QueryParquetAsync(parquetFile, "session-b");
-
-        // Assert
-        Assert.Equal(2, byTrace.Count);
-        Assert.All(byTrace, s => Assert.Equal("trace-archive1", s.TraceId));
-
-        Assert.Single(bySession);
-        Assert.Equal("session-b", bySession[0].SessionId);
-    }
-
     #endregion
 
     #region Connection Pooling Tests
@@ -408,7 +322,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
             "trace-pool",
             TestConstants.SessionPool,
             TestConstants.BatchSizeLarge,
-            DateTime.UtcNow);
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.ConcurrentReadDelayMs);
 
@@ -428,7 +342,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     {
         // Arrange
         var span = SpanBuilder.Create(TestConstants.TraceLease, "span-lease")
-            .WithTiming(DateTime.UtcNow, TestConstants.DurationShortMs)
+            .WithTiming(TimeProvider.System.GetUtcNow().UtcDateTime, TestConstants.DurationShortMs)
             .Build();
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
@@ -449,7 +363,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task GetSpans_WithMultipleFilters_ReturnsFilteredResults()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var batch = new SpanBatch(
         [
@@ -457,13 +371,13 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
                 .WithName("openai-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now, -120 * 60 * 1000, TestConstants.DurationMediumMs) // 2 hours ago
+                .AtTime(now.AddMinutes(-120), 0, TestConstants.DurationMediumMs) // 2 hours ago
                 .Build(),
             SpanBuilder.Create("trace-f2", "span-f2")
                 .WithName("anthropic-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderAnthropic)
-                .AtTime(now, -60 * 60 * 1000, TestConstants.DurationMediumMs) // 1 hour ago
+                .AtTime(now.AddMinutes(-60), 0, TestConstants.DurationMediumMs) // 1 hour ago
                 .Build(),
             SpanBuilder.Create("trace-f3", "span-f3")
                 .WithName("openai-call2")
@@ -491,14 +405,16 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.All(results, s =>
         {
             Assert.Equal(TestConstants.SessionFilters, s.SessionId);
-            Assert.Equal(TestConstants.ProviderOpenAi, s.ProviderName);
+            Assert.Equal(TestConstants.ProviderOpenAi, s.GenAiSystem);
         });
 
-        // Act - Date range filter
+        // Act - Date range filter (convert DateTime to ulong nanoseconds)
+        var startAfterNano = DateTimeToUnixNano(now.AddMinutes(-30));
+        var startBeforeNano = DateTimeToUnixNano(now.AddMinutes(10));
         var recent = await _store.GetSpansAsync(
             TestConstants.SessionFilters,
-            startAfter: now.AddMinutes(-30),
-            startBefore: now.AddMinutes(10));
+            startAfter: startAfterNano,
+            startBefore: startBeforeNano);
 
         // Assert
         Assert.Single(recent);
@@ -518,7 +434,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
             "trace-shutdown",
             "session-shutdown",
             TestConstants.BatchSizeMedium,
-            DateTime.UtcNow);
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         // Act
         await store.EnqueueAsync(batch);
@@ -549,7 +465,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task GetGenAiStats_AggregatesTokensAndCosts()
     {
         // Arrange
-        var batch = SpanFactory.CreateGenAiStats(TestConstants.SessionStats, DateTime.UtcNow);
+        var batch = SpanFactory.CreateGenAiStats(TestConstants.SessionStats, TimeProvider.System.GetUtcNow().UtcDateTime);
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
@@ -560,28 +476,26 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal(2, stats.RequestCount);
         Assert.Equal(180, stats.TotalInputTokens); // 100 + 80
         Assert.Equal(90, stats.TotalOutputTokens); // 50 + 40
-        Assert.Equal(0.09m, stats.TotalCostUsd); // 0.05 + 0.04
-        Assert.NotNull(stats.AverageEvalScore);
-        Assert.True(stats.AverageEvalScore is >= TestConstants.EvalScoreMedium and <= TestConstants.EvalScoreHigh);
+        Assert.Equal(0.09, stats.TotalCostUsd, 0.001); // 0.05 + 0.04
     }
 
     [Fact]
     public async Task GetGenAiStats_WithDateFilter_ReturnsFilteredStats()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-old-stats", "span-old")
                 .WithName("old-call")
-                .AtTime(now.AddDays(-2))
+                .AtTime(now.AddDays(-2), 0, TestConstants.DurationDefaultMs)
                 .WithTokens(50, 25)
                 .WithCost(TestConstants.CostSmall)
                 .Build(),
             SpanBuilder.GenAi("trace-recent-stats", "span-recent")
                 .WithName("recent-call")
-                .AtTime(now)
+                .AtTime(now, 0, TestConstants.DurationDefaultMs)
                 .WithTokens(100, 50)
                 .WithCost(TestConstants.CostLarge)
                 .Build()
@@ -590,13 +504,14 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var recentStats = await _store.GetGenAiStatsAsync(startAfter: now.AddHours(-1));
+        var startAfterNano = DateTimeToUnixNano(now.AddHours(-1));
+        var recentStats = await _store.GetGenAiStatsAsync(startAfter: startAfterNano);
 
         // Assert
         Assert.Equal(1, recentStats.RequestCount);
         Assert.Equal(100, recentStats.TotalInputTokens);
         Assert.Equal(50, recentStats.TotalOutputTokens);
-        Assert.Equal(TestConstants.CostLarge, recentStats.TotalCostUsd);
+        Assert.Equal((double)TestConstants.CostLarge, recentStats.TotalCostUsd, 0.001);
     }
 
     #endregion
@@ -644,87 +559,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MinimalReproduction_ExactDuckDbStorePattern()
-    {
-        // Test: Use EXACT multi-table schema from DuckDbStore
-        await using var connection = new DuckDBConnection("DataSource=:memory:");
-        connection.Open();
-
-        // Schema WITHOUT sessions table (testing if that's the cause)
-        await using (var createCmd = connection.CreateCommand())
-        {
-            createCmd.CommandText = """
-                                    CREATE TABLE IF NOT EXISTS spans (
-                                        trace_id VARCHAR NOT NULL,
-                                        span_id VARCHAR NOT NULL,
-                                        parent_span_id VARCHAR,
-
-                                        name VARCHAR NOT NULL,
-                                        kind VARCHAR,
-                                        start_time TIMESTAMPTZ NOT NULL,
-                                        end_time TIMESTAMPTZ NOT NULL,
-                                        duration_ms DOUBLE GENERATED ALWAYS AS (
-                                            EXTRACT(EPOCH FROM (end_time - start_time)) * 1000
-                                        ),
-                                        status_code INT,
-                                        status_message VARCHAR,
-
-                                        service_name VARCHAR,
-                                        session_id VARCHAR,
-
-                                        genai_provider VARCHAR,
-                                        genai_request_model VARCHAR,
-                                        genai_response_model VARCHAR,
-                                        genai_operation VARCHAR,
-                                        genai_input_tokens BIGINT,
-                                        genai_output_tokens BIGINT,
-
-                                        cost_usd DECIMAL(10,6),
-                                        eval_score FLOAT,
-                                        eval_reason VARCHAR,
-
-                                        attributes JSON,
-                                        events JSON,
-
-                                        PRIMARY KEY (trace_id, span_id)
-                                    );
-                                    CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (genai_provider);
-                                    """;
-            await createCmd.ExecuteNonQueryAsync();
-        }
-
-        // Insert into spans table
-        await using var tx = await connection.BeginTransactionAsync();
-        await using (var insertCmd = connection.CreateCommand())
-        {
-            insertCmd.Transaction = tx;
-            insertCmd.CommandText = """
-                                    INSERT INTO spans (trace_id, span_id, name, start_time, end_time, session_id)
-                                    VALUES ($1, $2, $3, $4, $5, $6)
-                                    """;
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "trace-exact" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "span-exact" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-op" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow.AddSeconds(1) });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "exact-session" });
-
-            await insertCmd.ExecuteNonQueryAsync();
-        }
-
-        await tx.CommitAsync();
-
-        // Query by session_id - using LIKE workaround for DuckDB.NET bug
-        // where = operator doesn't work correctly for session_id column
-        await using (var queryCmd = connection.CreateCommand())
-        {
-            queryCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id LIKE '%exact-session%'";
-            var found = Convert.ToInt64(await queryCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, found);
-        }
-    }
-
-    [Fact]
     public async Task MinimalReproduction_DirectDuckDb()
     {
         // Minimal test: direct DuckDB without DuckDbStore
@@ -753,69 +587,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
             var count = Convert.ToInt64(await countCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
             Assert.Equal(1, count);
         }
-
-        // Query by session_id with literal
-        await using (var queryCmd = connection.CreateCommand())
-        {
-            queryCmd.CommandText = "SELECT COUNT(*) FROM test_table WHERE session_id = 'test-session'";
-            var found = Convert.ToInt64(await queryCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, found);
-        }
-
-        // Query by session_id with parameter
-        await using (var paramCmd = connection.CreateCommand())
-        {
-            paramCmd.CommandText = "SELECT COUNT(*) FROM test_table WHERE session_id = $1";
-            paramCmd.Parameters.Add(new DuckDBParameter { Value = "test-session" });
-            var foundParam = Convert.ToInt64(await paramCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, foundParam);
-        }
-    }
-
-    [Fact]
-    public async Task MinimalReproduction_WithParameterizedInsert()
-    {
-        // Test: insert with parameters (like DuckDbStore does)
-        await using var connection = new DuckDBConnection("DataSource=:memory:");
-        connection.Open();
-
-        // Create simple table
-        await using (var createCmd = connection.CreateCommand())
-        {
-            createCmd.CommandText = "CREATE TABLE test_table (session_id VARCHAR, trace_id VARCHAR)";
-            await createCmd.ExecuteNonQueryAsync();
-        }
-
-        // Insert data WITH PARAMETERS (like DuckDbStore)
-        await using (var insertCmd = connection.CreateCommand())
-        {
-            insertCmd.CommandText = "INSERT INTO test_table (session_id, trace_id) VALUES ($1, $2)";
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-session" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-trace" });
-            await insertCmd.ExecuteNonQueryAsync();
-        }
-
-        // Verify data exists
-        await using (var countCmd = connection.CreateCommand())
-        {
-            countCmd.CommandText = "SELECT COUNT(*) FROM test_table";
-            var count = Convert.ToInt64(await countCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, count);
-        }
-
-        // Check what was actually stored
-        string? storedSessionId, storedTraceId;
-        await using (var selectCmd = connection.CreateCommand())
-        {
-            selectCmd.CommandText = "SELECT session_id, trace_id FROM test_table";
-            await using var reader = await selectCmd.ExecuteReaderAsync();
-            await reader.ReadAsync();
-            storedSessionId = reader.GetString(0);
-            storedTraceId = reader.GetString(1);
-        }
-
-        Assert.Equal("test-session", storedSessionId);
-        Assert.Equal("test-trace", storedTraceId);
 
         // Query by session_id with literal
         await using (var queryCmd = connection.CreateCommand())
@@ -881,44 +652,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MinimalReproduction_ViaStore()
-    {
-        // Test: Use DuckDbStore's connection directly to insert (bypass WriteBatchAsync)
-        var store = DuckDbTestHelpers.CreateInMemoryStore();
-
-        try
-        {
-            // Insert directly via store.Connection (not through WriteBatchAsync)
-            await using var tx = await store.Connection.BeginTransactionAsync();
-            await using var insertCmd = store.Connection.CreateCommand();
-            insertCmd.Transaction = tx;
-            insertCmd.CommandText = """
-                                    INSERT INTO spans (trace_id, span_id, name, start_time, end_time, session_id)
-                                    VALUES ($1, $2, $3, $4, $5, $6)
-                                    """;
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "trace-direct" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "span-direct" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-op" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow.AddSeconds(1) });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "direct-session" });
-            await insertCmd.ExecuteNonQueryAsync();
-            await tx.CommitAsync();
-
-            // Query by session_id - using LIKE workaround for DuckDB.NET bug
-            await using var queryCmd = store.Connection.CreateCommand();
-            queryCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id LIKE '%direct-session%'";
-            var count = Convert.ToInt64(await queryCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-
-            Assert.Equal(1, count);
-        }
-        finally
-        {
-            await store.DisposeAsync();
-        }
-    }
-
-    [Fact]
     public async Task MinimalReproduction_ViaStore_TraceQuery()
     {
         // Same pattern but using GetTraceAsync instead (should work)
@@ -949,90 +682,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         finally
         {
             await store.DisposeAsync();
-        }
-    }
-
-    [Fact]
-    public async Task MinimalReproduction_WithFullSchema()
-    {
-        // Test: use exact schema from DuckDbStore including indexes
-        await using var connection = new DuckDBConnection("DataSource=:memory:");
-        connection.Open();
-
-        // Create table with exact DuckDbStore schema
-        await using (var createCmd = connection.CreateCommand())
-        {
-            createCmd.CommandText = """
-                                    CREATE TABLE spans (
-                                        trace_id VARCHAR NOT NULL,
-                                        span_id VARCHAR NOT NULL,
-                                        parent_span_id VARCHAR,
-                                        name VARCHAR NOT NULL,
-                                        kind VARCHAR,
-                                        start_time TIMESTAMPTZ NOT NULL,
-                                        end_time TIMESTAMPTZ NOT NULL,
-                                        duration_ms DOUBLE GENERATED ALWAYS AS (
-                                            EXTRACT(EPOCH FROM (end_time - start_time)) * 1000
-                                        ),
-                                        status_code INT,
-                                        status_message VARCHAR,
-                                        service_name VARCHAR,
-                                        session_id VARCHAR,
-                                        genai_provider VARCHAR,
-                                        genai_request_model VARCHAR,
-                                        genai_response_model VARCHAR,
-                                        genai_operation VARCHAR,
-                                        genai_input_tokens BIGINT,
-                                        genai_output_tokens BIGINT,
-                                        cost_usd DECIMAL(10,6),
-                                        eval_score FLOAT,
-                                        eval_reason VARCHAR,
-                                        attributes JSON,
-                                        events JSON,
-                                        PRIMARY KEY (trace_id, span_id)
-                                    );
-                                    CREATE INDEX idx_spans_session ON spans (session_id);
-                                    """;
-            await createCmd.ExecuteNonQueryAsync();
-        }
-
-        // Insert data IN TRANSACTION (like DuckDbStore WriteBatchInternalAsync)
-        await using var tx = await connection.BeginTransactionAsync();
-        await using (var insertCmd = connection.CreateCommand())
-        {
-            insertCmd.Transaction = tx;
-            insertCmd.CommandText = """
-                                    INSERT INTO spans (
-                                        trace_id, span_id, name, start_time, end_time, session_id
-                                    ) VALUES (
-                                        $1, $2, $3, $4, $5, $6
-                                    )
-                                    """;
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "trace-test" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "span-test" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-op" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = DateTime.UtcNow.AddSeconds(1) });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "session-test" });
-            await insertCmd.ExecuteNonQueryAsync();
-        }
-
-        await tx.CommitAsync();
-
-        // Query by session_id with literal
-        await using (var queryCmd = connection.CreateCommand())
-        {
-            queryCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id = 'session-test'";
-            var found = Convert.ToInt64(await queryCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, found);
-        }
-
-        // Query by trace_id with literal (for comparison)
-        await using (var traceCmd = connection.CreateCommand())
-        {
-            traceCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE trace_id = 'trace-test'";
-            var foundTrace = Convert.ToInt64(await traceCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-            Assert.Equal(1, foundTrace);
         }
     }
 
@@ -1089,87 +738,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal("param-session-1", actualSessionId); // Exact match?
         Assert.Equal(15L, actualLen); // Expected length?
 
-        // Diagnostic: query all rows and check session_id values
-        long totalRows;
-        string? allSessionIds;
-        {
-            await using var diagCmd = _store.Connection.CreateCommand();
-            diagCmd.CommandText = "SELECT COUNT(*) as total, STRING_AGG(session_id, ',') as all_ids FROM spans";
-            await using var diagReader = await diagCmd.ExecuteReaderAsync();
-            await diagReader.ReadAsync();
-            totalRows = diagReader.GetInt64(0);
-            allSessionIds = diagReader.IsDBNull(1) ? "(NULL)" : diagReader.GetString(1);
-        }
-
-        // Debug output via assertion message
-        Assert.True(totalRows > 0, $"Total rows: {totalRows}, All session_ids: [{allSessionIds}]");
-
-        // Test hardcoded WHERE on trace_id (which works)
-        long traceCount;
-        {
-            await using var traceCmd = _store.Connection.CreateCommand();
-            traceCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE trace_id = 'trace-param1'";
-            traceCount = Convert.ToInt64(await traceCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-        }
-        Assert.Equal(1, traceCount); // This should work
-
-        // Check table schema for both columns
-        string? sessionIdType, traceIdType;
-        {
-            await using var schemaCmd = _store.Connection.CreateCommand();
-            schemaCmd.CommandText = """
-                                    SELECT column_name, data_type
-                                    FROM information_schema.columns
-                                    WHERE table_name = 'spans' AND column_name IN ('session_id', 'trace_id')
-                                    ORDER BY column_name
-                                    """;
-            await using var schemaReader = await schemaCmd.ExecuteReaderAsync();
-            sessionIdType = traceIdType = null;
-            while (await schemaReader.ReadAsync())
-            {
-                var colName = schemaReader.GetString(0);
-                var colType = schemaReader.GetString(1);
-                if (colName == "session_id") sessionIdType = colType;
-                if (colName == "trace_id") traceIdType = colType;
-            }
-        }
-
-        // Try getting data raw
-        string? rawSessionId, rawTraceId;
-        {
-            await using var rawCmd = _store.Connection.CreateCommand();
-            rawCmd.CommandText = "SELECT session_id, trace_id FROM spans LIMIT 1";
-            await using var rawReader = await rawCmd.ExecuteReaderAsync();
-            await rawReader.ReadAsync();
-            rawSessionId = rawReader.GetString(0);
-            rawTraceId = rawReader.GetString(1);
-        }
-
-        // Test exact byte comparison
-        long byteCompare;
-        {
-            await using var byteCmd = _store.Connection.CreateCommand();
-            byteCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE ENCODE(session_id) = ENCODE('param-session-1')";
-            byteCompare = Convert.ToInt64(await byteCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-        }
-
-        // Output all diagnostics
-        var likeCount = byteCompare;
-        var extraInfo = $"\nTypes: session_id={sessionIdType}, trace_id={traceIdType}" +
-                        $"\nRaw values: session_id='{rawSessionId}', trace_id='{rawTraceId}'" +
-                        $"\nByte compare: {byteCompare}";
-
-        // Expected hex for 'param-session-1': 706172616D2D73657373696F6E2D31
-        var expectedHex = Convert.ToHexString(Encoding.UTF8.GetBytes("param-session-1"));
-
-        Assert.True(
-            likeCount == 1, // byteCompare should be 1
-            $"ByteCompare: {likeCount}, Total: {totalRows}\n" +
-            $"Expected hex: [{expectedHex}]\n" +
-            $"Actual hex:   [{actualHex}]\n" +
-            $"session_ids: [{allSessionIds}]\n" +
-            extraInfo);
-
         // Test GetSpansBySessionAsync
         var results = await _store.GetSpansBySessionAsync("param-session-1");
         Assert.Single(results);
@@ -1223,7 +791,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Act: Query genai columns - using LIKE workaround for DuckDB.NET bug
         await using var cmd = _store.Connection.CreateCommand();
         cmd.CommandText = """
-                          SELECT genai_provider, genai_request_model, genai_input_tokens, genai_output_tokens
+                          SELECT gen_ai_system, gen_ai_request_model, gen_ai_input_tokens, gen_ai_output_tokens
                           FROM spans WHERE session_id LIKE '%genai-session%'
                           """;
 
@@ -1263,14 +831,17 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Arrange
         var span = SpanBuilder.Create(TestConstants.TraceDuration, "span-duration")
             .WithName(TestConstants.OperationTimed)
-            .WithTiming(DateTime.UtcNow, TestConstants.DurationPreciseMs)
+            .WithTiming(TimeProvider.System.GetUtcNow().UtcDateTime, TestConstants.DurationPreciseMs)
             .Build();
 
         // Act
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
-        var durationMs = await _store.Connection.GetDurationMsAsync("span-duration");
+        var results = await _store.GetTraceAsync(TestConstants.TraceDuration);
 
         // Assert
+        Assert.Single(results);
+        var retrieved = results[0];
+        var durationMs = retrieved.DurationNs / 1_000_000.0;
         Assert.Equal(TestConstants.DurationPreciseMs, durationMs, 1.0);
     }
 
@@ -1288,10 +859,20 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Assert
         Assert.Single(results);
         var retrieved = results[0];
-        Assert.NotNull(retrieved.Attributes);
-        Assert.NotNull(retrieved.Events);
-        Assert.Equal(expectedLength, retrieved.Attributes.Length);
-        Assert.Equal(expectedLength, retrieved.Events.Length);
+        Assert.NotNull(retrieved.AttributesJson);
+        Assert.Equal(expectedLength, retrieved.AttributesJson.Length);
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>Converts DateTime to Unix nanoseconds (ulong).</summary>
+    private static ulong DateTimeToUnixNano(DateTime dt)
+    {
+        var utc = dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
+        var ticks = utc.Ticks - DateTime.UnixEpoch.Ticks;
+        return (ulong)(ticks * 100); // 1 tick = 100 nanoseconds
     }
 
     #endregion

@@ -67,15 +67,11 @@ internal static class TestConstants
     public const long TokensInSmall = 10;
     public const long TokensOutSmall = 20;
 
-    // Cost values
-    public const decimal CostDefault = 0.02m;
-    public const decimal CostSmall = 0.01m;
-    public const decimal CostMedium = 0.04m;
-    public const decimal CostLarge = 0.05m;
-
-    // Eval scores
-    public const float EvalScoreHigh = 0.9f;
-    public const float EvalScoreMedium = 0.85f;
+    // Cost values (double to match schema gen_ai_cost_usd)
+    public const double CostDefault = 0.02;
+    public const double CostSmall = 0.01;
+    public const double CostMedium = 0.04;
+    public const double CostLarge = 0.05;
 
     // Durations
     public const double DurationDefaultMs = 100;

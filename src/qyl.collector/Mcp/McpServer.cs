@@ -251,7 +251,7 @@ public sealed class McpServer
         {
             Content = new McpContent
             {
-                Type = "text", Text = $"GenAI stats from {stats.OldestSpan:g} to {stats.NewestSpan:g}"
+                Type = "text", Text = $"GenAI stats: {stats.SpanCount} spans, {stats.SessionCount} sessions, {stats.LogCount} logs"
             }
         };
     }

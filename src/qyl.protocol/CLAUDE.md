@@ -38,7 +38,7 @@ All primitives implement `ISpanParsable<T>`, `IEquatable<T>`, `IComparable<T>`.
 
 ### Attributes/
 
-`GenAiAttributes` - OTel 1.38 semantic convention constants with:
+`GenAiAttributes` - OTel 1.39 semantic convention constants with:
 
 - Current attribute keys (`GenAiProviderName`, `GenAiUsageInputTokens`, etc.)
 - Deprecated keys with `[Obsolete]` markers

@@ -31,7 +31,7 @@ public static partial class DuckDbSchema
             service_name VARCHAR,
             attributes_json VARCHAR,
             resource_json VARCHAR,
-            created_at TIMESTAMP DEFAULT now()
+            created_at TIMESTAMP DEFAULT now(),
             PRIMARY KEY (log_id)
         );
         """;
@@ -49,7 +49,7 @@ public static partial class DuckDbSchema
             service_name VARCHAR,
             gen_ai_system VARCHAR,
             gen_ai_model VARCHAR,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (session_id)
         );
         """;
@@ -80,7 +80,7 @@ public static partial class DuckDbSchema
             gen_ai_cost_usd DOUBLE,
             attributes_json VARCHAR,
             resource_json VARCHAR,
-            created_at TIMESTAMP DEFAULT now()
+            created_at TIMESTAMP DEFAULT now(),
             PRIMARY KEY (span_id)
         );
         """;

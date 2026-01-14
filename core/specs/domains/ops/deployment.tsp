@@ -1,11 +1,13 @@
 // =============================================================================
-// QYL v2.0 - Deployment Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Deployment Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Deployment/release telemetry attributes.
 // =============================================================================
 
+import "@typespec/openapi";
 import "../../common/types.tsp";
 
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 
 namespace Qyl.Domains.Ops.Deployment;
@@ -108,6 +110,8 @@ enum DeploymentStrategy {
 // =============================================================================
 
 @doc("Complete deployment record")
+@extension("x-duckdb-table", "deployments")
+@extension("x-csharp-type", "DeploymentEntity")
 model DeploymentEntity {
   @doc("Deployment ID")
   @key

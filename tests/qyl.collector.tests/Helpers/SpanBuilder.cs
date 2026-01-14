@@ -9,76 +9,86 @@ namespace qyl.collector.tests.Helpers;
 internal sealed class SpanBuilder
 {
     private static int _sCounter;
-    private string? _attributes;
-    private decimal? _costUsd;
-    private DateTime _endTime = DateTime.UtcNow.AddMilliseconds(TestConstants.DurationDefaultMs);
-    private string? _evalReason;
-    private float? _evalScore;
-    private string? _events;
-    private string? _kind;
-    private string _name = TestConstants.OperationDefault;
-
-    // Optional fields
-    private string? _parentSpanId;
-    private string? _providerName;
-    private string? _requestModel;
-    private string? _serviceName;
-    private string? _sessionId;
-    private string _spanId = "span-000001";
-    private DateTime _startTime = DateTime.UtcNow;
-    private int? _statusCode;
-    private string? _statusMessage;
-    private long? _tokensIn;
-    private long? _tokensOut;
 
     // Required fields
     private string _traceId = "trace-000001";
+    private string _spanId = "span-000001";
+    private string _name = TestConstants.OperationDefault;
+    private byte _kind;
+    private ulong _startTimeUnixNano;
+    private ulong _endTimeUnixNano;
+    private ulong _durationNs;
+    private byte _statusCode;
+
+    // Optional fields
+    private string? _parentSpanId;
+    private string? _sessionId;
+    private string? _serviceName;
+    private string? _statusMessage;
+
+    // GenAI fields
+    private string? _genAiSystem;
+    private string? _genAiRequestModel;
+    private string? _genAiResponseModel;
+    private long? _genAiInputTokens;
+    private long? _genAiOutputTokens;
+    private double? _genAiTemperature;
+    private string? _genAiStopReason;
+    private string? _genAiToolName;
+    private string? _genAiToolCallId;
+    private double? _genAiCostUsd;
+
+    // Data
+    private string? _attributesJson;
+    private string? _resourceJson;
 
     private SpanBuilder()
     {
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        SetTiming(now, TestConstants.DurationDefaultMs);
     }
 
     /// <summary>Creates a new SpanBuilder with auto-generated IDs.</summary>
     public static SpanBuilder Create()
     {
         var id = Interlocked.Increment(ref _sCounter);
-        var now = DateTime.UtcNow;
-        return new SpanBuilder
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        var builder = new SpanBuilder
         {
             _traceId = $"trace-{id:D6}",
             _spanId = $"span-{id:D6}",
-            _name = $"operation-{id}",
-            _startTime = now,
-            _endTime = now.AddMilliseconds(TestConstants.DurationDefaultMs)
+            _name = $"operation-{id}"
         };
+        builder.SetTiming(now, TestConstants.DurationDefaultMs);
+        return builder;
     }
 
     /// <summary>Creates a SpanBuilder with explicit trace and span IDs.</summary>
     public static SpanBuilder Create(string traceId, string spanId)
     {
-        var now = DateTime.UtcNow;
-        return new SpanBuilder
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        var builder = new SpanBuilder
         {
             _traceId = traceId,
             _spanId = spanId,
-            _name = TestConstants.OperationDefault,
-            _startTime = now,
-            _endTime = now.AddMilliseconds(TestConstants.DurationDefaultMs)
+            _name = TestConstants.OperationDefault
         };
+        builder.SetTiming(now, TestConstants.DurationDefaultMs);
+        return builder;
     }
 
     /// <summary>Creates a minimal span with only required fields.</summary>
     public static SpanBuilder Minimal(string traceId, string spanId)
     {
-        var now = DateTime.UtcNow;
-        return new SpanBuilder
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        var builder = new SpanBuilder
         {
             _traceId = traceId,
             _spanId = spanId,
-            _name = TestConstants.OperationMinimal,
-            _startTime = now,
-            _endTime = now.AddMilliseconds(TestConstants.DurationShortMs)
+            _name = TestConstants.OperationMinimal
         };
+        builder.SetTiming(now, TestConstants.DurationShortMs);
+        return builder;
     }
 
     /// <summary>Creates a GenAI span with provider, model, and token data.</summary>
@@ -116,31 +126,41 @@ internal sealed class SpanBuilder
         return this;
     }
 
-    // Timing
+    // Timing - internal helper to set all timing fields from DateTime
+    private void SetTiming(DateTime startTime, double durationMs)
+    {
+        _startTimeUnixNano = DateTimeToUnixNano(startTime);
+        var durationNs = (ulong)(durationMs * 1_000_000);
+        _durationNs = durationNs;
+        _endTimeUnixNano = _startTimeUnixNano + durationNs;
+    }
+
     public SpanBuilder WithTiming(DateTime startTime, double durationMs)
     {
-        _startTime = startTime;
-        _endTime = startTime.AddMilliseconds(durationMs);
+        SetTiming(startTime, durationMs);
         return this;
     }
 
     public SpanBuilder WithStartTime(DateTime startTime)
     {
-        _startTime = startTime;
+        var durationNs = _durationNs;
+        _startTimeUnixNano = DateTimeToUnixNano(startTime);
+        _endTimeUnixNano = _startTimeUnixNano + durationNs;
         return this;
     }
 
     public SpanBuilder WithEndTime(DateTime endTime)
     {
-        _endTime = endTime;
+        _endTimeUnixNano = DateTimeToUnixNano(endTime);
+        if (_endTimeUnixNano > _startTimeUnixNano)
+            _durationNs = _endTimeUnixNano - _startTimeUnixNano;
         return this;
     }
 
     public SpanBuilder AtTime(DateTime baseTime, int offsetMs = 0, double durationMs = TestConstants.DurationDefaultMs)
     {
         var start = baseTime.AddMilliseconds(offsetMs);
-        _startTime = start;
-        _endTime = start.AddMilliseconds(durationMs);
+        SetTiming(start, durationMs);
         return this;
     }
 
@@ -158,15 +178,40 @@ internal sealed class SpanBuilder
     }
 
     // Status
-    public SpanBuilder WithKind(string? kind)
+    public SpanBuilder WithKind(byte kind)
     {
         _kind = kind;
         return this;
     }
 
-    public SpanBuilder WithStatusCode(int? statusCode)
+    public SpanBuilder WithKind(string? kind)
+    {
+        _kind = kind switch
+        {
+            "internal" => 1,
+            "server" => 2,
+            "client" => 3,
+            "producer" => 4,
+            "consumer" => 5,
+            _ => 0
+        };
+        return this;
+    }
+
+    public SpanBuilder WithStatusCode(byte statusCode)
     {
         _statusCode = statusCode;
+        return this;
+    }
+
+    public SpanBuilder WithStatusCode(int? statusCode)
+    {
+        _statusCode = statusCode switch
+        {
+            1 => 1, // OK
+            2 => 2, // ERROR
+            _ => 0  // UNSET
+        };
         return this;
     }
 
@@ -179,46 +224,80 @@ internal sealed class SpanBuilder
     // GenAI
     public SpanBuilder WithProvider(string? provider)
     {
-        _providerName = provider;
+        _genAiSystem = provider;
         return this;
     }
 
     public SpanBuilder WithModel(string? model)
     {
-        _requestModel = model;
+        _genAiRequestModel = model;
+        return this;
+    }
+
+    public SpanBuilder WithResponseModel(string? model)
+    {
+        _genAiResponseModel = model;
         return this;
     }
 
     public SpanBuilder WithTokens(long? input, long? output)
     {
-        _tokensIn = input;
-        _tokensOut = output;
+        _genAiInputTokens = input;
+        _genAiOutputTokens = output;
         return this;
     }
 
-    public SpanBuilder WithCost(decimal? cost)
+    public SpanBuilder WithCost(double? cost)
     {
-        _costUsd = cost;
+        _genAiCostUsd = cost;
         return this;
     }
 
-    public SpanBuilder WithEval(float? score, string? reason = null)
+    public SpanBuilder WithTemperature(double? temperature)
     {
-        _evalScore = score;
-        _evalReason = reason;
+        _genAiTemperature = temperature;
+        return this;
+    }
+
+    public SpanBuilder WithStopReason(string? reason)
+    {
+        _genAiStopReason = reason;
+        return this;
+    }
+
+    public SpanBuilder WithToolCall(string? toolName, string? toolCallId)
+    {
+        _genAiToolName = toolName;
+        _genAiToolCallId = toolCallId;
         return this;
     }
 
     // Data
-    public SpanBuilder WithAttributes(string? attributes)
+    public SpanBuilder WithAttributes(string? attributesJson)
     {
-        _attributes = attributes;
+        _attributesJson = attributesJson;
+        return this;
+    }
+
+    public SpanBuilder WithResource(string? resourceJson)
+    {
+        _resourceJson = resourceJson;
+        return this;
+    }
+
+    // Legacy compatibility - EvalScore/EvalReason not in new schema
+    // These are no-ops for backward compatibility with existing tests
+    public SpanBuilder WithEval(float? score, string? reason = null)
+    {
+        // EvalScore and EvalReason are not in the new SpanStorageRow schema
+        // Tests using these should be updated or removed
         return this;
     }
 
     public SpanBuilder WithEvents(string? events)
     {
-        _events = events;
+        // Events are not in the new SpanStorageRow schema
+        // Tests using these should be updated or removed
         return this;
     }
 
@@ -230,23 +309,27 @@ internal sealed class SpanBuilder
             TraceId = _traceId,
             SpanId = _spanId,
             ParentSpanId = _parentSpanId,
+            SessionId = _sessionId,
             Name = _name,
             Kind = _kind,
-            StartTime = _startTime,
-            EndTime = _endTime,
+            StartTimeUnixNano = _startTimeUnixNano,
+            EndTimeUnixNano = _endTimeUnixNano,
+            DurationNs = _durationNs,
             StatusCode = _statusCode,
             StatusMessage = _statusMessage,
             ServiceName = _serviceName,
-            SessionId = _sessionId,
-            ProviderName = _providerName,
-            RequestModel = _requestModel,
-            TokensIn = _tokensIn,
-            TokensOut = _tokensOut,
-            CostUsd = _costUsd,
-            EvalScore = _evalScore,
-            EvalReason = _evalReason,
-            Attributes = _attributes,
-            Events = _events
+            GenAiSystem = _genAiSystem,
+            GenAiRequestModel = _genAiRequestModel,
+            GenAiResponseModel = _genAiResponseModel,
+            GenAiInputTokens = _genAiInputTokens,
+            GenAiOutputTokens = _genAiOutputTokens,
+            GenAiTemperature = _genAiTemperature,
+            GenAiStopReason = _genAiStopReason,
+            GenAiToolName = _genAiToolName,
+            GenAiToolCallId = _genAiToolCallId,
+            GenAiCostUsd = _genAiCostUsd,
+            AttributesJson = _attributesJson,
+            ResourceJson = _resourceJson
         };
     }
 
@@ -260,6 +343,14 @@ internal sealed class SpanBuilder
     public static implicit operator SpanStorageRow(SpanBuilder builder)
     {
         return builder.Build();
+    }
+
+    /// <summary>Converts DateTime to Unix nanoseconds (ulong).</summary>
+    private static ulong DateTimeToUnixNano(DateTime dt)
+    {
+        var utc = dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
+        var ticks = utc.Ticks - DateTime.UnixEpoch.Ticks;
+        return (ulong)(ticks * 100); // 1 tick = 100 nanoseconds
     }
 }
 
@@ -343,7 +434,6 @@ internal static class SpanFactory
                 .AtTime(baseTime)
                 .WithTokens(100, 50)
                 .WithCost(TestConstants.CostLarge)
-                .WithEval(TestConstants.EvalScoreHigh)
                 .Build(),
             SpanBuilder.GenAi("trace-g2", "span-g2")
                 .WithName("gpt-call2")
@@ -351,7 +441,6 @@ internal static class SpanFactory
                 .AtTime(baseTime, 110, 90)
                 .WithTokens(80, 40)
                 .WithCost(TestConstants.CostMedium)
-                .WithEval(TestConstants.EvalScoreMedium)
                 .Build(),
             SpanBuilder.Create("trace-g3", "span-g3")
                 .WithName("non-genai")
@@ -369,9 +458,8 @@ internal static class SpanFactory
         var largeJson = "{\"data\": \"" + new string('X', padding) + "\"}";
         return SpanBuilder.Create(traceId, spanId)
             .WithName(TestConstants.OperationLargeData)
-            .WithTiming(DateTime.UtcNow, TestConstants.DurationShortMs)
+            .WithTiming(TimeProvider.System.GetUtcNow().UtcDateTime, TestConstants.DurationShortMs)
             .WithAttributes(largeJson)
-            .WithEvents(largeJson)
             .Build();
     }
 }

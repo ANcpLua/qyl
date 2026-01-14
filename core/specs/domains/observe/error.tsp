@@ -1,11 +1,13 @@
 // =============================================================================
-// QYL v2.0 - Error Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Error Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Error type and error handling telemetry attributes.
 // =============================================================================
 
+import "@typespec/openapi";
 import "../../common/types.tsp";
 
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 
 namespace Qyl.Domains.Observe.Error;
@@ -78,6 +80,8 @@ enum ErrorCategory {
 // =============================================================================
 
 @doc("Error entity for tracking and analysis")
+@extension("x-duckdb-table", "errors")
+@extension("x-csharp-type", "ErrorEntity")
 model ErrorEntity {
   @doc("Error ID")
   @key

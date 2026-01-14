@@ -1,7 +1,7 @@
 // =============================================================================
 // QYL v2.0 - OpenTelemetry Core Enumerations
 // =============================================================================
-// All OTel standard enumerations following Semantic Conventions v1.38.
+// All OTel standard enumerations following Semantic Conventions v1.39.
 // =============================================================================
 
 namespace Qyl.OTel.Enums;

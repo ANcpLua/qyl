@@ -1,11 +1,13 @@
 // =============================================================================
-// QYL v2.0 - Test Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Test Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Test execution telemetry attributes.
 // =============================================================================
 
+import "@typespec/openapi";
 import "../../common/types.tsp";
 
+using TypeSpec.OpenAPI;
 using Qyl.Common;
 
 namespace Qyl.Domains.Observe.Test;
@@ -72,6 +74,8 @@ enum TestSuiteRunStatus {
 // =============================================================================
 
 @doc("Test run entity")
+@extension("x-duckdb-table", "test_runs")
+@extension("x-csharp-type", "TestRunEntity")
 model TestRunEntity {
   @doc("Test run ID")
   @key
@@ -192,6 +196,8 @@ enum TestFramework {
 // =============================================================================
 
 @doc("Test case entity")
+@extension("x-duckdb-table", "test_cases")
+@extension("x-csharp-type", "TestCaseEntity")
 model TestCaseEntity {
   @doc("Test case ID")
   @key

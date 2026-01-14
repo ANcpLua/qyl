@@ -4,136 +4,73 @@ namespace qyl.collector.Storage;
 ///     DuckDB storage with separated read/write paths for optimal concurrency.
 ///     - Single writer connection (channel-buffered, batched)
 ///     - Pooled read connections (parallel queries, bounded concurrency)
+///     - Schema aligned with generated DuckDbSchema.g.cs (OTel 1.39)
 /// </summary>
 public sealed class DuckDbStore : IAsyncDisposable
 {
+    // ==========================================================================
+    // SQL Constants - Aligned with DuckDbSchema.g.cs
+    // ==========================================================================
+
     // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named ($param_name).
     private const string InsertSpanSql = """
                                          -- noinspection SqlNoDataSourceInspectionForFile
                                          INSERT INTO spans (
-                                             trace_id, span_id, parent_span_id,
-                                             name, kind, start_time, end_time, status_code, status_message,
-                                             service_name, session_id,
-                                             genai_provider, genai_request_model,
-                                             genai_input_tokens, genai_output_tokens,
-                                             cost_usd, eval_score, eval_reason, attributes, events
+                                             span_id, trace_id, parent_span_id, session_id,
+                                             name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
+                                             status_code, status_message, service_name,
+                                             gen_ai_system, gen_ai_request_model, gen_ai_response_model,
+                                             gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
+                                             gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
+                                             gen_ai_cost_usd, attributes_json, resource_json
                                          ) VALUES (
-                                             $1, $2, $3,
-                                             $4, $5, $6, $7, $8, $9,
-                                             $10, $11,
-                                             $12, $13,
-                                             $14, $15,
-                                             $16, $17, $18, $19, $20
+                                             $1, $2, $3, $4,
+                                             $5, $6, $7, $8, $9,
+                                             $10, $11, $12,
+                                             $13, $14, $15,
+                                             $16, $17, $18,
+                                             $19, $20, $21,
+                                             $22, $23, $24
                                          )
-                                         ON CONFLICT (trace_id, span_id) DO UPDATE SET
-                                             end_time = EXCLUDED.end_time,
+                                         ON CONFLICT (span_id) DO UPDATE SET
+                                             end_time_unix_nano = EXCLUDED.end_time_unix_nano,
+                                             duration_ns = EXCLUDED.duration_ns,
                                              status_code = EXCLUDED.status_code,
                                              status_message = EXCLUDED.status_message,
-                                             genai_input_tokens = EXCLUDED.genai_input_tokens,
-                                             genai_output_tokens = EXCLUDED.genai_output_tokens,
-                                             cost_usd = EXCLUDED.cost_usd,
-                                             eval_score = EXCLUDED.eval_score,
-                                             eval_reason = EXCLUDED.eval_reason,
-                                             attributes = EXCLUDED.attributes,
-                                             events = EXCLUDED.events
+                                             gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
+                                             gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
+                                             gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
+                                             attributes_json = EXCLUDED.attributes_json,
+                                             resource_json = EXCLUDED.resource_json
                                          """;
 
-    private const string Schema = """
-                                  CREATE TABLE IF NOT EXISTS sessions (
-                                      session_id VARCHAR PRIMARY KEY,
-                                      name VARCHAR,
-                                      user_id VARCHAR,
-                                      started_at TIMESTAMPTZ NOT NULL,
-                                      ended_at TIMESTAMPTZ,
-                                      metadata JSON
-                                  );
+    private const string InsertLogSql = """
+                                        INSERT INTO logs (
+                                            log_id, trace_id, span_id, session_id,
+                                            time_unix_nano, observed_time_unix_nano,
+                                            severity_number, severity_text, body,
+                                            service_name, attributes_json, resource_json
+                                        ) VALUES (
+                                            $1, $2, $3, $4,
+                                            $5, $6,
+                                            $7, $8, $9,
+                                            $10, $11, $12
+                                        )
+                                        """;
 
-                                  CREATE TABLE IF NOT EXISTS spans (
-                                      trace_id VARCHAR NOT NULL,
-                                      span_id VARCHAR NOT NULL,
-                                      parent_span_id VARCHAR,
+    private const string SelectSpanColumns = """
+                                             span_id, trace_id, parent_span_id, session_id,
+                                             name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
+                                             status_code, status_message, service_name,
+                                             gen_ai_system, gen_ai_request_model, gen_ai_response_model,
+                                             gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
+                                             gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
+                                             gen_ai_cost_usd, attributes_json, resource_json, created_at
+                                             """;
 
-                                      name VARCHAR NOT NULL,
-                                      kind VARCHAR,
-                                      start_time TIMESTAMPTZ NOT NULL,
-                                      end_time TIMESTAMPTZ NOT NULL,
-                                      duration_ms DOUBLE GENERATED ALWAYS AS (
-                                          EXTRACT(EPOCH FROM (end_time - start_time)) * 1000
-                                      ),
-                                      status_code INT,
-                                      status_message VARCHAR,
-
-                                      service_name VARCHAR,
-                                      session_id VARCHAR,
-
-                                      genai_provider VARCHAR,
-                                      genai_request_model VARCHAR,
-                                      genai_response_model VARCHAR,
-                                      genai_operation VARCHAR,
-                                      genai_input_tokens BIGINT,
-                                      genai_output_tokens BIGINT,
-
-                                      cost_usd DECIMAL(10,6),
-                                      eval_score FLOAT,
-                                      eval_reason VARCHAR,
-
-                                      attributes JSON,
-                                      events JSON,
-
-                                      PRIMARY KEY (trace_id, span_id)
-                                  );
-
-                                  CREATE TABLE IF NOT EXISTS logs (
-                                      log_id VARCHAR PRIMARY KEY,
-                                      trace_id VARCHAR,
-                                      span_id VARCHAR,
-                                      session_id VARCHAR,
-
-                                      time_unix_nano BIGINT NOT NULL,
-                                      observed_time_unix_nano BIGINT,
-                                      severity_number INT NOT NULL,
-                                      severity_text VARCHAR,
-                                      body VARCHAR,
-
-                                      service_name VARCHAR,
-                                      attributes_json VARCHAR,
-                                      resource_json VARCHAR,
-
-                                      created_at TIMESTAMPTZ DEFAULT now()
-                                  );
-
-                                  CREATE TABLE IF NOT EXISTS feedback (
-                                      feedback_id VARCHAR PRIMARY KEY,
-                                      session_id VARCHAR NOT NULL,
-                                      span_id VARCHAR,
-
-                                      type VARCHAR NOT NULL,
-                                      value VARCHAR,
-                                      comment VARCHAR,
-                                      created_at TIMESTAMPTZ NOT NULL,
-
-                                      metadata JSON
-                                  );
-
-                                  CREATE INDEX IF NOT EXISTS idx_spans_time ON spans (start_time);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_session ON spans (session_id);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_provider ON spans (genai_provider);
-                                  CREATE INDEX IF NOT EXISTS idx_spans_service ON spans (service_name);
-                                  CREATE INDEX IF NOT EXISTS idx_logs_time ON logs (time_unix_nano);
-                                  CREATE INDEX IF NOT EXISTS idx_logs_session ON logs (session_id);
-                                  CREATE INDEX IF NOT EXISTS idx_logs_trace ON logs (trace_id);
-                                  CREATE INDEX IF NOT EXISTS idx_logs_severity ON logs (severity_number);
-                                  CREATE INDEX IF NOT EXISTS idx_logs_service ON logs (service_name);
-                                  """;
-
-    private const string SelectColumns = """
-                                         trace_id, span_id, parent_span_id,
-                                         name, kind, start_time, end_time, status_code, status_message,
-                                         service_name, session_id,
-                                         genai_provider, genai_request_model,
-                                         genai_input_tokens, genai_output_tokens,
-                                         cost_usd, eval_score, eval_reason, attributes, events
-                                         """;
+    // ==========================================================================
+    // Instance Fields
+    // ==========================================================================
 
     private readonly CancellationTokenSource _cts = new();
     private readonly string _databasePath;
@@ -151,6 +88,10 @@ public sealed class DuckDbStore : IAsyncDisposable
     private readonly Task _writerTask;
 
     private int _disposed;
+
+    // ==========================================================================
+    // Constructor
+    // ==========================================================================
 
     public DuckDbStore(
         string databasePath = "qyl.duckdb",
@@ -179,11 +120,19 @@ public sealed class DuckDbStore : IAsyncDisposable
         _writerTask = Task.Run(WriterLoopAsync);
     }
 
+    // ==========================================================================
+    // Properties
+    // ==========================================================================
+
     /// <summary>
     ///     Exposes the write connection for legacy compatibility (SessionQueryService).
     ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
     /// </summary>
     public DuckDBConnection Connection { get; }
+
+    // ==========================================================================
+    // Lifecycle
+    // ==========================================================================
 
     public async ValueTask DisposeAsync()
     {
@@ -221,12 +170,20 @@ public sealed class DuckDbStore : IAsyncDisposable
         _meter.Dispose();
     }
 
+    // ==========================================================================
+    // Connection Management
+    // ==========================================================================
+
     /// <summary>
     ///     Provides direct read access for SessionQueryService.
     ///     Returns a leased connection that must be disposed after use.
     /// </summary>
     public async ValueTask<IAsyncDisposable> GetReadConnectionAsync(CancellationToken ct = default) =>
         await RentReadAsync(ct).ConfigureAwait(false);
+
+    // ==========================================================================
+    // Span Operations
+    // ==========================================================================
 
     /// <summary>
     ///     Enqueues a batch for async writing. With DropOldest, TryWrite always succeeds
@@ -260,48 +217,25 @@ public sealed class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         if (batch.Spans.Count == 0) return;
 
-        // Write directly to the connection (bypasses background queue)
         await WriteBatchInternalAsync(Connection, batch, ct).ConfigureAwait(false);
     }
 
-    public async Task<int> ArchiveToParquetAsync(
-        string outputDirectory,
-        TimeSpan olderThan,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (ct.IsCancellationRequested) return await Task.FromCanceled<int>(ct).ConfigureAwait(false);
-
-        var job = new WriteJob<int>((con, token) =>
-            ArchiveInternalAsync(con, outputDirectory, olderThan, token));
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    public async Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(string sessionId,
+    public async Task<IReadOnlyList<SpanStorageRow>> GetSpansBySessionAsync(
+        string sessionId,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        // DuckDB.NET 1.4.3 BUG: = operator doesn't work correctly for session_id column
-        // Even with identical hex values, WHERE session_id = 'value' returns 0 rows
-        // But WHERE session_id LIKE '%value%' works. Using this as workaround.
-        // Escape LIKE special characters and SQL injection characters
-        var escapedSessionId = sessionId
-            .Replace("'", "''")
-            .Replace("%", @"\%")
-            .Replace("_", @"\_");
-
         var spans = new List<SpanStorageRow>();
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-                           SELECT {SelectColumns}
+                           SELECT {SelectSpanColumns}
                            FROM spans
-                           WHERE session_id LIKE '%{escapedSessionId}%' ESCAPE '\'
-                           ORDER BY start_time ASC
+                           WHERE session_id = $1
+                           ORDER BY start_time_unix_nano ASC
                            """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -317,12 +251,11 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var spans = new List<SpanStorageRow>();
         await using var cmd = lease.Connection.CreateCommand();
-        // DuckDB.NET 1.4.3: Use positional parameters ($1) instead of named ($trace_id)
         cmd.CommandText = $"""
-                           SELECT {SelectColumns}
+                           SELECT {SelectSpanColumns}
                            FROM spans
                            WHERE trace_id = $1
-                           ORDER BY start_time ASC
+                           ORDER BY start_time_unix_nano ASC
                            """;
         cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
@@ -336,8 +269,8 @@ public sealed class DuckDbStore : IAsyncDisposable
     public async Task<IReadOnlyList<SpanStorageRow>> GetSpansAsync(
         string? sessionId = null,
         string? providerName = null,
-        DateTime? startAfter = null,
-        DateTime? startBefore = null,
+        ulong? startAfter = null,
+        ulong? startBefore = null,
         int limit = 100,
         CancellationToken ct = default)
     {
@@ -349,7 +282,6 @@ public sealed class DuckDbStore : IAsyncDisposable
         var parameters = new List<DuckDBParameter>();
         var paramIndex = 1;
 
-        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
         if (!string.IsNullOrEmpty(sessionId))
         {
             conditions.Add($"session_id = ${paramIndex++}");
@@ -358,30 +290,30 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         if (!string.IsNullOrEmpty(providerName))
         {
-            conditions.Add($"genai_provider = ${paramIndex++}");
+            conditions.Add($"gen_ai_system = ${paramIndex++}");
             parameters.Add(new DuckDBParameter { Value = providerName });
         }
 
         if (startAfter.HasValue)
         {
-            conditions.Add($"start_time >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
+            conditions.Add($"start_time_unix_nano >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
         }
 
         if (startBefore.HasValue)
         {
-            conditions.Add($"start_time <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = startBefore.Value });
+            conditions.Add($"start_time_unix_nano <= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = (decimal)startBefore.Value });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-                           SELECT {SelectColumns}
+                           SELECT {SelectSpanColumns}
                            FROM spans
                            {whereClause}
-                           ORDER BY start_time DESC
+                           ORDER BY start_time_unix_nano DESC
                            LIMIT ${paramIndex}
                            """;
 
@@ -395,55 +327,9 @@ public sealed class DuckDbStore : IAsyncDisposable
         return spans;
     }
 
-    public async Task<IReadOnlyList<SpanStorageRow>> QueryParquetAsync(
-        string parquetPath,
-        string? sessionId = null,
-        string? traceId = null,
-        DateTime? startAfter = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        var spans = new List<SpanStorageRow>();
-        var conditions = new List<string>();
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
-
-        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
-        if (!string.IsNullOrEmpty(sessionId))
-        {
-            conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = sessionId });
-        }
-
-        if (!string.IsNullOrEmpty(traceId))
-        {
-            conditions.Add($"trace_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = traceId });
-        }
-
-        if (startAfter.HasValue)
-        {
-            conditions.Add($"start_time >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
-        }
-
-        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
-
-        var full = Path.GetFullPath(parquetPath);
-        ValidateDuckDbSqlPath(full);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"SELECT {SelectColumns} FROM read_parquet('{full}') {whereClause}";
-        cmd.Parameters.AddRange(parameters);
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            spans.Add(MapSpan(reader));
-
-        return spans;
-    }
+    // ==========================================================================
+    // Storage Statistics
+    // ==========================================================================
 
     public async Task<StorageStats> GetStorageStatsAsync(CancellationToken ct = default)
     {
@@ -455,9 +341,9 @@ public sealed class DuckDbStore : IAsyncDisposable
                           SELECT
                               (SELECT COUNT(*) FROM spans) as span_count,
                               (SELECT COUNT(*) FROM sessions) as session_count,
-                              (SELECT COUNT(*) FROM feedback) as feedback_count,
-                              (SELECT MIN(start_time) FROM spans) as oldest_span,
-                              (SELECT MAX(start_time) FROM spans) as newest_span
+                              (SELECT COUNT(*) FROM logs) as log_count,
+                              (SELECT MIN(start_time_unix_nano) FROM spans) as oldest_span,
+                              (SELECT MAX(start_time_unix_nano) FROM spans) as newest_span
                           """;
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -467,9 +353,9 @@ public sealed class DuckDbStore : IAsyncDisposable
             {
                 SpanCount = reader.Col(0).GetInt64(0),
                 SessionCount = reader.Col(1).GetInt64(0),
-                FeedbackCount = reader.Col(2).GetInt64(0),
-                OldestSpan = reader.Col(3).AsDateTime,
-                NewestSpan = reader.Col(4).AsDateTime
+                LogCount = reader.Col(2).GetInt64(0),
+                OldestSpanTime = reader.Col(3).AsUInt64,
+                NewestSpanTime = reader.Col(4).AsUInt64
             };
         }
 
@@ -478,17 +364,16 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     public async Task<GenAiStats> GetGenAiStatsAsync(
         string? sessionId = null,
-        DateTime? startAfter = null,
+        ulong? startAfter = null,
         CancellationToken ct = default)
     {
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        var conditions = new List<string> { "genai_provider IS NOT NULL" };
+        var conditions = new List<string> { "gen_ai_system IS NOT NULL" };
         var parameters = new List<DuckDBParameter>();
         var paramIndex = 1;
 
-        // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named
         if (!string.IsNullOrEmpty(sessionId))
         {
             conditions.Add($"session_id = ${paramIndex++}");
@@ -497,8 +382,8 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         if (startAfter.HasValue)
         {
-            conditions.Add($"start_time >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = startAfter.Value });
+            conditions.Add($"start_time_unix_nano >= ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
         }
 
         var whereClause = string.Join(" AND ", conditions);
@@ -507,10 +392,10 @@ public sealed class DuckDbStore : IAsyncDisposable
         cmd.CommandText = $"""
                            SELECT
                                COUNT(*) as request_count,
-                               COALESCE(SUM(genai_input_tokens), 0) as total_input_tokens,
-                               COALESCE(SUM(genai_output_tokens), 0) as total_output_tokens,
-                               COALESCE(SUM(cost_usd), 0) as total_cost_usd,
-                               AVG(CASE WHEN eval_score IS NOT NULL THEN eval_score END) as avg_eval_score
+                               COALESCE(SUM(gen_ai_input_tokens), 0) as total_input_tokens,
+                               COALESCE(SUM(gen_ai_output_tokens), 0) as total_output_tokens,
+                               COALESCE(SUM(gen_ai_cost_usd), 0) as total_cost_usd,
+                               AVG(gen_ai_cost_usd) as avg_cost
                            FROM spans
                            WHERE {whereClause}
                            """;
@@ -525,8 +410,8 @@ public sealed class DuckDbStore : IAsyncDisposable
                 RequestCount = reader.Col(0).GetInt64(0),
                 TotalInputTokens = reader.Col(1).GetInt64(0),
                 TotalOutputTokens = reader.Col(2).GetInt64(0),
-                TotalCostUsd = reader.Col(3).GetDecimal(0),
-                AverageEvalScore = reader.Col(4).AsFloat
+                TotalCostUsd = reader.Col(3).GetDouble(0),
+                AverageEvalScore = reader.Col(4).AsDouble
             };
         }
 
@@ -579,21 +464,9 @@ public sealed class DuckDbStore : IAsyncDisposable
         return 0;
     }
 
-    #region Logs Methods
-
-    private const string InsertLogSql = """
-                                        INSERT INTO logs (
-                                            log_id, trace_id, span_id, session_id,
-                                            time_unix_nano, observed_time_unix_nano,
-                                            severity_number, severity_text, body,
-                                            service_name, attributes_json, resource_json
-                                        ) VALUES (
-                                            $1, $2, $3, $4,
-                                            $5, $6,
-                                            $7, $8, $9,
-                                            $10, $11, $12
-                                        )
-                                        """;
+    // ==========================================================================
+    // Log Operations
+    // ==========================================================================
 
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
@@ -612,8 +485,8 @@ public sealed class DuckDbStore : IAsyncDisposable
             cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = log.TimeUnixNano });
-            cmd.Parameters.Add(new DuckDBParameter { Value = log.ObservedTimeUnixNano ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)log.TimeUnixNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = log.ObservedTimeUnixNano.HasValue ? (decimal)log.ObservedTimeUnixNano.Value : DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
             cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
@@ -633,8 +506,8 @@ public sealed class DuckDbStore : IAsyncDisposable
         string? severityText = null,
         int? minSeverity = null,
         string? search = null,
-        DateTime? after = null,
-        DateTime? before = null,
+        ulong? after = null,
+        ulong? before = null,
         int limit = 500,
         CancellationToken ct = default)
     {
@@ -678,16 +551,14 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         if (after.HasValue)
         {
-            var nanos = new DateTimeOffset(after.Value, TimeSpan.Zero).ToUnixTimeMilliseconds() * 1_000_000;
             conditions.Add($"time_unix_nano >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = nanos });
+            parameters.Add(new DuckDBParameter { Value = (decimal)after.Value });
         }
 
         if (before.HasValue)
         {
-            var nanos = new DateTimeOffset(before.Value, TimeSpan.Zero).ToUnixTimeMilliseconds() * 1_000_000;
             conditions.Add($"time_unix_nano <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = nanos });
+            parameters.Add(new DuckDBParameter { Value = (decimal)before.Value });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
@@ -697,7 +568,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                            SELECT log_id, trace_id, span_id, session_id,
                                   time_unix_nano, observed_time_unix_nano,
                                   severity_number, severity_text, body,
-                                  service_name, attributes_json, resource_json
+                                  service_name, attributes_json, resource_json, created_at
                            FROM logs
                            {whereClause}
                            ORDER BY time_unix_nano DESC
@@ -714,24 +585,28 @@ public sealed class DuckDbStore : IAsyncDisposable
         return logs;
     }
 
-    private static LogStorageRow MapLog(DbDataReader reader) =>
-        new()
-        {
-            LogId = reader.GetString(0),
-            TraceId = reader.Col(1).AsString,
-            SpanId = reader.Col(2).AsString,
-            SessionId = reader.Col(3).AsString,
-            TimeUnixNano = reader.Col(4).GetInt64(0),
-            ObservedTimeUnixNano = reader.Col(5).AsInt64,
-            SeverityNumber = reader.Col(6).GetInt32(0),
-            SeverityText = reader.Col(7).AsString,
-            Body = reader.Col(8).AsString,
-            ServiceName = reader.Col(9).AsString,
-            AttributesJson = reader.Col(10).AsString,
-            ResourceJson = reader.Col(11).AsString
-        };
+    // ==========================================================================
+    // Archiving
+    // ==========================================================================
 
-    #endregion
+    public async Task<int> ArchiveToParquetAsync(
+        string outputDirectory,
+        TimeSpan olderThan,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        if (ct.IsCancellationRequested) return await Task.FromCanceled<int>(ct).ConfigureAwait(false);
+
+        var job = new WriteJob<int>((con, token) =>
+            ArchiveInternalAsync(con, outputDirectory, olderThan, token));
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    // ==========================================================================
+    // Private Methods - Writing
+    // ==========================================================================
 
     private async Task WriterLoopAsync()
     {
@@ -760,6 +635,111 @@ public sealed class DuckDbStore : IAsyncDisposable
                 leftover.OnAborted(new OperationCanceledException("Store is shutting down."));
         }
     }
+
+    private static async ValueTask WriteBatchInternalAsync(
+        DuckDBConnection con,
+        SpanBatch batch,
+        CancellationToken ct)
+    {
+        if (batch.Spans.Count == 0) return;
+
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        foreach (var span in batch.Spans)
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = InsertSpanSql;
+
+            // Identity
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
+
+            // Core fields (UBIGINT passed as decimal for DuckDB.NET)
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.StartTimeUnixNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.EndTimeUnixNano });
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.DurationNs });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
+
+            // GenAI fields
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiSystem ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiRequestModel ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiResponseModel ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiInputTokens ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiOutputTokens ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiTemperature ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiStopReason ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolName ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
+
+            // JSON storage
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
+
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<int> ArchiveInternalAsync(
+        DuckDBConnection con,
+        string outputDirectory,
+        TimeSpan olderThan,
+        CancellationToken ct)
+    {
+        Directory.CreateDirectory(outputDirectory);
+
+        var now = TimeProvider.System.GetUtcNow();
+        var cutoffNano = (ulong)((now - olderThan).ToUnixTimeMilliseconds() * 1_000_000);
+        var timestamp = now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+
+        await using var countCmd = con.CreateCommand();
+        countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time_unix_nano < $1";
+        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
+        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
+        if (count == 0) return 0;
+
+        var finalPath = Path.GetFullPath(Path.Combine(outputDirectory, $"spans_{timestamp}.parquet"));
+        var tempPath = finalPath + ".tmp";
+
+        ValidateDuckDbSqlPath(finalPath);
+        ValidateDuckDbSqlPath(tempPath);
+
+        await using (var exportCmd = con.CreateCommand())
+        {
+            exportCmd.CommandText = $"""
+                                     COPY (SELECT * FROM spans WHERE start_time_unix_nano < $1)
+                                     TO '{tempPath}'
+                                     (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
+                                     """;
+            exportCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
+            await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        }
+
+        File.Move(tempPath, finalPath, true);
+
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        await using var deleteCmd = con.CreateCommand();
+        deleteCmd.Transaction = tx;
+        deleteCmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
+        deleteCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
+        await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+
+        return count;
+    }
+
+    // ==========================================================================
+    // Private Methods - Reading
+    // ==========================================================================
 
     private async ValueTask<ReadLease> RentReadAsync(CancellationToken ct)
     {
@@ -804,101 +784,66 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
     }
 
+    // ==========================================================================
+    // Private Methods - Schema & Mapping
+    // ==========================================================================
+
     private static void InitializeSchema(DuckDBConnection con)
     {
         using var cmd = con.CreateCommand();
-        cmd.CommandText = Schema;
+        cmd.CommandText = DuckDbSchema.GetSchemaDdl();
         cmd.ExecuteNonQuery();
     }
 
-    private static async ValueTask WriteBatchInternalAsync(DuckDBConnection con, SpanBatch batch, CancellationToken ct)
-    {
-        if (batch.Spans.Count == 0) return;
-
-        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
-
-        foreach (var span in batch.Spans)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static SpanStorageRow MapSpan(DbDataReader reader) =>
+        new()
         {
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = InsertSpanSql;
+            SpanId = reader.GetString(0),
+            TraceId = reader.GetString(1),
+            ParentSpanId = reader.Col(2).AsString,
+            SessionId = reader.Col(3).AsString,
+            Name = reader.GetString(4),
+            Kind = reader.Col(5).GetByte(0),
+            StartTimeUnixNano = reader.Col(6).GetUInt64(0),
+            EndTimeUnixNano = reader.Col(7).GetUInt64(0),
+            DurationNs = reader.Col(8).GetUInt64(0),
+            StatusCode = reader.Col(9).GetByte(0),
+            StatusMessage = reader.Col(10).AsString,
+            ServiceName = reader.Col(11).AsString,
+            GenAiSystem = reader.Col(12).AsString,
+            GenAiRequestModel = reader.Col(13).AsString,
+            GenAiResponseModel = reader.Col(14).AsString,
+            GenAiInputTokens = reader.Col(15).AsInt64,
+            GenAiOutputTokens = reader.Col(16).AsInt64,
+            GenAiTemperature = reader.Col(17).AsDouble,
+            GenAiStopReason = reader.Col(18).AsString,
+            GenAiToolName = reader.Col(19).AsString,
+            GenAiToolCallId = reader.Col(20).AsString,
+            GenAiCostUsd = reader.Col(21).AsDouble,
+            AttributesJson = reader.Col(22).AsString,
+            ResourceJson = reader.Col(23).AsString,
+            CreatedAt = reader.Col(24).AsDateTimeOffset
+        };
 
-            // DuckDB.NET 1.4.3: Use positional parameters (order must match ? placeholders in InsertSpanSql)
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.StartTime });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.EndTime });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.ProviderName ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.RequestModel ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.TokensIn ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.TokensOut ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.CostUsd ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.EvalScore ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.EvalReason ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.Attributes ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = span.Events ?? (object)DBNull.Value });
-
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        await tx.CommitAsync(ct).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<int> ArchiveInternalAsync(
-        DuckDBConnection con,
-        string outputDirectory,
-        TimeSpan olderThan,
-        CancellationToken ct)
-    {
-        Directory.CreateDirectory(outputDirectory);
-
-        var now = TimeProvider.System.GetUtcNow();
-        var cutoff = now.UtcDateTime - olderThan;
-        var timestamp = now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-
-        // DuckDB.NET 1.4.3: Use positional parameters ($1)
-        await using var countCmd = con.CreateCommand();
-        countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time < $1";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
-        var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
-        if (count == 0) return 0;
-
-        var finalPath = Path.GetFullPath(Path.Combine(outputDirectory, $"spans_{timestamp}.parquet"));
-        var tempPath = finalPath + ".tmp";
-
-        ValidateDuckDbSqlPath(finalPath);
-        ValidateDuckDbSqlPath(tempPath);
-
-        await using (var exportCmd = con.CreateCommand())
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static LogStorageRow MapLog(DbDataReader reader) =>
+        new()
         {
-            exportCmd.CommandText = $"""
-                                     COPY (SELECT * FROM spans WHERE start_time < $1)
-                                     TO '{tempPath}'
-                                     (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
-                                     """;
-            exportCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
-            await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        }
-
-        File.Move(tempPath, finalPath, true);
-
-        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
-        await using var deleteCmd = con.CreateCommand();
-        deleteCmd.Transaction = tx;
-        deleteCmd.CommandText = "DELETE FROM spans WHERE start_time < $1";
-        deleteCmd.Parameters.Add(new DuckDBParameter { Value = cutoff });
-        await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        await tx.CommitAsync(ct).ConfigureAwait(false);
-
-        return count;
-    }
+            LogId = reader.GetString(0),
+            TraceId = reader.Col(1).AsString,
+            SpanId = reader.Col(2).AsString,
+            SessionId = reader.Col(3).AsString,
+            TimeUnixNano = reader.Col(4).GetUInt64(0),
+            ObservedTimeUnixNano = reader.Col(5).AsUInt64,
+            SeverityNumber = reader.Col(6).GetByte(0),
+            SeverityText = reader.Col(7).AsString,
+            Body = reader.Col(8).AsString,
+            ServiceName = reader.Col(9).AsString,
+            AttributesJson = reader.Col(10).AsString,
+            ResourceJson = reader.Col(11).AsString,
+            CreatedAt = reader.Col(12).AsDateTimeOffset
+        };
 
     private static void ValidateDuckDbSqlPath(string fullPath)
     {
@@ -907,45 +852,11 @@ public sealed class DuckDbStore : IAsyncDisposable
             throw new ArgumentException("Invalid path characters detected", nameof(fullPath));
     }
 
-    private static SpanStorageRow MapSpan(DbDataReader reader) =>
-        new()
-        {
-            // Required fields
-            TraceId = reader.GetString(0),
-            SpanId = reader.GetString(1),
-
-            // Nullable fields - fluent access
-            ParentSpanId = reader.Col(2).AsString,
-            Name = reader.GetString(3),
-            Kind = reader.Col(4).AsString,
-
-            // DateTime with fallback (OTLP always has valid timestamps)
-            StartTime = reader.Col(5).GetDateTime(default),
-            EndTime = reader.Col(6).GetDateTime(default),
-            StatusCode = reader.Col(7).AsInt32,
-            StatusMessage = reader.Col(8).AsString,
-
-            // OTel 1.38 attributes
-            ServiceName = reader.Col(9).AsString,
-            SessionId = reader.Col(10).AsString,
-            ProviderName = reader.Col(11).AsString,
-            RequestModel = reader.Col(12).AsString,
-            TokensIn = reader.Col(13).AsInt64,
-            TokensOut = reader.Col(14).AsInt64,
-
-            // qyl extensions
-            CostUsd = reader.Col(15).AsDecimal,
-            EvalScore = reader.Col(16).AsFloat,
-            EvalReason = reader.Col(17).AsString,
-
-            // Flexible storage
-            Attributes = reader.Col(18).AsString,
-            Events = reader.Col(19).AsString
-        };
-
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
-    #region Nested Types
+    // ==========================================================================
+    // Nested Types
+    // ==========================================================================
 
     /// <summary>
     ///     RAII-style lease for pooled read connections.
@@ -1086,6 +997,4 @@ public sealed class DuckDbStore : IAsyncDisposable
             }
         }
     }
-
-    #endregion
 }

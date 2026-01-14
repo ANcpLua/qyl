@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl OTLP Ingestion - Zero-Allocation JSON Parser
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.38.0
+// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
 // =============================================================================
 
 using System.Buffers.Text;

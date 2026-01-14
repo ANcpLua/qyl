@@ -2,7 +2,7 @@
 // Schema Generator - OpenAPI → C# / DuckDB
 // =============================================================================
 // Single source of truth code generation from TypeSpec-compiled OpenAPI.
-// OTel 1.38 semantic conventions, .NET 10 only.
+// OTel 1.39 semantic conventions, .NET 10 only.
 // =============================================================================
 
 using System;
@@ -237,7 +237,7 @@ public static class SchemaGenerator
     static string GenerateEnums(IEnumerable<SchemaDefinition> enums)
     {
         var sb = new StringBuilder();
-        AppendCSharpHeader(sb, "Enumeration types (OTel 1.38 semconv)");
+        AppendCSharpHeader(sb, "Enumeration types (OTel 1.39 semconv)");
 
         sb.AppendLine("namespace Qyl.Enums");
         sb.AppendLine("{");

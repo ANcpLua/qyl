@@ -96,18 +96,16 @@ TestConstants.SchemaInitDelayMs       // 200
 | TEST-004 | TraceServiceImpl       | gRPC TraceService           | P1       |
 | TEST-005 | SpanBroadcaster        | Channel pub/sub             | P2       |
 
-### Banned API Violations (24+ instances)
+### TimeProvider Usage ✅
 
-Test code directly uses banned time APIs instead of `TimeProvider.System.GetUtcNow()`.
+All test code now uses `TimeProvider.System.GetUtcNow().UtcDateTime` for time operations.
 
-**Files requiring TimeProvider injection:**
+**Compliant files:**
 
-- `Helpers/SpanBuilder.cs`
-- `Storage/DuckDbStoreTests.cs`
-- `Query/SessionQueryServiceTests.cs`
-- `Integration/*.cs`
-
-**Required fix:** Inject `TimeProvider` into `SpanBuilder` constructor and test fixtures.
+- `Helpers/SpanBuilder.cs` - Uses TimeProvider in all timing methods
+- `Storage/DuckDbStoreTests.cs` - Uses TimeProvider
+- `Query/SessionQueryServiceTests.cs` - Uses TimeProvider
+- `Integration/*.cs` - All tests use TimeProvider
 
 ## xUnit v3 Pattern
 

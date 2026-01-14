@@ -1,5 +1,5 @@
 /**
- * qyl API Types (aligned to OTel schema 1.38.0)
+ * qyl API Types (aligned to OTel schema 1.39.0)
  * DO NOT edit api.ts directly - it's auto-generated from openapi.yaml
  *
  * Type Pipeline: TypeSpec -> OpenAPI -> openapi-typescript -> api.ts -> index.ts

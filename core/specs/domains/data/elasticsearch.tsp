@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Elasticsearch Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Elasticsearch Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Elasticsearch-specific telemetry attributes.
 // =============================================================================

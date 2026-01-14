@@ -28,21 +28,21 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
-                              MIN(start_time) AS start_time,
-                              MAX(end_time) AS last_activity,
+                              MIN(start_time_unix_nano) AS start_time,
+                              MAX(end_time_unix_nano) AS last_activity,
                               COUNT(*) AS span_count,
                               COUNT(DISTINCT trace_id) AS trace_count,
                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                              COALESCE(SUM(genai_input_tokens), 0) AS input_tokens,
-                              COALESCE(SUM(genai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN genai_provider IS NOT NULL THEN 1 END) AS genai_request_count,
-                              COALESCE(SUM(cost_usd), 0) AS total_cost_usd,
-                              LIST(DISTINCT genai_request_model) FILTER (WHERE genai_request_model IS NOT NULL) AS models
+                              COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+                              COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+                              COUNT(CASE WHEN gen_ai_system IS NOT NULL THEN 1 END) AS genai_request_count,
+                              COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
+                              LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
                           FROM spans
                           WHERE ($1::VARCHAR IS NULL OR session_id = $1)
-                            AND ($2::TIMESTAMP IS NULL OR start_time >= $2)
+                            AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
                           GROUP BY COALESCE(session_id, trace_id)
-                          ORDER BY MAX(end_time) DESC
+                          ORDER BY MAX(end_time_unix_nano) DESC
                           LIMIT $3 OFFSET $4
                           """;
 
@@ -60,16 +60,16 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
-                              MIN(start_time) AS start_time,
-                              MAX(end_time) AS last_activity,
+                              MIN(start_time_unix_nano) AS start_time,
+                              MAX(end_time_unix_nano) AS last_activity,
                               COUNT(*) AS span_count,
                               COUNT(DISTINCT trace_id) AS trace_count,
                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                              COALESCE(SUM(genai_input_tokens), 0) AS input_tokens,
-                              COALESCE(SUM(genai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN genai_provider IS NOT NULL THEN 1 END) AS genai_request_count,
-                              COALESCE(SUM(cost_usd), 0) AS total_cost_usd,
-                              LIST(DISTINCT genai_request_model) FILTER (WHERE genai_request_model IS NOT NULL) AS models
+                              COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+                              COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+                              COUNT(CASE WHEN gen_ai_system IS NOT NULL THEN 1 END) AS genai_request_count,
+                              COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
+                              LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
                           FROM spans
                           WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)
                           GROUP BY COALESCE(session_id, trace_id)
@@ -93,7 +93,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         var sql = SpanQueryBuilder.Create()
             .SelectAll()
             .WhereWithFallback(SpanColumn.SessionId, SpanColumn.TraceId, 1)
-            .OrderBy(SpanColumn.StartTime)
+            .OrderBy(SpanColumn.StartTimeUnixNano)
             .LimitParam(2)
             .Build();
 
@@ -124,13 +124,12 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .SelectCount("request_count")
             .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
             .SelectSum(SpanColumn.GenAiOutputTokens, "output_tokens")
-            .Select("COALESCE(SUM(cost_usd), 0) AS total_cost")
-            .Select("AVG(eval_score) FILTER (WHERE eval_score IS NOT NULL) AS avg_score")
-            .SelectDistinctList(SpanColumn.GenAiProviderName, "providers")
+            .Select("COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost")
+            .SelectDistinctList(SpanColumn.GenAiSystem, "providers")
             .SelectDistinctList(SpanColumn.GenAiRequestModel, "models")
-            .WhereNotNull(SpanColumn.GenAiProviderName)
+            .WhereNotNull(SpanColumn.GenAiSystem)
             .WhereOptional(SpanColumn.SessionId, 1)
-            .WhereRaw("($2::TIMESTAMP IS NULL OR start_time >= $2)")
+            .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
         await using var cmd = _connection.CreateCommand();
@@ -146,10 +145,9 @@ public sealed class SessionQueryService(DuckDBConnection connection)
                 RequestCount = reader.Col(0).GetInt64(0),
                 InputTokens = reader.Col(1).GetInt64(0),
                 OutputTokens = reader.Col(2).GetInt64(0),
-                TotalCostUsd = reader.Col(3).GetDecimal(0),
-                AverageEvalScore = reader.Col(4).AsFloat,
-                Providers = await ReadStringListAsync(reader, 5),
-                Models = await ReadStringListAsync(reader, 6)
+                TotalCostUsd = reader.Col(3).GetDouble(0),
+                Providers = await ReadStringListAsync(reader, 4),
+                Models = await ReadStringListAsync(reader, 5)
             };
         }
 
@@ -166,19 +164,18 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         CancellationToken ct = default)
     {
         var sql = SpanQueryBuilder.Create()
-            .Select(SpanColumn.GenAiProviderName)
+            .Select(SpanColumn.GenAiSystem)
             .Select(SpanColumn.GenAiRequestModel)
             .SelectCount("call_count")
             .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
             .SelectSum(SpanColumn.GenAiOutputTokens, "output_tokens")
-            .Select("COALESCE(SUM(cost_usd), 0) AS total_cost")
-            .Select("AVG(EXTRACT(EPOCH FROM (end_time - start_time)) * 1000) AS avg_latency_ms")
-            .SelectPercentile(SpanColumn.Column("EXTRACT(EPOCH FROM (end_time - start_time)) * 1000"), 0.95,
-                "p95_latency_ms")
+            .Select("COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost")
+            .Select("AVG(duration_ns / 1000000.0) AS avg_latency_ms")
+            .SelectPercentile(SpanColumn.Column("duration_ns / 1000000.0"), 0.95, "p95_latency_ms")
             .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
-            .WhereNotNull(SpanColumn.GenAiProviderName)
-            .WhereRaw("($1::TIMESTAMP IS NULL OR start_time >= $1)")
-            .GroupBy(SpanColumn.GenAiProviderName)
+            .WhereNotNull(SpanColumn.GenAiSystem)
+            .WhereRaw("($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)")
+            .GroupBy(SpanColumn.GenAiSystem)
             .GroupBy(SpanColumn.GenAiRequestModel)
             .OrderByDesc("call_count")
             .LimitParam(2)
@@ -186,7 +183,11 @@ public sealed class SessionQueryService(DuckDBConnection connection)
 
         await using var cmd = _connection.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = after ?? (object)DBNull.Value });
+        // Convert DateTime to UnixNano (UBIGINT)
+        var afterUnixNano = after.HasValue
+            ? (object)(ulong)((after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks * 100)
+            : DBNull.Value;
+        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var models = new List<ModelUsage>();
@@ -201,7 +202,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
                 CallCount = reader.Col(2).GetInt64(0),
                 InputTokens = reader.Col(3).GetInt64(0),
                 OutputTokens = reader.Col(4).GetInt64(0),
-                TotalCostUsd = reader.Col(5).GetDecimal(0),
+                TotalCostUsd = reader.Col(5).GetDouble(0),
                 AvgLatencyMs = reader.Col(6).GetDouble(0),
                 P95LatencyMs = reader.Col(7).GetDouble(0),
                 ErrorRate = reader.Col(8).GetDouble(0)
@@ -225,7 +226,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .Select("SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count")
             .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
             .WhereOptional(SpanColumn.SessionId, 1)
-            .WhereRaw("($2::TIMESTAMP IS NULL OR start_time >= $2)")
+            .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
         await using var cmd = _connection.CreateCommand();
@@ -258,7 +259,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         var sql = SpanQueryBuilder.Create()
             .SelectAll()
             .WhereEq(SpanColumn.TraceId, 1)
-            .OrderBy(SpanColumn.StartTime)
+            .OrderBy(SpanColumn.StartTimeUnixNano)
             .Build();
 
         await using var cmd = _connection.CreateCommand();
@@ -285,13 +286,13 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     {
         var builder = SpanQueryBuilder.Create()
             .SelectAll()
-            .WhereNotNull(SpanColumn.GenAiProviderName);
+            .WhereNotNull(SpanColumn.GenAiSystem);
 
         if (sessionId is not null)
             builder = builder.WhereEq(SpanColumn.SessionId, 1);
 
         var sql = builder
-            .OrderByDesc(SpanColumn.StartTime)
+            .OrderByDesc(SpanColumn.StartTimeUnixNano)
             .Limit(limit)
             .Build();
 
@@ -317,7 +318,11 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
     {
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = after ?? (object)DBNull.Value });
+        // Convert DateTime to UnixNano (UBIGINT)
+        var afterUnixNano = after.HasValue
+            ? (object)(ulong)((after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks * 100)
+            : DBNull.Value;
+        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
     }
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after, int limit, int offset)
@@ -334,8 +339,12 @@ public sealed class SessionQueryService(DuckDBConnection connection)
 
         while (await reader.ReadAsync(ct))
         {
-            var startTime = reader.Col(1).GetDateTime(default);
-            var lastActivity = reader.Col(2).GetDateTime(default);
+            // UBIGINT timestamps converted to DateTime
+            var startTimeNano = reader.Col(1).GetUInt64(0);
+            var lastActivityNano = reader.Col(2).GetUInt64(0);
+            var startTime = UnixNanoToDateTime(startTimeNano);
+            var lastActivity = UnixNanoToDateTime(lastActivityNano);
+
             var spanCount = reader.Col(3).GetInt64(0);
             var errorCount = reader.Col(5).GetInt64(0);
             var inputTokens = reader.Col(6).GetInt64(0);
@@ -346,7 +355,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
                 SessionId = reader.GetString(0),
                 StartTime = startTime,
                 LastActivity = lastActivity,
-                DurationMs = (lastActivity - startTime).TotalMilliseconds,
+                DurationMs = (lastActivityNano - startTimeNano) / 1_000_000.0,
                 SpanCount = spanCount,
                 TraceCount = reader.Col(4).GetInt64(0),
                 ErrorCount = errorCount,
@@ -355,12 +364,21 @@ public sealed class SessionQueryService(DuckDBConnection connection)
                 OutputTokens = outputTokens,
                 TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = reader.Col(8).GetInt64(0),
-                TotalCostUsd = reader.Col(9).GetDecimal(0),
+                TotalCostUsd = reader.Col(9).GetDouble(0),
                 Models = await ReadStringListAsync(reader, 10)
             });
         }
 
         return sessions;
+    }
+
+    /// <summary>Converts UnixNano (ulong nanoseconds since epoch) to DateTime.</summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static DateTime UnixNanoToDateTime(ulong unixNano)
+    {
+        // 1 tick = 100 nanoseconds
+        var ticks = (long)(unixNano / 100);
+        return DateTime.UnixEpoch.AddTicks(ticks);
     }
 
     private static async Task<IReadOnlyList<string>> ReadStringListAsync(DbDataReader reader, int ordinal)
@@ -381,26 +399,30 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     private static SpanStorageRow MapSpan(DbDataReader reader) =>
         new()
         {
-            TraceId = reader.GetString(reader.GetOrdinal("trace_id")),
             SpanId = reader.GetString(reader.GetOrdinal("span_id")),
+            TraceId = reader.GetString(reader.GetOrdinal("trace_id")),
             ParentSpanId = reader.Col("parent_span_id").AsString,
+            SessionId = reader.Col("session_id").AsString,
             Name = reader.GetString(reader.GetOrdinal("name")),
-            Kind = reader.Col("kind").AsString,
-            StartTime = reader.Col("start_time").GetDateTime(default),
-            EndTime = reader.Col("end_time").GetDateTime(default),
-            StatusCode = reader.Col("status_code").AsInt32,
+            Kind = reader.Col("kind").GetByte(0),
+            StartTimeUnixNano = reader.Col("start_time_unix_nano").GetUInt64(0),
+            EndTimeUnixNano = reader.Col("end_time_unix_nano").GetUInt64(0),
+            DurationNs = reader.Col("duration_ns").GetUInt64(0),
+            StatusCode = reader.Col("status_code").GetByte(0),
             StatusMessage = reader.Col("status_message").AsString,
             ServiceName = reader.Col("service_name").AsString,
-            SessionId = reader.Col("session_id").AsString,
-            ProviderName = reader.Col("genai_provider").AsString,
-            RequestModel = reader.Col("genai_request_model").AsString,
-            TokensIn = reader.Col("genai_input_tokens").AsInt64,
-            TokensOut = reader.Col("genai_output_tokens").AsInt64,
-            CostUsd = reader.Col("cost_usd").AsDecimal,
-            EvalScore = reader.Col("eval_score").AsFloat,
-            EvalReason = reader.Col("eval_reason").AsString,
-            Attributes = reader.Col("attributes").AsString,
-            Events = reader.Col("events").AsString
+            GenAiSystem = reader.Col("gen_ai_system").AsString,
+            GenAiRequestModel = reader.Col("gen_ai_request_model").AsString,
+            GenAiResponseModel = reader.Col("gen_ai_response_model").AsString,
+            GenAiInputTokens = reader.Col("gen_ai_input_tokens").AsInt64,
+            GenAiOutputTokens = reader.Col("gen_ai_output_tokens").AsInt64,
+            GenAiTemperature = reader.Col("gen_ai_temperature").AsDouble,
+            GenAiStopReason = reader.Col("gen_ai_stop_reason").AsString,
+            GenAiToolName = reader.Col("gen_ai_tool_name").AsString,
+            GenAiToolCallId = reader.Col("gen_ai_tool_call_id").AsString,
+            GenAiCostUsd = reader.Col("gen_ai_cost_usd").AsDouble,
+            AttributesJson = reader.Col("attributes_json").AsString,
+            ResourceJson = reader.Col("resource_json").AsString
         };
 }
 
@@ -422,7 +444,7 @@ public sealed record SessionSummary
     public long OutputTokens { get; init; }
     public long TotalTokens { get; init; }
     public long GenAiRequestCount { get; init; }
-    public decimal TotalCostUsd { get; init; }
+    public double TotalCostUsd { get; init; }
     public IReadOnlyList<string> Models { get; init; } = [];
 }
 
@@ -432,8 +454,7 @@ public sealed record SessionGenAiStats
     public long InputTokens { get; init; }
     public long OutputTokens { get; init; }
     public long TotalTokens => InputTokens + OutputTokens;
-    public decimal TotalCostUsd { get; init; }
-    public float? AverageEvalScore { get; init; }
+    public double TotalCostUsd { get; init; }
     public IReadOnlyList<string> Providers { get; init; } = [];
     public IReadOnlyList<string> Models { get; init; } = [];
 }
@@ -445,7 +466,7 @@ public sealed record ModelUsage
     public long CallCount { get; init; }
     public long InputTokens { get; init; }
     public long OutputTokens { get; init; }
-    public decimal TotalCostUsd { get; init; }
+    public double TotalCostUsd { get; init; }
     public double AvgLatencyMs { get; init; }
     public double P95LatencyMs { get; init; }
     public double ErrorRate { get; init; }

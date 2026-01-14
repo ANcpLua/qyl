@@ -2,7 +2,7 @@
 // QYL v2.0 - Common Types & Scalars
 // =============================================================================
 // Foundational types used across all OTel semantic convention models.
-// OpenTelemetry Semantic Conventions v1.38 compliant.
+// OpenTelemetry Semantic Conventions v1.39 compliant.
 // =============================================================================
 
 import "@typespec/versioning";

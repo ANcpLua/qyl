@@ -7,7 +7,8 @@
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- ConfigureAwait not needed in ASP.NET Core apps -->
-    <NoWarn>$(NoWarn);CA2007;VSTHRD111</NoWarn>
+    <!-- NU1510: HealthChecks used via DI/abstractions, pruner can't detect -->
+    <NoWarn>$(NoWarn);CA2007;VSTHRD111;NU1510</NoWarn>
     <!-- Enable CLAUDE.md generation to test all 3 item types -->
     <InjectClaudeBrain>true</InjectClaudeBrain>
   </PropertyGroup>

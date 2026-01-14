@@ -40,7 +40,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_SingleSession_ReturnsAggregatedSession()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-1", "span-1")
@@ -48,14 +48,14 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .WithName("chat-1")
                 .AtTime(now)
                 .WithTokens(100, 50)
-                .WithCost(0.05m)
+                .WithCost(0.05)
                 .Build(),
             SpanBuilder.GenAi("trace-1", "span-2")
                 .WithSessionId("session-001")
                 .WithName("chat-2")
                 .AtTime(now, 150, 200)
                 .WithTokens(200, 100)
-                .WithCost(0.10m)
+                .WithCost(0.10)
                 .Build()
         ]);
 
@@ -73,7 +73,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         Assert.Equal(300, session.InputTokens); // 100 + 200
         Assert.Equal(150, session.OutputTokens); // 50 + 100
         Assert.Equal(450, session.TotalTokens);
-        Assert.Equal(0.15m, session.TotalCostUsd);
+        Assert.Equal(0.15, session.TotalCostUsd, 0.001);
         Assert.Equal(2, session.GenAiRequestCount);
     }
 
@@ -81,7 +81,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_MultipleSessions_ReturnsAllOrderedByLastActivity()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         // Session 1 - older
         var batch1 = SpanBuilder.GenAi("trace-a", "span-a")
@@ -115,7 +115,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_WithLimit_RespectsLimit()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         for (var i = 0; i < 5; i++)
         {
             var span = SpanBuilder.Create($"trace-{i}", $"span-{i}")
@@ -136,7 +136,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_WithOffset_SkipsRecords()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         for (var i = 0; i < 5; i++)
         {
             var span = SpanBuilder.Create($"trace-{i}", $"span-{i}")
@@ -157,7 +157,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_WithAfterFilter_FiltersOldSessions()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var oldSpan = SpanBuilder.Create("trace-old", "span-old")
             .WithSessionId("old-session")
@@ -191,7 +191,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         var span = SpanBuilder.GenAi("trace-1", "span-1")
             .WithSessionId("target-session")
             .WithTokens(150, 75)
-            .WithCost(0.08m)
+            .WithCost(0.08)
             .Build();
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
@@ -204,7 +204,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         Assert.Equal("target-session", session.SessionId);
         Assert.Equal(150, session.InputTokens);
         Assert.Equal(75, session.OutputTokens);
-        Assert.Equal(0.08m, session.TotalCostUsd);
+        Assert.Equal(0.08, session.TotalCostUsd, 0.001);
     }
 
     [Fact]
@@ -243,7 +243,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionSpansAsync_ReturnsSpansOrderedByTime()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.Create("trace-1", "span-3")
@@ -279,7 +279,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionSpansAsync_WithLimit_RespectsLimit()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var spans = Enumerable.Range(0, 10)
             .Select(i => SpanBuilder.Create("trace-1", $"span-{i:D2}")
                 .WithSessionId("session-limited")
@@ -306,7 +306,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetGenAiStatsAsync_AggregatesCorrectly()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-1", "span-1")
@@ -314,7 +314,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .WithProvider("openai")
                 .WithModel("gpt-4")
                 .WithTokens(100, 50)
-                .WithCost(0.05m)
+                .WithCost(0.05)
                 .WithEval(0.9f)
                 .AtTime(now)
                 .Build(),
@@ -323,7 +323,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .WithProvider("anthropic")
                 .WithModel("claude-3")
                 .WithTokens(200, 100)
-                .WithCost(0.08m)
+                .WithCost(0.08)
                 .WithEval(0.85f)
                 .AtTime(now, 100)
                 .Build(),
@@ -345,9 +345,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         Assert.Equal(300, stats.InputTokens);
         Assert.Equal(150, stats.OutputTokens);
         Assert.Equal(450, stats.TotalTokens);
-        Assert.Equal(0.13m, stats.TotalCostUsd);
-        Assert.NotNull(stats.AverageEvalScore);
-        Assert.True(stats.AverageEvalScore is >= 0.85f and <= 0.9f);
+        Assert.Equal(0.13, stats.TotalCostUsd);
 
         // Providers and models
         Assert.Contains("openai", stats.Providers);
@@ -360,7 +358,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetGenAiStatsAsync_GlobalStats_AggregatesAllSessions()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-1", "span-1")
@@ -414,7 +412,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetTopModelsAsync_ReturnsModelsOrderedByCallCount()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var spans = new List<SpanStorageRow>();
 
         // gpt-4: 5 calls
@@ -453,21 +451,21 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetTopModelsAsync_CalculatesTokensAndCost()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-1", "span-1")
                 .WithProvider("openai")
                 .WithModel("gpt-4")
                 .WithTokens(100, 50)
-                .WithCost(0.05m)
+                .WithCost(0.05)
                 .AtTime(now) // 100ms
                 .Build(),
             SpanBuilder.GenAi("trace-2", "span-2")
                 .WithProvider("openai")
                 .WithModel("gpt-4")
                 .WithTokens(200, 100)
-                .WithCost(0.10m)
+                .WithCost(0.10)
                 .AtTime(now, 200, 200) // 200ms
                 .Build()
         ]);
@@ -485,7 +483,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         Assert.Equal(2, model.CallCount);
         Assert.Equal(300, model.InputTokens);
         Assert.Equal(150, model.OutputTokens);
-        Assert.Equal(0.15m, model.TotalCostUsd);
+        Assert.Equal(0.15, model.TotalCostUsd, 0.001);
         Assert.Equal(150, model.AvgLatencyMs, 1); // (100 + 200) / 2
     }
 
@@ -497,7 +495,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetErrorSummaryAsync_CalculatesErrorRate()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.Create("trace-1", "span-1")
@@ -561,7 +559,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionAsync_CalculatesDurationCorrectly()
     {
         // Arrange
-        var startTime = DateTime.UtcNow;
+        var startTime = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.Create("trace-1", "span-1")
@@ -589,7 +587,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_TracksModelList()
     {
         // Arrange
-        var now = DateTime.UtcNow;
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         var batch = new SpanBatch(
         [
             SpanBuilder.GenAi("trace-1", "span-1")

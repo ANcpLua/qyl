@@ -14,8 +14,10 @@ public static class SpanMapper
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null)
     {
-        var startTime = record.StartTime.ToUniversalTime();
-        var endTime = record.EndTime.ToUniversalTime();
+        // Convert UnixNano (ulong) to DateTime
+        var startTime = UnixNanoToDateTime(record.StartTimeUnixNano);
+        var endTime = UnixNanoToDateTime(record.EndTimeUnixNano);
+        var durationMs = record.DurationNs / 1_000_000.0; // ns → ms
 
         return new SpanDto
         {
@@ -29,11 +31,11 @@ public static class SpanMapper
             StatusMessage = record.StatusMessage,
             StartTime = startTime.ToString("O"),
             EndTime = endTime.ToString("O"),
-            DurationMs = (endTime - startTime).TotalMilliseconds,
+            DurationMs = durationMs,
             ServiceName = serviceName,
             ServiceVersion = serviceVersion,
-            Attributes = ParseAttributes(record.Attributes),
-            Events = ParseEvents(record.Events),
+            Attributes = ParseAttributes(record.AttributesJson),
+            Events = [], // Events stored in AttributesJson if present
             Links = [],
             GenAi = ExtractGenAiData(record)
         };
@@ -52,23 +54,21 @@ public static class SpanMapper
         })
     ];
 
-    private static string MapSpanKind(string? kind)
+    /// <summary>
+    ///     Converts UnixNano (ulong nanoseconds since epoch) to DateTime.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static DateTime UnixNanoToDateTime(ulong unixNano)
     {
-        if (int.TryParse(kind, out var kindInt) && kindInt >= 0 && kindInt < SpanKindNames.Length)
-            return SpanKindNames[kindInt];
-
-        return kind?.ToLowerInvariant() switch
-        {
-            "internal" => "internal",
-            "server" => "server",
-            "client" => "client",
-            "producer" => "producer",
-            "consumer" => "consumer",
-            _ => "unspecified"
-        };
+        // 1 tick = 100 nanoseconds
+        var ticks = (long)(unixNano / 100);
+        return DateTime.UnixEpoch.AddTicks(ticks);
     }
 
-    private static string MapStatus(int? statusCode) =>
+    private static string MapSpanKind(byte kind) =>
+        kind < SpanKindNames.Length ? SpanKindNames[kind] : "unspecified";
+
+    private static string MapStatus(byte statusCode) =>
         statusCode switch
         {
             0 => "unset",
@@ -94,51 +94,29 @@ public static class SpanMapper
         }
     }
 
-    [RequiresUnreferencedCode("Deserializes dynamic span event structure")]
-    [RequiresDynamicCode("Deserializes dynamic span event structure")]
-    private static List<SpanEventDto> ParseEvents(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json))
-            return [];
-
-        try
-        {
-            var events = JsonSerializer.Deserialize<List<RawSpanEvent>>(json, JsonOptions);
-            return events?.Select(static e => new SpanEventDto
-            {
-                Name = e.Name ?? "unknown",
-                Timestamp = e.Timestamp?.ToString("O") ?? TimeProvider.System.GetUtcNow().ToString("O"),
-                Attributes = e.Attributes
-            }).ToList() ?? [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
     [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
     [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
     private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record)
     {
-        if (record.TokensIn is null && record.TokensOut is null && string.IsNullOrEmpty(record.ProviderName))
+        if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
+            string.IsNullOrEmpty(record.GenAiSystem))
             return null;
 
         return new GenAiSpanDataDto
         {
-            ProviderName = record.ProviderName,
+            ProviderName = record.GenAiSystem,
             OperationName = ExtractOperationName(record.Name),
-            RequestModel = record.RequestModel,
-            ResponseModel = null,
-            InputTokens = record.TokensIn,
-            OutputTokens = record.TokensOut,
-            TotalTokens = (record.TokensIn ?? 0) + (record.TokensOut ?? 0),
-            CostUsd = record.CostUsd.HasValue ? (double)record.CostUsd.Value : null,
-            Temperature = null,
+            RequestModel = record.GenAiRequestModel,
+            ResponseModel = record.GenAiResponseModel,
+            InputTokens = record.GenAiInputTokens,
+            OutputTokens = record.GenAiOutputTokens,
+            TotalTokens = (record.GenAiInputTokens ?? 0) + (record.GenAiOutputTokens ?? 0),
+            CostUsd = record.GenAiCostUsd,
+            Temperature = record.GenAiTemperature,
             MaxTokens = null,
-            FinishReason = null,
-            ToolName = ExtractToolName(record),
-            ToolCallId = null
+            FinishReason = record.GenAiStopReason,
+            ToolName = record.GenAiToolName,
+            ToolCallId = record.GenAiToolCallId
         };
     }
 
@@ -146,23 +124,6 @@ public static class SpanMapper
     {
         var parts = spanName.Split(' ', 2);
         return parts.Length > 0 ? parts[0] : null;
-    }
-
-    [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
-    [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
-    private static string? ExtractToolName(SpanStorageRow record)
-    {
-        var attrs = ParseAttributes(record.Attributes);
-        return attrs.TryGetValue("gen_ai.tool.name", out var toolName) ? toolName?.ToString() : null;
-    }
-
-    [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes",
-        Justification = "Instantiated by JsonSerializer.Deserialize")]
-    private sealed class RawSpanEvent
-    {
-        public string? Name { get; init; }
-        public DateTime? Timestamp { get; init; }
-        public Dictionary<string, object?>? Attributes { get; init; }
     }
 }
 
@@ -191,7 +152,7 @@ public static class SessionMapper
                 TotalInputTokens = summary.InputTokens,
                 TotalOutputTokens = summary.OutputTokens,
                 TotalTokens = summary.TotalTokens,
-                TotalCostUsd = (double)summary.TotalCostUsd,
+                TotalCostUsd = summary.TotalCostUsd,
                 RequestCount = summary.GenAiRequestCount,
                 ToolCallCount = 0,
                 Models = [.. summary.Models],

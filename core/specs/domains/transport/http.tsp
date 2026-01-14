@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - HTTP Semantic Conventions (OTel v1.38)
+// QYL v2.0 - HTTP Semantic Conventions (OTel v1.39)
 // =============================================================================
 // HTTP client and server telemetry attributes following OTel specifications.
 // =============================================================================

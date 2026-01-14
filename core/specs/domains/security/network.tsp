@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Network Semantic Conventions (OTel v1.38)
+// QYL v2.0 - Network Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Network layer telemetry attributes following OTel specifications.
 // =============================================================================

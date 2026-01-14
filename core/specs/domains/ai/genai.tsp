@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - GenAI Semantic Conventions (OTel v1.38)
+// QYL v2.0 - GenAI Semantic Conventions (OTel v1.39)
 // =============================================================================
 // Comprehensive AI/LLM telemetry following OpenTelemetry GenAI specifications.
 // https://opentelemetry.io/docs/specs/semconv/gen-ai/
@@ -239,7 +239,7 @@ model GenAiSpanAttributes {
 }
 
 // =============================================================================
-// GenAI Exported Attribute Models (OTel 1.38 compliant)
+// GenAI Exported Attribute Models (OTel 1.39 compliant)
 // =============================================================================
 
 @doc("GenAI request-specific attributes")

@@ -2,6 +2,7 @@ namespace qyl.collector.Storage;
 
 /// <summary>
 ///     Zero-allocation extensions for IDataReader.
+///     .NET 10 optimized with C# 14 extension members.
 /// </summary>
 public static class DuckDbReaderExtensions
 {
@@ -58,6 +59,18 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
         get => IsNull ? null : reader.GetInt32(ordinal);
     }
 
+    public byte? AsByte
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsNull ? null : reader.GetByte(ordinal);
+    }
+
+    public sbyte? AsSByte
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsNull ? null : unchecked((sbyte)reader.GetByte(ordinal));
+    }
+
     public long? AsInt64
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -65,7 +78,7 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     }
 
     /// <summary>
-    ///     Gets UBIGINT (unsigned 64-bit) value. Required for OTel timestamp columns.
+    ///     Gets UBIGINT (unsigned 64-bit) value. Required for OTel UnixNano columns.
     ///     DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
     /// </summary>
     public ulong? AsUInt64
@@ -101,6 +114,12 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => IsNull ? null : reader.GetDateTime(ordinal);
+    }
+
+    public DateTimeOffset? AsDateTimeOffset
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsNull ? null : new DateTimeOffset(reader.GetDateTime(ordinal), TimeSpan.Zero);
     }
 
     // --- Advanced Types (Schema Alignment) ---
@@ -153,7 +172,7 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
         }
     }
 
-    // --- Fallbacks ---
+    // --- Fallbacks with defaults ---
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public string GetString(string defaultValue) => IsNull ? defaultValue : reader.GetString(ordinal);
@@ -162,10 +181,16 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     public int GetInt32(int defaultValue) => IsNull ? defaultValue : reader.GetInt32(ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public byte GetByte(byte defaultValue) => IsNull ? defaultValue : reader.GetByte(ordinal);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public sbyte GetSByte(sbyte defaultValue) => IsNull ? defaultValue : unchecked((sbyte)reader.GetByte(ordinal));
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public long GetInt64(long defaultValue) => IsNull ? defaultValue : reader.GetInt64(ordinal);
 
     /// <summary>
-    ///     Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel timestamp columns.
+    ///     Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel UnixNano columns.
     ///     DuckDB stores UBIGINT as decimal internally, so we cast via decimal.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -201,65 +226,82 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     }
 }
 
+// =============================================================================
+// Storage Types - Internal to qyl.collector
+// =============================================================================
+
+/// <summary>
+///     GenAI aggregated statistics for queries.
+/// </summary>
 public sealed record GenAiStats
 {
     public long RequestCount { get; init; }
     public long TotalInputTokens { get; init; }
     public long TotalOutputTokens { get; init; }
-    public decimal TotalCostUsd { get; init; }
-    public float? AverageEvalScore { get; init; }
+    public double TotalCostUsd { get; init; }
+    public double? AverageEvalScore { get; init; }
 }
 
+/// <summary>
+///     Batch of spans for ingestion. Uses list for efficient bulk operations.
+/// </summary>
 public sealed record SpanBatch(List<SpanStorageRow> Spans);
 
 /// <summary>
-///     DuckDB storage row for spans. Uses flat DateTime types for DB compatibility.
-///     Owner: qyl.collector | For external API use SpanDto instead.
+///     DuckDB storage row for spans. Matches generated DuckDbSchema.SpansDdl.
+///     Uses UBIGINT timestamps (ulong) for OTel wire format compatibility.
+///     Owner: qyl.collector | For external API use SpanRecord from protocol.
 /// </summary>
 public sealed record SpanStorageRow
 {
-    // Identity
-    public required string TraceId { get; init; }
+    // Identity (PRIMARY KEY is span_id in new schema)
     public required string SpanId { get; init; }
+    public required string TraceId { get; init; }
     public string? ParentSpanId { get; init; }
+    public string? SessionId { get; init; }
 
     // Core span fields
     public required string Name { get; init; }
-    public string? Kind { get; init; }
-    public required DateTime StartTime { get; init; }
-    public required DateTime EndTime { get; init; }
-    public int? StatusCode { get; init; }
+    public required byte Kind { get; init; } // TINYINT - SpanKind enum
+    public required ulong StartTimeUnixNano { get; init; } // UBIGINT
+    public required ulong EndTimeUnixNano { get; init; } // UBIGINT
+    public required ulong DurationNs { get; init; } // UBIGINT - computed
+    public required byte StatusCode { get; init; } // TINYINT - StatusCode enum
     public string? StatusMessage { get; init; }
 
-    // Resource attributes (OTel: service.name)
+    // Resource attributes
     public string? ServiceName { get; init; }
 
-    // Session tracking (OTel: session.id)
-    public string? SessionId { get; init; }
+    // GenAI attributes (OTel 1.39 - gen_ai.system is the provider name)
+    public string? GenAiSystem { get; init; }
+    public string? GenAiRequestModel { get; init; }
+    public string? GenAiResponseModel { get; init; }
+    public long? GenAiInputTokens { get; init; } // BIGINT
+    public long? GenAiOutputTokens { get; init; } // BIGINT
+    public double? GenAiTemperature { get; init; } // DOUBLE
+    public string? GenAiStopReason { get; init; }
+    public string? GenAiToolName { get; init; }
+    public string? GenAiToolCallId { get; init; }
+    public double? GenAiCostUsd { get; init; } // DOUBLE
 
-    // GenAI attributes (OTel 1.38)
-    public string? ProviderName { get; init; } // gen_ai.provider.name
-    public string? RequestModel { get; init; } // gen_ai.request.model
-    public long? TokensIn { get; init; } // gen_ai.usage.input_tokens (BIGINT)
-    public long? TokensOut { get; init; } // gen_ai.usage.output_tokens (BIGINT)
+    // Flexible storage (JSON columns)
+    public string? AttributesJson { get; init; }
+    public string? ResourceJson { get; init; }
 
-    // qyl extensions
-    public decimal? CostUsd { get; init; }
-    public float? EvalScore { get; init; }
-    public string? EvalReason { get; init; }
-
-    // Flexible storage
-    public string? Attributes { get; init; }
-    public string? Events { get; init; }
+    // Metadata
+    public DateTimeOffset? CreatedAt { get; init; }
 }
 
+/// <summary>
+///     Storage statistics for monitoring.
+/// </summary>
 public sealed record StorageStats
 {
     public long SpanCount { get; init; }
     public long SessionCount { get; init; }
-    public long FeedbackCount { get; init; }
-    public DateTime? OldestSpan { get; init; }
-    public DateTime? NewestSpan { get; init; }
+    public long LogCount { get; init; }
+    public ulong? OldestSpanTime { get; init; } // UnixNano
+    public ulong? NewestSpanTime { get; init; } // UnixNano
 }
 
 /// <summary>
@@ -273,17 +315,22 @@ public sealed record LogStorageRow
     public string? SpanId { get; init; }
     public string? SessionId { get; init; }
 
-    public required long TimeUnixNano { get; init; }
-    public long? ObservedTimeUnixNano { get; init; }
+    public required ulong TimeUnixNano { get; init; } // UBIGINT
+    public ulong? ObservedTimeUnixNano { get; init; } // UBIGINT
 
-    public required int SeverityNumber { get; init; }
+    public required byte SeverityNumber { get; init; } // TINYINT
     public string? SeverityText { get; init; }
     public string? Body { get; init; }
 
     public string? ServiceName { get; init; }
     public string? AttributesJson { get; init; }
     public string? ResourceJson { get; init; }
+    public DateTimeOffset? CreatedAt { get; init; }
 }
+
+// =============================================================================
+// SSE Broadcasting - Telemetry streaming infrastructure
+// =============================================================================
 
 public interface ITelemetrySseBroadcaster : IAsyncDisposable
 {
@@ -347,7 +394,7 @@ public sealed class TelemetrySseBroadcaster : ITelemetrySseBroadcaster
     }
 }
 
-public enum TelemetrySignal
+public enum TelemetrySignal : byte
 {
     Connected = 0,
     Spans = 1,

@@ -24,7 +24,7 @@ You are on **.NET 10** (November 2025 LTS, supported through November 2028) with
 
 This reference is specifically aligned with the **qyl AI Observability Platform**:
 
-### OTel SemConv 1.38 Required Attributes
+### OTel SemConv 1.39 Required Attributes
 
 ```
 gen_ai.provider.name       (REQUIRED)
@@ -1064,7 +1064,7 @@ var props = typeof(SpanData).GetProperties();  // GOOD
 │               Throw.IfOutOfRange()                              │
 │               (NOT ArgumentNullException.ThrowIfNull!)          │
 ├─────────────────────────────────────────────────────────────────┤
-│ OTel 1.38 REQUIRED ATTRIBUTES                                   │
+│ OTel 1.39 REQUIRED ATTRIBUTES                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │ gen_ai.provider.name      (NOT gen_ai.system!)                  │
 │ gen_ai.request.model                                            │

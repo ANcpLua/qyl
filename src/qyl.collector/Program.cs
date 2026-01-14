@@ -617,7 +617,7 @@ namespace qyl.collector
 
             // Extract service name from first span's attributes if available
             var serviceName = "unknown";
-            if (spans.Count > 0 && spans[0].Attributes is { } attrJson)
+            if (spans.Count > 0 && spans[0].AttributesJson is { } attrJson)
             {
                 try
                 {
@@ -662,16 +662,16 @@ namespace qyl.collector
     }
 
     // =============================================================================
-    // GenAI Provider Detection - OTel 1.38 gen_ai.provider.name values
+    // GenAI Provider Detection - OTel 1.39 gen_ai.provider.name values
     // =============================================================================
 
     /// <summary>
-    ///     Provider identifiers per OTel 1.38 gen_ai.provider.name values.
+    ///     Provider identifiers per OTel 1.39 gen_ai.provider.name values.
     ///     Supports host-based provider detection for automatic attribution.
     /// </summary>
     public static class GenAiProviders
     {
-        // OTel 1.38 provider name constants
+        // OTel 1.39 provider name constants
         public const string OpenAi = "openai";
         public const string Anthropic = "anthropic";
         public const string GcpGemini = "gcp.gemini";
@@ -730,7 +730,7 @@ namespace qyl.collector
 
     /// <summary>
     ///     Extracts GenAI-specific attributes from span attribute collections.
-    ///     Handles both current (OTel 1.38) and deprecated attribute names.
+    ///     Handles both current (OTel 1.39) and deprecated attribute names.
     /// </summary>
     public static class GenAiExtractor
     {
@@ -795,23 +795,6 @@ namespace qyl.collector
             };
         }
 
-        private static decimal? GetDecimal(IReadOnlyDictionary<string, object?> attrs, string key)
-        {
-            if (!attrs.TryGetValue(key, out var value) || value is null)
-                return null;
-
-            return value switch
-            {
-                decimal d => d,
-                double dbl => (decimal)dbl,
-                float f => (decimal)f,
-                long l => l,
-                int i => i,
-                string s when decimal.TryParse(s, out var parsed) => parsed,
-                _ => null
-            };
-        }
-
         // =========================================================================
         // JSON helpers
         // =========================================================================
@@ -847,18 +830,6 @@ namespace qyl.collector
             };
         }
 
-        private static decimal? GetJsonDecimal(JsonElement element, string property)
-        {
-            if (!element.TryGetProperty(property, out var value))
-                return null;
-
-            return value.ValueKind switch
-            {
-                JsonValueKind.Number => value.TryGetDecimal(out var d) ? d : null,
-                JsonValueKind.String when decimal.TryParse(value.GetString(), out var parsed) => parsed,
-                _ => null
-            };
-        }
         // =========================================================================
         // Dictionary-based extraction (IReadOnlyDictionary<string, object?>)
         // =========================================================================
@@ -892,7 +863,7 @@ namespace qyl.collector
                 Temperature = GetDouble(attributes, GenAiAttributes.RequestTemperature),
                 MaxTokens = GetLong(attributes, GenAiAttributes.RequestMaxTokens),
                 FinishReason = GetString(attributes, GenAiAttributes.ResponseFinishReasons),
-                CostUsd = GetDecimal(attributes, QylAttributes.CostUsd),
+                CostUsd = GetDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetString(attributes, QylAttributes.SessionId)
                             ?? GetString(attributes, GenAiAttributes.ConversationId),
                 ToolName = GetString(attributes, GenAiAttributes.ToolName),
@@ -952,7 +923,7 @@ namespace qyl.collector
                 Temperature = GetJsonDouble(attributes, GenAiAttributes.RequestTemperature),
                 MaxTokens = GetJsonLong(attributes, GenAiAttributes.RequestMaxTokens),
                 FinishReason = GetJsonString(attributes, GenAiAttributes.ResponseFinishReasons),
-                CostUsd = GetJsonDecimal(attributes, QylAttributes.CostUsd),
+                CostUsd = GetJsonDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetJsonString(attributes, QylAttributes.SessionId)
                             ?? GetJsonString(attributes, GenAiAttributes.ConversationId),
                 ToolName = GetJsonString(attributes, GenAiAttributes.ToolName),
@@ -1054,7 +1025,7 @@ namespace qyl.collector
         public string? FinishReason { get; init; }
 
         /// <summary>Estimated cost in USD.</summary>
-        public decimal? CostUsd { get; init; }
+        public double? CostUsd { get; init; }
 
         /// <summary>Session/conversation ID.</summary>
         public string? SessionId { get; init; }

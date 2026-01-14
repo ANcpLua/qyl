@@ -255,7 +255,7 @@ public static class OtlpGenAiAttributes
 // =============================================================================
 
 /// <summary>
-///     Well-known values for gen_ai.operation.name (OTel v1.38)
+///     Well-known values for gen_ai.operation.name (OTel v1.39)
 /// </summary>
 public static class GenAiOperationName
 {
@@ -269,7 +269,7 @@ public static class GenAiOperationName
 }
 
 /// <summary>
-///     Well-known values for gen_ai.output.type (OTel v1.38)
+///     Well-known values for gen_ai.output.type (OTel v1.39)
 /// </summary>
 public static class GenAiOutputType
 {
@@ -280,7 +280,7 @@ public static class GenAiOutputType
 }
 
 /// <summary>
-///     Well-known values for gen_ai.tool.type (OTel v1.38)
+///     Well-known values for gen_ai.tool.type (OTel v1.39)
 /// </summary>
 public static class GenAiToolType
 {
@@ -290,7 +290,7 @@ public static class GenAiToolType
 }
 
 /// <summary>
-///     Well-known values for gen_ai.token.type (OTel v1.38 metrics)
+///     Well-known values for gen_ai.token.type (OTel v1.39 metrics)
 /// </summary>
 public static class GenAiTokenType
 {
@@ -307,7 +307,7 @@ public static class ErrorType
 }
 
 // =============================================================================
-// EVENT NAMES (OTel v1.38)
+// EVENT NAMES (OTel v1.39)
 // =============================================================================
 
 /// <summary>
@@ -323,7 +323,7 @@ public static class GenAiEventNames
 }
 
 // =============================================================================
-// METRIC NAMES (OTel v1.38)
+// METRIC NAMES (OTel v1.39)
 // =============================================================================
 
 /// <summary>
@@ -345,15 +345,15 @@ public static class GenAiMetricNames
 }
 
 // =============================================================================
-// PROVIDER NAMES (OTel v1.38)
+// PROVIDER NAMES (OTel v1.39)
 // =============================================================================
 
 /// <summary>
-///     Provider identifiers per OTel 1.38 gen_ai.provider.name values.
+///     Provider identifiers per OTel 1.39 gen_ai.provider.name values.
 /// </summary>
 public static class OtlpGenAiProviders
 {
-    // OTel v1.38 canonical provider names
+    // OTel v1.39 canonical provider names
     public const string Anthropic = "anthropic";
     public const string OpenAi = "openai";
     public const string AzureAiOpenAi = "azure.ai.openai";
@@ -439,13 +439,13 @@ public static class OtlpSchemaVersion
 // =============================================================================
 
 /// <summary>
-///     Single source of truth for deprecated OTel attribute mappings (1.38 migration).
+///     Single source of truth for deprecated OTel attribute mappings (1.39 migration).
 /// </summary>
 public static class SchemaNormalizer
 {
 #pragma warning disable QYL0002 // Intentionally references deprecated attributes for migration
     /// <summary>
-    ///     Complete mapping of deprecated attribute names to their 1.38 equivalents.
+    ///     Complete mapping of deprecated attribute names to their 1.39 equivalents.
     /// </summary>
     public static readonly FrozenDictionary<string, string> DeprecatedMappings =
         new Dictionary<string, string>(StringComparer.Ordinal)
@@ -589,7 +589,7 @@ public sealed class ParsedSpan
     public StatusCode Status { get; set; }
     public string? StatusMessage { get; set; }
 
-    // GenAI-specific extracted attributes (OTel 1.38)
+    // GenAI-specific extracted attributes (OTel 1.39)
     public string? ProviderName { get; set; }
     public string? RequestModel { get; set; }
     public string? ResponseModel { get; set; }

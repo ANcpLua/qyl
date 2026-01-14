@@ -32,7 +32,7 @@ public class DiagnosticTest : IAsyncLifetime
 
         // Check raw data
         await using var checkCmd = _store.Connection.CreateCommand();
-        checkCmd.CommandText = "SELECT trace_id, session_id, status_code, start_time FROM spans";
+        checkCmd.CommandText = "SELECT trace_id, session_id, status_code, start_time_unix_nano FROM spans";
         await using var checkReader = await checkCmd.ExecuteReaderAsync();
 
         Console.WriteLine("Raw data in spans table:");
@@ -43,9 +43,9 @@ public class DiagnosticTest : IAsyncLifetime
             var statusCode = checkReader.IsDBNull(2)
                 ? "NULL"
                 : checkReader.GetInt32(2).ToString(CultureInfo.InvariantCulture);
-            var startTime = checkReader.IsDBNull(3) ? "NULL" : checkReader.GetDateTime(3).ToString("o");
+            var startTimeNs = checkReader.IsDBNull(3) ? "NULL" : checkReader.GetInt64(3).ToString(CultureInfo.InvariantCulture);
             Console.WriteLine(
-                $"  trace={traceId}, session={sessionId}, status_code={statusCode}, start_time={startTime}");
+                $"  trace={traceId}, session={sessionId}, status_code={statusCode}, start_time_unix_nano={startTimeNs}");
 
             // Debug: show bytes
             if (!checkReader.IsDBNull(1))
@@ -158,7 +158,7 @@ public class DiagnosticTest : IAsyncLifetime
             .Select("SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count")
             .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
             .WhereOptional(SpanColumn.SessionId, 1)
-            .WhereRaw("($2::TIMESTAMP IS NULL OR start_time >= $2)")
+            .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
         Console.WriteLine("\nGenerated SQL:");

@@ -1,8 +1,29 @@
 // =============================================================================
 // QYL v2.0 - Main TypeSpec Entry Point
 // =============================================================================
-// Comprehensive OpenTelemetry Semantic Conventions v1.38 compliant schema.
-// All 48+ domain models with proper typing, versioning, and validation.
+// OpenTelemetry Semantic Conventions v1.39 compliant schema.
+// 48 TypeSpec files across 9 domains.
+//
+// Domain Files:
+//   - OTel Core: 5 (enums, span, logs, metrics, resource)
+//   - AI: 3 (genai, code, cli)
+//   - Security: 4 (network, dns, tls, security-rule)
+//   - Transport: 7 (http, rpc, messaging, url, signalr, kestrel, user-agent)
+//   - Infrastructure: 7 (host, container, k8s, cloud, faas, os, webengine)
+//   - Runtime: 5 (process, system, thread, dotnet, aspnetcore)
+//   - Data: 5 (db, file, elasticsearch, vcs, artifact)
+//   - Observe: 8 (session, browser, feature-flags, exceptions, otel, log, error, test)
+//   - Ops: 2 (cicd, deployment)
+//   - Identity: 2 (user, geo)
+//
+// Storage Tables (x-duckdb-table):
+//   - Span → spans (otel/span.tsp)
+//   - LogRecord → logs (otel/logs.tsp)
+//   - SessionEntity → session_entities (domains/observe/session.tsp)
+//   - ErrorEntity → errors (domains/observe/error.tsp)
+//   - TestRunEntity → test_runs (domains/observe/test.tsp)
+//   - TestCaseEntity → test_cases (domains/observe/test.tsp)
+//   - DeploymentEntity → deployments (domains/ops/deployment.tsp)
 // =============================================================================
 
 import "@typespec/http";
