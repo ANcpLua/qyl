@@ -1,0 +1,163 @@
+---
+title: "OTel Compliance"
+description: "OpenTelemetry semantic conventions compliance and version tracking"
+---
+
+# OpenTelemetry Compliance
+
+qyl implements OpenTelemetry semantic conventions for consistent, interoperable telemetry.
+
+## Version Compliance
+
+| Specification | Version | Status |
+|--------------|---------|--------|
+| OpenTelemetry Semantic Conventions | v1.39.0 | ✅ Compliant |
+| OTLP Protocol | v1.0.0 | ✅ Supported |
+| W3C Trace Context | Level 2 | ✅ Supported |
+
+## Supported Protocols
+
+### OTLP/HTTP
+
+| Endpoint | Port | Format |
+|----------|------|--------|
+| `/v1/traces` | 5100 | JSON or Protobuf |
+
+### OTLP/gRPC
+
+| Service | Port |
+|---------|------|
+| `opentelemetry.proto.collector.trace.v1.TraceService` | 4317 |
+
+## Trace Context
+
+qyl supports W3C Trace Context propagation:
+
+| Header | Description |
+|--------|-------------|
+| `traceparent` | Trace ID, parent span ID, flags |
+| `tracestate` | Vendor-specific trace data |
+
+### traceparent Format
+
+```
+{version}-{trace-id}-{parent-id}-{flags}
+00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+```
+
+## Span Attributes
+
+### Standard Attributes
+
+qyl stores all span attributes in the `attributes_json` column. Commonly used attributes:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `service.name` | string | Logical name of the service |
+| `service.version` | string | Version of the service |
+| `deployment.environment` | string | Environment (dev, staging, prod) |
+
+### Resource Attributes
+
+Resource attributes describe the entity producing telemetry:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `service.name` | string | Service identifier |
+| `service.namespace` | string | Service namespace |
+| `service.instance.id` | string | Instance identifier |
+| `host.name` | string | Hostname |
+| `process.pid` | int | Process ID |
+
+## GenAI Semantic Conventions
+
+qyl specifically extracts `gen_ai.*` attributes for AI observability. See [GenAI Attributes](/schema/genai-attributes) for details.
+
+### Extracted Attributes
+
+These attributes are extracted to dedicated columns:
+
+```
+gen_ai.system              → gen_ai_system
+gen_ai.request.model       → gen_ai_request_model
+gen_ai.response.model      → gen_ai_response_model
+gen_ai.usage.input_tokens  → gen_ai_input_tokens
+gen_ai.usage.output_tokens → gen_ai_output_tokens
+```
+
+### Stored in JSON
+
+All other attributes remain in `attributes_json`:
+
+```
+gen_ai.request.temperature
+gen_ai.request.top_p
+gen_ai.request.max_tokens
+gen_ai.response.finish_reasons
+gen_ai.prompt.*
+gen_ai.completion.*
+```
+
+## Status Codes
+
+| Code | Value | Description |
+|------|-------|-------------|
+| `STATUS_CODE_UNSET` | 0 | Default, not explicitly set |
+| `STATUS_CODE_OK` | 1 | Operation completed successfully |
+| `STATUS_CODE_ERROR` | 2 | Operation failed |
+
+## Span Kinds
+
+| Kind | Value | Use Case |
+|------|-------|----------|
+| `SPAN_KIND_UNSPECIFIED` | 0 | Internal default |
+| `SPAN_KIND_INTERNAL` | 1 | Internal operation |
+| `SPAN_KIND_SERVER` | 2 | Server processing request |
+| `SPAN_KIND_CLIENT` | 3 | Client making request |
+| `SPAN_KIND_PRODUCER` | 4 | Async message producer |
+| `SPAN_KIND_CONSUMER` | 5 | Async message consumer |
+
+## Data Model Mapping
+
+### OTLP to DuckDB
+
+| OTLP Field | DuckDB Column | Type |
+|------------|---------------|------|
+| `trace_id` | `trace_id` | VARCHAR(32) |
+| `span_id` | `span_id` | VARCHAR(16) |
+| `parent_span_id` | `parent_span_id` | VARCHAR(16) |
+| `name` | `name` | VARCHAR |
+| `start_time_unix_nano` | `start_time_unix_nano` | UBIGINT |
+| `end_time_unix_nano` | `end_time_unix_nano` | UBIGINT |
+| `kind` | `kind` | TINYINT |
+| `status.code` | `status_code` | TINYINT |
+| `attributes` | `attributes_json` | JSON |
+| `resource.attributes` | `resource_json` | JSON |
+
+### Computed Fields
+
+| Column | Computation |
+|--------|-------------|
+| `duration_ns` | `end_time_unix_nano - start_time_unix_nano` |
+| `gen_ai_total_tokens` | `gen_ai_input_tokens + gen_ai_output_tokens` |
+
+## Compatibility Notes
+
+<Note>
+  qyl focuses on trace data. Metrics and logs from OTLP are acknowledged but not stored.
+</Note>
+
+### Supported Exporters
+
+qyl is compatible with any OTLP-compliant exporter:
+
+- OpenTelemetry SDK (all languages)
+- OpenTelemetry Collector
+- Jaeger (with OTLP export)
+- Grafana Alloy
+
+### Not Supported
+
+- Zipkin format (use OTLP export instead)
+- Jaeger Thrift format (use OTLP export instead)
+- Proprietary formats

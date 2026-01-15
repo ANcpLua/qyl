@@ -1,0 +1,150 @@
+---
+title: "GenAI Attributes"
+description: "OpenTelemetry gen_ai.* semantic conventions for AI observability"
+---
+
+# GenAI Attributes
+
+qyl extracts and stores `gen_ai.*` attributes from OpenTelemetry semantic conventions v1.39.0.
+
+## GenAiSpanData
+
+Structured representation of AI-specific telemetry.
+
+```csharp
+public sealed record GenAiSpanData
+{
+    public string? System { get; init; }           // gen_ai.system
+    public string? RequestModel { get; init; }     // gen_ai.request.model
+    public string? ResponseModel { get; init; }    // gen_ai.response.model
+    public int? InputTokens { get; init; }         // gen_ai.usage.input_tokens
+    public int? OutputTokens { get; init; }        // gen_ai.usage.output_tokens
+    public decimal? CostUsd { get; init; }         // gen_ai.usage.cost
+}
+```
+
+## Supported Attributes
+
+### System Identification
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.system` | string | AI system identifier (e.g., "openai", "anthropic") |
+
+**Known values:**
+- `openai` - OpenAI GPT models
+- `anthropic` - Anthropic Claude models
+- `azure_openai` - Azure OpenAI Service
+- `cohere` - Cohere models
+- `vertex_ai` - Google Vertex AI
+- `aws_bedrock` - AWS Bedrock
+
+### Model Information
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.request.model` | string | Model requested by the application |
+| `gen_ai.response.model` | string | Actual model used for the response |
+
+<Note>
+  The response model may differ from the request model when using aliases like "gpt-4" which resolves to a specific version like "gpt-4-0613".
+</Note>
+
+### Token Usage
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.usage.input_tokens` | int | Number of tokens in the input/prompt |
+| `gen_ai.usage.output_tokens` | int | Number of tokens in the response |
+| `gen_ai.usage.total_tokens` | int | Total tokens (computed: input + output) |
+
+### Cost Tracking
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `gen_ai.usage.cost` | decimal | Cost in USD for this operation |
+
+<Warning>
+  Cost calculation depends on the instrumentation library. qyl stores the value as provided but does not calculate costs independently.
+</Warning>
+
+## DuckDB Storage
+
+GenAI attributes are stored in dedicated columns for efficient querying:
+
+| Column | DuckDB Type | Source Attribute |
+|--------|-------------|------------------|
+| `gen_ai_system` | VARCHAR | `gen_ai.system` |
+| `gen_ai_request_model` | VARCHAR | `gen_ai.request.model` |
+| `gen_ai_response_model` | VARCHAR | `gen_ai.response.model` |
+| `gen_ai_input_tokens` | INTEGER | `gen_ai.usage.input_tokens` |
+| `gen_ai_output_tokens` | INTEGER | `gen_ai.usage.output_tokens` |
+| `gen_ai_total_tokens` | INTEGER | Computed from input + output |
+
+## Example Queries
+
+### Total tokens by model
+
+```sql
+SELECT
+    gen_ai_response_model,
+    SUM(gen_ai_input_tokens) as total_input,
+    SUM(gen_ai_output_tokens) as total_output
+FROM spans
+WHERE gen_ai_system IS NOT NULL
+GROUP BY gen_ai_response_model
+ORDER BY total_output DESC;
+```
+
+### Cost analysis by day
+
+```sql
+SELECT
+    DATE_TRUNC('day', epoch_ms(start_time_unix_nano / 1000000)) as day,
+    gen_ai_system,
+    COUNT(*) as calls,
+    SUM(gen_ai_input_tokens) as input_tokens,
+    SUM(gen_ai_output_tokens) as output_tokens
+FROM spans
+WHERE gen_ai_system IS NOT NULL
+GROUP BY day, gen_ai_system
+ORDER BY day DESC;
+```
+
+### Slow AI calls
+
+```sql
+SELECT
+    span_id,
+    name,
+    gen_ai_response_model,
+    duration_ns / 1000000.0 as duration_ms,
+    gen_ai_output_tokens
+FROM spans
+WHERE gen_ai_system IS NOT NULL
+  AND duration_ns > 5000000000  -- > 5 seconds
+ORDER BY duration_ns DESC
+LIMIT 20;
+```
+
+## Instrumentation Example
+
+When instrumenting your AI calls, set these attributes:
+
+```csharp
+using var activity = s_activitySource.StartActivity("chat.completion");
+
+// Required
+activity?.SetTag("gen_ai.system", "openai");
+
+// Model info
+activity?.SetTag("gen_ai.request.model", "gpt-4");
+activity?.SetTag("gen_ai.response.model", response.Model);
+
+// Token usage (from API response)
+activity?.SetTag("gen_ai.usage.input_tokens", response.Usage.PromptTokens);
+activity?.SetTag("gen_ai.usage.output_tokens", response.Usage.CompletionTokens);
+
+// Optional: Cost if calculated
+activity?.SetTag("gen_ai.usage.cost", CalculateCost(response));
+```

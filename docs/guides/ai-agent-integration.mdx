@@ -1,0 +1,176 @@
+---
+title: "AI Agent Integration"
+description: "Enable AI agents to query their own telemetry via MCP"
+---
+
+# AI Agent Integration
+
+qyl includes an MCP (Model Context Protocol) server that enables AI agents like Claude to query their own telemetry data.
+
+## What is MCP?
+
+Model Context Protocol is a standard for AI agents to interact with external tools and data sources. qyl implements MCP to expose telemetry query capabilities.
+
+## Setting Up qyl.mcp
+
+### Prerequisites
+
+- qyl.collector running on port 5100
+- Claude Code or another MCP-compatible AI client
+
+### Configure Claude Code
+
+Add qyl to your Claude Code settings (`~/.claude/settings.json`):
+
+```json
+{
+  "mcpServers": {
+    "qyl": {
+      "command": "dotnet",
+      "args": ["run", "--project", "/path/to/qyl/src/qyl.mcp"],
+      "env": {
+        "QYL_COLLECTOR_URL": "http://localhost:5100"
+      }
+    }
+  }
+}
+```
+
+### Verify Connection
+
+Ask Claude to list available tools:
+
+```
+What MCP tools do you have access to?
+```
+
+You should see qyl tools listed:
+- `search_sessions`
+- `get_session`
+- `search_traces`
+- `get_span`
+
+## Available MCP Tools
+
+### search_sessions
+
+Find sessions by criteria.
+
+```json
+{
+  "tool": "search_sessions",
+  "arguments": {
+    "limit": 10,
+    "minSpans": 5
+  }
+}
+```
+
+### get_session
+
+Get details for a specific session including all spans.
+
+```json
+{
+  "tool": "get_session",
+  "arguments": {
+    "sessionId": "550e8400-e29b-41d4-a716-446655440000"
+  }
+}
+```
+
+### search_traces
+
+Query traces with filters.
+
+```json
+{
+  "tool": "search_traces",
+  "arguments": {
+    "serviceName": "my-service",
+    "minDurationMs": 100,
+    "hasErrors": true
+  }
+}
+```
+
+### get_span
+
+Get detailed information about a specific span.
+
+```json
+{
+  "tool": "get_span",
+  "arguments": {
+    "spanId": "abc123def456"
+  }
+}
+```
+
+## Use Cases
+
+### Debugging AI Calls
+
+Ask Claude to analyze its own performance:
+
+```
+Look at my recent AI calls and identify any that took longer than expected.
+```
+
+### Cost Analysis
+
+Track token usage across sessions:
+
+```
+How many tokens have I used in the last hour? Break it down by model.
+```
+
+### Error Investigation
+
+Find and analyze errors:
+
+```
+Show me any failed AI calls from today and explain what went wrong.
+```
+
+## Architecture
+
+```
+┌─────────────────┐     stdio     ┌─────────────────┐
+│  Claude Code    │◄─────────────►│    qyl.mcp      │
+│  (AI Agent)     │               │  (MCP Server)   │
+└─────────────────┘               └────────┬────────┘
+                                           │
+                                      HTTP REST
+                                           │
+                                           ▼
+                                  ┌─────────────────┐
+                                  │  qyl.collector  │
+                                  │    (API)        │
+                                  └─────────────────┘
+```
+
+<Warning>
+  The MCP server communicates with the collector via HTTP REST only. It does not have direct database access.
+</Warning>
+
+## Troubleshooting
+
+### MCP server not connecting
+
+1. Verify the collector is running: `curl http://localhost:5100/health`
+2. Check the `QYL_COLLECTOR_URL` environment variable
+3. Ensure the path to qyl.mcp project is correct
+
+### Tools not appearing
+
+1. Restart Claude Code after configuration changes
+2. Check Claude Code logs for MCP connection errors
+3. Verify the MCP server starts without errors
+
+### Slow responses
+
+The MCP server queries the collector which queries DuckDB. For large datasets:
+- Use more specific filters in your queries
+- Reduce the `limit` parameter
+- Consider archiving old data

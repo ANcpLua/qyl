@@ -1,0 +1,75 @@
+---
+title: "API Reference"
+description: "Complete REST API documentation for qyl.collector"
+---
+
+# API Reference
+
+The qyl collector exposes a REST API for querying telemetry data. All endpoints are served on port 5100 by default.
+
+## Base URL
+
+```
+http://localhost:5100/api/v1
+```
+
+## Authentication
+
+Currently, qyl does not require authentication for local development. For production deployments, consider placing qyl behind a reverse proxy with authentication.
+
+## Response Format
+
+All responses use JSON format with consistent structure:
+
+```json
+{
+  "data": [...],
+  "pageInfo": {
+    "hasNextPage": true,
+    "endCursor": "..."
+  }
+}
+```
+
+## Pagination
+
+List endpoints support cursor-based pagination:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit` | integer | Maximum items to return (default: 50, max: 100) |
+| `cursor` | string | Cursor from previous response for next page |
+
+## Error Responses
+
+Errors follow RFC 7807 Problem Details format:
+
+```json
+{
+  "type": "https://qyl.dev/errors/not-found",
+  "title": "Resource Not Found",
+  "status": 404,
+  "detail": "Session with ID '...' was not found"
+}
+```
+
+## Endpoint Categories
+
+<CardGroup cols={2}>
+  <Card title="Sessions" icon="folder" href="/api-reference/sessions">
+    Query and retrieve session information
+  </Card>
+  <Card title="Traces" icon="route" href="/api-reference/traces">
+    Search and analyze distributed traces
+  </Card>
+  <Card title="Spans" icon="timeline" href="/api-reference/spans">
+    Access individual span details
+  </Card>
+  <Card title="Live" icon="bolt" href="/api-reference/live">
+    Real-time updates via Server-Sent Events
+  </Card>
+</CardGroup>
+
+## Rate Limiting
+
+No rate limiting is applied by default. For production use, configure rate limiting at your reverse proxy layer.
