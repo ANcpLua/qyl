@@ -6,12 +6,12 @@ namespace AgentGateway.Core;
 
 public interface IProviderSelectionPolicy
 {
-    (string providerId, string? modelId) Select(ChatOptions? options, HttpContext? http, IConfiguration cfg);
+    (string providerId, string? modelId) SelectProvider(ChatOptions? options, HttpContext? http, IConfiguration cfg);
 }
 
 public sealed class HeaderSelectionPolicy : IProviderSelectionPolicy
 {
-    public (string providerId, string? modelId) Select(ChatOptions? options, HttpContext? http, IConfiguration cfg)
+    public (string providerId, string? modelId) SelectProvider(ChatOptions? options, HttpContext? http, IConfiguration cfg)
     {
         var provider = http?.Request.Headers["X-Provider"].ToString();
         var model = http?.Request.Headers["X-Model"].ToString();
@@ -60,12 +60,12 @@ public sealed class ProviderRouterChatClient : IChatClient
     {
     }
 
-    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null,
+    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         return _pipeline.ExecuteAsync(async ct =>
         {
-            var (providerId, modelId) = _policy.Select(options, _http.HttpContext, _cfg);
+                        var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
             if (modelId != null)
             {
                 options ??= new ChatOptions();
@@ -73,14 +73,14 @@ public sealed class ProviderRouterChatClient : IChatClient
             }
 
             var client = _registry.Resolve(providerId, _serviceProvider);
-            return await client.GetResponseAsync(chatMessages, options, ct);
+            return await client.GetResponseAsync(messages, options, ct);
         }, cancellationToken).AsTask();
     }
 
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> chatMessages,
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
         ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var (providerId, modelId) = _policy.Select(options, _http.HttpContext, _cfg);
+                    var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
         if (modelId != null)
         {
             options ??= new ChatOptions();
@@ -88,7 +88,7 @@ public sealed class ProviderRouterChatClient : IChatClient
         }
 
         var client = _registry.Resolve(providerId, _serviceProvider);
-        return client.GetStreamingResponseAsync(chatMessages, options, cancellationToken);
+        return client.GetStreamingResponseAsync(messages, options, cancellationToken);
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null)

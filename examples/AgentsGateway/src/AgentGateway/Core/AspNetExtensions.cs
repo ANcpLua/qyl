@@ -15,6 +15,9 @@ public static class AspNetExtensions
     private static readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>>
         _openIdMetadataCache = new();
 
+    private static readonly System.Text.CompositeFormat _issuerUrlTemplateV1 = System.Text.CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV1);
+    private static readonly System.Text.CompositeFormat _issuerUrlTemplateV2 = System.Text.CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV2);
+
     public static void AddBotAspNetAuthentication(this IServiceCollection services, IConfiguration configuration,
         string tokenValidationSectionName = "TokenValidation", ILogger? logger = null)
     {
@@ -22,9 +25,8 @@ public static class AspNetExtensions
 
         if (!tokenValidationSection.Exists())
         {
-            logger?.LogError(
-                "Missing configuration section '{tokenValidationSectionName}'. This section is required to be present in appsettings.json",
-                tokenValidationSectionName);
+            if (logger != null)
+                AgentGatewayLogs.LogMissingConfiguration(logger, tokenValidationSectionName);
             throw new InvalidOperationException(
                 $"Missing configuration section '{tokenValidationSectionName}'. This section is required to be present in appsettings.json");
         }
@@ -51,9 +53,9 @@ public static class AspNetExtensions
             if (!string.IsNullOrEmpty(tenantId))
             {
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture,
-                    AuthenticationConstants.ValidTokenIssuerUrlTemplateV1, tenantId));
+                    _issuerUrlTemplateV1, tenantId));
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture,
-                    AuthenticationConstants.ValidTokenIssuerUrlTemplateV2, tenantId));
+                    _issuerUrlTemplateV2, tenantId));
             }
         }
 
@@ -131,7 +133,7 @@ public static class AspNetExtensions
                             .FirstOrDefault(claim => claim.Type == AuthenticationConstants.IssuerClaim)?.Value;
 
                         if (azureBotServiceTokenHandling &&
-                            AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer))
+                            AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer, StringComparison.Ordinal))
                             // Use the Bot Framework authority for this configuration manager
                             context.Options.TokenValidationParameters.ConfigurationManager =
                                 _openIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, key =>
@@ -159,17 +161,19 @@ public static class AspNetExtensions
 
                     OnTokenValidated = context =>
                     {
-                        logger?.LogDebug("TOKEN Validated");
+                        if (logger != null) AgentGatewayLogs.LogTokenValidated(logger);
                         return Task.CompletedTask;
                     },
                     OnForbidden = context =>
                     {
-                        logger?.LogWarning("Forbidden: {m}", context.Result?.ToString());
+#pragma warning disable CA1873
+                        if (logger != null && logger.IsEnabled(LogLevel.Warning)) AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
+#pragma warning restore CA1873
                         return Task.CompletedTask;
                     },
                     OnAuthenticationFailed = context =>
                     {
-                        logger?.LogWarning("Auth Failed {m}", context.Exception.ToString());
+                        if (logger != null) AgentGatewayLogs.LogAuthFailed(logger, context.Exception);
                         return Task.CompletedTask;
                     }
                 };

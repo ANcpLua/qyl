@@ -1,6 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+using OpenTelemetry.Trace;
 using Utils.Messaging;
 using WorkerService;
 
@@ -10,7 +11,11 @@ builder.Services.AddHostedService<Worker>();
 builder.Services.AddSingleton<MessageReceiver>();
 
 builder.Services.AddOpenTelemetry()
-    .WithTracing(static b => b.AddSource(nameof(MessageReceiver)));
+    .WithTracing(tracing =>
+    {
+        tracing.AddSource(nameof(MessageReceiver));
+        tracing.AddOtlpExporter();
+    });
 
 var app = builder.Build();
 

@@ -7,6 +7,6 @@ namespace AgentGateway.Core;
 [JsonSerializable(typeof(ModelInfo))]
 [JsonSerializable(typeof(ModelInfo[]))]
 [JsonSerializable(typeof(ProviderCapabilities))]
-internal partial class AgentGatewayJsonContext : JsonSerializerContext
+internal sealed partial class AgentGatewayJsonContext : JsonSerializerContext
 {
 }

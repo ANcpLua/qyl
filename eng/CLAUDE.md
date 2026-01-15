@@ -80,14 +80,14 @@ MTP exit code 8 (zero tests matched) is ignored by default.
 
 ## Code Generator Architecture (God Schema)
 
-TypeSpec is the single source of truth. All types flow from `schema/main.tsp`:
+TypeSpec is the single source of truth. All types flow from `core/specs/main.tsp`:
 
 ```
-schema/main.tsp (SSOT)
+core/specs/main.tsp (SSOT)
      │
      └─► ITypeSpec.TypeSpecCompile
               │
-              └─► schema/generated/openapi.yaml
+              └─► core/openapi/openapi.yaml
                        │
                        ├─► openapi-typescript  → dashboard/src/types/api.ts
                        │

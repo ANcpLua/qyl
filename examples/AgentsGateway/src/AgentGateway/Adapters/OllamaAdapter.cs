@@ -20,11 +20,11 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
     }
 
     public async Task<ChatResponse> GetResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
+        IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var request = BuildRequest(chatMessages, options, false);
+        var request = BuildRequest(messages, options, false);
         var response = await _http.PostAsJsonAsync("/api/chat", request, OllamaJsonContext.Default.OllamaChatRequest,
             cancellationToken);
         response.EnsureSuccessStatusCode();
@@ -35,11 +35,11 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
-        IEnumerable<ChatMessage> chatMessages,
+        IEnumerable<ChatMessage> messages,
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var request = BuildRequest(chatMessages, options, true);
+        var request = BuildRequest(messages, options, true);
 
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/chat")
         {
@@ -88,7 +88,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
                     ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
                     new Dictionary<string, string>
                     {
-                        ["size"] = m.Size.ToString(),
+                        ["size"] = m.Size.ToString(System.Globalization.CultureInfo.InvariantCulture),
                         ["modified_at"] = m.ModifiedAt ?? string.Empty
                     }))
                 .ToArray() ?? [];
@@ -169,6 +169,6 @@ internal sealed class OllamaModelInfo
 [JsonSerializable(typeof(OllamaChatRequest))]
 [JsonSerializable(typeof(OllamaChatResponse))]
 [JsonSerializable(typeof(OllamaTagsResponse))]
-internal partial class OllamaJsonContext : JsonSerializerContext
+internal sealed partial class OllamaJsonContext : JsonSerializerContext
 {
 }

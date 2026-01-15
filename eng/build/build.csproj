@@ -29,6 +29,8 @@
         <PackageReference Include="Nuke.Components"/>
         <!-- OpenAPI YAML parsing for TypeSpec God Schema pipeline -->
         <PackageReference Include="YamlDotNet"/>
+        <!-- TODO: Code verification via isolated MSBuild compilation -->
+        <!-- <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/> -->
     </ItemGroup>
 
 </Project>

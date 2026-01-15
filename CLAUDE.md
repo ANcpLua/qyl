@@ -116,12 +116,12 @@ private static readonly JsonSerializerOptions s_options = new() { /* ... */ };
 
 ## Code Generation (God Schema)
 
-**Single Source of Truth**: `schema/main.tsp` (TypeSpec)
+**Single Source of Truth**: `core/specs/main.tsp` (TypeSpec)
 
 ```
-schema/main.tsp
+core/specs/main.tsp
      │
-     ├─► nuke TypeSpecCompile ──► schema/generated/openapi.yaml
+     ├─► nuke TypeSpecCompile ──► core/openapi/openapi.yaml
      │                                    │
      │                                    ├─► npm run generate:ts ──► dashboard/src/types/api.ts
      │                                    └─► nuke Generate ──► protocol/*.g.cs, collector/Storage/*.g.cs
@@ -134,13 +134,11 @@ schema/main.tsp
 
 | Pipeline Step        | Command                | Output                                        |
 |----------------------|------------------------|-----------------------------------------------|
-| TypeSpec → OpenAPI   | `nuke TypeSpecCompile` | `schema/generated/openapi.yaml`               |
-| OpenAPI → TypeScript | `npm run generate:ts`  | `dashboard/src/types/api.ts`                  |
-| OpenAPI → C#         | `nuke Generate`        | `protocol/*.g.cs`, `collector/Storage/*.g.cs` |
+| TypeSpec → OpenAPI   | `nuke TypeSpecCompile` | `core/openapi/openapi.yaml`                   |
+| OpenAPI → All        | `nuke Generate`        | TypeScript + C# + DuckDB (one command)        |
 
 ```bash
-nuke TypeSpecCompile          # TypeSpec → OpenAPI
-nuke Generate                 # OpenAPI → C#/DuckDB
+nuke Generate                 # Everything: OpenAPI → TS/C#/DuckDB
 nuke Generate --ForceGenerate # Overwrite existing
 ```
 

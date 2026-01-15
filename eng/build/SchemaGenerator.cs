@@ -355,7 +355,7 @@ public static class SchemaGenerator
         var capitalizeNext = true;
 
         foreach (var c in value)
-            if (c is '_' or '-' or ' ')
+            if (c is '_' or '-' or ' ' or '.')
             {
                 capitalizeNext = true;
             }
@@ -628,11 +628,11 @@ public static class SchemaGenerator
         sb.AppendLine("// =============================================================================");
         sb.AppendLine("// AUTO-GENERATED FILE - DO NOT EDIT");
         sb.AppendLine("// =============================================================================");
-        sb.AppendLine("//     Source:    schema/generated/openapi.yaml");
+        sb.AppendLine("//     Source:    core/openapi/openapi.yaml");
         sb.AppendLine(CultureInfo.InvariantCulture, $"//     Generated: {DateTimeOffset.UtcNow:O}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"//     {description}");
         sb.AppendLine("// =============================================================================");
-        sb.AppendLine("// To modify: update TypeSpec in schema/ then run: nuke Generate");
+        sb.AppendLine("// To modify: update TypeSpec in core/specs/ then run: nuke Generate");
         sb.AppendLine("// =============================================================================");
         sb.AppendLine();
         sb.AppendLine("#nullable enable");

@@ -4,142 +4,6 @@
  */
 
 export interface paths {
-    "/api/v1/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Server-Sent Events stream for real-time span updates */
-        get: operations["Live_stream"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description List all sessions with optional filters */
-        get: operations["Sessions_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sessions/{sessionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get session by ID */
-        get: operations["Sessions_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/sessions/{sessionId}/spans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all spans for a session */
-        get: operations["Sessions_getSpans"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Query spans with filters */
-        get: operations["Spans_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/spans/{spanId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get span by ID */
-        get: operations["Spans_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/traces/{traceId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get trace tree by trace ID */
-        get: operations["Traces_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/traces/{traceId}/spans": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Get all spans for a trace */
-        get: operations["Traces_getSpans"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/health": {
         parameters: {
             query?: never;
@@ -148,7 +12,690 @@ export interface paths {
             cookie?: never;
         };
         /** @description Health check endpoint */
-        get: operations["Health_check"];
+        get: operations["HealthApi_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Liveness probe */
+        get: operations["HealthApi_live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Readiness probe */
+        get: operations["HealthApi_ready"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List deployments */
+        get: operations["DeploymentsApi_list"];
+        put?: never;
+        /** @description Record new deployment */
+        post: operations["DeploymentsApi_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/deployments/metrics/dora": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get DORA metrics */
+        get: operations["DeploymentsApi_getDoraMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/deployments/{deploymentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get deployment by ID */
+        get: operations["DeploymentsApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update deployment status */
+        patch: operations["DeploymentsApi_update"];
+        trace?: never;
+    };
+    "/v1/errors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List error groups */
+        get: operations["ErrorsApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/errors/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get error statistics */
+        get: operations["ErrorsApi_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/errors/{errorId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get error by ID */
+        get: operations["ErrorsApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update error status */
+        patch: operations["ErrorsApi_update"];
+        trace?: never;
+    };
+    "/v1/errors/{errorId}/correlations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get error correlations */
+        get: operations["ErrorsApi_getCorrelations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List exceptions */
+        get: operations["ExceptionsApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/exceptions/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get exception statistics */
+        get: operations["ExceptionsApi_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Query logs with filtering and pagination */
+        get: operations["LogsApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs/aggregate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Aggregate logs */
+        post: operations["LogsApi_aggregate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs/patterns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get log patterns */
+        get: operations["LogsApi_getPatterns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Search logs with complex query */
+        post: operations["LogsApi_search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/logs/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get log statistics */
+        get: operations["LogsApi_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List available metrics */
+        get: operations["MetricsApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metrics/query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Query metric data points */
+        post: operations["MetricsApi_query"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/metrics/{metricName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get metric metadata */
+        get: operations["MetricsApi_getMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pipelines": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List pipeline runs */
+        get: operations["PipelinesApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/pipelines/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get pipeline statistics */
+        get: operations["PipelinesApi_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/services": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List discovered services */
+        get: operations["ServicesApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/services/{serviceName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get service details */
+        get: operations["ServicesApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/services/{serviceName}/dependencies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get service dependencies */
+        get: operations["ServicesApi_getDependencies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/services/{serviceName}/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get service operations */
+        get: operations["ServicesApi_getOperations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List sessions */
+        get: operations["SessionsApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get session statistics */
+        get: operations["SessionsApi_getStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get session by ID */
+        get: operations["SessionsApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/sessions/{sessionId}/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get session traces */
+        get: operations["SessionsApi_getTraces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/deployments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream deployment events */
+        get: operations["StreamingApi_streamDeployments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream all telemetry events (SSE) */
+        get: operations["StreamingApi_streamEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream exceptions in real-time */
+        get: operations["StreamingApi_streamExceptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream logs in real-time */
+        get: operations["StreamingApi_streamLogs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream metrics in real-time */
+        get: operations["StreamingApi_streamMetrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream traces in real-time */
+        get: operations["StreamingApi_streamTraces"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/stream/traces/{traceId}/spans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Stream spans for a specific trace */
+        get: operations["StreamingApi_streamTraceSpans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List traces with pagination */
+        get: operations["TracesApi_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traces/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Search traces */
+        post: operations["TracesApi_search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traces/{traceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get a specific trace by ID */
+        get: operations["TracesApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/traces/{traceId}/spans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get spans for a trace */
+        get: operations["TracesApi_getSpans"];
         put?: never;
         post?: never;
         delete?: never;
@@ -158,232 +705,3838 @@ export interface paths {
         trace?: never;
     };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
     schemas: {
-        /** @description Error response */
-        "Api.ApiError": {
-            /** @description Error code */
-            code: string;
-            /** @description Error message */
-            message: string;
-            /** @description Additional details */
-            details?: string;
+        /** @enum {string} */
+        ApiVersions: "2024-01-01" | "2024-06-01" | "2025-01-01";
+        /** @description Deployment creation request */
+        DeploymentCreate: {
+            /** @description Service name */
+            service_name: string;
+            /** @description Service version */
+            service_version: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Environment */
+            environment: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEnvironment"];
+            /** @description Strategy */
+            strategy: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStrategy"];
+            /** @description Deployed by */
+            deployed_by?: string;
+            /** @description Git commit SHA */
+            git_commit?: string;
+            /** @description Git branch */
+            git_branch?: string;
         };
-        /**
-         * @description GenAI finish reason
-         * @enum {string}
-         */
-        "Enums.GenAiFinishReason": "stop" | "max_tokens" | "tool_calls" | "content_filter" | "error";
-        /**
-         * @description GenAI operation name
-         * @enum {string}
-         */
-        "Enums.GenAiOperationName": "chat" | "completion" | "embedding" | "image_generation" | "text_to_speech" | "speech_to_text" | "invoke_agent" | "execute_tool";
-        /**
-         * @description Log severity number following OTel specification (1-24)
-         * @enum {number}
-         */
-        "Enums.SeverityNumber": 0 | 1 | 5 | 9 | 13 | 17 | 21;
-        /**
-         * @description Span kind describing the relationship between spans
-         * @enum {number}
-         */
-        "Enums.SpanKind": 0 | 1 | 2 | 3 | 4 | 5;
-        /**
-         * @description Span status code
-         * @enum {number}
-         */
-        "Enums.StatusCode": 0 | 1 | 2;
-        /** @description Extracted GenAI attributes from a span */
-        "Models.GenAiSpanData": {
-            /** @description Provider/system name */
-            system?: string;
-            /** @description Requested model */
-            requestModel?: string;
-            /** @description Response model */
-            responseModel?: string;
-            /** @description Input tokens */
-            inputTokens?: components["schemas"]["Primitives.TokenCount"];
-            /** @description Output tokens */
-            outputTokens?: components["schemas"]["Primitives.TokenCount"];
-            /** @description Temperature */
-            temperature?: components["schemas"]["Primitives.Temperature"];
-            /** @description Finish reason */
-            stopReason?: string;
-            /** @description Tool name */
-            toolName?: string;
-            /** @description Tool call ID */
-            toolCallId?: string;
-            /** @description Estimated cost */
-            costUsd?: components["schemas"]["Primitives.CostUsd"];
-        };
-        /** @description Session summary with aggregated metrics */
-        "Models.SessionSummary": {
-            /** @description Session identifier */
-            sessionId: components["schemas"]["Primitives.SessionId"];
-            /** @description First span timestamp */
-            startTime: components["schemas"]["Primitives.UnixNano"];
-            /** @description Last span timestamp */
-            endTime: components["schemas"]["Primitives.UnixNano"];
-            /** @description Total span count */
-            spanCount: components["schemas"]["Primitives.Count"];
-            /** @description Error span count */
-            errorCount: components["schemas"]["Primitives.Count"];
-            /** @description Total input tokens */
-            totalInputTokens: components["schemas"]["Primitives.TokenCount"];
-            /** @description Total output tokens */
-            totalOutputTokens: components["schemas"]["Primitives.TokenCount"];
-            /** @description Total cost in USD */
-            totalCostUsd: components["schemas"]["Primitives.CostUsd"];
-            /** @description Primary service name */
-            serviceName?: string;
-            /** @description Primary GenAI provider */
-            genAiSystem?: string;
-            /** @description Primary model used */
-            genAiModel?: string;
-        };
-        /** @description OpenTelemetry span record for storage and query */
-        "Models.SpanRecord": {
-            /** @description Unique span identifier */
-            spanId: components["schemas"]["Primitives.SpanId"];
-            /** @description Trace identifier */
-            traceId: components["schemas"]["Primitives.TraceId"];
-            /** @description Parent span identifier (null for root spans) */
-            parentSpanId?: components["schemas"]["Primitives.SpanId"];
-            /** @description Session identifier for grouping related traces */
-            sessionId?: components["schemas"]["Primitives.SessionId"];
-            /** @description Human-readable span name */
-            name: string;
-            /** @description Span kind */
-            kind: components["schemas"]["Enums.SpanKind"];
-            /** @description Start timestamp in nanoseconds since epoch */
-            startTimeUnixNano: components["schemas"]["Primitives.UnixNano"];
-            /** @description End timestamp in nanoseconds since epoch */
-            endTimeUnixNano: components["schemas"]["Primitives.UnixNano"];
-            /** @description Duration in nanoseconds */
-            durationNs: components["schemas"]["Primitives.DurationNs"];
-            /** @description Span status code */
-            statusCode: components["schemas"]["Enums.StatusCode"];
-            /** @description Status message (only for ERROR status) */
-            statusMessage?: string;
-            /** @description Service name from resource attributes */
-            serviceName?: string;
-            /** @description GenAI provider/system (e.g., openai, anthropic) */
-            genAiSystem?: string;
-            /** @description Requested model name */
-            genAiRequestModel?: string;
-            /** @description Actual response model name */
-            genAiResponseModel?: string;
-            /** @description Input/prompt tokens */
-            genAiInputTokens?: components["schemas"]["Primitives.TokenCount"];
-            /** @description Output/completion tokens */
-            genAiOutputTokens?: components["schemas"]["Primitives.TokenCount"];
-            /** @description Request temperature */
-            genAiTemperature?: components["schemas"]["Primitives.Temperature"];
-            /** @description Response finish reason */
-            genAiStopReason?: string;
-            /** @description Tool name for tool calls */
-            genAiToolName?: string;
-            /** @description Tool call ID */
-            genAiToolCallId?: string;
-            /** @description Estimated cost in USD */
-            genAiCostUsd?: components["schemas"]["Primitives.CostUsd"];
-            /** @description All span attributes as JSON */
-            attributesJson?: string;
-            /** @description Resource attributes as JSON */
-            resourceJson?: string;
-            /**
-             * Format: date-time
-             * @description Row creation timestamp
-             */
-            createdAt?: string;
-        };
-        /** @description Trace tree node for hierarchical span display */
-        "Models.TraceNode": {
-            /** @description Span data */
-            span: components["schemas"]["Models.SpanRecord"];
-            /** @description Child spans */
-            children: components["schemas"]["Models.TraceNode"][];
+        /** @description Deployment update request */
+        DeploymentUpdate: {
+            /** @description New status */
+            status?: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStatus"];
             /**
              * Format: int32
-             * @description Depth in tree (0 = root)
+             * @description Healthy replicas
              */
-            depth: number;
+            healthy_replicas?: number;
+            /** @description Error message */
+            error_message?: string;
+        };
+        /** @description DORA metrics response */
+        DoraMetrics: {
+            /**
+             * Format: double
+             * @description Deployment frequency (per day)
+             */
+            deployment_frequency: number;
+            /**
+             * Format: double
+             * @description Lead time for changes (hours)
+             */
+            lead_time_hours: number;
+            /** @description Change failure rate */
+            change_failure_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /**
+             * Format: double
+             * @description Mean time to recovery (hours)
+             */
+            mttr_hours: number;
+            /** @description Performance level */
+            performance_level: components["schemas"]["DoraPerformanceLevel"];
         };
         /**
-         * Format: double
-         * @description Cost in USD (floating point)
+         * @description DORA performance levels
+         * @enum {string}
          */
-        "Primitives.CostUsd": number;
+        DoraPerformanceLevel: "elite" | "high" | "medium" | "low";
+        /** @description Error update request */
+        ErrorUpdate: {
+            /** @description New status */
+            status?: components["schemas"]["Qyl.Domains.Observe.Error.ErrorStatus"];
+            /** @description Assignee */
+            assigned_to?: string;
+            /** @description Issue URL */
+            issue_url?: components["schemas"]["Qyl.Common.UrlString"];
+        };
+        /** @description Health check response */
+        HealthResponse: {
+            /** @description Service status */
+            status: components["schemas"]["HealthStatus"];
+            /** @description Service version */
+            version: components["schemas"]["Qyl.Common.SemVer"];
+            /**
+             * Format: int64
+             * @description Uptime in seconds
+             */
+            uptime_seconds: number;
+            /** @description Component health */
+            components?: Record<string, never>;
+        };
+        /** @enum {string} */
+        HealthStatus: "healthy" | "degraded" | "unhealthy";
+        /** @description Log aggregation bucket */
+        LogAggregationBucket: {
+            /** @description Bucket key (group by value) */
+            key: string;
+            /**
+             * Format: double
+             * @description Aggregated value
+             */
+            value: number;
+            /** @description Document count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: date-time
+             * @description Timestamp (for time series)
+             */
+            timestamp?: string;
+        };
+        /** @description Log aggregation request */
+        LogAggregationRequest: {
+            /** @description Query filters */
+            query?: components["schemas"]["Qyl.Domains.Observe.Log.LogQuery"];
+            /** @description Aggregation specification */
+            aggregation: components["schemas"]["Qyl.Domains.Observe.Log.LogAggregation"];
+        };
+        /** @description Log aggregation response */
+        LogAggregationResponse: {
+            /** @description Aggregation results */
+            results: components["schemas"]["LogAggregationBucket"][];
+            /** @description Total matching logs */
+            total_count: components["schemas"]["Qyl.Common.Count"];
+        };
+        /** @description Metric data point */
+        MetricDataPoint: {
+            /**
+             * Format: date-time
+             * @description Timestamp
+             */
+            timestamp: string;
+            /**
+             * Format: double
+             * @description Value
+             */
+            value: number;
+        };
+        /** @description Metric metadata */
+        MetricMetadata: {
+            /** @description Metric name */
+            name: string;
+            /** @description Metric description */
+            description?: string;
+            /** @description Metric unit */
+            unit?: string;
+            /** @description Metric type */
+            type: components["schemas"]["Qyl.OTel.Enums.MetricType"];
+            /** @description Available label keys */
+            label_keys: string[];
+            /** @description Services reporting this metric */
+            services: string[];
+        };
+        /** @description Metric query request */
+        MetricQueryRequest: {
+            /** @description Metric name */
+            metric_name: string;
+            /** @description Label filters */
+            filters?: Record<string, never>;
+            /**
+             * Format: date-time
+             * @description Start time
+             */
+            start_time: string;
+            /**
+             * Format: date-time
+             * @description End time
+             */
+            end_time: string;
+            /** @description Step interval */
+            step?: components["schemas"]["Qyl.Common.Pagination.TimeBucket"];
+            /** @description Aggregation function */
+            aggregation?: components["schemas"]["Qyl.OTel.Metrics.AggregationFunction"];
+            /** @description Group by labels */
+            group_by?: string[];
+        };
+        /** @description Metric query response */
+        MetricQueryResponse: {
+            /** @description Metric name */
+            metric_name: string;
+            /** @description Time series data */
+            series: components["schemas"]["MetricTimeSeries"][];
+        };
+        /** @description Metric time series */
+        MetricTimeSeries: {
+            /** @description Labels */
+            labels: Record<string, never>;
+            /** @description Data points */
+            points: components["schemas"]["MetricDataPoint"][];
+        };
+        /** @description Operation information */
+        OperationInfo: {
+            /** @description Operation name */
+            name: string;
+            /** @description Span kind */
+            span_kind: components["schemas"]["Qyl.OTel.Enums.SpanKind"];
+            /** @description Request count */
+            request_count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Error count */
+            error_count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: double
+             * @description Average duration in milliseconds
+             */
+            avg_duration_ms: number;
+            /**
+             * Format: double
+             * @description P99 duration in milliseconds
+             */
+            p99_duration_ms: number;
+        };
+        /** @description Pipeline statistics */
+        PipelineStats: {
+            /** @description Total runs */
+            total_runs: components["schemas"]["Qyl.Common.Count"];
+            /** @description Success rate */
+            success_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /**
+             * Format: double
+             * @description Average duration in seconds
+             */
+            avg_duration_seconds: number;
+            /**
+             * Format: double
+             * @description P95 duration in seconds
+             */
+            p95_duration_seconds: number;
+            /** @description Runs by status */
+            by_status: components["schemas"]["PipelineStatusStats"][];
+        };
+        /** @description Pipeline status statistics */
+        PipelineStatusStats: {
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
+            /** @description Count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /** @description Key-value attribute pair following OTel conventions */
+        "Qyl.Common.Attribute": {
+            /** @description Attribute key (dot-separated namespace) */
+            key: string;
+            /** @description Attribute value */
+            value: components["schemas"]["Qyl.Common.AttributeValue"];
+        };
+        /** @description Primitive attribute value types supported by OpenTelemetry */
+        "Qyl.Common.AttributeValue": string | boolean | number | string[] | boolean[] | number[] | number[];
         /**
          * Format: int64
          * @description Generic non-negative counter
          */
-        "Primitives.Count": number;
+        "Qyl.Common.Count": number;
+        /**
+         * Format: double
+         * @description Duration in milliseconds
+         */
+        "Qyl.Common.DurationMs": number;
         /**
          * Format: int64
          * @description Duration in nanoseconds
          */
-        "Primitives.DurationNs": number;
+        "Qyl.Common.DurationNs": number;
         /**
-         * @description Session identifier (GUID without hyphens)
-         * @example 550e8400e29b41d4a716446655440000
+         * Format: double
+         * @description Duration in seconds
          */
-        "Primitives.SessionId": string;
+        "Qyl.Common.DurationS": number;
+        /** @description Conflict - resource state conflict (409) */
+        "Qyl.Common.Errors.ConflictError": {
+            /** @enum {string} */
+            title: "Conflict";
+            /** @description The conflicting resource ID */
+            conflicting_resource?: string;
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Forbidden - insufficient permissions (403) */
+        "Qyl.Common.Errors.ForbiddenError": {
+            /** @enum {string} */
+            title: "Forbidden";
+            /** @description Required permission that is missing */
+            required_permission?: string;
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Internal server error (500) */
+        "Qyl.Common.Errors.InternalServerError": {
+            /** @enum {string} */
+            title: "Internal Server Error";
+            /** @description Error code for support reference */
+            error_code?: string;
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Resource not found (404) */
+        "Qyl.Common.Errors.NotFoundError": {
+            /** @enum {string} */
+            title: "Not Found";
+            /** @description The type of resource that was not found */
+            resource_type?: string;
+            /** @description The identifier that was not found */
+            resource_id?: string;
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description RFC 7807 Problem Details for HTTP APIs */
+        "Qyl.Common.Errors.ProblemDetails": {
+            /**
+             * Format: uri
+             * @description A URI reference identifying the problem type
+             * @default about:blank
+             */
+            type: string;
+            /** @description A short, human-readable summary of the problem type */
+            title: string;
+            /**
+             * Format: int32
+             * @description The HTTP status code (informational only, actual code set by subtype)
+             */
+            status: number;
+            /** @description A human-readable explanation specific to this occurrence */
+            detail?: string;
+            /**
+             * Format: uri
+             * @description A URI reference identifying the specific occurrence
+             */
+            instance?: string;
+            /**
+             * Format: date-time
+             * @description Timestamp of the error
+             */
+            timestamp?: string;
+        };
+        /** @description Rate limited - too many requests (429) */
+        "Qyl.Common.Errors.RateLimitError": {
+            /** @enum {string} */
+            title: "Too Many Requests";
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Service unavailable (503) */
+        "Qyl.Common.Errors.ServiceUnavailableError": {
+            /** @enum {string} */
+            title: "Service Unavailable";
+            /**
+             * @description Reason for unavailability
+             * @enum {string}
+             */
+            reason?: "maintenance" | "overloaded" | "dependency_failure";
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Unauthorized - authentication required (401) */
+        "Qyl.Common.Errors.UnauthorizedError": {
+            /** @enum {string} */
+            title: "Unauthorized";
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Bad request - validation failed (400) */
+        "Qyl.Common.Errors.ValidationError": {
+            /** @enum {string} */
+            title: "Validation Failed";
+            /** @description List of validation errors */
+            errors: components["schemas"]["Qyl.Common.Errors.ValidationErrorDetail"][];
+        } & WithRequired<components["schemas"]["Qyl.Common.Errors.ProblemDetails"], "title">;
+        /** @description Individual validation error detail */
+        "Qyl.Common.Errors.ValidationErrorDetail": {
+            /** @description The field/property that failed validation */
+            field: string;
+            /** @description The error message */
+            message: string;
+            /** @description The validation rule that failed */
+            code: string;
+            /** @description The rejected value (if safe to include) */
+            rejected_value?: string;
+        };
+        /** @description Instrumentation scope identifying the library/component emitting telemetry */
+        "Qyl.Common.InstrumentationScope": {
+            /** @description Name of the instrumentation scope (library name) */
+            name: string;
+            /** @description Version of the instrumentation scope */
+            version?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Additional attributes for the scope */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+        };
+        /** @description IP address (IPv4 or IPv6) */
+        "Qyl.Common.IpAddress": string;
+        /**
+         * @description Time bucket size for aggregations
+         * @enum {string}
+         */
+        "Qyl.Common.Pagination.TimeBucket": "1m" | "5m" | "15m" | "1h" | "1d" | "1w" | "auto";
+        /**
+         * Format: double
+         * @description Percentage value (0.0 to 100.0)
+         */
+        "Qyl.Common.Percentage": number;
+        /**
+         * Format: double
+         * @description Ratio value (0.0 to 1.0)
+         */
+        "Qyl.Common.Ratio": number;
+        /**
+         * @description Semantic version string (e.g., 1.2.3)
+         * @example 2.1.0
+         */
+        "Qyl.Common.SemVer": string;
+        /** @description Unique session identifier */
+        "Qyl.Common.SessionId": string;
         /**
          * @description Unique span identifier (16 lowercase hex characters)
          * @example b7ad6b7169203331
          */
-        "Primitives.SpanId": string;
-        /**
-         * Format: double
-         * @description Temperature setting for LLM requests (0.0-2.0)
-         */
-        "Primitives.Temperature": number;
+        "Qyl.Common.SpanId": string;
         /**
          * Format: int64
-         * @description Token count for LLM operations
+         * @description Token count (for LLM operations)
          */
-        "Primitives.TokenCount": number;
+        "Qyl.Common.TokenCount": number;
         /**
          * @description Unique trace identifier (32 lowercase hex characters)
          * @example 0af7651916cd43dd8448eb211c80319c
          */
-        "Primitives.TraceId": string;
+        "Qyl.Common.TraceId": string;
         /**
-         * Format: int64
-         * @description Unix timestamp in nanoseconds since epoch
+         * @description W3C Trace Context tracestate header (vendor-specific key-value pairs)
+         * @example rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
          */
-        "Primitives.UnixNano": number;
+        "Qyl.Common.TraceState": string;
+        /**
+         * Format: uri
+         * @description URL string (absolute)
+         */
+        "Qyl.Common.UrlString": string;
+        /**
+         * @description User agent string
+         * @example Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36
+         */
+        "Qyl.Common.UserAgent": string;
+        /** @description User identifier (pseudonymized for privacy) */
+        "Qyl.Common.UserId": string;
+        /** @description Precise source code location for debugging and tracing */
+        "Qyl.Domains.AI.Code.CodeLocation": {
+            /** @description Source file path */
+            filepath: string;
+            /**
+             * Format: int32
+             * @description Line number (1-indexed)
+             */
+            line_number: number;
+            /**
+             * Format: int32
+             * @description Column number (1-indexed)
+             */
+            column_number?: number;
+            /** @description Function/method name */
+            function_name?: string;
+            /** @description Class/type name */
+            class_name?: string;
+            /** @description Namespace/module */
+            namespace?: string;
+        };
+        /** @description Single frame in a call stack */
+        "Qyl.Domains.AI.Code.StackFrame": {
+            /**
+             * Format: int32
+             * @description Frame index (0 = top of stack)
+             */
+            index: number;
+            /** @description Source location */
+            location: components["schemas"]["Qyl.Domains.AI.Code.CodeLocation"];
+            /** @description Whether this is user code (not library/framework) */
+            is_user_code?: boolean;
+            /** @description Assembly/module name */
+            module_name?: string;
+            /** @description Assembly/module version */
+            module_version?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Native/managed indicator */
+            is_native?: boolean;
+        };
+        /** @description Full stack trace */
+        "Qyl.Domains.AI.Code.StackTrace": {
+            /** @description Stack frames (top to bottom) */
+            frames: components["schemas"]["Qyl.Domains.AI.Code.StackFrame"][];
+            /** @description Whether the stack was truncated */
+            truncated?: boolean;
+            /**
+             * Format: int32
+             * @description Total frame count before truncation
+             */
+            total_frames?: number;
+        };
+        /** @description Service dependency map */
+        "Qyl.Domains.Identity.ServiceDependency": {
+            /** @description Source service */
+            source_service: string;
+            /** @description Target service */
+            target_service: string;
+            /** @description Request count */
+            request_count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Error rate */
+            error_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /**
+             * Format: double
+             * @description Average latency in milliseconds
+             */
+            avg_latency_ms: number;
+        };
+        /** @description Correlated error */
+        "Qyl.Domains.Observe.Error.CorrelatedError": {
+            /** @description Error ID */
+            error_id: string;
+            /** @description Error type */
+            error_type: string;
+            /** @description Correlation strength */
+            correlation_strength: components["schemas"]["Qyl.Common.Ratio"];
+            /** @description Temporal relationship */
+            temporal_relationship: components["schemas"]["Qyl.Domains.Observe.Error.TemporalRelationship"];
+        };
+        /**
+         * @description High-level error categories
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Error.ErrorCategory": "client" | "server" | "network" | "timeout" | "validation" | "authentication" | "authorization" | "rate_limit" | "not_found" | "conflict" | "internal" | "external" | "database" | "configuration" | "unknown";
+        /** @description Error stats by category */
+        "Qyl.Domains.Observe.Error.ErrorCategoryStats": {
+            /** @description Category */
+            category: components["schemas"]["Qyl.Domains.Observe.Error.ErrorCategory"];
+            /** @description Count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /** @description Error correlation result */
+        "Qyl.Domains.Observe.Error.ErrorCorrelation": {
+            /** @description Error ID */
+            error_id: string;
+            /** @description Correlated errors */
+            correlated_errors: components["schemas"]["Qyl.Domains.Observe.Error.CorrelatedError"][];
+            /** @description Potential root cause */
+            root_cause?: string;
+            /** @description Common attributes */
+            common_attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+        };
+        /** @description Error entity for tracking and analysis */
+        "Qyl.Domains.Observe.Error.ErrorEntity": {
+            /** @description Error ID */
+            error_id: string;
+            /** @description Error type (class name or code) */
+            "error.type": string;
+            /** @description Error message */
+            message: string;
+            /** @description Error category */
+            category: components["schemas"]["Qyl.Domains.Observe.Error.ErrorCategory"];
+            /** @description Fingerprint for grouping */
+            fingerprint: string;
+            /**
+             * Format: date-time
+             * @description First occurrence
+             */
+            first_seen: string;
+            /**
+             * Format: date-time
+             * @description Last occurrence
+             */
+            last_seen: string;
+            /** @description Occurrence count */
+            occurrence_count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Affected users count */
+            affected_users?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Affected services */
+            affected_services?: string[];
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Observe.Error.ErrorStatus"];
+            /** @description Assigned to */
+            assigned_to?: string;
+            /** @description Issue tracker URL */
+            issue_url?: components["schemas"]["Qyl.Common.UrlString"];
+            /** @description Sample trace IDs */
+            sample_traces?: components["schemas"]["Qyl.Common.TraceId"][];
+        };
+        /** @description Error stats by service */
+        "Qyl.Domains.Observe.Error.ErrorServiceStats": {
+            /** @description Service name */
+            service_name: string;
+            /** @description Error count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Error rate */
+            error_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /** @description Top error type */
+            top_error_type: string;
+        };
+        /** @description Error statistics */
+        "Qyl.Domains.Observe.Error.ErrorStats": {
+            /** @description Total error count */
+            total_count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: int32
+             * @description Unique error types
+             */
+            unique_types: number;
+            /** @description Error rate */
+            error_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /** @description Errors by category */
+            by_category: components["schemas"]["Qyl.Domains.Observe.Error.ErrorCategoryStats"][];
+            /** @description Errors by service */
+            by_service?: components["schemas"]["Qyl.Domains.Observe.Error.ErrorServiceStats"][];
+            /** @description Top errors */
+            top_errors: components["schemas"]["Qyl.Domains.Observe.Error.ErrorTypeStats"][];
+            /** @description Trend */
+            trend: components["schemas"]["Qyl.Domains.Observe.Error.ErrorTrend"];
+        };
+        /**
+         * @description Error tracking status
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Error.ErrorStatus": "new" | "acknowledged" | "in_progress" | "resolved" | "ignored" | "regressed" | "wont_fix";
+        /**
+         * @description Error trend
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Error.ErrorTrend": "increasing" | "decreasing" | "stable" | "spike";
+        /** @description Error stats by type */
+        "Qyl.Domains.Observe.Error.ErrorTypeStats": {
+            /** @description Error type */
+            error_type: string;
+            /** @description Count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+            /** @description Affected users */
+            affected_users?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Observe.Error.ErrorStatus"];
+        };
+        /**
+         * @description Temporal relationship between errors
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Error.TemporalRelationship": "concurrent" | "precedes" | "follows" | "unrelated";
+        /** @description Enriched exception with parsed stack trace */
+        "Qyl.Domains.Observe.Exceptions.EnrichedException": {
+            /** @description Exception type/class name */
+            exception_type: string;
+            /** @description Exception message */
+            message: string;
+            /** @description Parsed stack trace */
+            stack_trace?: components["schemas"]["Qyl.Domains.AI.Code.StackTrace"];
+            /** @description Exception cause/inner exception */
+            cause?: components["schemas"]["Qyl.Domains.Observe.Exceptions.EnrichedException"];
+            /** @description Additional exception data */
+            data?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Exception fingerprint (for grouping) */
+            fingerprint?: string;
+            /**
+             * Format: date-time
+             * @description First occurrence timestamp
+             */
+            first_seen?: string;
+            /**
+             * Format: date-time
+             * @description Last occurrence timestamp
+             */
+            last_seen?: string;
+            /** @description Occurrence count */
+            occurrence_count?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Affected users count */
+            affected_users?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Status */
+            status?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
+        };
+        /** @description Exception event following OTel spec */
+        "Qyl.Domains.Observe.Exceptions.ExceptionEvent": {
+            /**
+             * @description Event name (always 'exception')
+             * @enum {string}
+             */
+            "event.name": "exception";
+            /** @description Exception type/class name */
+            "exception.type": string;
+            /** @description Exception message */
+            "exception.message": string;
+            /** @description Exception stacktrace */
+            "exception.stacktrace"?: string;
+            /** @description Whether the exception escaped */
+            "exception.escaped": boolean;
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+            /** @description Associated trace ID */
+            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Associated span ID */
+            span_id?: components["schemas"]["Qyl.Common.SpanId"];
+        };
+        /** @description Exception stats by service */
+        "Qyl.Domains.Observe.Exceptions.ExceptionServiceStats": {
+            /** @description Service name */
+            service_name: string;
+            /** @description Exception count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: double
+             * @description Exception rate (per minute)
+             */
+            rate_per_minute: number;
+        };
+        /** @description Exception statistics */
+        "Qyl.Domains.Observe.Exceptions.ExceptionStats": {
+            /** @description Total exception count */
+            total_count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: int32
+             * @description Unique exception types
+             */
+            unique_types: number;
+            /** @description Exceptions by type */
+            by_type: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionTypeStats"][];
+            /** @description Most affected services */
+            by_service?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionServiceStats"][];
+            /** @description Exception trend (up/down/stable) */
+            trend?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionTrend"];
+        };
+        /**
+         * @description Exception status
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Exceptions.ExceptionStatus": "new" | "investigating" | "in_progress" | "resolved" | "ignored" | "regressed";
+        /**
+         * @description Exception trend
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Exceptions.ExceptionTrend": "up" | "down" | "stable";
+        /** @description Exception stats by type */
+        "Qyl.Domains.Observe.Exceptions.ExceptionTypeStats": {
+            /** @description Exception type */
+            exception_type: string;
+            /** @description Count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
+        };
+        /**
+         * @description Aggregation functions
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Log.AggregationFunction": "count" | "sum" | "avg" | "min" | "max" | "p50" | "p90" | "p95" | "p99" | "count_distinct";
+        /** @description Attribute filter */
+        "Qyl.Domains.Observe.Log.AttributeFilter": {
+            /** @description Attribute key */
+            key: string;
+            /** @description Filter operator */
+            operator: components["schemas"]["Qyl.Domains.Observe.Log.FilterOperator"];
+            /** @description Filter value */
+            value: string;
+        };
+        /**
+         * @description Filter operators
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Log.FilterOperator": "eq" | "neq" | "contains" | "starts_with" | "ends_with" | "regex" | "gt" | "gte" | "lt" | "lte" | "in" | "not_in" | "exists" | "not_exists";
+        /** @description Log aggregation request */
+        "Qyl.Domains.Observe.Log.LogAggregation": {
+            /** @description Group by fields */
+            group_by: string[];
+            /** @description Aggregation function */
+            function: components["schemas"]["Qyl.Domains.Observe.Log.AggregationFunction"];
+            /** @description Field to aggregate (for non-count) */
+            field?: string;
+            /** @description Time bucket (for time series) */
+            time_bucket?: components["schemas"]["Qyl.Domains.Observe.Log.TimeBucket"];
+            /**
+             * Format: int32
+             * @description Top N results
+             */
+            top_n?: number;
+        };
+        /**
+         * @description Log ordering options
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Log.LogOrderBy": "timestamp_asc" | "timestamp_desc" | "severity_asc" | "severity_desc";
+        /** @description Detected log pattern */
+        "Qyl.Domains.Observe.Log.LogPattern": {
+            /** @description Pattern ID */
+            pattern_id: string;
+            /** @description Pattern template */
+            template: string;
+            /** @description Sample log message */
+            sample: string;
+            /** @description Occurrence count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: date-time
+             * @description First seen
+             */
+            first_seen: string;
+            /**
+             * Format: date-time
+             * @description Last seen
+             */
+            last_seen: string;
+            /** @description Trend */
+            trend: components["schemas"]["Qyl.Domains.Observe.Log.LogPatternTrend"];
+            /** @description Severity distribution */
+            severity_distribution?: components["schemas"]["Qyl.Domains.Observe.Log.LogSeverityStats"][];
+        };
+        /**
+         * @description Log pattern trend
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Log.LogPatternTrend": "increasing" | "decreasing" | "stable" | "new" | "spike";
+        /** @description Log search query */
+        "Qyl.Domains.Observe.Log.LogQuery": {
+            /** @description Free text search */
+            query?: string;
+            /** @description Severity filter */
+            severity_min?: components["schemas"]["Qyl.OTel.Enums.SeverityNumber"];
+            /** @description Service name filter */
+            service_name?: string;
+            /** @description Trace ID filter */
+            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Span ID filter */
+            span_id?: components["schemas"]["Qyl.Common.SpanId"];
+            /**
+             * Format: date-time
+             * @description Time range start
+             */
+            time_start?: string;
+            /**
+             * Format: date-time
+             * @description Time range end
+             */
+            time_end?: string;
+            /** @description Attribute filters */
+            attribute_filters?: components["schemas"]["Qyl.Domains.Observe.Log.AttributeFilter"][];
+            /**
+             * Format: int32
+             * @description Limit
+             */
+            limit?: number;
+            /** @description Order by */
+            order_by?: components["schemas"]["Qyl.Domains.Observe.Log.LogOrderBy"];
+        };
+        /** @description Log stats by severity */
+        "Qyl.Domains.Observe.Log.LogSeverityStats": {
+            /** @description Severity number */
+            severity: components["schemas"]["Qyl.OTel.Enums.SeverityNumber"];
+            /** @description Severity text */
+            severity_text: string;
+            /** @description Count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /**
+         * @description Time bucket sizes
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Log.TimeBucket": "1s" | "10s" | "30s" | "1m" | "5m" | "15m" | "30m" | "1h" | "6h" | "12h" | "1d" | "1w";
+        /**
+         * @description Device types
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Session.DeviceType": "desktop" | "mobile" | "tablet" | "tv" | "console" | "wearable" | "iot" | "bot" | "unknown";
+        /** @description Session client information */
+        "Qyl.Domains.Observe.Session.SessionClientInfo": {
+            /** @description Client IP address */
+            ip?: components["schemas"]["Qyl.Common.IpAddress"];
+            /** @description User agent string */
+            user_agent?: components["schemas"]["Qyl.Common.UserAgent"];
+            /** @description Device type */
+            device_type?: components["schemas"]["Qyl.Domains.Observe.Session.DeviceType"];
+            /** @description Operating system */
+            os?: string;
+            /** @description Browser name */
+            browser?: string;
+            /** @description Browser version */
+            browser_version?: string;
+        };
+        /** @description Session stats by country */
+        "Qyl.Domains.Observe.Session.SessionCountryStats": {
+            /** @description Country code */
+            country_code: string;
+            /** @description Country name */
+            country_name: string;
+            /** @description Session count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /** @description Session stats by device type */
+        "Qyl.Domains.Observe.Session.SessionDeviceStats": {
+            /** @description Device type */
+            device_type: components["schemas"]["Qyl.Domains.Observe.Session.DeviceType"];
+            /** @description Session count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /** @description Complete session entity with aggregated data */
+        "Qyl.Domains.Observe.Session.SessionEntity": {
+            /** @description Session ID */
+            "session.id": components["schemas"]["Qyl.Common.SessionId"];
+            /** @description User ID (if authenticated) */
+            "user.id"?: components["schemas"]["Qyl.Common.UserId"];
+            /**
+             * Format: date-time
+             * @description Session start time
+             */
+            start_time: string;
+            /**
+             * Format: date-time
+             * @description Session end time
+             */
+            end_time?: string;
+            /** @description Session duration in milliseconds */
+            duration_ms?: components["schemas"]["Qyl.Common.DurationMs"];
+            /**
+             * Format: int32
+             * @description Total trace count in session
+             */
+            trace_count: number;
+            /**
+             * Format: int32
+             * @description Total span count in session
+             */
+            span_count: number;
+            /**
+             * Format: int32
+             * @description Total error count in session
+             */
+            error_count: number;
+            /** @description Session state */
+            state: components["schemas"]["Qyl.Domains.Observe.Session.SessionState"];
+            /** @description Client information */
+            client?: components["schemas"]["Qyl.Domains.Observe.Session.SessionClientInfo"];
+            /** @description Location information */
+            geo?: components["schemas"]["Qyl.Domains.Observe.Session.SessionGeoInfo"];
+            /** @description GenAI usage summary */
+            genai_usage?: components["schemas"]["Qyl.Domains.Observe.Session.SessionGenAiUsage"];
+        };
+        /** @description Session GenAI usage summary */
+        "Qyl.Domains.Observe.Session.SessionGenAiUsage": {
+            /**
+             * Format: int32
+             * @description Total GenAI requests in session
+             */
+            request_count: number;
+            /** @description Total input tokens consumed */
+            total_input_tokens: components["schemas"]["Qyl.Common.TokenCount"];
+            /** @description Total output tokens generated */
+            total_output_tokens: components["schemas"]["Qyl.Common.TokenCount"];
+            /** @description Models used in session */
+            models_used: string[];
+            /** @description Providers used in session */
+            providers_used: string[];
+            /**
+             * Format: double
+             * @description Estimated cost in USD
+             */
+            estimated_cost_usd?: number;
+        };
+        /** @description Session geographic information */
+        "Qyl.Domains.Observe.Session.SessionGeoInfo": {
+            /** @description Country code (ISO 3166-1 alpha-2) */
+            country_code?: string;
+            /** @description Country name */
+            country_name?: string;
+            /** @description Region/state */
+            region?: string;
+            /** @description City */
+            city?: string;
+            /** @description Postal code */
+            postal_code?: string;
+            /** @description Timezone */
+            timezone?: string;
+        };
+        /**
+         * @description Session states
+         * @enum {string}
+         */
+        "Qyl.Domains.Observe.Session.SessionState": "active" | "idle" | "ended" | "timed_out" | "invalidated";
+        /** @description Aggregated session statistics */
+        "Qyl.Domains.Observe.Session.SessionStats": {
+            /** @description Active sessions count */
+            active_sessions: components["schemas"]["Qyl.Common.Count"];
+            /** @description Total sessions in time range */
+            total_sessions: components["schemas"]["Qyl.Common.Count"];
+            /** @description Unique users in time range */
+            unique_users: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: double
+             * @description Average session duration in milliseconds
+             */
+            avg_duration_ms: number;
+            /** @description Sessions with errors */
+            sessions_with_errors: components["schemas"]["Qyl.Common.Count"];
+            /** @description Sessions with GenAI usage */
+            sessions_with_genai: components["schemas"]["Qyl.Common.Count"];
+            /** @description Bounce rate (single-page sessions) */
+            bounce_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /** @description Sessions by device type */
+            by_device_type?: components["schemas"]["Qyl.Domains.Observe.Session.SessionDeviceStats"][];
+            /** @description Sessions by country */
+            by_country?: components["schemas"]["Qyl.Domains.Observe.Session.SessionCountryStats"][];
+        };
+        /**
+         * @description CI/CD event names
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Cicd.CicdEventName": "cicd.pipeline.start" | "cicd.pipeline.end" | "cicd.task.start" | "cicd.task.end" | "cicd.deployment.start" | "cicd.deployment.end";
+        /**
+         * @description CI/CD pipeline status
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Cicd.CicdPipelineStatus": "pending" | "running" | "success" | "failed" | "cancelled" | "skipped";
+        /**
+         * @description CI/CD systems/providers
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Cicd.CicdSystem": "github_actions" | "gitlab_ci" | "jenkins" | "azure_devops" | "circleci" | "travis_ci" | "bitbucket_pipelines" | "teamcity" | "bamboo" | "drone_ci" | "buildkite" | "tekton" | "argocd" | "flux" | "spinnaker" | "other";
+        /**
+         * @description CI/CD trigger types
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Cicd.CicdTriggerType": "push" | "pull_request" | "manual" | "schedule" | "api" | "webhook" | "dependency" | "tag" | "release";
+        /** @description Pipeline run event */
+        "Qyl.Domains.Ops.Cicd.PipelineRunEvent": {
+            /** @description Event name */
+            "event.name": components["schemas"]["Qyl.Domains.Ops.Cicd.CicdEventName"];
+            /** @description Pipeline name */
+            "cicd.pipeline.name": string;
+            /** @description Pipeline run ID */
+            "cicd.pipeline.run.id": string;
+            /** @description Pipeline status */
+            status: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
+            /** @description CI/CD system */
+            system: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdSystem"];
+            /** @description Trigger type */
+            trigger_type?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdTriggerType"];
+            /** @description Git branch */
+            "vcs.repository.ref.name"?: string;
+            /** @description Git commit SHA */
+            "vcs.repository.ref.revision"?: string;
+            /** @description Duration in seconds */
+            duration_s?: components["schemas"]["Qyl.Common.DurationS"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Complete deployment record */
+        "Qyl.Domains.Ops.Deployment.DeploymentEntity": {
+            /** @description Deployment ID */
+            "deployment.id": string;
+            /** @description Service name */
+            "service.name": string;
+            /** @description Service version */
+            "service.version": components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Environment */
+            environment: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEnvironment"];
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStatus"];
+            /** @description Strategy */
+            strategy: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStrategy"];
+            /**
+             * Format: date-time
+             * @description Start time
+             */
+            start_time: string;
+            /**
+             * Format: date-time
+             * @description End time
+             */
+            end_time?: string;
+            /** @description Duration in seconds */
+            duration_s?: components["schemas"]["Qyl.Common.DurationS"];
+            /** @description Deployed by (user/system) */
+            deployed_by?: string;
+            /** @description Git commit SHA */
+            git_commit?: string;
+            /** @description Git branch */
+            git_branch?: string;
+            /** @description Previous version */
+            previous_version?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Rollback target (if rolled back) */
+            rollback_target?: string;
+            /**
+             * Format: int32
+             * @description Replica count
+             */
+            replica_count?: number;
+            /**
+             * Format: int32
+             * @description Healthy replica count
+             */
+            healthy_replicas?: number;
+            /** @description Error message (if failed) */
+            error_message?: string;
+        };
+        /**
+         * @description Deployment environments
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Deployment.DeploymentEnvironment": "development" | "testing" | "staging" | "production" | "preview" | "canary";
+        /** @description Deployment lifecycle event */
+        "Qyl.Domains.Ops.Deployment.DeploymentEvent": {
+            /** @description Event name */
+            "event.name": components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEventName"];
+            /** @description Deployment ID */
+            "deployment.id": string;
+            /** @description Service name */
+            "service.name": string;
+            /** @description Environment */
+            "deployment.environment.name": components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEnvironment"];
+            /** @description Status */
+            status: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStatus"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /**
+         * @description Deployment event names
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Deployment.DeploymentEventName": "deployment.started" | "deployment.completed" | "deployment.failed" | "deployment.rolled_back" | "deployment.health_check.passed" | "deployment.health_check.failed";
+        /**
+         * @description Deployment status
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Deployment.DeploymentStatus": "pending" | "in_progress" | "success" | "failed" | "rolled_back" | "cancelled";
+        /**
+         * @description Deployment strategies
+         * @enum {string}
+         */
+        "Qyl.Domains.Ops.Deployment.DeploymentStrategy": "rolling" | "blue_green" | "canary" | "recreate" | "ab_test" | "shadow" | "feature_flag";
+        /**
+         * @description Aggregation temporality for metrics
+         * @enum {number}
+         */
+        "Qyl.OTel.Enums.AggregationTemporality": 0 | 1 | 2;
+        /**
+         * @description Data point flags
+         * @enum {number}
+         */
+        "Qyl.OTel.Enums.DataPointFlags": 0 | 1;
+        /**
+         * @description Metric data type
+         * @enum {string}
+         */
+        "Qyl.OTel.Enums.MetricType": "gauge" | "sum" | "histogram" | "exponential_histogram" | "summary";
+        /**
+         * @description Log severity number following OTel specification (1-24)
+         * @enum {number}
+         */
+        "Qyl.OTel.Enums.SeverityNumber": 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24;
+        /**
+         * @description Log severity text (human-readable)
+         * @enum {string}
+         */
+        "Qyl.OTel.Enums.SeverityText": "TRACE" | "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
+        /**
+         * @description Span kind describing the relationship between spans
+         * @enum {number}
+         */
+        "Qyl.OTel.Enums.SpanKind": 0 | 1 | 2 | 3 | 4 | 5;
+        /**
+         * @description Span status code
+         * @enum {number}
+         */
+        "Qyl.OTel.Enums.SpanStatusCode": 0 | 1 | 2;
+        /**
+         * @description Telemetry SDK language
+         * @enum {string}
+         */
+        "Qyl.OTel.Enums.TelemetrySdkLanguage": "cpp" | "dotnet" | "erlang" | "go" | "java" | "nodejs" | "php" | "python" | "ruby" | "rust" | "swift" | "webjs";
+        /** @description Log body content - can be string, structured, or bytes */
+        "Qyl.OTel.Logs.LogBody": components["schemas"]["Qyl.OTel.Logs.LogBodyString"] | components["schemas"]["Qyl.OTel.Logs.LogBodyKvList"] | components["schemas"]["Qyl.OTel.Logs.LogBodyArray"] | components["schemas"]["Qyl.OTel.Logs.LogBodyBytes"];
+        /** @description Array log body */
+        "Qyl.OTel.Logs.LogBodyArray": {
+            /** @description Array of values */
+            array_value: components["schemas"]["Qyl.Common.AttributeValue"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "arrayBody";
+        };
+        /** @description Binary log body */
+        "Qyl.OTel.Logs.LogBodyBytes": {
+            /** @description Binary value (base64 encoded) */
+            bytes_value: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "bytesBody";
+        };
+        /** @description Structured key-value log body */
+        "Qyl.OTel.Logs.LogBodyKvList": {
+            /** @description Key-value pairs */
+            kv_list_value: components["schemas"]["Qyl.Common.Attribute"][];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "kvListBody";
+        };
+        /** @description String log body */
+        "Qyl.OTel.Logs.LogBodyString": {
+            /** @description String value */
+            string_value: string;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "stringBody";
+        };
+        /** @description Log count by dimension */
+        "Qyl.OTel.Logs.LogCountByDimension": {
+            /** @description Dimension value */
+            dimension: string;
+            /** @description Log count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Error count for this dimension */
+            error_count: components["schemas"]["Qyl.Common.Count"];
+        };
+        /** @description Log count by severity level */
+        "Qyl.OTel.Logs.LogCountBySeverity": {
+            /** @description Severity level */
+            severity: components["schemas"]["Qyl.OTel.Enums.SeverityText"];
+            /** @description Log count */
+            count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Percentage of total */
+            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        };
+        /** @description OpenTelemetry Log Record */
+        "Qyl.OTel.Logs.LogRecord": {
+            /**
+             * Format: int64
+             * @description Timestamp when the event occurred (nanoseconds since epoch)
+             */
+            time_unix_nano: number;
+            /**
+             * Format: int64
+             * @description Timestamp when the log was observed/collected (nanoseconds since epoch)
+             */
+            observed_time_unix_nano: number;
+            /** @description Severity number (1-24) */
+            severity_number: components["schemas"]["Qyl.OTel.Enums.SeverityNumber"];
+            /** @description Severity text (DEBUG, INFO, WARN, ERROR, etc.) */
+            severity_text?: components["schemas"]["Qyl.OTel.Enums.SeverityText"];
+            /** @description Log body - the main content */
+            body: Omit<components["schemas"]["Qyl.OTel.Logs.LogBody"], "kind">;
+            /** @description Log attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: int32
+             * @description Flags (trace flags)
+             */
+            flags?: number;
+            /** @description Associated trace ID */
+            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Associated span ID */
+            span_id?: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Resource describing the entity that produced this log */
+            resource: components["schemas"]["Qyl.OTel.Resource.Resource"];
+            /** @description Instrumentation scope */
+            instrumentation_scope?: components["schemas"]["Qyl.Common.InstrumentationScope"];
+        };
+        /** @description Aggregated log statistics */
+        "Qyl.OTel.Logs.LogStats": {
+            /** @description Total log count */
+            total_count: components["schemas"]["Qyl.Common.Count"];
+            /** @description Log counts by severity */
+            by_severity: components["schemas"]["Qyl.OTel.Logs.LogCountBySeverity"][];
+            /** @description Log counts by service */
+            by_service: components["schemas"]["Qyl.OTel.Logs.LogCountByDimension"][];
+            /**
+             * Format: double
+             * @description Logs per second rate
+             */
+            logs_per_second: number;
+            /** @description Error log rate */
+            error_rate: components["schemas"]["Qyl.Common.Ratio"];
+        };
+        /**
+         * @description Aggregation functions for metrics
+         * @enum {string}
+         */
+        "Qyl.OTel.Metrics.AggregationFunction": "sum" | "avg" | "min" | "max" | "count" | "last" | "rate" | "increase";
+        /** @description Base data point with common fields */
+        "Qyl.OTel.Metrics.DataPointBase": {
+            /**
+             * Format: int64
+             * @description Start timestamp in nanoseconds since epoch
+             */
+            start_time_unix_nano: number;
+            /**
+             * Format: int64
+             * @description End timestamp in nanoseconds since epoch
+             */
+            time_unix_nano: number;
+            /** @description Data point attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Data point flags */
+            flags?: components["schemas"]["Qyl.OTel.Enums.DataPointFlags"];
+        };
+        /** @description Exemplar - sample trace linked to metric */
+        "Qyl.OTel.Metrics.Exemplar": {
+            /**
+             * Format: int64
+             * @description Timestamp in nanoseconds since epoch
+             */
+            time_unix_nano: number;
+            /**
+             * Format: int64
+             * @description Value as integer
+             */
+            as_int?: number;
+            /**
+             * Format: double
+             * @description Value as double
+             */
+            as_double?: number;
+            /** @description Span ID of the exemplar */
+            span_id?: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Trace ID of the exemplar */
+            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Filtered attributes */
+            filtered_attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+        };
+        /** @description Exponential histogram buckets */
+        "Qyl.OTel.Metrics.ExponentialBuckets": {
+            /**
+             * Format: int32
+             * @description Offset of the first bucket
+             */
+            offset: number;
+            /** @description Bucket counts */
+            bucket_counts: number[];
+        };
+        /** @description Exponential histogram metric - distribution with exponential bucket boundaries */
+        "Qyl.OTel.Metrics.ExponentialHistogramData": {
+            /**
+             * @description Discriminator identifying this as exponential histogram metric data
+             * @enum {string}
+             */
+            type: "exponential_histogram";
+            /** @description Exponential histogram data points */
+            data_points: components["schemas"]["Qyl.OTel.Metrics.ExponentialHistogramDataPoint"][];
+            /** @description Aggregation temporality */
+            aggregation_temporality: components["schemas"]["Qyl.OTel.Enums.AggregationTemporality"];
+        } & (Omit<WithRequired<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "exponential_histogram";
+        });
+        /** @description Exponential histogram data point */
+        "Qyl.OTel.Metrics.ExponentialHistogramDataPoint": {
+            /**
+             * Format: int64
+             * @description Number of values
+             */
+            count: number;
+            /**
+             * Format: double
+             * @description Sum of all values
+             */
+            sum?: number;
+            /**
+             * Format: int32
+             * @description Scale factor for bucket boundaries
+             */
+            scale: number;
+            /**
+             * Format: int64
+             * @description Zero count
+             */
+            zero_count: number;
+            /**
+             * Format: double
+             * @description Zero threshold
+             */
+            zero_threshold?: number;
+            /** @description Positive bucket counts */
+            positive: components["schemas"]["Qyl.OTel.Metrics.ExponentialBuckets"];
+            /** @description Negative bucket counts */
+            negative: components["schemas"]["Qyl.OTel.Metrics.ExponentialBuckets"];
+            /**
+             * Format: double
+             * @description Minimum value
+             */
+            min?: number;
+            /**
+             * Format: double
+             * @description Maximum value
+             */
+            max?: number;
+            /** @description Exemplars for the data point */
+            exemplars?: components["schemas"]["Qyl.OTel.Metrics.Exemplar"][];
+        } & components["schemas"]["Qyl.OTel.Metrics.DataPointBase"];
+        /** @description Gauge metric - instantaneous value at a point in time */
+        "Qyl.OTel.Metrics.GaugeData": {
+            /**
+             * @description Discriminator identifying this as gauge metric data
+             * @enum {string}
+             */
+            type: "gauge";
+            /** @description Gauge data points */
+            data_points: components["schemas"]["Qyl.OTel.Metrics.NumberDataPoint"][];
+        } & (Omit<WithRequired<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "gauge";
+        });
+        /** @description Histogram metric - distribution of values in buckets */
+        "Qyl.OTel.Metrics.HistogramData": {
+            /**
+             * @description Discriminator identifying this as histogram metric data
+             * @enum {string}
+             */
+            type: "histogram";
+            /** @description Histogram data points */
+            data_points: components["schemas"]["Qyl.OTel.Metrics.HistogramDataPoint"][];
+            /** @description Aggregation temporality */
+            aggregation_temporality: components["schemas"]["Qyl.OTel.Enums.AggregationTemporality"];
+        } & (Omit<WithRequired<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "histogram";
+        });
+        /** @description Histogram data point */
+        "Qyl.OTel.Metrics.HistogramDataPoint": {
+            /**
+             * Format: int64
+             * @description Number of values in the histogram
+             */
+            count: number;
+            /**
+             * Format: double
+             * @description Sum of all values
+             */
+            sum?: number;
+            /** @description Bucket counts */
+            bucket_counts: number[];
+            /** @description Explicit bucket boundaries */
+            explicit_bounds: number[];
+            /**
+             * Format: double
+             * @description Minimum value
+             */
+            min?: number;
+            /**
+             * Format: double
+             * @description Maximum value
+             */
+            max?: number;
+            /** @description Exemplars for the data point */
+            exemplars?: components["schemas"]["Qyl.OTel.Metrics.Exemplar"][];
+        } & components["schemas"]["Qyl.OTel.Metrics.DataPointBase"];
+        /** @description OpenTelemetry Metric containing measurement data */
+        "Qyl.OTel.Metrics.Metric": {
+            /** @description Metric name (e.g., http.server.request.duration) */
+            name: string;
+            /** @description Metric description */
+            description?: string;
+            /** @description Metric unit (e.g., 's', 'By', '1') */
+            unit?: string;
+            /** @description Metric data (discriminated by type) */
+            data: Omit<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">;
+            /** @description Metric metadata attributes */
+            metadata?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Resource describing the entity that produced this metric */
+            resource: components["schemas"]["Qyl.OTel.Resource.Resource"];
+            /** @description Instrumentation scope */
+            instrumentation_scope?: components["schemas"]["Qyl.Common.InstrumentationScope"];
+        };
+        /** @description Metric data discriminated by type */
+        "Qyl.OTel.Metrics.MetricData": {
+            /** @description Metric type discriminator */
+            type: components["schemas"]["Qyl.OTel.Enums.MetricType"];
+        };
+        /** @description Numeric data point (for Gauge and Sum) */
+        "Qyl.OTel.Metrics.NumberDataPoint": {
+            /**
+             * Format: int64
+             * @description Value as integer
+             */
+            as_int?: number;
+            /**
+             * Format: double
+             * @description Value as double
+             */
+            as_double?: number;
+            /** @description Exemplars for the data point */
+            exemplars?: components["schemas"]["Qyl.OTel.Metrics.Exemplar"][];
+        } & components["schemas"]["Qyl.OTel.Metrics.DataPointBase"];
+        /** @description Quantile value for summary */
+        "Qyl.OTel.Metrics.QuantileValue": {
+            /**
+             * Format: double
+             * @description Quantile (0.0 to 1.0)
+             */
+            quantile: number;
+            /**
+             * Format: double
+             * @description Value at this quantile
+             */
+            value: number;
+        };
+        /** @description Sum metric - cumulative or delta counter */
+        "Qyl.OTel.Metrics.SumData": {
+            /**
+             * @description Discriminator identifying this as sum metric data
+             * @enum {string}
+             */
+            type: "sum";
+            /** @description Sum data points */
+            data_points: components["schemas"]["Qyl.OTel.Metrics.NumberDataPoint"][];
+            /** @description Whether the sum is monotonically increasing */
+            is_monotonic: boolean;
+            /** @description Aggregation temporality */
+            aggregation_temporality: components["schemas"]["Qyl.OTel.Enums.AggregationTemporality"];
+        } & (Omit<WithRequired<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "sum";
+        });
+        /** @description Summary metric - pre-aggregated quantile distribution */
+        "Qyl.OTel.Metrics.SummaryData": {
+            /**
+             * @description Discriminator identifying this as summary metric data
+             * @enum {string}
+             */
+            type: "summary";
+            /** @description Summary data points */
+            data_points: components["schemas"]["Qyl.OTel.Metrics.SummaryDataPoint"][];
+        } & (Omit<WithRequired<components["schemas"]["Qyl.OTel.Metrics.MetricData"], "type">, "type"> & {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "summary";
+        });
+        /** @description Summary data point */
+        "Qyl.OTel.Metrics.SummaryDataPoint": {
+            /**
+             * Format: int64
+             * @description Number of values
+             */
+            count: number;
+            /**
+             * Format: double
+             * @description Sum of all values
+             */
+            sum: number;
+            /** @description Quantile values */
+            quantile_values: components["schemas"]["Qyl.OTel.Metrics.QuantileValue"][];
+        } & components["schemas"]["Qyl.OTel.Metrics.DataPointBase"];
+        /**
+         * @description Cloud provider types
+         * @enum {string}
+         */
+        "Qyl.OTel.Resource.CloudProvider": "alibaba_cloud" | "aws" | "azure" | "gcp" | "heroku" | "ibm_cloud" | "tencent_cloud";
+        /**
+         * @description Host architecture types
+         * @enum {string}
+         */
+        "Qyl.OTel.Resource.HostArch": "amd64" | "arm32" | "arm64" | "ia64" | "ppc32" | "ppc64" | "s390x" | "x86";
+        /**
+         * @description Operating system types
+         * @enum {string}
+         */
+        "Qyl.OTel.Resource.OsType": "windows" | "linux" | "darwin" | "freebsd" | "netbsd" | "openbsd" | "dragonflybsd" | "hpux" | "aix" | "solaris" | "z_os";
+        /** @description Resource describes the entity producing telemetry */
+        "Qyl.OTel.Resource.Resource": {
+            /** @description Service name (required) */
+            "service.name": string;
+            /** @description Service namespace for grouping */
+            "service.namespace"?: string;
+            /** @description Service instance ID (unique per instance) */
+            "service.instance.id"?: string;
+            /** @description Service version */
+            "service.version"?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Telemetry SDK name */
+            "telemetry.sdk.name"?: string;
+            /** @description Telemetry SDK language */
+            "telemetry.sdk.language"?: components["schemas"]["Qyl.OTel.Enums.TelemetrySdkLanguage"];
+            /** @description Telemetry SDK version */
+            "telemetry.sdk.version"?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Auto-instrumentation agent name */
+            "telemetry.auto.version"?: components["schemas"]["Qyl.Common.SemVer"];
+            /** @description Deployment environment (e.g., production, staging) */
+            "deployment.environment.name"?: string;
+            /** @description Cloud provider */
+            "cloud.provider"?: components["schemas"]["Qyl.OTel.Resource.CloudProvider"];
+            /** @description Cloud region */
+            "cloud.region"?: string;
+            /** @description Cloud availability zone */
+            "cloud.availability_zone"?: string;
+            /** @description Cloud account ID */
+            "cloud.account.id"?: string;
+            /** @description Cloud platform (e.g., aws_ecs, gcp_cloud_run) */
+            "cloud.platform"?: string;
+            /** @description Host name */
+            "host.name"?: string;
+            /** @description Host ID */
+            "host.id"?: string;
+            /** @description Host type (e.g., n1-standard-1) */
+            "host.type"?: string;
+            /** @description Host architecture (e.g., amd64, arm64) */
+            "host.arch"?: components["schemas"]["Qyl.OTel.Resource.HostArch"];
+            /** @description Operating system type */
+            "os.type"?: components["schemas"]["Qyl.OTel.Resource.OsType"];
+            /** @description Operating system description */
+            "os.description"?: string;
+            /** @description Operating system version */
+            "os.version"?: string;
+            /**
+             * Format: int64
+             * @description Process ID
+             */
+            "process.pid"?: number;
+            /** @description Process executable name */
+            "process.executable.name"?: string;
+            /** @description Process command line */
+            "process.command_line"?: string;
+            /** @description Process runtime name */
+            "process.runtime.name"?: string;
+            /** @description Process runtime version */
+            "process.runtime.version"?: string;
+            /** @description Container ID */
+            "container.id"?: string;
+            /** @description Container name */
+            "container.name"?: string;
+            /** @description Container image name */
+            "container.image.name"?: string;
+            /** @description Container image tag */
+            "container.image.tag"?: string;
+            /** @description Kubernetes cluster name */
+            "k8s.cluster.name"?: string;
+            /** @description Kubernetes namespace */
+            "k8s.namespace.name"?: string;
+            /** @description Kubernetes pod name */
+            "k8s.pod.name"?: string;
+            /** @description Kubernetes pod UID */
+            "k8s.pod.uid"?: string;
+            /** @description Kubernetes deployment name */
+            "k8s.deployment.name"?: string;
+            /** @description Additional resource attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+        };
+        /** @description OpenTelemetry Span representing a single operation in a distributed trace */
+        "Qyl.OTel.Traces.Span": {
+            /** @description Unique span identifier (16 hex chars) */
+            span_id: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Trace identifier (32 hex chars) */
+            trace_id: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Parent span identifier (null for root spans) */
+            parent_span_id?: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description W3C trace state */
+            trace_state?: components["schemas"]["Qyl.Common.TraceState"];
+            /** @description Human-readable span name */
+            name: string;
+            /** @description Span kind */
+            kind: components["schemas"]["Qyl.OTel.Enums.SpanKind"];
+            /**
+             * Format: int64
+             * @description Start timestamp in nanoseconds since epoch
+             */
+            start_time_unix_nano: number;
+            /**
+             * Format: int64
+             * @description End timestamp in nanoseconds since epoch
+             */
+            end_time_unix_nano: number;
+            /** @description Span attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Span events (logs attached to span) */
+            events?: components["schemas"]["Qyl.OTel.Traces.SpanEvent"][];
+            /** @description Dropped events count */
+            dropped_events_count?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Links to other spans */
+            links?: components["schemas"]["Qyl.OTel.Traces.SpanLink"][];
+            /** @description Dropped links count */
+            dropped_links_count?: components["schemas"]["Qyl.Common.Count"];
+            /** @description Span status */
+            status: components["schemas"]["Qyl.OTel.Traces.SpanStatus"];
+            /**
+             * Format: int32
+             * @description Span flags
+             */
+            flags?: number;
+            /** @description Resource describing the entity that produced this span */
+            resource: components["schemas"]["Qyl.OTel.Resource.Resource"];
+            /** @description Instrumentation scope */
+            instrumentation_scope?: components["schemas"]["Qyl.Common.InstrumentationScope"];
+        };
+        /** @description Event occurring during a span's lifetime */
+        "Qyl.OTel.Traces.SpanEvent": {
+            /** @description Event name */
+            name: string;
+            /**
+             * Format: int64
+             * @description Event timestamp in nanoseconds since epoch
+             */
+            time_unix_nano: number;
+            /** @description Event attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+        };
+        /** @description Link to another span (e.g., batch processing) */
+        "Qyl.OTel.Traces.SpanLink": {
+            /** @description Linked trace ID */
+            trace_id: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Linked span ID */
+            span_id: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Trace state of the linked span */
+            trace_state?: components["schemas"]["Qyl.Common.TraceState"];
+            /** @description Link attributes */
+            attributes?: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Dropped attributes count */
+            dropped_attributes_count?: components["schemas"]["Qyl.Common.Count"];
+            /**
+             * Format: int32
+             * @description Link flags
+             */
+            flags?: number;
+        };
+        /** @description Span status */
+        "Qyl.OTel.Traces.SpanStatus": {
+            /** @description Status code */
+            code: components["schemas"]["Qyl.OTel.Enums.SpanStatusCode"];
+            /** @description Status message (only for ERROR status) */
+            message?: string;
+        };
+        /** @description Complete trace containing all related spans */
+        "Qyl.OTel.Traces.Trace": {
+            /** @description Trace identifier */
+            trace_id: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description All spans in this trace */
+            spans: components["schemas"]["Qyl.OTel.Traces.Span"][];
+            /** @description Root span of the trace */
+            root_span?: components["schemas"]["Qyl.OTel.Traces.Span"];
+            /**
+             * Format: int32
+             * @description Total span count
+             */
+            span_count: number;
+            /** @description Trace duration in nanoseconds */
+            duration_ns: components["schemas"]["Qyl.Common.DurationNs"];
+            /**
+             * Format: date-time
+             * @description Trace start time
+             */
+            start_time: string;
+            /**
+             * Format: date-time
+             * @description Trace end time
+             */
+            end_time: string;
+            /** @description Services involved in this trace */
+            services: string[];
+            /** @description Whether trace contains errors */
+            has_error: boolean;
+        };
+        /** @description Service details */
+        ServiceDetails: {
+            /** @description Service name */
+            name: string;
+            /** @description Service namespace */
+            namespace_name?: string;
+            /** @description Service version */
+            version?: components["schemas"]["Qyl.Common.SemVer"];
+            /**
+             * Format: int32
+             * @description Instance count
+             */
+            instance_count: number;
+            /**
+             * Format: date-time
+             * @description Last seen
+             */
+            last_seen: string;
+            /** @description Resource attributes */
+            resource_attributes: components["schemas"]["Qyl.Common.Attribute"][];
+            /** @description Instrumentation libraries */
+            instrumentation_libraries: components["schemas"]["Qyl.Common.InstrumentationScope"][];
+            /**
+             * Format: double
+             * @description Request rate (per second)
+             */
+            request_rate: number;
+            /** @description Error rate */
+            error_rate: components["schemas"]["Qyl.Common.Ratio"];
+            /**
+             * Format: double
+             * @description Average latency in milliseconds
+             */
+            avg_latency_ms: number;
+            /**
+             * Format: double
+             * @description P99 latency in milliseconds
+             */
+            p99_latency_ms: number;
+        };
+        /** @description Service information */
+        ServiceInfo: {
+            /** @description Service name */
+            name: string;
+            /** @description Service namespace */
+            namespace_name?: string;
+            /** @description Service version */
+            version?: components["schemas"]["Qyl.Common.SemVer"];
+            /**
+             * Format: int32
+             * @description Instance count
+             */
+            instance_count: number;
+            /**
+             * Format: date-time
+             * @description Last seen
+             */
+            last_seen: string;
+        };
+        /** @description Deployment stream events */
+        "Streaming.DeploymentEvents": components["schemas"]["Streaming.DeploymentStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Deployment stream event */
+        "Streaming.DeploymentStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "deployment";
+            /** @description Deployment event data */
+            data: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEvent"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Exception stream events */
+        "Streaming.ExceptionEvents": components["schemas"]["Streaming.ExceptionStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Exception stream event */
+        "Streaming.ExceptionStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "exception";
+            /** @description Exception data */
+            data: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionEvent"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Heartbeat event for connection keep-alive */
+        "Streaming.HeartbeatEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "heartbeat";
+            /**
+             * Format: date-time
+             * @description Server timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Log stream events */
+        "Streaming.LogEvents": components["schemas"]["Streaming.LogStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Log stream event */
+        "Streaming.LogStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "log";
+            /** @description Log data */
+            data: components["schemas"]["Qyl.OTel.Logs.LogRecord"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Metric stream events */
+        "Streaming.MetricEvents": components["schemas"]["Streaming.MetricStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Metric stream event */
+        "Streaming.MetricStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "metric";
+            /** @description Metric data */
+            data: components["schemas"]["Qyl.OTel.Metrics.Metric"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Span stream events */
+        "Streaming.SpanEvents": components["schemas"]["Streaming.SpanStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Span stream event */
+        "Streaming.SpanStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "span";
+            /** @description Span data */
+            data: components["schemas"]["Qyl.OTel.Traces.Span"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /**
+         * @description Stream event types
+         * @enum {string}
+         */
+        "Streaming.StreamEventType": "traces" | "spans" | "logs" | "metrics" | "exceptions" | "deployments" | "all";
+        /** @description Stream subscription request */
+        "Streaming.StreamSubscription": {
+            /** @description Event types to subscribe to */
+            event_types: components["schemas"]["Streaming.StreamEventType"][];
+            /** @description Service name filter */
+            service_name?: string;
+            /** @description Trace ID filter (for specific trace) */
+            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
+            /**
+             * Format: int32
+             * @description Minimum severity for logs (1-24)
+             */
+            min_severity?: number;
+            /** @description Attribute filters */
+            filters?: Record<string, never>;
+            /**
+             * Format: double
+             * @description Sample rate (0.0-1.0)
+             */
+            sample_rate?: number;
+        };
+        /** @description Tail-based sampling configuration for streaming */
+        "Streaming.TailSamplingConfig": {
+            /** @description Enable tail-based sampling */
+            enabled: boolean;
+            /** @description Sample error traces */
+            sample_errors: boolean;
+            /** @description Sample slow traces (above threshold) */
+            sample_slow: boolean;
+            /**
+             * Format: int64
+             * @description Slow trace threshold in milliseconds
+             */
+            slow_threshold_ms?: number;
+            /**
+             * Format: double
+             * @description Random sample rate for remaining traces
+             */
+            random_rate: number;
+        };
+        /** @description All possible stream event types */
+        "Streaming.TelemetryStreamEvent": components["schemas"]["Streaming.TraceStreamEvent"] | components["schemas"]["Streaming.SpanStreamEvent"] | components["schemas"]["Streaming.LogStreamEvent"] | components["schemas"]["Streaming.MetricStreamEvent"] | components["schemas"]["Streaming.ExceptionStreamEvent"] | components["schemas"]["Streaming.DeploymentStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Trace stream events */
+        "Streaming.TraceEvents": components["schemas"]["Streaming.TraceStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        /** @description Trace stream event */
+        "Streaming.TraceStreamEvent": {
+            /**
+             * @description Event type
+             * @enum {string}
+             */
+            type: "trace";
+            /** @description Trace data */
+            data: components["schemas"]["Qyl.OTel.Traces.Trace"];
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /**
+         * @description WebSocket message types
+         * @enum {string}
+         */
+        "Streaming.WebSocketMessageType": "subscribe" | "unsubscribe" | "data" | "error" | "ack" | "ping" | "pong";
+        /** @description Trace search query */
+        TraceQuery: {
+            /** @description Free text search */
+            query?: string;
+            /** @description Service name filter */
+            service_name?: string;
+            /** @description Operation name filter */
+            operation_name?: string;
+            /**
+             * Format: int64
+             * @description Minimum duration in milliseconds
+             */
+            min_duration_ms?: number;
+            /**
+             * Format: int64
+             * @description Maximum duration in milliseconds
+             */
+            max_duration_ms?: number;
+            /** @description Status filter */
+            status?: components["schemas"]["Qyl.OTel.Enums.SpanStatusCode"];
+            /**
+             * Format: date-time
+             * @description Time range start
+             */
+            start_time?: string;
+            /**
+             * Format: date-time
+             * @description Time range end
+             */
+            end_time?: string;
+            /** @description Tag filters */
+            tags?: Record<string, never>;
+            /**
+             * Format: int32
+             * @description Page size
+             * @default 100
+             */
+            limit: number;
+            /** @description Cursor */
+            cursor?: string;
+        };
     };
     responses: never;
-    parameters: {
-        /** @description Maximum items to return */
-        "Api.PaginationParams.limit": number;
-        /** @description Number of items to skip */
-        "Api.PaginationParams.offset": number;
-        /** @description Start time (Unix nanoseconds) */
-        "Api.TimeRangeParams.since": number;
-        /** @description End time (Unix nanoseconds) */
-        "Api.TimeRangeParams.until": number;
-    };
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
 export interface operations {
-    Live_stream: {
+    HealthApi_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    HealthApi_live: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HealthApi_ready: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeploymentsApi_list: {
         parameters: {
             query?: {
-                /** @description Filter by session ID */
-                sessionId?: string;
-                /** @description Filter by service name */
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Environment filter */
+                environment?: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEnvironment"];
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentStatus"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    DeploymentsApi_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeploymentCreate"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    DeploymentsApi_getDoraMetrics: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Environment filter */
+                environment?: components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEnvironment"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DoraMetrics"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    DeploymentsApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deploymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    DeploymentsApi_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deploymentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeploymentUpdate"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Ops.Deployment.DeploymentEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ErrorsApi_list: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Observe.Error.ErrorStatus"];
+                /** @description Category filter */
+                category?: components["schemas"]["Qyl.Domains.Observe.Error.ErrorCategory"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Observe.Error.ErrorEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ErrorsApi_getStats: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Error.ErrorStats"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ErrorsApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                errorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Error.ErrorEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ErrorsApi_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                errorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ErrorUpdate"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Error.ErrorEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ErrorsApi_getCorrelations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                errorId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Error.ErrorCorrelation"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ExceptionsApi_list: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Exception type filter */
+                exceptionType?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Observe.Exceptions.EnrichedException"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ExceptionsApi_getStats: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStats"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    LogsApi_list: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Minimum severity */
+                severityMin?: components["schemas"]["Qyl.OTel.Enums.SeverityNumber"];
+                /** @description Maximum severity */
+                severityMax?: components["schemas"]["Qyl.OTel.Enums.SeverityNumber"];
+                /** @description Trace ID filter */
+                traceId?: components["schemas"]["Qyl.Common.TraceId"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Free text search */
+                query?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+                /** @description Order */
+                orderBy?: components["schemas"]["Qyl.Domains.Observe.Log.LogOrderBy"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Logs.LogRecord"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    LogsApi_aggregate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LogAggregationRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LogAggregationResponse"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    LogsApi_getPatterns: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Minimum occurrences */
+                minCount?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Log.LogPattern"][];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    LogsApi_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Qyl.Domains.Observe.Log.LogQuery"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Logs.LogRecord"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    LogsApi_getStats: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.OTel.Logs.LogStats"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    MetricsApi_list: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Metric name pattern */
+                namePattern?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["MetricMetadata"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    MetricsApi_query: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MetricQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricQueryResponse"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    MetricsApi_getMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                metricName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetricMetadata"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    PipelinesApi_list: {
+        parameters: {
+            query?: {
+                /** @description Pipeline name filter */
+                pipelineName?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
+                /** @description CI/CD system filter */
+                system?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdSystem"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Ops.Cicd.PipelineRunEvent"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    PipelinesApi_getStats: {
+        parameters: {
+            query?: {
+                /** @description Pipeline name filter */
+                pipelineName?: string;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PipelineStats"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ServicesApi_list: {
+        parameters: {
+            query?: {
+                /** @description Namespace filter */
+                namespaceName?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["ServiceInfo"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ServicesApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceDetails"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ServicesApi_getDependencies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                serviceName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Identity.ServiceDependency"][];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ServicesApi_getOperations: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                serviceName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["OperationInfo"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SessionsApi_list: {
+        parameters: {
+            query?: {
+                /** @description User ID filter */
+                userId?: components["schemas"]["Qyl.Common.UserId"];
+                /** @description Is active filter */
+                isActive?: boolean;
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Observe.Session.SessionEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SessionsApi_getStats: {
+        parameters: {
+            query?: {
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Session.SessionStats"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SessionsApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Observe.Session.SessionEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SessionsApi_getTraces: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Traces.Trace"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    StreamingApi_streamDeployments: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Environment filter */
+                environment?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    StreamingApi_streamEvents: {
+        parameters: {
+            query?: {
+                /** @description Event types */
+                types?: components["schemas"]["Streaming.StreamEventType"][];
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Sample rate */
+                sampleRate?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    StreamingApi_streamExceptions: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Exception type filter */
+                exceptionType?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    StreamingApi_streamLogs: {
+        parameters: {
+            query?: {
+                /** @description Service name filter */
+                serviceName?: string;
+                /** @description Minimum severity */
+                minSeverity?: number;
+                /** @description Query filter */
+                query?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": string;
+                };
+            };
+        };
+    };
+    StreamingApi_streamMetrics: {
+        parameters: {
+            query?: {
+                /** @description Metric name filter */
+                metricName?: string;
+                /** @description Service name filter */
                 serviceName?: string;
             };
             header?: never;
@@ -403,21 +4556,13 @@ export interface operations {
             };
         };
     };
-    Sessions_list: {
+    StreamingApi_streamTraces: {
         parameters: {
             query?: {
-                /** @description Number of items to skip */
-                offset?: components["parameters"]["Api.PaginationParams.offset"];
-                /** @description Maximum items to return */
-                limit?: components["parameters"]["Api.PaginationParams.limit"];
-                /** @description Start time (Unix nanoseconds) */
-                since?: components["parameters"]["Api.TimeRangeParams.since"];
-                /** @description End time (Unix nanoseconds) */
-                until?: components["parameters"]["Api.TimeRangeParams.until"];
-                /** @description Filter by service name */
+                /** @description Service name filter */
                 serviceName?: string;
-                /** @description Filter by GenAI provider */
-                genAiSystem?: string;
+                /** @description Minimum duration filter */
+                minDurationMs?: number;
             };
             header?: never;
             path?: never;
@@ -431,46 +4576,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @description Items in current page */
-                        items: components["schemas"]["Models.SessionSummary"][];
-                        /**
-                         * Format: int64
-                         * @description Total count across all pages
-                         */
-                        total: number;
-                        /**
-                         * Format: int64
-                         * @description Current page offset
-                         */
-                        offset: number;
-                        /**
-                         * Format: int64
-                         * @description Page size limit
-                         */
-                        limit: number;
-                        /** @description Whether more items exist */
-                        hasMore: boolean;
-                    };
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
+                    "text/event-stream": string;
                 };
             };
         };
     };
-    Sessions_get: {
+    StreamingApi_streamTraceSpans: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                sessionId: components["schemas"]["Primitives.SessionId"];
+                traceId: components["schemas"]["Qyl.Common.TraceId"];
             };
             cookie?: never;
         };
@@ -482,101 +4598,30 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Models.SessionSummary"];
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
+                    "text/event-stream": string;
                 };
             };
         };
     };
-    Sessions_getSpans: {
+    TracesApi_list: {
         parameters: {
             query?: {
-                /** @description Number of items to skip */
-                offset?: components["parameters"]["Api.PaginationParams.offset"];
-                /** @description Maximum items to return */
-                limit?: components["parameters"]["Api.PaginationParams.limit"];
-            };
-            header?: never;
-            path: {
-                sessionId: components["schemas"]["Primitives.SessionId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @description Items in current page */
-                        items: components["schemas"]["Models.SpanRecord"][];
-                        /**
-                         * Format: int64
-                         * @description Total count across all pages
-                         */
-                        total: number;
-                        /**
-                         * Format: int64
-                         * @description Current page offset
-                         */
-                        offset: number;
-                        /**
-                         * Format: int64
-                         * @description Page size limit
-                         */
-                        limit: number;
-                        /** @description Whether more items exist */
-                        hasMore: boolean;
-                    };
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
-                };
-            };
-        };
-    };
-    Spans_list: {
-        parameters: {
-            query?: {
-                /** @description Number of items to skip */
-                offset?: components["parameters"]["Api.PaginationParams.offset"];
-                /** @description Maximum items to return */
-                limit?: components["parameters"]["Api.PaginationParams.limit"];
-                /** @description Start time (Unix nanoseconds) */
-                since?: components["parameters"]["Api.TimeRangeParams.since"];
-                /** @description End time (Unix nanoseconds) */
-                until?: components["parameters"]["Api.TimeRangeParams.until"];
-                /** @description Filter by trace ID */
-                traceId?: string;
-                /** @description Filter by service name */
+                /** @description Service name filter */
                 serviceName?: string;
-                /** @description Filter by span name (supports wildcards) */
-                name?: string;
-                /** @description Filter by status (ok, error) */
-                status?: string;
-                /** @description Filter by GenAI provider */
-                genAiSystem?: string;
-                /** @description Filter by model */
-                genAiModel?: string;
-                /** @description Minimum duration in nanoseconds */
-                minDurationNs?: number;
+                /** @description Minimum duration in ms */
+                minDurationMs?: number;
+                /** @description Maximum duration in ms */
+                maxDurationMs?: number;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.OTel.Enums.SpanStatusCode"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor for pagination */
+                cursor?: string;
             };
             header?: never;
             path?: never;
@@ -591,137 +4636,177 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @description Items in current page */
-                        items: components["schemas"]["Models.SpanRecord"][];
-                        /**
-                         * Format: int64
-                         * @description Total count across all pages
-                         */
-                        total: number;
-                        /**
-                         * Format: int64
-                         * @description Current page offset
-                         */
-                        offset: number;
-                        /**
-                         * Format: int64
-                         * @description Page size limit
-                         */
-                        limit: number;
-                        /** @description Whether more items exist */
-                        hasMore: boolean;
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Traces.Trace"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
                     };
                 };
             };
-            /** @description An unexpected error response. */
-            default: {
+            /** @description Bad request - validation failed (400) */
+            400: {
                 headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
                 };
             };
         };
     };
-    Spans_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                spanId: components["schemas"]["Primitives.SpanId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Models.SpanRecord"];
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
-                };
-            };
-        };
-    };
-    Traces_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                traceId: components["schemas"]["Primitives.TraceId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Models.TraceNode"];
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
-                };
-            };
-        };
-    };
-    Traces_getSpans: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                traceId: components["schemas"]["Primitives.TraceId"];
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Models.SpanRecord"][];
-                };
-            };
-            /** @description An unexpected error response. */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Api.ApiError"];
-                };
-            };
-        };
-    };
-    Health_check: {
+    TracesApi_search: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TraceQuery"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Traces.Trace"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    TracesApi_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                traceId: components["schemas"]["Qyl.Common.TraceId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.OTel.Traces.Trace"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    TracesApi_getSpans: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                traceId: components["schemas"]["Qyl.Common.TraceId"];
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -733,12 +4818,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** @enum {string} */
-                        status: "healthy";
-                        version: string;
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.OTel.Traces.Span"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
                     };
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
                 };
             };
         };
     };
 }
+type WithRequired<T, K extends keyof T> = T & {
+    [P in K]-?: T[P];
+};

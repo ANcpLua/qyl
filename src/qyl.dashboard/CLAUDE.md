@@ -26,9 +26,9 @@ Proxy configured in `vite.config.ts` - uses `VITE_API_URL` env var or defaults t
 Types flow from TypeSpec through OpenAPI to TypeScript:
 
 ```
-schema/main.tsp (SSOT)
+core/specs/main.tsp (SSOT)
      │
-     └─► schema/generated/openapi.yaml
+     └─► core/openapi/openapi.yaml
               │
               └─► openapi-typescript
                        │

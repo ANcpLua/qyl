@@ -31,7 +31,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public void ChatClient_Is_Registered_As_ProviderRouter()
+    public void ChatClientIsRegisteredAsProviderRouter()
     {
         using var scope = _factory.Services.CreateScope();
         var client = scope.ServiceProvider.GetRequiredService<IChatClient>();
@@ -40,7 +40,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public void ProviderRegistry_Contains_OpenAI_And_GitHub()
+    public void ProviderRegistryContainsOpenAIAndGitHub()
     {
         using var scope = _factory.Services.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<IProviderRegistry>();
@@ -51,7 +51,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Health_Endpoint_Returns_Healthy()
+    public async Task HealthEndpointReturnsHealthy()
     {
         var client = _factory.CreateClient();
         var response = await client.GetAsync("/healthz", TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public async Task Catalog_Endpoint_Returns_Providers()
+    public async Task CatalogEndpointReturnsProviders()
     {
         var client = _factory.CreateClient();
         var response = await client.GetAsync("/v1/catalog/providers", TestContext.Current.CancellationToken);

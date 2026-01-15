@@ -9,6 +9,7 @@ observability platform.
 - **Metrics**: Runtime metrics, HTTP metrics, and custom counters
 - **Logging**: OpenTelemetry-integrated structured logging with source generators
 - **OTLP Export**: Sends telemetry to qyl.collector
+- **Advanced .NET 10 Telemetry**: Demonstrates new .NET 10 features like `ActivitySourceOptions`, `MeterOptions` with `TelemetrySchemaUrl`, and advanced source-generated logging with `[TagProvider]`.
 
 ## Quick Start
 
@@ -133,6 +134,28 @@ _freezingDaysCounter.Add(forecast.Count(f => f.TemperatureC < 0));
 ```csharp
 [LoggerMessage(EventId = 1, Message = "Generated {Count} forecasts")]
 public static partial void ForecastGenerated(this ILogger logger, LogLevel level, int count);
+```
+
+### Advanced .NET 10 Patterns
+
+#### Schema-Aware Telemetry
+
+```csharp
+public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
+{
+    Version = ServiceVersion,
+    TelemetrySchemaUrl = "https://opentelemetry.io/schemas/1.38.0"
+});
+```
+
+#### Complex Tag Extraction ([TagProvider])
+
+```csharp
+[LoggerMessage(EventId = 1000, Level = LogLevel.Information, Message = "Order created")]
+public static partial void OrderCreated(
+    ILogger logger,
+    [TagProvider(typeof(OrderTagProvider), nameof(OrderTagProvider.RecordTags))]
+    Order order);
 ```
 
 ## Requirements

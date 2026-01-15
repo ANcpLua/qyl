@@ -15,5 +15,7 @@
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime"/>
         <PackageReference Include="OpenTelemetry.Exporter.Console"/>
         <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+        <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+        <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
     </ItemGroup>
 </Project>

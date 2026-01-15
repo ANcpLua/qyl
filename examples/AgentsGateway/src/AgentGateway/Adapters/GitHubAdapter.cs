@@ -27,16 +27,16 @@ public sealed class GitHubAdapter : IChatClient, IModelCatalog
         _inner = client.AsIChatClient();
     }
 
-    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> chatMessages, ChatOptions? options = null,
+    public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        return _inner.GetResponseAsync(chatMessages, options, cancellationToken);
+        return _inner.GetResponseAsync(messages, options, cancellationToken);
     }
 
-    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> chatMessages,
+    public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
         ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
-        return _inner.GetStreamingResponseAsync(chatMessages, options, cancellationToken);
+        return _inner.GetStreamingResponseAsync(messages, options, cancellationToken);
     }
 
     public void Dispose()
