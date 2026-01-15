@@ -8,7 +8,7 @@ React 19 SPA for observability visualization. Build artifact embedded in collect
 name: qyl.dashboard
 type: react-spa
 runtime: node-22
-build-tool: vite-6
+build-tool: vite-7
 role: build-artifact
 standalone: never
 ```
@@ -62,7 +62,7 @@ framework:
   typescript: "5.7"
   
 build:
-  vite: "6"
+  vite: "7"
   
 styling:
   tailwind: "4"
@@ -138,7 +138,7 @@ runtime:
   - lucide-react
 
 dev:
-  - vite@6
+  - vite@7
   - typescript@5.7
   - openapi-typescript
   - eslint

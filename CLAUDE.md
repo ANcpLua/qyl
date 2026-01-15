@@ -32,7 +32,7 @@ components:
   dashboard:
     runtime: node-22
     framework: react-19
-    build-tool: vite-6
+    build-tool: vite-7
     output: dist/
     embedding: collector/wwwroot/
     
@@ -154,7 +154,7 @@ packages:
   
 frontend:
   react: "19"
-  vite: "6"
+  vite: "7"
   tailwind: "4"
   tanstack-query: "5"
   radix-ui: latest
