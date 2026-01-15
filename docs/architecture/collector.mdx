@@ -1,0 +1,94 @@
+---
+title: "Collector Architecture"
+description: "OTLP ingestion, DuckDB storage, and REST API"
+---
+
+# Collector Architecture
+
+The collector is the core of qyl, handling telemetry ingestion, storage, and query APIs.
+
+## Responsibilities
+
+- Accept OTLP traces via HTTP (port 5100) and gRPC (port 4317)
+- Extract `gen_ai.*` attributes into dedicated columns
+- Store spans in embedded DuckDB
+- Expose REST API for queries
+- Stream live updates via SSE
+
+## Directory structure
+
+```
+src/qyl.collector/
+├── Api/                    # REST endpoint handlers
+│   ├── QylEndpointExtensions.cs
+│   ├── SessionsEndpoint.cs
+│   ├── TracesEndpoint.cs
+│   └── LiveEndpoint.cs
+├── Ingestion/              # OTLP processing
+│   ├── OtlpJsonSpanParser.cs
+│   ├── GenAiAttributeExtractor.cs
+│   └── SpanProcessor.cs
+├── Storage/                # DuckDB persistence
+│   ├── DuckDbStore.cs
+│   ├── DuckDbSchema.g.cs   # Generated
+│   └── Queries/
+└── Program.cs
+```
+
+## Ingestion pipeline
+
+```
+OTLP Request
+     │
+     ▼
+┌─────────────────┐
+│ OtlpJsonSpan    │  Parse OTLP JSON/Protobuf
+│ Parser          │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ GenAi Attribute │  Extract gen_ai.system, tokens, etc.
+│ Extractor       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ SpanRecord      │  Create typed record
+│ Builder         │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ DuckDbStore     │  INSERT into spans table
+│                 │
+└─────────────────┘
+```
+
+## Storage schema
+
+DuckDB table structure:
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `span_id` | VARCHAR(16) | Unique span identifier |
+| `trace_id` | VARCHAR(32) | Trace correlation |
+| `parent_span_id` | VARCHAR(16) | Parent for hierarchy |
+| `name` | VARCHAR | Operation name |
+| `start_time_unix_nano` | UBIGINT | Start timestamp |
+| `end_time_unix_nano` | UBIGINT | End timestamp |
+| `duration_ns` | UBIGINT | Computed duration |
+| `kind` | TINYINT | Span kind (0-4) |
+| `status_code` | TINYINT | Status (0=Unset, 1=Ok, 2=Error) |
+| `gen_ai_system` | VARCHAR | AI system (openai, anthropic, etc.) |
+| `gen_ai_request_model` | VARCHAR | Model requested |
+| `gen_ai_response_model` | VARCHAR | Model used |
+| `gen_ai_input_tokens` | INTEGER | Input token count |
+| `gen_ai_output_tokens` | INTEGER | Output token count |
+| `gen_ai_total_tokens` | INTEGER | Total tokens |
+| `attributes_json` | JSON | All span attributes |
+| `resource_json` | JSON | Resource attributes |
+
+## API endpoints
+
+See [API Reference](/api-reference) for complete endpoint documentation.

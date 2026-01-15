@@ -1,0 +1,73 @@
+---
+title: "Dashboard Architecture"
+description: "React 19 SPA for real-time telemetry visualization"
+---
+
+# Dashboard Architecture
+
+The dashboard provides real-time visualization of AI observability data.
+
+## Tech stack
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| React | 19 | UI framework |
+| Vite | 6 | Build tool |
+| Tailwind CSS | 4 | Styling |
+| TanStack Query | 5 | Data fetching |
+| TanStack Router | 1 | Routing |
+
+## Directory structure
+
+```
+src/qyl.dashboard/
+├── src/
+│   ├── components/         # Reusable UI components
+│   ├── features/           # Feature modules
+│   │   ├── sessions/
+│   │   ├── traces/
+│   │   └── spans/
+│   ├── hooks/              # Custom React hooks
+│   ├── types/
+│   │   └── api.ts          # Generated from OpenAPI
+│   ├── lib/                # Utilities
+│   └── main.tsx
+├── package.json
+└── vite.config.ts
+```
+
+## Data fetching
+
+Uses TanStack Query for server state:
+
+```typescript
+// Example: Fetch sessions
+const { data: sessions } = useQuery({
+  queryKey: ['sessions'],
+  queryFn: () => fetch('/api/v1/sessions').then(r => r.json()),
+});
+```
+
+## Real-time updates
+
+SSE subscription for live spans:
+
+```typescript
+useEffect(() => {
+  const eventSource = new EventSource('/api/v1/live/spans');
+  eventSource.onmessage = (event) => {
+    const span = JSON.parse(event.data);
+    queryClient.invalidateQueries(['spans']);
+  };
+  return () => eventSource.close();
+}, []);
+```
+
+## Type generation
+
+Types are auto-generated from OpenAPI:
+
+```bash
+npm run generate:ts
+# Generates src/types/api.ts from core/openapi/openapi.yaml
+```
