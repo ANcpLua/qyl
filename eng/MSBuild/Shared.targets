@@ -1,68 +1,11 @@
 <Project>
   <!-- =======================================================================
        qyl Shared Targets - Imported by Directory.Build.targets
-       Throw.cs injection now handled by ANcpLua.NET.Sdk
+       CLAUDE.md generation now handled by Shared.Claude.targets (v2)
+       Throw.cs injection handled by ANcpLua.NET.Sdk
        ======================================================================= -->
 
-  <!-- =======================================================================
-       CLAUDE.md Generation - InjectClaudeBrain
-       (qyl maintains its own CLAUDE.md files with @import inheritance)
-       ======================================================================= -->
-  <PropertyGroup>
-    <InjectClaudeBrain Condition="'$(InjectClaudeBrain)' == ''">false</InjectClaudeBrain>
-    <_ClaudeMdPath>$(MSBuildProjectDirectory)/CLAUDE.md</_ClaudeMdPath>
-    <_RootClaudeMd>$([MSBuild]::GetPathOfFileAbove('CLAUDE.md', '$(MSBuildProjectDirectory)/..'))</_RootClaudeMd>
-  </PropertyGroup>
-
-  <!-- Inline task for writing text files -->
-  <UsingTask TaskName="_WriteTextFile" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
-    <ParameterGroup>
-      <Path ParameterType="System.String" Required="true"/>
-      <Content ParameterType="System.String" Required="true"/>
-    </ParameterGroup>
-    <Task>
-      <Code Type="Fragment" Language="cs">
-        var dir = System.IO.Path.GetDirectoryName(Path);
-        if (!string.IsNullOrEmpty(dir)) System.IO.Directory.CreateDirectory(dir);
-        System.IO.File.WriteAllText(Path, Content);
-      </Code>
-    </Task>
-  </UsingTask>
-
-  <Target Name="_GenerateClaudeMd"
-          AfterTargets="Build"
-          Condition="'$(InjectClaudeBrain)' == 'true'"
-          Inputs="$(MSBuildProjectFile)"
-          Outputs="$(_ClaudeMdPath)">
-
-    <!-- Compute relative path to root CLAUDE.md -->
-    <PropertyGroup>
-      <_RelativeImport Condition="'$(_RootClaudeMd)' != ''">$([MSBuild]::MakeRelative('$(MSBuildProjectDirectory)', '$(_RootClaudeMd)'))</_RelativeImport>
-      <_NL>%0A</_NL>
-    </PropertyGroup>
-
-    <!-- Build header -->
-    <PropertyGroup>
-      <_Content># $(MSBuildProjectName)$(_NL)$(_NL)@import "$(_RelativeImport)"$(_NL)$(_NL)## Scope$(_NL)$(_NL)$(ClaudePurpose)$(_NL)$(_NL)## Project Info$(_NL)$(_NL)| Property | Value |$(_NL)|----------|-------|$(_NL)| Layer | $(ClaudeLayer) |$(_NL)| Framework | $(TargetFramework) |$(_NL)| Workflow | $(ClaudeWorkflow) |$(_NL)| Test Coverage | $(ClaudeTestCoverage)% |$(_NL)</_Content>
-    </PropertyGroup>
-
-    <!-- Add Critical Files -->
-    <PropertyGroup Condition="'@(ClaudeCriticalFile)' != ''">
-      <_Content>$(_Content)$(_NL)## Critical Files$(_NL)$(_NL)| File | Reason |$(_NL)|------|--------|$(_NL)@(ClaudeCriticalFile->'| %(Identity) | %(Reason) |', '$(_NL)')$(_NL)</_Content>
-    </PropertyGroup>
-
-    <!-- Add Anti-Patterns -->
-    <PropertyGroup Condition="'@(ClaudeAntiPattern)' != ''">
-      <_Content>$(_Content)$(_NL)## Anti-Patterns (FORBIDDEN)$(_NL)$(_NL)| Pattern | Use Instead | Severity |$(_NL)|---------|-------------|----------|$(_NL)@(ClaudeAntiPattern->'| `%(Identity)` | `%(UseInstead)` | %(Severity) |', '$(_NL)')$(_NL)</_Content>
-    </PropertyGroup>
-
-    <!-- Add Required Patterns -->
-    <PropertyGroup Condition="'@(ClaudeRequiredPattern)' != ''">
-      <_Content>$(_Content)$(_NL)## Required Patterns$(_NL)$(_NL)| Pattern | Description |$(_NL)|---------|-------------|$(_NL)@(ClaudeRequiredPattern->'| `%(Identity)` | %(Description) |', '$(_NL)')$(_NL)</_Content>
-    </PropertyGroup>
-
-    <_WriteTextFile Path="$(_ClaudeMdPath)" Content="$(_Content)"/>
-    <Message Importance="high" Text="Generated: $(_ClaudeMdPath)"/>
-  </Target>
+  <!-- No qyl-specific targets currently needed -->
+  <!-- Future qyl-specific build targets go here -->
 
 </Project>

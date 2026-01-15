@@ -1,0 +1,75 @@
+<Project>
+  <!-- =======================================================================
+       .claude/rules/ Generation - Modular Rules Support
+       
+       Claude Code supports path-specific rules in .claude/rules/:
+       - .claude/rules/tests.md      → applies to **/test*/**
+       - .claude/rules/frontend.md   → applies to specific paths
+       
+       This target generates rules files from ItemGroups.
+       ======================================================================= -->
+
+  <!--
+    ClaudeRule: Define modular rules for specific paths
+
+    Example:
+    <ClaudeRule Include="testing" GlobPattern="**/test*/**">
+      <Content>
+        ## Testing Standards
+        Use xUnit with Microsoft.Testing.Platform
+        Follow AAA pattern (Arrange, Act, Assert)
+        One assertion per test method
+      </Content>
+    </ClaudeRule>
+
+    <ClaudeRule Include="generated" GlobPattern="**/*.g.cs">
+      <Content>
+        ## Generated Files
+        NEVER edit these files manually
+        Regenerate with: nuke Generate with force flag
+        Source: core/specs/*.tsp to openapi.yaml to *.g.cs
+      </Content>
+    </ClaudeRule>
+  -->
+
+  <UsingTask TaskName="_WriteClaudeRule" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <RulesDir ParameterType="System.String" Required="true"/>
+      <RuleName ParameterType="System.String" Required="true"/>
+      <GlobPattern ParameterType="System.String" Required="true"/>
+      <Content ParameterType="System.String" Required="true"/>
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs">
+<![CDATA[
+System.IO.Directory.CreateDirectory(RulesDir);
+var path = System.IO.Path.Combine(RulesDir, RuleName + ".md");
+
+var header = $"---\nglobs: {GlobPattern}\nalwaysApply: false\n---\n\n";
+var fullContent = header + Content.Trim() + "\n";
+
+System.IO.File.WriteAllText(path, fullContent);
+Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, 
+    $"[Claude] Generated rule: {path}");
+]]>
+      </Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="_GenerateClaudeRules"
+          AfterTargets="Build"
+          Condition="'$(GenerateClaudeMd)' == 'true' AND '@(ClaudeRule)' != ''">
+    
+    <PropertyGroup>
+      <_ClaudeRulesDir>$(MSBuildProjectDirectory)/.claude/rules</_ClaudeRulesDir>
+    </PropertyGroup>
+
+    <_WriteClaudeRule
+      RulesDir="$(_ClaudeRulesDir)"
+      RuleName="%(ClaudeRule.Identity)"
+      GlobPattern="%(ClaudeRule.GlobPattern)"
+      Content="%(ClaudeRule.Content)"
+      Condition="'%(ClaudeRule.Identity)' != ''"/>
+  </Target>
+
+</Project>

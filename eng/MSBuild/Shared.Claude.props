@@ -1,0 +1,60 @@
+<Project>
+  <!-- =======================================================================
+       CLAUDE.md Generation System - Property Definitions
+       Import this in Directory.Build.props
+       ======================================================================= -->
+
+  <!-- Master switch -->
+  <PropertyGroup>
+    <GenerateClaudeMd Condition="'$(GenerateClaudeMd)' == ''">false</GenerateClaudeMd>
+    
+    <!-- Location options: 
+         'root' = ./CLAUDE.md (default, traditional)
+         'dotclaude' = ./.claude/CLAUDE.md (Claude Code preferred)
+    -->
+    <ClaudeMdLocation Condition="'$(ClaudeMdLocation)' == ''">root</ClaudeMdLocation>
+    <ClaudeMdPath Condition="'$(ClaudeMdLocation)' == 'root'">$(MSBuildProjectDirectory)/CLAUDE.md</ClaudeMdPath>
+    <ClaudeMdPath Condition="'$(ClaudeMdLocation)' == 'dotclaude'">$(MSBuildProjectDirectory)/.claude/CLAUDE.md</ClaudeMdPath>
+  </PropertyGroup>
+
+  <!-- =======================================================================
+       IDENTITY SECTION - Required properties
+       ======================================================================= -->
+  <PropertyGroup>
+    <!-- Core identity (REQUIRED when GenerateClaudeMd=true) -->
+    <ClaudeName Condition="'$(ClaudeName)' == ''">$(MSBuildProjectName)</ClaudeName>
+    <ClaudeRole Condition="'$(ClaudeRole)' == ''"></ClaudeRole>
+    <!-- Options: primary-runtime, leaf-dependency, build-tool, frontend, mcp-server -->
+    
+    <!-- Auto-detect project type from SDK -->
+    <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(UsingMicrosoftNETSdkWeb)' == 'true'">aspnetcore-webapi</ClaudeType>
+    <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(OutputType)' == 'Exe'">console-app</ClaudeType>
+    <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(IsTestProject)' == 'true'">test-project</ClaudeType>
+    <ClaudeType Condition="'$(ClaudeType)' == ''">class-library</ClaudeType>
+    
+    <!-- SDK detection -->
+    <ClaudeSdk Condition="'$(ClaudeSdk)' == '' AND '$(UsingANcpLuaNETSdkWeb)' == 'true'">ANcpLua.NET.Sdk.Web</ClaudeSdk>
+    <ClaudeSdk Condition="'$(ClaudeSdk)' == '' AND '$(UsingANcpLuaNETSdk)' == 'true'">ANcpLua.NET.Sdk</ClaudeSdk>
+    <ClaudeSdk Condition="'$(ClaudeSdk)' == ''">Microsoft.NET.Sdk</ClaudeSdk>
+  </PropertyGroup>
+
+  <!-- =======================================================================
+       CONSTRAINTS SECTION - What this project can/cannot do
+       ======================================================================= -->
+  <PropertyGroup>
+    <!-- Dependency constraint -->
+    <ClaudeConstraint Condition="'$(ClaudeConstraint)' == ''"></ClaudeConstraint>
+    <!-- Options: bcl-only, no-external-packages, leaf-dependency -->
+    
+    <!-- Brief reason for constraint -->
+    <ClaudeConstraintReason Condition="'$(ClaudeConstraintReason)' == ''"></ClaudeConstraintReason>
+  </PropertyGroup>
+
+  <!-- =======================================================================
+       PURPOSE SECTION - What this project does (1-2 sentences)
+       ======================================================================= -->
+  <PropertyGroup>
+    <ClaudePurpose Condition="'$(ClaudePurpose)' == ''"></ClaudePurpose>
+  </PropertyGroup>
+
+</Project>

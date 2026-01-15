@@ -9,14 +9,18 @@
     <!-- ConfigureAwait not needed in ASP.NET Core apps -->
     <!-- NU1510: HealthChecks used via DI/abstractions, pruner can't detect -->
     <NoWarn>$(NoWarn);CA2007;VSTHRD111;NU1510</NoWarn>
-    <!-- Enable CLAUDE.md generation to test all 3 item types -->
-    <InjectClaudeBrain>true</InjectClaudeBrain>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ClaudeCriticalFile Include="Storage/DuckDbStore.cs" Reason="Core persistence - schema changes break data"/>
-    <ClaudeCriticalFile Include="Program.cs" Reason="DI registration - service configuration"/>
-  </ItemGroup>
+  <!-- CLAUDE.md v2: Enable generation with rich metadata -->
+  <!-- Set GenerateClaudeMd=true to enable auto-generation from these properties -->
+  <!-- Currently using hand-written CLAUDE.md (richer content) -->
+  <!--
+  <PropertyGroup>
+    <GenerateClaudeMd>true</GenerateClaudeMd>
+    <ClaudePurpose>Backend service. This IS qyl from user perspective.</ClaudePurpose>
+    <ClaudeRole>primary-runtime</ClaudeRole>
+  </PropertyGroup>
+  -->
 
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>

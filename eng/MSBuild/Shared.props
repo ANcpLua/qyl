@@ -5,15 +5,8 @@
        Throw.cs provided by ANcpLua.NET.Sdk (Microsoft.Shared.Diagnostics)
        ======================================================================= -->
 
-  <!-- OTel Configuration -->
-  <PropertyGroup>
-    <QylOTelEnabled Condition="'$(QylOTelEnabled)' == ''">true</QylOTelEnabled>
-    <QylOTelSemConvVersion>1.39.0</QylOTelSemConvVersion>
-    <QylJsonNamingPolicy>SnakeCaseLower</QylJsonNamingPolicy>
-  </PropertyGroup>
-
-  <!-- Global Usings for OTel -->
-  <ItemGroup Condition="'$(QylOTelEnabled)' == 'true'">
+  <!-- Global Usings for OTel (always enabled in qyl) -->
+  <ItemGroup>
     <Using Include="System.Diagnostics"/>
     <Using Include="System.Diagnostics.Metrics"/>
   </ItemGroup>

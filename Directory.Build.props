@@ -70,4 +70,7 @@
   <!-- Import qyl-specific Props (OTel config, etc.) -->
   <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.props"/>
 
+  <!-- CLAUDE.md generation system (v2 - Claude Code compatible) -->
+  <Import Project="$(MSBuildThisFileDirectory)eng/MSBuild/Shared.Claude.props"/>
+
 </Project>

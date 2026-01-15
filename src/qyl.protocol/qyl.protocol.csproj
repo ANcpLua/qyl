@@ -11,12 +11,13 @@
 
     <!-- SDK injection features -->
     <InjectSharedThrow>true</InjectSharedThrow>
-    <InjectCallerAttributesOnLegacy>true</InjectCallerAttributesOnLegacy>
-    <InjectDiagnosticAttributesOnLegacy>true</InjectDiagnosticAttributesOnLegacy>
-    <InjectIsExternalInitOnLegacy>true</InjectIsExternalInitOnLegacy>
+    <!-- Note: Inject*OnLegacy properties removed - not needed for net10.0 single-TFM -->
 
     <!-- AOT compatibility -->
     <IsAotCompatible>true</IsAotCompatible>
+
+    <!-- CLAUDE.md v2 generation available - enable with GenerateClaudeMd=true -->
+    <!-- Currently using hand-written CLAUDE.md (richer content) -->
   </PropertyGroup>
 
   <ItemGroup>
