@@ -1,0 +1,97 @@
+---
+title: "Installation"
+description: "Install and configure qyl for development or production"
+---
+
+# Installation
+
+qyl consists of three components. Install what you need for your use case.
+
+## Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| .NET SDK | 10.0+ |
+| Node.js | 20+ |
+| npm | 10+ |
+
+## Clone the repository
+
+```bash
+git clone https://github.com/ancplua/qyl.git
+cd qyl
+```
+
+## Install dependencies
+
+### Collector (required)
+
+```bash
+cd src/qyl.collector
+dotnet restore
+```
+
+### Dashboard (optional)
+
+```bash
+cd src/qyl.dashboard
+npm install
+```
+
+### MCP Server (optional)
+
+```bash
+cd src/qyl.mcp
+dotnet restore
+```
+
+## Configuration
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `QYL_HTTP_PORT` | 5100 | HTTP API port |
+| `QYL_GRPC_PORT` | 4317 | OTLP gRPC port |
+| `QYL_DB_PATH` | `./data/qyl.duckdb` | DuckDB file path |
+
+### appsettings.json
+
+```json
+{
+  "Kestrel": {
+    "Endpoints": {
+      "Http": {
+        "Url": "http://localhost:5100"
+      },
+      "Grpc": {
+        "Url": "http://localhost:4317",
+        "Protocols": "Http2"
+      }
+    }
+  }
+}
+```
+
+## Verify installation
+
+```bash
+# Start collector
+cd src/qyl.collector
+dotnet run
+
+# In another terminal, check health
+curl http://localhost:5100/health
+```
+
+Expected response:
+
+```json
+{"status": "healthy"}
+```
+
+## Next steps
+
+<Card title="Quick Start" icon="rocket" href="/quickstart">
+  Send your first traces
+</Card>
