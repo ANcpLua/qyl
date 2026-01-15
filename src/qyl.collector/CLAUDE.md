@@ -1,52 +1,180 @@
 # qyl.collector
 
-@import "../../CLAUDE.md"
+Backend service: OTLP ingestion, REST API, SSE streaming, DuckDB storage, dashboard hosting.
 
-## Scope
+## identity
 
-OTLP ingestion, DuckDB storage, REST/SSE APIs for the qyl observability platform.
+```yaml
+name: qyl.collector
+type: aspnetcore-web-api
+sdk: ANcpLua.NET.Sdk.Web
+role: primary-runtime
+what-users-see: docker-image
+```
 
-## Project Info
+## ports
 
-| Property | Value |
-|----------|-------|
-| Layer | Web API |
-| Framework | net10.0 |
-| Storage | DuckDB (in-process) |
-| Schema | OTel Semantic Conventions v1.39 |
+```yaml
+http:
+  port: 5100
+  env: QYL_PORT
+  serves: [rest-api, sse, static-files, otlp-http]
+  
+grpc:
+  port: 4317
+  env: QYL_GRPC_PORT
+  serves: [otlp-grpc]
+```
 
-## Critical Files
+## endpoints
 
-| File | Reason |
-|------|--------|
-| Storage/DuckDbStore.cs | Core persistence - schema changes break data |
-| Storage/DuckDbSchema.g.cs | Generated DDL - regenerate with `nuke Generate` |
-| Query/SpanQueryBuilder.cs | SQL builder with SpanColumn enum |
-| Program.cs | DI registration - service configuration |
+```yaml
+otlp:
+  - path: /v1/traces
+    method: POST
+    protocol: otlp-http-json
+    
+  - port: 4317
+    protocol: otlp-grpc
+    service: TraceService
 
-## Schema (v20260113)
+rest:
+  - path: /api/v1/sessions
+    method: GET
+    returns: SessionSummary[]
+    
+  - path: /api/v1/sessions/{id}
+    method: GET
+    returns: SessionSummary
+    
+  - path: /api/v1/sessions/{id}/spans
+    method: GET
+    returns: SpanRecord[]
+    
+  - path: /api/v1/traces/{traceId}
+    method: GET
+    returns: TraceNode
 
-### Spans Table Columns
+streaming:
+  - path: /api/v1/live
+    method: GET
+    protocol: sse
+    returns: SpanRecord (stream)
 
-| Column | Type | Description |
-|--------|------|-------------|
-| `span_id` | VARCHAR(16) | Primary key |
-| `trace_id` | VARCHAR(32) | Trace identifier |
-| `start_time_unix_nano` | UBIGINT | Start timestamp in nanoseconds |
-| `end_time_unix_nano` | UBIGINT | End timestamp in nanoseconds |
-| `duration_ns` | UBIGINT | Duration in nanoseconds |
-| `kind` | TINYINT | Span kind (0-5) |
-| `status_code` | TINYINT | Status (0=UNSET, 1=OK, 2=ERROR) |
-| `gen_ai_system` | VARCHAR | GenAI provider (openai, anthropic, etc.) |
-| `gen_ai_input_tokens` | BIGINT | Input token count |
-| `gen_ai_output_tokens` | BIGINT | Output token count |
-| `gen_ai_cost_usd` | DOUBLE | Cost in USD |
-| `attributes_json` | VARCHAR | Non-promoted attributes |
-| `resource_json` | VARCHAR | Resource attributes |
+static:
+  - path: /*
+    serves: wwwroot/
+    fallback: index.html
+```
 
-### Key Patterns
+## storage
 
-- Timestamps: Always `ulong` nanoseconds (not DateTime)
-- Enum fields: `byte` (Kind, StatusCode)
-- Cost: `double?` (not decimal)
-- GenAI prefix: `gen_ai_*` columns (OTel v1.39 naming)
+```yaml
+engine: duckdb
+location:
+  development: ./qyl.duckdb
+  docker: /data/qyl.duckdb
+  env: QYL_DATA_PATH
+
+tables:
+  - name: spans
+    primary-key: span_id
+    indexes: [trace_id, session_id, start_time_unix_nano, service_name]
+    
+  - name: sessions
+    primary-key: session_id
+    
+  - name: logs
+    primary-key: log_id
+    indexes: [trace_id, session_id, time_unix_nano, severity_number]
+
+schema-source: DuckDbSchema.g.cs
+schema-rule: never-edit-manually
+```
+
+## dashboard-embedding
+
+```yaml
+source: ../qyl.dashboard/dist/
+target: wwwroot/
+copy-timing: build-time
+mechanism: nuke-target (DashboardEmbed)
+
+csproj-config: |
+  <ItemGroup>
+    <None Include="..\qyl.dashboard\dist\**\*" 
+          CopyToOutputDirectory="PreserveNewest"
+          LinkBase="wwwroot" />
+  </ItemGroup>
+
+program-cs: |
+  app.UseStaticFiles();
+  app.MapFallbackToFile("index.html");
+```
+
+## dependencies
+
+```yaml
+project-references:
+  - qyl.protocol
+  
+packages:
+  - DuckDB.NET.Data.Full
+  - Grpc.AspNetCore
+  - Google.Protobuf
+  
+forbidden:
+  - qyl.dashboard (build artifact, not dependency)
+  - qyl.mcp (http client, not reference)
+```
+
+## patterns
+
+```yaml
+channel:
+  type: bounded
+  capacity: 10000
+  full-mode: wait
+  usage: span-ingestion-buffer
+
+json:
+  serializer: System.Text.Json
+  options: static-readonly (CA1869)
+  
+time:
+  provider: TimeProvider.System
+  format: unix-nano (int64)
+  
+locking:
+  sync: Lock (dotnet-9+)
+  async: SemaphoreSlim
+```
+
+## configuration
+
+```yaml
+environment-variables:
+  - name: QYL_PORT
+    default: 5100
+    type: int
+    
+  - name: QYL_GRPC_PORT
+    default: 4317
+    type: int
+    
+  - name: QYL_DATA_PATH
+    default: /data/qyl.duckdb
+    type: string
+
+future: dashboard-based-config (not env vars)
+```
+
+## dockerfile
+
+```yaml
+base: mcr.microsoft.com/dotnet/aspnet:10.0
+expose: [5100, 4317]
+workdir: /app
+entrypoint: ["dotnet", "qyl.collector.dll"]
+volume: /data
+```

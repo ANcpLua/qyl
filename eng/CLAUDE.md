@@ -1,150 +1,194 @@
-# eng - Build Infrastructure
+# eng/build — NUKE Build System
 
-@import "../CLAUDE.md"
+Build orchestration for qyl. Enforces architecture through target dependencies.
 
-Build tooling and code generation. NOT runtime code.
+## identity
 
-## Isolation Rule
-
-`eng/` projects are build-time only. Runtime projects in `src/` MUST NOT reference anything under `eng/`.
-
-## Structure
-
-```
-eng/
-├── build/
-│   ├── Build.cs              # Entry point, composite targets
-│   ├── Build.Frontend.cs     # IFrontend implementation
-│   ├── Build.TypeSpec.cs     # ITypeSpec implementation
-│   ├── MtpExtensions.cs      # Microsoft Testing Platform fluent builder
-│   ├── Components/           # Nuke interface-based components
-│   │   ├── IHasSolution.cs       # Path constants (src, tests, artifacts)
-│   │   ├── ICompile.cs           # Solution build targets
-│   │   ├── ITest.cs              # MTP test runner
-│   │   ├── ICoverage.cs          # Coverage collection + reports
-│   │   ├── IGenerate.cs          # OpenAPI → C#/DuckDB generation
-│   │   ├── IDockerBuild.cs       # Docker image builds
-│   │   ├── IDockerCompose.cs     # Docker Compose orchestration
-│   │   ├── IVersionize.cs        # Changelog/release automation
-│   │   ├── ITestContainers.cs    # CI testcontainer setup
-│   │   ├── IClaudeContext.cs     # CLAUDE.md compilation
-│   │   └── CoveragePatterns.cs   # Coverage analysis utilities
-│   ├── Context/
-│   │   └── BuildPaths.cs         # Centralized path constants
-│   └── Domain/CodeGen/
-│       ├── OpenApiSchema.cs      # OpenAPI YAML parser
-│       ├── GeneratedFileHeaders.cs # Standard file headers
-│       ├── GenerationGuard.cs    # Write control (CI vs local)
-│       └── Generators/           # IGenerator implementations
-│           ├── OpenApiCSharpGenerator.cs  # → protocol/*.g.cs
-│           └── OpenApiDuckDbGenerator.cs  # → collector/Storage/*.g.cs
-├── MSBuild/                  # Shared .props/.targets
-└── build.{sh,cmd}            # Entry scripts
+```yaml
+name: eng/build
+type: nuke-build
+role: architecture-enforcer
+location: eng/build/
 ```
 
-## Nuke Components
+## targets
 
-Build logic is split into interface-based components that compose via `TryDependsOn<T>()`.
+```yaml
+schema:
+  - name: TypeSpecCompile
+    input: core/specs/*.tsp
+    output: core/openapi/openapi.yaml
+    command: tsp compile main.tsp
+    
+  - name: Generate
+    depends: [TypeSpecCompile]
+    input: core/openapi/openapi.yaml
+    outputs:
+      - src/qyl.protocol/Primitives/*.g.cs
+      - src/qyl.protocol/Enums/*.g.cs
+      - src/qyl.protocol/Models/*.g.cs
+      - src/qyl.collector/Storage/DuckDbSchema.g.cs
+      - src/qyl.dashboard/src/types/api.ts
 
-| Component | Responsibility | Key Targets |
-|-----------|----------------|-------------|
-| `IHasSolution` | Path constants, solution reference | (base interface) |
-| `ICompile` | Solution build, restore, clean | `Compile`, `Clean` |
-| `ITest` | MTP test execution | `Test` |
-| `ICoverage` | Coverage collection + HTML reports | `Coverage` |
-| `IGenerate` | OpenAPI → C#/DuckDB generation | `Generate` |
-| `IFrontend` | Dashboard npm build/dev | `FrontendBuild`, `FrontendDev` |
-| `ITypeSpec` | TypeSpec → OpenAPI compilation | `TypeSpecCompile` |
-| `IDockerBuild` | Docker image builds | `DockerImageBuild` |
-| `IDockerCompose` | Docker Compose up/down/logs | `ComposeUp`, `ComposeDown` |
-| `IVersionize` | Changelog generation | `Changelog`, `Release` |
-| `ITestContainers` | CI container setup | `SetupTestcontainers` |
-| `IClaudeContext` | CLAUDE.md dependency resolution | `GenerateContext` |
+build:
+  - name: Compile
+    input: src/**/*.csproj
+    output: bin/
+    command: dotnet build
+    
+  - name: DashboardBuild
+    input: src/qyl.dashboard/
+    output: src/qyl.dashboard/dist/
+    command: npm run build
+    working-dir: src/qyl.dashboard
 
-### MTP Integration
+embed:
+  - name: DashboardEmbed
+    depends: [DashboardBuild, Compile]
+    action: copy
+    source: src/qyl.dashboard/dist/
+    target: src/qyl.collector/wwwroot/
+    critical: true
 
-`MtpExtensions.cs` provides a fluent builder for Microsoft Testing Platform arguments:
+package:
+  - name: Publish
+    depends: [DashboardEmbed]
+    output: artifacts/publish/
+    command: dotnet publish -c Release
+    
+  - name: DockerBuild
+    depends: [Publish]
+    output: ghcr.io/ancplua/qyl:latest
+    dockerfile: Dockerfile
+    
+  - name: Pack
+    depends: [Publish]
+    output: artifacts/packages/*.nupkg
+    creates: dotnet-global-tool
 
-```csharp
-// Filter by namespace pattern
-mtp.FilterNamespace("*.Integration.*")
-
-// Coverage output
-mtp.CoverageCobertura(outputPath)
-
-// TRX reporting
-mtp.ReportTrx("results.trx")
+test:
+  - name: Test
+    command: dotnet test
+    
+  - name: Coverage
+    depends: [Test]
+    output: artifacts/coverage/
 ```
 
-MTP exit code 8 (zero tests matched) is ignored by default.
+## dependency-graph
 
-## Code Generator Architecture (God Schema)
+```yaml
+order:
+  1: TypeSpecCompile
+  2: Generate
+  3: [DashboardBuild, Compile]  # parallel
+  4: DashboardEmbed
+  5: Publish
+  6: [DockerBuild, Pack]  # parallel
 
-TypeSpec is the single source of truth. All types flow from `core/specs/main.tsp`:
-
-```
-core/specs/main.tsp (SSOT)
-     │
-     └─► ITypeSpec.TypeSpecCompile
-              │
-              └─► core/openapi/openapi.yaml
-                       │
-                       ├─► openapi-typescript  → dashboard/src/types/api.ts
-                       │
-                       └─► IGenerate.Generate
-                                │
-                                ├─► OpenApiCSharpGenerator  → protocol/*.g.cs
-                                └─► OpenApiDuckDbGenerator  → collector/Storage/*.g.cs
+critical-path:
+  - DashboardEmbed must run after BOTH DashboardBuild AND Compile
+  - DockerBuild must include embedded dashboard
+  - Pack must include embedded dashboard
 ```
 
-OpenAPI generators in `eng/build/Domain/CodeGen/Generators/` read from `openapi.yaml` and use x-extensions:
+## parameters
 
-| Extension | Purpose | Example |
-|-----------|---------|---------|
-| `x-csharp-type` | C# type override | `"long"` for tokens |
-| `x-duckdb-type` | DuckDB column type | `"BIGINT"` |
-| `x-primitive` | Marks strongly-typed wrapper | `true` |
-
-Generators implement `IOpenApiGenerator`:
-
-```csharp
-interface IOpenApiGenerator
-{
-    string Name { get; }
-    IEnumerable<(string RelativePath, string Content)> Generate(
-        OpenApiDocument document, BuildPaths paths, string rootNamespace);
-}
+```yaml
+flags:
+  - name: --configuration
+    default: Release
+    type: enum [Debug, Release]
+    
+  - name: --force-generate
+    default: false
+    type: bool
+    description: overwrite generated files
+    
+  - name: --docker-tag
+    default: latest
+    type: string
+    
+  - name: --skip-tests
+    default: false
+    type: bool
 ```
 
-`GenerationGuard` controls write behavior:
-- **CI**: Verify-only (fails if generated files don't match)
-- **Local**: Write files to disk
+## invocation
 
-## MSBuild Infrastructure
+```yaml
+common:
+  full-build: nuke Full
+  generate-only: nuke Generate --force-generate
+  docker-only: nuke DockerBuild
+  pack-only: nuke Pack
+  ci: nuke CI
 
-`eng/MSBuild/Shared.props` provides OTel configuration:
-- `QylOTelSemConvVersion` = 1.39.0
-- Global usings for `System.Diagnostics` and `System.Diagnostics.Metrics`
+development:
+  watch-dashboard: cd src/qyl.dashboard && npm run dev
+  run-collector: dotnet run --project src/qyl.collector
+```
 
-`eng/build/Directory.Build.props` relaxes analyzer rules for build automation code (RS0030 disabled, AOT not required, XML docs optional).
+## file-structure
 
-## SDK Configuration
+```yaml
+eng/:
+  build/:
+    Build.cs              # Main build class, target definitions
+    Build.Schema.cs       # TypeSpecCompile, Generate
+    Build.Dashboard.cs    # DashboardBuild, DashboardEmbed
+    Build.Docker.cs       # DockerBuild
+    Build.Pack.cs         # Pack (global tool)
+    Domain/:
+      CodeGen/:           # OpenAPI → C#/TS generators
+        CSharpScalarGenerator.cs
+        CSharpEnumGenerator.cs
+        CSharpModelGenerator.cs
+        DuckDbSchemaGenerator.cs
+        
+  MSBuild/:
+    BannedSymbols.txt     # Banned API enforcement
+```
 
-qyl uses ANcpLua.NET.Sdk 1.6.3 from nuget.org:
+## generators
 
-| File | Purpose |
-|------|---------|
-| `global.json` | SDK version pinning |
-| `nuget.config` | Package sources (nuget.org only) |
-| `Directory.Packages.props` | Central Package Management (CPM) |
+```yaml
+location: eng/build/Domain/CodeGen/
 
-### CPM Analyzer Packages
+generators:
+  - name: CSharpScalarGenerator
+    input: openapi schemas with x-primitive
+    output: protocol/Primitives/*.g.cs
+    
+  - name: CSharpEnumGenerator
+    input: openapi enums
+    output: protocol/Enums/*.g.cs
+    
+  - name: CSharpModelGenerator
+    input: openapi schemas
+    output: protocol/Models/*.g.cs
+    
+  - name: DuckDbSchemaGenerator
+    input: openapi schemas with x-duckdb-table
+    output: collector/Storage/DuckDbSchema.g.cs
 
-The SDK requires these analyzer entries in CPM:
+extensions-used:
+  - x-csharp-type
+  - x-duckdb-table
+  - x-duckdb-column
+  - x-duckdb-type
+  - x-duckdb-primary-key
+  - x-duckdb-index
+  - x-primitive
+  - x-promoted
+```
 
-```xml
-<PackageVersion Include="ANcpLua.Analyzers" Version="1.5.3" />
-<PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
-<PackageVersion Include="JonSkeet.RoslynAnalyzers" Version="1.0.0-beta.6" />
-<PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.5" />
+## enforcement
+
+```yaml
+rules:
+  - dashboard-must-embed: DashboardEmbed target ensures dist/ → wwwroot/
+  - no-manual-generation: all *.g.cs from Generate target
+  - docker-includes-dashboard: DockerBuild depends on DashboardEmbed
+  - pack-includes-dashboard: Pack depends on DashboardEmbed
 ```

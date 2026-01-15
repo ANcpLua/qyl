@@ -1,145 +1,135 @@
-# core/ — TypeSpec API Contract Pipeline
+# core/specs — TypeSpec God Schema
 
-> **Status:** Active (TypeSpec → OpenAPI → openapi-typescript)
-> **OTel SemConv:** 1.39.0
+Single source of truth for all types. Everything flows from here.
 
-## Architecture
+## identity
 
-```
-core/specs/*.tsp → core/openapi/openapi.yaml → dashboard/src/types/api.ts
-     │                      │
-     └─ TypeSpec compile    └─ openapi-typescript
-```
-
-**Note:** Kiota client generation was removed (commit 08bf38e). Dashboard types now use openapi-typescript directly.
-
-## Structure
-
-```
-core/
-├── specs/                    # TypeSpec source files (50+ models)
-│   ├── main.tsp              # Entry point with all imports
-│   ├── tspconfig.yaml        # Compiler config
-│   ├── api/                  # HTTP route definitions
-│   │   ├── routes.tsp        # REST endpoints
-│   │   └── streaming.tsp     # SSE streaming endpoints
-│   ├── common/               # Shared infrastructure
-│   │   ├── types.tsp         # Base types, scalars
-│   │   ├── errors.tsp        # Error models
-│   │   └── pagination.tsp    # Pagination utilities
-│   ├── otel/                 # OpenTelemetry core models
-│   │   ├── enums.tsp         # SpanKind, StatusCode
-│   │   ├── resource.tsp      # Resource attributes
-│   │   ├── span.tsp          # Span model
-│   │   ├── logs.tsp          # Log records
-│   │   └── metrics.tsp       # Metrics model
-│   └── domains/              # OTel semantic convention domains
-│       ├── ai/               # gen_ai.*, code.*, cli.*
-│       ├── security/         # network.*, dns.*, tls.*
-│       ├── transport/        # http.*, rpc.*, messaging.*, signalr.*
-│       ├── infra/            # host.*, container.*, k8s.*, cloud.*
-│       ├── runtime/          # process.*, thread.*, dotnet.*, aspnetcore.*
-│       ├── data/             # db.*, file.*, elasticsearch.*, vcs.*
-│       ├── observe/          # session.*, browser.*, feature_flag.*
-│       ├── ops/              # cicd.*, deployment.*
-│       └── identity/         # user.*, geo.*
-├── openapi/                  # Generated output
-│   └── openapi.yaml          # OpenAPI 3.1 spec
-└── schemas/                  # JSON Schema output
-    └── qyl-telemetry         # Schema bundle
+```yaml
+name: core/specs
+type: typespec-schema
+role: single-source-of-truth
 ```
 
-## Domain Coverage
+## files
 
-| Domain | Files | OTel Namespaces |
-|--------|-------|-----------------|
-| AI | 3 | `gen_ai.*`, `code.*`, `cli.*` |
-| Security | 4 | `network.*`, `dns.*`, `tls.*`, `security_rule.*` |
-| Transport | 7 | `http.*`, `rpc.*`, `messaging.*`, `url.*`, `signalr.*`, `kestrel.*`, `user_agent.*` |
-| Infrastructure | 7 | `host.*`, `container.*`, `k8s.*`, `cloud.*`, `faas.*`, `os.*`, `webengine.*` |
-| Runtime | 5 | `process.*`, `system.*`, `thread.*`, `dotnet.*`, `aspnetcore.*` |
-| Data | 5 | `db.*`, `file.*`, `elasticsearch.*`, `vcs.*`, `artifact.*` |
-| Observe | 8 | `session.*`, `browser.*`, `feature_flag.*`, `exception.*`, `otel.*`, `log.*`, `error.*`, `test.*` |
-| Ops | 2 | `cicd.*`, `deployment.*` |
-| Identity | 2 | `user.*`, `geo.*` |
+```yaml
+entry: main.tsp
 
-## Commands
-
-```bash
-# Compile TypeSpec → OpenAPI
-nuke TypeSpecCompile
-
-# Install TypeSpec dependencies
-nuke TypeSpecInstall
-
-# Show TypeSpec status
-nuke TypeSpecInfo
-
-# Delete all generated files
-nuke TypeSpecClean
-
-# Direct compilation (for debugging)
-cd core/specs && npm run compile
+structure:
+  common/:
+    - types.tsp        # Primitives (SpanId, TraceId, etc.)
+    - errors.tsp       # Error models
+    - pagination.tsp   # Pagination types
+    
+  otel/:
+    - enums.tsp        # SpanKind, StatusCode, SeverityNumber
+    - resource.tsp     # OTel Resource model
+    - span.tsp         # Span, SpanEvent, SpanLink
+    - logs.tsp         # LogRecord
+    - metrics.tsp      # Metric models
+    
+  storage/:
+    - storage.tsp      # SpanRecord, SessionSummary, TraceNode
+    
+  domains/:
+    ai/:
+      - genai.tsp      # gen_ai.* semantic conventions
+      - code.tsp       # code.* attributes
+      - cli.tsp        # CLI tool attributes
+    # ... other domains
+    
+  api/:
+    - routes.tsp       # REST API routes
+    - streaming.tsp    # SSE streaming
 ```
 
-### Dashboard Type Generation
+## extensions
 
-```bash
-cd src/qyl.dashboard
-npm run generate:ts   # openapi.yaml → src/types/api.ts
+```yaml
+x-csharp-type:
+  purpose: map to C# type name
+  example: '@extension("x-csharp-type", "SpanRecord")'
+  
+x-duckdb-table:
+  purpose: mark model as DuckDB table
+  example: '@extension("x-duckdb-table", "spans")'
+  
+x-duckdb-column:
+  purpose: column name override
+  example: '@extension("x-duckdb-column", "span_id")'
+  
+x-duckdb-type:
+  purpose: DuckDB type override
+  example: '@extension("x-duckdb-type", "VARCHAR")'
+  
+x-duckdb-primary-key:
+  purpose: mark as primary key
+  example: '@extension("x-duckdb-primary-key", true)'
+  
+x-duckdb-index:
+  purpose: create index on column
+  example: '@extension("x-duckdb-index", "idx_spans_trace_id")'
+  
+x-primitive:
+  purpose: mark as strongly-typed wrapper
+  example: '@extension("x-primitive", true)'
+  
+x-promoted:
+  purpose: mark as promoted from attributes_json
+  example: '@extension("x-promoted", true)'
 ```
 
-## TypeSpec 1.7 Patterns
+## compilation
 
-| Use (1.7) | Reject (pre-1.6) |
-|-----------|------------------|
-| `@jsonSchema` on scalars | Scalars without schema |
-| `@discriminator("field")` | `@discriminated(#{ envelope: "none" })` |
-| `@encodedName("application/json", "snake_case")` | camelCase JSON |
+```yaml
+command: tsp compile main.tsp
+config: tspconfig.yaml
+output: ../openapi/openapi.yaml
 
-## OTel 1.39 GenAI Compliance
-
-**Required attributes:**
-```
-gen_ai.provider.name      gen_ai.request.model     gen_ai.response.model
-gen_ai.operation.name     gen_ai.usage.input_tokens   gen_ai.usage.output_tokens
-```
-
-**Deprecated (reject):**
-```
-gen_ai.system → gen_ai.provider.name
-gen_ai.usage.prompt_tokens → gen_ai.usage.input_tokens
-gen_ai.usage.completion_tokens → gen_ai.usage.output_tokens
+tspconfig:
+  emit:
+    - "@typespec/openapi3"
+    - "@typespec/json-schema"
+  options:
+    "@typespec/openapi3":
+      output-file: openapi.yaml
+      emitter-output-dir: "{project-root}/../openapi"
+      openapi-versions: ["3.1.0"]
 ```
 
-## Dependencies
+## outputs
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| `@typespec/compiler` | 1.7.0 | Core compiler |
-| `@typespec/http` | 1.7.0 | HTTP decorators |
-| `@typespec/openapi3` | 1.7.0 | OpenAPI emitter |
-| `@typespec/versioning` | 1.7.0 | API versioning |
-| `@typespec/sse` | 1.7.0 | Server-Sent Events |
-| `@typespec/events` | 1.7.0 | Event definitions |
-| `openapi-typescript` | 7.x | TypeScript types from OpenAPI |
+```yaml
+from-typespec:
+  - core/openapi/openapi.yaml
+  - core/schemas/*.json
 
-## Troubleshooting
-
-### TypeSpec compile errors
-```bash
-cd core/specs && npm run compile
+from-openapi:
+  - src/qyl.protocol/**/*.g.cs
+  - src/qyl.collector/Storage/DuckDbSchema.g.cs
+  - src/qyl.dashboard/src/types/api.ts
 ```
 
-### Missing npm modules
-```bash
-cd core/specs && npm install --legacy-peer-deps
+## packages
+
+```yaml
+dependencies:
+  - "@typespec/compiler": "1.7.0"
+  - "@typespec/http": "1.7.0"
+  - "@typespec/rest": "0.77.0"
+  - "@typespec/openapi": "1.7.0"
+  - "@typespec/openapi3": "1.7.0"
+  - "@typespec/json-schema": "1.7.0"
+  - "@typespec/versioning": "0.77.0"
+  - "@typespec/sse": "0.77.0"
+  - "@typespec/events": "0.77.0"
 ```
 
-### Regenerate from scratch
-```bash
-nuke TypeSpecClean && nuke TypeSpecCompile
-```
+## rules
 
-### Stream warnings (expected)
-TypeSpec emits warnings about `streams-not-supported` for SSE endpoints - these are informational only (OpenAPI 3.1 limitation, full support in 3.2).
+```yaml
+- never-edit-openapi.yaml: generated from typespec
+- never-edit-*.g.cs: generated from openapi
+- never-edit-api.ts: generated from openapi
+- extensions-required: all storage models need x-duckdb-* extensions
+```

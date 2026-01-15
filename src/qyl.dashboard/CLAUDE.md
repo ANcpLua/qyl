@@ -1,134 +1,157 @@
 # qyl.dashboard
 
-Inherits: [Root CLAUDE.md](../../CLAUDE.md)
+React 19 SPA for observability visualization. Build artifact embedded in collector.
 
-React 19 SPA for viewing sessions, spans, and traces. Communicates with `qyl.collector` via REST + SSE.
+## identity
 
-## Architecture
-
-```
-qyl.dashboard ──HTTP/SSE──► qyl.collector:5100
-     │
-     └──► /api/v1/sessions, /api/v1/traces, /api/v1/live
-```
-
-## Ports and Proxy
-
-| Service   | Port | Notes                              |
-|-----------|------|------------------------------------|
-| Dashboard | 5173 | Vite dev server                    |
-| Collector | 5100 | Proxied via `/api/*` in dev        |
-
-Proxy configured in `vite.config.ts` - uses `VITE_API_URL` env var or defaults to `http://localhost:5100`.
-
-## Type Generation (God Schema)
-
-Types flow from TypeSpec through OpenAPI to TypeScript:
-
-```
-core/specs/main.tsp (SSOT)
-     │
-     └─► core/openapi/openapi.yaml
-              │
-              └─► openapi-typescript
-                       │
-                       └─► src/types/api.ts (generated)
-                                │
-                                └─► src/types/index.ts (re-exports + utilities)
+```yaml
+name: qyl.dashboard
+type: react-spa
+runtime: node-22
+build-tool: vite-6
+role: build-artifact
+standalone: never
 ```
 
-### Generated vs Manual Files
+## build-contract
 
-| File | Type | Source |
-|------|------|--------|
-| `src/types/api.ts` | Generated | OpenAPI schema via `npm run generate:ts` |
-| `src/types/index.ts` | Manual | Re-exports + utility functions |
+```yaml
+input: src/
+output: dist/
+command: npm run build
 
-### Type Usage
+output-structure:
+  - dist/index.html
+  - dist/assets/index-[hash].js
+  - dist/assets/index-[hash].css
 
-Components use `SpanRecord` directly from OpenAPI with utility functions:
-
-```typescript
-// Import types and utilities
-import type { SpanRecord, StatusCode } from '@/types';
-import { nsToMs, nanoToIso, getAttributes, getTotalTokens, STATUS_ERROR } from '@/types';
-
-// Use SpanRecord fields directly
-const durationMs = nsToMs(span.durationNs);
-const startTime = nanoToIso(span.startTimeUnixNano);
-const attrs = getAttributes(span);  // Parses attributesJson
-const isError = span.statusCode === STATUS_ERROR;
-
-// Access GenAI fields directly (flat, not nested)
-span.genAiSystem          // Provider name (openai, anthropic)
-span.genAiRequestModel    // Requested model
-span.genAiInputTokens     // Token counts
-span.genAiCostUsd         // Cost
+destination: ../qyl.collector/wwwroot/
+copy-by: nuke (DashboardEmbed target)
 ```
 
-Import from `@/types` only:
+## development
 
-```typescript
-// Correct - use SpanRecord directly
-import type { SpanRecord, Session } from '@/types';
-import { nsToMs, getAttributes, getTotalTokens } from '@/types';
+```yaml
+command: npm run dev
+port: 5173
+hot-reload: true
 
-// Wrong - direct api.ts import
-import type { components } from '@/types/api';
+proxy:
+  /api: http://localhost:5100
+  /v1: http://localhost:5100
+  
+requires: collector running on :5100
 ```
 
-## SSE Live Stream
+## type-generation
 
-Single reconnecting EventSource with TanStack Query cache invalidation:
+```yaml
+source: ../../core/openapi/openapi.yaml
+output: src/types/api.ts
+command: npm run generate:types
+tool: openapi-typescript
 
-```typescript
-// In hooks/use-telemetry.ts
-const { isConnected, recentSpans, reconnect } = useLiveStream({
-    sessionFilter: sessionId,
-    onSpans: (batch) => { /* handle */ },
-});
+rule: never-edit-api.ts-manually
 ```
 
-Key behaviors:
-- Auto-reconnects on disconnect (3s delay)
-- Maintains last 100 spans in memory
-- Invalidates `sessions` query on new spans
+## tech-stack
 
-## Key Components
+```yaml
+framework:
+  react: "19"
+  typescript: "5.7"
+  
+build:
+  vite: "6"
+  
+styling:
+  tailwind: "4"
+  
+state:
+  tanstack-query: "5"
+  
+components:
+  radix-ui: latest
+  lucide-react: icons
+  recharts: charts
+```
 
-| Component         | Purpose                           |
-|-------------------|-----------------------------------|
-| `LiveTail.tsx`    | Real-time span stream display     |
-| `GenAIPage.tsx`   | GenAI-specific analytics          |
-| `TracesPage.tsx`  | Trace tree visualization          |
-| `SessionsPage.tsx`| Session list with filters         |
+## patterns
 
-## Forbidden Actions
+```yaml
+data-fetching:
+  library: tanstack-query
+  pattern: |
+    export function useSession(id: string) {
+      return useQuery({
+        queryKey: ['session', id],
+        queryFn: () => api.getSession(id),
+      });
+    }
 
-- Do NOT edit `src/types/api.ts` - regenerate from OpenAPI
-- Do NOT import from .NET projects
-- Do NOT duplicate types that exist in `api.ts`
-- Do NOT use `any` for API response shapes
+sse-streaming:
+  pattern: |
+    useEffect(() => {
+      const es = new EventSource('/api/v1/live');
+      es.onmessage = (e) => {
+        const span = JSON.parse(e.data);
+        queryClient.setQueryData(['spans'], old => [...old, span]);
+      };
+      return () => es.close();
+    }, []);
+```
 
-## Known Issues
+## project-structure
 
-### Security Vulnerabilities
+```yaml
+directories:
+  - src/components/ui/        # Radix primitives
+  - src/components/spans/     # Span visualization
+  - src/components/sessions/  # Session views
+  - src/components/layout/    # Shell, sidebar
+  - src/hooks/                # TanStack Query hooks
+  - src/lib/                  # Utilities, API client
+  - src/pages/                # Route components
+  - src/types/                # Generated types (api.ts)
+```
 
-Run `npm audit fix` to address:
-- `@modelcontextprotocol/sdk` ReDoS (GHSA-8r9q-7v3j-jr4g)
-- `qs` DoS via memory exhaustion (GHSA-6rw7-vpxm-498p)
+## scripts
 
-### Missing Features
+```yaml
+dev: vite dev server with HMR
+build: production build → dist/
+generate:types: openapi → typescript
+lint: eslint
+typecheck: tsc --noEmit
+```
 
-- No health check indicator for collector connection status
+## dependencies
 
-## Commands
+```yaml
+runtime:
+  - react@19
+  - react-dom@19
+  - @tanstack/react-query@5
+  - @radix-ui/*
+  - recharts
+  - tailwindcss@4
+  - lucide-react
 
-```bash
-npm run dev          # Start dev server (port 5173)
-npm run build        # Production build
-npm run typecheck    # TypeScript validation
-npm run lint         # ESLint check
-npm run test         # Vitest tests
-npm run generate:ts  # Regenerate types from OpenAPI
+dev:
+  - vite@6
+  - typescript@5.7
+  - openapi-typescript
+  - eslint
+  - @vitejs/plugin-react
+```
+
+## forbidden
+
+```yaml
+actions:
+  - edit src/types/api.ts manually
+  - add qyl.collector as npm dependency
+  - run standalone in production
+  - use fetch() directly (use tanstack-query)
+  - import anything from .NET projects
 ```

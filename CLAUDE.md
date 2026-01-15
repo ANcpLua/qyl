@@ -1,225 +1,201 @@
-# qyl — AI Observability Platform
+# qyl
 
-OpenTelemetry backend for `gen_ai.*` semantic conventions. .NET 10 / C# 14.
+AI Observability Platform. Observe everything. Judge nothing. Document perfectly.
 
-## Architecture
+## identity
 
-```
-User App ──OTLP──► qyl.collector ──DuckDB──► Storage
-                        │                       │
-                        │                       └──► REST/SSE ──► qyl.dashboard
-                        └──► REST ──► qyl.mcp ──stdio──► Claude
-```
-
-| Project         | Type    | Purpose                          | Dependencies                 |
-|-----------------|---------|----------------------------------|------------------------------|
-| `qyl.protocol`  | Library | Shared contracts (LEAF)          | BCL only                     |
-| `qyl.collector` | Web API | OTLP ingestion, DuckDB, REST/SSE | protocol                     |
-| `qyl.mcp`       | Console | MCP Server for AI agents         | protocol (HTTP to collector) |
-| `qyl.dashboard` | SPA     | React 19 frontend                | REST/SSE from collector      |
-
----
-
-## Dependency Rules (CRITICAL)
-
-```
-dashboard ──HTTP──► collector ◄──HTTP── mcp
-                        │
-                        ▼
-                    protocol
+```yaml
+name: qyl
+type: observability-platform
+domain: gen_ai telemetry
+distribution:
+  primary: docker
+  secondary: dotnet-global-tool
 ```
 
-| Rule                              | Constraint                                       |
-|-----------------------------------|--------------------------------------------------|
-| `qyl.protocol`                    | BCL only. No external packages. Leaf dependency. |
-| `qyl.mcp` → `qyl.collector`       | **HTTP ONLY**. No ProjectReference.              |
-| `qyl.dashboard` → `qyl.collector` | REST/SSE endpoints only                          |
+## architecture
 
----
-
-## Type Ownership
-
-**Golden Rule**: Multiple consumers → `qyl.protocol`. Single consumer → that project.
-
-| Owner           | Types                                         | Consumers      |
-|-----------------|-----------------------------------------------|----------------|
-| `qyl.protocol`  | SessionId, UnixNano, TraceId, SpanId          | all            |
-| `qyl.protocol`  | SpanRecord, SessionSummary, TraceNode         | all            |
-| `qyl.protocol`  | GenAiSpanData, GenAiAttributes                | collector, mcp |
-| `qyl.collector` | DuckDbStore, DuckDbSchema, OtlpJsonSpanParser | internal only  |
-| `qyl.dashboard` | types/generated/*                             | internal only  |
-
-### New Type Decision Tree
-
-```
-New Type?
-├── Used by collector only? → collector/Storage/ or collector/Ingestion/
-├── Used by mcp only? → mcp/
-├── Used by dashboard only? → dashboard/src/types/
-└── Used by 2+ projects? → protocol/
-```
-
----
-
-## Banned APIs
-
-See `eng/MSBuild/BannedSymbols.txt` for full list.
-
-| Category      | Required Pattern                               |
-|---------------|------------------------------------------------|
-| Time          | `TimeProvider.System.GetUtcNow()`              |
-| Locking       | `Lock _lock = new()`                           |
-| JSON          | `System.Text.Json`                             |
-| String search | `string.Contains('x')` (char overload, CA1847) |
-| Hex convert   | `Convert.ToHexString()` (CA1872)               |
-
----
-
-## Required Patterns
-
-### Locking
-
-```csharp
-// SYNC: Use .NET 9+ Lock
-private readonly Lock _lock = new();
-using (_lock.EnterScope()) { /* NO await */ }
-
-// ASYNC: Use SemaphoreSlim
-private readonly SemaphoreSlim _asyncLock = new(1, 1);
-await _asyncLock.WaitAsync(ct);
-try { await Op(ct); }
-finally { _asyncLock.Release(); }
+```yaml
+components:
+  collector:
+    runtime: dotnet-10
+    ports:
+      http: 5100
+      grpc: 4317
+    serves:
+      - otlp-ingestion
+      - rest-api
+      - sse-streaming
+      - static-files (dashboard)
+    storage: duckdb
+    
+  dashboard:
+    runtime: node-22
+    framework: react-19
+    build-tool: vite-6
+    output: dist/
+    embedding: collector/wwwroot/
+    
+  mcp:
+    runtime: dotnet-10
+    protocol: stdio
+    connects-to: collector (http)
+    
+  protocol:
+    runtime: dotnet-10
+    constraints: bcl-only
+    role: shared-types
 ```
 
-### Hot Paths
+## dependencies
 
-```csharp
-// Bounded channel with backpressure
-Channel.CreateBounded<SpanRecord>(new BoundedChannelOptions(10_000)
-{
-    FullMode = BoundedChannelFullMode.Wait
-});
+```yaml
+flow:
+  - from: dashboard
+    to: collector
+    via: http (rest/sse)
+    
+  - from: mcp
+    to: collector
+    via: http (rest)
+    
+  - from: collector
+    to: protocol
+    via: project-reference
+    
+  - from: mcp
+    to: protocol
+    via: project-reference
 
-// ValueTask for hot paths
-public ValueTask PublishAsync(SpanRecord span, CancellationToken ct = default)
-    => _channel.Writer.WriteAsync(span, ct);
+forbidden:
+  - from: mcp
+    to: collector
+    via: project-reference
+    reason: must remain http-only for decoupling
+    
+  - from: dashboard
+    to: any-dotnet
+    reason: pure frontend, no runtime dependency
 ```
 
-### JSON Serializer Options
+## schema
 
-```csharp
-// Cache as static readonly (CA1869)
-private static readonly JsonSerializerOptions s_options = new() { /* ... */ };
+```yaml
+source-of-truth: core/specs/main.tsp
+outputs:
+  - path: core/openapi/openapi.yaml
+    generator: typespec
+    
+  - path: src/qyl.protocol/**/*.g.cs
+    generator: nuke-generate
+    
+  - path: src/qyl.collector/Storage/DuckDbSchema.g.cs
+    generator: nuke-generate
+    
+  - path: src/qyl.dashboard/src/types/api.ts
+    generator: openapi-typescript
+
+rule: never-edit-generated-files
 ```
 
----
+## build
 
-## Code Generation (God Schema)
-
-**Single Source of Truth**: `core/specs/main.tsp` (TypeSpec)
-
-```
-core/specs/main.tsp
-     │
-     ├─► nuke TypeSpecCompile ──► core/openapi/openapi.yaml
-     │                                    │
-     │                                    ├─► npm run generate:ts ──► dashboard/src/types/api.ts
-     │                                    └─► nuke Generate ──► protocol/*.g.cs, collector/Storage/*.g.cs
-     │
-     └─► x-extensions in OpenAPI provide target-specific hints:
-         • x-csharp-type: C# type mapping
-         • x-duckdb-type: DuckDB column type
-         • x-primitive: Marks strongly-typed wrappers
-```
-
-| Pipeline Step        | Command                | Output                                        |
-|----------------------|------------------------|-----------------------------------------------|
-| TypeSpec → OpenAPI   | `nuke TypeSpecCompile` | `core/openapi/openapi.yaml`                   |
-| OpenAPI → All        | `nuke Generate`        | TypeScript + C# + DuckDB (one command)        |
-
-```bash
-nuke Generate                 # Everything: OpenAPI → TS/C#/DuckDB
-nuke Generate --ForceGenerate # Overwrite existing
-```
-
-**Never edit generated files manually** (`*.g.cs`, `api.ts`, `openapi.yaml`).
-
----
-
-## Tech Stack
-
-| Layer    | Technology                                     |
-|----------|------------------------------------------------|
-| Runtime  | .NET 10 / C# 14                                |
-| SDK      | ANcpLua.NET.Sdk 1.6.7 (from nuget.org)         |
-| Storage  | DuckDB.NET.Data.Full                           |
-| OTel     | Semantic Conventions v1.39.0                   |
-| Frontend | React 19, Vite 6, Tailwind 4, TanStack Query 5 |
-| Testing  | xUnit v3 + Microsoft Testing Platform (MTP)    |
-
----
-
-## Testing (xUnit v3 + MTP)
-
-```bash
-./eng/build.sh Test      # Run all tests
-./eng/build.sh Coverage  # With coverage
+```yaml
+system: nuke
+targets:
+  - name: TypeSpecCompile
+    input: core/specs/*.tsp
+    output: core/openapi/openapi.yaml
+    
+  - name: Generate
+    depends: [TypeSpecCompile]
+    input: core/openapi/openapi.yaml
+    output: [protocol/*.g.cs, collector/Storage/*.g.cs, dashboard/src/types/api.ts]
+    
+  - name: DashboardBuild
+    input: src/qyl.dashboard/
+    output: src/qyl.dashboard/dist/
+    command: npm run build
+    
+  - name: Compile
+    input: src/**/*.csproj
+    output: bin/
+    
+  - name: DashboardEmbed
+    depends: [DashboardBuild, Compile]
+    action: copy dist/ → collector/wwwroot/
+    
+  - name: Publish
+    depends: [DashboardEmbed]
+    output: artifacts/publish/
+    
+  - name: DockerBuild
+    depends: [Publish]
+    output: ghcr.io/ancplua/qyl:latest
+    
+  - name: Pack
+    depends: [Publish]
+    output: artifacts/packages/*.nupkg
 ```
 
-### IAsyncLifetime Pattern
+## tech-stack
 
-```csharp
-// xUnit v3: ValueTask not Task
-public sealed class MyTests : IAsyncLifetime
-{
-    public async ValueTask InitializeAsync() { }
-    public async ValueTask DisposeAsync() { }
-}
+```yaml
+runtime:
+  dotnet: "10.0"
+  csharp: "14"
+  node: "22"
+  
+packages:
+  sdk: ANcpLua.NET.Sdk@latest
+  storage: DuckDB.NET.Data.Full
+  grpc: Grpc.AspNetCore
+  otel: OpenTelemetry.SemanticConventions@1.39
+  
+frontend:
+  react: "19"
+  vite: "6"
+  tailwind: "4"
+  tanstack-query: "5"
+  radix-ui: latest
+  
+testing:
+  framework: xunit-v3
+  runner: microsoft-testing-platform
 ```
 
----
+## commands
 
-## Quick Commands
-
-```bash
-# Collector (HTTP: 5100, gRPC: 4317)
-dotnet run --project src/qyl.collector
-
-# Dashboard (Port: 5173)
-cd src/qyl.dashboard && npm run dev
-
-# Tests
-dotnet test
-
-# Code generation
-nuke Generate --ForceGenerate
+```yaml
+development:
+  collector: dotnet run --project src/qyl.collector
+  dashboard: cd src/qyl.dashboard && npm run dev
+  
+build:
+  full: nuke Full
+  generate: nuke Generate --force-generate
+  docker: nuke DockerBuild
+  pack: nuke Pack
+  
+test:
+  all: dotnet test
+  coverage: nuke Coverage
 ```
 
----
+## conventions
 
-## Warning Suppressions
-
-Use pragmas with clear comments for intentional violations:
-
-```csharp
-#pragma warning disable CA1720 // Identifiers intentionally match OTel type names
-public enum AttributeValueType { String, Int, Long, Double, Boolean }
-#pragma warning restore CA1720
+```yaml
+files:
+  generated: "*.g.cs"
+  tests: "*.Tests.cs"
+  
+naming:
+  spans-table: spans
+  sessions-table: sessions
+  logs-table: logs
+  
+api:
+  base-path: /api/v1
+  otlp-path: /v1/traces
+  live-path: /api/v1/live
 ```
-
----
-
-## Project CLAUDE.md Files
-
-Each component has its own CLAUDE.md with component-specific rules:
-
-- `src/qyl.collector/CLAUDE.md` — Storage, ingestion, API details
-- `src/qyl.mcp/CLAUDE.md` — MCP tools, HTTP client patterns
-- `src/qyl.dashboard/CLAUDE.md` — React patterns, type generation
-- `src/qyl.protocol/CLAUDE.md` — Type inventory, constraints
-- `tests/CLAUDE.md` — Test conventions
-- `eng/CLAUDE.md` — Build system, generators
-
----
-
-MIT License

@@ -1,79 +1,126 @@
 # qyl.mcp
 
-MCP Server exposing telemetry query tools to AI agents via stdio transport.
+MCP Server for AI agent integration. HTTP client to collector.
 
-## Architecture Position
+## identity
 
-```
-qyl.collector ◄──HTTP── qyl.mcp ──stdio──► Claude/AI Agent
-```
-
-## CRITICAL: HTTP-ONLY Communication
-
-**qyl.mcp MUST communicate with qyl.collector via HTTP. No ProjectReference to collector allowed.**
-
-### Correct Pattern
-
-```csharp
-public sealed class QylCollectorClient(HttpClient http)
-{
-    private const string BaseUrl = "http://localhost:5100";
-
-    public async Task<AgentRun[]> SearchRunsAsync(
-        string? provider, string? model, string? errorType, DateTime? since,
-        CancellationToken ct = default)
-    {
-        var url = $"{BaseUrl}/api/runs?provider={provider}&model={model}";
-        return await http.GetFromJsonAsync<AgentRun[]>(url, ct) ?? [];
-    }
-}
+```yaml
+name: qyl.mcp
+type: console-app
+sdk: ANcpLua.NET.Sdk
+protocol: model-context-protocol
+transport: stdio
 ```
 
-### Current Violation (MUST FIX)
+## connection
 
-`Program.cs` line 11 registers `InMemoryTelemetryStore.Instance` instead of HTTP client:
+```yaml
+to-collector:
+  method: http
+  base-url: http://localhost:5100
+  endpoints-used:
+    - /api/v1/sessions
+    - /api/v1/sessions/{id}
+    - /api/v1/sessions/{id}/spans
+    - /api/v1/traces/{traceId}
 
-```csharp
-// WRONG - violates architecture
-builder.Services.AddSingleton<ITelemetryStore>(InMemoryTelemetryStore.Instance);
-
-// CORRECT - use HTTP client
-builder.Services.AddHttpClient<QylCollectorClient>(c => c.BaseAddress = new("http://localhost:5100"));
-builder.Services.AddSingleton<ITelemetryStore, HttpTelemetryStore>();
+forbidden:
+  - project-reference to qyl.collector
+  - direct DuckDB access
+  reason: must remain decoupled, http-only
 ```
 
-## MCP Tools Exposed
+## mcp-tools
 
-| Tool                    | Purpose                             |
-|-------------------------|-------------------------------------|
-| `qyl.search_agent_runs` | Search runs by provider/model/error |
-| `qyl.get_agent_run`     | Get single run by ID                |
-| `qyl.get_token_usage`   | Token usage grouped by agent/model  |
-| `qyl.list_errors`       | Recent errors with stack traces     |
-| `qyl.get_latency_stats` | P50/P95/P99 latency percentiles     |
-
-## Known Issues
-
-| ID       | Severity | Description                                     |
-|----------|----------|-------------------------------------------------|
-| ARCH-002 | CRITICAL | Uses InMemoryStore instead of HTTP to collector |
-| TEST-001 | HIGH     | 0% test coverage - test project has no tests    |
-| ERR-001  | MEDIUM   | No retry logic for HTTP failures                |
-| ERR-002  | MEDIUM   | Silent exception swallowing in tool handlers    |
-
-## Files
-
-| File                            | Purpose                                |
-|---------------------------------|----------------------------------------|
-| `Program.cs`                    | Host setup, MCP server registration    |
-| `Client.cs`                     | A2A agent client, telemetry decorators |
-| `Tools/TelemetryTools.cs`       | MCP tool definitions + ITelemetryStore |
-| `Tools/TelemetryJsonContext.cs` | AOT-compatible JSON serialization      |
-
-## Run
-
-```bash
-dotnet run --project src/qyl.mcp
+```yaml
+tools:
+  - name: qyl.search_agent_runs
+    description: Search for agent runs by time range or filters
+    parameters:
+      - name: start_time
+        type: datetime
+        optional: true
+      - name: end_time
+        type: datetime
+        optional: true
+      - name: service_name
+        type: string
+        optional: true
+        
+  - name: qyl.get_agent_run
+    description: Get details of a specific session
+    parameters:
+      - name: session_id
+        type: string
+        required: true
+        
+  - name: qyl.get_token_usage
+    description: Get token usage statistics
+    parameters:
+      - name: session_id
+        type: string
+        optional: true
+      - name: time_range
+        type: string
+        optional: true
+        
+  - name: qyl.list_errors
+    description: List error spans
+    parameters:
+      - name: session_id
+        type: string
+        optional: true
+      - name: limit
+        type: int
+        default: 10
+        
+  - name: qyl.get_latency_stats
+    description: Get latency percentiles
+    parameters:
+      - name: session_id
+        type: string
+        optional: true
 ```
 
-Connects via stdio - designed for Claude Desktop or AI agent orchestration.
+## http-client-pattern
+
+```yaml
+pattern: |
+  public class QylClient(HttpClient http)
+  {
+      public async Task<SessionSummary[]> GetSessionsAsync(CancellationToken ct = default)
+      {
+          var response = await http.GetAsync("/api/v1/sessions", ct);
+          response.EnsureSuccessStatusCode();
+          return await response.Content.ReadFromJsonAsync<SessionSummary[]>(ct);
+      }
+  }
+
+registration: |
+  services.AddHttpClient<QylClient>(client =>
+  {
+      client.BaseAddress = new Uri("http://localhost:5100");
+  });
+```
+
+## dependencies
+
+```yaml
+project-references:
+  - qyl.protocol
+  
+packages:
+  - Microsoft.Extensions.Http
+  - System.Text.Json
+
+forbidden:
+  - qyl.collector
+  - DuckDB.NET.Data.Full
+```
+
+## invocation
+
+```yaml
+standalone: dotnet run --project src/qyl.mcp
+with-claude: claude --mcp qyl
+```

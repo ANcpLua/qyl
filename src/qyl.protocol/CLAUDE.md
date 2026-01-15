@@ -1,66 +1,136 @@
 # qyl.protocol
 
-LEAF library - shared contracts layer. BCL dependencies ONLY.
+Shared type contracts. BCL only. Leaf dependency.
 
-## Role
+## identity
 
-Single source of truth for types consumed by multiple projects. All shared types live here; implementation details stay
-in consuming projects.
+```yaml
+name: qyl.protocol
+type: class-library
+sdk: ANcpLua.NET.Sdk
+role: leaf-dependency
+constraint: bcl-only
+```
 
-## Type Inventory
+## constraint
 
-### Primitives/ (Generated)
+```yaml
+packages-allowed: none
+reason: must remain leaf dependency with zero external packages
+consumers: [collector, mcp]
+```
 
-| Type        | Underlying        | Purpose                            |
-|-------------|-------------------|------------------------------------|
-| `SessionId` | `Guid`            | AI conversation session identifier |
-| `UnixNano`  | `ulong`           | OTel wire format timestamp         |
-| `TraceId`   | `ActivityTraceId` | 32-char hex trace identifier       |
-| `SpanId`    | `ActivitySpanId`  | 16-char hex span identifier        |
+## generated-files
 
-All primitives implement `ISpanParsable<T>`, `IEquatable<T>`, `IComparable<T>`.
+```yaml
+source: core/openapi/openapi.yaml
+generator: nuke Generate
 
-### Models/
+outputs:
+  Primitives/:
+    - SpanId.g.cs
+    - TraceId.g.cs
+    - SessionId.g.cs
+    - UnixNano.g.cs
+    - DurationNs.g.cs
+    - TokenCount.g.cs
+    - CostUsd.g.cs
+    
+  Enums/:
+    - SpanKind.g.cs
+    - SpanStatusCode.g.cs
+    - SeverityNumber.g.cs
+    
+  Models/:
+    - SpanRecord.g.cs
+    - SessionSummary.g.cs
+    - TraceNode.g.cs
+    - LogRecordStorage.g.cs
+    - GenAiSpanData.g.cs
 
-| Type             | Purpose                                   |
-|------------------|-------------------------------------------|
-| `SpanRecord`     | Core span representation (storage + API)  |
-| `SessionSummary` | Aggregated session metrics                |
-| `TraceNode`      | Hierarchical trace tree node              |
-| `GenAiSpanData`  | Extracted gen_ai.* attributes (OTel 1.39) |
+rule: never-edit-generated-files
+```
 
-### Contracts/
+## type-inventory
 
-| Interface            | Implementor     | Purpose                     |
-|----------------------|-----------------|-----------------------------|
-| `ISpanStore`         | `qyl.collector` | Span CRUD operations        |
-| `ISessionAggregator` | `qyl.collector` | Session aggregation queries |
+```yaml
+primitives:
+  - name: SpanId
+    underlying: string
+    format: 16 hex chars
+    
+  - name: TraceId
+    underlying: string
+    format: 32 hex chars
+    
+  - name: SessionId
+    underlying: string
+    
+  - name: UnixNano
+    underlying: long
+    description: nanoseconds since epoch
+    
+  - name: DurationNs
+    underlying: long
+    description: duration in nanoseconds
+    
+  - name: TokenCount
+    underlying: int
+    
+  - name: CostUsd
+    underlying: decimal
 
-### Attributes/
+enums:
+  - name: SpanKind
+    values: [Unspecified, Internal, Server, Client, Producer, Consumer]
+    
+  - name: SpanStatusCode
+    values: [Unset, Ok, Error]
+    
+  - name: SeverityNumber
+    values: [1-24, mapping to TRACE through FATAL]
 
-`GenAiAttributes` - OTel 1.39 semantic convention constants with:
+models:
+  - name: SpanRecord
+    purpose: storage row for spans table
+    consumers: [collector, mcp]
+    
+  - name: SessionSummary
+    purpose: aggregated session view
+    consumers: [collector, mcp, dashboard]
+    
+  - name: TraceNode
+    purpose: hierarchical trace tree
+    consumers: [collector, dashboard]
+    
+  - name: GenAiSpanData
+    purpose: extracted gen_ai.* attributes
+    consumers: [collector, mcp]
+```
 
-- Current attribute keys (`GenAiProviderName`, `GenAiUsageInputTokens`, etc.)
-- Deprecated keys with `[Obsolete]` markers
-- `AllKeys` frozen set for validation
-- `Migrations` dictionary for deprecated-to-current mapping
-- `Normalize()` method for automatic migration
+## ownership-rules
 
-## Generated Files
+```yaml
+decision-tree:
+  - question: "Used by collector only?"
+    answer: collector/Storage/ or collector/Ingestion/
+    
+  - question: "Used by mcp only?"
+    answer: mcp/
+    
+  - question: "Used by dashboard only?"
+    answer: dashboard/src/types/
+    
+  - question: "Used by 2+ projects?"
+    answer: protocol/
+```
 
-Files matching `*.g.cs` are generated from `eng/build/Domain/CodeGen/QylSchema.cs`.
+## dependencies
 
-**Never edit manually.** Run `nuke Generate` to regenerate.
-
-## Constraints
-
-| Rule                   | Rationale                                |
-|------------------------|------------------------------------------|
-| BCL only               | Leaf dependency - no external packages   |
-| No implementation      | Contracts define, collector implements   |
-| AOT compatible         | `IsAotCompatible=true` in csproj         |
-| Token types use `long` | Matches DuckDB BIGINT, prevents overflow |
-
-## Known Issues
-
-**ARCH-001**: If `SessionSummary` appears in `qyl.collector`, delete it - this is the authoritative location.
+```yaml
+project-references: none
+package-references: none
+referenced-by:
+  - qyl.collector
+  - qyl.mcp
+```
