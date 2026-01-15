@@ -169,7 +169,10 @@ public static class SessionMapper
         IEnumerable<SessionQueryRow> summaries,
         int total,
         bool hasMore) =>
-        new() { Sessions = ToDtos(summaries), Total = total, HasMore = hasMore };
+        new()
+        {
+            Sessions = ToDtos(summaries), Total = total, HasMore = hasMore
+        };
 
     private static List<string> ExtractProviders(SessionQueryRow summary)
     {

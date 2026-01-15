@@ -1,5 +1,3 @@
-using Console = System.Console;
-
 namespace qyl.collector;
 
 public static class StartupBanner

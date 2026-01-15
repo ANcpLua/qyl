@@ -1,4 +1,3 @@
-using System.Text;
 using qyl.collector.Storage;
 
 namespace qyl.collector.tests.Storage;
@@ -22,6 +21,18 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     {
         await _store.DisposeAsync();
     }
+
+    #region Helper Methods
+
+    /// <summary>Converts DateTime to Unix nanoseconds (ulong).</summary>
+    private static ulong DateTimeToUnixNano(DateTime dt)
+    {
+        var utc = dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
+        var ticks = utc.Ticks - DateTime.UnixEpoch.Ticks;
+        return (ulong)(ticks * 100); // 1 tick = 100 nanoseconds
+    }
+
+    #endregion
 
     #region Schema Initialization Tests
 
@@ -371,25 +382,25 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
                 .WithName("openai-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now.AddMinutes(-120), 0, TestConstants.DurationMediumMs) // 2 hours ago
+                .AtTime(now.AddMinutes(-120), 0) // 2 hours ago
                 .Build(),
             SpanBuilder.Create("trace-f2", "span-f2")
                 .WithName("anthropic-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderAnthropic)
-                .AtTime(now.AddMinutes(-60), 0, TestConstants.DurationMediumMs) // 1 hour ago
+                .AtTime(now.AddMinutes(-60), 0) // 1 hour ago
                 .Build(),
             SpanBuilder.Create("trace-f3", "span-f3")
                 .WithName("openai-call2")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now, 0, TestConstants.DurationMediumMs)
+                .AtTime(now, 0)
                 .Build(),
             SpanBuilder.Create("trace-f4", "span-f4")
                 .WithName("different-session")
                 .WithSessionId("other-session")
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now, 0, TestConstants.DurationMediumMs)
+                .AtTime(now, 0)
                 .Build()
         ]);
 
@@ -489,13 +500,13 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         [
             SpanBuilder.GenAi("trace-old-stats", "span-old")
                 .WithName("old-call")
-                .AtTime(now.AddDays(-2), 0, TestConstants.DurationDefaultMs)
+                .AtTime(now.AddDays(-2), 0)
                 .WithTokens(50, 25)
                 .WithCost(TestConstants.CostSmall)
                 .Build(),
             SpanBuilder.GenAi("trace-recent-stats", "span-recent")
                 .WithName("recent-call")
-                .AtTime(now, 0, TestConstants.DurationDefaultMs)
+                .AtTime(now, 0)
                 .WithTokens(100, 50)
                 .WithCost(TestConstants.CostLarge)
                 .Build()
@@ -600,7 +611,10 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         await using (var paramCmd = connection.CreateCommand())
         {
             paramCmd.CommandText = "SELECT COUNT(*) FROM test_table WHERE session_id = $1";
-            paramCmd.Parameters.Add(new DuckDBParameter { Value = "test-session" });
+            paramCmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = "test-session"
+            });
             var foundParam = Convert.ToInt64(await paramCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
             Assert.Equal(1, foundParam);
         }
@@ -626,8 +640,14 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         {
             insertCmd.Transaction = tx;
             insertCmd.CommandText = "INSERT INTO test_table (session_id, trace_id) VALUES ($1, $2)";
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-session" });
-            insertCmd.Parameters.Add(new DuckDBParameter { Value = "test-trace" });
+            insertCmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = "test-session"
+            });
+            insertCmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = "test-trace"
+            });
             await insertCmd.ExecuteNonQueryAsync();
         }
 
@@ -645,7 +665,10 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         await using (var paramCmd = connection.CreateCommand())
         {
             paramCmd.CommandText = "SELECT COUNT(*) FROM test_table WHERE session_id = $1";
-            paramCmd.Parameters.Add(new DuckDBParameter { Value = "test-session" });
+            paramCmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = "test-session"
+            });
             var foundParam = Convert.ToInt64(await paramCmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
             Assert.Equal(1, foundParam);
         }
@@ -861,18 +884,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         var retrieved = results[0];
         Assert.NotNull(retrieved.AttributesJson);
         Assert.Equal(expectedLength, retrieved.AttributesJson.Length);
-    }
-
-    #endregion
-
-    #region Helper Methods
-
-    /// <summary>Converts DateTime to Unix nanoseconds (ulong).</summary>
-    private static ulong DateTimeToUnixNano(DateTime dt)
-    {
-        var utc = dt.Kind == DateTimeKind.Utc ? dt : dt.ToUniversalTime();
-        var ticks = utc.Ticks - DateTime.UnixEpoch.Ticks;
-        return (ulong)(ticks * 100); // 1 tick = 100 nanoseconds
     }
 
     #endregion

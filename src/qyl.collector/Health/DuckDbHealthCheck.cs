@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using qyl.collector.Storage;
-
 namespace qyl.collector.Health;
 
 /// <summary>
@@ -21,8 +18,7 @@ public sealed class DuckDbHealthCheck(DuckDbStore store) : IHealthCheck
                 description: "DuckDB connection is healthy",
                 data: new Dictionary<string, object>
                 {
-                    ["span_count"] = stats.SpanCount,
-                    ["session_count"] = stats.SessionCount
+                    ["span_count"] = stats.SpanCount, ["session_count"] = stats.SessionCount
                 });
         }
         catch (Exception ex)

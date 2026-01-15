@@ -1,8 +1,3 @@
-using OpenTelemetry.Instrumentation.AspNetCore;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Metrics;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
 using qyl.AspNetCore.Example;
 
 var builder = WebApplication.CreateBuilder(args);

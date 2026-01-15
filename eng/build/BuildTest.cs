@@ -4,23 +4,7 @@
 // Test execution (xUnit v3 + MTP), coverage reporting, quality gates
 // =============================================================================
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Xml.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.ReportGenerator;
-using Nuke.Common.Utilities;
-using Serilog;
+
 
 // ════════════════════════════════════════════════════════════════════════════════
 // MTP (Microsoft Testing Platform) Extensions
@@ -43,6 +27,7 @@ public sealed class MtpArgumentsBuilder
             _args.Add(option);
             _args.Add(p);
         }
+
         return this;
     }
 
@@ -146,6 +131,7 @@ public sealed class MtpArgumentsBuilder
             if (sb.Length > 0) sb.Append(' ');
             sb.Append(arg.DoubleQuoteIfNeeded());
         }
+
         return sb.ToString();
     }
 
@@ -175,12 +161,13 @@ interface ITest : ICompile
     [Parameter("Stop on first test failure")]
     bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
 
-    [Parameter("Show live test output")]
-    bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
+    [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     Project[] TestProjects =>
-    [.. Solution.AllProjects.Where(static p =>
-        p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)];
+    [
+        .. Solution.AllProjects.Where(static p =>
+            p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
+    ];
 
     Target SetupTestcontainers => d => d
         .Description("Configure Testcontainers for CI")
@@ -195,9 +182,7 @@ interface ITest : ICompile
                 Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
             }
             else
-            {
                 Log.Debug("Testcontainers: Using local Docker configuration");
-            }
         });
 
     Target Test => d => d
@@ -388,7 +373,6 @@ interface ICoverage : ITest
         Dictionary<string, object> metrics = [];
 
         foreach (var line in lines)
-        {
             if (line.Contains("Line coverage:", StringComparison.Ordinal))
                 metrics["lineCoverage"] = ExtractPercentage(line);
             else if (line.Contains("Branch coverage:", StringComparison.Ordinal))
@@ -399,7 +383,6 @@ interface ICoverage : ITest
                 metrics["coverableLines"] = ExtractNumber(line);
             else if (line.Contains("Covered lines:", StringComparison.Ordinal))
                 metrics["coveredLines"] = ExtractNumber(line);
-        }
 
         return new Dictionary<string, object>
         {
@@ -750,6 +733,7 @@ public static class CoverageSummaryConverter
                 var reason = DetermineLineReason(ruleTag, stateMachineMethod);
                 return new CoverageBranch(lineNumber, hits, 0, 1, 0, reason);
             }
+
             return null;
         }
 
@@ -798,6 +782,18 @@ public static class CoverageSummaryConverter
             Directory.CreateDirectory(dir);
     }
 
+    sealed record CoverageLine(int Line, int Hits, string Reason = "");
+
+    sealed record CoverageBranch(
+        int Line,
+        int Hits,
+        int CoveredBranches,
+        int TotalBranches,
+        double CoveragePercent,
+        string Reason = "");
+
+    sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
+
     // ─── DTOs ───────────────────────────────────────────────────────────────
     sealed class CoverageFile
     {
@@ -822,16 +818,4 @@ public static class CoverageSummaryConverter
         public List<CoverageLine> Lines { get; init; } = [];
         public List<CoverageBranch> Branches { get; init; } = [];
     }
-
-    sealed record CoverageLine(int Line, int Hits, string Reason = "");
-
-    sealed record CoverageBranch(
-        int Line,
-        int Hits,
-        int CoveredBranches,
-        int TotalBranches,
-        double CoveragePercent,
-        string Reason = "");
-
-    sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
 }

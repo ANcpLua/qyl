@@ -1,8 +1,4 @@
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using AgentGateway.Core;
-using Microsoft.Extensions.AI;
 
 namespace AgentGateway.Adapters;
 
@@ -16,7 +12,33 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
     {
         var baseUrl = cfg["Ollama:BaseUrl"] ?? "http://localhost:11434";
         _defaultModel = cfg["Ollama:DefaultModel"] ?? "llama3.2";
-        _http = new HttpClient { BaseAddress = new Uri(baseUrl) };
+        _http = new HttpClient
+        {
+            BaseAddress = new Uri(baseUrl)
+        };
+    }
+
+    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
+            return response?.Models?
+                .Select(m => new ModelInfo(
+                    m.Name ?? "unknown",
+                    ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
+                    new Dictionary<string, string>
+                    {
+                        ["size"] = m.Size.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                        ["modified_at"] = m.ModifiedAt ?? string.Empty
+                    }))
+                .ToArray() ?? [];
+        }
+        catch (HttpRequestException)
+        {
+            // Ollama not running - return empty list
+            return [];
+        }
     }
 
     public async Task<ChatResponse> GetResponseAsync(
@@ -67,52 +89,29 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         }
     }
 
-    public void Dispose()
-    {
-        _http.Dispose();
-    }
+    public void Dispose() => _http.Dispose();
 
-    public object? GetService(Type serviceType, object? serviceKey = null)
-    {
-        return null;
-    }
-
-    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
-            return response?.Models?
-                .Select(m => new ModelInfo(
-                    m.Name ?? "unknown",
-                    ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
-                    new Dictionary<string, string>
-                    {
-                        ["size"] = m.Size.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        ["modified_at"] = m.ModifiedAt ?? string.Empty
-                    }))
-                .ToArray() ?? [];
-        }
-        catch (HttpRequestException)
-        {
-            // Ollama not running - return empty list
-            return [];
-        }
-    }
+    public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
     private OllamaChatRequest BuildRequest(IEnumerable<ChatMessage> messages, ChatOptions? options, bool stream)
     {
         return new OllamaChatRequest
         {
             Model = options?.ModelId ?? _defaultModel,
-            Messages = [.. messages.Select(m => new OllamaMessage
-            {
-                Role = m.Role.Value,
-                Content = m.Text ?? string.Empty
-            })],
+            Messages =
+            [
+                .. messages.Select(m => new OllamaMessage
+                {
+                    Role = m.Role.Value,
+                    Content = m.Text ?? string.Empty
+                })
+            ],
             Stream = stream,
             Options = options?.Temperature is { } temp
-                ? new OllamaOptions { Temperature = temp }
+                ? new OllamaOptions
+                {
+                    Temperature = temp
+                }
                 : null
         };
     }
@@ -169,6 +168,6 @@ internal sealed class OllamaModelInfo
 [JsonSerializable(typeof(OllamaChatRequest))]
 [JsonSerializable(typeof(OllamaChatResponse))]
 [JsonSerializable(typeof(OllamaTagsResponse))]
-internal sealed partial class OllamaJsonContext : JsonSerializerContext
+internal sealed class OllamaJsonContext : JsonSerializerContext
 {
 }

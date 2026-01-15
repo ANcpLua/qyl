@@ -11,50 +11,30 @@ internal static class DuckDbTestHelpers
     public static DuckDbStore CreateInMemoryStore(
         int jobQueueCapacity = TestConstants.DefaultJobQueueCapacity,
         int maxConcurrentReads = TestConstants.DefaultMaxConcurrentReads,
-        int maxRetainedReadConnections = TestConstants.DefaultMaxRetainedReadConnections)
-    {
-        return new DuckDbStore(
+        int maxRetainedReadConnections = TestConstants.DefaultMaxRetainedReadConnections) =>
+        new DuckDbStore(
             TestConstants.InMemoryDb,
             jobQueueCapacity,
             maxConcurrentReads,
             maxRetainedReadConnections);
-    }
 
     /// <summary>Waits for schema initialization.</summary>
-    public static Task WaitForSchemaInit()
-    {
-        return Task.Delay(TestConstants.SchemaInitDelayMs);
-    }
+    public static Task WaitForSchemaInit() => Task.Delay(TestConstants.SchemaInitDelayMs);
 
     /// <summary>Waits for single span processing.</summary>
-    public static Task WaitForSingleSpan()
-    {
-        return Task.Delay(TestConstants.SingleSpanProcessingDelayMs);
-    }
+    public static Task WaitForSingleSpan() => Task.Delay(TestConstants.SingleSpanProcessingDelayMs);
 
     /// <summary>Waits for batch processing.</summary>
-    public static Task WaitForBatch()
-    {
-        return Task.Delay(TestConstants.BatchProcessingDelayMs);
-    }
+    public static Task WaitForBatch() => Task.Delay(TestConstants.BatchProcessingDelayMs);
 
     /// <summary>Waits for large batch processing.</summary>
-    public static Task WaitForLargeBatch()
-    {
-        return Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
-    }
+    public static Task WaitForLargeBatch() => Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
 
     /// <summary>Waits for archive processing.</summary>
-    public static Task WaitForArchive()
-    {
-        return Task.Delay(TestConstants.ArchiveProcessingDelayMs);
-    }
+    public static Task WaitForArchive() => Task.Delay(TestConstants.ArchiveProcessingDelayMs);
 
     /// <summary>Waits for concurrent read operations.</summary>
-    public static Task WaitForConcurrentReads()
-    {
-        return Task.Delay(TestConstants.ConcurrentReadDelayMs);
-    }
+    public static Task WaitForConcurrentReads() => Task.Delay(TestConstants.ConcurrentReadDelayMs);
 
     /// <summary>Writes a batch synchronously (waits for completion).</summary>
     public static async Task EnqueueAndWaitAsync(DuckDbStore store, SpanBatch batch,
@@ -92,10 +72,7 @@ internal static class DuckDbTestHelpers
     }
 
     /// <summary>Gets parquet files from a directory.</summary>
-    public static string[] GetParquetFiles(string directory)
-    {
-        return Directory.GetFiles(directory, "*.parquet");
-    }
+    public static string[] GetParquetFiles(string directory) => Directory.GetFiles(directory, "*.parquet");
 }
 
 /// <summary>
@@ -114,7 +91,10 @@ internal static class DuckDbQueryExtensions
             FROM information_schema.columns
             WHERE table_name = $1
             ORDER BY ordinal_position";
-        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = tableName
+        });
 
         var columns = new List<(string, string)>();
         await using var reader = await cmd.ExecuteReaderAsync();
@@ -132,7 +112,10 @@ internal static class DuckDbQueryExtensions
             SELECT COUNT(*)
             FROM information_schema.tables
             WHERE table_name = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = tableName
+        });
 
         var count = Convert.ToInt64(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         return count == 1;
@@ -149,7 +132,10 @@ internal static class DuckDbQueryExtensions
             SELECT COUNT(*)
             FROM duckdb_indexes()
             WHERE table_name = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = tableName });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = tableName
+        });
 
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
@@ -164,8 +150,14 @@ internal static class DuckDbQueryExtensions
         cmd.CommandText = @"
             SELECT COUNT(*) FROM spans
             WHERE trace_id = $1 AND span_id = $2";
-        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = spanId });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = traceId
+        });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = spanId
+        });
 
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
@@ -177,7 +169,10 @@ internal static class DuckDbQueryExtensions
     {
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = "SELECT duration_ms FROM spans WHERE span_id = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = spanId });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = spanId
+        });
 
         return Convert.ToDouble(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
@@ -188,20 +183,11 @@ internal static class DuckDbQueryExtensions
 /// </summary>
 internal sealed class TempDirectory : IDisposable
 {
-    public TempDirectory()
-    {
-        Path = DuckDbTestHelpers.CreateTempDirectory();
-    }
+    public TempDirectory() => Path = DuckDbTestHelpers.CreateTempDirectory();
 
     public string Path { get; }
 
-    public void Dispose()
-    {
-        DuckDbTestHelpers.CleanupTempDirectory(Path);
-    }
+    public void Dispose() => DuckDbTestHelpers.CleanupTempDirectory(Path);
 
-    public string[] GetParquetFiles()
-    {
-        return DuckDbTestHelpers.GetParquetFiles(Path);
-    }
+    public string[] GetParquetFiles() => DuckDbTestHelpers.GetParquetFiles(Path);
 }

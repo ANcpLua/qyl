@@ -1,16 +1,13 @@
-using System.Collections.Frozen;
-
 namespace TelemetryLab.Net10.Api.Domain.Telemetry;
 
 /// <summary>
-/// OpenTelemetry Semantic Conventions v1.38 - Gen AI Attributes
-///
-/// This demonstrates the pattern from qyl's generated code:
-/// - String constants for attribute keys
-/// - UTF-8 spans for zero-allocation parsing
-/// - SearchValues&lt;string&gt; for O(1) prefix matching
-/// - FrozenSet/FrozenDictionary for immutable lookups
-/// - Well-known values with validation
+///     OpenTelemetry Semantic Conventions v1.38 - Gen AI Attributes
+///     This demonstrates the pattern from qyl's generated code:
+///     - String constants for attribute keys
+///     - UTF-8 spans for zero-allocation parsing
+///     - SearchValues&lt;string&gt; for O(1) prefix matching
+///     - FrozenSet/FrozenDictionary for immutable lookups
+///     - Well-known values with validation
 /// </summary>
 public static class OTelSemconv
 {
@@ -75,24 +72,44 @@ public static class OTelSemconv
     // ═══════════════════════════════════════════════════════════════════════════
 
     /// <summary>
-    /// Prefixes for Gen AI and Agent attributes.
+    ///     Prefixes for Gen AI and Agent attributes.
     /// </summary>
     private static readonly FrozenSet<string> GenAiAndAgentPrefixes =
         FrozenSet.ToFrozenSet(["gen_ai.", "agents."]);
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Deprecated Attribute Migrations
+    // ═══════════════════════════════════════════════════════════════════════════
+
     /// <summary>
-    /// Check if an attribute key is a Gen AI or Agent attribute.
+    ///     Maps deprecated attribute names to their current equivalents.
+    /// </summary>
+    public static readonly FrozenDictionary<string, string> Migrations =
+        new Dictionary<string, string>
+        {
+            ["gen_ai.system"] = ProviderName // Deprecated → gen_ai.provider.name
+        }.ToFrozenDictionary();
+
+    /// <summary>
+    ///     Check if an attribute key is a Gen AI or Agent attribute.
     /// </summary>
     public static bool IsGenAiOrAgentAttribute(string key)
         => key.StartsWith("gen_ai.", StringComparison.Ordinal) ||
            key.StartsWith("agents.", StringComparison.Ordinal);
 
     /// <summary>
-    /// Check if an attribute key is a Gen AI or Agent attribute (span version).
+    ///     Check if an attribute key is a Gen AI or Agent attribute (span version).
     /// </summary>
     public static bool IsGenAiOrAgentAttribute(ReadOnlySpan<char> key)
         => key.StartsWith("gen_ai.".AsSpan(), StringComparison.Ordinal) ||
            key.StartsWith("agents.".AsSpan(), StringComparison.Ordinal);
+
+    /// <summary>
+    ///     Normalizes an attribute key to the current schema.
+    ///     Returns the current name if the key is deprecated, otherwise returns the key unchanged.
+    /// </summary>
+    public static string Normalize(string key)
+        => Migrations.GetValueOrDefault(key, key);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Well-Known Values
@@ -134,24 +151,4 @@ public static class OTelSemconv
         public static bool IsValid(string? value)
             => value is not null && ValidValues.Contains(value);
     }
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Deprecated Attribute Migrations
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Maps deprecated attribute names to their current equivalents.
-    /// </summary>
-    public static readonly FrozenDictionary<string, string> Migrations =
-        new Dictionary<string, string>
-        {
-            ["gen_ai.system"] = ProviderName,  // Deprecated → gen_ai.provider.name
-        }.ToFrozenDictionary();
-
-    /// <summary>
-    /// Normalizes an attribute key to the current schema.
-    /// Returns the current name if the key is deprecated, otherwise returns the key unchanged.
-    /// </summary>
-    public static string Normalize(string key)
-        => Migrations.GetValueOrDefault(key, key);
 }

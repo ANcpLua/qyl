@@ -56,7 +56,10 @@ public static class OtlpConverter
         List<OtlpKeyValueProto>? protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["service.name"] = serviceName
+        };
 
         if (protoAttributes is null) return attributes;
 
@@ -169,7 +172,10 @@ public static class OtlpConverter
         List<OtlpKeyValue>? jsonAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["service.name"] = serviceName
+        };
 
         if (jsonAttributes is null) return attributes;
 
@@ -292,7 +298,7 @@ public static class OtlpConverter
         3 => 3, // CLIENT
         4 => 4, // PRODUCER
         5 => 5, // CONSUMER
-        _ => 0  // UNSPECIFIED
+        _ => 0 // UNSPECIFIED
     };
 
     /// <summary>
@@ -302,7 +308,7 @@ public static class OtlpConverter
     {
         1 => 1, // OK
         2 => 2, // ERROR
-        _ => 0  // UNSET
+        _ => 0 // UNSET
     };
 
     private static long? ParseNullableLong(string? value)

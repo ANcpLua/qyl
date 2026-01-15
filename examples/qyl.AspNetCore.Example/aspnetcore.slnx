@@ -1,12 +1,12 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="qyl.AspNetCore.Example.csproj" />
-  </Folder>
-  <Folder Name="/Solution Items/">
-    <File Path="README.md" />
-    <File Path="CLAUDE.md" />
-    <File Path="appsettings.json" />
-    <File Path="docker-compose.yml" />
-    <File Path="Dockerfile" />
-  </Folder>
+    <Folder Name="/src/">
+        <Project Path="qyl.AspNetCore.Example.csproj"/>
+    </Folder>
+    <Folder Name="/Solution Items/">
+        <File Path="README.md"/>
+        <File Path="CLAUDE.md"/>
+        <File Path="appsettings.json"/>
+        <File Path="docker-compose.yml"/>
+        <File Path="Dockerfile"/>
+    </Folder>
 </Solution>

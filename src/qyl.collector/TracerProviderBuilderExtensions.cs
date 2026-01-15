@@ -1,5 +1,3 @@
-using OpenTelemetry.Trace;
-
 namespace qyl.collector;
 
 public static class TracerProviderBuilderExtensions

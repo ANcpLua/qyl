@@ -1,6 +1,6 @@
 # qyl.mcp
 
-MCP Server for AI agent integration. HTTP client to collector.
+MCP Server for AI agent self-introspection.
 
 ## identity
 
@@ -10,97 +10,141 @@ type: console-app
 sdk: ANcpLua.NET.Sdk
 protocol: model-context-protocol
 transport: stdio
+purpose: let agents query their own telemetry
 ```
 
 ## connection
 
 ```yaml
 to-collector:
-  method: http
+  method: http-only
   base-url: http://localhost:5100
-  endpoints-used:
+  endpoints:
     - /api/v1/sessions
     - /api/v1/sessions/{id}
     - /api/v1/sessions/{id}/spans
     - /api/v1/traces/{traceId}
+    - /api/v1/stats/tokens
+    - /api/v1/stats/latency
 
 forbidden:
-  - project-reference to qyl.collector
-  - direct DuckDB access
-  reason: must remain decoupled, http-only
+  - ProjectReference to qyl.collector
+  - Direct DuckDB access
+  reason: must remain decoupled
 ```
 
 ## mcp-tools
 
 ```yaml
 tools:
-  - name: qyl.search_agent_runs
+  qyl.search_agent_runs:
     description: Search for agent runs by time range or filters
     parameters:
-      - name: start_time
-        type: datetime
-        optional: true
-      - name: end_time
-        type: datetime
-        optional: true
-      - name: service_name
-        type: string
-        optional: true
-        
-  - name: qyl.get_agent_run
+      start_time: datetime (optional)
+      end_time: datetime (optional)
+      service_name: string (optional)
+    returns: SessionSummary[]
+    
+  qyl.get_agent_run:
     description: Get details of a specific session
     parameters:
-      - name: session_id
-        type: string
-        required: true
-        
-  - name: qyl.get_token_usage
+      session_id: string (required)
+    returns: SessionSummary + SpanRecord[]
+    
+  qyl.get_token_usage:
     description: Get token usage statistics
     parameters:
-      - name: session_id
-        type: string
-        optional: true
-      - name: time_range
-        type: string
-        optional: true
-        
-  - name: qyl.list_errors
+      session_id: string (optional)
+      time_range: string (optional, e.g. "1h", "24h", "7d")
+    returns: { input_tokens, output_tokens, cost_usd }
+    
+  qyl.list_errors:
     description: List error spans
     parameters:
-      - name: session_id
-        type: string
-        optional: true
-      - name: limit
-        type: int
-        default: 10
-        
-  - name: qyl.get_latency_stats
+      session_id: string (optional)
+      limit: int (default: 10)
+    returns: SpanRecord[] where status_code = ERROR
+    
+  qyl.get_latency_stats:
     description: Get latency percentiles
     parameters:
-      - name: session_id
-        type: string
-        optional: true
+      session_id: string (optional)
+      operation: string (optional)
+    returns: { p50, p90, p99, avg, min, max }
+    
+  qyl.get_span_tree:
+    description: Get hierarchical trace view
+    parameters:
+      trace_id: string (required)
+    returns: TraceNode (recursive)
 ```
 
-## http-client-pattern
+## http-client
 
 ```yaml
 pattern: |
-  public class QylClient(HttpClient http)
+  public sealed class QylClient(HttpClient http)
   {
-      public async Task<SessionSummary[]> GetSessionsAsync(CancellationToken ct = default)
+      public async Task<SessionSummary[]> GetSessionsAsync(
+          DateTimeOffset? start = null,
+          DateTimeOffset? end = null,
+          string? serviceName = null,
+          CancellationToken ct = default)
       {
-          var response = await http.GetAsync("/api/v1/sessions", ct);
+          var query = new List<string>();
+          if (start.HasValue) query.Add($"start={start.Value:O}");
+          if (end.HasValue) query.Add($"end={end.Value:O}");
+          if (serviceName != null) query.Add($"service={Uri.EscapeDataString(serviceName)}");
+          
+          var url = query.Count > 0 
+              ? $"/api/v1/sessions?{string.Join("&", query)}"
+              : "/api/v1/sessions";
+              
+          var response = await http.GetAsync(url, ct);
           response.EnsureSuccessStatusCode();
-          return await response.Content.ReadFromJsonAsync<SessionSummary[]>(ct);
+          return await response.Content.ReadFromJsonAsync<SessionSummary[]>(s_options, ct) 
+              ?? [];
       }
+      
+      // ... other methods ...
+      
+      private static readonly JsonSerializerOptions s_options = new()
+      {
+          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+      };
   }
 
 registration: |
   services.AddHttpClient<QylClient>(client =>
   {
-      client.BaseAddress = new Uri("http://localhost:5100");
+      var baseUrl = Environment.GetEnvironmentVariable("QYL_URL") 
+          ?? "http://localhost:5100";
+      client.BaseAddress = new Uri(baseUrl);
   });
+```
+
+## mcp-server-pattern
+
+```yaml
+entry: |
+  var builder = McpServer.CreateBuilder();
+  
+  builder.AddTool("qyl.search_agent_runs", 
+      "Search for agent runs by time range or filters",
+      async (params, ct) => 
+      {
+          var client = services.GetRequiredService<QylClient>();
+          var sessions = await client.GetSessionsAsync(
+              params.GetDateTime("start_time"),
+              params.GetDateTime("end_time"),
+              params.GetString("service_name"),
+              ct);
+          return McpResult.Json(sessions);
+      });
+  
+  // ... other tools ...
+  
+  await builder.Build().RunAsync();
 ```
 
 ## dependencies
@@ -108,10 +152,11 @@ registration: |
 ```yaml
 project-references:
   - qyl.protocol
-  
+
 packages:
   - Microsoft.Extensions.Http
   - System.Text.Json
+  # MCP SDK when available
 
 forbidden:
   - qyl.collector
@@ -121,6 +166,40 @@ forbidden:
 ## invocation
 
 ```yaml
-standalone: dotnet run --project src/qyl.mcp
-with-claude: claude --mcp qyl
+standalone: |
+  dotnet run --project src/qyl.mcp
+  
+with-claude: |
+  # In Claude's MCP config
+  {
+    "mcpServers": {
+      "qyl": {
+        "command": "dotnet",
+        "args": ["run", "--project", "/path/to/qyl.mcp"]
+      }
+    }
+  }
+
+environment:
+  QYL_URL: http://localhost:5100 (default)
+```
+
+## use-case
+
+```yaml
+scenario: |
+  Claude is working on code. It makes API calls. 
+  Later, Claude can ask qyl.mcp:
+  
+  "What did I do in the last hour?"
+  → qyl.search_agent_runs(start_time=now-1h)
+  
+  "How many tokens did I use?"
+  → qyl.get_token_usage(time_range="1h")
+  
+  "Were there any errors?"
+  → qyl.list_errors(limit=5)
+  
+  "Show me the trace for that failed request"
+  → qyl.get_span_tree(trace_id="abc123...")
 ```

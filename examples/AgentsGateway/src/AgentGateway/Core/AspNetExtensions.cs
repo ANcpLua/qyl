@@ -1,13 +1,3 @@
-using System.Collections.Concurrent;
-using System.Globalization;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.Agents.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Protocols;
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.IdentityModel.Validators;
-
 namespace AgentGateway.Core;
 
 public static class AspNetExtensions

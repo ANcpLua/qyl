@@ -1,14 +1,6 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Diagnostics.CodeAnalysis;
-using System.Text;
-using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Context.Propagation;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-
 namespace Utils.Messaging;
 
 public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposable

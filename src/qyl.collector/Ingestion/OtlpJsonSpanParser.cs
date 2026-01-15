@@ -3,8 +3,6 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
 // =============================================================================
 
-using System.Buffers.Text;
-
 namespace qyl.collector.Ingestion;
 
 /// <summary>
@@ -45,11 +43,17 @@ public ref struct OtlpJsonSpanParser
 
     public OtlpJsonSpanParser(ReadOnlySpan<byte> json) =>
         _reader = new Utf8JsonReader(json,
-            new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+            new JsonReaderOptions
+            {
+                AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip
+            });
 
     public OtlpJsonSpanParser(ReadOnlySequence<byte> json) =>
         _reader = new Utf8JsonReader(json,
-            new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
+            new JsonReaderOptions
+            {
+                AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip
+            });
 
     /// <summary>
     ///     Parse OTLP ExportTraceServiceRequest JSON into spans.

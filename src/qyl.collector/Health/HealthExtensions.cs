@@ -1,7 +1,3 @@
-using System.Runtime.InteropServices;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Microsoft.Extensions.Diagnostics.ResourceMonitoring;
-
 namespace qyl.collector.Health;
 
 /// <summary>
@@ -32,13 +28,11 @@ public static class HealthExtensions
             {
                 options.CpuThresholds = new ResourceUsageThresholds
                 {
-                    DegradedUtilizationPercentage = 80,
-                    UnhealthyUtilizationPercentage = 95
+                    DegradedUtilizationPercentage = 80, UnhealthyUtilizationPercentage = 95
                 };
                 options.MemoryThresholds = new ResourceUsageThresholds
                 {
-                    DegradedUtilizationPercentage = 85,
-                    UnhealthyUtilizationPercentage = 95
+                    DegradedUtilizationPercentage = 85, UnhealthyUtilizationPercentage = 95
                 };
             }, tags: ["resources", "live"]);
 

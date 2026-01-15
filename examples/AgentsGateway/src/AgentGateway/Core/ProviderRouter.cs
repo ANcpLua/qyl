@@ -1,7 +1,3 @@
-using Microsoft.Extensions.AI;
-using Polly;
-using Polly.Retry;
-
 namespace AgentGateway.Core;
 
 public interface IProviderSelectionPolicy
@@ -65,7 +61,7 @@ public sealed class ProviderRouterChatClient : IChatClient
     {
         return _pipeline.ExecuteAsync(async ct =>
         {
-                        var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
+            var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
             if (modelId != null)
             {
                 options ??= new ChatOptions();
@@ -80,7 +76,7 @@ public sealed class ProviderRouterChatClient : IChatClient
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
         ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
-                    var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
+        var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
         if (modelId != null)
         {
             options ??= new ChatOptions();

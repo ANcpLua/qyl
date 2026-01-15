@@ -1,5 +1,3 @@
-using System.Net;
-
 namespace qyl.collector.tests.Integration;
 
 /// <summary>
@@ -11,10 +9,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     private readonly QylWebApplicationFactory _factory;
     private HttpClient _client = null!;
 
-    public ApiIntegrationTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
+    public ApiIntegrationTests(QylWebApplicationFactory factory) => _factory = factory;
 
     public ValueTask InitializeAsync()
     {
@@ -77,7 +72,10 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     {
         // Note: In test environment, token might not be correctly set
         // This tests that the endpoint is accessible
-        var loginRequest = new { token = QylWebApplicationFactory.TestToken };
+        var loginRequest = new
+        {
+            token = QylWebApplicationFactory.TestToken
+        };
         var response = await _client.PostAsJsonAsync("/api/login", loginRequest);
 
         // Login should return OK with valid token or BadRequest with invalid
@@ -90,7 +88,10 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task Login_WithInvalidToken_ReturnsBadRequest()
     {
-        var loginRequest = new { token = "invalid-token" };
+        var loginRequest = new
+        {
+            token = "invalid-token"
+        };
         var response = await _client.PostAsJsonAsync("/api/login", loginRequest);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);

@@ -88,11 +88,11 @@ public sealed class ExportTraceServiceRequest
 public sealed class ExportTraceServiceResponse
 {
     public static Marshaller<ExportTraceServiceResponse> Marshaller { get; } = Marshallers.Create(
-static (_, _) =>
+        static (_, _) =>
         {
             /* Empty response for success (per OTLP spec) */
         },
-static _ => new ExportTraceServiceResponse());
+        static _ => new ExportTraceServiceResponse());
 }
 
 #endregion

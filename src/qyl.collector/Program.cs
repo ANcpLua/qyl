@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using qyl.collector;
 using qyl.collector.Auth;
 using qyl.collector.Grpc;
-using qyl.collector.Health;
 using qyl.collector.Mapping;
 using qyl.collector.Mcp;
 using qyl.collector.Telemetry;
@@ -40,7 +38,10 @@ builder.Services.AddGrpc(options =>
 });
 builder.Services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceServiceMethodProvider>();
 
-builder.Services.AddSingleton(new TokenAuthOptions { Token = token });
+builder.Services.AddSingleton(new TokenAuthOptions
+{
+    Token = token
+});
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<McpServer>();
@@ -48,16 +49,13 @@ builder.Services.AddSingleton<McpServer>();
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
 {
-    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
-    AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
+    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"], AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
 };
 
 // OTLP API key configuration
 var otlpApiKeyOptions = new OtlpApiKeyOptions
 {
-    AuthMode = builder.Configuration["QYL_OTLP_AUTH_MODE"] ?? "Unsecured",
-    PrimaryApiKey = builder.Configuration["QYL_OTLP_PRIMARY_API_KEY"],
-    SecondaryApiKey = builder.Configuration["QYL_OTLP_SECONDARY_API_KEY"]
+    AuthMode = builder.Configuration["QYL_OTLP_AUTH_MODE"] ?? "Unsecured", PrimaryApiKey = builder.Configuration["QYL_OTLP_PRIMARY_API_KEY"], SecondaryApiKey = builder.Configuration["QYL_OTLP_SECONDARY_API_KEY"]
 };
 
 builder.Services.AddSingleton(otlpCorsOptions);
@@ -138,7 +136,10 @@ app.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
 app.MapPost("/api/logout", (HttpContext context) =>
 {
     context.Response.Cookies.Delete("qyl_token");
-    return Results.Ok(new { success = true });
+    return Results.Ok(new
+    {
+        success = true
+    });
 });
 
 app.MapGet("/api/auth/check", (HttpContext context) =>
@@ -261,7 +262,10 @@ app.MapPost("/v1/logs", async (
 
 app.MapPost("/api/v1/feedback", () => Results.Accepted());
 app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
-    Results.Ok(new { feedback = Array.Empty<object>() }));
+    Results.Ok(new
+    {
+        feedback = Array.Empty<object>()
+    }));
 
 app.MapPost("/api/v1/console", (ConsoleIngestBatch batch, FrontendConsole console) =>
 {
@@ -290,7 +294,10 @@ app.MapGet("/api/v1/logs", async (
         limit: limit ?? 500,
         ct: ct);
 
-    return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
+    return Results.Ok(new
+    {
+        logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500)
+    });
 });
 
 app.MapGet("/api/v1/console", (FrontendConsole console, string? session, string? level, int? limit) =>
@@ -634,7 +641,10 @@ namespace qyl.collector
             }
 
             var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
-            return Results.Ok(new SpanListResponseDto { Spans = spanDtos });
+            return Results.Ok(new SpanListResponseDto
+            {
+                Spans = spanDtos
+            });
         }
 
         [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
@@ -1159,5 +1169,5 @@ namespace qyl.collector
     [JsonSerializable(typeof(List<LogStorageRow>))]
     [JsonSerializable(typeof(string[]))]
     [JsonSerializable(typeof(OtlpEventJson[]))]
-    public partial class QylSerializerContext : JsonSerializerContext;
+    public class QylSerializerContext : JsonSerializerContext;
 }

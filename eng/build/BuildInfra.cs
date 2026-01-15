@@ -4,12 +4,7 @@
 // Docker image builds, Compose orchestration
 // =============================================================================
 
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.Docker;
-using Serilog;
-using static Nuke.Common.Tools.Docker.DockerTasks;
+
 
 // ════════════════════════════════════════════════════════════════════════════════
 // IDocker - Container Build & Orchestration
@@ -19,14 +14,11 @@ using static Nuke.Common.Tools.Docker.DockerTasks;
 interface IDocker : IHasSolution
 {
     // ─── Image Build Parameters ─────────────────────────────────────────────
-    [Parameter("Docker image tag")]
-    string ImageTag => "latest";
+    [Parameter("Docker image tag")] string ImageTag => "latest";
 
-    [Parameter("Docker registry prefix")]
-    string? Registry => TryGetValue(() => Registry);
+    [Parameter("Docker registry prefix")] string? Registry => TryGetValue(() => Registry);
 
-    [Parameter("Push images after build")]
-    bool? Push => TryGetValue<bool?>(() => Push);
+    [Parameter("Push images after build")] bool? Push => TryGetValue<bool?>(() => Push);
 
     [Parameter("Build images in parallel (default: true)")]
     bool ParallelBuild => true;
@@ -44,8 +36,7 @@ interface IDocker : IHasSolution
     [Parameter("Number of log lines to tail")]
     int? LogTail => TryGetValue<int?>(() => LogTail);
 
-    [Parameter("Target specific service")]
-    string? Service => TryGetValue(() => Service);
+    [Parameter("Target specific service")] string? Service => TryGetValue(() => Service);
 
     // ─── Image Specs ────────────────────────────────────────────────────────
     private (string Name, AbsolutePath Dockerfile, string Tag)[] ImageSpecs =>

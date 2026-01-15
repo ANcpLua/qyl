@@ -1,11 +1,8 @@
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
-
 namespace qyl.mcp.Tools;
 
 /// <summary>
-/// HTTP-based telemetry store querying qyl.collector REST API.
-/// Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
+///     HTTP-based telemetry store querying qyl.collector REST API.
+///     Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
 /// </summary>
 public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : ITelemetryStore
 {
@@ -142,7 +139,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
         var start = ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime;
         var end = ParseTime(s.EndTime);
 
-        return new(
+        return new AgentRun(
             s.SessionId,
             s.ServiceName ?? "unknown",
             s.Providers?.FirstOrDefault(),
@@ -174,16 +171,26 @@ internal sealed record StoreSessionList(
     [property: JsonPropertyName("total")] int Total);
 
 internal sealed record StoreSession(
-    [property: JsonPropertyName("session_id")] string SessionId,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("span_count")] int SpanCount,
-    [property: JsonPropertyName("error_count")] int ErrorCount,
-    [property: JsonPropertyName("total_input_tokens")] long TotalInputTokens,
-    [property: JsonPropertyName("total_output_tokens")] long TotalOutputTokens,
-    [property: JsonPropertyName("total_cost_usd")] double TotalCostUsd,
-    [property: JsonPropertyName("start_time")] string? StartTime,
-    [property: JsonPropertyName("end_time")] string? EndTime,
-    [property: JsonPropertyName("providers")] List<string>? Providers,
+    [property: JsonPropertyName("session_id")]
+    string SessionId,
+    [property: JsonPropertyName("service_name")]
+    string? ServiceName,
+    [property: JsonPropertyName("span_count")]
+    int SpanCount,
+    [property: JsonPropertyName("error_count")]
+    int ErrorCount,
+    [property: JsonPropertyName("total_input_tokens")]
+    long TotalInputTokens,
+    [property: JsonPropertyName("total_output_tokens")]
+    long TotalOutputTokens,
+    [property: JsonPropertyName("total_cost_usd")]
+    double TotalCostUsd,
+    [property: JsonPropertyName("start_time")]
+    string? StartTime,
+    [property: JsonPropertyName("end_time")]
+    string? EndTime,
+    [property: JsonPropertyName("providers")]
+    List<string>? Providers,
     [property: JsonPropertyName("models")] List<string>? Models);
 
 #endregion
@@ -191,4 +198,4 @@ internal sealed record StoreSession(
 [JsonSerializable(typeof(StoreSessionList))]
 [JsonSerializable(typeof(StoreSession))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-internal sealed partial class HttpStoreJsonContext : JsonSerializerContext;
+internal sealed class HttpStoreJsonContext : JsonSerializerContext;

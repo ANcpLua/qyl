@@ -5,12 +5,7 @@
 // TODO: Integrate ANcpLua.Roslyn.Utilities.Testing when API is finalized
 // =============================================================================
 
-using System.IO;
-using System.Linq;
-using Context;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Serilog;
+
 
 // ════════════════════════════════════════════════════════════════════════════════
 // IVerify - Generated Code Validation (Stub)
@@ -79,13 +74,9 @@ interface IVerify : IHasSolution
 
             // Basic syntax check
             if (content.Contains("CREATE TABLE") && content.Contains("PRIMARY KEY"))
-            {
                 Log.Information("DuckDB schema structure: VALID");
-            }
             else
-            {
                 Log.Warning("DuckDB schema may be incomplete");
-            }
 
             // TODO: Execute DDL against in-memory DuckDB for full validation
         });

@@ -1,5 +1,3 @@
-using Microsoft.AspNetCore.WebUtilities;
-
 namespace qyl.collector.Auth;
 
 public static class TokenGenerator

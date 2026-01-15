@@ -5,14 +5,7 @@
 // One command: nuke Generate (does everything)
 // =============================================================================
 
-using System.IO;
-using Context;
 using Domain.CodeGen;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.Npm;
-using Serilog;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // IPipeline - Unified Code Generation Interface
@@ -96,9 +89,7 @@ interface IPipeline : IHasSolution
                 Log.Information("OpenAPI generated: {Output} ({Size:N0} bytes)", OpenApiOutput, size);
             }
             else
-            {
                 Log.Warning("OpenAPI output not found at {Output}", OpenApiOutput);
-            }
         });
 
     Target TypeSpecInfo => d => d

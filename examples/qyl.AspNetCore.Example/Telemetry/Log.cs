@@ -1,19 +1,14 @@
-using Microsoft.Extensions.Logging;
-using TelemetryLab.Contracts.Models;
-
 namespace TelemetryLab.Net10.Api.Domain.Telemetry;
 
 /// <summary>
-/// .NET 10 Source-Generated Logging
-///
-/// Same features as .NET 9:
-/// ✅ [LoggerMessage] attribute
-/// ✅ [LogProperties] - automatic property logging
-/// ✅ [TagName] - OTel semantic convention tag names
-/// ✅ [TagProvider] - custom tag extraction
-/// ✅ Primary constructor logger
-///
-/// Plus .NET 10 runtime improvements to generated code.
+///     .NET 10 Source-Generated Logging
+///     Same features as .NET 9:
+///     ✅ [LoggerMessage] attribute
+///     ✅ [LogProperties] - automatic property logging
+///     ✅ [TagName] - OTel semantic convention tag names
+///     ✅ [TagProvider] - custom tag extraction
+///     ✅ Primary constructor logger
+///     Plus .NET 10 runtime improvements to generated code.
 /// </summary>
 public static partial class Log
 {

@@ -5,10 +5,6 @@
 // Single entry: nuke <target> or ./eng/build.sh <target>
 // =============================================================================
 
-using Nuke.Common;
-using Nuke.Common.CI.GitHubActions;
-using Serilog;
-
 [GitHubActions(
     "ci",
     GitHubActionsImage.UbuntuLatest,
@@ -24,8 +20,6 @@ sealed class Build : NukeBuild,
     IPipeline,
     IVerify
 {
-    public static int Main() => Execute<Build>(static x => ((ITest)x).Test);
-
     // ════════════════════════════════════════════════════════════════════════
     // Orchestration Targets
     // ════════════════════════════════════════════════════════════════════════
@@ -84,4 +78,6 @@ sealed class Build : NukeBuild,
             Log.Information("");
             Log.Information("  Run 'nuke FrontendDev' in another terminal for hot reload");
         });
+
+    public static int Main() => Execute<Build>(static x => ((ITest)x).Test);
 }

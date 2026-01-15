@@ -10,37 +10,37 @@ internal sealed class SpanBuilder
 {
     private static int _sCounter;
 
-    // Required fields
-    private string _traceId = "trace-000001";
-    private string _spanId = "span-000001";
-    private string _name = TestConstants.OperationDefault;
-    private byte _kind;
-    private ulong _startTimeUnixNano;
-    private ulong _endTimeUnixNano;
+    // Data
+    private string? _attributesJson;
     private ulong _durationNs;
-    private byte _statusCode;
-
-    // Optional fields
-    private string? _parentSpanId;
-    private string? _sessionId;
-    private string? _serviceName;
-    private string? _statusMessage;
+    private ulong _endTimeUnixNano;
+    private double? _genAiCostUsd;
+    private long? _genAiInputTokens;
+    private long? _genAiOutputTokens;
+    private string? _genAiRequestModel;
+    private string? _genAiResponseModel;
+    private string? _genAiStopReason;
 
     // GenAI fields
     private string? _genAiSystem;
-    private string? _genAiRequestModel;
-    private string? _genAiResponseModel;
-    private long? _genAiInputTokens;
-    private long? _genAiOutputTokens;
     private double? _genAiTemperature;
-    private string? _genAiStopReason;
-    private string? _genAiToolName;
     private string? _genAiToolCallId;
-    private double? _genAiCostUsd;
+    private string? _genAiToolName;
+    private byte _kind;
+    private string _name = TestConstants.OperationDefault;
 
-    // Data
-    private string? _attributesJson;
+    // Optional fields
+    private string? _parentSpanId;
     private string? _resourceJson;
+    private string? _serviceName;
+    private string? _sessionId;
+    private string _spanId = "span-000001";
+    private ulong _startTimeUnixNano;
+    private byte _statusCode;
+    private string? _statusMessage;
+
+    // Required fields
+    private string _traceId = "trace-000001";
 
     private SpanBuilder()
     {
@@ -92,14 +92,12 @@ internal sealed class SpanBuilder
     }
 
     /// <summary>Creates a GenAI span with provider, model, and token data.</summary>
-    public static SpanBuilder GenAi(string traceId, string spanId)
-    {
-        return Create(traceId, spanId)
+    public static SpanBuilder GenAi(string traceId, string spanId) =>
+        Create(traceId, spanId)
             .WithProvider(TestConstants.ProviderOpenAi)
             .WithModel(TestConstants.ModelGpt4)
             .WithTokens(TestConstants.TokensInDefault, TestConstants.TokensOutDefault)
             .WithCost(TestConstants.CostDefault);
-    }
 
     // Identity
     public SpanBuilder WithTraceId(string traceId)
@@ -210,7 +208,7 @@ internal sealed class SpanBuilder
         {
             1 => 1, // OK
             2 => 2, // ERROR
-            _ => 0  // UNSET
+            _ => 0 // UNSET
         };
         return this;
     }
@@ -287,24 +285,19 @@ internal sealed class SpanBuilder
 
     // Legacy compatibility - EvalScore/EvalReason not in new schema
     // These are no-ops for backward compatibility with existing tests
-    public SpanBuilder WithEval(float? score, string? reason = null)
-    {
+    public SpanBuilder WithEval(float? score, string? reason = null) =>
         // EvalScore and EvalReason are not in the new SpanStorageRow schema
         // Tests using these should be updated or removed
-        return this;
-    }
+        this;
 
-    public SpanBuilder WithEvents(string? events)
-    {
+    public SpanBuilder WithEvents(string? events) =>
         // Events are not in the new SpanStorageRow schema
         // Tests using these should be updated or removed
-        return this;
-    }
+        this;
 
     /// <summary>Builds the SpanStorageRow using object initializer.</summary>
-    public SpanStorageRow Build()
-    {
-        return new SpanStorageRow
+    public SpanStorageRow Build() =>
+        new SpanStorageRow
         {
             TraceId = _traceId,
             SpanId = _spanId,
@@ -331,19 +324,12 @@ internal sealed class SpanBuilder
             AttributesJson = _attributesJson,
             ResourceJson = _resourceJson
         };
-    }
 
     /// <summary>Builds and wraps in a SpanBatch.</summary>
-    public SpanBatch ToBatch()
-    {
-        return new SpanBatch([Build()]);
-    }
+    public SpanBatch ToBatch() => new SpanBatch([Build()]);
 
     /// <summary>Implicit conversion to SpanStorageRow.</summary>
-    public static implicit operator SpanStorageRow(SpanBuilder builder)
-    {
-        return builder.Build();
-    }
+    public static implicit operator SpanStorageRow(SpanBuilder builder) => builder.Build();
 
     /// <summary>Converts DateTime to Unix nanoseconds (ulong).</summary>
     private static ulong DateTimeToUnixNano(DateTime dt)
@@ -413,20 +399,19 @@ internal static class SpanFactory
             SpanBuilder.Create("trace-archive-old", "span-old")
                 .WithName("old")
                 .WithSessionId(sessionId)
-                .AtTime(oldTime, 0, TestConstants.DurationShortMs)
+                .AtTime(oldTime, 0)
                 .Build(),
             SpanBuilder.Create("trace-archive-new", "span-new")
                 .WithName("new")
                 .WithSessionId(sessionId)
-                .AtTime(now, 0, TestConstants.DurationShortMs)
+                .AtTime(now, 0)
                 .Build()
         ]);
     }
 
     /// <summary>Creates GenAI spans for stats testing.</summary>
-    public static SpanBatch CreateGenAiStats(string sessionId, DateTime baseTime)
-    {
-        return new SpanBatch(
+    public static SpanBatch CreateGenAiStats(string sessionId, DateTime baseTime) =>
+        new SpanBatch(
         [
             SpanBuilder.GenAi("trace-g1", "span-g1")
                 .WithName("gpt-call")
@@ -449,7 +434,6 @@ internal static class SpanFactory
                 .WithProvider(null)
                 .Build()
         ]);
-    }
 
     /// <summary>Creates a span with large JSON data for stress testing.</summary>
     public static SpanStorageRow CreateLargeDataSpan(string traceId, string spanId,

@@ -1,7 +1,3 @@
-using System.Reflection;
-using System.Text.Json.Serialization;
-using Microsoft.Extensions.AI;
-
 namespace AgentGateway.Core;
 
 public sealed record RegisteredProvider(
@@ -33,10 +29,7 @@ public sealed class ProviderRegistry : IProviderRegistry
         _providers[providerId] = new RegisteredProvider(providerId, displayName, caps, factory, catalogFactory);
     }
 
-    public bool TryGet(string providerId, out RegisteredProvider? provider)
-    {
-        return _providers.TryGetValue(providerId, out provider);
-    }
+    public bool TryGet(string providerId, out RegisteredProvider? provider) => _providers.TryGetValue(providerId, out provider);
 
     public IEnumerable<RegisteredProvider> All => _providers.Values;
 
@@ -61,7 +54,12 @@ public static class ProviderDiscovery
         var registry = new ProviderRegistry();
         services.AddSingleton<IProviderRegistry>(registry);
 
-        var assemblies = scan.Length > 0 ? scan : new[] { Assembly.GetExecutingAssembly() };
+        var assemblies = scan.Length > 0
+            ? scan
+            : new[]
+            {
+                Assembly.GetExecutingAssembly()
+            };
         foreach (var assembly in assemblies)
         foreach (var type in assembly.DefinedTypes)
             if (typeof(IChatClient).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)

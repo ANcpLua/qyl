@@ -3,10 +3,6 @@
 // Configures logging enrichment, redaction, buffering, HTTP logging
 // =============================================================================
 
-using Microsoft.Extensions.Diagnostics.Buffering;
-using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
-using Microsoft.Extensions.Diagnostics.Latency;
-
 namespace qyl.collector.Telemetry;
 
 /// <summary>

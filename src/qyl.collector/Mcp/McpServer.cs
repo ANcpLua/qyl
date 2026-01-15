@@ -252,10 +252,12 @@ public sealed class McpServer
     {
         var traceId = args?.GetProperty("trace_id").GetString();
         if (string.IsNullOrEmpty(traceId))
+        {
             return new McpResponse
             {
                 Error = "trace_id is required"
             };
+        }
 
         var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
@@ -432,8 +434,8 @@ public sealed class McpServer
 
         var logs = _console.Query(minLevel, session, pattern, limit);
         var formatted = logs.Select(static e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                         (e.Url is not null ? $" ({e.Url})" : "") +
-                                         (e.Stack is not null ? $"\n  {e.Stack}" : ""));
+                                                (e.Url is not null ? $" ({e.Url})" : "") +
+                                                (e.Stack is not null ? $"\n  {e.Stack}" : ""));
 
         return new McpResponse
         {
@@ -453,8 +455,8 @@ public sealed class McpServer
         var errors = _console.Errors(limit);
 
         var formatted = errors.Select(static e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
-                                           (e.Url is not null ? $"\n  URL: {e.Url}" : "") +
-                                           (e.Stack is not null ? $"\n  Stack: {e.Stack}" : ""));
+                                                  (e.Url is not null ? $"\n  URL: {e.Url}" : "") +
+                                                  (e.Stack is not null ? $"\n  Stack: {e.Stack}" : ""));
 
         return new McpResponse
         {

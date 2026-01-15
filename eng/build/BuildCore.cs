@@ -4,17 +4,7 @@
 // Foundation: Solution, paths, compilation, versioning
 // =============================================================================
 
-using System;
-using System.ComponentModel;
-using System.Linq;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Nuke.Common.ProjectModel;
-using Nuke.Common.Tooling;
-using Nuke.Common.Tools.DotNet;
-using Nuke.Common.Tools.GitVersion;
-using Serilog;
-using static Nuke.Common.Tools.DotNet.DotNetTasks;
+
 
 // ════════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -23,8 +13,16 @@ using static Nuke.Common.Tools.DotNet.DotNetTasks;
 [TypeConverter(typeof(TypeConverter<Configuration>))]
 sealed class Configuration : Enumeration
 {
-    public static readonly Configuration Debug = new() { Value = nameof(Debug) };
-    public static readonly Configuration Release = new() { Value = nameof(Release) };
+    public static readonly Configuration Debug = new()
+    {
+        Value = nameof(Debug)
+    };
+
+    public static readonly Configuration Release = new()
+    {
+        Value = nameof(Release)
+    };
+
     public static implicit operator string(Configuration c) => c.Value;
 }
 
@@ -34,8 +32,7 @@ sealed class Configuration : Enumeration
 
 interface IHasSolution : INukeBuild
 {
-    [Solution(GenerateProjects = true)]
-    Solution Solution => TryGetValue(() => Solution)!;
+    [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)!;
 
     // ─── Build Artifacts ────────────────────────────────────────────────────
     AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
@@ -74,7 +71,7 @@ namespace Context
     ///     Use <see cref="From" /> to create from a NUKE build instance.
     /// </summary>
     public sealed record BuildPaths(AbsolutePath Root)
-{
+    {
     // ─── Core (God Schema - Single Source of Truth) ─────────────────────────
     public AbsolutePath Core => Root / "core";
     public AbsolutePath TypeSpec => Core / "specs";
@@ -119,6 +116,7 @@ namespace Context
     // ─── Factory ────────────────────────────────────────────────────────────
     public static BuildPaths From(INukeBuild build) => new(build.RootDirectory);
 }
+
 } // namespace Context
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -184,8 +182,7 @@ interface ICompile : IHasSolution
 
 interface IVersionize : IHasSolution
 {
-    [PathVariable]
-    Tool Versionize => TryGetValue(() => Versionize)!;
+    [PathVariable] Tool Versionize => TryGetValue(() => Versionize)!;
 
     Target Changelog => d => d
         .Description("Generate CHANGELOG from conventional commits")

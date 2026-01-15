@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using qyl.collector.Ingestion;
 
 namespace qyl.collector.tests.Integration;
@@ -14,10 +11,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
     private readonly QylWebApplicationFactory _factory;
     private HttpClient _client = null!;
 
-    public SessionEndToEndTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
+    public SessionEndToEndTests(QylWebApplicationFactory factory) => _factory = factory;
 
     public ValueTask InitializeAsync()
     {
@@ -122,11 +116,20 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
                             new OtlpKeyValue
                             {
                                 Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "multi-span-service" }
+                                Value = new OtlpAnyValue
+                                {
+                                    StringValue = "multi-span-service"
+                                }
                             }
                         ]
                     },
-                    ScopeSpans = [new OtlpScopeSpans { Spans = spans }]
+                    ScopeSpans =
+                    [
+                        new OtlpScopeSpans
+                        {
+                            Spans = spans
+                        }
+                    ]
                 }
             ]
         };
@@ -176,7 +179,10 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
                             new OtlpKeyValue
                             {
                                 Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "e2e-test-service" }
+                                Value = new OtlpAnyValue
+                                {
+                                    StringValue = "e2e-test-service"
+                                }
                             }
                         ]
                     },
@@ -194,13 +200,19 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
                                     Kind = 1,
                                     StartTimeUnixNano = startNano,
                                     EndTimeUnixNano = endNano,
-                                    Status = new OtlpStatus { Code = 0 },
+                                    Status = new OtlpStatus
+                                    {
+                                        Code = 0
+                                    },
                                     Attributes =
                                     [
                                         new OtlpKeyValue
                                         {
                                             Key = "session.id",
-                                            Value = new OtlpAnyValue { StringValue = sessionId }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = sessionId
+                                            }
                                         }
                                     ]
                                 }
@@ -233,7 +245,10 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
                             new OtlpKeyValue
                             {
                                 Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "genai-e2e-service" }
+                                Value = new OtlpAnyValue
+                                {
+                                    StringValue = "genai-e2e-service"
+                                }
                             }
                         ]
                     },
@@ -251,33 +266,51 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
                                     Kind = 2,
                                     StartTimeUnixNano = startNano,
                                     EndTimeUnixNano = endNano,
-                                    Status = new OtlpStatus { Code = 0 },
+                                    Status = new OtlpStatus
+                                    {
+                                        Code = 0
+                                    },
                                     Attributes =
                                     [
                                         new OtlpKeyValue
                                         {
                                             Key = "session.id",
-                                            Value = new OtlpAnyValue { StringValue = sessionId }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = sessionId
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.provider.name",
-                                            Value = new OtlpAnyValue { StringValue = "openai" }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = "openai"
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.request.model",
-                                            Value = new OtlpAnyValue { StringValue = "gpt-4" }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = "gpt-4"
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.usage.input_tokens",
-                                            Value = new OtlpAnyValue { IntValue = inputTokens }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                IntValue = inputTokens
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.usage.output_tokens",
-                                            Value = new OtlpAnyValue { IntValue = outputTokens }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                IntValue = outputTokens
+                                            }
                                         }
                                     ]
                                 }
@@ -303,13 +336,19 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
             Kind = 1,
             StartTimeUnixNano = startNano,
             EndTimeUnixNano = endNano,
-            Status = new OtlpStatus { Code = 0 },
+            Status = new OtlpStatus
+            {
+                Code = 0
+            },
             Attributes =
             [
                 new OtlpKeyValue
                 {
                     Key = "session.id",
-                    Value = new OtlpAnyValue { StringValue = sessionId }
+                    Value = new OtlpAnyValue
+                    {
+                        StringValue = sessionId
+                    }
                 }
             ]
         };

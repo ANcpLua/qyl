@@ -1,15 +1,11 @@
-using System.Diagnostics;
-using System.Diagnostics.Metrics;
-
 namespace TelemetryLab.Net10.Api.Domain.Telemetry;
 
 /// <summary>
-/// .NET 10 Telemetry Setup
-///
-/// New features:
-/// ✅ ActivitySourceOptions with TelemetrySchemaUrl
-/// ✅ MeterOptions with TelemetrySchemaUrl
-/// ✅ Activity Links and Events serialization
+///     .NET 10 Telemetry Setup
+///     New features:
+///     ✅ ActivitySourceOptions with TelemetrySchemaUrl
+///     ✅ MeterOptions with TelemetrySchemaUrl
+///     ✅ Activity Links and Events serialization
 /// </summary>
 public static class AppTelemetry
 {
@@ -17,8 +13,8 @@ public static class AppTelemetry
     public const string ServiceVersion = "1.0.0";
 
     /// <summary>
-    /// OTel Semantic Conventions v1.38 schema URL.
-    /// This enables schema-aware telemetry processing and migration.
+    ///     OTel Semantic Conventions v1.38 schema URL.
+    ///     This enables schema-aware telemetry processing and migration.
     /// </summary>
     public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 
@@ -26,14 +22,14 @@ public static class AppTelemetry
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaUrl  // 🆕 .NET 10
+        TelemetrySchemaUrl = SchemaUrl // 🆕 .NET 10
     });
 
     // 🆕 .NET 10: MeterOptions with TelemetrySchemaUrl
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaUrl  // 🆕 .NET 10
+        TelemetrySchemaUrl = SchemaUrl // 🆕 .NET 10
     });
 
     // Metrics

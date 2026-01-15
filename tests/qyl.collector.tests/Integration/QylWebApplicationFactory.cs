@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Mvc.Testing;
 using qyl.collector.Auth;
 using qyl.collector.Query;
 using qyl.collector.Storage;
@@ -38,7 +37,10 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(authDescriptor);
 
             // Add test token auth
-            services.AddSingleton(new TokenAuthOptions { Token = TestToken });
+            services.AddSingleton(new TokenAuthOptions
+            {
+                Token = TestToken
+            });
 
             // Add SSE broadcaster for ingestion endpoints
             services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();

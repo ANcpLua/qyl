@@ -1,6 +1,3 @@
-using System.Net;
-using System.Text;
-using System.Text.Json;
 using qyl.collector.Ingestion;
 using qyl.collector.Storage;
 
@@ -20,10 +17,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     private readonly QylWebApplicationFactory _factory;
     private HttpClient _client = null!;
 
-    public OtlpIngestionTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
+    public OtlpIngestionTests(QylWebApplicationFactory factory) => _factory = factory;
 
     public ValueTask InitializeAsync()
     {
@@ -57,7 +51,10 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     [Fact]
     public async Task PostTraces_EmptyResourceSpans_ReturnsAccepted()
     {
-        var otlpRequest = new OtlpExportTraceServiceRequest { ResourceSpans = [] };
+        var otlpRequest = new OtlpExportTraceServiceRequest
+        {
+            ResourceSpans = []
+        };
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -111,7 +108,13 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
             .WithSessionId(TestConstants.SessionDefault)
             .Build();
 
-        var batch = new { Spans = new[] { MapSpanToDto(span) } };
+        var batch = new
+        {
+            Spans = new[]
+            {
+                MapSpanToDto(span)
+            }
+        };
         var json = JsonSerializer.Serialize(batch, s_snakeCaseOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -164,7 +167,10 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                             new OtlpKeyValue
                             {
                                 Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "test-service" }
+                                Value = new OtlpAnyValue
+                                {
+                                    StringValue = "test-service"
+                                }
                             }
                         ]
                     },
@@ -182,7 +188,10 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                                     Kind = 1,
                                     StartTimeUnixNano = startNano,
                                     EndTimeUnixNano = endNano,
-                                    Status = new OtlpStatus { Code = 0 },
+                                    Status = new OtlpStatus
+                                    {
+                                        Code = 0
+                                    },
                                     Attributes = []
                                 }
                             ]
@@ -212,7 +221,10 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                             new OtlpKeyValue
                             {
                                 Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "genai-service" }
+                                Value = new OtlpAnyValue
+                                {
+                                    StringValue = "genai-service"
+                                }
                             }
                         ]
                     },
@@ -230,33 +242,51 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                                     Kind = 2,
                                     StartTimeUnixNano = startNano,
                                     EndTimeUnixNano = endNano,
-                                    Status = new OtlpStatus { Code = 0 },
+                                    Status = new OtlpStatus
+                                    {
+                                        Code = 0
+                                    },
                                     Attributes =
                                     [
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.provider.name",
-                                            Value = new OtlpAnyValue { StringValue = "openai" }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = "openai"
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.request.model",
-                                            Value = new OtlpAnyValue { StringValue = "gpt-4" }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = "gpt-4"
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.usage.input_tokens",
-                                            Value = new OtlpAnyValue { IntValue = 100 }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                IntValue = 100
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "gen_ai.usage.output_tokens",
-                                            Value = new OtlpAnyValue { IntValue = 50 }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                IntValue = 50
+                                            }
                                         },
                                         new OtlpKeyValue
                                         {
                                             Key = "session.id",
-                                            Value = new OtlpAnyValue { StringValue = "test-session-genai" }
+                                            Value = new OtlpAnyValue
+                                            {
+                                                StringValue = "test-session-genai"
+                                            }
                                         }
                                     ]
                                 }
@@ -268,9 +298,8 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         };
     }
 
-    private static object MapSpanToDto(SpanStorageRow span)
-    {
-        return new
+    private static object MapSpanToDto(SpanStorageRow span) =>
+        new
         {
             trace_id = span.TraceId,
             span_id = span.SpanId,
@@ -297,5 +326,4 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
             attributes_json = span.AttributesJson,
             resource_json = span.ResourceJson
         };
-    }
 }

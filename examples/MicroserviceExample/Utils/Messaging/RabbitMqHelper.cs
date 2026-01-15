@@ -1,9 +1,6 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-
 namespace Utils.Messaging;
 
 public static class RabbitMqHelper
@@ -20,10 +17,7 @@ public static class RabbitMqHelper
         RequestedConnectionTimeout = TimeSpan.FromMilliseconds(3000)
     };
 
-    public static async Task<IConnection> CreateConnectionAsync()
-    {
-        return await ConnectionFactory.CreateConnectionAsync().ConfigureAwait(false);
-    }
+    public static async Task<IConnection> CreateConnectionAsync() => await ConnectionFactory.CreateConnectionAsync().ConfigureAwait(false);
 
     public static async Task<IChannel> CreateModelAndDeclareTestQueueAsync(IConnection connection)
     {

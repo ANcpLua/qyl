@@ -1,6 +1,6 @@
 # qyl.dashboard
 
-React 19 SPA for observability visualization. Build artifact embedded in collector.
+React 19 SPA. Build artifact embedded in collector.
 
 ## identity
 
@@ -8,25 +8,27 @@ React 19 SPA for observability visualization. Build artifact embedded in collect
 name: qyl.dashboard
 type: react-spa
 runtime: node-22
-build-tool: vite-7
+build: vite-7
 role: build-artifact
-standalone: never
+standalone: never (embedded at build-time)
 ```
 
 ## build-contract
 
 ```yaml
+command: npm run build
 input: src/
 output: dist/
-command: npm run build
 
-output-structure:
-  - dist/index.html
-  - dist/assets/index-[hash].js
-  - dist/assets/index-[hash].css
-
+structure:
+  dist/:
+    - index.html
+    - assets/:
+        - index-[hash].js
+        - index-[hash].css
+        
 destination: ../qyl.collector/wwwroot/
-copy-by: nuke (DashboardEmbed target)
+copier: nuke DashboardEmbed
 ```
 
 ## development
@@ -34,12 +36,25 @@ copy-by: nuke (DashboardEmbed target)
 ```yaml
 command: npm run dev
 port: 5173
-hot-reload: true
+features:
+  - hot-reload
+  - api-proxy
 
-proxy:
-  /api: http://localhost:5100
-  /v1: http://localhost:5100
-  
+vite-config: |
+  export default defineConfig({
+    server: {
+      port: 5173,
+      proxy: {
+        '/api': 'http://localhost:5100',
+        '/v1': 'http://localhost:5100',
+      }
+    },
+    build: {
+      outDir: 'dist',
+      sourcemap: false
+    }
+  });
+
 requires: collector running on :5100
 ```
 
@@ -48,110 +63,150 @@ requires: collector running on :5100
 ```yaml
 source: ../../core/openapi/openapi.yaml
 output: src/types/api.ts
+package: openapi-typescript@7.10.1
 command: npm run generate:types
-tool: openapi-typescript
 
-rule: never-edit-api.ts-manually
+script: |
+  "generate:types": "openapi-typescript ../core/openapi/openapi.yaml -o src/types/api.ts"
+
+rule: never edit api.ts manually
 ```
 
 ## tech-stack
 
 ```yaml
-framework:
+dependencies:
   react: "19"
-  typescript: "5.7"
+  react-dom: "19"
+  "@tanstack/react-query": "5"
+  "@radix-ui/react-*": latest
+  recharts: latest
+  lucide-react: latest
+  tailwindcss: "4"
+  clsx: latest
   
-build:
+dev-dependencies:
   vite: "7"
-  
-styling:
-  tailwind: "4"
-  
-state:
-  tanstack-query: "5"
-  
-components:
-  radix-ui: latest
-  lucide-react: icons
-  recharts: charts
+  "@vitejs/plugin-react": latest
+  typescript: "5.9"
+  openapi-typescript: "7.10.1"
+  eslint: latest
+  postcss: latest
+  autoprefixer: latest
 ```
 
 ## patterns
 
 ```yaml
 data-fetching:
-  library: tanstack-query
-  pattern: |
+  library: "@tanstack/react-query"
+  
+  hook: |
+    import { useQuery } from '@tanstack/react-query';
+    import { api } from '@/lib/api';
+    
     export function useSession(id: string) {
       return useQuery({
         queryKey: ['session', id],
         queryFn: () => api.getSession(id),
       });
     }
+    
+  mutation: |
+    import { useMutation, useQueryClient } from '@tanstack/react-query';
+    
+    export function useDeleteSession() {
+      const queryClient = useQueryClient();
+      return useMutation({
+        mutationFn: (id: string) => api.deleteSession(id),
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        },
+      });
+    }
 
 sse-streaming:
   pattern: |
-    useEffect(() => {
-      const es = new EventSource('/api/v1/live');
-      es.onmessage = (e) => {
-        const span = JSON.parse(e.data);
-        queryClient.setQueryData(['spans'], old => [...old, span]);
-      };
-      return () => es.close();
-    }, []);
+    import { useEffect } from 'react';
+    import { useQueryClient } from '@tanstack/react-query';
+    import type { SpanRecord } from '@/types/api';
+    
+    export function useLiveSpans() {
+      const queryClient = useQueryClient();
+      
+      useEffect(() => {
+        const es = new EventSource('/api/v1/live');
+        
+        es.onmessage = (event) => {
+          const span: SpanRecord = JSON.parse(event.data);
+          queryClient.setQueryData<SpanRecord[]>(
+            ['spans', 'live'], 
+            (old = []) => [...old.slice(-999), span]
+          );
+        };
+        
+        es.onerror = () => es.close();
+        
+        return () => es.close();
+      }, [queryClient]);
+    }
+
+api-client:
+  pattern: |
+    import type { paths } from '@/types/api';
+    
+    const BASE_URL = '';
+    
+    export const api = {
+      async getSession(id: string) {
+        const res = await fetch(`${BASE_URL}/api/v1/sessions/${id}`);
+        if (!res.ok) throw new Error('Failed to fetch session');
+        return res.json() as Promise<paths['/api/v1/sessions/{id}']['get']['responses']['200']['content']['application/json']>;
+      },
+      // ...
+    };
 ```
 
 ## project-structure
 
 ```yaml
-directories:
-  - src/components/ui/        # Radix primitives
-  - src/components/spans/     # Span visualization
-  - src/components/sessions/  # Session views
-  - src/components/layout/    # Shell, sidebar
-  - src/hooks/                # TanStack Query hooks
-  - src/lib/                  # Utilities, API client
-  - src/pages/                # Route components
-  - src/types/                # Generated types (api.ts)
+src/:
+  components/:
+    ui/:           # Radix primitives, shadcn-style
+    layout/:       # Shell, Sidebar, Header
+    spans/:        # SpanList, SpanDetail, SpanWaterfall
+    sessions/:     # SessionList, SessionDetail
+    charts/:       # TokenUsage, LatencyChart
+  hooks/:          # TanStack Query hooks
+  lib/:
+    api.ts         # API client
+    utils.ts       # cn(), formatters
+  pages/:          # Route components
+  types/:
+    api.ts         # Generated from OpenAPI
+  App.tsx
+  main.tsx
+  index.css        # Tailwind
 ```
 
 ## scripts
 
 ```yaml
-dev: vite dev server with HMR
-build: production build → dist/
-generate:types: openapi → typescript
-lint: eslint
+dev: vite (HMR)
+build: vite build → dist/
+preview: vite preview
+generate:types: openapi-typescript
+lint: eslint src/
 typecheck: tsc --noEmit
-```
-
-## dependencies
-
-```yaml
-runtime:
-  - react@19
-  - react-dom@19
-  - @tanstack/react-query@5
-  - @radix-ui/*
-  - recharts
-  - tailwindcss@4
-  - lucide-react
-
-dev:
-  - vite@7
-  - typescript@5.7
-  - openapi-typescript
-  - eslint
-  - @vitejs/plugin-react
 ```
 
 ## forbidden
 
 ```yaml
 actions:
-  - edit src/types/api.ts manually
-  - add qyl.collector as npm dependency
+  - edit src/types/api.ts
+  - add qyl.collector as dependency
   - run standalone in production
-  - use fetch() directly (use tanstack-query)
-  - import anything from .NET projects
+  - use raw fetch() (use TanStack Query)
+  - import from .NET projects
 ```

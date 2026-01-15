@@ -3,8 +3,6 @@
 // Automatically adds context to all log entries
 // =============================================================================
 
-using Microsoft.Extensions.Diagnostics.Enrichment;
-
 namespace qyl.collector.Telemetry;
 
 /// <summary>

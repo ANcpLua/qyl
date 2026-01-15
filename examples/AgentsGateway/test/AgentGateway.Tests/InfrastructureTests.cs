@@ -1,9 +1,4 @@
 using AgentGateway.Core;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentGateway.Tests;
 
@@ -25,10 +20,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
 {
     private readonly TestWebApplicationFactory _factory;
 
-    public InfrastructureTests(TestWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
+    public InfrastructureTests(TestWebApplicationFactory factory) => _factory = factory;
 
     [Fact]
     public void ChatClientIsRegisteredAsProviderRouter()

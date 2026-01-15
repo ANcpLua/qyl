@@ -1,8 +1,3 @@
-using System.ComponentModel;
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
-using ModelContextProtocol.Server;
-
 namespace qyl.mcp.Tools;
 
 /// <summary>
@@ -329,4 +324,4 @@ internal sealed record TraceResponse(
 [JsonSerializable(typeof(SpanListResponse))]
 [JsonSerializable(typeof(TraceResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-internal sealed partial class ReplayJsonContext : JsonSerializerContext;
+internal sealed class ReplayJsonContext : JsonSerializerContext;

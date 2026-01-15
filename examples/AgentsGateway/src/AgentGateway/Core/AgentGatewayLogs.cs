@@ -1,6 +1,3 @@
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
-
 namespace AgentGateway.Core;
 
 internal static partial class AgentGatewayLogs

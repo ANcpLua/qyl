@@ -1,5 +1,3 @@
-using StatusCode = Grpc.Core.StatusCode;
-
 namespace qyl.collector.Grpc;
 
 /// <summary>

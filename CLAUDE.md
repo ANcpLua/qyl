@@ -7,195 +7,302 @@ AI Observability Platform. Observe everything. Judge nothing. Document perfectly
 ```yaml
 name: qyl
 type: observability-platform
-domain: gen_ai telemetry
-distribution:
-  primary: docker
-  secondary: dotnet-global-tool
+tagline: "question your logs → don't need to anymore"
+domain: gen_ai telemetry (OTel 1.39 semconv)
+```
+
+## distribution
+
+```yaml
+primary:
+    method: docker
+    image: ghcr.io/ancplua/qyl
+    command: |
+        docker run -d \
+          -p 5100:5100 \
+          -p 4317:4317 \
+          -v ~/.qyl:/data \
+          ghcr.io/ancplua/qyl:latest
+
+secondary:
+    method: dotnet-global-tool
+    command: |
+        dotnet tool install -g qyl
+        qyl start
 ```
 
 ## architecture
 
 ```yaml
 components:
-  collector:
-    runtime: dotnet-10
-    ports:
-      http: 5100
-      grpc: 4317
-    serves:
-      - otlp-ingestion
-      - rest-api
-      - sse-streaming
-      - static-files (dashboard)
-    storage: duckdb
-    
-  dashboard:
-    runtime: node-22
-    framework: react-19
-    build-tool: vite-7
-    output: dist/
-    embedding: collector/wwwroot/
-    
-  mcp:
-    runtime: dotnet-10
-    protocol: stdio
-    connects-to: collector (http)
-    
-  protocol:
-    runtime: dotnet-10
-    constraints: bcl-only
-    role: shared-types
+    collector:
+        runtime: dotnet-10
+        sdk: ANcpLua.NET.Sdk.Web
+        ports:
+            http: 5100
+            grpc: 4317
+        responsibilities:
+            - otlp-ingestion (grpc + http)
+            - rest-api (/api/v1/*)
+            - sse-streaming (/api/v1/live)
+            - static-files (embedded dashboard)
+            - duckdb-storage
+
+    dashboard:
+        runtime: node-22
+        framework: react-19
+        build: vite-7
+        output: dist/
+        embedding: collector/wwwroot/
+
+    protocol:
+        runtime: dotnet-10
+        sdk: ANcpLua.NET.Sdk
+        constraint: bcl-only (zero packages)
+        role: leaf-dependency
+
+    mcp:
+        runtime: dotnet-10
+        sdk: ANcpLua.NET.Sdk
+        protocol: model-context-protocol (stdio)
+        connection: http-only to collector
+```
+
+## tech-stack
+
+```yaml
+dotnet:
+    version: "10.0"
+    lang: "C# 14"
+    sdk: ANcpLua.NET.Sdk (nuget.org)
+    sdk-variants:
+        - ANcpLua.NET.Sdk        # libraries, console
+        - ANcpLua.NET.Sdk.Web    # ASP.NET Core
+        - ANcpLua.NET.Sdk.Test   # xUnit v3
+
+packages:
+    storage: DuckDB.NET.Data.Full
+    grpc: Grpc.AspNetCore
+    protobuf: Google.Protobuf
+    yaml: YamlDotNet (build-time only)
+
+frontend:
+    node: "22"
+    react: "19"
+    vite: "7"
+    tailwind: "4"
+    tanstack-query: "5"
+    radix-ui: latest
+    recharts: latest
+    lucide-react: icons
+
+otel:
+    semconv: "1.39.0"
+    attributes:
+        - gen_ai.system
+        - gen_ai.request.model
+        - gen_ai.response.model
+        - gen_ai.usage.input_tokens
+        - gen_ai.usage.output_tokens
+        - gen_ai.request.temperature
+        - gen_ai.response.finish_reasons
+        - gen_ai.tool.name
+        - gen_ai.tool.call_id
+```
+
+## schema-generation
+
+```yaml
+source-of-truth: core/specs/main.tsp
+
+typespec:
+    version: "1.8.0"
+    packages:
+        - "@typespec/compiler"
+        - "@typespec/http"
+        - "@typespec/rest"
+        - "@typespec/openapi"
+        - "@typespec/openapi3"
+        - "@typespec/json-schema"
+        - "@typespec/versioning"
+        - "@typespec/sse"
+        - "@typespec/events"
+
+generator: SchemaGenerator.cs
+location: eng/build/Domain/CodeGen/SchemaGenerator.cs
+
+outputs:
+    - target: core/openapi/openapi.yaml
+      from: typespec
+
+    - target: src/qyl.protocol/Primitives/Scalars.g.cs
+      generator: GenerateScalars()
+      content: strongly-typed wrappers (TraceId, SpanId, SessionId, etc.)
+      features:
+          - IParsable<T>
+          - ISpanFormattable
+          - ReadOnlySpan<byte> hot-path parsing
+          - JsonConverter per type
+
+    - target: src/qyl.protocol/Enums/Enums.g.cs
+      generator: GenerateEnums()
+      content: OTel enums (SpanKind, StatusCode, SeverityNumber)
+      features:
+          - JsonNumberEnumConverter for integer enums
+          - JsonStringEnumConverter for string enums
+          - EnumMember attributes
+
+    - target: src/qyl.protocol/Models/*.g.cs
+      generator: GenerateModels()
+      content: record types with JSON serialization
+
+    - target: src/qyl.collector/Storage/DuckDbSchema.g.cs
+      generator: GenerateDuckDb()
+      content: DDL statements with indexes
+
+    - target: src/qyl.dashboard/src/types/api.ts
+      generator: openapi-typescript (npm)
+
+extensions-read:
+    - x-csharp-type      # C# type name override
+    - x-duckdb-table     # marks model as DuckDB table
+    - x-duckdb-column    # column name override  
+    - x-duckdb-type      # DuckDB type override
+    - x-duckdb-primary-key
+    - x-duckdb-index     # creates index
+    - x-primitive        # marks as strongly-typed wrapper
+    - x-promoted         # promoted from attributes_json
+    - x-enum-varnames    # enum member names
 ```
 
 ## dependencies
 
 ```yaml
-flow:
-  - from: dashboard
-    to: collector
-    via: http (rest/sse)
-    
-  - from: mcp
-    to: collector
-    via: http (rest)
-    
-  - from: collector
-    to: protocol
-    via: project-reference
-    
-  - from: mcp
-    to: protocol
-    via: project-reference
+allowed:
+    - from: dashboard
+      to: collector
+      via: http (rest/sse at runtime)
+
+    - from: mcp
+      to: collector
+      via: http (rest at runtime)
+
+    - from: collector
+      to: protocol
+      via: ProjectReference
+
+    - from: mcp
+      to: protocol
+      via: ProjectReference
 
 forbidden:
-  - from: mcp
-    to: collector
-    via: project-reference
-    reason: must remain http-only for decoupling
-    
-  - from: dashboard
-    to: any-dotnet
-    reason: pure frontend, no runtime dependency
-```
+    - from: mcp
+      to: collector
+      via: ProjectReference
+      reason: must communicate via http for decoupling
 
-## schema
+    - from: dashboard
+      to: any-dotnet
+      via: any
+      reason: pure frontend build artifact
 
-```yaml
-source-of-truth: core/specs/main.tsp
-outputs:
-  - path: core/openapi/openapi.yaml
-    generator: typespec
-    
-  - path: src/qyl.protocol/**/*.g.cs
-    generator: nuke-generate
-    
-  - path: src/qyl.collector/Storage/DuckDbSchema.g.cs
-    generator: nuke-generate
-    
-  - path: src/qyl.dashboard/src/types/api.ts
-    generator: openapi-typescript
-
-rule: never-edit-generated-files
+    - from: protocol
+      to: any-external-package
+      via: PackageReference
+      reason: must remain bcl-only leaf
 ```
 
 ## build
 
 ```yaml
 system: nuke
+entry: eng/build/Build.cs
+
 targets:
-  - name: TypeSpecCompile
-    input: core/specs/*.tsp
-    output: core/openapi/openapi.yaml
-    
-  - name: Generate
-    depends: [TypeSpecCompile]
-    input: core/openapi/openapi.yaml
-    output: [protocol/*.g.cs, collector/Storage/*.g.cs, dashboard/src/types/api.ts]
-    
-  - name: DashboardBuild
-    input: src/qyl.dashboard/
-    output: src/qyl.dashboard/dist/
-    command: npm run build
-    
-  - name: Compile
-    input: src/**/*.csproj
-    output: bin/
-    
-  - name: DashboardEmbed
-    depends: [DashboardBuild, Compile]
-    action: copy dist/ → collector/wwwroot/
-    
-  - name: Publish
-    depends: [DashboardEmbed]
-    output: artifacts/publish/
-    
-  - name: DockerBuild
-    depends: [Publish]
-    output: ghcr.io/ancplua/qyl:latest
-    
-  - name: Pack
-    depends: [Publish]
-    output: artifacts/packages/*.nupkg
-```
+    TypeSpecCompile:
+        input: core/specs/*.tsp
+        output: core/openapi/openapi.yaml
+        command: tsp compile main.tsp
 
-## tech-stack
+    Generate:
+        depends: [TypeSpecCompile]
+        generator: SchemaGenerator.Generate()
+        guard: GenerationGuard
+        options:
+            --force-generate: overwrite existing
+            --dry-run: preview only
+        ci-behavior: fails if stale files detected
 
-```yaml
-runtime:
-  dotnet: "10.0"
-  csharp: "14"
-  node: "22"
-  
-packages:
-  sdk: ANcpLua.NET.Sdk@latest
-  storage: DuckDB.NET.Data.Full
-  grpc: Grpc.AspNetCore
-  otel: OpenTelemetry.SemanticConventions@1.39
-  
-frontend:
-  react: "19"
-  vite: "7"
-  tailwind: "4"
-  tanstack-query: "5"
-  radix-ui: latest
-  
-testing:
-  framework: xunit-v3
-  runner: microsoft-testing-platform
-```
+    DashboardBuild:
+        working-dir: src/qyl.dashboard
+        command: npm run build
+        output: dist/
 
-## commands
+    Compile:
+        command: dotnet build
 
-```yaml
-development:
-  collector: dotnet run --project src/qyl.collector
-  dashboard: cd src/qyl.dashboard && npm run dev
-  
-build:
-  full: nuke Full
-  generate: nuke Generate --force-generate
-  docker: nuke DockerBuild
-  pack: nuke Pack
-  
-test:
-  all: dotnet test
-  coverage: nuke Coverage
+    DashboardEmbed:
+        depends: [DashboardBuild, Compile]
+        action: copy dist/ → collector/wwwroot/
+        critical: true
+
+    Publish:
+        depends: [DashboardEmbed]
+        command: dotnet publish -c Release
+
+    DockerBuild:
+        depends: [Publish]
+        dockerfile: Dockerfile
+        tag: ghcr.io/ancplua/qyl:latest
+
+    Pack:
+        depends: [Publish]
+        output: *.nupkg (global tool)
 ```
 
 ## conventions
 
 ```yaml
 files:
-  generated: "*.g.cs"
-  tests: "*.Tests.cs"
-  
-naming:
-  spans-table: spans
-  sessions-table: sessions
-  logs-table: logs
-  
-api:
-  base-path: /api/v1
-  otlp-path: /v1/traces
-  live-path: /api/v1/live
+    generated: "*.g.cs"
+    never-edit: "*.g.cs", "api.ts", "openapi.yaml"
+
+namespaces:
+    primitives: Qyl.Common
+    enums: Qyl.Enums
+    models: Qyl.Models
+    storage: qyl.collector.Storage
+
+tables:
+    spans: spans
+    sessions: sessions
+    logs: logs
+
+api-paths:
+    rest: /api/v1/*
+    otlp-http: /v1/traces
+    sse: /api/v1/live
+
+ports:
+    http: 5100
+    grpc: 4317
+```
+
+## commands
+
+```yaml
+development:
+    collector: dotnet run --project src/qyl.collector
+    dashboard: cd src/qyl.dashboard && npm run dev
+    full-stack: nuke Dev
+
+build:
+    full: nuke Full
+    generate: nuke Generate --force-generate
+    docker: nuke DockerBuild
+    pack: nuke Pack
+
+test:
+    all: dotnet test
+    coverage: nuke Coverage
 ```

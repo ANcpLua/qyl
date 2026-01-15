@@ -22,8 +22,7 @@ public static class QylTelemetry
     /// </summary>
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
-        Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
+        Version = ServiceVersion, TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
     });
 
     // ==========================================================================
@@ -92,7 +91,10 @@ public static class QylTelemetry
         bool hasGenAi = false) =>
         activity.AddEvent(new ActivityEvent(
             "spans.ingested",
-            tags: new ActivityTagsCollection { ["span.count"] = spanCount, ["has_genai"] = hasGenAi }));
+            tags: new ActivityTagsCollection
+            {
+                ["span.count"] = spanCount, ["has_genai"] = hasGenAi
+            }));
 
     // ==========================================================================
     // Activity Names (following OTel GenAI semantic conventions)
@@ -126,13 +128,6 @@ public static class QylMetrics
     // ==========================================================================
 
     private static Func<long>? s_storageSizeCallback;
-
-    /// <summary>
-    ///     Registers the callback for storage size metrics.
-    ///     Called during startup after DuckDbStore is instantiated.
-    /// </summary>
-    public static void RegisterStorageSizeCallback(Func<long> callback) =>
-        s_storageSizeCallback = callback;
 
     // ==========================================================================
     // Counters
@@ -217,6 +212,13 @@ public static class QylMetrics
             "By",
             "Approximate storage size in bytes");
 
+    /// <summary>
+    ///     Registers the callback for storage size metrics.
+    ///     Called during startup after DuckDbStore is instantiated.
+    /// </summary>
+    public static void RegisterStorageSizeCallback(Func<long> callback) =>
+        s_storageSizeCallback = callback;
+
     // ==========================================================================
     // Helper Methods
     // ==========================================================================
@@ -257,7 +259,12 @@ public static class QylMetrics
     /// </summary>
     public static void RecordError(string errorType, string? provider = null)
     {
-        var tags = new TagList { { "error.type", errorType } };
+        var tags = new TagList
+        {
+            {
+                "error.type", errorType
+            }
+        };
         if (provider is not null) tags.Add("gen_ai.provider.name", provider);
 
         IngestionErrors.Add(1, tags);

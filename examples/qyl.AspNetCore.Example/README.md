@@ -9,7 +9,8 @@ observability platform.
 - **Metrics**: Runtime metrics, HTTP metrics, and custom counters
 - **Logging**: OpenTelemetry-integrated structured logging with source generators
 - **OTLP Export**: Sends telemetry to qyl.collector
-- **Advanced .NET 10 Telemetry**: Demonstrates new .NET 10 features like `ActivitySourceOptions`, `MeterOptions` with `TelemetrySchemaUrl`, and advanced source-generated logging with `[TagProvider]`.
+- **Advanced .NET 10 Telemetry**: Demonstrates new .NET 10 features like `ActivitySourceOptions`, `MeterOptions` with
+  `TelemetrySchemaUrl`, and advanced source-generated logging with `[TagProvider]`.
 
 ## Quick Start
 

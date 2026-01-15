@@ -1,4 +1,3 @@
-using System.Text;
 using qyl.collector.Query;
 using qyl.collector.Storage;
 
@@ -59,7 +58,10 @@ public class DiagnosticTest : IAsyncLifetime
         // Simple count with parameter
         await using var countCmd = _store.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id = $1";
-        countCmd.Parameters.Add(new DuckDBParameter { Value = "no-errors" });
+        countCmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = "no-errors"
+        });
         var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
         Console.WriteLine($"\nSimple COUNT(*) WHERE session_id = $1 (param): {count}");
 
@@ -72,7 +74,10 @@ public class DiagnosticTest : IAsyncLifetime
         // LIKE workaround
         await using var countCmd3 = _store.Connection.CreateCommand();
         countCmd3.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id LIKE $1";
-        countCmd3.Parameters.Add(new DuckDBParameter { Value = "%no-errors%" });
+        countCmd3.Parameters.Add(new DuckDBParameter
+        {
+            Value = "%no-errors%"
+        });
         var count3 = (long)(await countCmd3.ExecuteScalarAsync() ?? 0L);
         Console.WriteLine($"Simple COUNT(*) WHERE session_id LIKE '%no-errors%' (param): {count3}");
 
@@ -166,8 +171,14 @@ public class DiagnosticTest : IAsyncLifetime
 
         await using var cmd = _store.Connection.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = "no-errors" });
-        cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = "no-errors"
+        });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = DBNull.Value
+        });
 
         Console.WriteLine("\nParameters: $1='no-errors', $2=NULL");
 

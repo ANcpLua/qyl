@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Mvc;
-using qyl.AspNetCore.Example.Logging;
 using qyl.AspNetCore.Example.Models;
 
 namespace qyl.AspNetCore.Example.Controllers;

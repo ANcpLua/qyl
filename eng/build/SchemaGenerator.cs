@@ -5,20 +5,6 @@
 // OTel 1.39 semantic conventions, .NET 10 only.
 // =============================================================================
 
-using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
-using Nuke.Common;
-using Nuke.Common.IO;
-using Serilog;
-using YamlDotNet.RepresentationModel;
-
 namespace Domain.CodeGen;
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -138,13 +124,9 @@ public static class SchemaGenerator
                         "    public bool IsValid => !string.IsNullOrEmpty(Value) && s_pattern.IsMatch(Value);");
                 }
                 else if (underlying == "string")
-                {
                     sb.AppendLine("    public bool IsValid => !string.IsNullOrEmpty(Value);");
-                }
                 else
-                {
                     sb.AppendLine("    public bool IsValid => true;");
-                }
 
                 // Hex parsing for TraceId/SpanId
                 if (isHex) AppendHexParsing(sb, typeName, hexLen);
@@ -283,10 +265,8 @@ public static class SchemaGenerator
 
                 // Emit member
                 if (isIntegerEnum)
-                {
                     // Integer enum: memberName = value
                     sb.AppendLine(CultureInfo.InvariantCulture, $"        {memberName} = {rawValue},");
-                }
                 else
                 {
                     // String enum: need EnumMember for serialization
@@ -356,18 +336,14 @@ public static class SchemaGenerator
 
         foreach (var c in value)
             if (c is '_' or '-' or ' ' or '.')
-            {
                 capitalizeNext = true;
-            }
             else if (capitalizeNext)
             {
                 sb.Append(char.ToUpperInvariant(c));
                 capitalizeNext = false;
             }
             else
-            {
                 sb.Append(c);
-            }
 
         return sb.Length > 0 ? sb.ToString() : "Unknown";
     }
@@ -611,9 +587,7 @@ public static class SchemaGenerator
                 sb.Append(char.ToLowerInvariant(c));
             }
             else
-            {
                 sb.Append(c);
-            }
         }
 
         return sb.ToString();
@@ -695,7 +669,6 @@ public static class SchemaGenerator
 // ════════════════════════════════════════════════════════════════════════════════
 // OPENAPI SCHEMA PARSER
 // ════════════════════════════════════════════════════════════════════════════════
-
 /// <summary>Parsed OpenAPI schema.</summary>
 public sealed record OpenApiSchema(
     string Title,
@@ -739,8 +712,8 @@ public sealed record OpenApiSchema(
 
         // Determine if scalar (primitive wrapper)
         var isScalar = extensions.ContainsKey("x-csharp-struct") ||
-                       (type is "string" or "integer" or "number" && enumValues.Length == 0 &&
-                        !GetMapping(node, "properties")?.Children.Any() == true);
+                       type is "string" or "integer" or "number" && enumValues.Length == 0 &&
+                       !GetMapping(node, "properties")?.Children.Any() == true;
 
         // Determine if enum
         var isEnum = enumValues.Length > 0;
@@ -833,7 +806,6 @@ public sealed record OpenApiSchema(
         return [];
     }
 }
-
 /// <summary>OpenAPI schema definition.</summary>
 public sealed record SchemaDefinition(
     string Name,
@@ -857,7 +829,6 @@ public sealed record SchemaDefinition(
         return [];
     }
 }
-
 /// <summary>OpenAPI property definition.</summary>
 public sealed record SchemaProperty(
     string Name,
@@ -876,7 +847,6 @@ public sealed record SchemaProperty(
         ? RefPath[RefPrefix.Length..]
         : RefPath;
 }
-
 /// <summary>Generation output.</summary>
 public readonly record struct GeneratedFile(AbsolutePath Path, string Content);
 
@@ -948,9 +918,7 @@ public sealed partial class GenerationGuard
             }
         }
         else
-        {
             Log.Debug("  [NEW] {Description}", description);
-        }
 
         path.Parent.CreateDirectory();
         File.WriteAllText(path, content);

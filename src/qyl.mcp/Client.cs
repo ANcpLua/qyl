@@ -1,10 +1,3 @@
-using System.Runtime.CompilerServices;
-using System.Text.Json;
-using A2A;
-using Microsoft.Agents.AI;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
 using qyl.protocol.Attributes;
 
 namespace qyl.mcp;
@@ -79,7 +72,10 @@ public sealed partial class HostClientAgent
 
 public static class A2ACardResolver
 {
-    private static readonly HttpClient SSharedClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+    private static readonly HttpClient SSharedClient = new()
+    {
+        Timeout = TimeSpan.FromSeconds(60)
+    };
 
     public static async Task<AgentCard> GetAgentCardAsync(
         Uri baseUrl,
