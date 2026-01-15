@@ -9,12 +9,6 @@
         <File Path="global.json" />
     </Folder>
 
-    <!-- Documentation -->
-    <Folder Name="/docs/">
-        <File Path="docs/qyl-architecture.yaml" />
-        <File Path="docs\GOD_SCHEMA_CONSOLIDATION.md" />
-    </Folder>
-
     <!-- Build infrastructure -->
     <Folder Name="/eng/">
         <Project Path="eng/build/build.csproj" />

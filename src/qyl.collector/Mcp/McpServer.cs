@@ -15,9 +15,7 @@ public sealed class McpServer
         _console = console;
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            WriteIndented = false
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = false
         };
     }
 
@@ -34,7 +32,10 @@ public sealed class McpServer
 
             "get_console_logs" => GetConsoleLogs(call.Arguments),
             "get_console_errors" => GetConsoleErrors(call.Arguments),
-            _ => new McpResponse { Error = $"Unknown tool: {call.Name}" }
+            _ => new McpResponse
+            {
+                Error = $"Unknown tool: {call.Name}"
+            }
         };
 
     public static McpManifest GetManifest() =>
@@ -58,7 +59,10 @@ public sealed class McpServer
                             {
                                 type = "integer", description = "Max sessions to return", @default = 10
                             },
-                            service_name = new { type = "string", description = "Filter by service name" }
+                            service_name = new
+                            {
+                                type = "string", description = "Filter by service name"
+                            }
                         }
                     }
                 },
@@ -71,9 +75,15 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            trace_id = new { type = "string", description = "The trace ID to fetch" }
+                            trace_id = new
+                            {
+                                type = "string", description = "The trace ID to fetch"
+                            }
                         },
-                        required = new[] { "trace_id" }
+                        required = new[]
+                        {
+                            "trace_id"
+                        }
                     }
                 },
                 new McpTool
@@ -85,16 +95,27 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new { type = "string", description = "Filter by session ID" },
+                            session_id = new
+                            {
+                                type = "string", description = "Filter by session ID"
+                            },
                             provider_name =
                                 new
                                 {
-                                    type = "string",
-                                    description = "Filter by GenAI provider (openai, anthropic, etc.)"
+                                    type = "string", description = "Filter by GenAI provider (openai, anthropic, etc.)"
                                 },
-                            model = new { type = "string", description = "Filter by model name" },
-                            status = new { type = "string", description = "Filter by status (ok, error)" },
-                            limit = new { type = "integer", description = "Max spans to return", @default = 100 }
+                            model = new
+                            {
+                                type = "string", description = "Filter by model name"
+                            },
+                            status = new
+                            {
+                                type = "string", description = "Filter by status (ok, error)"
+                            },
+                            limit = new
+                            {
+                                type = "integer", description = "Max spans to return", @default = 100
+                            }
                         }
                     }
                 },
@@ -107,7 +128,10 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new { type = "string", description = "Filter by session ID" },
+                            session_id = new
+                            {
+                                type = "string", description = "Filter by session ID"
+                            },
                             hours = new
                             {
                                 type = "integer", description = "Time window in hours", @default = 24
@@ -141,8 +165,7 @@ public sealed class McpServer
                 },
                 new McpTool
                 {
-                    Name = "get_storage_stats",
-                    Description = "Get storage statistics (span count, time range, etc.)"
+                    Name = "get_storage_stats", Description = "Get storage statistics (span count, time range, etc.)"
                 },
                 new McpTool
                 {
@@ -155,9 +178,7 @@ public sealed class McpServer
                         {
                             older_than_days = new
                             {
-                                type = "integer",
-                                description = "Archive spans older than N days",
-                                @default = 7
+                                type = "integer", description = "Archive spans older than N days", @default = 7
                             }
                         }
                     }
@@ -173,7 +194,10 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session = new { type = "string", description = "Filter by session ID" },
+                            session = new
+                            {
+                                type = "string", description = "Filter by session ID"
+                            },
                             level = new
                             {
                                 type = "string", description = "Min level: debug, log, info, warn, error"
@@ -182,7 +206,10 @@ public sealed class McpServer
                             {
                                 type = "string", description = "Text pattern to search in messages"
                             },
-                            limit = new { type = "integer", description = "Max logs to return", @default = 50 }
+                            limit = new
+                            {
+                                type = "integer", description = "Max logs to return", @default = 50
+                            }
                         }
                     }
                 },
@@ -206,15 +233,17 @@ public sealed class McpServer
             ]
         };
 
-    private async Task<McpResponse> GetSessionsAsync(JsonElement? _, CancellationToken ct)
+    private async Task<McpResponse> GetSessionsAsync(JsonElement? args, CancellationToken ct)
     {
+        // TODO: Implement limit and service_name filters when session query is added
+        _ = args; // Suppress IDE0060 - parameters documented in manifest but not yet implemented
+
         var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
             Content = new McpContent
             {
-                Type = "text",
-                Text = $"Storage has {stats.SpanCount} spans across {stats.SessionCount} sessions"
+                Type = "text", Text = $"Storage has {stats.SpanCount} spans across {stats.SessionCount} sessions"
             }
         };
     }
@@ -222,52 +251,148 @@ public sealed class McpServer
     private async Task<McpResponse> GetTraceAsync(JsonElement? args, CancellationToken ct)
     {
         var traceId = args?.GetProperty("trace_id").GetString();
-        if (string.IsNullOrEmpty(traceId)) return new McpResponse { Error = "trace_id is required" };
+        if (string.IsNullOrEmpty(traceId))
+            return new McpResponse
+            {
+                Error = "trace_id is required"
+            };
 
         var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
         {
-            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
+            Content = new McpContent
+            {
+                Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions)
+            }
         };
     }
 
     private async Task<McpResponse> GetSpansAsync(JsonElement? args, CancellationToken ct)
     {
         var sessionId = args?.TryGetProperty("session_id", out var s) == true ? s.GetString() : null;
+        var providerName = args?.TryGetProperty("provider_name", out var p) == true ? p.GetString() : null;
+        var status = args?.TryGetProperty("status", out var st) == true ? st.GetString() : null;
+        var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 100;
 
-        if (string.IsNullOrEmpty(sessionId)) return new McpResponse { Error = "session_id filter required for now" };
-        var spans = await _store.GetSpansBySessionAsync(sessionId, ct);
-        return new McpResponse
+        // Parse status filter (OTel: 0=UNSET, 1=OK, 2=ERROR)
+        byte? statusCode = status?.ToLowerInvariant() switch
         {
-            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
+            "ok" => 1,
+            "error" => 2,
+            _ => null
         };
-    }
 
-    private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? _, CancellationToken ct)
-    {
-        var stats = await _store.GetStorageStatsAsync(ct);
+        var spans = await _store.GetSpansAsync(
+            sessionId: sessionId,
+            providerName: providerName,
+            statusCode: statusCode,
+            limit: limit,
+            ct: ct);
 
         return new McpResponse
         {
             Content = new McpContent
             {
-                Type = "text", Text = $"GenAI stats: {stats.SpanCount} spans, {stats.SessionCount} sessions, {stats.LogCount} logs"
+                Type = "text",
+                Text = spans.Count == 0
+                    ? "No spans found matching the criteria."
+                    : JsonSerializer.Serialize(spans, _jsonOptions)
             }
         };
     }
 
-    private static Task<McpResponse> SearchErrorsAsync(JsonElement? _, CancellationToken __) =>
-        Task.FromResult(new McpResponse
+    private async Task<McpResponse> GetGenAiStatsAsync(JsonElement? args, CancellationToken ct)
+    {
+        var sessionId = args?.TryGetProperty("session_id", out var s) == true ? s.GetString() : null;
+        var hours = args?.TryGetProperty("hours", out var h) == true ? h.GetInt32() : 24;
+
+        // Calculate time window
+        var now = TimeProvider.System.GetUtcNow();
+        var cutoffNano = (ulong)((now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds() * 1_000_000);
+
+        var stats = await _store.GetGenAiStatsAsync(sessionId, cutoffNano, ct);
+
+        return new McpResponse
         {
-            Content = new McpContent { Type = "text", Text = "Error search not yet implemented" }
-        });
+            Content = new McpContent
+            {
+                Type = "text",
+                Text = $"GenAI stats (last {hours}h{(sessionId is not null ? $", session {sessionId}" : "")}):\n" +
+                       $"  Requests: {stats.RequestCount}\n" +
+                       $"  Input tokens: {stats.TotalInputTokens:N0}\n" +
+                       $"  Output tokens: {stats.TotalOutputTokens:N0}\n" +
+                       $"  Total cost: ${stats.TotalCostUsd:F4}"
+            }
+        };
+    }
+
+    private async Task<McpResponse> SearchErrorsAsync(JsonElement? args, CancellationToken ct)
+    {
+        var query = args?.TryGetProperty("query", out var q) == true ? q.GetString() : null;
+        var hours = args?.TryGetProperty("hours", out var h) == true ? h.GetInt32() : 24;
+        var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 50;
+
+        // Calculate time window
+        var now = TimeProvider.System.GetUtcNow();
+        var cutoffNano = (ulong)((now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds() * 1_000_000);
+
+        // Query error spans at DB level (status_code = 2 is ERROR in OTel)
+        var spans = await _store.GetSpansAsync(
+            startAfter: cutoffNano,
+            statusCode: 2, // ERROR
+            searchText: query,
+            limit: limit,
+            ct: ct);
+
+        if (spans.Count == 0)
+        {
+            return new McpResponse
+            {
+                Content = new McpContent
+                {
+                    Type = "text",
+                    Text = string.IsNullOrEmpty(query)
+                        ? $"No error spans found in the last {hours} hours."
+                        : $"No error spans matching '{query}' found in the last {hours} hours."
+                }
+            };
+        }
+
+        var errorSpans = spans
+            .Select(static s => new
+            {
+                s.SpanId,
+                s.TraceId,
+                s.Name,
+                s.StatusMessage,
+                s.ServiceName,
+                s.GenAiSystem,
+                s.GenAiRequestModel,
+                DurationMs = s.DurationNs / 1_000_000.0,
+                Timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)(s.StartTimeUnixNano / 1_000_000))
+            })
+            .ToList();
+
+        return new McpResponse
+        {
+            Content = new McpContent
+            {
+                Type = "text",
+                Text = $"Found {errorSpans.Count} error(s) in the last {hours} hours:\n\n" +
+                       JsonSerializer.Serialize(errorSpans, _jsonOptions)
+            }
+        };
+    }
 
     private async Task<McpResponse> GetStorageStatsAsync(CancellationToken ct)
     {
         var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
-            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(stats, _jsonOptions) }
+            Content = new McpContent
+            {
+                Type = "text", Text = JsonSerializer.Serialize(stats, _jsonOptions)
+            }
         };
     }
 
@@ -282,7 +407,10 @@ public sealed class McpServer
 
         return new McpResponse
         {
-            Content = new McpContent { Type = "text", Text = $"Archived {count} spans to Parquet files" }
+            Content = new McpContent
+            {
+                Type = "text", Text = $"Archived {count} spans to Parquet files"
+            }
         };
     }
 
@@ -303,7 +431,7 @@ public sealed class McpServer
         };
 
         var logs = _console.Query(minLevel, session, pattern, limit);
-        var formatted = logs.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
+        var formatted = logs.Select(static e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
                                          (e.Url is not null ? $" ({e.Url})" : "") +
                                          (e.Stack is not null ? $"\n  {e.Stack}" : ""));
 
@@ -324,7 +452,7 @@ public sealed class McpServer
         var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 20;
         var errors = _console.Errors(limit);
 
-        var formatted = errors.Select(e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
+        var formatted = errors.Select(static e => $"[{e.At:HH:mm:ss}] {e.Lvl.ToString().ToUpperInvariant()}: {e.Msg}" +
                                            (e.Url is not null ? $"\n  URL: {e.Url}" : "") +
                                            (e.Stack is not null ? $"\n  Stack: {e.Stack}" : ""));
 

@@ -409,7 +409,7 @@ public sealed class SpanQueryBuilder
         if (_orderByCols.Count > 0)
         {
             sb.Append("ORDER BY ");
-            sb.AppendLine(string.Join(", ", _orderByCols.Select(o => o.ToSql())));
+            sb.AppendLine(string.Join(", ", _orderByCols.Select(static o => o.ToSql())));
         }
 
         // LIMIT

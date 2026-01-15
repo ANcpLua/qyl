@@ -338,6 +338,7 @@ app.MapGet("/api/v1/console/live",
         }
         catch (OperationCanceledException)
         {
+            // Client disconnected - expected for SSE streams
         }
     });
 
@@ -647,8 +648,8 @@ namespace qyl.collector
             var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
             if (spans.Count is 0) return Results.NotFound();
 
-            var spanDtos = SpanMapper.ToDtos(spans, r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
-            var rootSpan = spanDtos.FirstOrDefault(s => s.ParentSpanId is null);
+            var spanDtos = SpanMapper.ToDtos(spans, static r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
+            var rootSpan = spanDtos.FirstOrDefault(static s => s.ParentSpanId is null);
 
             return Results.Ok(new TraceResponseDto
             {

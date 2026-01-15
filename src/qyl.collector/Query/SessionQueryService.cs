@@ -391,7 +391,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         return value switch
         {
             IReadOnlyList<string> list => list, // Covers string[], List<string>, etc.
-            object[] arr => arr.Select(x => x?.ToString() ?? "").Where(s => s.Length > 0).ToArray(),
+            object[] arr => arr.Select(static x => x?.ToString() ?? "").Where(static s => s.Length > 0).ToArray(),
             _ => []
         };
     }

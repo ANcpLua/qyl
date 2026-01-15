@@ -20,7 +20,7 @@ public static class AppTelemetry
     /// OTel Semantic Conventions v1.38 schema URL.
     /// This enables schema-aware telemetry processing and migration.
     /// </summary>
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
+    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 
     // 🆕 .NET 10: ActivitySourceOptions with TelemetrySchemaUrl
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)

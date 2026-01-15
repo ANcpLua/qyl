@@ -41,7 +41,7 @@ public sealed class ReplayTools
             var response = await _client.GetFromJsonAsync<SessionListResponse>(
                 url, ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);
 
-            if (response?.Items is null || response.Items.Count == 0)
+            if (response?.Items is null || response.Items.Count is 0)
                 return "No sessions found";
 
             var sb = new StringBuilder();
@@ -93,7 +93,7 @@ public sealed class ReplayTools
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
-            if (response?.Items is null || response.Items.Count == 0)
+            if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{sessionId}' not found or has no spans";
 
             var sb = new StringBuilder();
@@ -129,10 +129,10 @@ public sealed class ReplayTools
             }
 
             // Summary
-            var totalTokensIn = sortedSpans.Sum(s => s.GenAiInputTokens ?? 0);
-            var totalTokensOut = sortedSpans.Sum(s => s.GenAiOutputTokens ?? 0);
-            var totalCost = sortedSpans.Sum(s => s.GenAiCostUsd ?? 0);
-            var totalDurationMs = sortedSpans.Sum(s => s.DurationNs) / 1_000_000.0;
+            var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0);
+            var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0);
+            var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0);
+            var totalDurationMs = sortedSpans.Sum(static s => s.DurationNs) / 1_000_000.0;
 
             sb.AppendLine("---");
             sb.AppendLine("## Summary");
@@ -180,7 +180,7 @@ public sealed class ReplayTools
             if (response.Spans is { Count: > 0 })
             {
                 sb.AppendLine("## Spans");
-                foreach (var span in response.Spans.OrderBy(s => s.StartTimeUnixNano))
+                foreach (var span in response.Spans.OrderBy(static s => s.StartTimeUnixNano))
                 {
                     var indent = string.IsNullOrEmpty(span.ParentSpanId) ? "" : "  ";
                     var durationMs = span.DurationNs / 1_000_000.0;
@@ -222,9 +222,9 @@ public sealed class ReplayTools
             if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{session_id}' not found or has no spans";
 
-            var errorSpans = response.Items.Where(s => s.StatusCode == 2).ToList();
+            var errorSpans = response.Items.Where(static s => s.StatusCode == 2).ToList();
 
-            if (errorSpans.Count == 0)
+            if (errorSpans.Count is 0)
                 return $"No errors found in session '{session_id}'";
 
             var sb = new StringBuilder();

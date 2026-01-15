@@ -136,7 +136,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        if (Interlocked.Exchange(ref _disposed, 1) is not 0)
             return;
 
         _jobs.Writer.TryComplete();
@@ -193,7 +193,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         ThrowIfDisposed();
         if (ct.IsCancellationRequested) return ValueTask.FromCanceled(ct);
-        if (batch.Spans.Count == 0) return ValueTask.CompletedTask;
+        if (batch.Spans.Count is 0) return ValueTask.CompletedTask;
 
         var job = new FireAndForgetJob(
             batch.Spans.Count,
@@ -215,7 +215,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     public async Task WriteBatchAsync(SpanBatch batch, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        if (batch.Spans.Count == 0) return;
+        if (batch.Spans.Count is 0) return;
 
         await WriteBatchInternalAsync(Connection, batch, ct).ConfigureAwait(false);
     }
@@ -271,6 +271,8 @@ public sealed class DuckDbStore : IAsyncDisposable
         string? providerName = null,
         ulong? startAfter = null,
         ulong? startBefore = null,
+        byte? statusCode = null,
+        string? searchText = null,
         int limit = 100,
         CancellationToken ct = default)
     {
@@ -304,6 +306,20 @@ public sealed class DuckDbStore : IAsyncDisposable
         {
             conditions.Add($"start_time_unix_nano <= ${paramIndex++}");
             parameters.Add(new DuckDBParameter { Value = (decimal)startBefore.Value });
+        }
+
+        if (statusCode.HasValue)
+        {
+            conditions.Add($"status_code = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = statusCode.Value });
+        }
+
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            // Search in status_message, name, and attributes_json
+            conditions.Add($"(status_message ILIKE ${paramIndex} OR name ILIKE ${paramIndex} OR attributes_json ILIKE ${paramIndex})");
+            parameters.Add(new DuckDBParameter { Value = $"%{searchText}%" });
+            paramIndex++;
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
@@ -425,7 +441,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     /// </summary>
     public long GetStorageSizeBytes()
     {
-        if (Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) is not 0)
             return 0;
 
         // For file-based databases, use file size (fast, no DB query needed)
@@ -471,7 +487,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        if (logs.Count == 0) return;
+        if (logs.Count is 0) return;
 
         await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
 
@@ -641,7 +657,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         SpanBatch batch,
         CancellationToken ct)
     {
-        if (batch.Spans.Count == 0) return;
+        if (batch.Spans.Count is 0) return;
 
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
 
@@ -705,7 +721,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time_unix_nano < $1";
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
         var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
-        if (count == 0) return 0;
+        if (count is 0) return 0;
 
         var finalPath = Path.GetFullPath(Path.Combine(outputDirectory, $"spans_{timestamp}.parquet"));
         var tempPath = finalPath + ".tmp";

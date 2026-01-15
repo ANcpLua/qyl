@@ -28,7 +28,7 @@ public static class HealthExtensions
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
             RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
-            builder.AddResourceUtilizationHealthCheck(options =>
+            builder.AddResourceUtilizationHealthCheck(static options =>
             {
                 options.CpuThresholds = new ResourceUsageThresholds
                 {

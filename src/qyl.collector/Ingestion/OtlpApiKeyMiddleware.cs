@@ -5,7 +5,6 @@ namespace qyl.collector.Ingestion;
 /// </summary>
 public sealed class OtlpApiKeyMiddleware
 {
-    private static readonly string[] OtlpPaths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
     private readonly RequestDelegate _next;
     private readonly OtlpApiKeyOptions _options;
 
@@ -20,7 +19,7 @@ public sealed class OtlpApiKeyMiddleware
         var path = context.Request.Path.Value ?? "";
 
         // Only validate OTLP paths when API key mode is enabled
-        if (!_options.IsApiKeyMode || !IsOtlpPath(path))
+        if (!_options.IsApiKeyMode || !OtlpConstants.IsOtlpPath(path))
         {
             await _next(context).ConfigureAwait(false);
             return;
@@ -47,9 +46,6 @@ public sealed class OtlpApiKeyMiddleware
 
         await _next(context).ConfigureAwait(false);
     }
-
-    private static bool IsOtlpPath(string path) =>
-        OtlpPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
     private bool ValidateApiKey(string? key)
     {

@@ -79,7 +79,7 @@ public static class TraceContextParser
             return false;
 
         // Version check (only 00 supported)
-        if (traceParent[0] != '0' || traceParent[1] != '0' || traceParent[2] != '-')
+        if (traceParent[0] is not '0' || traceParent[1] is not '0' || traceParent[2] != '-')
             return false;
 
         // Parse trace-id (32 hex chars)
@@ -121,22 +121,22 @@ public static class TraceContextParser
         if (traceParentUtf8.Length < TraceParentLength)
             return false;
 
-        // Version check
-        if (traceParentUtf8[0] != '0' || traceParentUtf8[1] != '0' || traceParentUtf8[2] != '-')
+        // Version check (compare bytes, not chars)
+        if (traceParentUtf8[0] is not (byte)'0' || traceParentUtf8[1] is not (byte)'0' || traceParentUtf8[2] != (byte)'-')
             return false;
 
         // Parse trace-id
         if (!TraceId.TryParse(traceParentUtf8.Slice(TraceIdOffset, 32), null, out traceId))
             return false;
 
-        if (traceParentUtf8[35] != '-')
+        if (traceParentUtf8[35] != (byte)'-')
             return false;
 
         // Parse parent-id
         if (!SpanId.TryParse(traceParentUtf8.Slice(ParentIdOffset, 16), null, out parentId))
             return false;
 
-        if (traceParentUtf8[52] != '-')
+        if (traceParentUtf8[52] != (byte)'-')
             return false;
 
         // Parse flags

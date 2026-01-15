@@ -25,19 +25,19 @@ public static class TelemetryExtensions
         services.AddHttpContextAccessor();
 
         // Configure redaction
-        services.AddRedaction(builder => builder.AddQylRedactors());
+        services.AddRedaction(static builder => builder.AddQylRedactors());
 
         // HTTP logging for incoming requests (redaction applied via AddRedaction above)
         services.AddHttpLogging();
 
         // Exception summarization for safe error logging
-        services.AddExceptionSummarizer(builder =>
+        services.AddExceptionSummarizer(static builder =>
         {
             builder.AddHttpProvider();
         });
 
         // Configure logging with enrichment, redaction, and buffering
-        services.AddLogging(logging =>
+        services.AddLogging(static logging =>
         {
             // Enable log enrichment
             logging.EnableEnrichment(options =>
@@ -63,7 +63,7 @@ public static class TelemetryExtensions
         services.AddLogEnricher<QylRequestEnricher>();
 
         // Add application log enricher (built-in)
-        services.AddApplicationLogEnricher(options =>
+        services.AddApplicationLogEnricher(static options =>
         {
             options.ApplicationName = true;
             options.BuildVersion = true;

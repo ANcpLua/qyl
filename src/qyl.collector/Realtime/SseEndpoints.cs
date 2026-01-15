@@ -6,7 +6,7 @@ public static class SseEndpoints
     {
         endpoints.MapGet("/api/v1/live", HandleLiveStream);
 
-        endpoints.MapGet("/api/v1/live/spans", (ITelemetrySseBroadcaster stream, HttpContext ctx) =>
+        endpoints.MapGet("/api/v1/live/spans", static (ITelemetrySseBroadcaster stream, HttpContext ctx) =>
             HandleFilteredStream(stream, ctx, TelemetrySignal.Spans));
 
         return endpoints;

@@ -14,7 +14,7 @@ namespace TelemetryLab.Net10.Api.Domain.Telemetry;
 /// </summary>
 public static class OTelSemconv
 {
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.38.0";
+    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Gen AI Attribute Keys (OTel 1.38)

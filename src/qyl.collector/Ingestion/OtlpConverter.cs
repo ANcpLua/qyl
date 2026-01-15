@@ -83,14 +83,14 @@ public static class OtlpConverter
         if (value.BytesValue is not null) return Convert.ToBase64String(value.BytesValue);
         if (value.ArrayValue is not null)
         {
-            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(v => v is not null).ToArray()!;
+            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static v => v is not null).ToArray()!;
             return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
         }
 
         if (value.KvlistValue is null) return null;
         var dict = value.KvlistValue
-            .Where(kv => ConvertAnyValueToString(kv.Value) is not null)
-            .ToDictionary(kv => kv.Key ?? "", kv => ConvertAnyValueToString(kv.Value)!);
+            .Where(static kv => ConvertAnyValueToString(kv.Value) is not null)
+            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertAnyValueToString(kv.Value)!);
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
 
@@ -151,7 +151,7 @@ public static class OtlpConverter
         foreach (var resourceSpan in otlp.ResourceSpans ?? [])
         {
             var serviceName = resourceSpan.Resource?.Attributes?
-                                  .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue
+                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
                               ?? "unknown";
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
@@ -332,7 +332,7 @@ public static class OtlpConverter
         foreach (var resourceLogs in otlp.ResourceLogs ?? [])
         {
             var serviceName = resourceLogs.Resource?.Attributes?
-                                  .FirstOrDefault(a => a.Key == "service.name")?.Value?.StringValue
+                                  .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
                               ?? "unknown";
 
             var resourceJson = SerializeAttributes(resourceLogs.Resource?.Attributes);
@@ -353,7 +353,7 @@ public static class OtlpConverter
         string? resourceJson)
     {
         var sessionId = log.Attributes?
-            .FirstOrDefault(a => a.Key == "session.id")?.Value?.StringValue;
+            .FirstOrDefault(static a => a.Key == "session.id")?.Value?.StringValue;
 
         var body = log.Body?.StringValue
                    ?? log.Body?.IntValue?.ToString()
@@ -382,7 +382,7 @@ public static class OtlpConverter
 
     private static string? SerializeAttributes(List<OtlpKeyValue>? attributes)
     {
-        if (attributes is null || attributes.Count == 0) return null;
+        if (attributes is null || attributes.Count is 0) return null;
 
         var dict = new Dictionary<string, string>(attributes.Count);
         foreach (var attr in attributes)

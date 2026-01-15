@@ -6,7 +6,6 @@ namespace qyl.collector.Ingestion;
 /// </summary>
 public sealed class OtlpCorsMiddleware
 {
-    private static readonly string[] OtlpPaths = ["/v1/traces", "/v1/logs", "/v1/metrics"];
     private readonly bool _allowAll;
     private readonly string _allowedHeadersHeader;
     private readonly HashSet<string> _allowedOrigins;
@@ -27,7 +26,7 @@ public sealed class OtlpCorsMiddleware
         var path = context.Request.Path.Value ?? "";
 
         // Only handle OTLP paths
-        if (!IsOtlpPath(path))
+        if (!OtlpConstants.IsOtlpPath(path))
         {
             await _next(context).ConfigureAwait(false);
             return;
@@ -60,9 +59,6 @@ public sealed class OtlpCorsMiddleware
 
         await _next(context).ConfigureAwait(false);
     }
-
-    private static bool IsOtlpPath(string path) =>
-        OtlpPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
     private bool IsOriginAllowed(string? origin) =>
         !string.IsNullOrEmpty(origin) && (_allowAll || _allowedOrigins.Contains(origin));

@@ -136,7 +136,7 @@ public static class SemconvNormalizer
     }.ToFrozenDictionary();
 
     /// <summary>Target schema version for normalization.</summary>
-    public static SemconvVersion TargetVersion => SemconvVersion.V1_39_0;
+    public static SemconvVersion TargetVersion => SemconvVersion.V1390;
 
     /// <summary>
     ///     Normalizes an attribute name to v1.39.0.

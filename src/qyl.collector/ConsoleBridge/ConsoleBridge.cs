@@ -36,8 +36,8 @@ public sealed class FrontendConsole
     [
         .. _ring.Reverse()
             .Where(e => (!minLevel.HasValue || e.Lvl >= minLevel) &&
-                        (session == null || e.Session == session) &&
-                        (pattern == null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+                        (session is null || e.Session == session) &&
+                        (pattern is null || e.Msg.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
             .Take(limit)
     ];
 

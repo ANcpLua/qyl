@@ -37,7 +37,7 @@ public sealed class TraceServiceMethodProvider : IServiceMethodProvider<TraceSer
         context.AddUnaryMethod(
             exportMethod,
             [],
-            async (service, request, serverCallContext) =>
+            async static (service, request, serverCallContext) =>
                 await service.Export(request, serverCallContext).ConfigureAwait(false));
     }
 }
@@ -88,11 +88,11 @@ public sealed class ExportTraceServiceRequest
 public sealed class ExportTraceServiceResponse
 {
     public static Marshaller<ExportTraceServiceResponse> Marshaller { get; } = Marshallers.Create(
-        (_, _) =>
+static (_, _) =>
         {
             /* Empty response for success (per OTLP spec) */
         },
-        _ => new ExportTraceServiceResponse());
+static _ => new ExportTraceServiceResponse());
 }
 
 #endregion
@@ -372,7 +372,7 @@ public sealed class OtlpAnyValueProto : IProtobufParseable
                     StringValue = reader.ReadString();
                     break;
                 case 2: // bool_value
-                    BoolValue = reader.ReadVarint() != 0;
+                    BoolValue = reader.ReadVarint() is not 0;
                     break;
                 case 3: // int_value
                     IntValue = reader.ReadSignedVarint();
@@ -494,7 +494,7 @@ public ref struct ProtobufReader(ReadOnlySequence<byte> sequence)
             b = _buffer[Position++];
             result |= (ulong)(b & 0x7F) << shift;
             shift += 7;
-        } while ((b & 0x80) != 0);
+        } while ((b & 0x80) is not 0);
 
         return result;
     }
