@@ -1,0 +1,51 @@
+---
+title: "qyl Documentation"
+description: "OpenTelemetry backend for AI observability with gen_ai.* semantic conventions"
+---
+
+# Welcome to qyl
+
+qyl is an OpenTelemetry backend purpose-built for AI observability. It captures, stores, and visualizes telemetry from AI applications using OpenTelemetry's `gen_ai.*` semantic conventions.
+
+## What qyl does
+
+<CardGroup cols={2}>
+  <Card title="OTLP Ingestion" icon="download">
+    Accepts traces via OTLP HTTP (5100) and gRPC (4317)
+  </Card>
+  <Card title="GenAI Attributes" icon="robot">
+    Extracts gen_ai.* attributes for token tracking and cost attribution
+  </Card>
+  <Card title="Real-Time Dashboard" icon="chart-line">
+    React 19 SPA with live session and span visualization
+  </Card>
+  <Card title="MCP Integration" icon="plug">
+    AI agents query their own traces via Model Context Protocol
+  </Card>
+</CardGroup>
+
+## Architecture
+
+```
+User App ──OTLP──► qyl.collector ──DuckDB──► Storage
+                        │                       │
+                        │                       └──► REST/SSE ──► qyl.dashboard
+                        └──► REST ──► qyl.mcp ──stdio──► Claude
+```
+
+## Quick links
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get running in 5 minutes
+  </Card>
+  <Card title="API Reference" icon="code" href="/api-reference">
+    REST API documentation
+  </Card>
+  <Card title="GenAI Attributes" icon="sparkles" href="/schema/genai-attributes">
+    OTel v1.39 gen_ai.* coverage
+  </Card>
+  <Card title="MCP Tools" icon="terminal" href="/guides/ai-agent-integration">
+    Claude Code integration
+  </Card>
+</CardGroup>
