@@ -24,6 +24,49 @@ dotnet_sort_system_directives_first = true
 dotnet_separate_import_directive_groups = false
 
 # =============================================================================
+# ANcpLua.Analyzers (AL) - Rules with Code Fixes
+# =============================================================================
+# Code fixes are automatically available when diagnostics are enabled.
+# Severity must be at least 'suggestion' for IDE code fixes to appear.
+# =============================================================================
+
+# Errors - bugs that must be fixed (code fixes available)
+dotnet_diagnostic.AL0001.severity = error # Primary constructor reassignment → fix: remove reassignment
+dotnet_diagnostic.AL0003.severity = error # Division by zero → fix: add zero check
+dotnet_diagnostic.AL0007.severity = error # GetSchema explicit impl → fix: make implicit
+dotnet_diagnostic.AL0008.severity = error # GetSchema returns null → fix: return proper schema
+dotnet_diagnostic.AL0009.severity = error # Don't call GetSchema → fix: remove call
+dotnet_diagnostic.AL0020.severity = error # IFormCollection attribute → fix: add attribute
+dotnet_diagnostic.AL0021.severity = error # Multiple form sources → fix: consolidate
+dotnet_diagnostic.AL0022.severity = error # Mixed form collection/DTO → fix: separate
+dotnet_diagnostic.AL0023.severity = error # Unsupported form type → fix: use supported type
+dotnet_diagnostic.AL0024.severity = error # Form/body conflict → fix: remove conflict
+
+# Warnings - should fix (code fixes available)
+dotnet_diagnostic.AL0002.severity = warning # Repeated negated patterns → fix: simplify
+dotnet_diagnostic.AL0004.severity = warning # Span pattern matching → fix: use span overload
+dotnet_diagnostic.AL0005.severity = warning # Span SequenceEqual → fix: use SequenceEqual
+dotnet_diagnostic.AL0006.severity = warning # Field/parameter name conflict → fix: rename
+dotnet_diagnostic.AL0011.severity = warning # Lock on non-Lock → fix: use Lock type
+dotnet_diagnostic.AL0012.severity = warning # Deprecated OTel convention → fix: use new convention
+# AL0017: Hardcoded version - disabled for CPM projects
+dotnet_diagnostic.AL0017.severity = none
+# AL0018: Version.props not imported - disabled (qyl manages its own props)
+dotnet_diagnostic.AL0018.severity = none
+dotnet_diagnostic.AL0026.severity = warning # DateTime.Now/UtcNow
+dotnet_diagnostic.AL0027.severity = warning # Newtonsoft.Json
+
+# Suggestions - style preferences (code fixes available in IDE)
+dotnet_diagnostic.AL0013.severity = suggestion # Missing schema URL → fix: add URL
+dotnet_diagnostic.AL0014.severity = suggestion # Pattern matching style → fix: modernize pattern
+dotnet_diagnostic.AL0015.severity = suggestion # Null-guard style → fix: use ArgumentNullException.ThrowIfNull
+dotnet_diagnostic.AL0016.severity = suggestion # Declaration + null-check → fix: combine
+dotnet_diagnostic.AL0025.severity = warning
+
+# Disabled by default
+dotnet_diagnostic.AL0010.severity = none # Type should be partial
+
+# =============================================================================
 # NAMING CONVENTIONS (Microsoft .NET Guidelines)
 # https://learn.microsoft.com/en-us/dotnet/standard/design-guidelines/naming-guidelines
 # =============================================================================
