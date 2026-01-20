@@ -1,10 +1,10 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {Clock, Pause, Play, RefreshCw, Search,} from 'lucide-react';
+import {Clock, Pause, Play, RefreshCw, Search, Zap} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 
 interface TopBarProps {
     isLive: boolean;
@@ -16,42 +16,48 @@ interface TopBarProps {
 }
 
 const pageTitle: Record<string, string> = {
-    '/': 'Resources',
-    '/traces': 'Traces',
-    '/logs': 'Structured Logs',
-    '/metrics': 'Metrics',
-    '/genai': 'GenAI Telemetry',
-    '/settings': 'Settings',
+    '/': 'RESOURCES',
+    '/traces': 'TRACES',
+    '/logs': 'STRUCTURED LOGS',
+    '/metrics': 'METRICS',
+    '/genai': 'GENAI TELEMETRY',
+    '/settings': 'SETTINGS',
 };
 
 const timeRanges = [
-    {value: '5m', label: 'Last 5 minutes'},
-    {value: '15m', label: 'Last 15 minutes'},
-    {value: '30m', label: 'Last 30 minutes'},
-    {value: '1h', label: 'Last 1 hour'},
-    {value: '3h', label: 'Last 3 hours'},
-    {value: '6h', label: 'Last 6 hours'},
-    {value: '12h', label: 'Last 12 hours'},
-    {value: '24h', label: 'Last 24 hours'},
-    {value: '7d', label: 'Last 7 days'},
+    {value: '5m', label: '5 MIN'},
+    {value: '15m', label: '15 MIN'},
+    {value: '30m', label: '30 MIN'},
+    {value: '1h', label: '1 HOUR'},
+    {value: '3h', label: '3 HOURS'},
+    {value: '6h', label: '6 HOURS'},
+    {value: '12h', label: '12 HOURS'},
+    {value: '24h', label: '24 HOURS'},
+    {value: '7d', label: '7 DAYS'},
 ];
 
 export function TopBar({
-                           isLive,
-                           onLiveToggle,
-                           onRefresh,
-                           timeRange,
-                           onTimeRangeChange,
-                           onSearch,
-                       }: TopBarProps) {
+    isLive,
+    onLiveToggle,
+    onRefresh,
+    timeRange,
+    onTimeRangeChange,
+    onSearch,
+}: TopBarProps) {
     const location = useLocation();
     const [searchValue, setSearchValue] = useState('');
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    const title = pageTitle[location.pathname] ?? 'qyl.';
+    // Update time every second
+    useEffect(() => {
+        const interval = setInterval(() => setCurrentTime(new Date()), 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const title = pageTitle[location.pathname] ?? 'QYL.';
 
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
-        // Use callback if provided, otherwise dispatch event for page-level handling
         if (onSearch) {
             onSearch(searchValue);
         } else {
@@ -61,22 +67,37 @@ export function TopBar({
         }
     };
 
-    return (
-        <header className="h-14 border-b border-border bg-card/50 backdrop-blur-sm flex items-center px-4 gap-4">
-            {/* Page title */}
-            <h1 className="text-lg font-semibold">{title}</h1>
+    const formatTime = (date: Date) => {
+        return date.toLocaleTimeString('en-US', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    };
 
-            {/* Search */}
+    return (
+        <header className="h-14 border-b-3 border-brutal-zinc bg-brutal-carbon flex items-center px-4 gap-4">
+            {/* Page title - BRUTALIST style */}
+            <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-signal-orange"/>
+                <h1 className="text-sm font-bold tracking-[0.2em] text-brutal-white">{title}</h1>
+            </div>
+
+            {/* Separator */}
+            <div className="w-px h-6 bg-brutal-zinc"/>
+
+            {/* Search - BRUTALIST input */}
             <form onSubmit={handleSearch} className="flex-1 max-w-md">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
                         data-search-input
                         type="text"
-                        placeholder="Search traces, logs, resources... (Ctrl+/)"
+                        placeholder="SEARCH... (CTRL+/)"
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
-                        className="pl-9 bg-muted/50"
+                        className="pl-9 bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-wider font-bold focus:border-signal-orange"
                     />
                 </div>
             </form>
@@ -84,45 +105,62 @@ export function TopBar({
             {/* Spacer */}
             <div className="flex-1"/>
 
-            {/* Time range selector */}
-            <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground"/>
-                <Select value={timeRange} onValueChange={onTimeRangeChange}>
-                    <SelectTrigger className="w-40">
-                        <SelectValue/>
-                    </SelectTrigger>
-                    <SelectContent>
-                        {timeRanges.map((range) => (
-                            <SelectItem key={range.value} value={range.value}>
-                                {range.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+            {/* Current time display */}
+            <div className="flex items-center gap-2 px-3 py-1 bg-brutal-dark border-2 border-brutal-zinc">
+                <Clock className="w-4 h-4 text-signal-cyan"/>
+                <span className="font-mono text-sm text-signal-cyan">{formatTime(currentTime)}</span>
             </div>
 
-            {/* Live toggle */}
+            {/* Time range selector - BRUTALIST */}
+            <Select value={timeRange} onValueChange={onTimeRangeChange}>
+                <SelectTrigger className="w-32 bg-brutal-dark border-2 border-brutal-zinc text-xs font-bold tracking-wider text-brutal-white hover:border-signal-orange">
+                    <SelectValue/>
+                </SelectTrigger>
+                <SelectContent className="bg-brutal-carbon border-2 border-brutal-zinc">
+                    {timeRanges.map((range) => (
+                        <SelectItem
+                            key={range.value}
+                            value={range.value}
+                            className="text-xs font-bold tracking-wider text-brutal-white hover:bg-brutal-dark focus:bg-signal-orange/20 focus:text-signal-orange"
+                        >
+                            {range.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            {/* Live toggle - BRUTALIST button */}
             <Button
-                variant={isLive ? 'default' : 'outline'}
+                variant="outline"
                 size="sm"
                 onClick={onLiveToggle}
-                className={cn(isLive && 'bg-green-600 hover:bg-green-700')}
+                className={cn(
+                    'border-2 text-xs font-bold tracking-wider transition-all',
+                    isLive
+                        ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
+                        : 'bg-brutal-dark border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'
+                )}
             >
                 {isLive ? (
                     <>
-                        <Pause className="w-4 h-4 mr-1"/>
-                        Live
+                        <Pause className="w-4 h-4 mr-2"/>
+                        LIVE
                     </>
                 ) : (
                     <>
-                        <Play className="w-4 h-4 mr-1"/>
-                        Paused
+                        <Play className="w-4 h-4 mr-2"/>
+                        PAUSED
                     </>
                 )}
             </Button>
 
-            {/* Refresh */}
-            <Button variant="outline" size="icon" onClick={onRefresh}>
+            {/* Refresh - BRUTALIST */}
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={onRefresh}
+                className="border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
+            >
                 <RefreshCw className="w-4 h-4"/>
             </Button>
         </header>

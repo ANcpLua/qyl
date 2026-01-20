@@ -12,7 +12,7 @@ import {CopyableText} from '@/components/ui';
 import {
     formatDuration,
     formatTimestamp,
-    getAttributes,
+    getAttributesRecord,
     getSpanColor,
     getSpanTypeLabel,
     nanoToIso,
@@ -21,8 +21,41 @@ import {
     useSessions,
     useSessionSpans,
 } from '@/hooks/use-telemetry';
-import type {SpanRecord} from '@/types';
-import {getStatusLabel, getTotalTokens} from '@/types';
+import type {Span} from '@/types';
+import {getStatusLabel} from '@/types';
+
+// Alias for backward compatibility
+type SpanRecord = Span;
+
+// Helper to get service name from resource
+function getServiceName(span: Span): string {
+    const attr = span.resource?.attributes?.find(a => a.key === 'service.name');
+    return (attr?.value as string) ?? 'unknown';
+}
+
+// Helper to calculate duration
+function getDurationNs(span: Span): number {
+    return span.end_time_unix_nano - span.start_time_unix_nano;
+}
+
+// Helper to get GenAI attributes
+function getGenAiAttrs(span: Span) {
+    const attrs = getAttributesRecord(span);
+    return {
+        system: attrs['gen_ai.system'] as string | undefined,
+        requestModel: attrs['gen_ai.request.model'] as string | undefined,
+        inputTokens: attrs['gen_ai.usage.input_tokens'] as number | undefined,
+        outputTokens: attrs['gen_ai.usage.output_tokens'] as number | undefined,
+        costUsd: attrs['gen_ai.response.cost_usd'] as number | undefined,
+    };
+}
+
+// Helper to get total tokens
+function getTotalTokens(span: Span): number | null {
+    const genai = getGenAiAttrs(span);
+    if (genai.inputTokens === undefined && genai.outputTokens === undefined) return null;
+    return (genai.inputTokens ?? 0) + (genai.outputTokens ?? 0);
+}
 
 interface FlattenedSpan {
     span: SpanRecord;
@@ -55,8 +88,8 @@ function SpanRow({
                      onSelect,
                  }: SpanRowProps) {
     const totalDuration = timelineEnd - timelineStart;
-    const spanStart = span.startTimeUnixNano / 1_000_000; // Convert to ms
-    const spanEnd = span.endTimeUnixNano / 1_000_000;
+    const spanStart = span.start_time_unix_nano / 1_000_000; // Convert to ms
+    const spanEnd = span.end_time_unix_nano / 1_000_000;
 
     const leftPercent = totalDuration > 0 ? ((spanStart - timelineStart) / totalDuration) * 100 : 0;
     const widthPercent = Math.max(
@@ -64,7 +97,7 @@ function SpanRow({
         totalDuration > 0 ? ((spanEnd - spanStart) / totalDuration) * 100 : 1
     );
 
-    const isError = span.statusCode === STATUS_ERROR;
+    const isError = span.status.code === STATUS_ERROR;
     const color = getSpanColor(span);
     const typeLabel = getSpanTypeLabel(span);
 
@@ -116,7 +149,7 @@ function SpanRow({
           </span>
                     {isError && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0"/>}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">{span.serviceName}</div>
+                <div className="text-xs text-muted-foreground truncate">{getServiceName(span)}</div>
             </div>
 
             {/* Waterfall visualization */}
@@ -133,15 +166,16 @@ function SpanRow({
 
             {/* Duration */}
             <div className="w-20 text-right font-mono text-sm text-muted-foreground">
-                {formatDuration(nsToMs(span.durationNs))}
+                {formatDuration(nsToMs(getDurationNs(span)))}
             </div>
         </div>
     );
 }
 
 function SpanDetails({span}: { span: SpanRecord }) {
-    const attributes = getAttributes(span);
+    const attributes = getAttributesRecord(span);
     const totalTokens = getTotalTokens(span);
+    const genai = getGenAiAttrs(span);
 
     return (
         <div className="p-4 space-y-4">
@@ -154,12 +188,12 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     >
                         {getSpanTypeLabel(span)}
                     </Badge>
-                    <Badge variant={span.statusCode === STATUS_ERROR ? 'destructive' : 'secondary'}>
-                        {getStatusLabel(span.statusCode)}
+                    <Badge variant={span.status.code === STATUS_ERROR ? 'destructive' : 'secondary'}>
+                        {getStatusLabel(span.status.code)}
                     </Badge>
                 </div>
                 <h3 className="text-lg font-semibold mt-2 font-mono">{span.name}</h3>
-                <p className="text-sm text-muted-foreground">{span.serviceName}</p>
+                <p className="text-sm text-muted-foreground">{getServiceName(span)}</p>
             </div>
 
             <Separator/>
@@ -171,18 +205,18 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     <div>
                         <span className="text-muted-foreground">Start:</span>
                         <span className="ml-2 font-mono">
-              {formatTimestamp(nanoToIso(span.startTimeUnixNano))}
+              {formatTimestamp(nanoToIso(span.start_time_unix_nano))}
             </span>
                     </div>
                     <div>
                         <span className="text-muted-foreground">End:</span>
                         <span className="ml-2 font-mono">
-              {formatTimestamp(nanoToIso(span.endTimeUnixNano))}
+              {formatTimestamp(nanoToIso(span.end_time_unix_nano))}
             </span>
                     </div>
                     <div>
                         <span className="text-muted-foreground">Duration:</span>
-                        <span className="ml-2 font-mono">{formatDuration(nsToMs(span.durationNs))}</span>
+                        <span className="ml-2 font-mono">{formatDuration(nsToMs(getDurationNs(span)))}</span>
                     </div>
                 </div>
             </div>
@@ -196,7 +230,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     <div className="flex items-center">
                         <span className="text-muted-foreground w-16">Trace:</span>
                         <CopyableText
-                            value={span.traceId}
+                            value={span.trace_id}
                             label="Trace ID"
                             textClassName="text-primary"
                             truncate
@@ -206,17 +240,17 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     <div className="flex items-center">
                         <span className="text-muted-foreground w-16">Span:</span>
                         <CopyableText
-                            value={span.spanId}
+                            value={span.span_id}
                             label="Span ID"
                             truncate
                             maxWidth="200px"
                         />
                     </div>
-                    {span.parentSpanId && (
+                    {span.parent_span_id && (
                         <div className="flex items-center">
                             <span className="text-muted-foreground w-16">Parent:</span>
                             <CopyableText
-                                value={span.parentSpanId}
+                                value={span.parent_span_id}
                                 label="Parent Span ID"
                                 truncate
                                 maxWidth="200px"
@@ -245,7 +279,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
             </div>
 
             {/* GenAI specific */}
-            {span.genAiSystem && (
+            {genai.system && (
                 <>
                     <Separator/>
                     <div>
@@ -253,19 +287,19 @@ function SpanDetails({span}: { span: SpanRecord }) {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="text-muted-foreground">Provider:</span>
-                                <span className="ml-2">{span.genAiSystem}</span>
+                                <span className="ml-2">{genai.system}</span>
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Model:</span>
-                                <span className="ml-2">{span.genAiRequestModel}</span>
+                                <span className="ml-2">{genai.requestModel}</span>
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Tokens In:</span>
-                                <span className="ml-2 font-mono">{span.genAiInputTokens?.toLocaleString()}</span>
+                                <span className="ml-2 font-mono">{genai.inputTokens?.toLocaleString()}</span>
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Tokens Out:</span>
-                                <span className="ml-2 font-mono">{span.genAiOutputTokens?.toLocaleString()}</span>
+                                <span className="ml-2 font-mono">{genai.outputTokens?.toLocaleString()}</span>
                             </div>
                             {totalTokens && (
                                 <div>
@@ -273,11 +307,11 @@ function SpanDetails({span}: { span: SpanRecord }) {
                                     <span className="ml-2 font-mono">{totalTokens.toLocaleString()}</span>
                                 </div>
                             )}
-                            {span.genAiCostUsd && (
+                            {genai.costUsd && (
                                 <div>
                                     <span className="text-muted-foreground">Cost:</span>
                                     <span className="ml-2 font-mono text-green-500">
-                    ${span.genAiCostUsd.toFixed(6)}
+                    ${genai.costUsd.toFixed(6)}
                   </span>
                                 </div>
                             )}
@@ -301,7 +335,7 @@ export function TracesPage() {
 
     const {data: sessions = []} = useSessions();
     const {data: spans = [], isLoading} = useSessionSpans(
-        sessionId || sessions[0]?.sessionId || ''
+        sessionId || sessions[0]?.['session.id'] || ''
     );
 
     // Build span tree and compute timeline bounds
@@ -311,21 +345,21 @@ export function TracesPage() {
         let maxTime = -Infinity;
 
         for (const span of spans) {
-            const startTime = span.startTimeUnixNano / 1_000_000; // Convert to ms
-            const endTime = span.endTimeUnixNano / 1_000_000;
+            const startTime = span.start_time_unix_nano / 1_000_000; // Convert to ms
+            const endTime = span.end_time_unix_nano / 1_000_000;
             minTime = Math.min(minTime, startTime);
             maxTime = Math.max(maxTime, endTime);
 
-            if (span.parentSpanId) {
-                const siblings = childrenMap.get(span.parentSpanId) || [];
+            if (span.parent_span_id) {
+                const siblings = childrenMap.get(span.parent_span_id) || [];
                 siblings.push(span);
-                childrenMap.set(span.parentSpanId, siblings);
+                childrenMap.set(span.parent_span_id, siblings);
             }
         }
 
         // Sort children by start time
         for (const siblings of childrenMap.values()) {
-            siblings.sort((a, b) => a.startTimeUnixNano - b.startTimeUnixNano);
+            siblings.sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
         }
 
         return {
@@ -342,23 +376,23 @@ export function TracesPage() {
 
         // Get root spans (no parent)
         const rootSpans = spans
-            .filter((s) => !s.parentSpanId)
-            .sort((a, b) => a.startTimeUnixNano - b.startTimeUnixNano);
+            .filter((s) => !s.parent_span_id)
+            .sort((a, b) => a.start_time_unix_nano - b.start_time_unix_nano);
 
         const matchesFilter = (span: SpanRecord): boolean => {
             if (!filterText) return true;
-            const attributes = getAttributes(span);
+            const attributes = getAttributesRecord(span);
             return (
                 span.name.toLowerCase().includes(filterLower) ||
-                (span.serviceName ?? '').toLowerCase().includes(filterLower) ||
+                getServiceName(span).toLowerCase().includes(filterLower) ||
                 Object.values(attributes).some((v) => String(v).toLowerCase().includes(filterLower))
             );
         };
 
         const flatten = (span: SpanRecord, depth: number) => {
-            const children = childrenMap.get(span.spanId) || [];
+            const children = childrenMap.get(span.span_id) || [];
             const hasChildren = children.length > 0;
-            const isExpanded = expandedSpans.has(span.spanId);
+            const isExpanded = expandedSpans.has(span.span_id);
 
             // Include if matches filter or has matching descendants
             const matches = matchesFilter(span);
@@ -369,7 +403,7 @@ export function TracesPage() {
                     while (stack.length > 0) {
                         const current = stack.pop()!;
                         if (matchesFilter(current)) return true;
-                        const grandchildren = childrenMap.get(current.spanId) || [];
+                        const grandchildren = childrenMap.get(current.span_id) || [];
                         stack.push(...grandchildren);
                     }
                     return false;
@@ -436,7 +470,7 @@ export function TracesPage() {
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setExpandedSpans(new Set(spans.map((s) => s.spanId)))}
+                        onClick={() => setExpandedSpans(new Set(spans.map((s) => s.span_id)))}
                     >
                         Expand All
                     </Button>
@@ -484,11 +518,11 @@ export function TracesPage() {
                                             span={span}
                                             depth={depth}
                                             isExpanded={isExpanded}
-                                            onToggle={() => toggleSpan(span.spanId)}
+                                            onToggle={() => toggleSpan(span.span_id)}
                                             hasChildren={hasChildren}
                                             timelineStart={timelineStart}
                                             timelineEnd={timelineEnd}
-                                            isSelected={selectedSpan?.spanId === span.spanId}
+                                            isSelected={selectedSpan?.span_id === span.span_id}
                                             onSelect={() => setSelectedSpan(span)}
                                         />
                                     </div>

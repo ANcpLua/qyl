@@ -9,11 +9,11 @@ import {
     Radio,
     Settings,
     Sparkles,
+    Terminal,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
-import {Separator} from '@/components/ui/separator';
-import {Tooltip, TooltipContent, TooltipTrigger,} from '@/components/ui/tooltip';
+import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
 
 interface NavItem {
     to: string;
@@ -23,11 +23,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    {to: '/', icon: Activity, label: 'Resources', shortcut: 'G'},
-    {to: '/traces', icon: Network, label: 'Traces', shortcut: 'T'},
-    {to: '/logs', icon: FileText, label: 'Logs', shortcut: 'L'},
-    {to: '/metrics', icon: BarChart3, label: 'Metrics', shortcut: 'M'},
-    {to: '/genai', icon: Sparkles, label: 'GenAI', shortcut: 'A'},
+    {to: '/', icon: Activity, label: 'RESOURCES', shortcut: 'G'},
+    {to: '/traces', icon: Network, label: 'TRACES', shortcut: 'T'},
+    {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'L'},
+    {to: '/metrics', icon: BarChart3, label: 'METRICS', shortcut: 'M'},
+    {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'A'},
 ];
 
 interface SidebarProps {
@@ -42,28 +42,38 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     return (
         <aside
             className={cn(
-                'flex flex-col bg-card border-r border-border transition-all duration-200',
+                'flex flex-col bg-brutal-carbon border-r-3 border-brutal-zinc transition-all duration-200',
                 collapsed ? 'w-16' : 'w-56'
             )}
         >
-            {/* Logo */}
-            <div className="flex items-center h-14 px-4 border-b border-border">
+            {/* BRUTALIST Logo */}
+            <div className="flex items-center h-14 px-4 border-b-3 border-brutal-zinc bg-brutal-dark">
                 <NavLink to="/" className="flex items-center gap-2">
-                    <div
-                        className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center">
-                        <span className="text-white font-bold text-sm">Q</span>
+                    <div className="w-8 h-8 bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
+                        <Terminal className="w-5 h-5 text-brutal-black"/>
                     </div>
                     {!collapsed && (
-                        <span className="font-semibold text-lg text-gradient">qyl.</span>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-lg text-signal-orange tracking-wider">QYL.</span>
+                            <span className="text-[8px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
+                        </div>
                     )}
                 </NavLink>
-                {!collapsed && isLive && (
-                    <div className="ml-auto flex items-center gap-1.5">
-                        <Radio className="w-3 h-3 text-green-500 pulse-live"/>
-                        <span className="text-xs text-green-500">Live</span>
-                    </div>
-                )}
             </div>
+
+            {/* Connection Status */}
+            {!collapsed && (
+                <div className={cn(
+                    'px-4 py-2 border-b-3 flex items-center gap-2 text-xs font-bold tracking-wider',
+                    isLive
+                        ? 'border-signal-green bg-signal-green/10 text-signal-green'
+                        : 'border-brutal-zinc bg-brutal-dark text-brutal-slate'
+                )}>
+                    <Radio className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
+                    <span>{isLive ? 'CONNECTED' : 'DISCONNECTED'}</span>
+                    {isLive && <span className="animate-cursor-blink">_</span>}
+                </div>
+            )}
 
             {/* Navigation */}
             <nav className="flex-1 p-2 space-y-1">
@@ -76,17 +86,17 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             key={item.to}
                             to={item.to}
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
                                 isActive
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
+                                    : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
                             )}
                         >
                             <Icon className="w-5 h-5 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">{item.label}</span>
-                                    <kbd className="kbd">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -96,9 +106,9 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         return (
                             <Tooltip key={item.to} delayDuration={0}>
                                 <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                                <TooltipContent side="right" className="flex items-center gap-2">
+                                <TooltipContent side="right" className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
-                                    <kbd className="kbd">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
                                 </TooltipContent>
                             </Tooltip>
                         );
@@ -108,7 +118,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 })}
             </nav>
 
-            <Separator/>
+            {/* Separator line */}
+            <div className="border-t-3 border-brutal-zinc"/>
 
             {/* Bottom section */}
             <div className="p-2 space-y-1">
@@ -119,17 +130,17 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         <NavLink
                             to="/settings"
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
                                 isActive
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                                    ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
+                                    : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
                             )}
                         >
                             <Settings className="w-5 h-5 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
-                                    <span className="flex-1">Settings</span>
-                                    <kbd className="kbd">,</kbd>
+                                    <span className="flex-1">SETTINGS</span>
+                                    <kbd className="kbd text-[10px]">,</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -139,9 +150,9 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         return (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>{settingsContent}</TooltipTrigger>
-                                <TooltipContent side="right" className="flex items-center gap-2">
-                                    Settings
-                                    <kbd className="kbd">,</kbd>
+                                <TooltipContent side="right" className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
+                                    SETTINGS
+                                    <kbd className="kbd text-[10px]">,</kbd>
                                 </TooltipContent>
                             </Tooltip>
                         );
@@ -154,7 +165,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start"
+                    className="w-full justify-start text-xs font-bold tracking-wider text-brutal-slate hover:text-brutal-white hover:bg-brutal-dark border-2 border-transparent hover:border-brutal-zinc"
                     onClick={() => onCollapsedChange(!collapsed)}
                 >
                     {collapsed ? (
@@ -162,11 +173,22 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     ) : (
                         <>
                             <ChevronLeft className="w-5 h-5"/>
-                            <span className="ml-3">Collapse</span>
+                            <span className="ml-3">COLLAPSE</span>
                         </>
                     )}
                 </Button>
             </div>
+
+            {/* Footer */}
+            {!collapsed && (
+                <div className="px-4 py-2 border-t-3 border-brutal-zinc bg-brutal-dark">
+                    <div className="text-[8px] text-brutal-slate tracking-[0.15em] leading-relaxed">
+                        <div>OBSERVE EVERYTHING</div>
+                        <div>JUDGE NOTHING</div>
+                        <div>DOCUMENT PERFECTLY</div>
+                    </div>
+                </div>
+            )}
         </aside>
     );
 }

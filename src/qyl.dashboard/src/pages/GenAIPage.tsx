@@ -19,10 +19,31 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {CopyableText} from '@/components/ui';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
-import type {SpanRecord, StatusCode} from '@/types';
-import {getTotalTokens} from '@/types';
+import type {SpanStatusCode} from '@/types';
 
-// Extended span data for GenAI display (messages are stored in attributesJson in real data)
+// Alias for mock data - StatusCode uses the same values as SpanStatusCode
+type StatusCode = SpanStatusCode;
+
+// Helper to get total tokens from mock span (uses convenience accessors)
+function getMockTotalTokens(span: MockGenAiSpan): number | null {
+    const input = span.gen_ai_input_tokens;
+    const output = span.gen_ai_output_tokens;
+    if (input === undefined && output === undefined) return null;
+    return (input ?? 0) + (output ?? 0);
+}
+
+// Helper to get duration from mock span
+function getMockDurationNs(span: MockGenAiSpan): number {
+    return span.end_time_unix_nano - span.start_time_unix_nano;
+}
+
+// Helper to get service name from resource
+function getMockServiceName(span: MockGenAiSpan): string {
+    const attr = span.resource.attributes.find(a => a.key === 'service.name');
+    return (attr?.value as string) ?? 'unknown';
+}
+
+// Extended span data for GenAI display (messages are stored in attributes in real data)
 interface GenAiExtendedData {
     inputMessages?: Array<{ role: string; content?: string }>;
     outputMessages?: Array<{ role: string; content?: string }>;
@@ -31,28 +52,58 @@ interface GenAiExtendedData {
     operationName?: string;
 }
 
-// Extended SpanRecord with parsed GenAI messages for display
-type GenAiSpanRecord = SpanRecord & { genAiExtended?: GenAiExtendedData };
+// Mock GenAI span interface for display (flattened for convenience)
+interface MockGenAiSpan {
+    trace_id: string;
+    span_id: string;
+    name: string;
+    kind: number;
+    start_time_unix_nano: number;
+    end_time_unix_nano: number;
+    status: { code: StatusCode; message?: string };
+    attributes: Array<{ key: string; value: unknown }>;
+    resource: { attributes: Array<{ key: string; value: unknown }> };
+    // Convenience accessors (would be derived from attributes in real code)
+    gen_ai_system?: string;
+    gen_ai_request_model?: string;
+    gen_ai_response_model?: string;
+    gen_ai_input_tokens?: number;
+    gen_ai_output_tokens?: number;
+    gen_ai_cost_usd?: number;
+    gen_ai_extended?: GenAiExtendedData;
+}
 
-// Mock GenAI spans - using SpanRecord shape with extended data
-const mockGenAISpans: GenAiSpanRecord[] = [
+// Helper to create attribute array from object
+function makeAttrs(obj: Record<string, unknown>): Array<{ key: string; value: unknown }> {
+    return Object.entries(obj).map(([key, value]) => ({ key, value }));
+}
+
+// Mock GenAI spans - using snake_case properties matching OTel schema
+const mockGenAISpans: MockGenAiSpan[] = [
     {
-        traceId: 'trace-1',
-        spanId: 'span-1',
+        trace_id: 'trace-1',
+        span_id: 'span-1',
         name: 'chat openai.chat',
-        kind: 3 as const, // CLIENT
-        statusCode: 1 as StatusCode, // OK
-        startTimeUnixNano: Date.now() * 1_000_000 - 5_000_000_000,
-        endTimeUnixNano: Date.now() * 1_000_000 - 2_000_000_000,
-        durationNs: 3_000_000_000,
-        serviceName: 'chat-service',
-        genAiSystem: 'openai',
-        genAiRequestModel: 'gpt-4o',
-        genAiResponseModel: 'gpt-4o-2024-08-06',
-        genAiInputTokens: 1250,
-        genAiOutputTokens: 450,
-        genAiCostUsd: 0.0425,
-        genAiExtended: {
+        kind: 3, // CLIENT
+        status: { code: 1 },
+        start_time_unix_nano: Date.now() * 1_000_000 - 5_000_000_000,
+        end_time_unix_nano: Date.now() * 1_000_000 - 2_000_000_000,
+        attributes: makeAttrs({
+            'gen_ai.system': 'openai',
+            'gen_ai.request.model': 'gpt-4o',
+            'gen_ai.response.model': 'gpt-4o-2024-08-06',
+            'gen_ai.usage.input_tokens': 1250,
+            'gen_ai.usage.output_tokens': 450,
+        }),
+        resource: { attributes: makeAttrs({ 'service.name': 'chat-service' }) },
+        // Convenience accessors
+        gen_ai_system: 'openai',
+        gen_ai_request_model: 'gpt-4o',
+        gen_ai_response_model: 'gpt-4o-2024-08-06',
+        gen_ai_input_tokens: 1250,
+        gen_ai_output_tokens: 450,
+        gen_ai_cost_usd: 0.0425,
+        gen_ai_extended: {
             operationName: 'chat',
             finishReasons: ['stop'],
             inputMessages: [
@@ -69,22 +120,29 @@ const mockGenAISpans: GenAiSpanRecord[] = [
         },
     },
     {
-        traceId: 'trace-2',
-        spanId: 'span-2',
+        trace_id: 'trace-2',
+        span_id: 'span-2',
         name: 'chat anthropic.messages',
-        kind: 3 as const, // CLIENT
-        statusCode: 1 as StatusCode, // OK
-        startTimeUnixNano: Date.now() * 1_000_000 - 10_000_000_000,
-        endTimeUnixNano: Date.now() * 1_000_000 - 6_000_000_000,
-        durationNs: 4_000_000_000,
-        serviceName: 'agent-service',
-        genAiSystem: 'anthropic',
-        genAiRequestModel: 'claude-3-5-sonnet-20241022',
-        genAiResponseModel: 'claude-3-5-sonnet-20241022',
-        genAiInputTokens: 2100,
-        genAiOutputTokens: 850,
-        genAiCostUsd: 0.0885,
-        genAiExtended: {
+        kind: 3, // CLIENT
+        status: { code: 1 },
+        start_time_unix_nano: Date.now() * 1_000_000 - 10_000_000_000,
+        end_time_unix_nano: Date.now() * 1_000_000 - 6_000_000_000,
+        attributes: makeAttrs({
+            'gen_ai.system': 'anthropic',
+            'gen_ai.request.model': 'claude-3-5-sonnet-20241022',
+            'gen_ai.response.model': 'claude-3-5-sonnet-20241022',
+            'gen_ai.usage.input_tokens': 2100,
+            'gen_ai.usage.output_tokens': 850,
+        }),
+        resource: { attributes: makeAttrs({ 'service.name': 'agent-service' }) },
+        // Convenience accessors
+        gen_ai_system: 'anthropic',
+        gen_ai_request_model: 'claude-3-5-sonnet-20241022',
+        gen_ai_response_model: 'claude-3-5-sonnet-20241022',
+        gen_ai_input_tokens: 2100,
+        gen_ai_output_tokens: 850,
+        gen_ai_cost_usd: 0.0885,
+        gen_ai_extended: {
             operationName: 'chat',
             finishReasons: ['end_turn'],
             inputMessages: [
@@ -115,16 +173,16 @@ const mockGenAISpans: GenAiSpanRecord[] = [
 ];
 
 interface GenAISpanCardProps {
-    span: GenAiSpanRecord;
+    span: MockGenAiSpan;
     isExpanded: boolean;
     onToggle: () => void;
 }
 
 function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
     const [copiedMessage, setCopiedMessage] = useState<string | null>(null);
-    const totalTokens = getTotalTokens(span);
-    const durationMs = nsToMs(span.durationNs);
-    const ext = span.genAiExtended;
+    const totalTokens = getMockTotalTokens(span);
+    const durationMs = nsToMs(getMockDurationNs(span));
+    const ext = span.gen_ai_extended;
 
     const copyToClipboard = (text: string, id: string) => {
         navigator.clipboard.writeText(text);
@@ -133,9 +191,9 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
     };
 
     const providerColor =
-        span.genAiSystem === 'openai'
+        span.gen_ai_system === 'openai'
             ? 'text-green-500 border-green-500'
-            : span.genAiSystem === 'anthropic'
+            : span.gen_ai_system === 'anthropic'
                 ? 'text-orange-500 border-orange-500'
                 : 'text-violet-500 border-violet-500';
 
@@ -154,10 +212,10 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                     <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className={providerColor}>
-                                {span.genAiSystem}
+                                {span.gen_ai_system}
                             </Badge>
-                            <Badge variant="secondary">{span.genAiRequestModel}</Badge>
-                            <span className="text-sm text-muted-foreground">{span.serviceName}</span>
+                            <Badge variant="secondary">{span.gen_ai_request_model}</Badge>
+                            <span className="text-sm text-muted-foreground">{getMockServiceName(span)}</span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1 truncate">
                             {ext?.inputMessages?.[ext.inputMessages.length - 1]?.content?.slice(0, 100)}...
@@ -169,7 +227,7 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                         <div className="text-right">
                             <div className="text-muted-foreground">Tokens</div>
                             <div className="font-mono">
-                                {span.genAiInputTokens?.toLocaleString()} / {span.genAiOutputTokens?.toLocaleString()}
+                                {span.gen_ai_input_tokens?.toLocaleString()} / {span.gen_ai_output_tokens?.toLocaleString()}
                             </div>
                         </div>
                         <div className="text-right">
@@ -178,7 +236,7 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                         </div>
                         <div className="text-right">
                             <div className="text-muted-foreground">Cost</div>
-                            <div className="font-mono text-green-500">${span.genAiCostUsd?.toFixed(4)}</div>
+                            <div className="font-mono text-green-500">${span.gen_ai_cost_usd?.toFixed(4)}</div>
                         </div>
                     </div>
                 </div>
@@ -295,15 +353,15 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
                                     <span className="text-muted-foreground">Provider:</span>
-                                    <span className="ml-2">{span.genAiSystem}</span>
+                                    <span className="ml-2">{span.gen_ai_system}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Request Model:</span>
-                                    <span className="ml-2">{span.genAiRequestModel}</span>
+                                    <span className="ml-2">{span.gen_ai_request_model}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Response Model:</span>
-                                    <span className="ml-2">{span.genAiResponseModel}</span>
+                                    <span className="ml-2">{span.gen_ai_response_model}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Operation:</span>
@@ -311,11 +369,11 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Input Tokens:</span>
-                                    <span className="ml-2 font-mono">{span.genAiInputTokens?.toLocaleString()}</span>
+                                    <span className="ml-2 font-mono">{span.gen_ai_input_tokens?.toLocaleString()}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Output Tokens:</span>
-                                    <span className="ml-2 font-mono">{span.genAiOutputTokens?.toLocaleString()}</span>
+                                    <span className="ml-2 font-mono">{span.gen_ai_output_tokens?.toLocaleString()}</span>
                                 </div>
                                 {totalTokens && (
                                     <div>
@@ -334,7 +392,7 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                                 <div className="flex items-center">
                                     <span className="text-muted-foreground">Trace ID:</span>
                                     <CopyableText
-                                        value={span.traceId}
+                                        value={span.trace_id}
                                         label="Trace ID"
                                         className="ml-2"
                                         textClassName="text-primary"
@@ -345,7 +403,7 @@ function GenAISpanCard({span, isExpanded, onToggle}: GenAISpanCardProps) {
                                 <div className="flex items-center">
                                     <span className="text-muted-foreground">Span ID:</span>
                                     <CopyableText
-                                        value={span.spanId}
+                                        value={span.span_id}
                                         label="Span ID"
                                         className="ml-2"
                                         truncate
@@ -368,10 +426,10 @@ export function GenAIPage() {
     const stats = useMemo(() => {
         return {
             totalCalls: mockGenAISpans.length,
-            totalTokens: mockGenAISpans.reduce((a, s) => a + (getTotalTokens(s) || 0), 0),
-            totalCost: mockGenAISpans.reduce((a, s) => a + (s.genAiCostUsd || 0), 0),
+            totalTokens: mockGenAISpans.reduce((a, s) => a + (getMockTotalTokens(s) || 0), 0),
+            totalCost: mockGenAISpans.reduce((a, s) => a + (s.gen_ai_cost_usd || 0), 0),
             avgLatency:
-                mockGenAISpans.reduce((a, s) => a + nsToMs(s.durationNs), 0) / mockGenAISpans.length,
+                mockGenAISpans.reduce((a, s) => a + nsToMs(getMockDurationNs(s)), 0) / mockGenAISpans.length,
         };
     }, []);
 
@@ -450,10 +508,10 @@ export function GenAIPage() {
                     <div className="space-y-4">
                         {mockGenAISpans.map((span) => (
                             <GenAISpanCard
-                                key={span.spanId}
+                                key={span.span_id}
                                 span={span}
-                                isExpanded={expandedSpans.has(span.spanId)}
-                                onToggle={() => toggleSpan(span.spanId)}
+                                isExpanded={expandedSpans.has(span.span_id)}
+                                onToggle={() => toggleSpan(span.span_id)}
                             />
                         ))}
                     </div>

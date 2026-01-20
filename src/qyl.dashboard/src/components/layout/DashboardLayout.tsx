@@ -16,8 +16,8 @@ export function DashboardLayout() {
     // Live stream
     const {isConnected, recentSpans, reconnect} = useLiveStream({
         enabled: isLive,
-        onConnect: () => console.log('SSE connected'),
-        onDisconnect: () => console.log('SSE disconnected'),
+        onConnect: () => console.log('[QYL] SSE stream connected'),
+        onDisconnect: () => console.log('[QYL] SSE stream disconnected'),
     });
 
     // Keyboard shortcuts
@@ -34,7 +34,7 @@ export function DashboardLayout() {
 
     return (
         <TooltipProvider>
-            <div className="flex h-screen bg-background">
+            <div className="flex h-screen bg-brutal-black">
                 <Sidebar
                     collapsed={sidebarCollapsed}
                     onCollapsedChange={setSidebarCollapsed}
@@ -50,7 +50,7 @@ export function DashboardLayout() {
                         onTimeRangeChange={setTimeRange}
                     />
 
-                    <main className="flex-1 overflow-auto">
+                    <main className="flex-1 overflow-auto bg-brutal-black">
                         <Outlet context={{isLive, timeRange, recentSpans, reconnect}}/>
                     </main>
                 </div>

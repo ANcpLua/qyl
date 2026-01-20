@@ -1,49 +1,152 @@
+/* Google Font - must be before tailwindcss import */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-    /* qyl. brand colors - inspired by terminal/observability aesthetic */
-    --color-background: oklch(13.11% 0.038 264);
-    --color-foreground: oklch(98% 0.01 264);
+    /* ============================================
+       BRUTALIST COLOR SYSTEM - Industrial Observability
+       Using oklch for perceptually uniform colors
+       ============================================ */
 
-    --color-card: oklch(15% 0.04 264);
-    --color-card-foreground: oklch(98% 0.01 264);
+    /* Signal Colors - High contrast for data states */
+    --color-signal-orange: oklch(0.70 0.20 45);
+    --color-signal-yellow: oklch(0.90 0.18 95);
+    --color-signal-green: oklch(0.85 0.25 145);
+    --color-signal-cyan: oklch(0.80 0.15 210);
+    --color-signal-violet: oklch(0.60 0.25 300);
+    --color-signal-red: oklch(0.65 0.25 25);
 
-    --color-popover: oklch(15% 0.04 264);
-    --color-popover-foreground: oklch(98% 0.01 264);
+    /* Brutalist Grayscale */
+    --color-brutal-black: oklch(0.15 0 0);
+    --color-brutal-carbon: oklch(0.18 0 0);
+    --color-brutal-dark: oklch(0.20 0 0);
+    --color-brutal-zinc: oklch(0.35 0 0);
+    --color-brutal-slate: oklch(0.55 0 0);
+    --color-brutal-white: oklch(0.97 0 0);
 
-    --color-primary: oklch(70% 0.2 200);
-    --color-primary-foreground: oklch(13% 0.04 264);
+    /* Semantic color mappings */
+    --color-background: var(--color-brutal-black);
+    --color-foreground: var(--color-brutal-white);
 
-    --color-secondary: oklch(25% 0.03 264);
-    --color-secondary-foreground: oklch(98% 0.01 264);
+    --color-card: var(--color-brutal-dark);
+    --color-card-foreground: var(--color-brutal-white);
 
-    --color-muted: oklch(25% 0.03 264);
-    --color-muted-foreground: oklch(65% 0.02 264);
+    --color-popover: var(--color-brutal-carbon);
+    --color-popover-foreground: var(--color-brutal-white);
 
-    --color-accent: oklch(55% 0.2 285);
-    --color-accent-foreground: oklch(98% 0.01 264);
+    --color-primary: var(--color-signal-orange);
+    --color-primary-foreground: var(--color-brutal-black);
 
-    --color-destructive: oklch(55% 0.25 27);
-    --color-destructive-foreground: oklch(98% 0.01 264);
+    --color-secondary: var(--color-brutal-zinc);
+    --color-secondary-foreground: var(--color-brutal-white);
 
-    --color-border: oklch(25% 0.03 264);
-    --color-input: oklch(25% 0.03 264);
-    --color-ring: oklch(70% 0.2 200);
+    --color-muted: var(--color-brutal-zinc);
+    --color-muted-foreground: var(--color-brutal-slate);
 
-    --radius: 0.5rem;
+    --color-accent: var(--color-signal-violet);
+    --color-accent-foreground: var(--color-brutal-white);
+
+    --color-destructive: var(--color-signal-red);
+    --color-destructive-foreground: var(--color-brutal-white);
+
+    --color-border: var(--color-brutal-zinc);
+    --color-input: var(--color-brutal-zinc);
+    --color-ring: var(--color-signal-orange);
 
     /* Status colors */
-    --color-success: oklch(60% 0.2 145);
-    --color-warning: oklch(70% 0.2 75);
-    --color-error: oklch(55% 0.25 27);
-    --color-info: oklch(60% 0.2 250);
+    --color-success: var(--color-signal-green);
+    --color-warning: var(--color-signal-yellow);
+    --color-error: var(--color-signal-red);
+    --color-info: var(--color-signal-cyan);
 
-    /* Chart colors */
-    --color-chart-1: oklch(70% 0.2 200);
-    --color-chart-2: oklch(55% 0.2 285);
-    --color-chart-3: oklch(60% 0.2 145);
-    --color-chart-4: oklch(70% 0.2 75);
-    --color-chart-5: oklch(55% 0.25 27);
+    /* Chart colors - brutalist palette */
+    --color-chart-1: var(--color-signal-orange);
+    --color-chart-2: var(--color-signal-violet);
+    --color-chart-3: var(--color-signal-green);
+    --color-chart-4: var(--color-signal-yellow);
+    --color-chart-5: var(--color-signal-cyan);
+
+    /* ============================================
+       RADIUS - BRUTALIST: No rounded corners
+       ============================================ */
+    --radius-sm: 0px;
+    --radius-md: 0px;
+    --radius-lg: 0px;
+    --radius-xl: 0px;
+
+    /* ============================================
+       FONTS - Monospace for industrial aesthetic
+       ============================================ */
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    --font-sans: var(--font-mono);
+
+    /* ============================================
+       SHADOWS - Brutalist offset style
+       ============================================ */
+    --shadow-brutal: 4px 4px 0 var(--color-brutal-black);
+    --shadow-brutal-sm: 2px 2px 0 var(--color-brutal-black);
+    --shadow-brutal-lg: 6px 6px 0 var(--color-brutal-black);
+
+    /* Signal glow shadows */
+    --shadow-glow-orange: 0 0 8px var(--color-signal-orange);
+    --shadow-glow-green: 0 0 8px var(--color-signal-green);
+    --shadow-glow-red: 0 0 8px var(--color-signal-red);
+    --shadow-glow-cyan: 0 0 8px var(--color-signal-cyan);
+    --shadow-glow-violet: 0 0 8px var(--color-signal-violet);
+    --shadow-glow-yellow: 0 0 8px var(--color-signal-yellow);
+
+    /* ============================================
+       EASING - Industrial motion
+       ============================================ */
+    --ease-industrial: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-snap: step-end;
+
+    /* ============================================
+       ANIMATIONS - Tailwind 4.1 @keyframes in @theme
+       ============================================ */
+    --animate-cursor-blink: cursor-blink 1s step-end infinite;
+    --animate-data-stream: data-stream 0.3s ease-out forwards;
+    --animate-pulse-live: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-scan-line: scan-line 8s linear infinite;
+
+    @keyframes cursor-blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+
+    @keyframes data-stream {
+        0% {
+            opacity: 0;
+            transform: translateX(-8px);
+        }
+        100% {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes pulse-live {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    @keyframes scan-line {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100vh); }
+    }
+
+    /* ============================================
+       TEXT SHADOWS - New in Tailwind 4.1
+       ============================================ */
+    --text-shadow-glow-orange: 0 0 8px var(--color-signal-orange);
+    --text-shadow-glow-green: 0 0 8px var(--color-signal-green);
+    --text-shadow-glow-red: 0 0 8px var(--color-signal-red);
+
+    /* ============================================
+       INSET SHADOWS - v4.1 namespace
+       ============================================ */
+    --inset-shadow-brutal: inset 0 2px 4px var(--color-brutal-black);
 }
 
 @layer base {
@@ -53,58 +156,80 @@
 
     body {
         @apply bg-background text-foreground;
+        font-family: var(--font-mono);
         font-feature-settings: "rlig" 1, "calt" 1;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
 
-    /* Custom scrollbar for dark theme */
+    /* BRUTALIST scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
         height: 8px;
     }
 
     ::-webkit-scrollbar-track {
-        background: var(--color-background);
+        background: var(--color-brutal-black);
     }
 
     ::-webkit-scrollbar-thumb {
-        background: var(--color-border);
-        border-radius: 4px;
+        background: var(--color-brutal-zinc);
+        border: 1px solid var(--color-brutal-slate);
     }
 
     ::-webkit-scrollbar-thumb:hover {
-        background: var(--color-muted-foreground);
-        opacity: 0.5;
+        background: var(--color-signal-orange);
+    }
+
+    /* Force no rounded corners everywhere */
+    *, *::before, *::after {
+        border-radius: 0 !important;
     }
 }
 
 @layer components {
-    /* Monospace text for telemetry data */
-    .font-mono {
-        font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+    /* BRUTALIST 3-pixel borders */
+    .border-3 {
+        border-width: 3px;
     }
 
-    /* Glow effect for status indicators */
-    .glow-success {
-        box-shadow: 0 0 8px var(--color-success);
+    /* BRUTALIST offset shadow utilities */
+    .shadow-brutal {
+        box-shadow: var(--shadow-brutal);
     }
 
-    .glow-error {
-        box-shadow: 0 0 8px var(--color-error);
+    .shadow-brutal-sm {
+        box-shadow: var(--shadow-brutal-sm);
     }
 
-    .glow-warning {
-        box-shadow: 0 0 8px var(--color-warning);
+    .shadow-brutal-hover:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: var(--shadow-brutal-lg);
     }
 
-    .glow-primary {
-        box-shadow: 0 0 12px var(--color-primary);
+    /* Signal glow effects */
+    .glow-orange { box-shadow: var(--shadow-glow-orange); }
+    .glow-green { box-shadow: var(--shadow-glow-green); }
+    .glow-red { box-shadow: var(--shadow-glow-red); }
+    .glow-cyan { box-shadow: var(--shadow-glow-cyan); }
+    .glow-violet { box-shadow: var(--shadow-glow-violet); }
+    .glow-yellow { box-shadow: var(--shadow-glow-yellow); }
+
+    /* BRUTALIST section headers */
+    .section-header {
+        @apply text-xs font-bold tracking-[0.2em] uppercase;
+        @apply text-brutal-slate border-b-3 border-brutal-zinc pb-2;
+        letter-spacing: 0.2em;
     }
 
-    /* Waterfall bars */
+    /* Industrial label styling */
+    .label-industrial {
+        @apply text-[10px] tracking-[0.15em] uppercase text-brutal-slate;
+    }
+
+    /* Waterfall bars - no rounded corners */
     .waterfall-bar {
-        @apply rounded-sm h-5;
+        @apply h-5;
         min-width: 2px;
     }
 
@@ -113,81 +238,124 @@
         @apply absolute top-0 bottom-0 w-px bg-border;
     }
 
-    /* Log level badges */
+    /* Log level badges - brutalist style */
     .log-level-trace {
-        @apply bg-muted text-muted-foreground;
+        @apply bg-brutal-zinc text-brutal-slate border-2 border-brutal-slate;
     }
 
     .log-level-debug {
-        @apply bg-blue-500/20 text-blue-400;
+        @apply bg-signal-cyan/20 text-signal-cyan border-2 border-signal-cyan;
     }
 
     .log-level-info {
-        @apply bg-cyan-500/20 text-cyan-400;
+        @apply bg-signal-cyan/10 text-signal-cyan border-2 border-signal-cyan/50;
     }
 
     .log-level-warn {
-        @apply bg-yellow-500/20 text-yellow-400;
+        @apply bg-signal-yellow/20 text-signal-yellow border-2 border-signal-yellow;
     }
 
     .log-level-error {
-        @apply bg-red-500/20 text-red-400;
+        @apply bg-signal-red/20 text-signal-red border-2 border-signal-red;
     }
 
     .log-level-fatal {
-        @apply bg-red-700/30 text-red-300;
+        @apply bg-signal-red/30 text-signal-red border-3 border-signal-red;
     }
 
-    /* Resource status dots */
+    /* Resource status dots - square for brutalist */
     .status-dot {
-        @apply w-2 h-2 rounded-full;
+        @apply w-2 h-2;
     }
 
-    .status-running {
-        @apply bg-green-500;
-    }
+    .status-running { @apply bg-signal-green; }
+    .status-stopped { @apply bg-brutal-slate; }
+    .status-error { @apply bg-signal-red; }
+    .status-pending { @apply bg-signal-yellow; }
 
-    .status-stopped {
-        @apply bg-gray-500;
-    }
-
-    .status-error {
-        @apply bg-red-500;
-    }
-
-    .status-pending {
-        @apply bg-yellow-500;
-    }
-
-    /* Animated pulse for live data */
-    .pulse-live {
-        animation: pulse-live 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes pulse-live {
-        0%, 100% {
-            opacity: 1;
-        }
-        50% {
-            opacity: 0.5;
-        }
-    }
-
-    /* Keyboard shortcut hints */
+    /* Keyboard shortcut hints - brutalist */
     .kbd {
         @apply inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-mono;
-        @apply bg-muted border border-border rounded;
-        @apply text-muted-foreground;
+        @apply bg-brutal-carbon border-2 border-brutal-zinc;
+        @apply text-brutal-slate;
         min-width: 1.5rem;
+    }
+
+    /* Grid overlay background */
+    .bg-grid-overlay {
+        background-image:
+            linear-gradient(to right, var(--color-brutal-zinc) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--color-brutal-zinc) 1px, transparent 1px);
+        background-size: 20px 20px;
+        background-position: -1px -1px;
+    }
+
+    /* Scan line effect */
+    .scan-lines::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 2px,
+            rgba(0, 0, 0, 0.1) 2px,
+            rgba(0, 0, 0, 0.1) 4px
+        );
+        pointer-events: none;
+        opacity: 0.3;
     }
 }
 
 @layer utilities {
-    /* Text gradient for branding */
-    .text-gradient {
-        @apply bg-clip-text text-transparent;
-        background-image: linear-gradient(90deg, var(--color-primary), var(--color-accent));
-    }
+    /* Text colors for signals - using v4 automatic generation */
+    .text-signal-orange { color: var(--color-signal-orange); }
+    .text-signal-yellow { color: var(--color-signal-yellow); }
+    .text-signal-green { color: var(--color-signal-green); }
+    .text-signal-cyan { color: var(--color-signal-cyan); }
+    .text-signal-violet { color: var(--color-signal-violet); }
+    .text-signal-red { color: var(--color-signal-red); }
+
+    /* Background colors for signals */
+    .bg-signal-orange { background-color: var(--color-signal-orange); }
+    .bg-signal-yellow { background-color: var(--color-signal-yellow); }
+    .bg-signal-green { background-color: var(--color-signal-green); }
+    .bg-signal-cyan { background-color: var(--color-signal-cyan); }
+    .bg-signal-violet { background-color: var(--color-signal-violet); }
+    .bg-signal-red { background-color: var(--color-signal-red); }
+
+    /* Border colors for signals */
+    .border-signal-orange { border-color: var(--color-signal-orange); }
+    .border-signal-yellow { border-color: var(--color-signal-yellow); }
+    .border-signal-green { border-color: var(--color-signal-green); }
+    .border-signal-cyan { border-color: var(--color-signal-cyan); }
+    .border-signal-violet { border-color: var(--color-signal-violet); }
+    .border-signal-red { border-color: var(--color-signal-red); }
+
+    /* Brutalist grayscale utilities */
+    .text-brutal-black { color: var(--color-brutal-black); }
+    .text-brutal-carbon { color: var(--color-brutal-carbon); }
+    .text-brutal-dark { color: var(--color-brutal-dark); }
+    .text-brutal-zinc { color: var(--color-brutal-zinc); }
+    .text-brutal-slate { color: var(--color-brutal-slate); }
+    .text-brutal-white { color: var(--color-brutal-white); }
+
+    .bg-brutal-black { background-color: var(--color-brutal-black); }
+    .bg-brutal-carbon { background-color: var(--color-brutal-carbon); }
+    .bg-brutal-dark { background-color: var(--color-brutal-dark); }
+    .bg-brutal-zinc { background-color: var(--color-brutal-zinc); }
+    .bg-brutal-slate { background-color: var(--color-brutal-slate); }
+    .bg-brutal-white { background-color: var(--color-brutal-white); }
+
+    .border-brutal-black { border-color: var(--color-brutal-black); }
+    .border-brutal-carbon { border-color: var(--color-brutal-carbon); }
+    .border-brutal-dark { border-color: var(--color-brutal-dark); }
+    .border-brutal-zinc { border-color: var(--color-brutal-zinc); }
+    .border-brutal-slate { border-color: var(--color-brutal-slate); }
+    .border-brutal-white { border-color: var(--color-brutal-white); }
 
     /* Truncate with ellipsis */
     .truncate-middle {

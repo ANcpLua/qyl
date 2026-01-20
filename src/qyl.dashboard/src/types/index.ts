@@ -11,28 +11,70 @@ import type {components, operations, paths} from './api';
 // =============================================================================
 // Schemas (Canonical Names from God Schema)
 // =============================================================================
-export type ApiError = components['schemas']['Api.ApiError'];
 
-export type GenAiSpanData = components['schemas']['Models.GenAiSpanData'];
-export type SessionSummary = components['schemas']['Models.SessionSummary'];
-export type SpanRecord = components['schemas']['Models.SpanRecord'];
-export type TraceNode = components['schemas']['Models.TraceNode'];
+// Primitives
+export type TraceId = components['schemas']['Qyl.Common.TraceId'];
+export type SpanId = components['schemas']['Qyl.Common.SpanId'];
+export type SessionId = components['schemas']['Qyl.Common.SessionId'];
+export type UnixNano = number; // int64 in schema
+export type DurationNs = components['schemas']['Qyl.Common.DurationNs'];
+export type DurationMs = components['schemas']['Qyl.Common.DurationMs'];
+export type TokenCount = components['schemas']['Qyl.Common.Count'];
+export type Temperature = number;
+export type CostUsd = number;
+export type Count = components['schemas']['Qyl.Common.Count'];
+export type Ratio = components['schemas']['Qyl.Common.Ratio'];
+export type Percentage = components['schemas']['Qyl.Common.Percentage'];
 
-export type TraceId = components['schemas']['Primitives.TraceId'];
-export type SpanId = components['schemas']['Primitives.SpanId'];
-export type SessionId = components['schemas']['Primitives.SessionId'];
-export type UnixNano = components['schemas']['Primitives.UnixNano'];
-export type DurationNs = components['schemas']['Primitives.DurationNs'];
-export type TokenCount = components['schemas']['Primitives.TokenCount'];
-export type Temperature = components['schemas']['Primitives.Temperature'];
-export type CostUsd = components['schemas']['Primitives.CostUsd'];
-export type Count = components['schemas']['Primitives.Count'];
+// Enums
+export type SpanKind = components['schemas']['Qyl.OTel.Enums.SpanKind'];
+export type SpanStatusCode = components['schemas']['Qyl.OTel.Enums.SpanStatusCode'];
+export type SeverityNumber = components['schemas']['Qyl.OTel.Enums.SeverityNumber'];
 
-export type SpanKind = components['schemas']['Enums.SpanKind'];
-export type StatusCode = components['schemas']['Enums.StatusCode'];
-export type SeverityNumber = components['schemas']['Enums.SeverityNumber'];
-export type GenAiOperationName = components['schemas']['Enums.GenAiOperationName'];
-export type GenAiFinishReason = components['schemas']['Enums.GenAiFinishReason'];
+// Models
+export type Span = components['schemas']['Qyl.OTel.Traces.Span'];
+export type SpanEvent = components['schemas']['Qyl.OTel.Traces.SpanEvent'];
+export type SpanLink = components['schemas']['Qyl.OTel.Traces.SpanLink'];
+export type SpanStatus = components['schemas']['Qyl.OTel.Traces.SpanStatus'];
+export type Trace = components['schemas']['Qyl.OTel.Traces.Trace'];
+export type Resource = components['schemas']['Qyl.OTel.Resource.Resource'];
+export type Attribute = components['schemas']['Qyl.Common.Attribute'];
+export type AttributeValue = components['schemas']['Qyl.Common.AttributeValue'];
+
+// Session types
+export type SessionEntity = components['schemas']['Qyl.Domains.Observe.Session.SessionEntity'];
+export type SessionState = components['schemas']['Qyl.Domains.Observe.Session.SessionState'];
+export type SessionClientInfo = components['schemas']['Qyl.Domains.Observe.Session.SessionClientInfo'];
+export type SessionGeoInfo = components['schemas']['Qyl.Domains.Observe.Session.SessionGeoInfo'];
+export type SessionGenAiUsage = components['schemas']['Qyl.Domains.Observe.Session.SessionGenAiUsage'];
+
+// Error types
+export type ProblemDetails = components['schemas']['Qyl.Common.Errors.ProblemDetails'];
+export type ValidationError = components['schemas']['Qyl.Common.Errors.ValidationError'];
+export type NotFoundError = components['schemas']['Qyl.Common.Errors.NotFoundError'];
+
+// Health
+export type HealthResponse = components['schemas']['HealthResponse'];
+export type HealthStatus = components['schemas']['HealthStatus'];
+
+// =============================================================================
+// Legacy Aliases for Backward Compatibility
+// =============================================================================
+
+/** @deprecated Use Span instead */
+export type SpanRecord = Span;
+
+/** @deprecated Use SessionEntity instead */
+export type SessionSummary = SessionEntity;
+
+/** @deprecated Use SessionEntity instead */
+export type Session = SessionEntity;
+
+/** @deprecated Use Trace instead */
+export type TraceNode = Trace;
+
+/** @deprecated Use SpanStatusCode instead */
+export type StatusCode = SpanStatusCode;
 
 // =============================================================================
 // Operations (from api.ts)
@@ -40,51 +82,42 @@ export type GenAiFinishReason = components['schemas']['Enums.GenAiFinishReason']
 export type ApiOperations = operations;
 export type ApiPaths = paths;
 
-export type LiveStreamQuery = operations['Live_stream']['parameters']['query'];
-export type LiveStreamResponse =
-    operations['Live_stream']['responses']['200']['content']['text/event-stream'];
-
-export type ListSessionsQuery = operations['Sessions_list']['parameters']['query'];
+// Sessions
+export type ListSessionsQuery = operations['SessionsApi_list']['parameters']['query'];
 export type ListSessionsResponse =
-    operations['Sessions_list']['responses']['200']['content']['application/json'];
+    operations['SessionsApi_list']['responses']['200']['content']['application/json'];
 
-export type GetSessionPath = operations['Sessions_get']['parameters']['path'];
+export type GetSessionPath = operations['SessionsApi_get']['parameters']['path'];
 export type GetSessionResponse =
-    operations['Sessions_get']['responses']['200']['content']['application/json'];
+    operations['SessionsApi_get']['responses']['200']['content']['application/json'];
 
-export type GetSessionSpansPath = operations['Sessions_getSpans']['parameters']['path'];
-export type GetSessionSpansQuery = operations['Sessions_getSpans']['parameters']['query'];
-export type GetSessionSpansResponse =
-    operations['Sessions_getSpans']['responses']['200']['content']['application/json'];
+export type GetSessionTracesPath = operations['SessionsApi_getTraces']['parameters']['path'];
+export type GetSessionTracesResponse =
+    operations['SessionsApi_getTraces']['responses']['200']['content']['application/json'];
 
-export type ListSpansQuery = operations['Spans_list']['parameters']['query'];
-export type ListSpansResponse =
-    operations['Spans_list']['responses']['200']['content']['application/json'];
+// Traces
+export type ListTracesQuery = operations['TracesApi_list']['parameters']['query'];
+export type ListTracesResponse =
+    operations['TracesApi_list']['responses']['200']['content']['application/json'];
 
-export type GetSpanPath = operations['Spans_get']['parameters']['path'];
-export type GetSpanResponse =
-    operations['Spans_get']['responses']['200']['content']['application/json'];
-
-export type GetTracePath = operations['Traces_get']['parameters']['path'];
+export type GetTracePath = operations['TracesApi_get']['parameters']['path'];
 export type GetTraceResponse =
-    operations['Traces_get']['responses']['200']['content']['application/json'];
+    operations['TracesApi_get']['responses']['200']['content']['application/json'];
 
-export type GetTraceSpansPath = operations['Traces_getSpans']['parameters']['path'];
+export type GetTraceSpansPath = operations['TracesApi_getSpans']['parameters']['path'];
 export type GetTraceSpansResponse =
-    operations['Traces_getSpans']['responses']['200']['content']['application/json'];
+    operations['TracesApi_getSpans']['responses']['200']['content']['application/json'];
 
-export type HealthResponse =
-    operations['Health_check']['responses']['200']['content']['application/json'];
+// Streaming
+export type StreamTracesQuery = operations['StreamingApi_streamTraces']['parameters']['query'];
+export type StreamTraceSpansPath = operations['StreamingApi_streamTraceSpans']['parameters']['path'];
 
-// =============================================================================
-// Type Aliases for Backward Compatibility
-// =============================================================================
-
-/** Session is alias for SessionSummary */
-export type Session = SessionSummary;
+// Health
+export type HealthCheckResponse =
+    operations['HealthApi_check']['responses']['200']['content']['application/json'];
 
 // =============================================================================
-// Utility Functions for Working with SpanRecord
+// Utility Functions for Working with Span
 // =============================================================================
 
 /** Convert nanoseconds to milliseconds */
@@ -107,62 +140,63 @@ export function parseJson<T>(json: string | undefined | null, fallback: T): T {
     }
 }
 
-/** Get parsed attributes from SpanRecord */
-export function getAttributes(span: SpanRecord): Record<string, unknown> {
-    return parseJson(span.attributesJson, {});
-}
-
-/** Get parsed resource from SpanRecord */
-export function getResource(span: SpanRecord): Record<string, unknown> | undefined {
-    return span.resourceJson ? parseJson(span.resourceJson, {}) : undefined;
-}
-
-/** Calculate total tokens from SpanRecord */
-export function getTotalTokens(span: SpanRecord): number | undefined {
-    const input = span.genAiInputTokens ?? 0;
-    const output = span.genAiOutputTokens ?? 0;
-    return input + output || undefined;
-}
-
-/** Flatten trace tree to array of spans */
-export function flattenTraceTree(node: TraceNode): SpanRecord[] {
-    const spans: SpanRecord[] = [node.span];
-    for (const child of node.children) {
-        spans.push(...flattenTraceTree(child));
+/** Get attributes from Span as a record */
+export function getAttributesRecord(span: Span): Record<string, unknown> {
+    if (!span.attributes) return {};
+    const result: Record<string, unknown> = {};
+    for (const attr of span.attributes) {
+        result[attr.key] = attr.value;
     }
-    return spans;
+    return result;
 }
 
-/** Get primary service name from session */
-export function getPrimaryService(session: SessionSummary): string {
-    return session.serviceName ?? session.genAiSystem ?? 'unknown';
+/** Get resource attributes from Span as a record */
+export function getResourceRecord(span: Span): Record<string, unknown> {
+    if (!span.resource?.attributes) return {};
+    const result: Record<string, unknown> = {};
+    for (const attr of span.resource.attributes) {
+        result[attr.key] = attr.value;
+    }
+    return result;
+}
+
+/** Calculate duration in milliseconds from Span */
+export function getSpanDurationMs(span: Span): number {
+    return nsToMs(span.end_time_unix_nano - span.start_time_unix_nano);
+}
+
+/** Flatten trace to array of spans */
+export function flattenTrace(trace: Trace): Span[] {
+    return trace.spans;
+}
+
+/** Get primary service name from session (service.name not in SessionEntity schema yet) */
+export function getPrimaryService(_session: SessionEntity): string {
+    // TODO: Add service.name to SessionEntity schema
+    return 'unknown';
 }
 
 // =============================================================================
 // Status Code Helpers
 // =============================================================================
 
-/** StatusCode enum values */
-export const STATUS_UNSET = 0 as StatusCode;
-export const STATUS_OK = 1 as StatusCode;
-export const STATUS_ERROR = 2 as StatusCode;
+/** StatusCode enum values (OTel uses integers: 0=UNSET, 1=OK, 2=ERROR) */
+export const STATUS_UNSET: SpanStatusCode = 0;
+export const STATUS_OK: SpanStatusCode = 1;
+export const STATUS_ERROR: SpanStatusCode = 2;
 
 /** Check if span has error status */
-export function isErrorSpan(span: SpanRecord): boolean {
-    return span.statusCode === STATUS_ERROR;
+export function isErrorSpan(span: Span): boolean {
+    return span.status.code === STATUS_ERROR;
 }
 
-/** Get status label */
-export function getStatusLabel(code: StatusCode): string {
+/** Get status label from numeric code */
+export function getStatusLabel(code: SpanStatusCode): string {
     switch (code) {
-        case STATUS_UNSET:
-            return 'unset';
-        case STATUS_OK:
-            return 'ok';
-        case STATUS_ERROR:
-            return 'error';
-        default:
-            return 'unknown';
+        case 0: return 'unset';
+        case 1: return 'ok';
+        case 2: return 'error';
+        default: return 'unknown';
     }
 }
 

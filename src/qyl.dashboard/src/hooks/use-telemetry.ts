@@ -1,7 +1,11 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Session, SpanRecord, TraceNode} from '@/types';
-import {flattenTraceTree, getAttributes, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
+import type {Session, Span, Trace} from '@/types';
+import {flattenTrace, getAttributesRecord, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
+
+// Alias for backward compatibility
+type SpanRecord = Span;
+type TraceNode = Trace;
 
 // Query keys
 export const telemetryKeys = {
@@ -69,7 +73,7 @@ export function useTrace(traceId: string) {
     return useQuery({
         queryKey: telemetryKeys.trace(traceId),
         queryFn: () => fetchJson<TraceNode>(`/api/v1/traces/${traceId}`),
-        select: (data): SpanRecord[] => flattenTraceTree(data),
+        select: (data): SpanRecord[] => flattenTrace(data),
         enabled: !!traceId,
     });
 }
@@ -172,9 +176,9 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
 // Span utilities - work with SpanRecord directly
 export function getSpanColor(span: SpanRecord): string {
-    const attrs = getAttributes(span);
+    const attrs = getAttributesRecord(span);
     // GenAI spans
-    if (span.genAiSystem || attrs['gen_ai.provider.name']) {
+    if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
         return 'hsl(var(--span-genai))';
     }
     // HTTP spans
@@ -194,8 +198,8 @@ export function getSpanColor(span: SpanRecord): string {
 }
 
 export function getSpanTypeLabel(span: SpanRecord): string {
-    const attrs = getAttributes(span);
-    if (span.genAiSystem || attrs['gen_ai.provider.name']) {
+    const attrs = getAttributesRecord(span);
+    if (attrs['gen_ai.system'] || attrs['gen_ai.provider.name']) {
         return 'GenAI';
     }
     if (attrs['http.method'] || attrs['http.request.method']) {
@@ -229,4 +233,4 @@ export function formatTimestamp(iso: string): string {
 }
 
 // Re-export utilities for convenience
-export {getAttributes, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR};
+export {getAttributesRecord, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR};

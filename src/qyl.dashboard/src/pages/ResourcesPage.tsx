@@ -1,9 +1,18 @@
 import {memo, useMemo, useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import {Activity, AlertCircle, ArrowUpRight, Clock, LayoutGrid, List, Server, Zap,} from 'lucide-react';
+import {
+    Activity,
+    AlertCircle,
+    ArrowUpRight,
+    Clock,
+    DollarSign,
+    LayoutGrid,
+    List,
+    Server,
+    Zap,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
-import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {CopyableText} from '@/components/ui';
@@ -14,151 +23,209 @@ import {getPrimaryService} from '@/types';
 type ViewMode = 'grid' | 'list' | 'graph';
 
 // =============================================================================
-// ResourceCard - Grid view card (not virtualized - grid layout is more complex)
+// BRUTALIST Metric Card
+// =============================================================================
+
+interface MetricCardProps {
+    label: string;
+    value: string | number;
+    icon: React.ReactNode;
+    variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'violet';
+}
+
+const variantStyles = {
+    default: 'border-brutal-zinc text-brutal-white',
+    success: 'border-signal-green text-signal-green',
+    warning: 'border-signal-yellow text-signal-yellow',
+    error: 'border-signal-red text-signal-red',
+    info: 'border-signal-cyan text-signal-cyan',
+    violet: 'border-signal-violet text-signal-violet',
+};
+
+function MetricCard({label, value, icon, variant = 'default'}: MetricCardProps) {
+    const style = variantStyles[variant];
+    return (
+        <div className={cn(
+            'bg-brutal-dark border-3 p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+            style.split(' ')[0]
+        )}>
+            <div className="flex items-center justify-between mb-3">
+                <span className="label-industrial">{label}</span>
+                <div className={cn('p-1', style.split(' ')[1])}>
+                    {icon}
+                </div>
+            </div>
+            <div className={cn('text-3xl font-bold font-mono', style.split(' ')[1])}>
+                {typeof value === 'number' ? value.toLocaleString() : value}
+            </div>
+        </div>
+    );
+}
+
+// =============================================================================
+// BRUTALIST ResourceCard - Grid view
 // =============================================================================
 
 function ResourceCard({session}: { session: Session }) {
-    const hasErrors = session.errorCount > 0;
+    const hasErrors = session.error_count > 0;
     const errorRate =
-        session.spanCount > 0 ? ((session.errorCount / session.spanCount) * 100).toFixed(1) : '0';
+        session.span_count > 0 ? ((session.error_count / session.span_count) * 100).toFixed(1) : '0';
+    const sessionId = session['session.id'];
+    const inputTokens = session.genai_usage?.total_input_tokens ?? 0;
+    const outputTokens = session.genai_usage?.total_output_tokens ?? 0;
+    const costUsd = session.genai_usage?.estimated_cost_usd ?? 0;
 
     return (
-        <Card
-            className={cn(
-                'transition-all hover:border-primary/50 cursor-pointer',
-                hasErrors && 'border-red-500/30'
-            )}
-        >
-            <CardHeader className="pb-2">
-                <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className={cn('status-dot', hasErrors ? 'status-error' : 'status-running')}/>
-                        <CardTitle className="text-base font-medium">{getPrimaryService(session)}</CardTitle>
+        <div className={cn(
+            'bg-brutal-dark border-3 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+            hasErrors ? 'border-signal-red' : 'border-brutal-zinc hover:border-signal-orange'
+        )}>
+            {/* Accent bar */}
+            <div className={cn('h-1', hasErrors ? 'bg-signal-red' : 'bg-signal-orange')}/>
+
+            {/* Header */}
+            <div className="flex items-start justify-between p-4 border-b-3 border-brutal-zinc">
+                <div className="flex items-center gap-3">
+                    <div className={cn('status-dot', hasErrors ? 'bg-signal-red glow-red' : 'bg-signal-green glow-green')}/>
+                    <div>
+                        <div className="font-bold text-brutal-white tracking-wider">{getPrimaryService(session)}</div>
+                        <div className="text-[10px] text-brutal-slate tracking-wider mt-1">
+                            SESSION: {sessionId.slice(0, 8)}...
+                        </div>
                     </div>
-                    <Link to={`/traces?session=${session.sessionId}`}>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowUpRight className="w-4 h-4"/>
-                        </Button>
-                    </Link>
                 </div>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <Link to={`/traces?session=${sessionId}`}>
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="border-2 border-brutal-zinc bg-brutal-carbon hover:border-signal-orange hover:bg-signal-orange/10"
+                    >
+                        <ArrowUpRight className="w-4 h-4"/>
+                    </Button>
+                </Link>
+            </div>
+
+            {/* Stats */}
+            <div className="p-4">
+                <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <div className="text-muted-foreground">Spans</div>
-                        <div className="font-mono text-lg">{session.spanCount.toLocaleString()}</div>
+                        <div className="label-industrial mb-1">SPANS</div>
+                        <div className="font-mono text-xl text-signal-cyan">{session.span_count.toLocaleString()}</div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Errors</div>
-                        <div className={cn('font-mono text-lg', hasErrors && 'text-red-500')}>
-                            {session.errorCount.toLocaleString()}
+                        <div className="label-industrial mb-1">ERRORS</div>
+                        <div className={cn(
+                            'font-mono text-xl',
+                            hasErrors ? 'text-signal-red' : 'text-brutal-slate'
+                        )}>
+                            {session.error_count.toLocaleString()}
                         </div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Error Rate</div>
-                        <div
-                            className={cn(
-                                'font-mono',
-                                parseFloat(errorRate) > 5 && 'text-yellow-500',
-                                parseFloat(errorRate) > 10 && 'text-red-500'
-                            )}
-                        >
+                        <div className="label-industrial mb-1">ERROR RATE</div>
+                        <div className={cn(
+                            'font-mono',
+                            parseFloat(errorRate) > 5 && 'text-signal-yellow',
+                            parseFloat(errorRate) > 10 && 'text-signal-red'
+                        )}>
                             {errorRate}%
                         </div>
                     </div>
                     <div>
-                        <div className="text-muted-foreground">Started</div>
-                        <div className="font-mono text-xs">
-                            {new Date(session.startTime).toLocaleTimeString()}
+                        <div className="label-industrial mb-1">STARTED</div>
+                        <div className="font-mono text-xs text-brutal-slate">
+                            {new Date(session.start_time).toLocaleTimeString('en-US', {hour12: false})}
                         </div>
                     </div>
                 </div>
 
-                {/* GenAI stats if available */}
-                {(session.totalInputTokens > 0 || session.totalOutputTokens > 0) && (
-                    <div className="mt-4 pt-4 border-t border-border">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Zap className="w-4 h-4 text-violet-500"/>
-                            <span className="text-sm text-muted-foreground">GenAI Usage</span>
+                {/* GenAI stats */}
+                {(inputTokens > 0 || outputTokens > 0) && (
+                    <div className="mt-4 pt-4 border-t-3 border-brutal-zinc">
+                        <div className="flex items-center gap-2 mb-3">
+                            <Zap className="w-4 h-4 text-signal-violet"/>
+                            <span className="label-industrial text-signal-violet">GENAI USAGE</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div className="grid grid-cols-3 gap-2">
                             <div>
-                                <div className="text-muted-foreground">Tokens In</div>
-                                <div
-                                    className="font-mono">{session.totalInputTokens.toLocaleString()}</div>
-                            </div>
-                            <div>
-                                <div className="text-muted-foreground">Tokens Out</div>
-                                <div className="font-mono">
-                                    {session.totalOutputTokens.toLocaleString()}
+                                <div className="label-industrial mb-1">IN</div>
+                                <div className="font-mono text-sm text-signal-violet">
+                                    {inputTokens.toLocaleString()}
                                 </div>
                             </div>
                             <div>
-                                <div className="text-muted-foreground">Cost</div>
-                                <div className="font-mono text-green-500">
-                                    ${session.totalCostUsd.toFixed(4)}
+                                <div className="label-industrial mb-1">OUT</div>
+                                <div className="font-mono text-sm text-signal-violet">
+                                    {outputTokens.toLocaleString()}
+                                </div>
+                            </div>
+                            <div>
+                                <div className="label-industrial mb-1">COST</div>
+                                <div className="font-mono text-sm text-signal-green">
+                                    ${costUsd.toFixed(4)}
                                 </div>
                             </div>
                         </div>
                     </div>
                 )}
-            </CardContent>
-        </Card>
+            </div>
+        </div>
     );
 }
 
 // =============================================================================
-// ResourceRow - List view row (memoized for virtualization)
+// BRUTALIST ResourceRow - List view row
 // =============================================================================
 
-const ROW_HEIGHT = 64; // Fixed height for virtualization
+const ROW_HEIGHT = 64;
 
 const ResourceRow = memo(function ResourceRow({session}: { session: Session }) {
-    const hasErrors = session.errorCount > 0;
+    const hasErrors = session.error_count > 0;
+    const sessionId = session['session.id'];
 
     return (
         <Link
-            to={`/traces?session=${session.sessionId}`}
+            to={`/traces?session=${sessionId}`}
             className={cn(
-                'flex items-center gap-4 px-4 hover:bg-muted/50 border-b border-border',
-                hasErrors && 'bg-red-500/5'
+                'flex items-center gap-4 px-4 hover:bg-brutal-carbon border-b-3 border-brutal-zinc transition-all',
+                hasErrors && 'bg-signal-red/10 border-l-3 border-l-signal-red'
             )}
             style={{height: ROW_HEIGHT}}
         >
-            <div className={cn('status-dot', hasErrors ? 'status-error' : 'status-running')}/>
+            <div className={cn('status-dot', hasErrors ? 'bg-signal-red glow-red' : 'bg-signal-green glow-green')}/>
 
             <div className="flex-1 min-w-0">
-                <div className="font-medium truncate">{getPrimaryService(session)}</div>
-                <div className="flex items-center text-xs text-muted-foreground">
-                    <span className="mr-1">Session:</span>
+                <div className="font-bold text-brutal-white tracking-wider truncate">{getPrimaryService(session)}</div>
+                <div className="flex items-center text-xs text-brutal-slate">
+                    <span className="mr-1">SESSION:</span>
                     <CopyableText
-                        value={session.sessionId}
+                        value={sessionId}
                         label="Session ID"
                         truncate
                         maxWidth="80px"
-                        textClassName="text-xs text-muted-foreground"
+                        textClassName="text-xs text-brutal-slate"
                     />
                 </div>
             </div>
 
             <div className="text-right">
-                <div className="font-mono">{session.spanCount.toLocaleString()}</div>
-                <div className="text-xs text-muted-foreground">spans</div>
+                <div className="font-mono text-signal-cyan">{session.span_count.toLocaleString()}</div>
+                <div className="label-industrial">SPANS</div>
             </div>
 
             {hasErrors && (
-                <Badge variant="destructive" className="ml-2">
-                    {session.errorCount} errors
+                <Badge className="bg-signal-red/20 text-signal-red border-2 border-signal-red">
+                    {session.error_count} ERRORS
                 </Badge>
             )}
 
-            <ArrowUpRight className="w-4 h-4 text-muted-foreground"/>
+            <ArrowUpRight className="w-4 h-4 text-brutal-slate"/>
         </Link>
     );
 });
 
 // =============================================================================
-// VirtualizedListView - List view with virtualization
+// BRUTALIST VirtualizedListView
 // =============================================================================
 
 function VirtualizedListView({sessions}: { sessions: Session[] }) {
@@ -173,9 +240,9 @@ function VirtualizedListView({sessions}: { sessions: Session[] }) {
 
     if (sessions.length === 0) {
         return (
-            <div className="py-12 text-center text-muted-foreground">
-                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50"/>
-                <p>No active sessions</p>
+            <div className="py-12 text-center">
+                <Activity className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
+                <div className="text-brutal-slate font-bold tracking-wider">NO ACTIVE SESSIONS</div>
             </div>
         );
     }
@@ -217,7 +284,7 @@ function VirtualizedListView({sessions}: { sessions: Session[] }) {
 }
 
 // =============================================================================
-// GraphView - Placeholder graph visualization
+// BRUTALIST GraphView
 // =============================================================================
 
 function GraphView({sessions}: { sessions: Session[] }) {
@@ -228,13 +295,13 @@ function GraphView({sessions}: { sessions: Session[] }) {
             const serviceName = getPrimaryService(session);
             const existing = serviceMap.get(serviceName);
             if (existing) {
-                existing.spans += session.spanCount;
-                existing.errors += session.errorCount;
+                existing.spans += session.span_count;
+                existing.errors += session.error_count;
             } else {
                 serviceMap.set(serviceName, {
                     name: serviceName,
-                    spans: session.spanCount,
-                    errors: session.errorCount,
+                    spans: session.span_count,
+                    errors: session.error_count,
                 });
             }
         }
@@ -249,25 +316,26 @@ function GraphView({sessions}: { sessions: Session[] }) {
                     <div
                         key={node.name}
                         className={cn(
-                            'relative p-4 rounded-lg border-2 bg-card min-w-[160px]',
-                            node.errors > 0 ? 'border-red-500/50' : 'border-primary/30'
+                            'relative p-4 border-3 bg-brutal-dark min-w-[160px] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+                            node.errors > 0 ? 'border-signal-red' : 'border-signal-cyan'
                         )}
                         style={{
                             transform: `translateY(${Math.sin(i * 0.8) * 20}px)`,
                         }}
                     >
-                        <div
-                            className={cn(
-                                'absolute -top-2 -right-2 w-4 h-4 rounded-full',
-                                node.errors > 0 ? 'status-error' : 'status-running'
-                            )}
-                        />
+                        <div className={cn(
+                            'absolute -top-2 -right-2 w-4 h-4',
+                            node.errors > 0 ? 'bg-signal-red glow-red' : 'bg-signal-green glow-green'
+                        )}/>
 
                         <div className="text-center">
-                            <Server className="w-8 h-8 mx-auto mb-2 text-primary"/>
-                            <div className="font-medium text-sm truncate">{node.name}</div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                                {node.spans.toLocaleString()} spans
+                            <Server className={cn(
+                                'w-8 h-8 mx-auto mb-2',
+                                node.errors > 0 ? 'text-signal-red' : 'text-signal-cyan'
+                            )}/>
+                            <div className="font-bold text-sm truncate text-brutal-white tracking-wider">{node.name}</div>
+                            <div className="text-xs text-brutal-slate mt-1 font-mono">
+                                {node.spans.toLocaleString()} SPANS
                             </div>
                         </div>
                     </div>
@@ -275,10 +343,10 @@ function GraphView({sessions}: { sessions: Session[] }) {
             </div>
 
             {nodes.length === 0 && (
-                <div className="text-center text-muted-foreground py-12">
-                    <Server className="w-12 h-12 mx-auto mb-4 opacity-50"/>
-                    <p>No resources found</p>
-                    <p className="text-sm">Resources will appear as telemetry data arrives</p>
+                <div className="text-center py-12">
+                    <Server className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
+                    <div className="text-brutal-slate font-bold tracking-wider">NO RESOURCES FOUND</div>
+                    <div className="text-sm text-brutal-zinc mt-2">RESOURCES WILL APPEAR AS TELEMETRY DATA ARRIVES</div>
                 </div>
             )}
         </div>
@@ -295,91 +363,96 @@ export function ResourcesPage() {
 
     // Stats
     const stats = useMemo(() => {
-        const totalSpans = sessions.reduce((acc, s) => acc + s.spanCount, 0);
-        const totalErrors = sessions.reduce((acc, s) => acc + s.errorCount, 0);
+        const totalSpans = sessions.reduce((acc, s) => acc + s.span_count, 0);
+        const totalErrors = sessions.reduce((acc, s) => acc + s.error_count, 0);
         const errorRate = totalSpans > 0 ? ((totalErrors / totalSpans) * 100).toFixed(2) : '0';
         const activeServices = new Set(sessions.map((s) => getPrimaryService(s))).size;
+        const totalCost = sessions.reduce((acc, s) => acc + (s.genai_usage?.estimated_cost_usd ?? 0), 0);
 
-        return {totalSpans, totalErrors, errorRate, activeServices};
+        return {totalSpans, totalErrors, errorRate, activeServices, totalCost};
     }, [sessions]);
 
     return (
         <div className="p-6 space-y-6">
-            {/* Stats cards */}
-            <div className="grid grid-cols-4 gap-4">
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <Server className="w-4 h-4 text-primary"/>
-                            <span className="text-sm text-muted-foreground">Services</span>
-                        </div>
-                        <div className="text-2xl font-bold mt-1">{stats.activeServices}</div>
-                    </CardContent>
-                </Card>
+            {/* BRUTALIST Section Header */}
+            <div className="section-header">SYSTEM METRICS</div>
 
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-cyan-500"/>
-                            <span className="text-sm text-muted-foreground">Total Spans</span>
-                        </div>
-                        <div className="text-2xl font-bold mt-1">{stats.totalSpans.toLocaleString()}</div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-4 h-4 text-red-500"/>
-                            <span className="text-sm text-muted-foreground">Errors</span>
-                        </div>
-                        <div className="text-2xl font-bold mt-1 text-red-500">
-                            {stats.totalErrors.toLocaleString()}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="pt-4">
-                        <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-yellow-500"/>
-                            <span className="text-sm text-muted-foreground">Error Rate</span>
-                        </div>
-                        <div
-                            className={cn(
-                                'text-2xl font-bold mt-1',
-                                parseFloat(stats.errorRate) > 5 && 'text-yellow-500',
-                                parseFloat(stats.errorRate) > 10 && 'text-red-500'
-                            )}
-                        >
-                            {stats.errorRate}%
-                        </div>
-                    </CardContent>
-                </Card>
+            {/* BRUTALIST Stats cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <MetricCard
+                    label="SERVICES"
+                    value={stats.activeServices}
+                    icon={<Server className="w-4 h-4"/>}
+                    variant="info"
+                />
+                <MetricCard
+                    label="TOTAL SPANS"
+                    value={stats.totalSpans}
+                    icon={<Activity className="w-4 h-4"/>}
+                    variant="info"
+                />
+                <MetricCard
+                    label="ERRORS"
+                    value={stats.totalErrors}
+                    icon={<AlertCircle className="w-4 h-4"/>}
+                    variant={stats.totalErrors > 0 ? 'error' : 'success'}
+                />
+                <MetricCard
+                    label="ERROR RATE"
+                    value={`${stats.errorRate}%`}
+                    icon={<Clock className="w-4 h-4"/>}
+                    variant={parseFloat(stats.errorRate) > 5 ? (parseFloat(stats.errorRate) > 10 ? 'error' : 'warning') : 'success'}
+                />
+                {stats.totalCost > 0 && (
+                    <MetricCard
+                        label="TOTAL COST"
+                        value={`$${stats.totalCost.toFixed(4)}`}
+                        icon={<DollarSign className="w-4 h-4"/>}
+                        variant="success"
+                    />
+                )}
             </div>
 
-            {/* View mode toggle */}
+            {/* View mode toggle - BRUTALIST */}
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Active Sessions</h2>
-                <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
+                <div className="section-header border-none pb-0">ACTIVE SESSIONS [{sessions.length}]</div>
+                <div className="flex items-center gap-1 bg-brutal-carbon border-2 border-brutal-zinc p-1">
                     <Button
-                        variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                        variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('grid')}
+                        className={cn(
+                            'border-2 transition-all',
+                            viewMode === 'grid'
+                                ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
+                                : 'border-transparent text-brutal-slate hover:text-brutal-white'
+                        )}
                     >
                         <LayoutGrid className="w-4 h-4"/>
                     </Button>
                     <Button
-                        variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                        variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('list')}
+                        className={cn(
+                            'border-2 transition-all',
+                            viewMode === 'list'
+                                ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
+                                : 'border-transparent text-brutal-slate hover:text-brutal-white'
+                        )}
                     >
                         <List className="w-4 h-4"/>
                     </Button>
                     <Button
-                        variant={viewMode === 'graph' ? 'secondary' : 'ghost'}
+                        variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('graph')}
+                        className={cn(
+                            'border-2 transition-all',
+                            viewMode === 'graph'
+                                ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
+                                : 'border-transparent text-brutal-slate hover:text-brutal-white'
+                        )}
                     >
                         <Activity className="w-4 h-4"/>
                     </Button>
@@ -389,31 +462,32 @@ export function ResourcesPage() {
             {/* Content */}
             {isLoading ? (
                 <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"/>
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="w-8 h-8 border-3 border-signal-orange border-t-transparent animate-spin"/>
+                        <div className="text-brutal-slate font-bold tracking-wider">LOADING...</div>
+                    </div>
                 </div>
             ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {sessions.map((session) => (
-                        <ResourceCard key={session.sessionId} session={session}/>
+                        <ResourceCard key={session['session.id']} session={session}/>
                     ))}
                     {sessions.length === 0 && (
-                        <Card className="col-span-full">
-                            <CardContent className="py-12 text-center text-muted-foreground">
-                                <Activity className="w-12 h-12 mx-auto mb-4 opacity-50"/>
-                                <p>No active sessions</p>
-                                <p className="text-sm">Sessions will appear as telemetry data arrives</p>
-                            </CardContent>
-                        </Card>
+                        <div className="col-span-full bg-brutal-dark border-3 border-brutal-zinc p-12 text-center">
+                            <Activity className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
+                            <div className="text-brutal-slate font-bold tracking-wider">NO ACTIVE SESSIONS</div>
+                            <div className="text-sm text-brutal-zinc mt-2">SESSIONS WILL APPEAR AS TELEMETRY DATA ARRIVES</div>
+                        </div>
                     )}
                 </div>
             ) : viewMode === 'list' ? (
-                <Card>
+                <div className="bg-brutal-dark border-3 border-brutal-zinc">
                     <VirtualizedListView sessions={sessions}/>
-                </Card>
+                </div>
             ) : (
-                <Card className="min-h-[400px]">
+                <div className="bg-brutal-dark border-3 border-brutal-zinc min-h-[400px]">
                     <GraphView sessions={sessions}/>
-                </Card>
+                </div>
             )}
         </div>
     );
