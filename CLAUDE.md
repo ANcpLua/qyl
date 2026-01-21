@@ -74,11 +74,13 @@ components:
 dotnet:
     version: "10.0"
     lang: "C# 14"
-    sdk: ANcpLua.NET.Sdk (nuget.org)
+    sdk: ANcpLua.NET.Sdk 1.6.21 (nuget.org)
     sdk-variants:
         - ANcpLua.NET.Sdk        # libraries, console
         - ANcpLua.NET.Sdk.Web    # ASP.NET Core
         - ANcpLua.NET.Sdk.Test   # xUnit v3
+    analyzers: ANcpLua.Analyzers 1.9.0
+    roslyn-utilities: ANcpLua.Roslyn.Utilities 1.16.0
 
 packages:
     storage: DuckDB.NET.Data.Full
@@ -96,8 +98,14 @@ frontend:
     recharts: latest
     lucide-react: icons
 
+testing:
+    framework: xunit.v3 (3.2.2)
+    assertions: AwesomeAssertions (9.3.0)
+    runner: Microsoft.Testing.Platform v2
+
 otel:
     semconv: "1.39.0"
+    sdk: "1.15.0"
     attributes:
         - gen_ai.system
         - gen_ai.request.model

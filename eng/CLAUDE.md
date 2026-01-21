@@ -9,6 +9,31 @@ name: eng/build
 type: nuke-build
 role: architecture-enforcer
 location: eng/build/
+nuke-version: "10.1.0"
+```
+
+## ecosystem-dependencies
+
+```yaml
+# qyl uses ANcpLua ecosystem packages from nuget.org
+sdk:
+    ANcpLua.NET.Sdk: "1.6.21"
+    ANcpLua.NET.Sdk.Web: "1.6.21"
+    ANcpLua.NET.Sdk.Test: "1.6.21"
+
+analyzers:
+    ANcpLua.Analyzers: "1.9.0"
+
+roslyn-utilities:
+    ANcpLua.Roslyn.Utilities: "1.16.0"
+    ANcpLua.Roslyn.Utilities.Testing: "1.16.0"
+
+testing:
+    xunit.v3.mtp-v2: "3.2.2"
+    AwesomeAssertions: "9.3.0"
+
+otel:
+    OpenTelemetry: "1.15.0"
 ```
 
 ## targets

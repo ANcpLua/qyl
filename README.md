@@ -153,8 +153,18 @@ Available tools: `qyl.list_sessions`, `qyl.get_session_transcript`, `qyl.search_
 - **.NET 10** — Collector, MCP server, protocol
 - **React 19** — Dashboard UI
 - **DuckDB** — Analytical storage
-- **OpenTelemetry** — Semantic conventions (1.39)
+- **OpenTelemetry 1.15.0** — Semantic conventions (1.39)
 - **TypeSpec** — Schema generation
+- **xUnit v3 3.2.2** — Testing framework
+
+### ANcpLua Ecosystem Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| ANcpLua.NET.Sdk | 1.6.21 | MSBuild SDK for .NET projects |
+| ANcpLua.Analyzers | 1.9.0 | Code quality analyzers |
+| ANcpLua.Roslyn.Utilities | 1.16.0 | Roslyn utilities |
+| ANcpLua.Roslyn.Utilities.Testing | 1.16.0 | Testing utilities |
 
 ## License
 
