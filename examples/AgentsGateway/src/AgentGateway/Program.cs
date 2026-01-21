@@ -1,4 +1,16 @@
+using System.ComponentModel;
+using System.Reflection;
 using AgentGateway.Core;
+using Azure.Identity;
+using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.DevUI;
+using Microsoft.Agents.AI.Hosting;
+using Microsoft.Agents.AI.Workflows;
+using Microsoft.Agents.Storage;
+using Microsoft.Agents.Storage.Blobs;
+using Microsoft.Extensions.AI;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -33,7 +45,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 // Storage
-builder.Services.AddSingleton<IStorage>(sp =>
+builder.Services.AddSingleton<IStorage>(_ =>
 {
     var containerName = builder.Configuration["BlobsStorageOptions:ContainerName"] ?? "state";
     if (builder.Environment.IsDevelopment()) return new BlobsStorage("UseDevelopmentStorage=true", containerName);
@@ -110,4 +122,4 @@ if (app.Environment.IsDevelopment()) app.MapDevUI();
 app.Run();
 
 [Description("Formats the story for publication.")]
-string FormatStory(string title, string story) => $"**Title**: {title}\n\n{story}";
+static string FormatStory(string title, string story) => $"**Title**: {title}\n\n{story}";

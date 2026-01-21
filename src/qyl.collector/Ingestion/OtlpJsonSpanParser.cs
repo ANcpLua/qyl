@@ -3,6 +3,8 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
 // =============================================================================
 
+using System.Buffers.Text;
+
 namespace qyl.collector.Ingestion;
 
 /// <summary>
@@ -535,9 +537,7 @@ public ref struct OtlpJsonSpanParser
                 result = _reader.GetString();
             else if (propName.SequenceEqual("intValue"u8))
             {
-                result = _reader.TokenType == JsonTokenType.Number
-                    ? _reader.GetInt64()
-                    : long.Parse(_reader.GetString()!);
+                if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64(); else if (_reader.TokenType == JsonTokenType.String && Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
             }
             else if (propName.SequenceEqual("doubleValue"u8))
                 result = _reader.GetDouble();
@@ -595,9 +595,7 @@ public ref struct OtlpJsonSpanParser
                     result = _reader.GetString();
                 else if (propName.SequenceEqual("intValue"u8))
                 {
-                    result = _reader.TokenType == JsonTokenType.Number
-                        ? _reader.GetInt64()
-                        : long.Parse(_reader.GetString()!);
+                    if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64(); else if (_reader.TokenType == JsonTokenType.String && Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
                 }
                 else if (propName.SequenceEqual("doubleValue"u8))
                     result = _reader.GetDouble();

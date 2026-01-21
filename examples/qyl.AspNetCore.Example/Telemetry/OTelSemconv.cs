@@ -1,4 +1,6 @@
-namespace TelemetryLab.Net10.Api.Domain.Telemetry;
+using System.Collections.Frozen;
+
+namespace qyl.AspNetCore.Example.Telemetry;
 
 /// <summary>
 ///     OpenTelemetry Semantic Conventions v1.38 - Gen AI Attributes

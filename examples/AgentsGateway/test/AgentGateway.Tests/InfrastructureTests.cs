@@ -1,4 +1,9 @@
 using AgentGateway.Core;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentGateway.Tests;
 
@@ -7,7 +12,7 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-        builder.ConfigureAppConfiguration((context, config) =>
+        builder.ConfigureAppConfiguration((_, config) =>
         {
             // Add test configuration that overrides the main app's config
             var testConfig = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
@@ -32,7 +37,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     }
 
     [Fact]
-    public void ProviderRegistryContainsOpenAIAndGitHub()
+    public void ProviderRegistryContainsOpenAiAndGitHub()
     {
         using var scope = _factory.Services.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<IProviderRegistry>();

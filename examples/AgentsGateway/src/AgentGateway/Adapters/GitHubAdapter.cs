@@ -1,4 +1,8 @@
+using System.ClientModel;
 using AgentGateway.Core;
+using Microsoft.Extensions.AI;
+using OpenAI;
+using OpenAI.Chat;
 using ChatMessage = Microsoft.Extensions.AI.ChatMessage;
 
 namespace AgentGateway.Adapters;
@@ -26,16 +30,6 @@ public sealed class GitHubAdapter : IChatClient, IModelCatalog
         _inner = client.AsIChatClient();
     }
 
-    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
-    {
-        return Task.FromResult<IReadOnlyList<ModelInfo>>(new[]
-        {
-            new ModelInfo(_defaultModel,
-                ProviderCapabilities.Chat | ProviderCapabilities.Tools | ProviderCapabilities.Streaming,
-                new Dictionary<string, string>())
-        });
-    }
-
     public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
         CancellationToken cancellationToken = default) =>
         _inner.GetResponseAsync(messages, options, cancellationToken);
@@ -47,4 +41,14 @@ public sealed class GitHubAdapter : IChatClient, IModelCatalog
     public void Dispose() => _inner.Dispose();
 
     public object? GetService(Type serviceType, object? serviceKey = null) => _inner.GetService(serviceType, serviceKey);
+
+    public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult<IReadOnlyList<ModelInfo>>(new[]
+        {
+            new ModelInfo(_defaultModel,
+                ProviderCapabilities.Chat | ProviderCapabilities.Tools | ProviderCapabilities.Streaming,
+                new Dictionary<string, string>())
+        });
+    }
 }

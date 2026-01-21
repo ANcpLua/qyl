@@ -1,4 +1,9 @@
-using qyl.AspNetCore.Example;
+using OpenTelemetry.Instrumentation.AspNetCore;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using qyl.AspNetCore.Example.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,8 +11,6 @@ var tracingExporter = builder.Configuration.GetValue("UseTracingExporter", "CONS
 var metricsExporter = builder.Configuration.GetValue("UseMetricsExporter", "CONSOLE").ToUpperInvariant();
 var logExporter = builder.Configuration.GetValue("UseLogExporter", "CONSOLE").ToUpperInvariant();
 var histogramAggregation = builder.Configuration.GetValue("HistogramAggregation", "EXPLICIT").ToUpperInvariant();
-
-builder.Services.AddSingleton<InstrumentationSource>();
 
 builder.Logging.ClearProviders();
 
@@ -20,7 +23,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing =>
     {
         tracing
-            .AddSource(InstrumentationSource.ActivitySourceName)
+            .AddSource(AppTelemetry.Source.Name)
             .SetSampler(new AlwaysOnSampler())
             .AddHttpClientInstrumentation()
             .AddAspNetCoreInstrumentation();
@@ -45,7 +48,7 @@ builder.Services.AddOpenTelemetry()
     .WithMetrics(metrics =>
     {
         metrics
-            .AddMeter(InstrumentationSource.MeterName)
+            .AddMeter(AppTelemetry.Meter.Name)
             .SetExemplarFilter(ExemplarFilterType.TraceBased)
             .AddRuntimeInstrumentation()
             .AddHttpClientInstrumentation()

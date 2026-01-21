@@ -1,3 +1,8 @@
+---
+name: qyl-agents-readme
+description: Documentation for qyl agent setup and usage
+---
+
 # qyl Agents
 
 3 specialized agents for parallel qyl development.

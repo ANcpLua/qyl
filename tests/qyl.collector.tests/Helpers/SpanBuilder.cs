@@ -297,7 +297,7 @@ internal sealed class SpanBuilder
 
     /// <summary>Builds the SpanStorageRow using object initializer.</summary>
     public SpanStorageRow Build() =>
-        new SpanStorageRow
+        new()
         {
             TraceId = _traceId,
             SpanId = _spanId,
@@ -326,7 +326,7 @@ internal sealed class SpanBuilder
         };
 
     /// <summary>Builds and wraps in a SpanBatch.</summary>
-    public SpanBatch ToBatch() => new SpanBatch([Build()]);
+    public SpanBatch ToBatch() => new([Build()]);
 
     /// <summary>Implicit conversion to SpanStorageRow.</summary>
     public static implicit operator SpanStorageRow(SpanBuilder builder) => builder.Build();
@@ -399,19 +399,19 @@ internal static class SpanFactory
             SpanBuilder.Create("trace-archive-old", "span-old")
                 .WithName("old")
                 .WithSessionId(sessionId)
-                .AtTime(oldTime, 0)
+                .AtTime(oldTime)
                 .Build(),
             SpanBuilder.Create("trace-archive-new", "span-new")
                 .WithName("new")
                 .WithSessionId(sessionId)
-                .AtTime(now, 0)
+                .AtTime(now)
                 .Build()
         ]);
     }
 
     /// <summary>Creates GenAI spans for stats testing.</summary>
     public static SpanBatch CreateGenAiStats(string sessionId, DateTime baseTime) =>
-        new SpanBatch(
+        new(
         [
             SpanBuilder.GenAi("trace-g1", "span-g1")
                 .WithName("gpt-call")

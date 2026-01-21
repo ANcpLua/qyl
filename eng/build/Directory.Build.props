@@ -7,10 +7,7 @@
     <!-- Build-specific overrides (Nuke build automation) -->
     <PropertyGroup>
         <!-- Nuke uses reflection and dynamic patterns, relax some rules -->
-        <!-- RS0030: BannedApi (DateTime.UtcNow OK for build scripts, not production code) -->
-        <!-- IL*: AOT warnings not applicable to build tooling -->
-        <!-- CS1591: XML docs not required for build code -->
-        <NoWarn>$(NoWarn);CA1822;CS0649;CS0169;CA1050;CA2211;IDE1006;RS0030;IL2026;IL3050;CS1591</NoWarn>
+        <NoWarn>$(NoWarn);CA1822;CS0649;CS0169;CA1050;CA2211;IDE1006;IL2026;IL3050;CS1591</NoWarn>
         <!-- Build tooling doesn't need AOT compatibility -->
         <IsAotCompatible>false</IsAotCompatible>
     </PropertyGroup>

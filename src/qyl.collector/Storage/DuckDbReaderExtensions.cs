@@ -27,12 +27,15 @@ public static class DuckDbReaderExtensions
 ///     Wraps the reader and ordinal to provide a clean, type-safe API.
 /// </summary>
 [DebuggerDisplay("{ToString(),raw}")]
-public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
+public readonly ref struct ColumnReader(IDataRecord reader, int ordinal)
 {
+    private readonly IDataRecord _reader = reader;
+    private readonly int _ordinal = ordinal;
+
     public bool IsNull
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => reader.IsDBNull(ordinal);
+        get => _reader.IsDBNull(_ordinal);
     }
 
     // --- Scalars ---
@@ -40,7 +43,7 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     public string? AsString
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetString(ordinal);
+        get => IsNull ? null : _reader.GetString(_ordinal);
     }
 
     /// <summary>
@@ -50,31 +53,31 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     public ReadOnlySpan<char> Text
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? default : reader.GetString(ordinal).AsSpan();
+        get => IsNull ? default : _reader.GetString(_ordinal).AsSpan();
     }
 
     public int? AsInt32
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetInt32(ordinal);
+        get => IsNull ? null : _reader.GetInt32(_ordinal);
     }
 
     public byte? AsByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetByte(ordinal);
+        get => IsNull ? null : _reader.GetByte(_ordinal);
     }
 
     public sbyte? AsSByte
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : unchecked((sbyte)reader.GetByte(ordinal));
+        get => IsNull ? null : unchecked((sbyte)_reader.GetByte(_ordinal));
     }
 
     public long? AsInt64
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetInt64(ordinal);
+        get => IsNull ? null : _reader.GetInt64(_ordinal);
     }
 
     /// <summary>
@@ -86,40 +89,40 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => IsNull
             ? null
-            : reader is DbDataReader db
-                ? (ulong)db.GetFieldValue<decimal>(ordinal)
-                : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+            : _reader is DbDataReader db
+                ? (ulong)db.GetFieldValue<decimal>(_ordinal)
+                : (ulong)Convert.ToDecimal(_reader.GetValue(_ordinal), CultureInfo.InvariantCulture);
     }
 
     public double? AsDouble
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetDouble(ordinal);
+        get => IsNull ? null : _reader.GetDouble(_ordinal);
     }
 
     public decimal? AsDecimal
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetDecimal(ordinal);
+        get => IsNull ? null : _reader.GetDecimal(_ordinal);
     }
 
     /// <summary>DuckDB stores floats as doubles.</summary>
     public float? AsFloat
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : (float)reader.GetDouble(ordinal);
+        get => IsNull ? null : (float)_reader.GetDouble(_ordinal);
     }
 
     public DateTime? AsDateTime
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetDateTime(ordinal);
+        get => IsNull ? null : _reader.GetDateTime(_ordinal);
     }
 
     public DateTimeOffset? AsDateTimeOffset
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : new DateTimeOffset(reader.GetDateTime(ordinal), TimeSpan.Zero);
+        get => IsNull ? null : new DateTimeOffset(_reader.GetDateTime(_ordinal), TimeSpan.Zero);
     }
 
     // --- Advanced Types (Schema Alignment) ---
@@ -128,14 +131,14 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     ///     Reads a DuckDB LIST/ARRAY column (e.g. VARCHAR[]) as List&lt;T&gt;.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public List<T>? AsList<T>() => IsNull ? null : reader.GetValue(ordinal) as List<T>;
+    public List<T>? AsList<T>() => IsNull ? null : _reader.GetValue(_ordinal) as List<T>;
 
     /// <summary>
     ///     Reads a DuckDB MAP column as Dictionary&lt;K,V&gt;.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public Dictionary<TKey, TValue>? AsMap<TKey, TValue>() where TKey : notnull =>
-        IsNull ? null : reader.GetValue(ordinal) as Dictionary<TKey, TValue>;
+        IsNull ? null : _reader.GetValue(_ordinal) as Dictionary<TKey, TValue>;
 
     /// <summary>
     ///     Reads a BLOB column as a byte array.
@@ -143,7 +146,7 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     public byte[]? AsBytes
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => IsNull ? null : reader.GetValue(ordinal) as byte[];
+        get => IsNull ? null : _reader.GetValue(_ordinal) as byte[];
     }
 
     /// <summary>
@@ -157,17 +160,17 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
             if (IsNull) return Stream.Null;
 
             // Fast path on ADO.NET readers that support streaming BLOBs efficiently.
-            if (reader is DbDataReader db)
-                return db.GetStream(ordinal);
+            if (_reader is DbDataReader db)
+                return db.GetStream(_ordinal);
 
             // Fallbacks for providers that materialize BLOBs as byte[].
-            var value = reader.GetValue(ordinal);
+            var value = _reader.GetValue(_ordinal);
             return value switch
             {
                 Stream s => s,
                 byte[] bytes => new MemoryStream(bytes, false),
                 _ => throw new InvalidOperationException(
-                    $"Column {ordinal} is not a BLOB/Stream (was {value.GetType().FullName}).")
+                    $"Column {_ordinal} is not a BLOB/Stream (was {value.GetType().FullName}).")
             };
         }
     }
@@ -175,19 +178,19 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     // --- Fallbacks with defaults ---
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public string GetString(string defaultValue) => IsNull ? defaultValue : reader.GetString(ordinal);
+    public string GetString(string defaultValue) => IsNull ? defaultValue : _reader.GetString(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public int GetInt32(int defaultValue) => IsNull ? defaultValue : reader.GetInt32(ordinal);
+    public int GetInt32(int defaultValue) => IsNull ? defaultValue : _reader.GetInt32(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public byte GetByte(byte defaultValue) => IsNull ? defaultValue : reader.GetByte(ordinal);
+    public byte GetByte(byte defaultValue) => IsNull ? defaultValue : _reader.GetByte(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public sbyte GetSByte(sbyte defaultValue) => IsNull ? defaultValue : unchecked((sbyte)reader.GetByte(ordinal));
+    public sbyte GetSByte(sbyte defaultValue) => IsNull ? defaultValue : unchecked((sbyte)_reader.GetByte(_ordinal));
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public long GetInt64(long defaultValue) => IsNull ? defaultValue : reader.GetInt64(ordinal);
+    public long GetInt64(long defaultValue) => IsNull ? defaultValue : _reader.GetInt64(_ordinal);
 
     /// <summary>
     ///     Gets UBIGINT (unsigned 64-bit) value with default. Required for OTel UnixNano columns.
@@ -196,28 +199,28 @@ public readonly ref struct ColumnReader(IDataReader reader, int ordinal)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public ulong GetUInt64(ulong defaultValue) => IsNull
         ? defaultValue
-        : reader is DbDataReader db
-            ? (ulong)db.GetFieldValue<decimal>(ordinal)
-            : (ulong)Convert.ToDecimal(reader.GetValue(ordinal), CultureInfo.InvariantCulture);
+        : _reader is DbDataReader db
+            ? (ulong)db.GetFieldValue<decimal>(_ordinal)
+            : (ulong)Convert.ToDecimal(_reader.GetValue(_ordinal), CultureInfo.InvariantCulture);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public double GetDouble(double defaultValue) => IsNull ? defaultValue : reader.GetDouble(ordinal);
+    public double GetDouble(double defaultValue) => IsNull ? defaultValue : _reader.GetDouble(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public decimal GetDecimal(decimal defaultValue) => IsNull ? defaultValue : reader.GetDecimal(ordinal);
+    public decimal GetDecimal(decimal defaultValue) => IsNull ? defaultValue : _reader.GetDecimal(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public float GetFloat(float defaultValue) => IsNull ? defaultValue : (float)reader.GetDouble(ordinal);
+    public float GetFloat(float defaultValue) => IsNull ? defaultValue : (float)_reader.GetDouble(_ordinal);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public DateTime GetDateTime(DateTime defaultValue) => IsNull ? defaultValue : reader.GetDateTime(ordinal);
+    public DateTime GetDateTime(DateTime defaultValue) => IsNull ? defaultValue : _reader.GetDateTime(_ordinal);
 
     public override string ToString()
     {
         if (IsNull) return "NULL";
         try
         {
-            return reader.GetValue(ordinal)?.ToString() ?? "NULL";
+            return _reader.GetValue(_ordinal)?.ToString() ?? "NULL";
         }
         catch
         {

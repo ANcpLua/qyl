@@ -9,10 +9,10 @@ internal sealed class Worker(MessageReceiver messageReceiver) : BackgroundServic
 {
     private readonly MessageReceiver _messageReceiver = messageReceiver;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         stoppingToken.ThrowIfCancellationRequested();
 
-        await _messageReceiver.StartConsumerAsync().ConfigureAwait(false);
+        return _messageReceiver.StartConsumerAsync();
     }
 }

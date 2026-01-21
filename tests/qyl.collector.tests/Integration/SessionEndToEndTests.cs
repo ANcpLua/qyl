@@ -1,3 +1,7 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 using qyl.collector.Ingestion;
 
 namespace qyl.collector.tests.Integration;
@@ -42,7 +46,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
 
         // Act - Ingest the span
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
         var ingestResponse = await _client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);
@@ -74,7 +78,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
 
         // Act - Ingest
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
         var ingestResponse = await _client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);
@@ -136,7 +140,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
 
         // Act - Ingest
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
         var ingestResponse = await _client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);

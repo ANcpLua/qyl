@@ -1,24 +1,35 @@
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+
 namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     HTTP-based telemetry store querying qyl.collector REST API.
 ///     Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
 /// </summary>
-public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : ITelemetryStore
+public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger) : ITelemetryStore
 {
+    private readonly HttpClient _client = client;
+    private readonly TimeProvider _time = time;
+    private readonly ILogger<HttpTelemetryStore> _logger = logger;
     public ValueTask RecordRunAsync(AgentRun run) => ValueTask.CompletedTask; // Read-only observation
 
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
     {
         try
         {
-            var session = await client.GetFromJsonAsync(
+            var session = await _client.GetFromJsonAsync(
                 $"/api/v1/sessions/{Uri.EscapeDataString(runId)}",
                 HttpStoreJsonContext.Default.StoreSession).ConfigureAwait(false);
 
-            return session is null ? null : MapToRun(session, time);
+            return session is null ? null : MapToRun(session, _time);
         }
-        catch (HttpRequestException) { return null; }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to get run {RunId} from collector", runId);
+            return null;
+        }
     }
 
     public async ValueTask<AgentRun[]> SearchRunsAsync(
@@ -30,25 +41,29 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
             if (!string.IsNullOrEmpty(provider))
                 url += $"&provider={Uri.EscapeDataString(provider)}";
 
-            var response = await client.GetFromJsonAsync(
+            var response = await _client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             return response?.Items?
-                .Select(s => MapToRun(s, time))
+                .Select(s => MapToRun(s, _time))
                 .Where(r =>
                     (string.IsNullOrEmpty(model) || r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) is true) &&
                     (string.IsNullOrEmpty(errorType) || r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) is true) &&
                     (!since.HasValue || r.StartedAt >= since.Value))
                 .ToArray() ?? [];
         }
-        catch (HttpRequestException) { return []; }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to search runs from collector");
+            return [];
+        }
     }
 
     public async ValueTask<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy)
     {
         try
         {
-            var response = await client.GetFromJsonAsync(
+            var response = await _client.GetFromJsonAsync(
                 "/api/v1/sessions?limit=1000",
                 HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
@@ -69,11 +84,15 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
                     (int)g.Sum(s => s.TotalInputTokens),
                     (int)g.Sum(s => s.TotalOutputTokens),
                     g.Count(),
-                    g.Min(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime),
-                    g.Max(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime)))
+                    g.Min(s => ParseTime(s.StartTime) ?? _time.GetUtcNow().DateTime),
+                    g.Max(s => ParseTime(s.StartTime) ?? _time.GetUtcNow().DateTime)))
                 .ToArray();
         }
-        catch (HttpRequestException) { return []; }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to get token usage from collector");
+            return [];
+        }
     }
 
     public async ValueTask<AgentError[]> ListErrorsAsync(int limit, string? agentName)
@@ -84,7 +103,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
             if (!string.IsNullOrEmpty(agentName))
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
-            var response = await client.GetFromJsonAsync(
+            var response = await _client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             return response?.Items?
@@ -95,11 +114,15 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
                     s.ServiceName ?? "unknown",
                     "Error",
                     $"{s.ErrorCount} error(s) in session",
-                    ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime,
+                    ParseTime(s.StartTime) ?? _time.GetUtcNow().DateTime,
                     null))
                 .ToArray() ?? [];
         }
-        catch (HttpRequestException) { return []; }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to list errors from collector");
+            return [];
+        }
     }
 
     public async ValueTask<LatencyStats> GetLatencyStatsAsync(string? agentName, int hours)
@@ -110,10 +133,10 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
             if (!string.IsNullOrEmpty(agentName))
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
-            var response = await client.GetFromJsonAsync(
+            var response = await _client.GetFromJsonAsync(
                 url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
-            var since = time.GetUtcNow().AddHours(-hours).DateTime;
+            var since = _time.GetUtcNow().AddHours(-hours).DateTime;
             var durations = response?.Items?
                 .Where(s => ParseTime(s.StartTime) >= since)
                 .Select(s => (double)s.SpanCount)
@@ -121,8 +144,8 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
                 .ToList() ?? [];
 
             return durations.Count is 0
-                ? new(agentName, 0, 0, 0, 0, 0, 0, 0)
-                : new(agentName,
+                ? new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0)
+                : new LatencyStats(agentName,
                     Percentile(durations, 0.50),
                     Percentile(durations, 0.95),
                     Percentile(durations, 0.99),
@@ -131,7 +154,11 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time) : I
                     durations.Max(),
                     durations.Count);
         }
-        catch (HttpRequestException) { return new(agentName, 0, 0, 0, 0, 0, 0, 0); }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogWarning(ex, "Failed to get latency stats from collector");
+            return new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0);
+        }
     }
 
     private static AgentRun MapToRun(StoreSession s, TimeProvider time)
@@ -198,4 +225,4 @@ internal sealed record StoreSession(
 [JsonSerializable(typeof(StoreSessionList))]
 [JsonSerializable(typeof(StoreSession))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-internal sealed class HttpStoreJsonContext : JsonSerializerContext;
+internal sealed partial class HttpStoreJsonContext : JsonSerializerContext;

@@ -5,7 +5,13 @@
 // One command: nuke Generate (does everything)
 // =============================================================================
 
+using System.IO;
 using Domain.CodeGen;
+using Nuke.Common;
+using Nuke.Common.IO;
+using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Npm;
+using Serilog;
 
 // ════════════════════════════════════════════════════════════════════════════════
 // IPipeline - Unified Code Generation Interface

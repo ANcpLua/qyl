@@ -5,6 +5,10 @@
 // Single entry: nuke <target> or ./eng/build.sh <target>
 // =============================================================================
 
+using Nuke.Common;
+using Nuke.Common.CI.GitHubActions;
+using Serilog;
+
 [GitHubActions(
     "ci",
     GitHubActionsImage.UbuntuLatest,

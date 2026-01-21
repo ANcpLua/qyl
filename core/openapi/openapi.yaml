@@ -3287,16 +3287,22 @@ components:
       format: int64
       minimum: 0
       description: Generic non-negative counter
+      x-csharp-type: long
+      x-duckdb-type: BIGINT
     Qyl.Common.DurationMs:
       type: number
       format: double
       minimum: 0
       description: Duration in milliseconds
+      x-csharp-type: double
+      x-duckdb-type: DOUBLE
     Qyl.Common.DurationNs:
       type: integer
       format: int64
       minimum: 0
       description: Duration in nanoseconds
+      x-csharp-type: long
+      x-duckdb-type: UBIGINT
     Qyl.Common.DurationS:
       type: number
       format: double
@@ -3519,12 +3525,16 @@ components:
       minimum: 0
       maximum: 100
       description: Percentage value (0.0 to 100.0)
+      x-csharp-type: double
+      x-duckdb-type: DOUBLE
     Qyl.Common.Ratio:
       type: number
       format: double
       minimum: 0
       maximum: 1
       description: Ratio value (0.0 to 1.0)
+      x-csharp-type: double
+      x-duckdb-type: DOUBLE
     Qyl.Common.SemVer:
       type: string
       pattern: ^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$
@@ -3536,6 +3546,9 @@ components:
       minLength: 1
       maxLength: 128
       description: Unique session identifier
+      x-csharp-type: SessionId
+      x-csharp-struct: true
+      x-duckdb-type: VARCHAR(128)
     Qyl.Common.SpanId:
       type: string
       minLength: 16
@@ -3544,11 +3557,16 @@ components:
       description: Unique span identifier (16 lowercase hex characters)
       examples:
         - b7ad6b7169203331
+      x-csharp-type: SpanId
+      x-csharp-struct: true
+      x-duckdb-type: VARCHAR(16)
     Qyl.Common.TokenCount:
       type: integer
       format: int64
       minimum: 0
       description: Token count (for LLM operations)
+      x-csharp-type: long
+      x-duckdb-type: BIGINT
     Qyl.Common.TraceId:
       type: string
       minLength: 32
@@ -3557,6 +3575,9 @@ components:
       description: Unique trace identifier (32 lowercase hex characters)
       examples:
         - 0af7651916cd43dd8448eb211c80319c
+      x-csharp-type: TraceId
+      x-csharp-struct: true
+      x-duckdb-type: VARCHAR(32)
     Qyl.Common.TraceState:
       type: string
       description: W3C Trace Context tracestate header (vendor-specific key-value pairs)
@@ -3831,6 +3852,8 @@ components:
             $ref: '#/components/schemas/Qyl.Common.TraceId'
           description: Sample trace IDs
       description: Error entity for tracking and analysis
+      x-csharp-type: ErrorEntity
+      x-duckdb-table: errors
     Qyl.Domains.Observe.Error.ErrorServiceStats:
       type: object
       required:
@@ -4493,6 +4516,8 @@ components:
             - $ref: '#/components/schemas/Qyl.Domains.Observe.Session.SessionGenAiUsage'
           description: GenAI usage summary
       description: Complete session entity with aggregated data
+      x-csharp-type: SessionEntity
+      x-duckdb-table: session_entities
     Qyl.Domains.Observe.Session.SessionGenAiUsage:
       type: object
       required:
@@ -4784,6 +4809,8 @@ components:
           type: string
           description: Error message (if failed)
       description: Complete deployment record
+      x-csharp-type: DeploymentEntity
+      x-duckdb-table: deployments
     Qyl.Domains.Ops.Deployment.DeploymentEnvironment:
       type: string
       enum:
@@ -5106,6 +5133,8 @@ components:
             - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
           description: Instrumentation scope
       description: OpenTelemetry Log Record
+      x-csharp-type: LogStorageRow
+      x-duckdb-table: logs
     Qyl.OTel.Logs.LogStats:
       type: object
       required:
@@ -5798,6 +5827,8 @@ components:
             - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
           description: Instrumentation scope
       description: OpenTelemetry Span representing a single operation in a distributed trace
+      x-csharp-type: SpanStorageRow
+      x-duckdb-table: spans
     Qyl.OTel.Traces.SpanEvent:
       type: object
       required:

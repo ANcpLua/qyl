@@ -1,11 +1,21 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
+using RabbitMQ.Client;
+
 namespace Utils.Messaging;
 
 public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
 {
-    private static readonly ActivitySource ActivitySource = new(nameof(MessageSender));
+    private static readonly ActivitySource ActivitySource = new(
+        new ActivitySourceOptions(nameof(MessageSender))
+        {
+            Version = "1.0.0"
+        });
     private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
     private readonly ILogger<MessageSender> _logger = logger;
     private IChannel? _channel;
@@ -51,7 +61,7 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
 
             // The OpenTelemetry messaging specification defines a number of attributes. These attributes are added here.
             RabbitMqHelper.AddMessagingTags(activity);
-            var body = $"Published message: DateTime.Now = {DateTime.Now}.";
+            var body = $"Published message: Time = {TimeProvider.System.GetUtcNow()}.";
 
             await _channel.BasicPublishAsync(
                 RabbitMqHelper.DefaultExchangeName,

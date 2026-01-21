@@ -1,3 +1,4 @@
+using System.Text;
 using qyl.collector.Ingestion;
 
 namespace qyl.collector.tests.Ingestion;

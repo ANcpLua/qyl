@@ -1,3 +1,6 @@
+using System.Net;
+using System.Text;
+using System.Text.Json;
 using qyl.collector.Ingestion;
 using qyl.collector.Storage;
 
@@ -9,7 +12,7 @@ namespace qyl.collector.tests.Integration;
 /// </summary>
 public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
-    private static readonly JsonSerializerOptions s_snakeCaseOptions = new()
+    private static readonly JsonSerializerOptions SSnakeCaseOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
     };
@@ -115,7 +118,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                 MapSpanToDto(span)
             }
         };
-        var json = JsonSerializer.Serialize(batch, s_snakeCaseOptions);
+        var json = JsonSerializer.Serialize(batch, SSnakeCaseOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync("/api/v1/ingest", content);

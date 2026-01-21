@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
 using qyl.collector.Auth;
 using qyl.collector.Grpc;
-using qyl.collector.Mapping;
+using qyl.collector.Health;
 using qyl.collector.Mcp;
 using qyl.collector.Telemetry;
 
@@ -19,6 +21,11 @@ var port = builder.Configuration.GetValue("QYL_PORT", 5100);
 var grpcPort = builder.Configuration.GetValue("QYL_GRPC_PORT", 4317);
 var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
 var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
+
+// Ensure parent directory exists for DuckDB file
+var dataDir = Path.GetDirectoryName(dataPath);
+if (!string.IsNullOrEmpty(dataDir))
+    Directory.CreateDirectory(dataDir);
 
 // Configure Kestrel for HTTP (Dashboard/API) and gRPC (OTLP) endpoints
 builder.WebHost.ConfigureKestrel(options =>
@@ -64,8 +71,15 @@ builder.Services.AddSingleton(otlpApiKeyOptions);
 // SSE broadcasting with backpressure support for live telemetry streaming
 builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
 
+// In-memory ring buffer for real-time span queries (sub-ms latency)
+var ringBufferCapacity = builder.Configuration.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);
+builder.Services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));
+
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();
+
+// Configure logging based on environment
+builder.Logging.AddQylLogging(builder.Environment);
 
 // Health checks with DuckDB connectivity
 builder.Services.AddQylHealthChecks();
@@ -76,7 +90,7 @@ builder.Services.ActivateSingleton<DuckDbStore>();
 builder.Services.AddSingleton(sp =>
 {
     var store = sp.GetRequiredService<DuckDbStore>();
-    return new SessionQueryService(store.Connection);
+    return new SessionQueryService(store);
 });
 
 var app = builder.Build();
@@ -170,20 +184,20 @@ app.MapGet("/api/v1/sessions/{sessionId}",
         return Results.Ok(SessionMapper.ToDto(session));
     });
 
-app.MapGet("/api/v1/sessions/{sessionId}/spans",
-    async (string sessionId, DuckDbStore store, CancellationToken ct) =>
-        await SpanEndpoints.GetSessionSpansAsync(sessionId, store, ct).ConfigureAwait(false));
+app.MapGet("/api/v1/sessions/{sessionId}/spans", (string sessionId, DuckDbStore store, CancellationToken ct) =>
+    SpanEndpoints.GetSessionSpansAsync(sessionId, store, ct));
 
-app.MapGet("/api/v1/traces/{traceId}",
-    async (string traceId, DuckDbStore store) =>
-        await SpanEndpoints.GetTraceAsync(traceId, store).ConfigureAwait(false));
+app.MapGet("/api/v1/traces/{traceId}", (string traceId, DuckDbStore store) =>
+    SpanEndpoints.GetTraceAsync(traceId, store));
 
 app.MapSseEndpoints();
+app.MapSpanMemoryEndpoints();
 
 app.MapPost("/api/v1/ingest", async (
     HttpContext context,
     DuckDbStore store,
-    ITelemetrySseBroadcaster broadcaster) =>
+    ITelemetrySseBroadcaster broadcaster,
+    SpanRingBuffer ringBuffer) =>
 {
     SpanBatch? batch;
     try
@@ -199,6 +213,9 @@ app.MapPost("/api/v1/ingest", async (
         return Results.BadRequest(new ErrorResponse("Invalid JSON", ex.Message));
     }
 
+    // Push to ring buffer for real-time queries
+    ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
+
     await store.EnqueueAsync(batch);
 
     broadcaster.PublishSpans(batch);
@@ -209,7 +226,8 @@ app.MapPost("/api/v1/ingest", async (
 app.MapPost("/v1/traces", async (
     HttpContext context,
     DuckDbStore store,
-    ITelemetrySseBroadcaster broadcaster) =>
+    ITelemetrySseBroadcaster broadcaster,
+    SpanRingBuffer ringBuffer) =>
 {
     try
     {
@@ -222,6 +240,9 @@ app.MapPost("/v1/traces", async (
         if (spans.Count is 0) return Results.Accepted();
 
         var batch = new SpanBatch(spans);
+
+        // Push to ring buffer for real-time queries
+        ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
 
         await store.EnqueueAsync(batch);
 
@@ -286,11 +307,11 @@ app.MapGet("/api/v1/logs", async (
     CancellationToken ct) =>
 {
     var logs = await store.GetLogsAsync(
-        sessionId: session,
-        traceId: trace,
-        severityText: level,
-        minSeverity: minSeverity,
-        search: search,
+        session,
+        trace,
+        level,
+        minSeverity,
+        search,
         limit: limit ?? 500,
         ct: ct);
 
@@ -360,12 +381,12 @@ app.MapPost("/mcp/tools/call", async (McpToolCall call, McpServer mcp, Cancellat
 // Health check endpoints - use custom handlers that call IHealthCheckService
 app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
 {
-    var healthService = sp.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+    var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
         return Results.Ok(new HealthResponse("healthy"));
 
     var result = await healthService.CheckHealthAsync(ct).ConfigureAwait(false);
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+    if (result.Status == HealthStatus.Healthy)
         return Results.Ok(new HealthResponse("healthy"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
@@ -373,19 +394,19 @@ app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
 
 app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
 {
-    var healthService = sp.GetService<Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckService>();
+    var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
         return Results.Ok(new HealthResponse("ready"));
 
     var result = await healthService.CheckHealthAsync(
         c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+    if (result.Status == HealthStatus.Healthy)
         return Results.Ok(new HealthResponse("ready"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("ReadinessCheck");
 
-app.MapFallback(async context =>
+app.MapFallback(context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
@@ -393,15 +414,15 @@ app.MapFallback(async context =>
         path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 404;
-        return;
+        return Task.CompletedTask;
     }
 
     context.Response.ContentType = "text/html";
     var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
     if (File.Exists(indexPath))
-        await context.Response.SendFileAsync(indexPath).ConfigureAwait(false);
+        return context.Response.SendFileAsync(indexPath);
     else
-        await context.Response.WriteAsync(GetFallbackHtml()).ConfigureAwait(false);
+        return context.Response.WriteAsync(GetFallbackHtml());
 });
 
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
@@ -1169,5 +1190,10 @@ namespace qyl.collector
     [JsonSerializable(typeof(List<LogStorageRow>))]
     [JsonSerializable(typeof(string[]))]
     [JsonSerializable(typeof(OtlpEventJson[]))]
-    public class QylSerializerContext : JsonSerializerContext;
+    // Ring buffer response types
+    [JsonSerializable(typeof(RecentSpansResponse))]
+    [JsonSerializable(typeof(TraceFromMemoryResponse))]
+    [JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
+    [JsonSerializable(typeof(BufferStatsResponse))]
+    public partial class QylSerializerContext : JsonSerializerContext;
 }

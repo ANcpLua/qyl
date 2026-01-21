@@ -285,8 +285,8 @@ public sealed class McpServer
         };
 
         var spans = await _store.GetSpansAsync(
-            sessionId: sessionId,
-            providerName: providerName,
+            sessionId,
+            providerName,
             statusCode: statusCode,
             limit: limit,
             ct: ct);
@@ -308,9 +308,10 @@ public sealed class McpServer
         var sessionId = args?.TryGetProperty("session_id", out var s) == true ? s.GetString() : null;
         var hours = args?.TryGetProperty("hours", out var h) == true ? h.GetInt32() : 24;
 
-        // Calculate time window
+        // Calculate time window - cast to ulong BEFORE multiplication to avoid signed overflow
         var now = TimeProvider.System.GetUtcNow();
-        var cutoffNano = (ulong)((now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds() * 1_000_000);
+        var cutoffMs = (now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds();
+        var cutoffNano = (ulong)cutoffMs * 1_000_000UL;
 
         var stats = await _store.GetGenAiStatsAsync(sessionId, cutoffNano, ct);
 
@@ -334,9 +335,10 @@ public sealed class McpServer
         var hours = args?.TryGetProperty("hours", out var h) == true ? h.GetInt32() : 24;
         var limit = args?.TryGetProperty("limit", out var l) == true ? l.GetInt32() : 50;
 
-        // Calculate time window
+        // Calculate time window - cast to ulong BEFORE multiplication to avoid signed overflow
         var now = TimeProvider.System.GetUtcNow();
-        var cutoffNano = (ulong)((now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds() * 1_000_000);
+        var cutoffMs = (now - TimeSpan.FromHours(hours)).ToUnixTimeMilliseconds();
+        var cutoffNano = (ulong)cutoffMs * 1_000_000UL;
 
         // Query error spans at DB level (status_code = 2 is ERROR in OTel)
         var spans = await _store.GetSpansAsync(

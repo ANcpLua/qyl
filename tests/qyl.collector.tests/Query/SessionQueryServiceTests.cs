@@ -16,13 +16,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     {
         _store = DuckDbTestHelpers.CreateInMemoryStore();
         await DuckDbTestHelpers.WaitForSchemaInit();
-        _queryService = new SessionQueryService(_store.Connection);
+        _queryService = new SessionQueryService(_store);
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await _store.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => _store.DisposeAsync();
 
     #region GetSessionsAsync Tests
 

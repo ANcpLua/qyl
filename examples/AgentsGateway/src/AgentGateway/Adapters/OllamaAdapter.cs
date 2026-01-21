@@ -1,4 +1,9 @@
+using System.Globalization;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using AgentGateway.Core;
+using Microsoft.Extensions.AI;
 
 namespace AgentGateway.Adapters;
 
@@ -16,29 +21,6 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         {
             BaseAddress = new Uri(baseUrl)
         };
-    }
-
-    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
-    {
-        try
-        {
-            var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
-            return response?.Models?
-                .Select(m => new ModelInfo(
-                    m.Name ?? "unknown",
-                    ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
-                    new Dictionary<string, string>
-                    {
-                        ["size"] = m.Size.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        ["modified_at"] = m.ModifiedAt ?? string.Empty
-                    }))
-                .ToArray() ?? [];
-        }
-        catch (HttpRequestException)
-        {
-            // Ollama not running - return empty list
-            return [];
-        }
     }
 
     public async Task<ChatResponse> GetResponseAsync(
@@ -92,6 +74,29 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
     public void Dispose() => _http.Dispose();
 
     public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+    public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
+            return Enumerable
+                .ToArray<ModelInfo>(response?.Models?
+                    .Select(m => new ModelInfo(
+                        m.Name ?? "unknown",
+                        ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
+                        new Dictionary<string, string>
+                        {
+                            ["size"] = m.Size.ToString(CultureInfo.InvariantCulture),
+                            ["modified_at"] = m.ModifiedAt ?? string.Empty
+                        }))) ?? [];
+        }
+        catch (HttpRequestException)
+        {
+            // Ollama not running - return empty list
+            return [];
+        }
+    }
 
     private OllamaChatRequest BuildRequest(IEnumerable<ChatMessage> messages, ChatOptions? options, bool stream)
     {
@@ -168,6 +173,6 @@ internal sealed class OllamaModelInfo
 [JsonSerializable(typeof(OllamaChatRequest))]
 [JsonSerializable(typeof(OllamaChatResponse))]
 [JsonSerializable(typeof(OllamaTagsResponse))]
-internal sealed class OllamaJsonContext : JsonSerializerContext
+internal sealed partial class OllamaJsonContext : JsonSerializerContext
 {
 }

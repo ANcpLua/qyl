@@ -5,10 +5,20 @@
 // =============================================================================
 
 
-
 // ════════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ════════════════════════════════════════════════════════════════════════════════
+
+using System;
+using System.ComponentModel;
+using System.Linq;
+using Nuke.Common;
+using Nuke.Common.IO;
+using Nuke.Common.ProjectModel;
+using Nuke.Common.Tooling;
+using Nuke.Common.Tools.DotNet;
+using Nuke.Common.Tools.GitVersion;
+using Serilog;
 
 [TypeConverter(typeof(TypeConverter<Configuration>))]
 sealed class Configuration : Enumeration
@@ -64,14 +74,12 @@ interface IHasSolution : INukeBuild
 // BuildPaths - Centralized path constants
 // ════════════════════════════════════════════════════════════════════════════════
 
-namespace Context
+/// <summary>
+///     Single source of truth for all build paths.
+///     Use <see cref="From" /> to create from a NUKE build instance.
+/// </summary>
+public sealed record BuildPaths(AbsolutePath Root)
 {
-    /// <summary>
-    ///     Single source of truth for all build paths.
-    ///     Use <see cref="From" /> to create from a NUKE build instance.
-    /// </summary>
-    public sealed record BuildPaths(AbsolutePath Root)
-    {
     // ─── Core (God Schema - Single Source of Truth) ─────────────────────────
     public AbsolutePath Core => Root / "core";
     public AbsolutePath TypeSpec => Core / "specs";
@@ -117,7 +125,7 @@ namespace Context
     public static BuildPaths From(INukeBuild build) => new(build.RootDirectory);
 }
 
-} // namespace Context
+// namespace Context
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ICompile - .NET Build Targets
@@ -137,7 +145,7 @@ interface ICompile : IHasSolution
         .Description("Restore NuGet packages")
         .Executes(() =>
         {
-            DotNetRestore(s => s.SetProjectFile(GetSolutionPath()));
+            DotNetTasks.DotNetRestore(s => DotNetRestoreSettingsExtensions.SetProjectFile<DotNetRestoreSettings>(s, GetSolutionPath()));
             Log.Information("Restored: {Solution}", Solution.FileName);
         });
 
@@ -159,7 +167,7 @@ interface ICompile : IHasSolution
                     .SetFileVersion(GitVersion.AssemblySemFileVer)
                     .SetInformationalVersion(GitVersion.InformationalVersion);
 
-            DotNetBuild(settings);
+            DotNetTasks.DotNetBuild(settings);
 
             Log.Information("Compiled: {Solution} [{Configuration}]",
                 Solution.FileName, Configuration);

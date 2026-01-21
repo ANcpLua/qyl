@@ -517,10 +517,12 @@ public sealed class SpanQueryBuilder
     {
         cmd.CommandText = Build();
         foreach (var param in _parameters)
+        {
             cmd.Parameters.Add(new DuckDBParameter
             {
                 Value = param ?? DBNull.Value
             });
+        }
     }
 
     public override string ToString() => Build();
@@ -540,10 +542,12 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
     {
         cmd.CommandText = Sql;
         foreach (var param in Parameters)
+        {
             cmd.Parameters.Add(new DuckDBParameter
             {
                 Value = param ?? DBNull.Value
             });
+        }
     }
 
     /// <summary>Create DuckDB parameters list.</summary>

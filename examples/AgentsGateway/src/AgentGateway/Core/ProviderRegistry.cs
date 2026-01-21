@@ -1,3 +1,7 @@
+using System.Reflection;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.AI;
+
 namespace AgentGateway.Core;
 
 public sealed record RegisteredProvider(
@@ -62,7 +66,11 @@ public static class ProviderDiscovery
             };
         foreach (var assembly in assemblies)
         foreach (var type in assembly.DefinedTypes)
-            if (typeof(IChatClient).IsAssignableFrom(type) && !type.IsInterface && !type.IsAbstract)
+            if (typeof(IChatClient).IsAssignableFrom(type) && type is
+                {
+                    IsInterface: false,
+                    IsAbstract: false
+                })
             {
                 var meta = type.GetCustomAttribute<ModelProviderAttribute>();
                 if (meta != null)

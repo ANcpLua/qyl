@@ -6,7 +6,6 @@ namespace qyl.collector.tests.Storage;
 ///     Integration tests for DuckDbStore with in-memory DuckDB.
 ///     Tests schema initialization, span insert/retrieval, tracing, archival, and connection pooling.
 /// </summary>
-#pragma warning disable CA1001 // Types that own disposable fields should be disposable
 public sealed class DuckDbStoreTests : IAsyncLifetime
 {
     private DuckDbStore _store = null!;
@@ -17,9 +16,9 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        await _store.DisposeAsync();
+        return _store.DisposeAsync();
     }
 
     #region Helper Methods
@@ -62,7 +61,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Contains(("span_id", "VARCHAR"), columns);
 
         // Snake_case columns for new schema
-        var names = columns.ConvertAll(c => c.Name);
+        var names = columns.ConvertAll(static c => c.Name);
         Assert.Contains("service_name", names);
         Assert.Contains("session_id", names);
         Assert.Contains("gen_ai_system", names);
@@ -137,7 +136,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal(TestConstants.ProviderOpenAi, retrieved.GenAiSystem);
         Assert.Equal(TestConstants.TokensInDefault, retrieved.GenAiInputTokens);
         Assert.Equal(TestConstants.TokensOutDefault, retrieved.GenAiOutputTokens);
-        Assert.Equal((double)TestConstants.CostDefault, retrieved.GenAiCostUsd);
+        Assert.Equal(TestConstants.CostDefault, retrieved.GenAiCostUsd);
     }
 
     [Fact]
@@ -345,7 +344,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         var results = await Task.WhenAll(tasks);
 
         // Assert
-        Assert.All(results, r => Assert.Equal(TestConstants.BatchSizeLarge, r.Count));
+        Assert.All(results, static r => Assert.Equal(TestConstants.BatchSizeLarge, r.Count));
     }
 
     [Fact]
@@ -382,25 +381,25 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
                 .WithName("openai-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now.AddMinutes(-120), 0) // 2 hours ago
+                .AtTime(now.AddMinutes(-120)) // 2 hours ago
                 .Build(),
             SpanBuilder.Create("trace-f2", "span-f2")
                 .WithName("anthropic-call")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderAnthropic)
-                .AtTime(now.AddMinutes(-60), 0) // 1 hour ago
+                .AtTime(now.AddMinutes(-60)) // 1 hour ago
                 .Build(),
             SpanBuilder.Create("trace-f3", "span-f3")
                 .WithName("openai-call2")
                 .WithSessionId(TestConstants.SessionFilters)
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now, 0)
+                .AtTime(now)
                 .Build(),
             SpanBuilder.Create("trace-f4", "span-f4")
                 .WithName("different-session")
                 .WithSessionId("other-session")
                 .WithProvider(TestConstants.ProviderOpenAi)
-                .AtTime(now, 0)
+                .AtTime(now)
                 .Build()
         ]);
 
@@ -413,7 +412,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
 
         // Assert
         Assert.Equal(2, results.Count);
-        Assert.All(results, s =>
+        Assert.All(results, static s =>
         {
             Assert.Equal(TestConstants.SessionFilters, s.SessionId);
             Assert.Equal(TestConstants.ProviderOpenAi, s.GenAiSystem);
@@ -500,13 +499,13 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         [
             SpanBuilder.GenAi("trace-old-stats", "span-old")
                 .WithName("old-call")
-                .AtTime(now.AddDays(-2), 0)
+                .AtTime(now.AddDays(-2))
                 .WithTokens(50, 25)
                 .WithCost(TestConstants.CostSmall)
                 .Build(),
             SpanBuilder.GenAi("trace-recent-stats", "span-recent")
                 .WithName("recent-call")
-                .AtTime(now, 0)
+                .AtTime(now)
                 .WithTokens(100, 50)
                 .WithCost(TestConstants.CostLarge)
                 .Build()
@@ -522,7 +521,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal(1, recentStats.RequestCount);
         Assert.Equal(100, recentStats.TotalInputTokens);
         Assert.Equal(50, recentStats.TotalOutputTokens);
-        Assert.Equal((double)TestConstants.CostLarge, recentStats.TotalCostUsd, 0.001);
+        Assert.Equal(TestConstants.CostLarge, recentStats.TotalCostUsd, 0.001);
     }
 
     #endregion

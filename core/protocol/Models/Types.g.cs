@@ -1,11 +1,9 @@
 // =============================================================================
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
-//     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-01-16T16:36:09.8868420+00:00
+//     Source:    /Users/ancplua/qyl/core/openapi/openapi.yaml
+//     Generated: 2026-01-16T09:00:34.9370760+00:00
 //     Models for Qyl
-// =============================================================================
-// To modify: update TypeSpec in core/specs/ then run: nuke Generate
 // =============================================================================
 
 #nullable enable

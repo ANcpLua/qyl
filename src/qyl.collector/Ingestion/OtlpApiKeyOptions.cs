@@ -5,10 +5,18 @@ namespace qyl.collector.Ingestion;
 /// </summary>
 public sealed class OtlpApiKeyOptions
 {
+    private static readonly string[] ValidAuthModes = ["ApiKey", "Unsecured"];
+
     /// <summary>
     ///     Auth mode: "ApiKey" or "Unsecured".
     /// </summary>
-    public string AuthMode { get; set; } = "Unsecured";
+    public string AuthMode
+    {
+        get;
+        set => field = ValidAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
+            ? value
+            : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", ValidAuthModes)}", nameof(value));
+    } = "Unsecured";
 
     /// <summary>
     ///     Primary API key for validation.
@@ -21,9 +29,15 @@ public sealed class OtlpApiKeyOptions
     public string? SecondaryApiKey { get; set; }
 
     /// <summary>
-    ///     Header name for API key.
+    ///     Header name for API key. Cannot be empty.
     /// </summary>
-    public string HeaderName { get; set; } = "x-otlp-api-key";
+    public string HeaderName
+    {
+        get;
+        set => field = !string.IsNullOrWhiteSpace(value)
+            ? value
+            : throw new ArgumentException("HeaderName cannot be empty", nameof(value));
+    } = "x-otlp-api-key";
 
     public bool IsApiKeyMode =>
         AuthMode.Equals("ApiKey", StringComparison.OrdinalIgnoreCase);

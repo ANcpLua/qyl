@@ -5,10 +5,17 @@
 // =============================================================================
 
 
-
 // ════════════════════════════════════════════════════════════════════════════════
 // IDocker - Container Build & Orchestration
 // ════════════════════════════════════════════════════════════════════════════════
+
+
+using Nuke.Common;
+using Nuke.Common.IO;
+using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Docker;
+using Serilog;
+using static Nuke.Common.Tools.Docker.DockerTasks;
 
 [ParameterPrefix(nameof(IDocker))]
 interface IDocker : IHasSolution

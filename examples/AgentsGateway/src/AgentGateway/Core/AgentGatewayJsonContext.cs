@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AgentGateway.Core;
 
 [JsonSerializable(typeof(RegisteredProvider))]
@@ -5,6 +7,6 @@ namespace AgentGateway.Core;
 [JsonSerializable(typeof(ModelInfo))]
 [JsonSerializable(typeof(ModelInfo[]))]
 [JsonSerializable(typeof(ProviderCapabilities))]
-internal sealed class AgentGatewayJsonContext : JsonSerializerContext
+internal sealed partial class AgentGatewayJsonContext : JsonSerializerContext
 {
 }

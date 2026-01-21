@@ -2,15 +2,17 @@
 // SessionQueryService - Pure DuckDB queries with SpanQueryBuilder
 // =============================================================================
 
+using qyl.collector.Core;
+
 namespace qyl.collector.Query;
 
 /// <summary>
 ///     Session query service using SpanQueryBuilder for type-safe query construction.
 ///     All aggregations computed in DuckDB - no in-memory state.
 /// </summary>
-public sealed class SessionQueryService(DuckDBConnection connection)
+public sealed class SessionQueryService(DuckDbStore store)
 {
-    private readonly DuckDBConnection _connection = connection;
+    private readonly DuckDbStore _store = store;
     // =========================================================================
     // List Sessions
     // =========================================================================
@@ -24,7 +26,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
     {
         // Using raw SQL for complex COALESCE + GROUP BY pattern
         // SpanQueryBuilder is better for simpler queries
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
@@ -56,7 +59,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
 
     public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
                               COALESCE(session_id, trace_id) AS session_id,
@@ -100,7 +104,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .LimitParam(2)
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter
         {
@@ -141,7 +146,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
 
@@ -190,12 +196,16 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .LimitParam(2)
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
-        // Convert DateTime to UnixNano (UBIGINT)
-        var afterUnixNano = after.HasValue
-            ? (object)(ulong)((after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks * 100)
-            : DBNull.Value;
+        // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
+        object afterUnixNano = DBNull.Value;
+        if (after.HasValue)
+        {
+            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
+            afterUnixNano = (ulong)ticks * 100UL;
+        }
         cmd.Parameters.Add(new DuckDBParameter
         {
             Value = afterUnixNano
@@ -244,7 +254,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
 
@@ -275,7 +286,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .OrderBy(SpanColumn.StartTimeUnixNano)
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter
         {
@@ -312,14 +324,17 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             .Limit(limit)
             .Build();
 
-        await using var cmd = _connection.CreateCommand();
+        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
 
         if (sessionId is not null)
+        {
             cmd.Parameters.Add(new DuckDBParameter
             {
                 Value = sessionId
             });
+        }
 
         var spans = new List<SpanStorageRow>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -340,10 +355,13 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         {
             Value = sessionId ?? (object)DBNull.Value
         });
-        // Convert DateTime to UnixNano (UBIGINT)
-        var afterUnixNano = after.HasValue
-            ? (object)(ulong)((after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks * 100)
-            : DBNull.Value;
+        // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
+        object afterUnixNano = DBNull.Value;
+        if (after.HasValue)
+        {
+            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
+            afterUnixNano = (ulong)ticks * 100UL;
+        }
         cmd.Parameters.Add(new DuckDBParameter
         {
             Value = afterUnixNano
@@ -373,8 +391,8 @@ public sealed class SessionQueryService(DuckDBConnection connection)
             // UBIGINT timestamps converted to DateTime
             var startTimeNano = reader.Col(1).GetUInt64(0);
             var lastActivityNano = reader.Col(2).GetUInt64(0);
-            var startTime = UnixNanoToDateTime(startTimeNano);
-            var lastActivity = UnixNanoToDateTime(lastActivityNano);
+            var startTime = TimeConversions.UnixNanoToDateTime(startTimeNano);
+            var lastActivity = TimeConversions.UnixNanoToDateTime(lastActivityNano);
 
             var spanCount = reader.Col(3).GetInt64(0);
             var errorCount = reader.Col(5).GetInt64(0);
@@ -403,15 +421,6 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         return sessions;
     }
 
-    /// <summary>Converts UnixNano (ulong nanoseconds since epoch) to DateTime.</summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static DateTime UnixNanoToDateTime(ulong unixNano)
-    {
-        // 1 tick = 100 nanoseconds
-        var ticks = (long)(unixNano / 100);
-        return DateTime.UnixEpoch.AddTicks(ticks);
-    }
-
     private static async Task<IReadOnlyList<string>> ReadStringListAsync(DbDataReader reader, int ordinal)
     {
         if (await reader.IsDBNullAsync(ordinal))
@@ -427,34 +436,7 @@ public sealed class SessionQueryService(DuckDBConnection connection)
         };
     }
 
-    private static SpanStorageRow MapSpan(DbDataReader reader) =>
-        new()
-        {
-            SpanId = reader.GetString(reader.GetOrdinal("span_id")),
-            TraceId = reader.GetString(reader.GetOrdinal("trace_id")),
-            ParentSpanId = reader.Col("parent_span_id").AsString,
-            SessionId = reader.Col("session_id").AsString,
-            Name = reader.GetString(reader.GetOrdinal("name")),
-            Kind = reader.Col("kind").GetByte(0),
-            StartTimeUnixNano = reader.Col("start_time_unix_nano").GetUInt64(0),
-            EndTimeUnixNano = reader.Col("end_time_unix_nano").GetUInt64(0),
-            DurationNs = reader.Col("duration_ns").GetUInt64(0),
-            StatusCode = reader.Col("status_code").GetByte(0),
-            StatusMessage = reader.Col("status_message").AsString,
-            ServiceName = reader.Col("service_name").AsString,
-            GenAiSystem = reader.Col("gen_ai_system").AsString,
-            GenAiRequestModel = reader.Col("gen_ai_request_model").AsString,
-            GenAiResponseModel = reader.Col("gen_ai_response_model").AsString,
-            GenAiInputTokens = reader.Col("gen_ai_input_tokens").AsInt64,
-            GenAiOutputTokens = reader.Col("gen_ai_output_tokens").AsInt64,
-            GenAiTemperature = reader.Col("gen_ai_temperature").AsDouble,
-            GenAiStopReason = reader.Col("gen_ai_stop_reason").AsString,
-            GenAiToolName = reader.Col("gen_ai_tool_name").AsString,
-            GenAiToolCallId = reader.Col("gen_ai_tool_call_id").AsString,
-            GenAiCostUsd = reader.Col("gen_ai_cost_usd").AsDouble,
-            AttributesJson = reader.Col("attributes_json").AsString,
-            ResourceJson = reader.Col("resource_json").AsString
-        };
+    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByName(reader);
 }
 
 // =============================================================================

@@ -3,6 +3,9 @@
 // Defines data classifications for automatic PII/sensitive data redaction
 // =============================================================================
 
+using Microsoft.Extensions.Compliance.Classification;
+using Microsoft.Extensions.Compliance.Redaction;
+
 namespace qyl.collector.Telemetry;
 
 /// <summary>

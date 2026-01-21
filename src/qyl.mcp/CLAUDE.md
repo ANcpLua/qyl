@@ -1,205 +1,161 @@
 # qyl.mcp
 
-MCP Server for AI agent self-introspection.
+MCP server exposing qyl telemetry to AI assistants.
 
 ## identity
 
 ```yaml
 name: qyl.mcp
-type: console-app
+type: mcp-server
 sdk: ANcpLua.NET.Sdk
-protocol: model-context-protocol
 transport: stdio
-purpose: let agents query their own telemetry
+role: ai-integration-layer
 ```
 
-## connection
+## architecture
 
 ```yaml
-to-collector:
-  method: http-only
-  base-url: http://localhost:5100
-  endpoints:
-    - /api/v1/sessions
-    - /api/v1/sessions/{id}
-    - /api/v1/sessions/{id}/spans
-    - /api/v1/traces/{traceId}
-    - /api/v1/stats/tokens
-    - /api/v1/stats/latency
+communication:
+  to: qyl.collector
+  via: http-only
+  reason: decoupled (no ProjectReference to collector)
 
-forbidden:
-  - ProjectReference to qyl.collector
-  - Direct DuckDB access
-  reason: must remain decoupled
+connection:
+  env: QYL_COLLECTOR_URL
+  default: http://localhost:5100
+  resilience: standard-handler (retry + circuit-breaker)
+  timeout: 30s
 ```
 
-## mcp-tools
+## tools
 
 ```yaml
-tools:
-  qyl.search_agent_runs:
-    description: Search for agent runs by time range or filters
-    parameters:
-      start_time: datetime (optional)
-      end_time: datetime (optional)
-      service_name: string (optional)
-    returns: SessionSummary[]
-    
-  qyl.get_agent_run:
-    description: Get details of a specific session
-    parameters:
-      session_id: string (required)
-    returns: SessionSummary + SpanRecord[]
-    
-  qyl.get_token_usage:
-    description: Get token usage statistics
-    parameters:
-      session_id: string (optional)
-      time_range: string (optional, e.g. "1h", "24h", "7d")
-    returns: { input_tokens, output_tokens, cost_usd }
-    
-  qyl.list_errors:
-    description: List error spans
-    parameters:
-      session_id: string (optional)
-      limit: int (default: 10)
-    returns: SpanRecord[] where status_code = ERROR
-    
-  qyl.get_latency_stats:
-    description: Get latency percentiles
-    parameters:
-      session_id: string (optional)
-      operation: string (optional)
-    returns: { p50, p90, p99, avg, min, max }
-    
-  qyl.get_span_tree:
-    description: Get hierarchical trace view
-    parameters:
-      trace_id: string (required)
-    returns: TraceNode (recursive)
+telemetry-tools:
+  - name: qyl.search_agent_runs
+    purpose: Search agent runs by provider, model, error, time
+    params: [provider?, model?, errorType?, since?]
+
+  - name: qyl.get_agent_run
+    purpose: Get specific agent run details
+    params: [runId]
+
+  - name: qyl.get_token_usage
+    purpose: Token statistics with grouping
+    params: [since?, until?, groupBy=agent|model|hour]
+
+  - name: qyl.list_errors
+    purpose: Recent errors from agent runs
+    params: [limit=50, agentName?]
+
+  - name: qyl.get_latency_stats
+    purpose: Latency percentiles (P50, P95, P99)
+    params: [agentName?, hours=24]
+
+replay-tools:
+  - name: qyl.list_sessions
+    purpose: List available sessions for replay
+    params: [limit=20, serviceName?]
+
+  - name: qyl.get_session_transcript
+    purpose: Human-readable session transcript
+    params: [sessionId]
+
+  - name: qyl.get_trace
+    purpose: Trace details with span hierarchy
+    params: [traceId]
+
+  - name: qyl.analyze_session_errors
+    purpose: Error analysis for a session
+    params: [sessionId]
 ```
 
-## http-client
+## collector-api
 
 ```yaml
-pattern: |
-  public sealed class QylClient(HttpClient http)
-  {
-      public async Task<SessionSummary[]> GetSessionsAsync(
-          DateTimeOffset? start = null,
-          DateTimeOffset? end = null,
-          string? serviceName = null,
-          CancellationToken ct = default)
-      {
-          var query = new List<string>();
-          if (start.HasValue) query.Add($"start={start.Value:O}");
-          if (end.HasValue) query.Add($"end={end.Value:O}");
-          if (serviceName != null) query.Add($"service={Uri.EscapeDataString(serviceName)}");
-          
-          var url = query.Count > 0 
-              ? $"/api/v1/sessions?{string.Join("&", query)}"
-              : "/api/v1/sessions";
-              
-          var response = await http.GetAsync(url, ct);
-          response.EnsureSuccessStatusCode();
-          return await response.Content.ReadFromJsonAsync<SessionSummary[]>(s_options, ct) 
-              ?? [];
-      }
-      
-      // ... other methods ...
-      
-      private static readonly JsonSerializerOptions s_options = new()
-      {
-          PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
-      };
-  }
+endpoints-used:
+  - GET /api/v1/sessions
+  - GET /api/v1/sessions/{id}
+  - GET /api/v1/sessions/{id}/spans
+  - GET /api/v1/traces/{traceId}
 
-registration: |
-  services.AddHttpClient<QylClient>(client =>
-  {
-      var baseUrl = Environment.GetEnvironmentVariable("QYL_URL") 
-          ?? "http://localhost:5100";
-      client.BaseAddress = new Uri(baseUrl);
-  });
+response-format: snake_case JSON
+json-context: source-generated (AOT-safe)
 ```
 
-## mcp-server-pattern
+## patterns
 
 ```yaml
-entry: |
-  var builder = McpServer.CreateBuilder();
-  
-  builder.AddTool("qyl.search_agent_runs", 
-      "Search for agent runs by time range or filters",
-      async (params, ct) => 
-      {
-          var client = services.GetRequiredService<QylClient>();
-          var sessions = await client.GetSessionsAsync(
-              params.GetDateTime("start_time"),
-              params.GetDateTime("end_time"),
-              params.GetString("service_name"),
-              ct);
-          return McpResult.Json(sessions);
-      });
-  
-  // ... other tools ...
-  
-  await builder.Build().RunAsync();
+http-client:
+  registration: |
+    builder.Services.AddHttpClient<ReplayTools>(client =>
+    {
+        client.BaseAddress = new Uri(collectorUrl);
+        client.Timeout = TimeSpan.FromSeconds(30);
+    })
+    .AddStandardResilienceHandler();
+
+mcp-setup:
+  registration: |
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithTools<TelemetryTools>(jsonOptions)
+        .WithTools<ReplayTools>(jsonOptions);
+
+tool-result:
+  pattern: |
+    public record ToolResult<T>(bool Success, T? Data, string? Error);
+    public static ToolResult<T> Ok<T>(T data) => new(true, data, null);
+    public static ToolResult<T> Error<T>(string msg) => new(false, default, msg);
+
+error-handling:
+  pattern: |
+    try { ... }
+    catch (HttpRequestException ex)
+    {
+        return ToolResult.Error<T>($"Failed to connect to qyl collector: {ex.Message}");
+    }
+
+time:
+  provider: TimeProvider.System
+  injection: constructor (for testability)
 ```
 
 ## dependencies
 
 ```yaml
 project-references:
-  - qyl.protocol
+  - qyl.protocol (types only)
 
 packages:
-  - Microsoft.Extensions.Http
-  - System.Text.Json
-  # MCP SDK when available
+  - ModelContextProtocol.Server
+  - Microsoft.Extensions.Http.Resilience
 
 forbidden:
-  - qyl.collector
-  - DuckDB.NET.Data.Full
+  - qyl.collector (must use HTTP)
 ```
 
-## invocation
+## usage
 
 ```yaml
-standalone: |
-  dotnet run --project src/qyl.mcp
-  
-with-claude: |
-  # In Claude's MCP config
-  {
-    "mcpServers": {
-      "qyl": {
-        "command": "dotnet",
-        "args": ["run", "--project", "/path/to/qyl.mcp"]
+claude-desktop:
+  config: |
+    {
+      "mcpServers": {
+        "qyl": {
+          "command": "dotnet",
+          "args": ["run", "--project", "src/qyl.mcp"],
+          "env": {
+            "QYL_COLLECTOR_URL": "http://localhost:5100"
+          }
+        }
       }
     }
-  }
 
-environment:
-  QYL_URL: http://localhost:5100 (default)
-```
+standalone:
+  command: dotnet run --project src/qyl.mcp
 
-## use-case
-
-```yaml
-scenario: |
-  Claude is working on code. It makes API calls. 
-  Later, Claude can ask qyl.mcp:
-  
-  "What did I do in the last hour?"
-  → qyl.search_agent_runs(start_time=now-1h)
-  
-  "How many tokens did I use?"
-  → qyl.get_token_usage(time_range="1h")
-  
-  "Were there any errors?"
-  → qyl.list_errors(limit=5)
-  
-  "Show me the trace for that failed request"
-  → qyl.get_span_tree(trace_id="abc123...")
+with-collector:
+  prerequisite: qyl collector must be running
+  start-collector: dotnet run --project src/qyl.collector
 ```

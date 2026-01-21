@@ -1,3 +1,4 @@
+using System.Text;
 using qyl.collector.Query;
 using qyl.collector.Storage;
 
@@ -13,10 +14,7 @@ public class DiagnosticTest : IAsyncLifetime
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public async ValueTask DisposeAsync()
-    {
-        await _store.DisposeAsync();
-    }
+    public ValueTask DisposeAsync() => _store.DisposeAsync();
 
     [Fact]
     public async Task Debug_TestErrorSummaryQuery()
@@ -62,13 +60,13 @@ public class DiagnosticTest : IAsyncLifetime
         {
             Value = "no-errors"
         });
-        var count = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
+        var count = await countCmd.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"\nSimple COUNT(*) WHERE session_id = $1 (param): {count}");
 
         // Simple count with literal
         await using var countCmd2 = _store.Connection.CreateCommand();
         countCmd2.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id = 'no-errors'";
-        var count2 = (long)(await countCmd2.ExecuteScalarAsync() ?? 0L);
+        var count2 = await countCmd2.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"Simple COUNT(*) WHERE session_id = 'no-errors' (literal): {count2}");
 
         // LIKE workaround
@@ -78,13 +76,13 @@ public class DiagnosticTest : IAsyncLifetime
         {
             Value = "%no-errors%"
         });
-        var count3 = (long)(await countCmd3.ExecuteScalarAsync() ?? 0L);
+        var count3 = await countCmd3.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"Simple COUNT(*) WHERE session_id LIKE '%no-errors%' (param): {count3}");
 
         // Test with lower()
         await using var countCmd4 = _store.Connection.CreateCommand();
         countCmd4.CommandText = "SELECT COUNT(*) FROM spans WHERE lower(session_id) = 'no-errors'";
-        var count4 = (long)(await countCmd4.ExecuteScalarAsync() ?? 0L);
+        var count4 = await countCmd4.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"COUNT(*) WHERE lower(session_id) = 'no-errors': {count4}");
 
         // Test with raw SQL comparison
@@ -103,13 +101,13 @@ public class DiagnosticTest : IAsyncLifetime
         // Test with subquery
         await using var countCmd6 = _store.Connection.CreateCommand();
         countCmd6.CommandText = "SELECT COUNT(*) FROM (SELECT * FROM spans) sub WHERE sub.session_id = 'no-errors'";
-        var count6 = (long)(await countCmd6.ExecuteScalarAsync() ?? 0L);
+        var count6 = await countCmd6.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"Subquery WHERE session_id = 'no-errors': {count6}");
 
         // Test with IS NOT DISTINCT FROM
         await using var countCmd7 = _store.Connection.CreateCommand();
         countCmd7.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id IS NOT DISTINCT FROM 'no-errors'";
-        var count7 = (long)(await countCmd7.ExecuteScalarAsync() ?? 0L);
+        var count7 = await countCmd7.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"WHERE session_id IS NOT DISTINCT FROM 'no-errors': {count7}");
 
         // === HEX DEBUG - what does DuckDB actually see? ===

@@ -1,3 +1,8 @@
+using System.ComponentModel;
+using System.Net.Http.Json;
+using System.Text.Json.Serialization;
+using ModelContextProtocol.Server;
+
 namespace qyl.mcp.Tools;
 
 /// <summary>
@@ -25,13 +30,13 @@ public sealed class ReplayTools
         [Description("Maximum number of sessions to return")]
         int limit = 20,
         [Description("Filter by service name")]
-        string? service_name = null)
+        string? serviceName = null)
     {
         try
         {
             var url = $"/api/v1/sessions?limit={limit}";
-            if (!string.IsNullOrEmpty(service_name))
-                url += $"&serviceName={Uri.EscapeDataString(service_name)}";
+            if (!string.IsNullOrEmpty(serviceName))
+                url += $"&serviceName={Uri.EscapeDataString(serviceName)}";
 
             var response = await _client.GetFromJsonAsync<SessionListResponse>(
                 url, ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);
@@ -97,7 +102,7 @@ public sealed class ReplayTools
             sb.AppendLine();
 
             // Sort by start time
-            var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
+            var sortedSpans = Enumerable.OrderBy<SpanDto, long>(response.Items, static s => s.StartTimeUnixNano).ToList();
 
             foreach (var span in sortedSpans)
             {
@@ -157,15 +162,15 @@ public sealed class ReplayTools
                  """)]
     public async Task<string> GetTraceAsync(
         [Description("The trace ID to get details for")]
-        string trace_id)
+        string traceId)
     {
         try
         {
-            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(trace_id)}", ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
-                return $"Trace '{trace_id}' not found";
+            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}", ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
+                return $"Trace '{traceId}' not found";
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Trace: {trace_id}");
+            sb.AppendLine($"# Trace: {traceId}");
             sb.AppendLine($"Root Span: {response.RootSpan?.Name ?? "unknown"}");
             sb.AppendLine($"Total Duration: {response.DurationMs:F1}ms");
             sb.AppendLine($"Status: {response.Status ?? "unknown"}");
@@ -175,7 +180,7 @@ public sealed class ReplayTools
             if (response.Spans is { Count: > 0 })
             {
                 sb.AppendLine("## Spans");
-                foreach (var span in response.Spans.OrderBy(static s => s.StartTimeUnixNano))
+                foreach (var span in Enumerable.OrderBy<SpanDto, long>(response.Spans, static s => s.StartTimeUnixNano))
                 {
                     var indent = string.IsNullOrEmpty(span.ParentSpanId) ? "" : "  ";
                     var durationMs = span.DurationNs / 1_000_000.0;
@@ -206,24 +211,24 @@ public sealed class ReplayTools
                  """)]
     public async Task<string> AnalyzeSessionErrorsAsync(
         [Description("The session ID to analyze for errors")]
-        string session_id)
+        string sessionId)
     {
         try
         {
             var response = await _client.GetFromJsonAsync<SpanListResponse>(
-                $"/api/v1/sessions/{Uri.EscapeDataString(session_id)}/spans",
+                $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
-                return $"Session '{session_id}' not found or has no spans";
+                return $"Session '{sessionId}' not found or has no spans";
 
-            var errorSpans = response.Items.Where(static s => s.StatusCode == 2).ToList();
+            var errorSpans = Enumerable.Where<SpanDto>(response.Items, static s => s.StatusCode == 2).ToList();
 
             if (errorSpans.Count is 0)
-                return $"No errors found in session '{session_id}'";
+                return $"No errors found in session '{sessionId}'";
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Errors in Session: {session_id}");
+            sb.AppendLine($"# Errors in Session: {sessionId}");
             sb.AppendLine($"Found {errorSpans.Count} error(s)");
             sb.AppendLine();
 
@@ -324,4 +329,4 @@ internal sealed record TraceResponse(
 [JsonSerializable(typeof(SpanListResponse))]
 [JsonSerializable(typeof(TraceResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
-internal sealed class ReplayJsonContext : JsonSerializerContext;
+internal sealed partial class ReplayJsonContext : JsonSerializerContext;

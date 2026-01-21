@@ -18,9 +18,15 @@ public sealed class OtlpCorsOptions
     public string? AllowedHeaders { get; set; }
 
     /// <summary>
-    ///     Max age for preflight cache in seconds.
+    ///     Max age for preflight cache in seconds. Must be positive.
     /// </summary>
-    public int MaxAge { get; set; } = 86400; // 24 hours
+    public int MaxAge
+    {
+        get;
+        set => field = value > 0
+            ? value
+            : throw new ArgumentOutOfRangeException(nameof(value), "MaxAge must be positive");
+    } = 86400; // 24 hours
 
     public bool IsEnabled => !string.IsNullOrWhiteSpace(AllowedOrigins);
 

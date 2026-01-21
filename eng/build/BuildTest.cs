@@ -5,10 +5,27 @@
 // =============================================================================
 
 
-
 // ════════════════════════════════════════════════════════════════════════════════
 // MTP (Microsoft Testing Platform) Extensions
 // ════════════════════════════════════════════════════════════════════════════════
+
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Xml.Linq;
+using Nuke.Common;
+using Nuke.Common.IO;
+using Nuke.Common.ProjectModel;
+using Nuke.Common.Tooling;
+using Nuke.Common.Tools.ReportGenerator;
+using Nuke.Common.Utilities;
+using Serilog;
 
 public static class MtpExtensions
 {
@@ -386,7 +403,7 @@ interface ICoverage : ITest
 
         return new Dictionary<string, object>
         {
-            ["generatedAt"] = DateTime.UtcNow.ToString("O"),
+            ["generatedAt"] = TimeProvider.System.GetUtcNow().ToString("O"),
             ["metrics"] = metrics
         };
     }
@@ -563,7 +580,7 @@ public static class CoverageSummaryConverter
             return;
         }
 
-        var generatedAtUtc = DateTime.UtcNow;
+        var generatedAtUtc = TimeProvider.System.GetUtcNow().DateTime;
         var relativeCoberturaPath = Path.GetFileName(coberturaPath);
         var sourceRootNormalized = NormalizePath(sourceRoot, null);
 

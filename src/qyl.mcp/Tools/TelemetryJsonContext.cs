@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace qyl.mcp.Tools;
 
 [JsonSerializable(typeof(AgentRun))]
@@ -10,4 +12,4 @@ namespace qyl.mcp.Tools;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
-internal class TelemetryJsonContext : JsonSerializerContext;
+internal partial class TelemetryJsonContext : JsonSerializerContext;

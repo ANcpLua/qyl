@@ -3,6 +3,10 @@
 // Configures logging enrichment, redaction, buffering, HTTP logging
 // =============================================================================
 
+using Microsoft.Extensions.Diagnostics.Buffering;
+using Microsoft.Extensions.Diagnostics.ExceptionSummarization;
+using Microsoft.Extensions.Diagnostics.Latency;
+
 namespace qyl.collector.Telemetry;
 
 /// <summary>
@@ -14,8 +18,7 @@ public static class TelemetryExtensions
     ///     Adds full qyl telemetry configuration.
     ///     Includes: enrichment, redaction, buffering.
     /// </summary>
-    public static IServiceCollection AddQylTelemetry(
-        this IServiceCollection services)
+    public static void AddQylTelemetry(this IServiceCollection services)
     {
         // HTTP context for request enrichment
         services.AddHttpContextAccessor();
@@ -36,7 +39,7 @@ public static class TelemetryExtensions
         services.AddLogging(static logging =>
         {
             // Enable log enrichment
-            logging.EnableEnrichment(options =>
+            logging.EnableEnrichment(static options =>
             {
                 options.CaptureStackTraces = true;
                 options.IncludeExceptionMessage = true;
@@ -46,8 +49,8 @@ public static class TelemetryExtensions
             // Enable redaction in logs
             logging.EnableRedaction();
 
-            // .NET 9+ Log buffering - buffer Debug logs, flush on exception
-            logging.AddGlobalBuffer(options =>
+            // .NET 10+ Log buffering - buffer Debug logs, flush on exception
+            logging.AddGlobalBuffer(static options =>
             {
                 options.Rules.Add(new LogBufferingFilterRule(logLevel: LogLevel.Debug));
                 options.Rules.Add(new LogBufferingFilterRule(logLevel: LogLevel.Trace));
@@ -85,21 +88,19 @@ public static class TelemetryExtensions
             "gen_ai.request.model",
             "span.count");
 
-        // Add latency context
+        // Addotnet nuget list sourced latency context
         services.AddLatencyContext();
 
         // AsyncState for request-scoped context across async boundaries
         services.AddAsyncState();
         services.AddLogEnricher<SpanContextEnricher>();
-
-        return services;
     }
 
     /// <summary>
     ///     Configures the application pipeline with telemetry middleware.
     ///     Skips latency telemetry in Production with CreateSlimBuilder to avoid service registration issues.
     /// </summary>
-    public static IApplicationBuilder UseQylTelemetry(this IApplicationBuilder app)
+    public static void UseQylTelemetry(this IApplicationBuilder app)
     {
         var env = app.ApplicationServices.GetRequiredService<IWebHostEnvironment>();
 
@@ -117,8 +118,6 @@ public static class TelemetryExtensions
                 app.UseRequestLatencyTelemetry();
             }
         }
-
-        return app;
     }
 }
 
@@ -128,34 +127,27 @@ public static class TelemetryExtensions
 public static class QylLoggingBuilderExtensions
 {
     /// <summary>
-    ///     Configures minimal production logging.
+    ///     Configures qyl logging based on environment.
     /// </summary>
-    public static ILoggingBuilder AddQylProductionLogging(this ILoggingBuilder builder)
+    public static ILoggingBuilder AddQylLogging(this ILoggingBuilder builder, IHostEnvironment environment)
     {
-        builder.SetMinimumLevel(LogLevel.Information);
-
-        // Suppress noisy framework logs
+        // Suppress noisy framework logs in all environments
         builder.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
         builder.AddFilter("Microsoft.Hosting", LogLevel.Warning);
         builder.AddFilter("System.Net.Http", LogLevel.Warning);
         builder.AddFilter("Grpc", LogLevel.Warning);
 
-        // Keep qyl logs at Info
-        builder.AddFilter("qyl", LogLevel.Information);
-
-        return builder;
-    }
-
-    /// <summary>
-    ///     Configures development logging with more detail.
-    /// </summary>
-    public static ILoggingBuilder AddQylDevelopmentLogging(this ILoggingBuilder builder)
-    {
-        builder.SetMinimumLevel(LogLevel.Debug);
-
-        // More verbose for development
-        builder.AddFilter("qyl", LogLevel.Debug);
-        builder.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Debug);
+        if (environment.IsDevelopment())
+        {
+            builder.SetMinimumLevel(LogLevel.Debug);
+            builder.AddFilter("qyl", LogLevel.Debug);
+            builder.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Debug);
+        }
+        else
+        {
+            builder.SetMinimumLevel(LogLevel.Information);
+            builder.AddFilter("qyl", LogLevel.Information);
+        }
 
         return builder;
     }

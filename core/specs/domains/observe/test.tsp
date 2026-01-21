@@ -74,8 +74,8 @@ enum TestSuiteRunStatus {
 // =============================================================================
 
 @doc("Test run entity")
-@extension("x-duckdb-table", "test_runs")
-@extension("x-csharp-type", "TestRunEntity")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "test_runs")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "TestRunEntity")
 model TestRunEntity {
   @doc("Test run ID")
   @key
@@ -196,8 +196,8 @@ enum TestFramework {
 // =============================================================================
 
 @doc("Test case entity")
-@extension("x-duckdb-table", "test_cases")
-@extension("x-csharp-type", "TestCaseEntity")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "test_cases")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "TestCaseEntity")
 model TestCaseEntity {
   @doc("Test case ID")
   @key

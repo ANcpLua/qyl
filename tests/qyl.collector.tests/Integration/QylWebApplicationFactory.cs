@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.Testing;
 using qyl.collector.Auth;
 using qyl.collector.Query;
 using qyl.collector.Storage;
@@ -49,11 +50,11 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
             _store = new DuckDbStore(TestConstants.InMemoryDb);
             services.AddSingleton(_store);
 
-            // Add SessionQueryService with the in-memory connection
+            // Add SessionQueryService with proper DuckDbStore injection
             services.AddSingleton(sp =>
             {
                 var store = sp.GetRequiredService<DuckDbStore>();
-                return new SessionQueryService(store.Connection);
+                return new SessionQueryService(store);
             });
         });
     }

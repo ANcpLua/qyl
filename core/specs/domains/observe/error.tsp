@@ -80,8 +80,8 @@ enum ErrorCategory {
 // =============================================================================
 
 @doc("Error entity for tracking and analysis")
-@extension("x-duckdb-table", "errors")
-@extension("x-csharp-type", "ErrorEntity")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "errors")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "ErrorEntity")
 model ErrorEntity {
   @doc("Error ID")
   @key

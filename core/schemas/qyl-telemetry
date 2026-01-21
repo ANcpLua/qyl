@@ -183,6 +183,21 @@
             "maximum": 1,
             "description": "Ratio value (0.0 to 1.0)"
         },
+        "CostUsd": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "CostUsd.json",
+            "type": "number",
+            "minimum": 0,
+            "description": "Cost in USD (floating point)"
+        },
+        "Temperature": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "Temperature.json",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2,
+            "description": "Temperature setting for LLM requests (0.0-2.0)"
+        },
         "Sha256Hash": {
             "$schema": "https://json-schema.org/draft/2020-12/schema",
             "$id": "Sha256Hash.json",

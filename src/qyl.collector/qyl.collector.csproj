@@ -34,7 +34,7 @@
     <PackageReference Include="Grpc.AspNetCore"/>
     <PackageReference Include="Grpc.Tools"/>
     <PackageReference Include="Microsoft.DotNet.ILCompiler"/>
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks"/>
+    <!-- Microsoft.NET.ILLink.Tasks is implicitly provided by SDK when PublishAot=true -->
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>

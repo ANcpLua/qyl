@@ -3,6 +3,9 @@
 // Uses IAsyncContext<IngestionContext> for request-scoped state
 // =============================================================================
 
+using Microsoft.Extensions.AsyncState;
+using Microsoft.Extensions.Diagnostics.Enrichment;
+
 namespace qyl.collector.Telemetry;
 
 /// <summary>

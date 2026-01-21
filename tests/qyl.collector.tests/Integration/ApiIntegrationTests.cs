@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace qyl.collector.tests.Integration;
 
 /// <summary>

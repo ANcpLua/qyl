@@ -1,11 +1,23 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
+using System.Text;
+using Microsoft.Extensions.Logging;
+using OpenTelemetry;
+using OpenTelemetry.Context.Propagation;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+
 namespace Utils.Messaging;
 
 public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposable
 {
-    private static readonly ActivitySource ActivitySource = new(nameof(MessageReceiver));
+    private static readonly ActivitySource ActivitySource = new(
+        new ActivitySourceOptions(nameof(MessageReceiver))
+        {
+            Version = "1.0.0"
+        });
     private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
     private readonly ILogger<MessageReceiver> _logger = logger;
     private IChannel? _channel;

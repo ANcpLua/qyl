@@ -36,9 +36,8 @@ public sealed class TraceServiceMethodProvider : IServiceMethodProvider<TraceSer
 
         context.AddUnaryMethod(
             exportMethod,
-            [],
-            async static (service, request, serverCallContext) =>
-                await service.Export(request, serverCallContext).ConfigureAwait(false));
+            [], static (service, request, serverCallContext) =>
+                service.Export(request, serverCallContext));
     }
 }
 

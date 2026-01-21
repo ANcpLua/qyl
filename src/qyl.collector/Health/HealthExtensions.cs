@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+
 namespace qyl.collector.Health;
 
 /// <summary>
@@ -14,10 +16,10 @@ public static class HealthExtensions
         // Health checks with tags for K8s probes
         var builder = services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>(
-                name: "duckdb",
-                failureStatus: HealthStatus.Unhealthy,
-                tags: ["db", "storage", "ready"])
-            .AddApplicationLifecycleHealthCheck(tags: ["live"]);
+                "duckdb",
+                HealthStatus.Unhealthy,
+                ["db", "storage", "ready"])
+            .AddApplicationLifecycleHealthCheck(["live"]);
 
         // Resource monitoring only available on Linux (cgroups) and Windows
         // macOS has no ISnapshotProvider implementation
@@ -34,7 +36,7 @@ public static class HealthExtensions
                 {
                     DegradedUtilizationPercentage = 85, UnhealthyUtilizationPercentage = 95
                 };
-            }, tags: ["resources", "live"]);
+            }, ["resources", "live"]);
 
             // Container-aware resource monitoring (CPU/memory metrics)
             services.AddResourceMonitoring();

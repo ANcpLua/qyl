@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.WebUtilities;
+
 namespace qyl.collector.Auth;
 
 public static class TokenGenerator
@@ -15,14 +17,39 @@ public static class TokenGenerator
 
 public sealed class TokenAuthOptions
 {
-    public string? Token { get; set; }
+    /// <summary>
+    /// Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
+    /// </summary>
+    public string Token
+    {
+        get => field ??= TokenGenerator.Generate();
+        set;
+    }
 
-    public string CookieName { get; set; } = "qyl_token";
+    /// <summary>
+    /// Gets or sets the cookie name for auth token storage.
+    /// </summary>
+    public string CookieName { get; set; } = "qyl_options.Token";
 
-    public int CookieExpirationDays { get; set; } = 3;
+    /// <summary>
+    /// Gets or sets cookie expiration in days. Must be positive.
+    /// </summary>
+    public int CookieExpirationDays
+    {
+        get;
+        set => field = value > 0
+            ? value
+            : throw new ArgumentOutOfRangeException(nameof(value), "Cookie expiration must be positive");
+    } = 3;
 
+    /// <summary>
+    /// Gets or sets the query parameter name for token in URL.
+    /// </summary>
     public string QueryParameterName { get; set; } = "t";
 
+    /// <summary>
+    /// Gets or sets paths excluded from token authentication.
+    /// </summary>
     public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces", "/api/login", "/api/auth/check"];
 }
 
@@ -30,13 +57,11 @@ public sealed class TokenAuthMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly TokenAuthOptions _options;
-    private readonly string _token;
 
     public TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions options)
     {
         _next = next;
         _options = options;
-        _token = options.Token ?? TokenGenerator.Generate();
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -97,10 +122,10 @@ public sealed class TokenAuthMiddleware
     private bool ValidateToken(string token) =>
         CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(token),
-            Encoding.UTF8.GetBytes(_token));
+            Encoding.UTF8.GetBytes(_options.Token));
 
     private void SetAuthCookie(HttpContext context) =>
-        context.Response.Cookies.Append(_options.CookieName, _token,
+        context.Response.Cookies.Append(_options.CookieName, _options.Token,
             new CookieOptions
             {
                 HttpOnly = true,
@@ -121,7 +146,7 @@ public sealed class TokenAuthMiddleware
         return newQuery;
     }
 
-    public string GetToken() => _token;
+    public string GetToken() => _options.Token;
 }
 
 public sealed record LoginRequest(string Token);

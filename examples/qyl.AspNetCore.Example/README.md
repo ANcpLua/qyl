@@ -31,18 +31,25 @@ dotnet run
 ### 2. Run the Example
 
 ```bash
-cd examples/AspNetCore
+cd examples/qyl.AspNetCore.Example
 dotnet run
 ```
 
 ### 3. Generate Telemetry
 
 ```bash
-# Hit the API endpoint
-curl http://localhost:5050/WeatherForecast
+# Create an order
+curl -X POST http://localhost:5050/orders \
+  -H "Content-Type: application/json" \
+  -d '{"customerId":"cust-123","customerEmail":"cust@example.com","customerPhone":"555-0100","items":[{"quantity":2,"unitPrice":12.5}]}'
 
-# Request custom number of days
-curl http://localhost:5050/WeatherForecast/10
+# Retrieve an order
+curl http://localhost:5050/orders/123
+
+# Emit a Gen AI span
+curl -X POST http://localhost:5050/genai \
+  -H "Content-Type: application/json" \
+  -d '{"operationName":"chat","providerName":"openai","requestModel":"gpt-4o-mini","responseModel":"gpt-4o-mini","inputTokens":120,"outputTokens":42}'
 ```
 
 ### 4. View in qyl Dashboard
@@ -90,15 +97,18 @@ Services:
 ## Project Structure
 
 ```
-examples/AspNetCore/
+examples/qyl.AspNetCore.Example/
 ├── Program.cs                 # OpenTelemetry setup
-├── InstrumentationSource.cs   # ActivitySource + Meter holder
+├── Telemetry/
+│   ├── AppTelemetry.cs        # ActivitySource + Meter
+│   ├── Log.cs                 # Source-generated logging + TagProviders
+│   └── OTelSemconv.cs          # Gen AI semantic conventions
 ├── Controllers/
-│   └── WeatherForecastController.cs  # Manual spans + metrics
+│   ├── OrdersController.cs    # Order spans + metrics
+│   └── GenAiController.cs     # Gen AI spans + tags
 ├── Models/
-│   └── WeatherForecast.cs     # DTO
-├── Logging/
-│   └── LoggerExtensions.cs    # Source-generated logging
+│   └── Telemetry/
+│       └── TelemetryModels.cs # Order + Gen AI DTOs
 ├── appsettings.json           # Configuration
 ├── docker-compose.yml         # Full stack
 └── Dockerfile                 # Container build
@@ -119,22 +129,26 @@ builder.Services.AddOpenTelemetry()
 ### Manual Span Creation
 
 ```csharp
-using var activity = _activitySource.StartActivity("CalculateForecast");
-activity?.SetTag("forecast.days", 5);
+using var activity = AppTelemetry.Source.StartActivity("GenAI.Process");
+activity?.SetTag(OTelSemconv.OperationName, "chat");
+activity?.SetTag(OTelSemconv.ProviderName, "openai");
 ```
 
 ### Custom Metrics
 
 ```csharp
-_requestCounter.Add(1);
-_freezingDaysCounter.Add(forecast.Count(f => f.TemperatureC < 0));
+AppTelemetry.OrdersCreated.Add(1);
+AppTelemetry.OrderProcessingDuration.Record(stopwatch.Elapsed.TotalMilliseconds);
 ```
 
 ### Source-Generated Logging
 
 ```csharp
-[LoggerMessage(EventId = 1, Message = "Generated {Count} forecasts")]
-public static partial void ForecastGenerated(this ILogger logger, LogLevel level, int count);
+[LoggerMessage(EventId = 3000, Level = LogLevel.Information, Message = "Gen AI span processed")]
+public static partial void GenAiSpanProcessed(
+    ILogger logger,
+    [TagProvider(typeof(GenAiTagProvider), nameof(GenAiTagProvider.RecordTags))]
+    GenAiSpanData data);
 ```
 
 ### Advanced .NET 10 Patterns
@@ -145,18 +159,18 @@ public static partial void ForecastGenerated(this ILogger logger, LogLevel level
 public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
 {
     Version = ServiceVersion,
-    TelemetrySchemaUrl = "https://opentelemetry.io/schemas/1.38.0"
+    TelemetrySchemaUrl = "https://opentelemetry.io/schemas/1.39.0"
 });
 ```
 
 #### Complex Tag Extraction ([TagProvider])
 
 ```csharp
-[LoggerMessage(EventId = 1000, Level = LogLevel.Information, Message = "Order created")]
-public static partial void OrderCreated(
+[LoggerMessage(EventId = 3000, Level = LogLevel.Information, Message = "Gen AI span processed")]
+public static partial void GenAiSpanProcessed(
     ILogger logger,
-    [TagProvider(typeof(OrderTagProvider), nameof(OrderTagProvider.RecordTags))]
-    Order order);
+    [TagProvider(typeof(GenAiTagProvider), nameof(GenAiTagProvider.RecordTags))]
+    GenAiSpanData data);
 ```
 
 ## Requirements

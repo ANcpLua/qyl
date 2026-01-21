@@ -425,16 +425,6 @@ public static class OtlpGenAiProviders
 }
 
 // =============================================================================
-// SCHEMA VERSION (for OTLP parsing - use qyl.protocol.Primitives.SchemaVersion for typed version)
-// =============================================================================
-
-public static class OtlpSchemaVersion
-{
-    public const string Version = "1.39.0";
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
-}
-
-// =============================================================================
 // SCHEMA NORMALIZER (Deprecated → Current)
 // =============================================================================
 

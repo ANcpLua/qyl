@@ -1,12 +1,23 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.Agents.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Protocols;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Validators;
+
 namespace AgentGateway.Core;
 
 public static class AspNetExtensions
 {
     private static readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>>
-        _openIdMetadataCache = new();
+        OpenIdMetadataCache = new();
 
-    private static readonly System.Text.CompositeFormat _issuerUrlTemplateV1 = System.Text.CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV1);
-    private static readonly System.Text.CompositeFormat _issuerUrlTemplateV2 = System.Text.CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV2);
+    private static readonly CompositeFormat IssuerUrlTemplateV1 = CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV1);
+    private static readonly CompositeFormat IssuerUrlTemplateV2 = CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV2);
 
     public static void AddBotAspNetAuthentication(this IServiceCollection services, IConfiguration configuration,
         string tokenValidationSectionName = "TokenValidation", ILogger? logger = null)
@@ -43,9 +54,9 @@ public static class AspNetExtensions
             if (!string.IsNullOrEmpty(tenantId))
             {
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture,
-                    _issuerUrlTemplateV1, tenantId));
+                    IssuerUrlTemplateV1, tenantId));
                 validTokenIssuers.Add(string.Format(CultureInfo.InvariantCulture,
-                    _issuerUrlTemplateV2, tenantId));
+                    IssuerUrlTemplateV2, tenantId));
             }
         }
 
@@ -109,7 +120,11 @@ public static class AspNetExtensions
                         }
 
                         var parts = authorizationHeader.Split(' ');
-                        if (parts.Length != 2 || parts[0] != "Bearer")
+                        if (parts is not
+                            [
+                                "Bearer",
+                                _
+                            ])
                         {
                             // Default to AadTokenValidation handling
                             context.Options.TokenValidationParameters.ConfigurationManager ??=
@@ -126,39 +141,31 @@ public static class AspNetExtensions
                             AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer, StringComparison.Ordinal))
                             // Use the Bot Framework authority for this configuration manager
                             context.Options.TokenValidationParameters.ConfigurationManager =
-                                _openIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, key =>
+                                OpenIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, _ => new ConfigurationManager<OpenIdConnectConfiguration>(
+                                    azureBotServiceOpenIdMetadataUrl, new OpenIdConnectConfigurationRetriever(),
+                                    new HttpClient())
                                 {
-                                    return new ConfigurationManager<OpenIdConnectConfiguration>(
-                                        azureBotServiceOpenIdMetadataUrl, new OpenIdConnectConfigurationRetriever(),
-                                        new HttpClient())
-                                    {
-                                        AutomaticRefreshInterval = openIdRefreshInterval
-                                    };
+                                    AutomaticRefreshInterval = openIdRefreshInterval
                                 });
                         else
                             context.Options.TokenValidationParameters.ConfigurationManager =
-                                _openIdMetadataCache.GetOrAdd(openIdMetadataUrl, key =>
+                                OpenIdMetadataCache.GetOrAdd(openIdMetadataUrl, _ => new ConfigurationManager<OpenIdConnectConfiguration>(openIdMetadataUrl,
+                                    new OpenIdConnectConfigurationRetriever(), new HttpClient())
                                 {
-                                    return new ConfigurationManager<OpenIdConnectConfiguration>(openIdMetadataUrl,
-                                        new OpenIdConnectConfigurationRetriever(), new HttpClient())
-                                    {
-                                        AutomaticRefreshInterval = openIdRefreshInterval
-                                    };
+                                    AutomaticRefreshInterval = openIdRefreshInterval
                                 });
 
                         await Task.CompletedTask.ConfigureAwait(false);
                     },
 
-                    OnTokenValidated = context =>
+                    OnTokenValidated = _ =>
                     {
                         if (logger != null) AgentGatewayLogs.LogTokenValidated(logger);
                         return Task.CompletedTask;
                     },
                     OnForbidden = context =>
                     {
-#pragma warning disable CA1873
                         if (logger != null && logger.IsEnabled(LogLevel.Warning)) AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
-#pragma warning restore CA1873
                         return Task.CompletedTask;
                     },
                     OnAuthenticationFailed = context =>

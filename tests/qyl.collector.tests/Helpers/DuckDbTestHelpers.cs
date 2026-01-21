@@ -12,7 +12,7 @@ internal static class DuckDbTestHelpers
         int jobQueueCapacity = TestConstants.DefaultJobQueueCapacity,
         int maxConcurrentReads = TestConstants.DefaultMaxConcurrentReads,
         int maxRetainedReadConnections = TestConstants.DefaultMaxRetainedReadConnections) =>
-        new DuckDbStore(
+        new(
             TestConstants.InMemoryDb,
             jobQueueCapacity,
             maxConcurrentReads,
@@ -37,18 +37,16 @@ internal static class DuckDbTestHelpers
     public static Task WaitForConcurrentReads() => Task.Delay(TestConstants.ConcurrentReadDelayMs);
 
     /// <summary>Writes a batch synchronously (waits for completion).</summary>
-    public static async Task EnqueueAndWaitAsync(DuckDbStore store, SpanBatch batch,
+    public static Task EnqueueAndWaitAsync(DuckDbStore store, SpanBatch batch,
         int delayMs = 0) // delayMs kept for API compatibility but no longer needed
-    {
-        await store.WriteBatchAsync(batch);
-    }
+        =>
+            store.WriteBatchAsync(batch);
 
     /// <summary>Writes a single span synchronously (waits for completion).</summary>
-    public static async Task EnqueueAndWaitAsync(DuckDbStore store, SpanStorageRow span,
+    public static Task EnqueueAndWaitAsync(DuckDbStore store, SpanStorageRow span,
         int delayMs = 0) // delayMs kept for API compatibility but no longer needed
-    {
-        await store.WriteBatchAsync(new SpanBatch([span]));
-    }
+        =>
+            store.WriteBatchAsync(new SpanBatch([span]));
 
     /// <summary>Creates a temporary directory for parquet tests.</summary>
     public static string CreateTempDirectory()

@@ -23,8 +23,8 @@ namespace Qyl.OTel.Logs;
 // =============================================================================
 
 @doc("OpenTelemetry Log Record")
-@extension("x-duckdb-table", "logs")
-@extension("x-csharp-type", "LogStorageRow")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "logs")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "LogStorageRow")
 model LogRecord {
   @doc("Timestamp when the event occurred (nanoseconds since epoch)")
   @encodedName("application/json", "time_unix_nano")

@@ -5,6 +5,21 @@
 // OTel 1.39 semantic conventions, .NET 10 only.
 // =============================================================================
 
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using Nuke.Common;
+using Nuke.Common.IO;
+using Serilog;
+using YamlDotNet.RepresentationModel;
+
 namespace Domain.CodeGen;
 
 // ════════════════════════════════════════════════════════════════════════════════
@@ -224,7 +239,13 @@ public static class SchemaGenerator
         sb.AppendLine("namespace Qyl.Enums");
         sb.AppendLine("{");
 
-        foreach (var enumDef in enums.OrderBy(static e => e.GetTypeName()))
+        // Deduplicate by type name - take first occurrence (prefer Enums. namespace)
+        var deduped = enums
+            .GroupBy(static e => e.GetTypeName())
+            .Select(static g => g.FirstOrDefault(e => e.Name.StartsWith("Enums.", StringComparison.Ordinal)) ?? g.First())
+            .OrderBy(static e => e.GetTypeName());
+
+        foreach (var enumDef in deduped)
         {
             var typeName = EscapeKeyword(enumDef.GetTypeName());
             var isIntegerEnum = enumDef.Type == "integer";
@@ -326,6 +347,7 @@ public static class SchemaGenerator
 
     /// <summary>
     ///     Convert snake_case or kebab-case to PascalCase.
+    ///     Ensures valid C# identifier (prefix with underscore if starts with digit).
     /// </summary>
     static string ToPascalCase(string value)
     {
@@ -345,7 +367,11 @@ public static class SchemaGenerator
             else
                 sb.Append(c);
 
-        return sb.Length > 0 ? sb.ToString() : "Unknown";
+        if (sb.Length == 0) return "Unknown";
+
+        // C# identifiers cannot start with a digit - prefix with underscore
+        var result = sb.ToString();
+        return char.IsDigit(result[0]) ? $"_{result}" : result;
     }
 
     // ════════════════════════════════════════════════════════════════════════════
@@ -404,10 +430,8 @@ public static class SchemaGenerator
             return csType;
 
         // Handle $ref
-        if (prop.RefPath is not null)
+        if (prop.GetRefTypeName() is { } refTypeName)
         {
-            var refTypeName = prop.GetRefTypeName()!;
-
             // Map namespace-qualified refs to C# types
             if (refTypeName.StartsWith("Primitives.", StringComparison.Ordinal))
                 return $"global::Qyl.Common.{refTypeName[11..]}";
@@ -682,7 +706,8 @@ public sealed record OpenApiSchema(
         yaml.Load(reader);
 
         var root = (YamlMappingNode)yaml.Documents[0].RootNode;
-        var info = GetMapping(root, "info")!;
+        var info = GetMapping(root, "info")
+            ?? throw new InvalidOperationException($"OpenAPI schema missing required 'info' section: {path}");
         var title = GetString(info, "title") ?? "API";
         var version = GetString(info, "version") ?? "0.0.0";
 
@@ -693,7 +718,8 @@ public sealed record OpenApiSchema(
         if (schemasNode is not null)
             foreach (var (keyNode, valueNode) in schemasNode.Children)
             {
-                var name = ((YamlScalarNode)keyNode).Value!;
+                if (keyNode is not YamlScalarNode { Value: { } name })
+                    continue;
                 if (valueNode is YamlMappingNode schemaNode)
                     schemas.Add(ParseSchema(name, schemaNode));
             }
@@ -728,7 +754,8 @@ public sealed record OpenApiSchema(
             var propsBuilder = ImmutableArray.CreateBuilder<SchemaProperty>();
             foreach (var (keyNode, valueNode) in propsNode.Children)
             {
-                var propName = ((YamlScalarNode)keyNode).Value!;
+                if (keyNode is not YamlScalarNode { Value: { } propName })
+                    continue;
                 if (valueNode is YamlMappingNode propNode)
                     propsBuilder.Add(ParseProperty(propName, propNode, required.Contains(propName)));
             }
@@ -806,6 +833,7 @@ public sealed record OpenApiSchema(
         return [];
     }
 }
+
 /// <summary>OpenAPI schema definition.</summary>
 public sealed record SchemaDefinition(
     string Name,
@@ -829,6 +857,7 @@ public sealed record SchemaDefinition(
         return [];
     }
 }
+
 /// <summary>OpenAPI property definition.</summary>
 public sealed record SchemaProperty(
     string Name,
@@ -843,10 +872,12 @@ public sealed record SchemaProperty(
 {
     const string RefPrefix = "#/components/schemas/";
 
+    [return: NotNullIfNotNull(nameof(RefPath))]
     public string? GetRefTypeName() => RefPath?.StartsWith(RefPrefix, StringComparison.Ordinal) == true
         ? RefPath[RefPrefix.Length..]
         : RefPath;
 }
+
 /// <summary>Generation output.</summary>
 public readonly record struct GeneratedFile(AbsolutePath Path, string Content);
 

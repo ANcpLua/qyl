@@ -1,25 +1,19 @@
+---
+name: qyl-coordination-docs
+description: Coordination guide for qyl agent collaboration
+---
+
 # qyl Agent Coordination
 
 How the 3 agents work together.
 
 ## agents
 
-```yaml
-qyl-collector:
-  domain: Backend (C#)
-  owns: src/qyl.collector/, src/qyl.protocol/
-  model: opus
-  
-qyl-dashboard:
-  domain: Frontend (React)
-  owns: src/qyl.dashboard/
-  model: opus
-  
-qyl-build:
-  domain: Infrastructure (NUKE)
-  owns: eng/build/, core/specs/, Dockerfile
-  model: opus
-```
+| Agent | Domain | Skills |
+|-------|--------|--------|
+| `qyl-collector` | C# Backend | `/docs-lookup`, `/review` |
+| `qyl-dashboard` | React Frontend | `/frontend-design`, `/review` |
+| `qyl-build` | NUKE/TypeSpec | `/slice-validate`, `/type-ownership` |
 
 ## data-flow
 
@@ -39,110 +33,65 @@ qyl-build:
 
 ## dependency-chain
 
-```yaml
-build-time:
-  1. qyl-build: TypeSpec → OpenAPI
-  2. qyl-build: OpenAPI → C#/TS/DuckDB
-  3. qyl-dashboard: npm run build → dist/
-  4. qyl-build: dist/ → wwwroot/ (embed)
-  5. qyl-collector: dotnet publish (includes wwwroot/)
-  6. qyl-build: Docker image
+**Build-time:**
+1. `qyl-build`: TypeSpec → OpenAPI
+2. `qyl-build`: OpenAPI → C#/TS/DuckDB
+3. `qyl-dashboard`: npm build → dist/
+4. `qyl-build`: dist/ → wwwroot/ (embed)
+5. `qyl-collector`: dotnet publish
+6. `qyl-build`: Docker image
 
-runtime:
-  1. qyl-collector: receives OTLP, stores in Ring Buffer + DuckDB
-  2. qyl-collector: serves REST API + SSE stream
-  3. qyl-dashboard: consumes API, displays forensics
-```
+**Runtime:**
+1. `qyl-collector`: receives OTLP, stores in RingBuffer + DuckDB
+2. `qyl-collector`: serves REST API + SSE stream
+3. `qyl-dashboard`: consumes API, displays forensics
+
+## ownership-rules
+
+| Agent | Owns | Never Touches |
+|-------|------|---------------|
+| `qyl-collector` | SpanRingBuffer, DuckDB queries, REST handlers | UI, TypeSpec |
+| `qyl-dashboard` | React components, TanStack hooks, charts | Backend, *.g.cs |
+| `qyl-build` | TypeSpec, code generators, NUKE targets | Runtime code |
+
+**Generated files (no agent owns):**
+- `*.g.cs`, `openapi.yaml`, `api.ts`, `DuckDbSchema.g.cs`
 
 ## communication-protocol
 
+**Shared contracts:**
 ```yaml
-shared-contracts:
-  source: core/openapi/openapi.yaml
-  c#-types: src/qyl.protocol/**/*.g.cs
-  ts-types: src/qyl.dashboard/src/types/api.ts
-  rule: ALL agents use same types, never manual edits
-
-when-schema-changes:
-  1. qyl-build: updates TypeSpec in core/specs/
-  2. qyl-build: runs `nuke Generate --force-generate`
-  3. qyl-collector: receives new *.g.cs, adapts code
-  4. qyl-dashboard: receives new api.ts, adapts components
-
-when-api-changes:
-  1. qyl-collector: updates endpoint implementation
-  2. qyl-build: if contract changed, update TypeSpec first
-  3. qyl-dashboard: adapts to new API shape
+source: core/openapi/openapi.yaml
+c#-types: src/qyl.protocol/**/*.g.cs
+ts-types: src/qyl.dashboard/src/types/api.ts
+rule: ALL agents use same types, never manual edits
 ```
 
-## ownership-boundaries
+**When schema changes:**
+1. `qyl-build`: updates TypeSpec
+2. `qyl-build`: runs `nuke Generate --force-generate`
+3. `qyl-collector`: adapts to new *.g.cs
+4. `qyl-dashboard`: adapts to new api.ts
 
-```yaml
-qyl-collector-owns:
-  - SpanRingBuffer implementation
-  - DuckDB queries
-  - OTLP parsing
-  - REST endpoint handlers
-  - SSE broadcast logic
+## parallel-work
 
-qyl-dashboard-owns:
-  - React components
-  - Frontend RingBuffer
-  - TanStack Query hooks
-  - UI/UX decisions
-  - Chart configurations
+**Safe (independent):**
+- `qyl-collector`: RingBuffer internals
+- `qyl-dashboard`: UI components
+- `qyl-build`: NUKE target improvements
 
-qyl-build-owns:
-  - TypeSpec schemas
-  - Code generators
-  - NUKE targets
-  - Dockerfile
-  - CI/CD pipeline
-
-nobody-owns (generated):
-  - *.g.cs files
-  - openapi.yaml
-  - api.ts
-  - DuckDbSchema.g.cs
-```
-
-## conflict-resolution
-
-```yaml
-if-type-needs-change:
-  owner: qyl-build
-  process: update TypeSpec, regenerate
-  
-if-api-needs-change:
-  owner: qyl-build (schema) + qyl-collector (implementation)
-  process: TypeSpec first, then implementation
-  
-if-ui-needs-new-data:
-  owner: qyl-dashboard (request) → qyl-collector (implement)
-  process: dashboard asks, collector provides
-```
-
-## parallel-work-strategy
-
-```yaml
-safe-parallel:
-  - qyl-collector: Ring Buffer internals
-  - qyl-dashboard: UI components
-  - qyl-build: NUKE target improvements
-  
-requires-coordination:
-  - Schema changes (all agents affected)
-  - New API endpoints (build + collector)
-  - New data types (build + collector + dashboard)
-```
+**Requires coordination:**
+- Schema changes (all agents)
+- New API endpoints (build + collector)
+- New data types (all agents)
 
 ## verification
 
-```yaml
-before-merge:
-  - `nuke Generate` produces no diff (schema in sync)
-  - `npm run build` succeeds (dashboard builds)
-  - `dotnet build` succeeds (collector builds)
-  - `dotnet test` passes (all tests green)
-  - `nuke DockerBuild` succeeds (container builds)
+Before merge, ALL must pass:
+```bash
+nuke Generate        # No diff (schema in sync)
+npm run build        # Dashboard builds
+dotnet build         # Collector builds
+dotnet test          # All tests green
+nuke DockerBuild     # Container builds
 ```

@@ -1,3 +1,5 @@
+using StatusCode = Grpc.Core.StatusCode;
+
 namespace qyl.collector.Grpc;
 
 /// <summary>
@@ -7,12 +9,14 @@ namespace qyl.collector.Grpc;
 public sealed class TraceServiceImpl : TraceServiceBase
 {
     private readonly ITelemetrySseBroadcaster _broadcaster;
+    private readonly SpanRingBuffer _ringBuffer;
     private readonly DuckDbStore _store;
 
-    public TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster broadcaster)
+    public TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster broadcaster, SpanRingBuffer ringBuffer)
     {
         _store = Throw.IfNull(store);
         _broadcaster = Throw.IfNull(broadcaster);
+        _ringBuffer = Throw.IfNull(ringBuffer);
     }
 
     /// <summary>
@@ -28,6 +32,10 @@ public sealed class TraceServiceImpl : TraceServiceBase
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
             var batch = new SpanBatch(spans);
+
+            // Push to ring buffer for real-time queries
+            _ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
+
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
             _broadcaster.PublishSpans(batch);
 

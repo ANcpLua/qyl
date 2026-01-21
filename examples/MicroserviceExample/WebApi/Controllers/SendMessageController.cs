@@ -1,6 +1,7 @@
 // Copyright The OpenTelemetry Authors
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Mvc;
 using Utils.Messaging;
 
 namespace WebApi.Controllers;
@@ -12,5 +13,5 @@ public class SendMessageController(MessageSender messageSender) : ControllerBase
     private readonly MessageSender _messageSender = messageSender;
 
     [HttpGet]
-    public async Task<string> Get() => await _messageSender.SendMessageAsync().ConfigureAwait(false);
+    public Task<string> Get() => _messageSender.SendMessageAsync();
 }

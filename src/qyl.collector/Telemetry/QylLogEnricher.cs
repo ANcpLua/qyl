@@ -3,12 +3,10 @@
 // Automatically adds context to all log entries
 // =============================================================================
 
+using Microsoft.Extensions.Diagnostics.Enrichment;
+
 namespace qyl.collector.Telemetry;
 
-/// <summary>
-///     Enriches all log entries with qyl-specific context.
-///     .NET 8+ feature: ILogEnricher for automatic log enrichment.
-/// </summary>
 public sealed class QylLogEnricher : ILogEnricher
 {
     private readonly string _instanceId = Guid.NewGuid().ToString("N")[..8];
@@ -26,23 +24,20 @@ public sealed class QylLogEnricher : ILogEnricher
             collector.Add("span.id", activity.SpanId.ToString());
 
             // Extract session.id if present
-            var sessionId = activity.GetTagItem("session.id");
-            if (sessionId is not null)
+            if (activity.GetTagItem("session.id") is { } sessionId)
             {
-                collector.Add("session.id", sessionId.ToString()!);
+                collector.Add("session.id", sessionId.ToString() ?? string.Empty);
             }
 
             // Extract GenAI context if present
-            var provider = activity.GetTagItem("gen_ai.provider.name");
-            if (provider is not null)
+            if (activity.GetTagItem("gen_ai.provider.name") is { } provider)
             {
-                collector.Add("gen_ai.provider.name", provider.ToString()!);
+                collector.Add("gen_ai.provider.name", provider.ToString() ?? string.Empty);
             }
 
-            var model = activity.GetTagItem("gen_ai.request.model");
-            if (model is not null)
+            if (activity.GetTagItem("gen_ai.request.model") is { } model)
             {
-                collector.Add("gen_ai.request.model", model.ToString()!);
+                collector.Add("gen_ai.request.model", model.ToString() ?? string.Empty);
             }
         }
     }
@@ -97,41 +92,5 @@ public sealed class QylRequestEnricher : ILogEnricher
         {
             collector.Add("http.request.content_type", context.Request.ContentType);
         }
-    }
-}
-
-/// <summary>
-///     Enriches log entries with storage context.
-/// </summary>
-public sealed class QylStorageEnricher : ILogEnricher
-{
-    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
-    private readonly Func<long> _getSessionCount;
-    private readonly Func<long> _getSpanCount;
-    private readonly TimeProvider _timeProvider;
-    private long _lastSessionCount;
-    private long _lastSpanCount;
-    private DateTimeOffset _lastUpdate = DateTimeOffset.MinValue;
-
-    public QylStorageEnricher(Func<long> getSpanCount, Func<long> getSessionCount, TimeProvider? timeProvider = null)
-    {
-        _getSpanCount = getSpanCount;
-        _getSessionCount = getSessionCount;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
-
-    public void Enrich(IEnrichmentTagCollector collector)
-    {
-        // Cache expensive storage queries
-        var now = _timeProvider.GetUtcNow();
-        if (now - _lastUpdate > CacheDuration)
-        {
-            _lastSpanCount = _getSpanCount();
-            _lastSessionCount = _getSessionCount();
-            _lastUpdate = now;
-        }
-
-        collector.Add("storage.span_count", _lastSpanCount);
-        collector.Add("storage.session_count", _lastSessionCount);
     }
 }

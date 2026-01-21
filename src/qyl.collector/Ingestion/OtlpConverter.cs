@@ -276,7 +276,8 @@ public static class OtlpConverter
             ?? attributes.GetValueOrDefault("gen_ai.usage.completion_tokens"));
 
         var temperature = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.request.temperature"));
-        var stopReason = attributes.GetValueOrDefault("gen_ai.response.finish_reason");
+        var stopReason = attributes.GetValueOrDefault("gen_ai.response.finish_reasons")
+                         ?? attributes.GetValueOrDefault("gen_ai.response.finish_reason");
         var toolName = attributes.GetValueOrDefault("gen_ai.tool.name");
         var toolCallId = attributes.GetValueOrDefault("gen_ai.tool.call.id");
         var costUsd = ParseNullableDouble(attributes.GetValueOrDefault("gen_ai.usage.cost"));

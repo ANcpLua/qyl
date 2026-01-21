@@ -13,8 +13,8 @@ public sealed class SchemaNormalizerTests
     [Fact]
     public void SchemaVersion_IsOtel139()
     {
-        Assert.Equal("1.39.0", OtlpSchemaVersion.Version);
-        Assert.Equal("https://opentelemetry.io/schemas/1.39.0", OtlpSchemaVersion.SchemaUrl);
+        Assert.Equal("1.39.0", SchemaVersion.Current.Version);
+        Assert.Equal("https://opentelemetry.io/schemas/1.39.0", SchemaVersion.Current.SchemaUrl);
     }
 
     #endregion

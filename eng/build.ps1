@@ -40,8 +40,8 @@ function ExecSafe([scriptblock] $cmd)
 }
 
 # If dotnet CLI is installed globally and it matches requested version, use for execution
-if ($null -ne (Get-Command "dotnet" -ErrorAction SilentlyContinue) -and   `
-       $( dotnet --version ) -and $LASTEXITCODE -eq 0)
+if ($null -ne (Get-Command "dotnet" -ErrorAction SilentlyContinue) -and     `
+         $( dotnet --version ) -and $LASTEXITCODE -eq 0)
 {
     $env:DOTNET_EXE = (Get-Command "dotnet").Path
 }

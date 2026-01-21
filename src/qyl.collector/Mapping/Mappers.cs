@@ -1,7 +1,41 @@
+using qyl.collector.Core;
+
 namespace qyl.collector.Mapping;
 
 public static class SpanMapper
 {
+    public static SpanRecord ToRecord(SpanStorageRow row)
+    {
+        return new SpanRecord
+        {
+            SpanId = new SpanId(row.SpanId),
+            TraceId = new TraceId(row.TraceId),
+            ParentSpanId = row.ParentSpanId is null ? null : new SpanId(row.ParentSpanId),
+            SessionId = row.SessionId is null ? null : new SessionId(row.SessionId),
+            Name = row.Name,
+            Kind = (Qyl.Enums.SpanKind)row.Kind,
+            StartTimeUnixNano = (long)row.StartTimeUnixNano,
+            EndTimeUnixNano = (long)row.EndTimeUnixNano,
+            DurationNs = (long)row.DurationNs,
+            StatusCode = (Qyl.Enums.StatusCode)row.StatusCode,
+            StatusMessage = row.StatusMessage,
+            ServiceName = row.ServiceName,
+            GenAiSystem = row.GenAiSystem,
+            GenAiRequestModel = row.GenAiRequestModel,
+            GenAiResponseModel = row.GenAiResponseModel,
+            GenAiInputTokens = row.GenAiInputTokens,
+            GenAiOutputTokens = row.GenAiOutputTokens,
+            GenAiTemperature = row.GenAiTemperature,
+            GenAiStopReason = row.GenAiStopReason,
+            GenAiToolName = row.GenAiToolName,
+            GenAiToolCallId = row.GenAiToolCallId,
+            GenAiCostUsd = row.GenAiCostUsd,
+            AttributesJson = row.AttributesJson,
+            ResourceJson = row.ResourceJson,
+            CreatedAt = row.CreatedAt ?? DateTimeOffset.UtcNow
+        };
+    }
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
@@ -15,8 +49,8 @@ public static class SpanMapper
     public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null)
     {
         // Convert UnixNano (ulong) to DateTime
-        var startTime = UnixNanoToDateTime(record.StartTimeUnixNano);
-        var endTime = UnixNanoToDateTime(record.EndTimeUnixNano);
+        var startTime = TimeConversions.UnixNanoToDateTime(record.StartTimeUnixNano);
+        var endTime = TimeConversions.UnixNanoToDateTime(record.EndTimeUnixNano);
         var durationMs = record.DurationNs / 1_000_000.0; // ns → ms
 
         return new SpanDto
@@ -35,7 +69,38 @@ public static class SpanMapper
             ServiceName = serviceName,
             ServiceVersion = serviceVersion,
             Attributes = ParseAttributes(record.AttributesJson),
-            Events = [], // Events stored in AttributesJson if present
+            Events = [],
+            Links = [],
+            GenAi = ExtractGenAiData(record)
+        };
+    }
+
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
+    public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
+    {
+        // Convert protocol UnixNano (long) to DateTime
+        var startTime = TimeConversions.UnixNanoToDateTime((ulong)record.StartTimeUnixNano.Value);
+        var endTime = TimeConversions.UnixNanoToDateTime((ulong)record.EndTimeUnixNano.Value);
+        var durationMs = record.DurationNs.Value / 1_000_000.0;
+
+        return new SpanDto
+        {
+            TraceId = record.TraceId.Value,
+            SpanId = record.SpanId.Value,
+            ParentSpanId = record.ParentSpanId?.Value,
+            SessionId = record.SessionId?.Value,
+            Name = record.Name,
+            Kind = record.Kind.ToString().ToLowerInvariant(),
+            Status = record.StatusCode.ToString().ToLowerInvariant(),
+            StatusMessage = record.StatusMessage,
+            StartTime = startTime.ToString("O"),
+            EndTime = endTime.ToString("O"),
+            DurationMs = durationMs,
+            ServiceName = serviceName,
+            ServiceVersion = serviceVersion,
+            Attributes = ParseAttributes(record.AttributesJson),
+            Events = [],
             Links = [],
             GenAi = ExtractGenAiData(record)
         };
@@ -47,23 +112,25 @@ public static class SpanMapper
         IEnumerable<SpanStorageRow> records,
         Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
     [
-        .. records.Select(r =>
+        .. records.Where(static _ => true).Select(r =>
         {
             var (serviceName, serviceVersion) = serviceResolver(r);
             return ToDto(r, serviceName, serviceVersion);
         })
     ];
 
-    /// <summary>
-    ///     Converts UnixNano (ulong nanoseconds since epoch) to DateTime.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static DateTime UnixNanoToDateTime(ulong unixNano)
-    {
-        // 1 tick = 100 nanoseconds
-        var ticks = (long)(unixNano / 100);
-        return DateTime.UnixEpoch.AddTicks(ticks);
-    }
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
+    public static List<SpanDto> ToDtos(
+        IEnumerable<SpanRecord> records,
+        Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+    [
+        .. records.Where(static _ => true).Select(r =>
+        {
+            var (serviceName, serviceVersion) = serviceResolver(r);
+            return ToDto(r, serviceName, serviceVersion);
+        })
+    ];
 
     private static string MapSpanKind(byte kind) =>
         kind < SpanKindNames.Length ? SpanKindNames[kind] : "unspecified";
@@ -94,8 +161,6 @@ public static class SpanMapper
         }
     }
 
-    [RequiresUnreferencedCode("Deserializes dynamic OTLP attribute values")]
-    [RequiresDynamicCode("Deserializes dynamic OTLP attribute values")]
     private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record)
     {
         if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
@@ -113,7 +178,29 @@ public static class SpanMapper
             TotalTokens = (record.GenAiInputTokens ?? 0) + (record.GenAiOutputTokens ?? 0),
             CostUsd = record.GenAiCostUsd,
             Temperature = record.GenAiTemperature,
-            MaxTokens = null,
+            FinishReason = record.GenAiStopReason,
+            ToolName = record.GenAiToolName,
+            ToolCallId = record.GenAiToolCallId
+        };
+    }
+
+    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
+    {
+        if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
+            string.IsNullOrEmpty(record.GenAiSystem))
+            return null;
+
+        return new GenAiSpanDataDto
+        {
+            ProviderName = record.GenAiSystem,
+            OperationName = ExtractOperationName(record.Name),
+            RequestModel = record.GenAiRequestModel,
+            ResponseModel = record.GenAiResponseModel,
+            InputTokens = record.GenAiInputTokens?.Value,
+            OutputTokens = record.GenAiOutputTokens?.Value,
+            TotalTokens = (record.GenAiInputTokens?.Value ?? 0) + (record.GenAiOutputTokens?.Value ?? 0),
+            CostUsd = record.GenAiCostUsd?.Value,
+            Temperature = record.GenAiTemperature?.Value,
             FinishReason = record.GenAiStopReason,
             ToolName = record.GenAiToolName,
             ToolCallId = record.GenAiToolCallId
@@ -144,7 +231,7 @@ public static class SessionMapper
             TraceCount = summary.TraceCount,
             ErrorCount = summary.ErrorCount,
             ErrorRate = summary.ErrorRate,
-            Services = [], // Services are now inferred from spans, not tracked on session
+            Services = [],
             TraceIds = [],
             IsActive = (TimeProvider.System.GetUtcNow() - lastActivity).TotalMinutes < 5,
             GenAiStats = new SessionGenAiStatsDto

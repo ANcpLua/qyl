@@ -16,6 +16,16 @@
         <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     </ItemGroup>
 
+    <!-- Remove the ServiceDefaults interceptor generator from test compilation.
+         The analyzer flows transitively from qyl.collector and generates interceptors
+         for DbCommand calls, but test projects don't need instrumentation.
+         We remove ALL analyzers from this package to prevent code generation. -->
+    <Target Name="RemoveServiceDefaultsAnalyzer" BeforeTargets="CoreCompile">
+        <ItemGroup>
+            <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::Copy('%(Analyzer.Identity)').Contains('ANcpSdk.AspNetCore.ServiceDefaults.AutoRegister'))" />
+        </ItemGroup>
+    </Target>
+
     <!-- Project dependencies -->
     <ItemGroup>
         <ProjectReference Include="../../src/qyl.collector/qyl.collector.csproj"/>

@@ -63,8 +63,8 @@ enum SessionEventName {
 // =============================================================================
 
 @doc("Complete session entity with aggregated data")
-@extension("x-duckdb-table", "session_entities")
-@extension("x-csharp-type", "SessionEntity")
+@TypeSpec.OpenAPI.extension("x-duckdb-table", "session_entities")
+@TypeSpec.OpenAPI.extension("x-csharp-type", "SessionEntity")
 model SessionEntity {
   @doc("Session ID")
   @key
