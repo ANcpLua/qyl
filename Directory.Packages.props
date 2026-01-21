@@ -12,15 +12,15 @@
     <PackageVersion Include="Microsoft.Extensions.Logging.EventSource" Version="10.0.2" />
     <!-- Microsoft.NET.ILLink.Tasks is implicitly defined by SDK, cannot have PackageVersion in CPM -->
     <PackageVersion Include="Nuke.Build" Version="10.1.0" />
-    <PackageVersion Include="OpenTelemetry" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.14.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.14.0" />
+    <PackageVersion Include="OpenTelemetry" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
     <!-- Microsoft.Extensions -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
@@ -64,9 +64,9 @@
     <PackageVersion Include="Grpc.Tools" Version="2.76.0" />
     <!-- gRPC Client -->
     <PackageVersion Include="Grpc.Net.Client" Version="2.76.0-pre1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.14.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.14.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.14.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.15.0-beta.1" />
+    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.15.0-beta.1" />
     <!-- Azure OpenTelemetry -->
     <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
     <!-- Identity -->
@@ -74,7 +74,7 @@
     <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2)
          IMPORTANT: Use xunit.v3.mtp-v2 for .NET 10 SDK MTP compatibility.
          Plain xunit.v3 uses MTP v1 which is incompatible with .NET 10 SDK. -->
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.1" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.1.0" />
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
@@ -82,11 +82,11 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.final"/>
-    <PackageVersion Include="ANcpLua.Analyzers" Version="1.6.7"/>
+    <PackageVersion Include="ANcpLua.Analyzers" Version="1.9.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
     <PackageVersion Include="JonSkeet.RoslynAnalyzers" Version="1.0.0-beta.6"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.11.0"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.11.0"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.16.0"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.16.0"/>
     <PackageVersion Include="Microsoft.Sbom.Targets" Version="4.1.5"/>
     <!-- Roslyn (for qyl.analyzers) -->
     <!-- Microsoft.Agents.AI (preview) -->
