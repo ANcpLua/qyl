@@ -10,8 +10,8 @@ public static class SpanMapper
         {
             SpanId = new SpanId(row.SpanId),
             TraceId = new TraceId(row.TraceId),
-            ParentSpanId = row.ParentSpanId is null ? null : new SpanId(row.ParentSpanId),
-            SessionId = row.SessionId is null ? null : new SessionId(row.SessionId),
+            ParentSpanId = row.ParentSpanId is { } parentId ? new SpanId(parentId) : null,
+            SessionId = row.SessionId is { } sessId ? new SessionId(sessId) : null,
             Name = row.Name,
             Kind = (Qyl.Enums.SpanKind)row.Kind,
             StartTimeUnixNano = (long)row.StartTimeUnixNano,
