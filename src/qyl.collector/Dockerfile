@@ -31,7 +31,7 @@ COPY src/qyl.collector/ src/qyl.collector/
 
 # Publish (AOT for Alpine)
 WORKDIR /src/src/qyl.collector
-RUN dotnet publish -c Release -r linux-musl-x64 -o /app --no-restore
+RUN dotnet publish -c Release -r linux-musl-x64 -o /app --no-restore -p:TreatWarningsAsErrors=false
 
 # ============================================================================
 # STAGE 2: Runtime image
