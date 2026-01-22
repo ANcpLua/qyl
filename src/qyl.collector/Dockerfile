@@ -3,7 +3,22 @@
 #   docker build -f src/qyl.collector/Dockerfile -t qyl-collector .
 
 # ============================================================================
-# STAGE 1: Build .NET
+# STAGE 1: Build React Dashboard
+# ============================================================================
+FROM node:22-slim AS dashboard
+
+WORKDIR /dashboard
+
+# Copy package files and install dependencies
+COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
+RUN npm ci
+
+# Copy source and build
+COPY src/qyl.dashboard/ ./
+RUN npm run build
+
+# ============================================================================
+# STAGE 2: Build .NET
 # ============================================================================
 # Using Debian (not Alpine) because DuckDB native libs require glibc
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -18,7 +33,7 @@ COPY eng/ eng/
 COPY src/qyl.protocol/*.csproj src/qyl.protocol/
 COPY src/qyl.collector/*.csproj src/qyl.collector/
 
-# Restore dependencies (include RID for AOT publish)
+# Restore dependencies
 WORKDIR /src/src/qyl.collector
 RUN dotnet restore
 
@@ -27,7 +42,7 @@ WORKDIR /src
 COPY src/qyl.protocol/ src/qyl.protocol/
 COPY src/qyl.collector/ src/qyl.collector/
 
-# Publish (AOT for Alpine)
+# Publish
 WORKDIR /src/src/qyl.collector
 RUN dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
@@ -40,7 +55,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
     || true && test -f /app/qyl.collector.dll
 
 # ============================================================================
-# STAGE 2: Runtime image
+# STAGE 3: Runtime image
 # ============================================================================
 # Using Debian (not Alpine) because DuckDB native libs require glibc
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
@@ -53,8 +68,11 @@ RUN groupadd --system qyl && useradd --system --gid qyl qyl
 
 WORKDIR /app
 
-# Copy published app
+# Copy published .NET app
 COPY --from=build /app .
+
+# Copy dashboard build to wwwroot
+COPY --from=dashboard /dashboard/dist ./wwwroot/
 
 # Set ownership
 RUN chown -R qyl:qyl /app
