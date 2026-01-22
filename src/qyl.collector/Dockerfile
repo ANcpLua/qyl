@@ -30,7 +30,7 @@ COPY src/qyl.collector/ src/qyl.collector/
 
 # Publish (AOT for Alpine)
 WORKDIR /src/src/qyl.collector
-RUN dotnet publish -c Release -o /app --no-restore -p:TreatWarningsAsErrors=false -p:PublishAot=false -p:PublishTrimmed=false -p:EnableTrimAnalyzer=false
+RUN dotnet publish -c Release -o /app --no-restore -p:TreatWarningsAsErrors=false -p:PublishAot=false -p:PublishTrimmed=false -p:EnableTrimAnalyzer=false -p:RunAnalyzers=false -p:RunAnalyzersDuringBuild=false
 
 # ============================================================================
 # STAGE 2: Runtime image
