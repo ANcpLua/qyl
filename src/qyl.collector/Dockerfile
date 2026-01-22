@@ -5,7 +5,7 @@
 # ============================================================================
 # STAGE 1: Build .NET
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
 # Install native AOT prerequisites (clang, build-base for native compilation)
 RUN apk add --no-cache clang build-base zlib-dev
@@ -35,7 +35,7 @@ RUN dotnet publish -c Release -o /app --no-restore
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-preview-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
