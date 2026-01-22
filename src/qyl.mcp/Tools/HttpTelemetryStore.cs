@@ -8,12 +8,27 @@ namespace qyl.mcp.Tools;
 ///     HTTP-based telemetry store querying qyl.collector REST API.
 ///     Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
 /// </summary>
-public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger) : ITelemetryStore
+public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger) : ITelemetryStore
 {
     private readonly HttpClient _client = client;
     private readonly TimeProvider _time = time;
     private readonly ILogger<HttpTelemetryStore> _logger = logger;
     public ValueTask RecordRunAsync(AgentRun run) => ValueTask.CompletedTask; // Read-only observation
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get run {RunId} from collector")]
+    private partial void LogFailedGetRun(Exception ex, string runId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to search runs from collector")]
+    private partial void LogFailedSearchRuns(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get token usage from collector")]
+    private partial void LogFailedGetTokenUsage(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to list errors from collector")]
+    private partial void LogFailedListErrors(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get latency stats from collector")]
+    private partial void LogFailedGetLatencyStats(Exception ex);
 
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
     {
@@ -27,7 +42,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILo
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to get run {RunId} from collector", runId);
+            LogFailedGetRun(ex, runId);
             return null;
         }
     }
@@ -54,7 +69,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILo
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to search runs from collector");
+            LogFailedSearchRuns(ex);
             return [];
         }
     }
@@ -90,7 +105,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILo
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to get token usage from collector");
+            LogFailedGetTokenUsage(ex);
             return [];
         }
     }
@@ -120,7 +135,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILo
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to list errors from collector");
+            LogFailedListErrors(ex);
             return [];
         }
     }
@@ -156,7 +171,7 @@ public sealed class HttpTelemetryStore(HttpClient client, TimeProvider time, ILo
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogWarning(ex, "Failed to get latency stats from collector");
+            LogFailedGetLatencyStats(ex);
             return new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0);
         }
     }
