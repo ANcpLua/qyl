@@ -379,13 +379,17 @@ app.MapPost("/mcp/tools/call", async (McpToolCall call, McpServer mcp, Cancellat
 });
 
 // Health check endpoints - use custom handlers that call IHealthCheckService
+// /health = liveness (is the process running?) - only "live" tagged checks
+// /ready = readiness (is the service ready for traffic?) - only "ready" tagged checks
 app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
         return Results.Ok(new HealthResponse("healthy"));
 
-    var result = await healthService.CheckHealthAsync(ct).ConfigureAwait(false);
+    // Only check "live" tagged health checks - NOT DuckDB (which is "ready" only)
+    var result = await healthService.CheckHealthAsync(
+        c => c.Tags.Contains("live"), ct).ConfigureAwait(false);
     if (result.Status == HealthStatus.Healthy)
         return Results.Ok(new HealthResponse("healthy"));
 
