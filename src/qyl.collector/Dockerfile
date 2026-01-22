@@ -7,8 +7,7 @@
 # ============================================================================
 FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
 
-# Install native AOT prerequisites (clang, build-base for native compilation)
-RUN apk add --no-cache clang build-base zlib-dev
+# No native AOT build tools needed for JIT publish
 
 WORKDIR /src
 
@@ -22,7 +21,7 @@ COPY src/qyl.collector/*.csproj src/qyl.collector/
 
 # Restore dependencies (include RID for AOT publish)
 WORKDIR /src/src/qyl.collector
-RUN dotnet restore -r linux-musl-x64
+RUN dotnet restore
 
 # Copy source files
 WORKDIR /src
@@ -31,12 +30,12 @@ COPY src/qyl.collector/ src/qyl.collector/
 
 # Publish (AOT for Alpine)
 WORKDIR /src/src/qyl.collector
-RUN dotnet publish -c Release -r linux-musl-x64 -o /app --no-restore -p:TreatWarningsAsErrors=false
+RUN dotnet publish -c Release -o /app --no-restore -p:TreatWarningsAsErrors=false -p:PublishAot=false
 
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
@@ -59,4 +58,4 @@ ENV ASPNETCORE_URLS=http://+:${PORT:-5100}
 
 EXPOSE 5100
 
-ENTRYPOINT ["./qyl.collector"]
+ENTRYPOINT ["dotnet", "qyl.collector.dll"]
