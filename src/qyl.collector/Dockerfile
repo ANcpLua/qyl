@@ -80,8 +80,8 @@ RUN chown -R qyl:qyl /app
 USER qyl
 
 # Railway sets PORT env var at runtime - app must listen on it
-# Don't hardcode ports, let Railway control binding
 EXPOSE 5100
 
-# Shell form expands PORT at runtime (Railway sets this)
-ENTRYPOINT ["/bin/sh", "-c", "ASPNETCORE_URLS=http://+:${PORT:-5100} exec dotnet qyl.collector.dll"]
+# Set QYL_PORT from Railway's PORT (Program.cs uses QYL_PORT for Kestrel config)
+# ASPNETCORE_URLS is ignored when explicit ConfigureKestrel is used
+ENTRYPOINT ["/bin/sh", "-c", "QYL_PORT=${PORT:-5100} exec dotnet qyl.collector.dll"]
