@@ -14,6 +14,7 @@ WORKDIR /src
 
 # Copy solution-level files for restore
 COPY Directory.Build.props Directory.Build.targets Directory.Packages.props global.json nuget.config ./
+COPY eng/ eng/
 
 # Copy project files for restore
 COPY src/qyl.protocol/*.csproj src/qyl.protocol/
