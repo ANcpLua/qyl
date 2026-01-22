@@ -33,8 +33,7 @@
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
     <PackageReference Include="Grpc.Tools"/>
-    <PackageReference Include="Microsoft.DotNet.ILCompiler"/>
-    <!-- Microsoft.NET.ILLink.Tasks is implicitly provided by SDK when PublishAot=true -->
+    <!-- ILCompiler is implicitly provided by SDK when PublishAot=true -->
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>
