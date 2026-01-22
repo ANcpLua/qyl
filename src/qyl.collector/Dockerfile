@@ -20,18 +20,18 @@ COPY eng/ eng/
 COPY src/qyl.protocol/*.csproj src/qyl.protocol/
 COPY src/qyl.collector/*.csproj src/qyl.collector/
 
-# Restore dependencies
+# Restore dependencies (include RID for AOT publish)
 WORKDIR /src/src/qyl.collector
-RUN dotnet restore
+RUN dotnet restore -r linux-musl-x64
 
 # Copy source files
 WORKDIR /src
 COPY src/qyl.protocol/ src/qyl.protocol/
 COPY src/qyl.collector/ src/qyl.collector/
 
-# Publish (AOT)
+# Publish (AOT for Alpine)
 WORKDIR /src/src/qyl.collector
-RUN dotnet publish -c Release -o /app --no-restore
+RUN dotnet publish -c Release -r linux-musl-x64 -o /app --no-restore
 
 # ============================================================================
 # STAGE 2: Runtime image
