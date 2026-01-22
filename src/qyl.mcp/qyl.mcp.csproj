@@ -41,7 +41,7 @@
     <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
     <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A"/>
     <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore"/>
-    <PackageReference Include="Microsoft.DotNet.ILCompiler"/>
+    <!-- ILCompiler is implicitly provided by SDK when PublishAot=true -->
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <!-- Microsoft.NET.ILLink.Tasks is implicitly provided by SDK when PublishAot=true -->
