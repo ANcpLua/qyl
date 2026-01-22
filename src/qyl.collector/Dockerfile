@@ -79,9 +79,9 @@ RUN chown -R qyl:qyl /app
 
 USER qyl
 
-# Railway uses PORT env var
-ENV ASPNETCORE_URLS=http://+:${PORT:-5100}
-
+# Railway sets PORT env var at runtime - app must listen on it
+# Don't hardcode ports, let Railway control binding
 EXPOSE 5100
 
-ENTRYPOINT ["dotnet", "qyl.collector.dll"]
+# Shell form expands PORT at runtime (Railway sets this)
+ENTRYPOINT ["/bin/sh", "-c", "ASPNETCORE_URLS=http://+:${PORT:-5100} exec dotnet qyl.collector.dll"]
