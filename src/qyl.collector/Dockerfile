@@ -5,9 +5,8 @@
 # ============================================================================
 # STAGE 1: Build .NET
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
-
-# No native AOT build tools needed for JIT publish
+# Using Debian (not Alpine) because DuckDB native libs require glibc
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
 WORKDIR /src
 
@@ -43,13 +42,14 @@ RUN dotnet publish -c Release -o /app --no-restore \
 # ============================================================================
 # STAGE 2: Runtime image
 # ============================================================================
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine AS runtime
+# Using Debian (not Alpine) because DuckDB native libs require glibc
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 
 LABEL org.opencontainers.image.title="qyl.collector"
 LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
 
-# Create non-root user
-RUN addgroup -S qyl && adduser -S qyl -G qyl
+# Create non-root user (Debian syntax)
+RUN groupadd --system qyl && useradd --system --gid qyl qyl
 
 WORKDIR /app
 
