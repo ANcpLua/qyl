@@ -1,14 +1,18 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="ANcpLua.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <LangVersion>latest</LangVersion>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <!-- SDK provides LangVersion, ImplicitUsings, Nullable for netstandard2.0 -->
+    <!-- Enable polyfills for C# 14 language features (records, required, etc.) -->
+    <InjectANcpLuaLanguageFeaturesPolyfills>true</InjectANcpLuaLanguageFeaturesPolyfills>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <RootNamespace>qyl.instrumentation.generators</RootNamespace>
+    <!-- netstandard2.0 does not support AOT analysis -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <!-- RS1032/RS2008: Internal generator, not published to NuGet - suppress analyzer release tracking -->
+    <NoWarn>$(NoWarn);RS1032;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

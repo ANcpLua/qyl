@@ -137,20 +137,18 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.InvokeAgent} {agentName}") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.InvokeAgent} {agentName}") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
-        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag("duration_ms", duration.TotalMilliseconds);
     }
 
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.ExecuteTool} {toolName}") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.ExecuteTool} {toolName}") is not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
         activity.SetTag(GenAiAttributes.ToolName, toolName);
-        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag("success", success);
         activity.SetTag("duration_ms", duration.TotalMilliseconds);
 
@@ -159,20 +157,19 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity("token_usage") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"token_usage {agentName}") is not { } activity) return;
 
-        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
         activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
     }
 
     public void TrackError(string agentName, Exception exception)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity("error") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"error {agentName}") is not { } activity) return;
 
-        activity.SetTag(GenAiAttributes.AgentName, agentName);
         activity.SetTag(GenAiAttributes.ErrorType, exception.GetType().Name);
-        activity.SetTag(GenAiAttributes.ErrorMessage, exception.Message);
+        activity.SetTag(GenAiAttributes.ExceptionType, exception.GetType().FullName);
+        activity.SetTag(GenAiAttributes.ExceptionMessage, exception.Message);
         activity.SetStatus(ActivityStatusCode.Error, exception.Message);
         activity.AddException(exception);
     }
@@ -203,11 +200,10 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         CancellationToken cancellationToken = default)
     {
         using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            $"{GenAiAttributes.InvokeAgent} {_agentName}",
+            $"{GenAiAttributes.Operations.InvokeAgent} {_agentName}",
             ActivityKind.Client);
 
         activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
-        activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
         var startTime = TimeProvider.System.GetTimestamp();
         try
@@ -243,11 +239,10 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            $"{GenAiAttributes.InvokeAgent} {_agentName} (streaming)",
+            $"{GenAiAttributes.Operations.InvokeAgent} {_agentName} (streaming)",
             ActivityKind.Client);
 
         activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
-        activity?.SetTag(GenAiAttributes.AgentName, _agentName);
 
         var startTime = TimeProvider.System.GetTimestamp();
 

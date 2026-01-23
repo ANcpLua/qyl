@@ -39,7 +39,7 @@ internal static class DuckDbEmitter
         sb.AppendLine("{");
 
         // Insert columns (exclude ExcludeFromInsert)
-        var insertColumns = table.Columns.Where(c => !c.ExcludeFromInsert).ToArray();
+        var insertColumns = table.Columns.Where(static c => !c.ExcludeFromInsert).ToArray();
 
         // ColumnList constant
         EmitColumnList(sb, table.TableName, insertColumns);

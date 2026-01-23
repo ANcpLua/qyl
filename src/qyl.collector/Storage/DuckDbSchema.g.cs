@@ -1,11 +1,11 @@
 // =============================================================================
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
-//     Source:    schema/generated/openapi.yaml
-//     Generated: 2026-01-13T17:07:48.6347650+00:00
+//     Source:    core/openapi/openapi.yaml
+//     Generated: 2026-01-23T04:18:36.6544370+00:00
 //     DuckDB schema definitions
 // =============================================================================
-// To modify: update TypeSpec in schema/ then run: nuke Generate
+// To modify: update TypeSpec in core/specs/ then run: nuke Generate
 // =============================================================================
 
 #nullable enable
@@ -15,42 +15,84 @@ namespace qyl.collector.Storage;
 /// <summary>DuckDB schema from TypeSpec God Schema.</summary>
 public static partial class DuckDbSchema
 {
-    public const int Version = 20260113;
+    public const int Version = 20260123;
 
-    public const string LogsDdl = """
-        CREATE TABLE IF NOT EXISTS logs (
-            log_id VARCHAR NOT NULL,
-            trace_id VARCHAR(32),
-            span_id VARCHAR(16),
-            session_id VARCHAR(32),
-            time_unix_nano UBIGINT NOT NULL,
-            observed_time_unix_nano UBIGINT,
-            severity_number TINYINT NOT NULL,
-            severity_text VARCHAR,
-            body VARCHAR,
-            service_name VARCHAR,
-            attributes_json VARCHAR,
-            resource_json VARCHAR,
-            created_at TIMESTAMP DEFAULT now(),
-            PRIMARY KEY (log_id)
+    public const string DeploymentsDdl = """
+        CREATE TABLE IF NOT EXISTS deployments (
+            deployment.id VARCHAR NOT NULL,
+            service.name VARCHAR NOT NULL,
+            service.version VARCHAR NOT NULL,
+            environment VARCHAR NOT NULL,
+            status VARCHAR NOT NULL,
+            strategy VARCHAR NOT NULL,
+            start_time TIMESTAMP NOT NULL,
+            end_time TIMESTAMP,
+            duration_s DOUBLE,
+            deployed_by VARCHAR,
+            git_commit VARCHAR,
+            git_branch VARCHAR,
+            previous_version VARCHAR,
+            rollback_target VARCHAR,
+            replica_count INTEGER,
+            healthy_replicas INTEGER,
+            error_message VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         """;
 
-    public const string SessionsDdl = """
-        CREATE TABLE IF NOT EXISTS sessions (
-            session_id VARCHAR(32) NOT NULL,
-            start_time UBIGINT NOT NULL,
-            end_time UBIGINT NOT NULL,
-            span_count BIGINT NOT NULL,
-            error_count BIGINT NOT NULL,
-            total_input_tokens BIGINT NOT NULL,
-            total_output_tokens BIGINT NOT NULL,
-            total_cost_usd DOUBLE NOT NULL,
-            service_name VARCHAR,
-            gen_ai_system VARCHAR,
-            gen_ai_model VARCHAR,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (session_id)
+    public const string ErrorsDdl = """
+        CREATE TABLE IF NOT EXISTS errors (
+            error_id VARCHAR NOT NULL,
+            error.type VARCHAR NOT NULL,
+            message VARCHAR NOT NULL,
+            category VARCHAR NOT NULL,
+            fingerprint VARCHAR NOT NULL,
+            first_seen TIMESTAMP NOT NULL,
+            last_seen TIMESTAMP NOT NULL,
+            occurrence_count BIGINT NOT NULL,
+            affected_users BIGINT,
+            affected_services VARCHAR,
+            status VARCHAR NOT NULL,
+            assigned_to VARCHAR,
+            issue_url VARCHAR,
+            sample_traces VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        """;
+
+    public const string LogsDdl = """
+        CREATE TABLE IF NOT EXISTS logs (
+            time_unix_nano BIGINT NOT NULL,
+            observed_time_unix_nano BIGINT NOT NULL,
+            severity_number DOUBLE NOT NULL,
+            severity_text VARCHAR,
+            body VARCHAR NOT NULL,
+            attributes VARCHAR,
+            dropped_attributes_count BIGINT,
+            flags INTEGER,
+            trace_id VARCHAR(32),
+            span_id VARCHAR(16),
+            resource VARCHAR NOT NULL,
+            instrumentation_scope VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        """;
+
+    public const string SessionEntitiesDdl = """
+        CREATE TABLE IF NOT EXISTS session_entities (
+            session.id VARCHAR(128) NOT NULL,
+            user.id VARCHAR,
+            start_time TIMESTAMP NOT NULL,
+            end_time TIMESTAMP,
+            duration_ms DOUBLE,
+            trace_count INTEGER NOT NULL,
+            span_count INTEGER NOT NULL,
+            error_count INTEGER NOT NULL,
+            state VARCHAR NOT NULL,
+            client VARCHAR,
+            geo VARCHAR,
+            genai_usage VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         """;
 
@@ -59,46 +101,32 @@ public static partial class DuckDbSchema
             span_id VARCHAR(16) NOT NULL,
             trace_id VARCHAR(32) NOT NULL,
             parent_span_id VARCHAR(16),
-            session_id VARCHAR(32),
+            trace_state VARCHAR,
             name VARCHAR NOT NULL,
-            kind TINYINT NOT NULL,
-            start_time_unix_nano UBIGINT NOT NULL,
-            end_time_unix_nano UBIGINT NOT NULL,
-            duration_ns UBIGINT NOT NULL,
-            status_code TINYINT NOT NULL,
-            status_message VARCHAR,
-            service_name VARCHAR,
-            gen_ai_system VARCHAR,
-            gen_ai_request_model VARCHAR,
-            gen_ai_response_model VARCHAR,
-            gen_ai_input_tokens BIGINT,
-            gen_ai_output_tokens BIGINT,
-            gen_ai_temperature DOUBLE,
-            gen_ai_stop_reason VARCHAR,
-            gen_ai_tool_name VARCHAR,
-            gen_ai_tool_call_id VARCHAR,
-            gen_ai_cost_usd DOUBLE,
-            attributes_json VARCHAR,
-            resource_json VARCHAR,
-            created_at TIMESTAMP DEFAULT now(),
-            PRIMARY KEY (span_id)
+            kind DOUBLE NOT NULL,
+            start_time_unix_nano BIGINT NOT NULL,
+            end_time_unix_nano BIGINT NOT NULL,
+            attributes VARCHAR,
+            dropped_attributes_count BIGINT,
+            events VARCHAR,
+            dropped_events_count BIGINT,
+            links VARCHAR,
+            dropped_links_count BIGINT,
+            status VARCHAR NOT NULL,
+            flags INTEGER,
+            resource VARCHAR NOT NULL,
+            instrumentation_scope VARCHAR,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
         """;
 
     public static string GetSchemaDdl() =>
         $"""
-        -- QYL DuckDB Schema v20260113
+        -- QYL DuckDB Schema v20260123
+        {DeploymentsDdl}
+        {ErrorsDdl}
         {LogsDdl}
-        {SessionsDdl}
+        {SessionEntitiesDdl}
         {SpansDdl}
-        CREATE INDEX IF NOT EXISTS idx_logs_trace_id ON logs(trace_id);
-        CREATE INDEX IF NOT EXISTS idx_logs_session_id ON logs(session_id);
-        CREATE INDEX IF NOT EXISTS idx_logs_time ON logs(time_unix_nano);
-        CREATE INDEX IF NOT EXISTS idx_logs_severity ON logs(severity_number);
-        CREATE INDEX IF NOT EXISTS idx_logs_service_name ON logs(service_name);
-        CREATE INDEX IF NOT EXISTS idx_spans_trace_id ON spans(trace_id);
-        CREATE INDEX IF NOT EXISTS idx_spans_session_id ON spans(session_id);
-        CREATE INDEX IF NOT EXISTS idx_spans_start_time ON spans(start_time_unix_nano);
-        CREATE INDEX IF NOT EXISTS idx_spans_service_name ON spans(service_name);
         """;
 }

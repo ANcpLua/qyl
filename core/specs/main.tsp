@@ -51,6 +51,7 @@ import "./otel/resource.tsp";
 import "./otel/span.tsp";
 import "./otel/logs.tsp";
 import "./otel/metrics.tsp";
+import "./otel/storage.tsp";
 
 // =============================================================================
 // AI Domain

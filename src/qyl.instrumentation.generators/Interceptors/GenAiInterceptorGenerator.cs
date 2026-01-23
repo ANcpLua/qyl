@@ -88,7 +88,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
         var lineSpan = location.GetLineSpan();
 
         var parameters = method.Parameters
-            .Select(p => new ParameterInfo(p.Type.ToDisplayString(), p.Name))
+            .Select(static p => new ParameterInfo(p.Type.ToDisplayString(), p.Name))
             .ToArray();
 
         return new InterceptorTarget(

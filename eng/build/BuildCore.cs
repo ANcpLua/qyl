@@ -145,7 +145,7 @@ interface ICompile : IHasSolution
         .Description("Restore NuGet packages")
         .Executes(() =>
         {
-            DotNetTasks.DotNetRestore(s => DotNetRestoreSettingsExtensions.SetProjectFile<DotNetRestoreSettings>(s, GetSolutionPath()));
+            DotNetTasks.DotNetRestore(s => s.SetProjectFile(GetSolutionPath()));
             Log.Information("Restored: {Solution}", Solution.FileName);
         });
 

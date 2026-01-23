@@ -34,9 +34,9 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003</WarningsAsErrors>
     <!-- NU1604: SDK implicit JonSkeet.RoslynAnalyzers conflicts with CPM (known limitation) -->
-    <!-- AL0017: Hardcoded version rule is for SDK development, not consumer projects -->
+    <!-- AL0017/AL0018: Remove after ANcpLua.Analyzers 1.10.3+ with CPM detection is released -->
     <!-- RS0030: Source generators use banned APIs (ArgumentNullException.ThrowIfNull) -->
-    <NoWarn>$(NoWarn);NU1604;AL0017;RS0030</NoWarn>
+    <NoWarn>$(NoWarn);NU1604;AL0017;AL0018;RS0030</NoWarn>
   </PropertyGroup>
 
   <!-- AOT -->

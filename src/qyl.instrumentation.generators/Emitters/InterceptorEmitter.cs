@@ -207,18 +207,18 @@ internal static class InterceptorEmitter
     private static string FormatParameters(ParameterInfo[] parameters)
     {
         if (parameters.Length == 0) return "";
-        return ", " + string.Join(", ", parameters.Select(p => $"{p.Type} @{p.Name}"));
+        return ", " + string.Join(", ", parameters.Select(static p => $"{p.Type} @{p.Name}"));
     }
 
     private static string FormatArguments(IEnumerable<ParameterInfo> parameters)
-        => string.Join(", ", parameters.Select(p => $"@{p.Name}"));
+        => string.Join(", ", parameters.Select(static p => $"@{p.Name}"));
 
     private static string ExtractTaskInnerType(string returnType)
     {
-        if (returnType.StartsWith("System.Threading.Tasks.Task<"))
+        if (returnType.StartsWith("System.Threading.Tasks.Task<", StringComparison.Ordinal))
             return returnType.Substring(28, returnType.Length - 29);
-        if (returnType.StartsWith("Task<"))
+        if (returnType.StartsWith("Task<", StringComparison.Ordinal))
             return returnType.Substring(5, returnType.Length - 6);
-        return returnType.StartsWith("ValueTask<") ? returnType.Substring(10, returnType.Length - 11) : returnType;
+        return returnType.StartsWith("ValueTask<", StringComparison.Ordinal) ? returnType.Substring(10, returnType.Length - 11) : returnType;
     }
 }

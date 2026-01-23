@@ -114,8 +114,7 @@ interface IVerify : IHasSolution
 
             // Find property names in TypeScript interface/type definitions
             // Pattern: matches lines like "    property_name?: string;" or "    property_name: number;"
-            var propertyPattern = new Regex(@"^\s+(\w+)[\?]?\s*:\s*", RegexOptions.Multiline);
-            var matches = propertyPattern.Matches(content);
+            var matches = VerifyRegexes.TypeScriptPropertyPattern().Matches(content);
 
             var violations = new HashSet<string>();
             foreach (Match match in matches)
@@ -215,4 +214,16 @@ interface IVerify : IHasSolution
         // Check for camelCase (lowercase start, has uppercase after)
         return char.IsLower(name[0]) && name.Skip(1).Any(char.IsUpper);
     }
+}
+
+/// <summary>
+///     Source-generated regex patterns for verification.
+/// </summary>
+internal static partial class VerifyRegexes
+{
+    /// <summary>
+    ///     Matches TypeScript property definitions like "    property_name?: string;" or "    property_name: number;".
+    /// </summary>
+    [GeneratedRegex(@"^\s+(\w+)[\?]?\s*:\s*", RegexOptions.Multiline)]
+    internal static partial Regex TypeScriptPropertyPattern();
 }

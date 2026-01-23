@@ -364,9 +364,8 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         var lease2 = await _store.GetReadConnectionAsync();
         await lease2.DisposeAsync();
 
-        // Assert - Both leases should work
-        Assert.NotNull(lease1);
-        Assert.NotNull(lease2);
+        // Assert - Both leases completed successfully (ReadLease is a value type, no null check needed)
+        // Test passes if we reach here without exception
     }
 
     [Fact]

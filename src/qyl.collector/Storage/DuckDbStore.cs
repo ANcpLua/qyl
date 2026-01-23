@@ -1106,7 +1106,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByOrdinal(reader);
+    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static LogStorageRow MapLog(DbDataReader reader) =>

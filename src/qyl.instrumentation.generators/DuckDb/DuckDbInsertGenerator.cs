@@ -33,7 +33,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         // Emit attributes
-        context.RegisterPostInitializationOutput(ctx =>
+        context.RegisterPostInitializationOutput(static ctx =>
             ctx.AddSource("DuckDbAttributes.g.cs", SourceText.From(DuckDbAttributeSource.Source, Encoding.UTF8)));
 
         // Find types with [DuckDbTable]
@@ -102,7 +102,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 continue;
 
             // Check for [DuckDbIgnore]
-            if (prop.GetAttributes().Any(a => a.AttributeClass?.ToDisplayString() == DuckDbIgnoreAttribute))
+            if (prop.GetAttributes().Any(static a => a.AttributeClass?.ToDisplayString() == DuckDbIgnoreAttribute))
                 continue;
 
             var columnInfo = ExtractColumnInfo(prop, ordinal);
@@ -161,7 +161,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         var propType = prop.Type.ToDisplayString();
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated ||
-                        propType.EndsWith("?");
+                        propType.EndsWith("?", StringComparison.Ordinal);
 
         // Detect UBIGINT by type if not explicitly marked
         if (!isUBigInt && propType is "ulong" or "System.UInt64")

@@ -11,48 +11,19 @@ sdk: ANcpLua.NET.Sdk
 role: instrumentation-runtime
 ```
 
-## instrumentation coverage
+## purpose
 
-### auto-instrumented (zero code changes)
+GenAI instrumentation helpers following OTel 1.39 semantic conventions. For basic OTel setup (HTTP, runtime, health checks), use `ANcpSdk.AspNetCore.ServiceDefaults` from the SDK.
 
-These are instrumented automatically when you call `AddServiceDefaults()`:
+## what this library provides
 
-| Domain | Source | Attributes |
-|--------|--------|------------|
-| HTTP Server | OpenTelemetry.Instrumentation.AspNetCore | http.request.method, url.path, http.response.status_code |
-| HTTP Client | OpenTelemetry.Instrumentation.Http | http.request.method, url.full, server.address |
-| Runtime | OpenTelemetry.Instrumentation.Runtime | process.runtime.dotnet.gc.*, threadpool.* |
+| Feature | How | Why Needed |
+|---------|-----|------------|
+| GenAI/LLM instrumentation | `GenAiActivitySource.StartChat()` | No OTel standard library - every AI SDK is different |
+| OTel 1.39 gen_ai.* attributes | Extension methods | Fluent API for setting attributes |
+| Provider constants | `GenAiActivitySource.Providers.*` | Standardized provider names |
 
-### manual instrumentation (requires code)
-
-These require explicit code because no standard auto-instrumentation exists:
-
-| Domain | How to Instrument | Why Manual |
-|--------|-------------------|------------|
-| GenAI/LLM | `GenAiActivitySource.StartChat()` | No OTel standard library exists - every AI SDK is different |
-| Custom Business | `ActivitySource.StartActivity()` | Business-specific, cannot be auto-detected |
-
-## genai instrumentation
-
-GenAI is the key differentiator - qyl provides helpers other tools don't:
-
-```csharp
-using qyl.instrumentation.GenAi;
-
-// Wrap any AI SDK call
-using var activity = GenAiActivitySource.StartChat("openai", "gpt-4o");
-activity?.SetRequestTemperature(0.7);
-activity?.SetRequestMaxTokens(1000);
-
-var response = await openAiClient.CompleteChatAsync(messages);
-
-activity?.SetResponseModel(response.Model);
-activity?.SetResponseId(response.Id);
-activity?.SetTokenUsage(response.Usage.PromptTokens, response.Usage.CompletionTokens);
-activity?.SetFinishReason(response.FinishReason);
-```
-
-### supported providers
+## supported providers
 
 ```yaml
 providers:
@@ -117,48 +88,22 @@ qyl-extensions:
 ## usage
 
 ```csharp
-var builder = WebApplication.CreateSlimBuilder(args);
-builder.AddServiceDefaults();
+using qyl.instrumentation.GenAi;
 
-var app = builder.Build();
-app.MapServiceDefaults();
-app.Run();
+// Instrument any GenAI call
+using var activity = GenAiActivitySource.StartChat("openai", "gpt-4o");
+activity?.SetRequestTemperature(0.7);
+
+var response = await client.CompleteChatAsync(messages);
+
+activity?.SetResponseModel(response.Model);
+activity?.SetTokenUsage(response.Usage.InputTokens, response.Usage.OutputTokens);
+activity?.SetFinishReason(response.FinishReason);
 ```
-
-## what interceptors CAN and CANNOT do
-
-### can intercept (compile-time)
-- Static method calls in YOUR code
-- Extension method calls in YOUR code
-- Builder pattern methods in YOUR code
-
-### cannot intercept
-- Interface calls (`IHttpClient.SendAsync()`)
-- Virtual dispatch (runtime polymorphism)
-- Calls inside compiled NuGet packages
-- Calls made by third-party libraries
-
-### honest assessment
-
-C# interceptors are NOT equivalent to Datadog's CLR Profiling API:
-- Datadog uses runtime bytecode modification (like Java agents)
-- .NET has no public CLR Profiling API for safe runtime modification
-- Interceptors are compile-time only, limited to source code you compile
-
-This is why GenAI manual instrumentation exists - there's no way to auto-instrument arbitrary AI SDK calls without runtime modification.
 
 ## dependencies
 
 ```yaml
 packages:
-  - OpenTelemetry.Api
-  - OpenTelemetry.Extensions.Hosting
-  - OpenTelemetry.Instrumentation.AspNetCore
-  - OpenTelemetry.Instrumentation.Http
-  - OpenTelemetry.Instrumentation.Runtime
-  - OpenTelemetry.Exporter.OpenTelemetryProtocol
-  - OpenTelemetry.Exporter.Console
-
-project-references:
-  - qyl.instrumentation.generators (Analyzer)
+  - OpenTelemetry.Api  # ActivitySource
 ```

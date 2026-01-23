@@ -33,7 +33,7 @@ workflow-sync/
   "commands": ["commands/workflow.md"]
 }
 ```
-
+ 
 ## Key Variables
 
 | Variable | Purpose |

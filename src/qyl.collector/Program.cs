@@ -282,7 +282,7 @@ app.MapPost("/v1/logs", async (
 });
 
 app.MapPost("/api/v1/feedback", () => Results.Accepted());
-app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
+app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string _) =>
     Results.Ok(new
     {
         feedback = Array.Empty<object>()
@@ -385,13 +385,13 @@ app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
-        return Results.Ok(new HealthResponse("healthy"));
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
 
     // Only check "live" tagged health checks - NOT DuckDB (which is "ready" only)
     var result = await healthService.CheckHealthAsync(
         c => c.Tags.Contains("live"), ct).ConfigureAwait(false);
-    if (result.Status == HealthStatus.Healthy)
-        return Results.Ok(new HealthResponse("healthy"));
+    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("LivenessCheck");
@@ -400,12 +400,12 @@ app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
-        return Results.Ok(new HealthResponse("ready"));
+        return Results.Ok(new qyl.collector.HealthResponse("ready"));
 
     var result = await healthService.CheckHealthAsync(
         c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
-    if (result.Status == HealthStatus.Healthy)
-        return Results.Ok(new HealthResponse("ready"));
+    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+        return Results.Ok(new qyl.collector.HealthResponse("ready"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("ReadinessCheck");
@@ -895,7 +895,7 @@ namespace qyl.collector
                 ResponseModel = GetString(attributes, GenAiAttributes.ResponseModel),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
-                TotalTokens = GetLong(attributes, GenAiAttributes.UsageTotalTokens),
+                TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
                 Temperature = GetDouble(attributes, GenAiAttributes.RequestTemperature),
                 MaxTokens = GetLong(attributes, GenAiAttributes.RequestMaxTokens),
                 FinishReason = GetString(attributes, GenAiAttributes.ResponseFinishReasons),
@@ -955,7 +955,7 @@ namespace qyl.collector
                 ResponseModel = GetJsonString(attributes, GenAiAttributes.ResponseModel),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
-                TotalTokens = GetJsonLong(attributes, GenAiAttributes.UsageTotalTokens),
+                TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
                 Temperature = GetJsonDouble(attributes, GenAiAttributes.RequestTemperature),
                 MaxTokens = GetJsonLong(attributes, GenAiAttributes.RequestMaxTokens),
                 FinishReason = GetJsonString(attributes, GenAiAttributes.ResponseFinishReasons),

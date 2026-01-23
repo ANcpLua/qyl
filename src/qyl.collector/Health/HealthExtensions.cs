@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace qyl.collector.Health;
 
@@ -17,7 +18,7 @@ public static class HealthExtensions
         var builder = services.AddHealthChecks()
             .AddCheck<DuckDbHealthCheck>(
                 "duckdb",
-                HealthStatus.Unhealthy,
+                MsHealthStatus.Unhealthy,
                 ["db", "storage", "ready"])
             .AddApplicationLifecycleHealthCheck(["live"]);
 

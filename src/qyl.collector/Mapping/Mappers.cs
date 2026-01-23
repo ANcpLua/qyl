@@ -13,26 +13,26 @@ public static class SpanMapper
             ParentSpanId = row.ParentSpanId is { } parentId ? new SpanId(parentId) : default(SpanId?),
             SessionId = row.SessionId is { } sessId ? new SessionId(sessId) : default(SessionId?),
             Name = row.Name,
-            Kind = (Qyl.Enums.SpanKind)row.Kind,
+            Kind = (Qyl.OTel.Enums.SpanKind)row.Kind,
             StartTimeUnixNano = (long)row.StartTimeUnixNano,
             EndTimeUnixNano = (long)row.EndTimeUnixNano,
             DurationNs = (long)row.DurationNs,
-            StatusCode = (Qyl.Enums.StatusCode)row.StatusCode,
+            StatusCode = (SpanStatusCode)row.StatusCode,
             StatusMessage = row.StatusMessage,
             ServiceName = row.ServiceName,
             GenAiSystem = row.GenAiSystem,
             GenAiRequestModel = row.GenAiRequestModel,
             GenAiResponseModel = row.GenAiResponseModel,
-            GenAiInputTokens = row.GenAiInputTokens,
-            GenAiOutputTokens = row.GenAiOutputTokens,
+            GenAiInputTokens = (int?)row.GenAiInputTokens,
+            GenAiOutputTokens = (int?)row.GenAiOutputTokens,
             GenAiTemperature = row.GenAiTemperature,
             GenAiStopReason = row.GenAiStopReason,
             GenAiToolName = row.GenAiToolName,
             GenAiToolCallId = row.GenAiToolCallId,
-            GenAiCostUsd = row.GenAiCostUsd,
+            GenAiCostUsd = (decimal?)row.GenAiCostUsd,
             AttributesJson = row.AttributesJson,
             ResourceJson = row.ResourceJson,
-            CreatedAt = row.CreatedAt ?? DateTimeOffset.UtcNow
+            CreatedAt = row.CreatedAt ?? TimeProvider.System.GetUtcNow()
         };
     }
 
@@ -80,9 +80,9 @@ public static class SpanMapper
     public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
     {
         // Convert protocol UnixNano (long) to DateTime
-        var startTime = TimeConversions.UnixNanoToDateTime((ulong)record.StartTimeUnixNano.Value);
-        var endTime = TimeConversions.UnixNanoToDateTime((ulong)record.EndTimeUnixNano.Value);
-        var durationMs = record.DurationNs.Value / 1_000_000.0;
+        var startTime = TimeConversions.UnixNanoToDateTime((ulong)record.StartTimeUnixNano);
+        var endTime = TimeConversions.UnixNanoToDateTime((ulong)record.EndTimeUnixNano);
+        var durationMs = record.DurationNs / 1_000_000.0;
 
         return new SpanDto
         {
@@ -196,11 +196,11 @@ public static class SpanMapper
             OperationName = ExtractOperationName(record.Name),
             RequestModel = record.GenAiRequestModel,
             ResponseModel = record.GenAiResponseModel,
-            InputTokens = record.GenAiInputTokens?.Value,
-            OutputTokens = record.GenAiOutputTokens?.Value,
-            TotalTokens = (record.GenAiInputTokens?.Value ?? 0) + (record.GenAiOutputTokens?.Value ?? 0),
-            CostUsd = record.GenAiCostUsd?.Value,
-            Temperature = record.GenAiTemperature?.Value,
+            InputTokens = record.GenAiInputTokens,
+            OutputTokens = record.GenAiOutputTokens,
+            TotalTokens = (record.GenAiInputTokens ?? 0) + (record.GenAiOutputTokens ?? 0),
+            CostUsd = (double?)record.GenAiCostUsd,
+            Temperature = record.GenAiTemperature,
             FinishReason = record.GenAiStopReason,
             ToolName = record.GenAiToolName,
             ToolCallId = record.GenAiToolCallId

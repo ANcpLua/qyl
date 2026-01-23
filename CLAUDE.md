@@ -74,13 +74,13 @@ components:
 dotnet:
     version: "10.0"
     lang: "C# 14"
-    sdk: ANcpLua.NET.Sdk 1.6.21 (nuget.org)
+    sdk: ANcpLua.NET.Sdk 1.6.26 (nuget.org)
     sdk-variants:
         - ANcpLua.NET.Sdk        # libraries, console
         - ANcpLua.NET.Sdk.Web    # ASP.NET Core
         - ANcpLua.NET.Sdk.Test   # xUnit v3
-    analyzers: ANcpLua.Analyzers 1.9.0
-    roslyn-utilities: ANcpLua.Roslyn.Utilities 1.16.0
+    analyzers: ANcpLua.Analyzers 1.10.2
+    roslyn-utilities: ANcpLua.Roslyn.Utilities 1.18.3
 
 packages:
     storage: DuckDB.NET.Data.Full

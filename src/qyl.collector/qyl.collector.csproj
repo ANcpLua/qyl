@@ -65,4 +65,11 @@
     <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
   </ItemGroup>
 
+  <!-- Source generators (compile-time only) -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
 </Project>

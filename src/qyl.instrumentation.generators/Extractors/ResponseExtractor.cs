@@ -43,7 +43,6 @@ internal static class ResponseExtractorSource
                     var usageType = usage.GetType();
                     TrySetTagInt(activity, usageType, usage, "InputTokens", GenAiAttributes.UsageInputTokens);
                     TrySetTagInt(activity, usageType, usage, "OutputTokens", GenAiAttributes.UsageOutputTokens);
-                    TrySetTagInt(activity, usageType, usage, "TotalTokens", GenAiAttributes.UsageTotalTokens);
                     // OpenAI naming (maps to same attributes)
                     TrySetTagInt(activity, usageType, usage, "PromptTokens", GenAiAttributes.UsageInputTokens);
                     TrySetTagInt(activity, usageType, usage, "CompletionTokens", GenAiAttributes.UsageOutputTokens);

@@ -105,8 +105,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test the fix: finish_reasons (plural) should be extracted
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.finish_reasons",
             Value = new OtlpAnyValueProto
@@ -131,8 +131,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test backward compat: singular finish_reason should still work
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.finish_reason",
             Value = new OtlpAnyValueProto { StringValue = "stop" }
@@ -151,8 +151,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test deprecated attribute fallback
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.system",  // deprecated
             Value = new OtlpAnyValueProto { StringValue = "anthropic" }
@@ -171,8 +171,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test deprecated token attribute fallback
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.prompt_tokens",  // deprecated
             Value = new OtlpAnyValueProto { IntValue = 150 }
@@ -309,29 +309,29 @@ public sealed class OtlpConverterProtoTests
         long outputTokens)
     {
         var request = CreateProtoRequest("trace001", "span001", "chat gpt-4", "genai-service");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
 
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.provider.name",
             Value = new OtlpAnyValueProto { StringValue = providerName }
         });
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.request.model",
             Value = new OtlpAnyValueProto { StringValue = requestModel }
         });
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.model",
             Value = new OtlpAnyValueProto { StringValue = responseModel }
         });
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.input_tokens",
             Value = new OtlpAnyValueProto { IntValue = inputTokens }
         });
-        protoSpan.Attributes.Add(new OtlpKeyValueProto
+        protoSpan.Attributes!.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.output_tokens",
             Value = new OtlpAnyValueProto { IntValue = outputTokens }

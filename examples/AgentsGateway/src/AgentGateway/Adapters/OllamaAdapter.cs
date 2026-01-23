@@ -80,16 +80,16 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         try
         {
             var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
-            return Enumerable
-                .ToArray<ModelInfo>(response?.Models?
-                    .Select(m => new ModelInfo(
-                        m.Name ?? "unknown",
-                        ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
-                        new Dictionary<string, string>
-                        {
-                            ["size"] = m.Size.ToString(CultureInfo.InvariantCulture),
-                            ["modified_at"] = m.ModifiedAt ?? string.Empty
-                        }))) ?? [];
+            return response?.Models?
+                .Select(m => new ModelInfo(
+                    m.Name ?? "unknown",
+                    ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
+                    new Dictionary<string, string>
+                    {
+                        ["size"] = m.Size.ToString(CultureInfo.InvariantCulture),
+                        ["modified_at"] = m.ModifiedAt ?? string.Empty
+                    }))
+                .ToArray() ?? [];
         }
         catch (HttpRequestException)
         {

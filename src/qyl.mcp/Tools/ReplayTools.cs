@@ -102,7 +102,7 @@ public sealed class ReplayTools
             sb.AppendLine();
 
             // Sort by start time
-            var sortedSpans = Enumerable.OrderBy<SpanDto, long>(response.Items, static s => s.StartTimeUnixNano).ToList();
+            var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
 
             foreach (var span in sortedSpans)
             {
@@ -129,9 +129,9 @@ public sealed class ReplayTools
             }
 
             // Summary
-            var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0);
-            var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0);
-            var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0);
+            var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0L);
+            var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0L);
+            var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0d);
             var totalDurationMs = sortedSpans.Sum(static s => s.DurationNs) / 1_000_000.0;
 
             sb.AppendLine("---");
@@ -180,7 +180,7 @@ public sealed class ReplayTools
             if (response.Spans is { Count: > 0 })
             {
                 sb.AppendLine("## Spans");
-                foreach (var span in Enumerable.OrderBy<SpanDto, long>(response.Spans, static s => s.StartTimeUnixNano))
+                foreach (var span in response.Spans.OrderBy(static s => s.StartTimeUnixNano))
                 {
                     var indent = string.IsNullOrEmpty(span.ParentSpanId) ? "" : "  ";
                     var durationMs = span.DurationNs / 1_000_000.0;
@@ -222,7 +222,7 @@ public sealed class ReplayTools
             if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{sessionId}' not found or has no spans";
 
-            var errorSpans = Enumerable.Where<SpanDto>(response.Items, static s => s.StatusCode == 2).ToList();
+            var errorSpans = response.Items.Where(static s => s.StatusCode == 2).ToList();
 
             if (errorSpans.Count is 0)
                 return $"No errors found in session '{sessionId}'";

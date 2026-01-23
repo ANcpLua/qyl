@@ -51,12 +51,15 @@ public static class SchemaGenerator
                 protocolDir / "Primitives" / "Scalars.g.cs",
                 GenerateScalars(scalars)));
 
-        // C# Enums (Qyl.Enums namespace)
+        // C# Enums (grouped by namespace, like Models)
         var enums = schema.Schemas.Where(static s => s.IsEnum).ToList();
-        if (enums.Count > 0)
+        foreach (var group in enums.GroupBy(static e => GetCSharpNamespace(e.Name)))
+        {
+            var fileName = GetFileNameFromNamespace(group.Key) + "Enums";
             files.Add(new GeneratedFile(
-                protocolDir / "Enums" / "Enums.g.cs",
-                GenerateEnums(enums)));
+                protocolDir / "Enums" / $"{fileName}.g.cs",
+                GenerateEnumsForNamespace(group.Key, [.. group])));
+        }
 
         // C# Models (grouped by namespace)
         var models = schema.Schemas.Where(static s => s is { IsScalar: false, IsEnum: false, Type: "object" }).ToList();
@@ -231,18 +234,18 @@ public static class SchemaGenerator
     // C# ENUMS - Integer and string-backed enumerations
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateEnums(IEnumerable<SchemaDefinition> enums)
+    static string GenerateEnumsForNamespace(string ns, List<SchemaDefinition> enums)
     {
         var sb = new StringBuilder();
-        AppendCSharpHeader(sb, "Enumeration types (OTel 1.39 semconv)");
+        AppendCSharpHeader(sb, $"Enumeration types for {ns}");
 
-        sb.AppendLine("namespace Qyl.Enums");
-        sb.AppendLine("{");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {ns};");
+        sb.AppendLine();
 
-        // Deduplicate by type name - take first occurrence (prefer Enums. namespace)
+        // Deduplicate by type name within this namespace
         var deduped = enums
             .GroupBy(static e => e.GetTypeName())
-            .Select(static g => g.FirstOrDefault(e => e.Name.StartsWith("Enums.", StringComparison.Ordinal)) ?? g.First())
+            .Select(static g => g.First())
             .OrderBy(static e => e.GetTypeName());
 
         foreach (var enumDef in deduped)
@@ -251,20 +254,20 @@ public static class SchemaGenerator
             var isIntegerEnum = enumDef.Type == "integer";
             var enumVarNames = enumDef.GetEnumVarNames();
 
-            AppendXmlDoc(sb, enumDef.Description, "    ");
+            AppendXmlDoc(sb, enumDef.Description, "");
 
             // Use appropriate JSON converter
             if (isIntegerEnum)
                 // Integer enums: serialize as integers
                 sb.AppendLine(CultureInfo.InvariantCulture,
-                    $"    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonNumberEnumConverter<{typeName}>))]");
+                    $"[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonNumberEnumConverter<{typeName}>))]");
             else
                 // String enums: serialize as strings
                 sb.AppendLine(CultureInfo.InvariantCulture,
-                    $"    [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<{typeName}>))]");
+                    $"[System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<{typeName}>))]");
 
-            sb.AppendLine(CultureInfo.InvariantCulture, $"    public enum {typeName}");
-            sb.AppendLine("    {");
+            sb.AppendLine(CultureInfo.InvariantCulture, $"public enum {typeName}");
+            sb.AppendLine("{");
 
             for (var i = 0; i < enumDef.EnumValues.Length; i++)
             {
@@ -287,22 +290,19 @@ public static class SchemaGenerator
                 // Emit member
                 if (isIntegerEnum)
                     // Integer enum: memberName = value
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {memberName} = {rawValue},");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    {memberName} = {rawValue},");
                 else
                 {
                     // String enum: need EnumMember for serialization
                     sb.AppendLine(CultureInfo.InvariantCulture,
-                        $"        [System.Runtime.Serialization.EnumMember(Value = \"{rawValue}\")]");
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"        {memberName} = {i},");
+                        $"    [System.Runtime.Serialization.EnumMember(Value = \"{rawValue}\")]");
+                    sb.AppendLine(CultureInfo.InvariantCulture, $"    {memberName} = {i},");
                 }
             }
 
-            sb.AppendLine("    }");
+            sb.AppendLine("}");
             sb.AppendLine();
         }
-
-        sb.AppendLine("}");
-        sb.AppendLine();
 
         return sb.ToString();
     }
@@ -432,14 +432,16 @@ public static class SchemaGenerator
         // Handle $ref
         if (prop.GetRefTypeName() is { } refTypeName)
         {
-            // Map namespace-qualified refs to C# types
-            if (refTypeName.StartsWith("Primitives.", StringComparison.Ordinal))
-                return $"global::Qyl.Common.{refTypeName[11..]}";
-            if (refTypeName.StartsWith("Enums.", StringComparison.Ordinal))
-                return $"global::Qyl.Enums.{refTypeName[6..]}";
-            return refTypeName.StartsWith("Models.", StringComparison.Ordinal)
-                ? $"global::Qyl.Models.{refTypeName[7..]}"
-                : refTypeName;
+            // Handle union types (anyOf) - these are dynamic JSON values
+            // AttributeValue can be string, bool, long, double, or arrays thereof
+            if (refTypeName.EndsWith(".AttributeValue", StringComparison.Ordinal) ||
+                refTypeName == "AttributeValue")
+                return "global::System.Text.Json.Nodes.JsonNode";
+
+            // Map namespace-qualified refs to C# types (TypeSpec-style with Qyl.* prefix)
+            var ns = GetCSharpNamespace(refTypeName);
+            var typeName = refTypeName[(refTypeName.LastIndexOf('.') + 1)..];
+            return $"global::{ns}.{typeName}";
         }
 
         // Handle arrays
@@ -644,21 +646,130 @@ public static class SchemaGenerator
         sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}/// <summary>{escaped}</summary>");
     }
 
+    /// <summary>
+    ///     Maps TypeSpec schema names to C# namespaces.
+    ///     TypeSpec generates: Qyl.Common.TraceId, Qyl.Domains.AI.GenAi.*, etc.
+    /// </summary>
     static string GetCSharpNamespace(string schemaName)
     {
+        // Legacy prefixes (for backward compatibility)
         if (schemaName.StartsWith("Primitives.", StringComparison.Ordinal)) return "Qyl.Common";
         if (schemaName.StartsWith("Enums.", StringComparison.Ordinal)) return "Qyl.Enums";
         if (schemaName.StartsWith("Models.", StringComparison.Ordinal)) return "Qyl.Models";
-        return schemaName.StartsWith("Api.", StringComparison.Ordinal) ? "Qyl.Api" : "Qyl";
+        if (schemaName.StartsWith("Api.", StringComparison.Ordinal)) return "Qyl.Api";
+
+        // TypeSpec-generated namespaces (Qyl.* prefix)
+        // Order matters: more specific prefixes first!
+
+        // Common subnamespaces
+        if (schemaName.StartsWith("Qyl.Common.Errors.", StringComparison.Ordinal)) return "Qyl.Common.Errors";
+        if (schemaName.StartsWith("Qyl.Common.Pagination.", StringComparison.Ordinal)) return "Qyl.Common.Pagination";
+        if (schemaName.StartsWith("Qyl.Common.", StringComparison.Ordinal)) return "Qyl.Common";
+
+        // OTel namespaces
+        if (schemaName.StartsWith("Qyl.OTel.Enums.", StringComparison.Ordinal)) return "Qyl.OTel.Enums";
+        if (schemaName.StartsWith("Qyl.OTel.Traces.", StringComparison.Ordinal)) return "Qyl.OTel.Traces";
+        if (schemaName.StartsWith("Qyl.OTel.Logs.", StringComparison.Ordinal)) return "Qyl.OTel.Logs";
+        if (schemaName.StartsWith("Qyl.OTel.Metrics.", StringComparison.Ordinal)) return "Qyl.OTel.Metrics";
+        if (schemaName.StartsWith("Qyl.OTel.Resource.", StringComparison.Ordinal)) return "Qyl.OTel.Resource";
+        if (schemaName.StartsWith("Qyl.OTel.", StringComparison.Ordinal)) return "Qyl.OTel";
+
+        // Domain namespaces - AI (most specific first)
+        if (schemaName.StartsWith("Qyl.Domains.AI.Code.", StringComparison.Ordinal)) return "Qyl.Domains.AI.Code";
+        if (schemaName.StartsWith("Qyl.Domains.AI.", StringComparison.Ordinal)) return "Qyl.Domains.AI";
+
+        // Domain namespaces - Identity
+        if (schemaName.StartsWith("Qyl.Domains.Identity.", StringComparison.Ordinal)) return "Qyl.Domains.Identity";
+
+        // Domain namespaces - Observe (most specific first)
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Error.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Error";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Exceptions.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Exceptions";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Log.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Log";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Session.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Session";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.", StringComparison.Ordinal)) return "Qyl.Domains.Observe";
+
+        // Domain namespaces - Ops (most specific first)
+        if (schemaName.StartsWith("Qyl.Domains.Ops.Cicd.", StringComparison.Ordinal)) return "Qyl.Domains.Ops.Cicd";
+        if (schemaName.StartsWith("Qyl.Domains.Ops.Deployment.", StringComparison.Ordinal)) return "Qyl.Domains.Ops.Deployment";
+        if (schemaName.StartsWith("Qyl.Domains.Ops.", StringComparison.Ordinal)) return "Qyl.Domains.Ops";
+
+        // Domain namespaces - Others
+        if (schemaName.StartsWith("Qyl.Domains.Transport.", StringComparison.Ordinal)) return "Qyl.Domains.Transport";
+        if (schemaName.StartsWith("Qyl.Domains.Security.", StringComparison.Ordinal)) return "Qyl.Domains.Security";
+        if (schemaName.StartsWith("Qyl.Domains.Infra.", StringComparison.Ordinal)) return "Qyl.Domains.Infra";
+        if (schemaName.StartsWith("Qyl.Domains.Runtime.", StringComparison.Ordinal)) return "Qyl.Domains.Runtime";
+        if (schemaName.StartsWith("Qyl.Domains.Data.", StringComparison.Ordinal)) return "Qyl.Domains.Data";
+        if (schemaName.StartsWith("Qyl.Domains.", StringComparison.Ordinal)) return "Qyl.Domains";
+
+        // API namespace
+        if (schemaName.StartsWith("Qyl.Api.", StringComparison.Ordinal)) return "Qyl.Api";
+
+        // Streaming namespace (without Qyl. prefix)
+        if (schemaName.StartsWith("Streaming.", StringComparison.Ordinal)) return "Qyl.Streaming";
+
+        // Default: extract namespace from schema name or fall back
+        return "Qyl.Models";
     }
 
+    /// <summary>
+    ///     Maps C# namespaces to output file names.
+    /// </summary>
     static string GetFileNameFromNamespace(string ns) => ns switch
     {
-        "Qyl.Common" => "Scalars",
+        // Primitives/Scalars
+        "Qyl.Common" => "Common",
+
+        // Common subnamespaces
+        "Qyl.Common.Errors" => "Errors",
+        "Qyl.Common.Pagination" => "Pagination",
+
+        // Enums
         "Qyl.Enums" => "Enums",
-        "Qyl.Models" => "Models",
+        "Qyl.OTel.Enums" => "OTelEnums",
+
+        // OTel namespaces
+        "Qyl.OTel" => "OTel",
+        "Qyl.OTel.Traces" => "OTelTraces",
+        "Qyl.OTel.Logs" => "OTelLogs",
+        "Qyl.OTel.Metrics" => "OTelMetrics",
+        "Qyl.OTel.Resource" => "OTelResource",
+
+        // Domain namespaces - AI
+        "Qyl.Domains" => "Domains",
+        "Qyl.Domains.AI" => "DomainsAI",
+        "Qyl.Domains.AI.Code" => "DomainsAICode",
+
+        // Domain namespaces - Identity
+        "Qyl.Domains.Identity" => "DomainsIdentity",
+
+        // Domain namespaces - Observe
+        "Qyl.Domains.Observe" => "DomainsObserve",
+        "Qyl.Domains.Observe.Error" => "DomainsObserveError",
+        "Qyl.Domains.Observe.Exceptions" => "DomainsObserveExceptions",
+        "Qyl.Domains.Observe.Log" => "DomainsObserveLog",
+        "Qyl.Domains.Observe.Session" => "DomainsObserveSession",
+
+        // Domain namespaces - Ops
+        "Qyl.Domains.Ops" => "DomainsOps",
+        "Qyl.Domains.Ops.Cicd" => "DomainsOpsCicd",
+        "Qyl.Domains.Ops.Deployment" => "DomainsOpsDeployment",
+
+        // Domain namespaces - Others
+        "Qyl.Domains.Transport" => "DomainsTransport",
+        "Qyl.Domains.Security" => "DomainsSecurity",
+        "Qyl.Domains.Infra" => "DomainsInfra",
+        "Qyl.Domains.Runtime" => "DomainsRuntime",
+        "Qyl.Domains.Data" => "DomainsData",
+
+        // API
         "Qyl.Api" => "Api",
-        _ => "Types"
+
+        // Streaming
+        "Qyl.Streaming" => "Streaming",
+
+        // Legacy/Default
+        "Qyl.Models" => "Models",
+        _ => ns.Replace(".", "")
     };
 
     static (string CSharpType, string JsonRead, string JsonWrite) GetScalarTypeInfo(string? type, string? format) =>
@@ -737,12 +848,17 @@ public sealed record OpenApiSchema(
         var extensions = ParseExtensions(node);
 
         // Determine if scalar (primitive wrapper)
+        // A type is a scalar if it has no properties AND is a primitive type (string/integer/number) AND is not an enum
+        var propsMapping = GetMapping(node, "properties");
+        var hasNoProperties = propsMapping is null || !propsMapping.Children.Any();
         var isScalar = extensions.ContainsKey("x-csharp-struct") ||
-                       type is "string" or "integer" or "number" && enumValues.Length == 0 &&
-                       !GetMapping(node, "properties")?.Children.Any() == true;
+                       (type is "string" or "integer" or "number" && enumValues.Length == 0 && hasNoProperties);
 
         // Determine if enum
         var isEnum = enumValues.Length > 0;
+
+        // Determine if union (anyOf)
+        var isUnion = node.Children.ContainsKey("anyOf");
 
         // Parse properties for objects
         var properties = ImmutableArray<SchemaProperty>.Empty;
@@ -764,7 +880,7 @@ public sealed record OpenApiSchema(
         }
 
         return new SchemaDefinition(name, type, description, format, pattern, enumValues, properties, extensions,
-            isScalar, isEnum);
+            isScalar, isEnum, isUnion);
     }
 
     static SchemaProperty ParseProperty(string name, YamlMappingNode node, bool isRequired)
@@ -845,8 +961,10 @@ public sealed record SchemaDefinition(
     ImmutableArray<SchemaProperty> Properties,
     ImmutableDictionary<string, string> Extensions,
     bool IsScalar,
-    bool IsEnum)
+    bool IsEnum,
+    bool IsUnion)
 {
+    /// <summary>Gets the C# type name from the last part of the schema name.</summary>
     public string GetTypeName() => Name[(Name.LastIndexOf('.') + 1)..];
 
     /// <summary>Get enum member names from x-enum-varnames extension.</summary>
