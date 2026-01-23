@@ -12,7 +12,7 @@ namespace qyl.collector.Ingestion;
 ///     OTel GenAI Semantic Conventions v1.39.0 - UTF-8 attribute keys for zero-allocation parsing.
 ///     Uses direct StartsWith checks for prefix matching (NOT SearchValues which is for substring).
 /// </summary>
-public static class OtlpGenAiAttributes
+internal static class OtlpGenAiAttributes
 {
     // =========================================================================
     // CORE ATTRIBUTES (Required/Conditionally Required)
@@ -257,7 +257,7 @@ public static class OtlpGenAiAttributes
 /// <summary>
 ///     Well-known values for gen_ai.operation.name (OTel v1.39)
 /// </summary>
-public static class GenAiOperationName
+internal static class GenAiOperationName
 {
     public const string Chat = "chat";
     public const string TextCompletion = "text_completion";
@@ -271,7 +271,7 @@ public static class GenAiOperationName
 /// <summary>
 ///     Well-known values for gen_ai.output.type (OTel v1.39)
 /// </summary>
-public static class GenAiOutputType
+internal static class GenAiOutputType
 {
     public const string Text = "text";
     public const string Json = "json";
@@ -282,7 +282,7 @@ public static class GenAiOutputType
 /// <summary>
 ///     Well-known values for gen_ai.tool.type (OTel v1.39)
 /// </summary>
-public static class GenAiToolType
+internal static class GenAiToolType
 {
     public const string Function = "function";
     public const string Extension = "extension";
@@ -292,7 +292,7 @@ public static class GenAiToolType
 /// <summary>
 ///     Well-known values for gen_ai.token.type (OTel v1.39 metrics)
 /// </summary>
-public static class GenAiTokenType
+internal static class GenAiTokenType
 {
     public const string Input = "input";
     public const string Output = "output";
@@ -301,7 +301,7 @@ public static class GenAiTokenType
 /// <summary>
 ///     Well-known values for error.type
 /// </summary>
-public static class ErrorType
+internal static class ErrorType
 {
     public const string Other = "_OTHER";
 }
@@ -313,7 +313,7 @@ public static class ErrorType
 /// <summary>
 ///     Semantic names for GenAI Events (structured logs).
 /// </summary>
-public static class GenAiEventNames
+internal static class GenAiEventNames
 {
     /// <summary>Event containing full input/output details for an inference operation.</summary>
     public const string OperationDetails = "gen_ai.client.inference.operation.details";
@@ -329,7 +329,7 @@ public static class GenAiEventNames
 /// <summary>
 ///     Semantic names for GenAI Metrics.
 /// </summary>
-public static class GenAiMetricNames
+internal static class GenAiMetricNames
 {
     /// <summary>Histogram: Number of input and output tokens used.</summary>
     public const string TokenUsage = "gen_ai.client.token.usage";
@@ -351,7 +351,7 @@ public static class GenAiMetricNames
 /// <summary>
 ///     Provider identifiers per OTel 1.39 gen_ai.provider.name values.
 /// </summary>
-public static class OtlpGenAiProviders
+internal static class OtlpGenAiProviders
 {
     // OTel v1.39 canonical provider names
     public const string Anthropic = "anthropic";
@@ -431,7 +431,7 @@ public static class OtlpGenAiProviders
 /// <summary>
 ///     Single source of truth for deprecated OTel attribute mappings (1.39 migration).
 /// </summary>
-public static class SchemaNormalizer
+internal static class SchemaNormalizer
 {
 #pragma warning disable QYL0002 // Intentionally references deprecated attributes for migration
     /// <summary>
@@ -501,28 +501,28 @@ public static class SchemaNormalizer
 // OTLP JSON DTOs
 // =============================================================================
 
-public sealed record OtlpExportTraceServiceRequest
+internal sealed record OtlpExportTraceServiceRequest
 {
     public List<OtlpResourceSpans>? ResourceSpans { get; init; }
 }
 
-public sealed record OtlpResourceSpans
+internal sealed record OtlpResourceSpans
 {
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeSpans>? ScopeSpans { get; init; }
 }
 
-public sealed record OtlpResource
+internal sealed record OtlpResource
 {
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
 
-public sealed record OtlpScopeSpans
+internal sealed record OtlpScopeSpans
 {
     public List<OtlpSpan>? Spans { get; init; }
 }
 
-public sealed record OtlpSpan
+internal sealed record OtlpSpan
 {
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
@@ -540,19 +540,19 @@ public sealed record OtlpSpan
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
 
-public sealed record OtlpStatus
+internal sealed record OtlpStatus
 {
     public int? Code { get; init; }
     public string? Message { get; init; }
 }
 
-public sealed record OtlpKeyValue
+internal sealed record OtlpKeyValue
 {
     public string? Key { get; init; }
     public OtlpAnyValue? Value { get; init; }
 }
 
-public sealed record OtlpAnyValue
+internal sealed record OtlpAnyValue
 {
     public string? StringValue { get; init; }
     public long? IntValue { get; init; }
@@ -567,7 +567,7 @@ public sealed record OtlpAnyValue
 /// <summary>
 ///     Parsed span data with promoted GenAI attributes.
 /// </summary>
-public sealed class ParsedSpan
+internal sealed class ParsedSpan
 {
     public TraceId TraceId { get; set; }
     public SpanId SpanId { get; set; }
@@ -621,7 +621,7 @@ public sealed class ParsedSpan
 /// <summary>
 ///     OTel span kind enumeration.
 /// </summary>
-public enum SpanKind : byte
+internal enum SpanKind : byte
 {
     Unspecified = 0,
     Internal = 1,
@@ -634,7 +634,7 @@ public enum SpanKind : byte
 /// <summary>
 ///     OTel span status code enumeration.
 /// </summary>
-public enum StatusCode : byte
+internal enum StatusCode : byte
 {
     Unset = 0,
     Ok = 1,
@@ -645,23 +645,23 @@ public enum StatusCode : byte
 // OTLP LOGS JSON DTOs
 // =============================================================================
 
-public sealed record OtlpExportLogsServiceRequest
+internal sealed record OtlpExportLogsServiceRequest
 {
     public List<OtlpResourceLogs>? ResourceLogs { get; init; }
 }
 
-public sealed record OtlpResourceLogs
+internal sealed record OtlpResourceLogs
 {
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeLogs>? ScopeLogs { get; init; }
 }
 
-public sealed record OtlpScopeLogs
+internal sealed record OtlpScopeLogs
 {
     public List<OtlpLogRecord>? LogRecords { get; init; }
 }
 
-public sealed record OtlpLogRecord
+internal sealed record OtlpLogRecord
 {
     public ulong TimeUnixNano { get; init; }
     public ulong ObservedTimeUnixNano { get; init; }

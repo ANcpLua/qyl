@@ -11,7 +11,7 @@ namespace qyl.collector.Ingestion;
 ///     High-performance OTLP/JSON span parser. Zero allocation on hot path.
 ///     Designed for streaming ingestion via System.Threading.Channels.
 /// </summary>
-public ref struct OtlpJsonSpanParser
+internal ref struct OtlpJsonSpanParser
 {
     private Utf8JsonReader _reader;
 
