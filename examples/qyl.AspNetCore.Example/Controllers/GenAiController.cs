@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using qyl.AspNetCore.Example.Models.Telemetry;
 using qyl.AspNetCore.Example.Telemetry;
@@ -21,7 +20,7 @@ public class GenAiController : ControllerBase
     {
         var spanData = request ?? CreateSampleData();
 
-        using var activity = AppTelemetry.Source.StartActivity("GenAI.Process");
+        using var activity = AppTelemetry.Source.StartActivity("GenAI.Process", System.Diagnostics.ActivityKind.Internal);
         activity?.SetTag(OTelSemconv.OperationName, spanData.OperationName);
         activity?.SetTag(OTelSemconv.ProviderName, spanData.ProviderName);
         activity?.SetTag(OTelSemconv.RequestModel, spanData.RequestModel);

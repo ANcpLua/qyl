@@ -18,7 +18,7 @@
  * - Crosshair reduces "time to answer" for incident response
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // ============================================
@@ -85,11 +85,10 @@ interface CandleProps {
   x: number;
   width: number;
   yScale: (value: number) => number;
-  maxY: number;
   isHighlighted: boolean;
 }
 
-function Candle({ candle, x, width, yScale, maxY, isHighlighted }: CandleProps) {
+function Candle({ candle, x, width, yScale, isHighlighted }: CandleProps) {
   const isUp = candle.p95 >= candle.p50; // Green if p95 > p50 (normal), red if inverted
   const bodyTop = yScale(Math.max(candle.p50, candle.p95));
   const bodyBottom = yScale(Math.min(candle.p50, candle.p95));
@@ -148,12 +147,11 @@ interface VolumeBarProps {
   candle: LatencyCandle;
   x: number;
   width: number;
-  yScale: (value: number) => number;
   maxVolume: number;
   height: number;
 }
 
-function VolumeBar({ candle, x, width, yScale, maxVolume, height }: VolumeBarProps) {
+function VolumeBar({ candle, x, width, maxVolume, height }: VolumeBarProps) {
   const barHeight = (candle.requests / maxVolume) * height;
   const hasErrors = candle.errors > 5;
 
@@ -322,13 +320,12 @@ function Legend() {
 // ============================================
 
 interface YAxisProps {
-  height: number;
   maxValue: number;
   ticks: number;
   suffix?: string;
 }
 
-function YAxis({ height, maxValue, ticks, suffix = 'ms' }: YAxisProps) {
+function YAxis({ maxValue, ticks, suffix = 'ms' }: YAxisProps) {
   const tickValues = useMemo(() => {
     const values: number[] = [];
     for (let i = 0; i <= ticks; i++) {
@@ -427,7 +424,7 @@ export function TradingTraceViewer() {
       {/* Chart Container */}
       <div className="relative flex">
         {/* Y-Axis */}
-        <YAxis height={chartHeight} maxValue={maxLatency} ticks={5} />
+        <YAxis maxValue={maxLatency} ticks={5} />
 
         {/* Main Chart */}
         <div className="relative">
@@ -478,7 +475,6 @@ export function TradingTraceViewer() {
                   x={i * candleWidth}
                   width={candleWidth}
                   yScale={yScale}
-                  maxY={chartHeight}
                   isHighlighted={crosshair?.dataIndex === i}
                 />
               ))}
@@ -505,7 +501,6 @@ export function TradingTraceViewer() {
                   candle={candle}
                   x={i * candleWidth}
                   width={candleWidth}
-                  yScale={yScale}
                   maxVolume={maxVolume}
                   height={volumeHeight}
                 />

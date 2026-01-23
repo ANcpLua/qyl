@@ -311,7 +311,7 @@ internal sealed class SpanBuilder
             StatusCode = _statusCode,
             StatusMessage = _statusMessage,
             ServiceName = _serviceName,
-            GenAiSystem = _genAiSystem,
+            GenAiProviderName = _genAiSystem,
             GenAiRequestModel = _genAiRequestModel,
             GenAiResponseModel = _genAiResponseModel,
             GenAiInputTokens = _genAiInputTokens,

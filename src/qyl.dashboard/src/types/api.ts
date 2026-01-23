@@ -946,6 +946,11 @@ export interface components {
         /** @description Primitive attribute value types supported by OpenTelemetry */
         "Qyl.Common.AttributeValue": string | boolean | number | string[] | boolean[] | number[] | number[];
         /**
+         * Format: double
+         * @description Cost in USD (floating point)
+         */
+        "Qyl.Common.CostUsd": number;
+        /**
          * Format: int64
          * @description Generic non-negative counter
          */
@@ -1101,6 +1106,11 @@ export interface components {
          * @example b7ad6b7169203331
          */
         "Qyl.Common.SpanId": string;
+        /**
+         * Format: double
+         * @description Temperature setting for LLM requests (0.0-2.0)
+         */
+        "Qyl.Common.Temperature": number;
         /**
          * Format: int64
          * @description Token count (for LLM operations)
@@ -2475,6 +2485,68 @@ export interface components {
             services: string[];
             /** @description Whether trace contains errors */
             has_error: boolean;
+        };
+        /** @description OpenTelemetry span record for storage and query */
+        "Qyl.Storage.SpanRecord": {
+            /** @description Unique span identifier */
+            spanId: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Trace identifier */
+            traceId: components["schemas"]["Qyl.Common.TraceId"];
+            /** @description Parent span identifier (null for root spans) */
+            parentSpanId?: components["schemas"]["Qyl.Common.SpanId"];
+            /** @description Session identifier for grouping related traces */
+            sessionId?: components["schemas"]["Qyl.Common.SessionId"];
+            /** @description Human-readable span name */
+            name: string;
+            /** @description Span kind */
+            kind: components["schemas"]["Qyl.OTel.Enums.SpanKind"];
+            /**
+             * Format: int64
+             * @description Start timestamp in nanoseconds since epoch
+             */
+            startTimeUnixNano: number;
+            /**
+             * Format: int64
+             * @description End timestamp in nanoseconds since epoch
+             */
+            endTimeUnixNano: number;
+            /** @description Duration in nanoseconds */
+            durationNs: components["schemas"]["Qyl.Common.DurationNs"];
+            /** @description Span status code */
+            statusCode: components["schemas"]["Qyl.OTel.Enums.SpanStatusCode"];
+            /** @description Status message (only for ERROR status) */
+            statusMessage?: string;
+            /** @description Service name from resource attributes */
+            serviceName?: string;
+            /** @description GenAI provider name (e.g., openai, anthropic) - OTel 1.39: gen_ai.provider.name */
+            genAiProviderName?: string;
+            /** @description Requested model name */
+            genAiRequestModel?: string;
+            /** @description Actual response model name */
+            genAiResponseModel?: string;
+            /** @description Input/prompt tokens */
+            genAiInputTokens?: components["schemas"]["Qyl.Common.TokenCount"];
+            /** @description Output/completion tokens */
+            genAiOutputTokens?: components["schemas"]["Qyl.Common.TokenCount"];
+            /** @description Request temperature */
+            genAiTemperature?: components["schemas"]["Qyl.Common.Temperature"];
+            /** @description Response finish reason */
+            genAiStopReason?: string;
+            /** @description Tool name for tool calls */
+            genAiToolName?: string;
+            /** @description Tool call ID */
+            genAiToolCallId?: string;
+            /** @description Estimated cost in USD */
+            genAiCostUsd?: components["schemas"]["Qyl.Common.CostUsd"];
+            /** @description All span attributes as JSON */
+            attributesJson?: string;
+            /** @description Resource attributes as JSON */
+            resourceJson?: string;
+            /**
+             * Format: date-time
+             * @description Row creation timestamp
+             */
+            createdAt?: string;
         };
         /** @description Service details */
         ServiceDetails: {
@@ -4819,7 +4891,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @description List of items in this page */
-                        items: components["schemas"]["Qyl.OTel.Traces.Span"][];
+                        items: components["schemas"]["Qyl.Storage.SpanRecord"][];
                         /** @description Cursor for the next page (null if no more pages) */
                         next_cursor?: string;
                         /** @description Cursor for the previous page (null if first page) */

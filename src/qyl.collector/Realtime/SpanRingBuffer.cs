@@ -27,7 +27,7 @@ public sealed class SpanRingBuffer
 
     public void Push(SpanRecord span)
     {
-        ArgumentNullException.ThrowIfNull(span);
+        Throw.IfNull(span);
         lock (_lock)
         {
             _buffer[_head] = span;
@@ -39,12 +39,11 @@ public sealed class SpanRingBuffer
 
     public void PushRange(IEnumerable<SpanRecord> spans)
     {
-        ArgumentNullException.ThrowIfNull(spans);
+        Throw.IfNull(spans);
         lock (_lock)
         {
             foreach (var span in spans)
             {
-                if (span is null) continue;
                 _buffer[_head] = span;
                 _head = (_head + 1) % _capacity;
                 if (_count < _capacity) _count++;
@@ -59,7 +58,7 @@ public sealed class SpanRingBuffer
         {
             generation = _generation;
             var take = Math.Min(count, _count);
-            if (take == 0) return [];
+            if (take is 0) return [];
             var result = new SpanRecord[take];
             var idx = (_head - 1 + _capacity) % _capacity;
             for (var i = 0; i < take; i++) {
@@ -75,7 +74,7 @@ public sealed class SpanRingBuffer
         lock (_lock)
         {
             generation = _generation;
-            if (_count == 0) return [];
+            if (_count is 0) return [];
             var results = new List<SpanRecord>(Math.Min(maxCount, _count));
             var idx = (_head - 1 + _capacity) % _capacity;
             var scanned = 0;
@@ -113,7 +112,7 @@ public sealed class SpanRingBuffer
         lock (_lock)
         {
             generation = _generation;
-            if (_count == 0) return [];
+            if (_count is 0) return [];
             var result = new SpanRecord[_count];
             var startIdx = _count < _capacity ? 0 : _head;
             for (var i = 0; i < _count; i++) {

@@ -2,16 +2,15 @@
     <!-- Import root props -->
     <Import Project="../Directory.Build.props"/>
 
-    <!-- Relaxed settings for examples -->
+    <!-- Example apps should demonstrate best practices -->
     <PropertyGroup>
         <DefaultTargetFrameworkForExampleApps>net10.0</DefaultTargetFrameworkForExampleApps>
         <TargetFramework Condition="'$(TargetFramework)' == ''">net10.0</TargetFramework>
         <IsPackable>false</IsPackable>
         <IsAotCompatible>false</IsAotCompatible>
-        <!-- Examples don't need strict warnings -->
-        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-        <WarningsAsErrors></WarningsAsErrors>
-        <!-- Disable BannedApi for examples -->
+        <!-- Examples SHOULD have strict warnings to demonstrate best practices -->
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <!-- Only suppress BannedApi (examples may use simpler patterns) -->
         <NoWarn>$(NoWarn);RS0030;RS0031</NoWarn>
     </PropertyGroup>
 

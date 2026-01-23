@@ -282,9 +282,10 @@ app.MapPost("/v1/logs", async (
 });
 
 app.MapPost("/api/v1/feedback", () => Results.Accepted());
-app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string _) =>
+app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
     Results.Ok(new
     {
+        sessionId,
         feedback = Array.Empty<object>()
     }));
 

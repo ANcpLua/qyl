@@ -4,11 +4,8 @@
     <!-- Import parent Directory.Build.props for consistent analyzer configuration -->
     <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))"/>
 
-    <!-- Build-specific overrides (Nuke build automation) -->
+    <!-- Build tooling - no special suppressions, fix everything -->
     <PropertyGroup>
-        <!-- Nuke uses reflection and dynamic patterns, relax some rules -->
-        <NoWarn>$(NoWarn);CA1822;CS0649;CS0169;CA1050;CA2211;IDE1006;IL2026;IL3050;CS1591</NoWarn>
-        <!-- Build tooling doesn't need AOT compatibility -->
         <IsAotCompatible>false</IsAotCompatible>
     </PropertyGroup>
 

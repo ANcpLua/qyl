@@ -10,7 +10,7 @@
  * - 3: Command Center (glances-style)
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TuiSystemMonitor, TradingTraceViewer, CommandCenter } from '@/components/godlike';
 

@@ -38,7 +38,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
                               COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
                               COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN gen_ai_system IS NOT NULL THEN 1 END) AS genai_request_count,
+                              COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
                               COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
                               LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
                           FROM spans
@@ -71,7 +71,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
                               COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
                               COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN gen_ai_system IS NOT NULL THEN 1 END) AS genai_request_count,
+                              COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
                               COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
                               LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
                           FROM spans
@@ -139,9 +139,9 @@ public sealed class SessionQueryService(DuckDbStore store)
             .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
             .SelectSum(SpanColumn.GenAiOutputTokens, "output_tokens")
             .Select("COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost")
-            .SelectDistinctList(SpanColumn.GenAiSystem, "providers")
+            .SelectDistinctList(SpanColumn.GenAiProviderName, "providers")
             .SelectDistinctList(SpanColumn.GenAiRequestModel, "models")
-            .WhereNotNull(SpanColumn.GenAiSystem)
+            .WhereNotNull(SpanColumn.GenAiProviderName)
             .WhereOptional(SpanColumn.SessionId, 1)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
@@ -179,7 +179,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         CancellationToken ct = default)
     {
         var sql = SpanQueryBuilder.Create()
-            .Select(SpanColumn.GenAiSystem)
+            .Select(SpanColumn.GenAiProviderName)
             .Select(SpanColumn.GenAiRequestModel)
             .SelectCount("call_count")
             .SelectSum(SpanColumn.GenAiInputTokens, "input_tokens")
@@ -188,9 +188,9 @@ public sealed class SessionQueryService(DuckDbStore store)
             .Select("AVG(duration_ns / 1000000.0) AS avg_latency_ms")
             .SelectPercentile(SpanColumn.Column("duration_ns / 1000000.0"), 0.95, "p95_latency_ms")
             .Select("SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0.0 END) / COUNT(*) * 100 AS error_rate")
-            .WhereNotNull(SpanColumn.GenAiSystem)
+            .WhereNotNull(SpanColumn.GenAiProviderName)
             .WhereRaw("($1::UBIGINT IS NULL OR start_time_unix_nano >= $1)")
-            .GroupBy(SpanColumn.GenAiSystem)
+            .GroupBy(SpanColumn.GenAiProviderName)
             .GroupBy(SpanColumn.GenAiRequestModel)
             .OrderByDesc("call_count")
             .LimitParam(2)
@@ -314,7 +314,7 @@ public sealed class SessionQueryService(DuckDbStore store)
     {
         var builder = SpanQueryBuilder.Create()
             .SelectAll()
-            .WhereNotNull(SpanColumn.GenAiSystem);
+            .WhereNotNull(SpanColumn.GenAiProviderName);
 
         if (sessionId is not null)
             builder = builder.WhereEq(SpanColumn.SessionId, 1);

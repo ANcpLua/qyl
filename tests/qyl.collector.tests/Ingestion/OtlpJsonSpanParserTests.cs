@@ -199,8 +199,6 @@ public sealed class OtlpJsonSpanParserTests
 
     // Valid 16-char hex span IDs for OTLP
     private const string ParentSpanIdHex = "b7ad6b7169203331";
-    private const string ChildSpan1IdHex = "b7ad6b7169203332";
-    private const string ChildSpan2IdHex = "b7ad6b7169203333";
 
     private const string MultipleSpansOtlpRequest = """
                                                     {

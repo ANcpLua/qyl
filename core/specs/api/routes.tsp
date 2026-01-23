@@ -22,6 +22,7 @@ import "../domains/observe/exceptions.tsp";
 import "../domains/ops/deployment.tsp";
 import "../domains/ops/cicd.tsp";
 import "../domains/identity/user.tsp";
+import "../otel/storage.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.Rest;
@@ -35,6 +36,7 @@ using Qyl.OTel.Traces;
 using Qyl.OTel.Logs;
 using Qyl.OTel.Metrics;
 using Qyl.OTel.Enums;
+using Qyl.Storage;
 using Qyl.Domains.Observe.Session;
 using Qyl.Domains.Observe.Log;
 using Qyl.Domains.Observe.Error;
@@ -124,7 +126,7 @@ interface TracesApi {
     @path traceId: TraceId,
     @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
     @query @doc("Cursor") cursor?: string,
-  ): CursorPage<Span> | NotFoundError | InternalServerError;
+  ): CursorPage<SpanRecord> | NotFoundError | InternalServerError;
 
   @doc("Search traces")
   @post

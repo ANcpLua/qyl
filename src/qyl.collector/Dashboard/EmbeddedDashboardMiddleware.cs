@@ -117,15 +117,16 @@ public sealed partial class EmbeddedDashboardMiddleware
         }
     }
 
+    private const string ResourcePrefix = "qyl.collector.wwwroot.";
+
     private FrozenDictionary<string, CachedResource> LoadEmbeddedResources()
     {
         var resources = new Dictionary<string, CachedResource>(StringComparer.OrdinalIgnoreCase);
         var assembly = typeof(EmbeddedDashboardMiddleware).Assembly;
-        var prefix = "qyl.collector.wwwroot.";
 
         foreach (var name in assembly.GetManifestResourceNames())
         {
-            if (!name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            if (!name.StartsWith(ResourcePrefix, StringComparison.OrdinalIgnoreCase))
                 continue;
 
             if (assembly.GetManifestResourceStream(name) is not { } stream) continue;
@@ -134,7 +135,7 @@ public sealed partial class EmbeddedDashboardMiddleware
             _ = stream.Read(content, 0, content.Length);
 
             // Extract path from resource name
-            var path = name[prefix.Length..].Replace('.', '/');
+            var path = name[ResourcePrefix.Length..].Replace('.', '/');
             // Fix extension (last dot should be a dot, not slash)
             var lastSlash = path.LastIndexOf('/');
             if (lastSlash > 0)

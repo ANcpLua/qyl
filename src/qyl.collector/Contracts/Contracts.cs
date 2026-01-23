@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+
 namespace qyl.collector.Contracts;
 
 public sealed record SpanDto
@@ -28,11 +30,11 @@ public sealed record SpanDto
 
     public string? ServiceVersion { get; init; }
 
-    public Dictionary<string, object?> Attributes { get; init; } = [];
+    public IReadOnlyDictionary<string, object?> Attributes { get; init; } = ImmutableDictionary<string, object?>.Empty;
 
-    public List<SpanEventDto> Events { get; init; } = [];
+    public IReadOnlyList<SpanEventDto> Events { get; init; } = [];
 
-    public List<SpanLinkDto> Links { get; init; } = [];
+    public IReadOnlyList<SpanLinkDto> Links { get; init; } = [];
 
     [JsonPropertyName("genai")] public GenAiSpanDataDto? GenAi { get; init; }
 }
@@ -41,14 +43,14 @@ public sealed record SpanEventDto
 {
     public required string Name { get; init; }
     public required string Timestamp { get; init; }
-    public Dictionary<string, object?>? Attributes { get; init; }
+    public IReadOnlyDictionary<string, object?>? Attributes { get; init; }
 }
 
 public sealed record SpanLinkDto
 {
     public required string TraceId { get; init; }
     public required string SpanId { get; init; }
-    public Dictionary<string, object?>? Attributes { get; init; }
+    public IReadOnlyDictionary<string, object?>? Attributes { get; init; }
 }
 
 public sealed record GenAiSpanDataDto
@@ -91,15 +93,15 @@ public sealed record SessionDto
     public required long ErrorCount { get; init; }
     public required double ErrorRate { get; init; }
 
-    public required List<string> Services { get; init; }
+    public required IReadOnlyList<string> Services { get; init; }
 
-    public required List<string> TraceIds { get; init; }
+    public required IReadOnlyList<string> TraceIds { get; init; }
 
     public bool IsActive { get; init; }
 
     [JsonPropertyName("genaiStats")] public required SessionGenAiStatsDto GenAiStats { get; init; }
 
-    public Dictionary<string, object?>? Attributes { get; init; }
+    public IReadOnlyDictionary<string, object?>? Attributes { get; init; }
 }
 
 public sealed record SessionGenAiStatsDto
@@ -113,29 +115,29 @@ public sealed record SessionGenAiStatsDto
 
     public long ToolCallCount { get; init; }
 
-    public List<string> Models { get; init; } = [];
+    public IReadOnlyList<string> Models { get; init; } = [];
 
-    public List<string> Providers { get; init; } = [];
+    public IReadOnlyList<string> Providers { get; init; } = [];
 
     public string? PrimaryModel { get; init; }
 }
 
 public sealed record SessionListResponseDto
 {
-    public required List<SessionDto> Sessions { get; init; }
+    public required IReadOnlyList<SessionDto> Sessions { get; init; }
     public required int Total { get; init; }
     public required bool HasMore { get; init; }
 }
 
 public sealed record SpanListResponseDto
 {
-    public required List<SpanDto> Spans { get; init; }
+    public required IReadOnlyList<SpanDto> Spans { get; init; }
 }
 
 public sealed record TraceResponseDto
 {
     public string? TraceId { get; init; }
-    public required List<SpanDto> Spans { get; init; }
+    public required IReadOnlyList<SpanDto> Spans { get; init; }
     public SpanDto? RootSpan { get; init; }
     public double? DurationMs { get; init; }
     public string? Status { get; init; }
@@ -143,5 +145,5 @@ public sealed record TraceResponseDto
 
 public sealed record SpanBatchDto
 {
-    public required List<SpanDto> Spans { get; init; }
+    public required IReadOnlyList<SpanDto> Spans { get; init; }
 }

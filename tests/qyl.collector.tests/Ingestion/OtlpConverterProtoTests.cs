@@ -93,7 +93,7 @@ public sealed class OtlpConverterProtoTests
         // Assert
         Assert.Single(spans);
         var span = spans[0];
-        Assert.Equal("openai", span.GenAiSystem);
+        Assert.Equal("openai", span.GenAiProviderName);
         Assert.Equal("gpt-4", span.GenAiRequestModel);
         Assert.Equal("gpt-4-0613", span.GenAiResponseModel);
         Assert.Equal(100L, span.GenAiInputTokens);
@@ -147,7 +147,7 @@ public sealed class OtlpConverterProtoTests
     }
 
     [Fact]
-    public void ConvertProtoToStorageRows_WithDeprecatedGenAiSystem_ExtractsProviderName()
+    public void ConvertProtoToStorageRows_WithDeprecatedGenAiProviderName_ExtractsProviderName()
     {
         // Arrange - test deprecated attribute fallback
         var request = CreateProtoRequest("trace", "span", "chat");
@@ -163,7 +163,7 @@ public sealed class OtlpConverterProtoTests
 
         // Assert
         var span = spans[0];
-        Assert.Equal("anthropic", span.GenAiSystem);
+        Assert.Equal("anthropic", span.GenAiProviderName);
     }
 
     [Fact]

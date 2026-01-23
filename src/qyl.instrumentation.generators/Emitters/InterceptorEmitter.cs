@@ -72,7 +72,6 @@ internal static class InterceptorEmitter
         var methodId = GetMethodId(target);
         var isTask = target.ReturnType.Contains("Task");
         var isVoid = target.ReturnType == "void" || target.ReturnType == "System.Void";
-        ExtractTaskInnerType(target.ReturnType);
 
         sb.AppendLine($"""
                 /// <summary>Intercepts {target.ContainingType}.{target.MethodName}</summary>
@@ -206,19 +205,10 @@ internal static class InterceptorEmitter
 
     private static string FormatParameters(ParameterInfo[] parameters)
     {
-        if (parameters.Length == 0) return "";
+        if (parameters.Length is 0) return "";
         return ", " + string.Join(", ", parameters.Select(static p => $"{p.Type} @{p.Name}"));
     }
 
     private static string FormatArguments(IEnumerable<ParameterInfo> parameters)
         => string.Join(", ", parameters.Select(static p => $"@{p.Name}"));
-
-    private static string ExtractTaskInnerType(string returnType)
-    {
-        if (returnType.StartsWith("System.Threading.Tasks.Task<", StringComparison.Ordinal))
-            return returnType.Substring(28, returnType.Length - 29);
-        if (returnType.StartsWith("Task<", StringComparison.Ordinal))
-            return returnType.Substring(5, returnType.Length - 6);
-        return returnType.StartsWith("ValueTask<", StringComparison.Ordinal) ? returnType.Substring(10, returnType.Length - 11) : returnType;
-    }
 }

@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Mvc;
 using qyl.AspNetCore.Example.Models.Telemetry;
@@ -23,7 +22,7 @@ public class OrdersController : ControllerBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        using var activity = AppTelemetry.Source.StartActivity("Order.Create");
+        using var activity = AppTelemetry.Source.StartActivity("Order.Create", System.Diagnostics.ActivityKind.Internal);
 
         Log.ProcessingOrderRequest(_logger);
 
@@ -42,7 +41,7 @@ public class OrdersController : ControllerBase
     [HttpGet("{orderId:int}")]
     public ActionResult<Order> Get(int orderId)
     {
-        using var activity = AppTelemetry.Source.StartActivity("Order.Get");
+        using var activity = AppTelemetry.Source.StartActivity("Order.Get", System.Diagnostics.ActivityKind.Internal);
 
         var order = BuildOrder(orderId);
 

@@ -284,7 +284,7 @@ public sealed partial record SpanStorageRow
     public string? ServiceName { get; init; }
 
     // GenAI attributes (OTel 1.39 - gen_ai.system is the provider name)
-    public string? GenAiSystem { get; init; }
+    public string? GenAiProviderName { get; init; }
     public string? GenAiRequestModel { get; init; }
     public string? GenAiResponseModel { get; init; }
     public long? GenAiInputTokens { get; init; } // BIGINT

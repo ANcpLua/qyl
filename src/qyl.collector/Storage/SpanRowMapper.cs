@@ -38,7 +38,7 @@ public static class SpanRowMapper
             StatusCode = reader.Col("status_code").GetByte(0),
             StatusMessage = reader.Col("status_message").AsString,
             ServiceName = reader.Col("service_name").AsString,
-            GenAiSystem = reader.Col("gen_ai_system").AsString,
+            GenAiProviderName = reader.Col("gen_ai_provider_name").AsString,
             GenAiRequestModel = reader.Col("gen_ai_request_model").AsString,
             GenAiResponseModel = reader.Col("gen_ai_response_model").AsString,
             GenAiInputTokens = reader.Col("gen_ai_input_tokens").AsInt64,

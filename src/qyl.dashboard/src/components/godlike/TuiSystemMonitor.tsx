@@ -12,45 +12,14 @@
  * The "secret sauce" is Information Density + High Contrast
  */
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 // ============================================
 // BRAILLE SPARKLINE - The "God Mode" of TUI charts
 // Uses Unicode Braille patterns for 2x4 pixel resolution per character
+// Note: valueToBraille function available for future use - see git history
 // ============================================
-
-const BRAILLE_BASE = 0x2800; // Unicode Braille base
-const BRAILLE_DOTS = [
-  [0x01, 0x08], // Row 0: dots 1,4
-  [0x02, 0x10], // Row 1: dots 2,5
-  [0x04, 0x20], // Row 2: dots 3,6
-  [0x40, 0x80], // Row 3: dots 7,8
-];
-
-function valueToBraille(values: number[], height: number = 4): string {
-  if (values.length === 0) return '';
-
-  const max = Math.max(...values, 1);
-  const normalized = values.map(v => Math.floor((v / max) * (height * 2)));
-
-  let result = '';
-  for (let i = 0; i < normalized.length; i += 2) {
-    let charCode = BRAILLE_BASE;
-    const left = normalized[i] || 0;
-    const right = normalized[i + 1] || 0;
-
-    for (let row = 0; row < height; row++) {
-      const threshold = (height - row) * 2;
-      if (left >= threshold) charCode |= BRAILLE_DOTS[row]?.[0] ?? 0;
-      if (left >= threshold - 1) charCode |= BRAILLE_DOTS[row]?.[0] ?? 0;
-      if (right >= threshold) charCode |= BRAILLE_DOTS[row]?.[1] ?? 0;
-      if (right >= threshold - 1) charCode |= BRAILLE_DOTS[row]?.[1] ?? 0;
-    }
-    result += String.fromCharCode(charCode);
-  }
-  return result;
-}
 
 // Simple block-based sparkline (more visible)
 function valueToBlocks(values: number[]): string {

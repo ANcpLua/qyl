@@ -64,7 +64,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         var names = columns.ConvertAll(static c => c.Name);
         Assert.Contains("service_name", names);
         Assert.Contains("session_id", names);
-        Assert.Contains("gen_ai_system", names);
+        Assert.Contains("gen_ai_provider_name", names);
         Assert.Contains("gen_ai_input_tokens", names);
         Assert.Contains("gen_ai_output_tokens", names);
         Assert.Contains("start_time_unix_nano", names);
@@ -73,10 +73,10 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task InitializeAsync_CreatesSessions_And_LogsTables()
+    public async Task InitializeAsync_CreatesSessionEntities_And_LogsTables()
     {
         // Act & Assert
-        Assert.True(await _store.Connection.TableExistsAsync("sessions"));
+        Assert.True(await _store.Connection.TableExistsAsync("session_entities"));
         Assert.True(await _store.Connection.TableExistsAsync("logs"));
     }
 
@@ -133,7 +133,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal(TestConstants.TraceDefault, retrieved.TraceId);
         Assert.Equal(TestConstants.SpanDefault, retrieved.SpanId);
         Assert.Equal(TestConstants.SessionDefault, retrieved.SessionId);
-        Assert.Equal(TestConstants.ProviderOpenAi, retrieved.GenAiSystem);
+        Assert.Equal(TestConstants.ProviderOpenAi, retrieved.GenAiProviderName);
         Assert.Equal(TestConstants.TokensInDefault, retrieved.GenAiInputTokens);
         Assert.Equal(TestConstants.TokensOutDefault, retrieved.GenAiOutputTokens);
         Assert.Equal(TestConstants.CostDefault, retrieved.GenAiCostUsd);
@@ -221,7 +221,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.Equal((byte)0, retrieved.Kind);
         Assert.Equal((byte)0, retrieved.StatusCode);
         Assert.Null(retrieved.SessionId);
-        Assert.Null(retrieved.GenAiSystem);
+        Assert.Null(retrieved.GenAiProviderName);
         Assert.Null(retrieved.GenAiInputTokens);
         Assert.Null(retrieved.GenAiOutputTokens);
         Assert.Null(retrieved.GenAiCostUsd);
@@ -414,7 +414,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         Assert.All(results, static s =>
         {
             Assert.Equal(TestConstants.SessionFilters, s.SessionId);
-            Assert.Equal(TestConstants.ProviderOpenAi, s.GenAiSystem);
+            Assert.Equal(TestConstants.ProviderOpenAi, s.GenAiProviderName);
         });
 
         // Act - Date range filter (convert DateTime to ulong nanoseconds)
@@ -812,7 +812,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         // Act: Query genai columns - using LIKE workaround for DuckDB.NET bug
         await using var cmd = _store.Connection.CreateCommand();
         cmd.CommandText = """
-                          SELECT gen_ai_system, gen_ai_request_model, gen_ai_input_tokens, gen_ai_output_tokens
+                          SELECT gen_ai_provider_name, gen_ai_request_model, gen_ai_input_tokens, gen_ai_output_tokens
                           FROM spans WHERE session_id LIKE '%genai-session%'
                           """;
 

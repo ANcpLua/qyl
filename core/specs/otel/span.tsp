@@ -23,8 +23,6 @@ namespace Qyl.OTel.Traces;
 // =============================================================================
 
 @doc("OpenTelemetry Span representing a single operation in a distributed trace")
-@TypeSpec.OpenAPI.extension("x-duckdb-table", "spans")
-@TypeSpec.OpenAPI.extension("x-csharp-type", "SpanStorageRow")
 model Span {
   @doc("Unique span identifier (16 hex chars)")
   @key

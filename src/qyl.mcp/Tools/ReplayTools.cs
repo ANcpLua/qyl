@@ -107,14 +107,14 @@ public sealed class ReplayTools
             foreach (var span in sortedSpans)
             {
                 var durationMs = span.DurationNs / 1_000_000.0;
-                var isGenAi = !string.IsNullOrEmpty(span.GenAiSystem);
+                var isGenAi = !string.IsNullOrEmpty(span.GenAiProviderName);
 
                 sb.AppendLine($"## {span.Name}");
                 sb.AppendLine($"- Duration: {durationMs:F1}ms");
 
                 if (isGenAi)
                 {
-                    sb.AppendLine($"- Provider: {span.GenAiSystem}");
+                    sb.AppendLine($"- Provider: {span.GenAiProviderName}");
                     sb.AppendLine($"- Model: {span.GenAiRequestModel}");
                     if (span.GenAiInputTokens > 0 || span.GenAiOutputTokens > 0)
                         sb.AppendLine($"- Tokens: {span.GenAiInputTokens} in / {span.GenAiOutputTokens} out");
@@ -186,7 +186,7 @@ public sealed class ReplayTools
                     var durationMs = span.DurationNs / 1_000_000.0;
                     sb.AppendLine($"{indent}- **{span.Name}** ({durationMs:F1}ms)");
 
-                    if (!string.IsNullOrEmpty(span.GenAiSystem))
+                    if (!string.IsNullOrEmpty(span.GenAiProviderName))
                         sb.AppendLine($"{indent}  Model: {span.GenAiRequestModel}");
                 }
             }
@@ -241,9 +241,9 @@ public sealed class ReplayTools
                 sb.AppendLine($"- Duration: {durationMs:F1}ms");
                 sb.AppendLine($"- Message: {span.StatusMessage ?? "No message"}");
 
-                if (!string.IsNullOrEmpty(span.GenAiSystem))
+                if (!string.IsNullOrEmpty(span.GenAiProviderName))
                 {
-                    sb.AppendLine($"- Provider: {span.GenAiSystem}");
+                    sb.AppendLine($"- Provider: {span.GenAiProviderName}");
                     sb.AppendLine($"- Model: {span.GenAiRequestModel}");
                 }
 
@@ -302,8 +302,8 @@ internal sealed record SpanDto(
     int StatusCode,
     [property: JsonPropertyName("status_message")]
     string? StatusMessage,
-    [property: JsonPropertyName("gen_ai_system")]
-    string? GenAiSystem,
+    [property: JsonPropertyName("gen_ai_provider_name")]
+    string? GenAiProviderName,
     [property: JsonPropertyName("gen_ai_request_model")]
     string? GenAiRequestModel,
     [property: JsonPropertyName("gen_ai_input_tokens")]

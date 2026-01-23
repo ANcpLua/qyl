@@ -5,6 +5,13 @@
        Uses ANcpLua.NET.Sdk for shared infrastructure
        ======================================================================= -->
 
+  <!-- Suppress warnings FIRST before any other imports -->
+  <PropertyGroup>
+    <!-- AL0018: Version.props not imported - we use CPM instead -->
+    <!-- RS0030: Generated code from Microsoft.Extensions.Configuration.Binder uses banned API -->
+    <NoWarn>$(NoWarn);AL0018;RS0030</NoWarn>
+  </PropertyGroup>
+
   <!-- Central Package Management (native .NET 8+) -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
@@ -33,10 +40,6 @@
     <AnalysisMode>Recommended</AnalysisMode>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarningsAsErrors>CA1816;CA2012;CA2016;VSTHRD100;VSTHRD002;VSTHRD003</WarningsAsErrors>
-    <!-- NU1604: SDK implicit JonSkeet.RoslynAnalyzers conflicts with CPM (known limitation) -->
-    <!-- AL0017/AL0018: Remove after ANcpLua.Analyzers 1.10.3+ with CPM detection is released -->
-    <!-- RS0030: Source generators use banned APIs (ArgumentNullException.ThrowIfNull) -->
-    <NoWarn>$(NoWarn);NU1604;AL0017;AL0018;RS0030</NoWarn>
   </PropertyGroup>
 
   <!-- AOT -->

@@ -77,9 +77,8 @@ public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposab
     {
         try
         {
-            if (props.Headers?.TryGetValue(key, out var value) is true)
+            if (props.Headers?.TryGetValue(key, out var value) is true && value is byte[] bytes)
             {
-                var bytes = (byte[])value!;
                 return [Encoding.UTF8.GetString(bytes)];
             }
         }

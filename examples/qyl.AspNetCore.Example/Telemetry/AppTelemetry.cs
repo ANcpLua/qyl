@@ -45,7 +45,7 @@ public static class AppTelemetry
             "ms",
             "Order processing duration in milliseconds");
 
-    // Gen AI Metrics (OTel 1.38)
+    // Gen AI Metrics (OTel 1.39)
     public static readonly Histogram<long> GenAiTokenUsage =
         Meter.CreateHistogram<long>(
             "gen_ai.client.token.usage",

@@ -61,10 +61,11 @@ public static partial class SseExtensions
             await enumerator.DisposeAsync().ConfigureAwait(false);
         }
 
-        // Emit error event outside the catch clause
-        if (caughtException is not null && errorFactory is not null)
+        // Emit error event outside the catch clause - caughtException is always set when reaching here
+        // but we check it explicitly to satisfy flow analysis
+        if (caughtException is { } caught && errorFactory is not null)
         {
-            yield return new SseItem<T>(errorFactory(caughtException), "error");
+            yield return new SseItem<T>(errorFactory(caught), "error");
         }
     }
 

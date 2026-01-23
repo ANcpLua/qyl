@@ -30,7 +30,7 @@ if (builder.Environment.IsProduction())
                 options.EnrichWithHttpRequestMessage = (activity, httpRequestMessage) =>
                 {
                     activity.SetTag("http.request.header.user-agent",
-                        httpRequestMessage.Headers.UserAgent?.ToString());
+                        httpRequestMessage.Headers.UserAgent.ToString());
                 };
             }))
         .UseAzureMonitor(options => { options.Credential = new DefaultAzureCredential(); });

@@ -70,7 +70,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     [Fact]
     public async Task PostTraces_NullResourceSpans_ReturnsBadRequest()
     {
-        var json = "{}";
+        const string json = "{}";
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync("/v1/traces", content);
@@ -129,7 +129,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     [Fact]
     public async Task PostIngest_EmptyBatch_ReturnsBadRequest()
     {
-        var json = """{"spans": []}""";
+        const string json = """{"spans": []}""";
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await _client.PostAsync("/api/v1/ingest", content);
@@ -316,7 +316,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
             status_message = span.StatusMessage,
             service_name = span.ServiceName,
             session_id = span.SessionId,
-            gen_ai_system = span.GenAiSystem,
+            gen_ai_provider_name = span.GenAiProviderName,
             gen_ai_request_model = span.GenAiRequestModel,
             gen_ai_response_model = span.GenAiResponseModel,
             gen_ai_input_tokens = span.GenAiInputTokens,

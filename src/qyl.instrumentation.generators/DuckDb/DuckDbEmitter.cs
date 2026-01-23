@@ -74,7 +74,7 @@ internal static class DuckDbEmitter
             if (i > 0)
             {
                 sb.Append(", ");
-                if (i % 4 == 0)
+                if (i % 4 is 0)
                 {
                     sb.AppendLine();
                     sb.Append("        ");

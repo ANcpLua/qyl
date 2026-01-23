@@ -15,7 +15,7 @@
  * The key insight: Information density + keyboard-first = power user experience
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Activity,
@@ -29,7 +29,6 @@ import {
   MemoryStick,
   Network,
   Server,
-  Wifi,
   XCircle,
   Zap,
 } from 'lucide-react';
@@ -122,7 +121,7 @@ function DecryptedText({ text, className, scrambleDuration = 500 }: DecryptedTex
       const maxIterations = 10;
 
       const interval = setInterval(() => {
-        setDisplayText(prev =>
+        setDisplayText(
           text
             .split('')
             .map((char, index) => {

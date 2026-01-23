@@ -20,7 +20,7 @@ public static class SpanMapper
             StatusCode = (SpanStatusCode)row.StatusCode,
             StatusMessage = row.StatusMessage,
             ServiceName = row.ServiceName,
-            GenAiSystem = row.GenAiSystem,
+            GenAiProviderName = row.GenAiProviderName,
             GenAiRequestModel = row.GenAiRequestModel,
             GenAiResponseModel = row.GenAiResponseModel,
             GenAiInputTokens = (int?)row.GenAiInputTokens,
@@ -164,12 +164,12 @@ public static class SpanMapper
     private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record)
     {
         if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
-            string.IsNullOrEmpty(record.GenAiSystem))
+            string.IsNullOrEmpty(record.GenAiProviderName))
             return null;
 
         return new GenAiSpanDataDto
         {
-            ProviderName = record.GenAiSystem,
+            ProviderName = record.GenAiProviderName,
             OperationName = ExtractOperationName(record.Name),
             RequestModel = record.GenAiRequestModel,
             ResponseModel = record.GenAiResponseModel,
@@ -187,12 +187,12 @@ public static class SpanMapper
     private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
     {
         if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
-            string.IsNullOrEmpty(record.GenAiSystem))
+            string.IsNullOrEmpty(record.GenAiProviderName))
             return null;
 
         return new GenAiSpanDataDto
         {
-            ProviderName = record.GenAiSystem,
+            ProviderName = record.GenAiProviderName,
             OperationName = ExtractOperationName(record.Name),
             RequestModel = record.GenAiRequestModel,
             ResponseModel = record.GenAiResponseModel,

@@ -5,8 +5,9 @@
 // It is a flattened view optimized for database storage, not the OTel wire format.
 // =============================================================================
 
-using System;
 using System.Text.Json.Serialization;
+using Qyl.Common;
+using Qyl.OTel.Enums;
 
 namespace Qyl.Models;
 
@@ -18,19 +19,19 @@ public sealed record SpanRecord
 {
     /// <summary>Unique span identifier</summary>
     [JsonPropertyName("span_id")]
-    public required Qyl.Common.SpanId SpanId { get; init; }
+    public required SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("trace_id")]
-    public required Qyl.Common.TraceId TraceId { get; init; }
+    public required TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parent_span_id")]
-    public Qyl.Common.SpanId? ParentSpanId { get; init; }
+    public SpanId? ParentSpanId { get; init; }
 
     /// <summary>Session identifier for grouping related traces</summary>
     [JsonPropertyName("session_id")]
-    public Qyl.Common.SessionId? SessionId { get; init; }
+    public SessionId? SessionId { get; init; }
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]
@@ -38,7 +39,7 @@ public sealed record SpanRecord
 
     /// <summary>Span kind</summary>
     [JsonPropertyName("kind")]
-    public required Qyl.OTel.Enums.SpanKind Kind { get; init; }
+    public required SpanKind Kind { get; init; }
 
     /// <summary>Start timestamp in nanoseconds since epoch</summary>
     [JsonPropertyName("start_time_unix_nano")]
@@ -54,7 +55,7 @@ public sealed record SpanRecord
 
     /// <summary>Status code</summary>
     [JsonPropertyName("status_code")]
-    public required Qyl.OTel.Enums.SpanStatusCode StatusCode { get; init; }
+    public required SpanStatusCode StatusCode { get; init; }
 
     /// <summary>Status message</summary>
     [JsonPropertyName("status_message")]
@@ -67,8 +68,8 @@ public sealed record SpanRecord
     // === GenAI Promoted Fields ===
 
     /// <summary>GenAI system/provider name (e.g., "openai", "anthropic")</summary>
-    [JsonPropertyName("gen_ai_system")]
-    public string? GenAiSystem { get; init; }
+    [JsonPropertyName("gen_ai_provider_name")]
+    public string? GenAiProviderName { get; init; }
 
     /// <summary>Requested model name</summary>
     [JsonPropertyName("gen_ai_request_model")]

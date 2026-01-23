@@ -45,10 +45,8 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
     {
         var request = BuildRequest(messages, options, true);
 
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/chat")
-        {
-            Content = JsonContent.Create(request, OllamaJsonContext.Default.OllamaChatRequest)
-        };
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/chat");
+        httpRequest.Content = JsonContent.Create(request, OllamaJsonContext.Default.OllamaChatRequest);
 
         using var response =
             await _http.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
@@ -112,12 +110,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
                 })
             ],
             Stream = stream,
-            Options = options?.Temperature is { } temp
-                ? new OllamaOptions
-                {
-                    Temperature = temp
-                }
-                : null
+            Options = options?.Temperature is { } temp ? new OllamaOptions { Temperature = temp } : null
         };
     }
 }

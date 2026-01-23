@@ -296,7 +296,7 @@ public sealed class McpServer
             Content = new McpContent
             {
                 Type = "text",
-                Text = spans.Count == 0
+                Text = spans.Count is 0
                     ? "No spans found matching the criteria."
                     : JsonSerializer.Serialize(spans, _jsonOptions)
             }
@@ -348,7 +348,7 @@ public sealed class McpServer
             limit: limit,
             ct: ct);
 
-        if (spans.Count == 0)
+        if (spans.Count is 0)
         {
             return new McpResponse
             {
@@ -370,7 +370,7 @@ public sealed class McpServer
                 s.Name,
                 s.StatusMessage,
                 s.ServiceName,
-                s.GenAiSystem,
+                s.GenAiProviderName,
                 s.GenAiRequestModel,
                 DurationMs = s.DurationNs / 1_000_000.0,
                 Timestamp = DateTimeOffset.FromUnixTimeMilliseconds((long)(s.StartTimeUnixNano / 1_000_000))

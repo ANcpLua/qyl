@@ -34,7 +34,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                                           span_id, trace_id, parent_span_id, session_id,
                                           name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
                                           status_code, status_message, service_name,
-                                          gen_ai_system, gen_ai_request_model, gen_ai_response_model,
+                                          gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                           gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                           gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
                                           gen_ai_cost_usd, attributes_json, resource_json
@@ -64,7 +64,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                                              span_id, trace_id, parent_span_id, session_id,
                                              name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
                                              status_code, status_message, service_name,
-                                             gen_ai_system, gen_ai_request_model, gen_ai_response_model,
+                                             gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                              gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                              gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
                                              gen_ai_cost_usd, attributes_json, resource_json, created_at
@@ -115,7 +115,9 @@ public sealed class DuckDbStore : IAsyncDisposable
             FullMode = BoundedChannelFullMode.DropOldest, SingleReader = true, SingleWriter = false
         });
 
-        _readPolicy = new ReadConnectionPolicy(databasePath);
+        // For in-memory databases, share the write connection for reads (DuckDB isolation issue)
+        // Each :memory: connection creates a separate isolated database instance
+        _readPolicy = new ReadConnectionPolicy(databasePath, _isInMemory ? Connection : null);
         _readPool = new DefaultObjectPool<DuckDBConnection>(_readPolicy, maxRetainedReadConnections);
         _readGate = new SemaphoreSlim(maxConcurrentReads, maxConcurrentReads);
 
@@ -306,7 +308,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         if (!string.IsNullOrEmpty(providerName))
         {
-            conditions.Add($"gen_ai_system = ${paramIndex++}");
+            conditions.Add($"gen_ai_provider_name = ${paramIndex++}");
             parameters.Add(new DuckDBParameter
             {
                 Value = providerName
@@ -388,7 +390,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         cmd.CommandText = """
                           SELECT
                               (SELECT COUNT(*) FROM spans) as span_count,
-                              (SELECT COUNT(*) FROM sessions) as session_count,
+                              (SELECT COUNT(*) FROM session_entities) as session_count,
                               (SELECT COUNT(*) FROM logs) as log_count,
                               (SELECT MIN(start_time_unix_nano) FROM spans) as oldest_span,
                               (SELECT MAX(start_time_unix_nano) FROM spans) as newest_span
@@ -420,7 +422,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var conditions = new List<string>
         {
-            "gen_ai_system IS NOT NULL"
+            "gen_ai_provider_name IS NOT NULL"
         };
         var parameters = new List<DuckDBParameter>();
         var paramIndex = 1;
@@ -941,7 +943,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         // GenAI fields (10 columns)
         cmd.Parameters.Add(new DuckDBParameter
         {
-            Value = span.GenAiSystem ?? (object)DBNull.Value
+            Value = span.GenAiProviderName ?? (object)DBNull.Value
         });
         cmd.Parameters.Add(new DuckDBParameter
         {
@@ -1140,7 +1142,9 @@ public sealed class DuckDbStore : IAsyncDisposable
     /// </summary>
     private static void ValidateArchiveDirectory(string outputDirectory)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        Throw.IfNull(outputDirectory);
+        if (string.IsNullOrWhiteSpace(outputDirectory))
+            throw new ArgumentException("Value cannot be null or whitespace.", nameof(outputDirectory));
 
         // Block path traversal sequences before canonicalization
         if (outputDirectory.Contains("..") || outputDirectory.Contains('\0'))
@@ -1165,7 +1169,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
     }
 
-    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) != 0, this);
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Read(ref _disposed) is not 0, this);
 
     // ==========================================================================
     // Nested Types
@@ -1277,16 +1281,23 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         private readonly ConcurrentBag<DuckDBConnection> _created = new();
         private readonly string _path;
+        private readonly DuckDBConnection? _sharedConnection;
 
-        public ReadConnectionPolicy(string path) => _path = path;
+        public ReadConnectionPolicy(string path, DuckDBConnection? sharedConnection = null)
+        {
+            _path = path;
+            _sharedConnection = sharedConnection;
+        }
 
         public override DuckDBConnection Create()
         {
-            // In-memory databases cannot use READ_ONLY mode
-            var connString = _path == ":memory:"
-                ? $"DataSource={_path}"
-                : $"DataSource={_path};ACCESS_MODE=READ_ONLY";
+            // For in-memory databases, reuse the shared (write) connection
+            // Each :memory: connection creates a separate isolated database instance
+            if (_sharedConnection is not null)
+                return _sharedConnection;
 
+            // For file-based databases, create read-only connections
+            var connString = $"DataSource={_path};ACCESS_MODE=READ_ONLY";
             var con = new DuckDBConnection(connString);
             con.Open();
             _created.Add(con);

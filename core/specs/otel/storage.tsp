@@ -22,7 +22,6 @@ namespace Qyl.Storage;
 // SpanRecord - Primary Storage Model
 // =============================================================================
 
-@jsonSchema
 @doc("OpenTelemetry span record for storage and query")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "spans")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "SpanRecord")
@@ -173,7 +172,6 @@ model SpanRecord {
 // SessionSummary - Aggregated View
 // =============================================================================
 
-@jsonSchema
 @doc("Session summary with aggregated metrics")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "sessions")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "SessionSummary")
@@ -229,7 +227,6 @@ model SessionSummary {
 // LogRecordStorage - Log Storage Model
 // =============================================================================
 
-@jsonSchema
 @doc("OpenTelemetry log record for storage and query")
 @TypeSpec.OpenAPI.extension("x-duckdb-table", "logs")
 @TypeSpec.OpenAPI.extension("x-csharp-type", "LogRecordStorage")

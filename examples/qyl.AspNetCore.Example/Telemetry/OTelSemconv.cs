@@ -3,7 +3,7 @@ using System.Collections.Frozen;
 namespace qyl.AspNetCore.Example.Telemetry;
 
 /// <summary>
-///     OpenTelemetry Semantic Conventions v1.38 - Gen AI Attributes
+///     OpenTelemetry Semantic Conventions v1.39 - Gen AI Attributes
 ///     This demonstrates the pattern from qyl's generated code:
 ///     - String constants for attribute keys
 ///     - UTF-8 spans for zero-allocation parsing
@@ -16,7 +16,7 @@ public static class OTelSemconv
     public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // Gen AI Attribute Keys (OTel 1.38)
+    // Gen AI Attribute Keys (OTel 1.39)
     // ═══════════════════════════════════════════════════════════════════════════
 
     // Core
@@ -44,7 +44,7 @@ public static class OTelSemconv
     public const string UsageInputTokens = "gen_ai.usage.input_tokens";
     public const string UsageOutputTokens = "gen_ai.usage.output_tokens";
 
-    // Agent (NEW in 1.38)
+    // Agent (added in 1.38, supported in 1.39)
     public const string AgentId = "gen_ai.agent.id";
     public const string AgentName = "gen_ai.agent.name";
     public const string AgentDescription = "gen_ai.agent.description";
@@ -73,11 +73,7 @@ public static class OTelSemconv
     // Prefix Matching for Gen AI Attributes
     // ═══════════════════════════════════════════════════════════════════════════
 
-    /// <summary>
-    ///     Prefixes for Gen AI and Agent attributes.
-    /// </summary>
-    private static readonly FrozenSet<string> GenAiAndAgentPrefixes =
-        FrozenSet.ToFrozenSet(["gen_ai.", "agents."]);
+    // Prefix matching using direct string checks - see IsGenAiOrAgentAttribute methods below
 
     // ═══════════════════════════════════════════════════════════════════════════
     // Deprecated Attribute Migrations

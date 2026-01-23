@@ -2799,7 +2799,7 @@ paths:
                   items:
                     type: array
                     items:
-                      $ref: '#/components/schemas/Qyl.OTel.Traces.Span'
+                      $ref: '#/components/schemas/Qyl.Storage.SpanRecord'
                     description: List of items in this page
                   next_cursor:
                     type: string
@@ -3282,6 +3282,13 @@ components:
         - type: string
           contentEncoding: base64
       description: Primitive attribute value types supported by OpenTelemetry
+    Qyl.Common.CostUsd:
+      type: number
+      format: double
+      minimum: 0
+      description: Cost in USD (floating point)
+      x-csharp-type: double
+      x-duckdb-type: DOUBLE
     Qyl.Common.Count:
       type: integer
       format: int64
@@ -3560,6 +3567,14 @@ components:
       x-csharp-type: SpanId
       x-csharp-struct: true
       x-duckdb-type: VARCHAR(16)
+    Qyl.Common.Temperature:
+      type: number
+      format: double
+      minimum: 0
+      maximum: 2
+      description: Temperature setting for LLM requests (0.0-2.0)
+      x-csharp-type: double
+      x-duckdb-type: DOUBLE
     Qyl.Common.TokenCount:
       type: integer
       format: int64
@@ -5827,8 +5842,6 @@ components:
             - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
           description: Instrumentation scope
       description: OpenTelemetry Span representing a single operation in a distributed trace
-      x-csharp-type: SpanStorageRow
-      x-duckdb-table: spans
     Qyl.OTel.Traces.SpanEvent:
       type: object
       required:
@@ -5948,6 +5961,159 @@ components:
           type: boolean
           description: Whether trace contains errors
       description: Complete trace containing all related spans
+    Qyl.Storage.SpanRecord:
+      type: object
+      required:
+        - spanId
+        - traceId
+        - name
+        - kind
+        - startTimeUnixNano
+        - endTimeUnixNano
+        - durationNs
+        - statusCode
+      properties:
+        spanId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Unique span identifier
+          x-duckdb-primary-key: true
+          x-duckdb-column: span_id
+        traceId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TraceId'
+          description: Trace identifier
+          x-duckdb-index: idx_spans_trace_id
+          x-duckdb-column: trace_id
+        parentSpanId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SpanId'
+          description: Parent span identifier (null for root spans)
+          x-duckdb-column: parent_span_id
+        sessionId:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.SessionId'
+          description: Session identifier for grouping related traces
+          x-promoted: true
+          x-duckdb-index: idx_spans_session_id
+          x-duckdb-column: session_id
+        name:
+          type: string
+          minLength: 1
+          description: Human-readable span name
+          x-duckdb-column: name
+        kind:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanKind'
+          description: Span kind
+          x-duckdb-column: kind
+        startTimeUnixNano:
+          type: integer
+          format: int64
+          description: Start timestamp in nanoseconds since epoch
+          x-duckdb-index: idx_spans_start_time
+          x-duckdb-column: start_time_unix_nano
+        endTimeUnixNano:
+          type: integer
+          format: int64
+          description: End timestamp in nanoseconds since epoch
+          x-duckdb-column: end_time_unix_nano
+        durationNs:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.DurationNs'
+          description: Duration in nanoseconds
+          x-duckdb-column: duration_ns
+        statusCode:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.OTel.Enums.SpanStatusCode'
+          description: Span status code
+          x-duckdb-column: status_code
+        statusMessage:
+          type: string
+          description: Status message (only for ERROR status)
+          x-duckdb-column: status_message
+        serviceName:
+          type: string
+          description: Service name from resource attributes
+          x-promoted: true
+          x-duckdb-index: idx_spans_service_name
+          x-duckdb-column: service_name
+        genAiProviderName:
+          type: string
+          description: 'GenAI provider name (e.g., openai, anthropic) - OTel 1.39: gen_ai.provider.name'
+          x-promoted: true
+          x-duckdb-index: idx_spans_gen_ai_provider_name
+          x-duckdb-column: gen_ai_provider_name
+        genAiRequestModel:
+          type: string
+          description: Requested model name
+          x-promoted: true
+          x-duckdb-index: idx_spans_gen_ai_request_model
+          x-duckdb-column: gen_ai_request_model
+        genAiResponseModel:
+          type: string
+          description: Actual response model name
+          x-promoted: true
+          x-duckdb-column: gen_ai_response_model
+        genAiInputTokens:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TokenCount'
+          description: Input/prompt tokens
+          x-promoted: true
+          x-duckdb-column: gen_ai_input_tokens
+        genAiOutputTokens:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.TokenCount'
+          description: Output/completion tokens
+          x-promoted: true
+          x-duckdb-column: gen_ai_output_tokens
+        genAiTemperature:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.Temperature'
+          description: Request temperature
+          x-promoted: true
+          x-duckdb-column: gen_ai_temperature
+        genAiStopReason:
+          type: string
+          description: Response finish reason
+          x-promoted: true
+          x-duckdb-column: gen_ai_stop_reason
+        genAiToolName:
+          type: string
+          description: Tool name for tool calls
+          x-promoted: true
+          x-duckdb-column: gen_ai_tool_name
+        genAiToolCallId:
+          type: string
+          description: Tool call ID
+          x-promoted: true
+          x-duckdb-column: gen_ai_tool_call_id
+        genAiCostUsd:
+          allOf:
+            - $ref: '#/components/schemas/Qyl.Common.CostUsd'
+          description: Estimated cost in USD
+          x-promoted: true
+          x-duckdb-column: gen_ai_cost_usd
+        attributesJson:
+          type: string
+          description: All span attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: attributes_json
+        resourceJson:
+          type: string
+          description: Resource attributes as JSON
+          x-duckdb-type: VARCHAR
+          x-duckdb-column: resource_json
+        createdAt:
+          type: string
+          format: date-time
+          description: Row creation timestamp
+          x-internal: true
+          x-duckdb-type: TIMESTAMP DEFAULT now()
+          x-duckdb-column: created_at
+      description: OpenTelemetry span record for storage and query
+      x-csharp-type: SpanRecord
+      x-duckdb-table: spans
     ServiceDetails:
       type: object
       required:

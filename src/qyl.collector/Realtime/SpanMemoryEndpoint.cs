@@ -61,7 +61,7 @@ public static class SpanMemoryEndpoints
     {
         var spans = buffer.GetByTraceId(traceId, out var generation);
 
-        if (spans.Length == 0)
+        if (spans.Length is 0)
         {
             return Results.Ok(new TraceFromMemoryResponse
             {
@@ -117,7 +117,7 @@ public static class SpanMemoryEndpoints
             Capacity = buffer.Capacity,
             Generation = buffer.Generation,
             UtilizationPercent = buffer.Capacity > 0
-                ? Math.Round(100.0 * buffer.Count / buffer.Capacity, 2)
+                ? Math.Round(100.0 * buffer.Count / buffer.Capacity, 2, MidpointRounding.ToEven)
                 : 0
         });
     }

@@ -42,7 +42,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 DuckDbTableAttribute,
                 predicate: static (node, _) => node is TypeDeclarationSyntax,
                 transform: static (ctx, _) => ExtractTableInfo(ctx))
-            .Where(static info => info is not null)
+            .Where(static info => info.HasValue)
             .Select(static (info, _) => info!.Value);
 
         // Generate code
@@ -118,7 +118,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             Namespace: typeSymbol.ContainingNamespace.ToDisplayString(),
             TypeName: typeSymbol.Name,
             TypeKind: typeDecl is RecordDeclarationSyntax ? "record" : "class",
-            TableName: tableName!,
+            TableName: tableName!, // Validated non-null above by string.IsNullOrEmpty check
             OnConflict: onConflict,
             Columns: columns.ToImmutableArray());
     }

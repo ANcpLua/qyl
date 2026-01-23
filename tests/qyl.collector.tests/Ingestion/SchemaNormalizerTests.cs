@@ -94,7 +94,7 @@ public sealed class SchemaNormalizerTests
     #region GenAI Provider Migration
 
     [Fact]
-    public void Normalize_GenAiSystem_MapsToProviderName()
+    public void Normalize_GenAiProviderName_MapsToProviderName()
     {
         // gen_ai.system → gen_ai.provider.name (deprecated since 1.37)
         var result = SchemaNormalizer.Normalize("gen_ai.system");
@@ -102,7 +102,7 @@ public sealed class SchemaNormalizerTests
     }
 
     [Fact]
-    public void IsDeprecated_GenAiSystem_ReturnsTrue() => Assert.True(SchemaNormalizer.IsDeprecated("gen_ai.system"));
+    public void IsDeprecated_GenAiProviderName_ReturnsTrue() => Assert.True(SchemaNormalizer.IsDeprecated("gen_ai.system"));
 
     [Fact]
     public void IsDeprecated_GenAiProviderName_ReturnsFalse() => Assert.False(SchemaNormalizer.IsDeprecated("gen_ai.provider.name"));

@@ -536,11 +536,11 @@ public static class SchemaGenerator
             if (!table.Properties.Any(static p => p.Name == "createdAt"))
                 columns.Add("            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
-            sb.AppendLine(string.Join(",\n", columns));
-
+            // Add PRIMARY KEY as constraint if defined
             if (primaryKey is not null)
-                sb.AppendLine(CultureInfo.InvariantCulture, $"            PRIMARY KEY ({primaryKey})");
+                columns.Add($"            PRIMARY KEY ({primaryKey})");
 
+            sb.AppendLine(string.Join(",\n", columns));
             sb.AppendLine("        );");
             sb.AppendLine("        \"\"\";");
             sb.AppendLine();
@@ -611,6 +611,11 @@ public static class SchemaGenerator
             {
                 if (i > 0) sb.Append('_');
                 sb.Append(char.ToLowerInvariant(c));
+            }
+            else if (c == '.')
+            {
+                // DuckDB doesn't support dots in column names - convert to underscore
+                sb.Append('_');
             }
             else
                 sb.Append(c);
