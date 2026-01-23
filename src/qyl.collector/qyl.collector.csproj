@@ -6,10 +6,15 @@
     <PublishAot>true</PublishAot>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- ConfigureAwait not needed in ASP.NET Core apps -->
-    <!-- NU1510: HealthChecks used via DI/abstractions, pruner can't detect -->
-    <NoWarn>$(NoWarn);CA2007;VSTHRD111;NU1510</NoWarn>
+    <!-- CA2007: ConfigureAwait not needed in ASP.NET Core apps (no SynchronizationContext) -->
+    <!-- NU1510: HealthChecks used via DI/abstractions, AOT pruner can't detect -->
+    <NoWarn>$(NoWarn);CA2007;NU1510</NoWarn>
   </PropertyGroup>
+
+  <!-- Expose internals to test project -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="qyl.collector.tests"/>
+  </ItemGroup>
 
   <!-- CLAUDE.md v2: Enable generation with rich metadata -->
   <!-- Set GenerateClaudeMd=true to enable auto-generation from these properties -->

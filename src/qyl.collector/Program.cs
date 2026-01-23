@@ -1200,5 +1200,5 @@ namespace qyl.collector
     [JsonSerializable(typeof(TraceFromMemoryResponse))]
     [JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
     [JsonSerializable(typeof(BufferStatsResponse))]
-    public partial class QylSerializerContext : JsonSerializerContext;
+    internal partial class QylSerializerContext : JsonSerializerContext;
 }

@@ -12,13 +12,13 @@ public sealed class OtlpJsonSpanParserTests
     #region SpanKind Parsing Tests
 
     [Theory]
-    [InlineData(0, SpanKind.Unspecified)]
-    [InlineData(1, SpanKind.Internal)]
-    [InlineData(2, SpanKind.Server)]
-    [InlineData(3, SpanKind.Client)]
-    [InlineData(4, SpanKind.Producer)]
-    [InlineData(5, SpanKind.Consumer)]
-    public void Parse_SpanKind_MapsCorrectly(int kindValue, SpanKind expected)
+    [InlineData(0, 0)] // SpanKind.Unspecified
+    [InlineData(1, 1)] // SpanKind.Internal
+    [InlineData(2, 2)] // SpanKind.Server
+    [InlineData(3, 3)] // SpanKind.Client
+    [InlineData(4, 4)] // SpanKind.Producer
+    [InlineData(5, 5)] // SpanKind.Consumer
+    public void Parse_SpanKind_MapsCorrectly(int kindValue, int expectedKindValue)
     {
         // Arrange
         var json = Encoding.UTF8.GetBytes($$"""
@@ -44,7 +44,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Assert
         Assert.Single(spans);
-        Assert.Equal(expected, spans[0].Kind);
+        Assert.Equal((SpanKind)expectedKindValue, spans[0].Kind);
     }
 
     #endregion
