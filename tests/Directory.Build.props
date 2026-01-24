@@ -11,6 +11,8 @@
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
         <IsAotCompatible>false</IsAotCompatible>
+        <!-- Tests don't need XML documentation -->
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
         <!-- Explicit for test projects - root props removed for SDK ownership but tests need these -->
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
