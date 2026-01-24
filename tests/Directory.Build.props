@@ -15,9 +15,8 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <!-- CA1707: Underscores in test method names are convention -->
-        <!-- VSTHRD111: Use .ConfigureAwait(bool) is not needed in test code -->
         <!-- xUnit1051: CancellationToken suggestion - not critical for tests -->
-        <NoWarn>$(NoWarn);CA1707;VSTHRD111;xUnit1051</NoWarn>
+        <NoWarn>$(NoWarn);CA1707;xUnit1051</NoWarn>
     </PropertyGroup>
 
     <!-- xUnit v3 with MTP v2 packages
