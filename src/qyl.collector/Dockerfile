@@ -32,6 +32,7 @@ COPY eng/ eng/
 # Copy project files for restore
 COPY src/qyl.protocol/*.csproj src/qyl.protocol/
 COPY src/qyl.collector/*.csproj src/qyl.collector/
+COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
 
 # Restore dependencies
 WORKDIR /src/src/qyl.collector
@@ -41,6 +42,7 @@ RUN dotnet restore
 WORKDIR /src
 COPY src/qyl.protocol/ src/qyl.protocol/
 COPY src/qyl.collector/ src/qyl.collector/
+COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
 
 # Publish
 WORKDIR /src/src/qyl.collector
