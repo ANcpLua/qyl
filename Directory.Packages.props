@@ -76,7 +76,7 @@
          Plain xunit.v3 uses MTP v1 which is incompatible with .NET 10 SDK. -->
     <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.1.0" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2" />
     <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
     <!-- Analyzers -->
     <!-- NOTE: The following packages are managed by ANcpLua.NET.Sdk (1.6.29):
