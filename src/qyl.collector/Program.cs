@@ -424,10 +424,7 @@ app.MapFallback(context =>
 
     context.Response.ContentType = "text/html";
     var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
-    if (File.Exists(indexPath))
-        return context.Response.SendFileAsync(indexPath);
-    else
-        return context.Response.WriteAsync(GetFallbackHtml());
+    return File.Exists(indexPath) ? context.Response.SendFileAsync(indexPath) : context.Response.WriteAsync(GetFallbackHtml());
 });
 
 // Note: Kestrel endpoints are configured via ConfigureKestrel above

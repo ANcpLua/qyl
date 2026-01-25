@@ -56,9 +56,10 @@ public sealed partial class HostClientAgent
                 tools.Add(agent.AsAIFunction());
             }
 
-            Agent = chatClient.CreateAIAgent(
-                "You specialize in handling queries for users and using your tools to provide answers.",
-                "HostClient",
+            Agent = new ChatClientAgent(
+                chatClient,
+                instructions: "You specialize in handling queries for users and using your tools to provide answers.",
+                name: "HostClient",
                 tools: tools);
 
             LogInitialized(tools.Count);
@@ -73,7 +74,7 @@ public sealed partial class HostClientAgent
     private async Task<AIAgent> GetRemoteAgentAsync(Uri baseUrl)
     {
         var agentCard = await A2ACardResolver.GetAgentCardAsync(baseUrl).ConfigureAwait(false);
-        return agentCard.GetAIAgent(loggerFactory: _loggerFactory);
+        return agentCard.AsAIAgent(loggerFactory: _loggerFactory);
     }
 }
 
@@ -193,7 +194,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         return metadata?.ProviderName ?? "UnknownAgent";
     }
 
-    public override async Task<AgentRunResponse> RunAsync(
+    protected override async Task<AgentResponse> RunCoreAsync(
         IEnumerable<ChatMessage> messages,
         AgentThread? thread = null,
         AgentRunOptions? options = null,
@@ -208,7 +209,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         var startTime = TimeProvider.System.GetTimestamp();
         try
         {
-            var response = await base.RunAsync(messages, thread, options, cancellationToken).ConfigureAwait(false);
+            var response = await base.RunCoreAsync(messages, thread, options, cancellationToken).ConfigureAwait(false);
             var elapsed = TimeProvider.System.GetElapsedTime(startTime);
 
             _collector.TrackAgentInvocation(_agentName, "RunAsync", elapsed);
@@ -232,7 +233,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         }
     }
 
-    public override async IAsyncEnumerable<AgentRunResponseUpdate> RunStreamingAsync(
+    protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
         IEnumerable<ChatMessage> messages,
         AgentThread? thread = null,
         AgentRunOptions? options = null,
@@ -246,7 +247,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
         var startTime = TimeProvider.System.GetTimestamp();
 
-        await foreach (var update in base.RunStreamingAsync(messages, thread, options, cancellationToken))
+        await foreach (var update in base.RunCoreStreamingAsync(messages, thread, options, cancellationToken))
             yield return update;
 
         var elapsed = TimeProvider.System.GetElapsedTime(startTime);
