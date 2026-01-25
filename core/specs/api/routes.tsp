@@ -812,11 +812,13 @@ model OperationInfo {
 interface HealthApi {
   @doc("Health check endpoint")
   @get
+  @operationId("health_check")
   check(): HealthResponse;
 
   @doc("Liveness probe")
   @get
   @route("/live")
+  @operationId("health_liveness")
   live(): {
     @statusCode statusCode: 200;
   } | {
@@ -826,6 +828,7 @@ interface HealthApi {
   @doc("Readiness probe")
   @get
   @route("/ready")
+  @operationId("health_readiness")
   ready(): {
     @statusCode statusCode: 200;
   } | {

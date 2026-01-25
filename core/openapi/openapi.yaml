@@ -17,7 +17,7 @@ tags:
 paths:
   /health:
     get:
-      operationId: HealthApi_check
+      operationId: health_check
       description: Health check endpoint
       parameters: []
       responses:
@@ -31,7 +31,7 @@ paths:
         - Health
   /health/live:
     get:
-      operationId: HealthApi_live
+      operationId: health_liveness
       description: Liveness probe
       parameters: []
       responses:
@@ -43,7 +43,7 @@ paths:
         - Health
   /health/ready:
     get:
-      operationId: HealthApi_ready
+      operationId: health_readiness
       description: Readiness probe
       parameters: []
       responses:
