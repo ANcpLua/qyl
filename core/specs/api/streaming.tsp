@@ -237,7 +237,7 @@ enum StreamEventType {
 // Streaming API Interfaces
 // =============================================================================
 
-@route("/v1/stream")
+@route("/api/v1/stream")
 @tag("Streaming")
 interface StreamingApi {
   @doc("Stream all telemetry events (SSE)")

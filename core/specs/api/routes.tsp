@@ -96,7 +96,7 @@ enum HealthStatus {
 // Traces API
 // =============================================================================
 
-@route("/v1/traces")
+@route("/api/v1/traces")
 @tag("Traces")
 interface TracesApi {
   @doc("List traces with pagination")
@@ -180,7 +180,7 @@ model TraceQuery {
 // Logs API
 // =============================================================================
 
-@route("/v1/logs")
+@route("/api/v1/logs")
 @tag("Logs")
 interface LogsApi {
   @doc("Query logs with filtering and pagination")
@@ -266,7 +266,7 @@ model LogAggregationBucket {
 // Metrics API
 // =============================================================================
 
-@route("/v1/metrics")
+@route("/api/v1/metrics")
 @tag("Metrics")
 interface MetricsApi {
   @doc("List available metrics")
@@ -371,7 +371,7 @@ model MetricDataPoint {
 // Sessions API
 // =============================================================================
 
-@route("/v1/sessions")
+@route("/api/v1/sessions")
 @tag("Sessions")
 interface SessionsApi {
   @doc("List sessions")
@@ -412,7 +412,7 @@ interface SessionsApi {
 // Errors API
 // =============================================================================
 
-@route("/v1/errors")
+@route("/api/v1/errors")
 @tag("Errors")
 interface ErrorsApi {
   @doc("List error groups")
@@ -473,7 +473,7 @@ model ErrorUpdate {
 // Exceptions API
 // =============================================================================
 
-@route("/v1/exceptions")
+@route("/api/v1/exceptions")
 @tag("Exceptions")
 interface ExceptionsApi {
   @doc("List exceptions")
@@ -502,7 +502,7 @@ interface ExceptionsApi {
 // Deployments API
 // =============================================================================
 
-@route("/v1/deployments")
+@route("/api/v1/deployments")
 @tag("Deployments")
 interface DeploymentsApi {
   @doc("List deployments")
@@ -630,7 +630,7 @@ enum DoraPerformanceLevel {
 // CI/CD API
 // =============================================================================
 
-@route("/v1/pipelines")
+@route("/api/v1/pipelines")
 @tag("CI/CD")
 interface PipelinesApi {
   @doc("List pipeline runs")
@@ -694,7 +694,7 @@ model PipelineStatusStats {
 // Services API
 // =============================================================================
 
-@route("/v1/services")
+@route("/api/v1/services")
 @tag("Services")
 interface ServicesApi {
   @doc("List discovered services")

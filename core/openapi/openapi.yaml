@@ -15,45 +15,7 @@ tags:
   - name: Services
   - name: Health
 paths:
-  /health:
-    get:
-      operationId: health_check
-      description: Health check endpoint
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
-      tags:
-        - Health
-  /health/live:
-    get:
-      operationId: health_liveness
-      description: Liveness probe
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-        '503':
-          description: Service unavailable.
-      tags:
-        - Health
-  /health/ready:
-    get:
-      operationId: health_readiness
-      description: Readiness probe
-      parameters: []
-      responses:
-        '200':
-          description: The request has succeeded.
-        '503':
-          description: Service unavailable.
-      tags:
-        - Health
-  /v1/deployments:
+  /api/v1/deployments:
     get:
       operationId: DeploymentsApi_list
       description: List deployments
@@ -228,7 +190,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DeploymentCreate'
-  /v1/deployments/metrics/dora:
+  /api/v1/deployments/metrics/dora:
     get:
       operationId: DeploymentsApi_getDoraMetrics
       description: Get DORA metrics
@@ -289,7 +251,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Deployments
-  /v1/deployments/{deploymentId}:
+  /api/v1/deployments/{deploymentId}:
     get:
       operationId: DeploymentsApi_get
       description: Get deployment by ID
@@ -417,7 +379,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/DeploymentUpdate'
-  /v1/errors:
+  /api/v1/errors:
     get:
       operationId: ErrorsApi_list
       description: List error groups
@@ -539,7 +501,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Errors
-  /v1/errors/stats:
+  /api/v1/errors/stats:
     get:
       operationId: ErrorsApi_getStats
       description: Get error statistics
@@ -593,7 +555,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Errors
-  /v1/errors/{errorId}:
+  /api/v1/errors/{errorId}:
     get:
       operationId: ErrorsApi_get
       description: Get error by ID
@@ -721,7 +683,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ErrorUpdate'
-  /v1/errors/{errorId}/correlations:
+  /api/v1/errors/{errorId}/correlations:
     get:
       operationId: ErrorsApi_getCorrelations
       description: Get error correlations
@@ -774,7 +736,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Errors
-  /v1/exceptions:
+  /api/v1/exceptions:
     get:
       operationId: ExceptionsApi_list
       description: List exceptions
@@ -896,7 +858,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Exceptions
-  /v1/exceptions/stats:
+  /api/v1/exceptions/stats:
     get:
       operationId: ExceptionsApi_getStats
       description: Get exception statistics
@@ -950,7 +912,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Exceptions
-  /v1/logs:
+  /api/v1/logs:
     get:
       operationId: LogsApi_list
       description: Query logs with filtering and pagination
@@ -1093,7 +1055,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Logs
-  /v1/logs/aggregate:
+  /api/v1/logs/aggregate:
     post:
       operationId: LogsApi_aggregate
       description: Aggregate logs
@@ -1147,7 +1109,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LogAggregationRequest'
-  /v1/logs/patterns:
+  /api/v1/logs/patterns:
     get:
       operationId: LogsApi_getPatterns
       description: Get log patterns
@@ -1211,7 +1173,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Logs
-  /v1/logs/search:
+  /api/v1/logs/search:
     post:
       operationId: LogsApi_search
       description: Search logs with complex query
@@ -1284,7 +1246,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Qyl.Domains.Observe.Log.LogQuery'
-  /v1/logs/stats:
+  /api/v1/logs/stats:
     get:
       operationId: LogsApi_getStats
       description: Get log statistics
@@ -1338,7 +1300,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Logs
-  /v1/metrics:
+  /api/v1/metrics:
     get:
       operationId: MetricsApi_list
       description: List available metrics
@@ -1420,7 +1382,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Metrics
-  /v1/metrics/query:
+  /api/v1/metrics/query:
     post:
       operationId: MetricsApi_query
       description: Query metric data points
@@ -1474,7 +1436,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/MetricQueryRequest'
-  /v1/metrics/{metricName}:
+  /api/v1/metrics/{metricName}:
     get:
       operationId: MetricsApi_getMetadata
       description: Get metric metadata
@@ -1527,7 +1489,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Metrics
-  /v1/pipelines:
+  /api/v1/pipelines:
     get:
       operationId: PipelinesApi_list
       description: List pipeline runs
@@ -1649,7 +1611,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - CI/CD
-  /v1/pipelines/stats:
+  /api/v1/pipelines/stats:
     get:
       operationId: PipelinesApi_getStats
       description: Get pipeline statistics
@@ -1703,7 +1665,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - CI/CD
-  /v1/services:
+  /api/v1/services:
     get:
       operationId: ServicesApi_list
       description: List discovered services
@@ -1778,7 +1740,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Services
-  /v1/services/{serviceName}:
+  /api/v1/services/{serviceName}:
     get:
       operationId: ServicesApi_get
       description: Get service details
@@ -1831,7 +1793,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Services
-  /v1/services/{serviceName}/dependencies:
+  /api/v1/services/{serviceName}/dependencies:
     get:
       operationId: ServicesApi_getDependencies
       description: Get service dependencies
@@ -1886,7 +1848,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Services
-  /v1/services/{serviceName}/operations:
+  /api/v1/services/{serviceName}/operations:
     get:
       operationId: ServicesApi_getOperations
       description: Get service operations
@@ -1974,7 +1936,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Services
-  /v1/sessions:
+  /api/v1/sessions:
     get:
       operationId: SessionsApi_list
       description: List sessions
@@ -2089,7 +2051,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Sessions
-  /v1/sessions/stats:
+  /api/v1/sessions/stats:
     get:
       operationId: SessionsApi_getStats
       description: Get session statistics
@@ -2136,7 +2098,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Sessions
-  /v1/sessions/{sessionId}:
+  /api/v1/sessions/{sessionId}:
     get:
       operationId: SessionsApi_get
       description: Get session by ID
@@ -2189,7 +2151,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Sessions
-  /v1/sessions/{sessionId}/traces:
+  /api/v1/sessions/{sessionId}/traces:
     get:
       operationId: SessionsApi_getTraces
       description: Get session traces
@@ -2277,7 +2239,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Sessions
-  /v1/stream/deployments:
+  /api/v1/stream/deployments:
     get:
       operationId: StreamingApi_streamDeployments
       description: Stream deployment events
@@ -2305,7 +2267,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/events:
+  /api/v1/stream/events:
     get:
       operationId: StreamingApi_streamEvents
       description: Stream all telemetry events (SSE)
@@ -2343,7 +2305,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/exceptions:
+  /api/v1/stream/exceptions:
     get:
       operationId: StreamingApi_streamExceptions
       description: Stream exceptions in real-time
@@ -2371,7 +2333,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/logs:
+  /api/v1/stream/logs:
     get:
       operationId: StreamingApi_streamLogs
       description: Stream logs in real-time
@@ -2407,7 +2369,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/metrics:
+  /api/v1/stream/metrics:
     get:
       operationId: StreamingApi_streamMetrics
       description: Stream metrics in real-time
@@ -2435,7 +2397,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/traces:
+  /api/v1/stream/traces:
     get:
       operationId: StreamingApi_streamTraces
       description: Stream traces in real-time
@@ -2464,7 +2426,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/stream/traces/{traceId}/spans:
+  /api/v1/stream/traces/{traceId}/spans:
     get:
       operationId: StreamingApi_streamTraceSpans
       description: Stream spans for a specific trace
@@ -2483,7 +2445,7 @@ paths:
                 type: string
       tags:
         - Streaming
-  /v1/traces:
+  /api/v1/traces:
     get:
       operationId: TracesApi_list
       description: List traces with pagination
@@ -2631,7 +2593,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Traces
-  /v1/traces/search:
+  /api/v1/traces/search:
     post:
       operationId: TracesApi_search
       description: Search traces
@@ -2704,7 +2666,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/TraceQuery'
-  /v1/traces/{traceId}:
+  /api/v1/traces/{traceId}:
     get:
       operationId: TracesApi_get
       description: Get a specific trace by ID
@@ -2757,7 +2719,7 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Traces
-  /v1/traces/{traceId}/spans:
+  /api/v1/traces/{traceId}/spans:
     get:
       operationId: TracesApi_getSpans
       description: Get spans for a trace
@@ -2847,6 +2809,44 @@ paths:
                 $ref: '#/components/schemas/Qyl.Common.Errors.InternalServerError'
       tags:
         - Traces
+  /health:
+    get:
+      operationId: health_check
+      description: Health check endpoint
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+      tags:
+        - Health
+  /health/live:
+    get:
+      operationId: health_liveness
+      description: Liveness probe
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+        '503':
+          description: Service unavailable.
+      tags:
+        - Health
+  /health/ready:
+    get:
+      operationId: health_readiness
+      description: Readiness probe
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+        '503':
+          description: Service unavailable.
+      tags:
+        - Health
 components:
   schemas:
     ApiVersions:
