@@ -324,6 +324,64 @@ test:
     coverage: nuke Coverage
 ```
 
+## documentation-map
+
+This project uses a modular documentation structure with 9 CLAUDE.md files (~1.820 lines total):
+
+```yaml
+root:
+  CLAUDE.md (353 lines):
+    purpose: Project identity + imports
+    scope: High-level overview, distribution, architecture
+
+cross-cutting-concerns:
+  .claude/rules/:
+    architecture-rules.md: Type ownership, dependencies, SSOT
+    coding-patterns.md: .NET 10, banned APIs, locking patterns
+    genai-semconv.md: OTel 1.39 GenAI semantic conventions
+    build-workflow.md: NUKE targets, Docker build
+    codegen.md: Generated code rules (never edit *.g.cs)
+    frontend.md: React 19, TypeScript guidelines
+
+schema:
+  core/CLAUDE.md (259 lines):
+    purpose: TypeSpec God Schema
+    scope: Extensions, codegen, file structure, compilation
+
+build:
+  eng/CLAUDE.md (227 lines):
+    purpose: NUKE Build System
+    scope: Target graph, architecture enforcement, dashboard embed
+
+testing:
+  tests/CLAUDE.md (133 lines):
+    purpose: Test Infrastructure
+    scope: xUnit v3, MTP, SpanBuilder patterns
+
+components:
+  src/qyl.collector/CLAUDE.md (236 lines):
+    purpose: Backend Runtime
+    scope: Ports, endpoints, storage, dashboard embedding
+
+  src/qyl.dashboard/CLAUDE.md (220 lines):
+    purpose: React 19 SPA
+    scope: Build contract, type generation, SSE consumption
+
+  src/qyl.instrumentation/CLAUDE.md (109 lines):
+    purpose: GenAI Instrumentation
+    scope: OTel 1.39, provider constants, span enrichment
+
+  src/qyl.mcp/CLAUDE.md (204 lines):
+    purpose: MCP Server
+    scope: Tools, Agents Framework, HTTP-only to collector
+
+  src/qyl.protocol/CLAUDE.md (180 lines):
+    purpose: BCL-only Leaf
+    scope: Scalars, enums, models, type ownership
+```
+
+**Navigation:** Check component CLAUDE.md files for deep context before making changes.
+
 ## specialized-agents
 
 For complex tasks, use domain-specific agents via the Task tool:
