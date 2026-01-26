@@ -2,6 +2,15 @@
 
 AI Observability Platform. Observe everything. Judge nothing. Document perfectly.
 
+## cross-cutting-rules
+
+See @.claude/rules/architecture-rules.md for type ownership and dependencies.
+See @.claude/rules/coding-patterns.md for .NET 10 patterns and banned APIs.
+See @.claude/rules/genai-semconv.md for OTel 1.39 GenAI semantic conventions.
+See @.claude/rules/build-workflow.md for NUKE targets and Docker build.
+See @.claude/rules/codegen.md for generated code rules (never edit *.g.cs).
+See @.claude/rules/frontend.md for React 19 and TypeScript guidelines.
+
 ## identity
 
 ```yaml
@@ -70,33 +79,33 @@ components:
 
 ## tech-stack
 
+> **Note**: Package versions listed below are for reference only and may become outdated.
+> For current versions, check Version.props, Directory.Packages.props, and package.json.
+
 ```yaml
 dotnet:
-    version: "10.0"
-    lang: "C# 14"
-    sdk: ANcpLua.NET.Sdk 1.6.26 (nuget.org)
+    runtime: .NET 10.0 (LTS)
+    lang: C# 14
+    sdk: ANcpLua.NET.Sdk (see Directory.Packages.props)
     sdk-variants:
         - ANcpLua.NET.Sdk        # libraries, console
         - ANcpLua.NET.Sdk.Web    # ASP.NET Core
         - ANcpLua.NET.Sdk.Test   # xUnit v3
-    analyzers: ANcpLua.Analyzers 1.10.2
-    roslyn-utilities: ANcpLua.Roslyn.Utilities 1.18.3
 
 packages:
     storage: DuckDB.NET.Data.Full
     grpc: Grpc.AspNetCore
     protobuf: Google.Protobuf
-    yaml: YamlDotNet (build-time only)
 
 frontend:
-    node: "22"
-    react: "19"
-    vite: "7"
-    tailwind: "4"
-    tanstack-query: "5"
-    radix-ui: latest
-    recharts: latest
-    lucide-react: icons
+    runtime: Node 22
+    framework: React 19
+    build: Vite 7
+    styling: Tailwind CSS 4
+    state: TanStack Query 5
+    components: Radix UI
+    charts: Recharts
+    icons: Lucide React
 
 testing:
     framework: xunit.v3 (3.2.2)
