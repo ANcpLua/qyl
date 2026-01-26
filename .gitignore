@@ -101,3 +101,13 @@ coverage/
 *.swp
 *.tmp
 *~
+
+# Claude-mem auto-generated CLAUDE.md files
+# Only keep manually curated CLAUDE.md files
+**/CLAUDE.md
+# Whitelist important component docs
+!CLAUDE.md
+!core/CLAUDE.md
+!eng/CLAUDE.md
+!tests/CLAUDE.md
+!src/qyl.*/CLAUDE.md
