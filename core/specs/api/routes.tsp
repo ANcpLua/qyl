@@ -57,13 +57,13 @@ namespace Qyl.Api;
 
 enum ApiVersions {
   @doc("Initial API version")
-  v1: "2024-01-01",
+  v1: "2025-12-01",
 
   @doc("GenAI observability additions")
-  v2: "2024-06-01",
+  v2: "2026-01-15",
 
   @doc("Full OTel v1.39 compliance")
-  v3: "2025-01-01",
+  v3: "2026-01-26",
 }
 
 // =============================================================================

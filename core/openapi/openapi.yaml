@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: QYL Observability API
-  version: '2025-01-01'
+  version: '2026-01-26'
 tags:
   - name: Streaming
   - name: Traces
@@ -2852,9 +2852,9 @@ components:
     ApiVersions:
       type: string
       enum:
-        - '2024-01-01'
-        - '2024-06-01'
-        - '2025-01-01'
+        - '2025-12-01'
+        - '2026-01-15'
+        - '2026-01-26'
     DeploymentCreate:
       type: object
       required:
