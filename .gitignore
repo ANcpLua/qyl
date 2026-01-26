@@ -46,6 +46,7 @@ packages/
 # Claude Code local files (keep agents/ for team sharing)
 .claude/*
 !.claude/agents/
+!.claude/rules/
 
 # Node.js / npm
 node_modules/
