@@ -314,3 +314,31 @@ test:
     all: dotnet test
     coverage: nuke Coverage
 ```
+
+## specialized-agents
+
+For complex tasks, use domain-specific agents via the Task tool:
+
+```yaml
+qyl-collector:
+  focus: OTLP ingestion, DuckDB, REST API, SSE
+  skills: [/docs-lookup, /review, systematic-debugging]
+  definition: .claude/agents/qyl-collector.md
+
+qyl-build:
+  focus: NUKE, TypeSpec, codegen, Docker
+  skills: [/slice-validate, /type-ownership]
+  definition: .claude/agents/qyl-build.md
+
+qyl-dashboard:
+  focus: React 19, real-time UI, TanStack
+  skills: [/frontend-design, brainstorming]
+  definition: .claude/agents/qyl-dashboard.md
+
+deep-think-partner:
+  focus: Complex reasoning, architecture decisions
+  model: opus (extended thinking)
+  definition: .claude/agents/deep-think-partner.md
+```
+
+When working on a component, invoke its specialist agent for focused expertise.
