@@ -31,12 +31,12 @@ const CHART_COLORS = {
     red: 'oklch(0.65 0.25 25)',
 };
 
-// Model-specific colors for bar charts
+// Model-specific colors for bar charts (2026 models)
 const MODEL_COLORS: Record<string, string> = {
-    'gpt-4o': CHART_COLORS.orange,
-    'gpt-4o-mini': CHART_COLORS.green,
-    'claude-3.5-sonnet': CHART_COLORS.violet,
-    'claude-3-haiku': CHART_COLORS.cyan,
+    'gpt-5.2-high': CHART_COLORS.orange,
+    'gpt-5.2': CHART_COLORS.green,
+    'claude-opus-4.5': CHART_COLORS.violet,
+    'gemini-3-pro': CHART_COLORS.cyan,
 };
 
 // Mock data for charts
@@ -71,10 +71,10 @@ const tokenUsageData = [
 ];
 
 const modelUsageData = [
-    {model: 'gpt-4o', requests: 450, tokens: 1250000, cost: 12.50},
-    {model: 'gpt-4o-mini', requests: 820, tokens: 890000, cost: 4.20},
-    {model: 'claude-3.5-sonnet', requests: 320, tokens: 780000, cost: 9.80},
-    {model: 'claude-3-haiku', requests: 150, tokens: 450000, cost: 1.20},
+    {model: 'gpt-5.2-high', requests: 450, tokens: 1250000, cost: 18.75},
+    {model: 'gpt-5.2', requests: 820, tokens: 890000, cost: 6.23},
+    {model: 'claude-opus-4.5', requests: 320, tokens: 780000, cost: 15.60},
+    {model: 'gemini-3-pro', requests: 150, tokens: 450000, cost: 2.25},
 ];
 
 interface StatCardProps {
