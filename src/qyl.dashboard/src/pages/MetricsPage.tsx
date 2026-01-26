@@ -184,24 +184,24 @@ export function MetricsPage() {
                             <div className="h-80">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart data={latencyData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.35 0 0)"/>
                                         <XAxis
                                             dataKey="time"
-                                            stroke="hsl(var(--muted-foreground))"
+                                            stroke="oklch(0.70 0 0)"
                                             fontSize={12}
                                         />
                                         <YAxis
-                                            stroke="hsl(var(--muted-foreground))"
+                                            stroke="oklch(0.70 0 0)"
                                             fontSize={12}
                                             tickFormatter={(value) => `${value}ms`}
                                         />
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: 'hsl(var(--card))',
-                                                border: '1px solid hsl(var(--border))',
+                                                backgroundColor: 'oklch(0.20 0 0)',
+                                                border: '1px solid oklch(0.35 0 0)',
                                                 borderRadius: '8px',
                                             }}
-                                            labelStyle={{color: 'hsl(var(--foreground))'}}
+                                            labelStyle={{color: 'oklch(0.97 0 0)'}}
                                         />
                                         <Legend/>
                                         <Line
@@ -244,20 +244,20 @@ export function MetricsPage() {
                             <div className="h-80">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={throughputData}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.35 0 0)"/>
                                         <XAxis
                                             dataKey="time"
-                                            stroke="hsl(var(--muted-foreground))"
+                                            stroke="oklch(0.70 0 0)"
                                             fontSize={12}
                                         />
                                         <YAxis
-                                            stroke="hsl(var(--muted-foreground))"
+                                            stroke="oklch(0.70 0 0)"
                                             fontSize={12}
                                         />
                                         <Tooltip
                                             contentStyle={{
-                                                backgroundColor: 'hsl(var(--card))',
-                                                border: '1px solid hsl(var(--border))',
+                                                backgroundColor: 'oklch(0.20 0 0)',
+                                                border: '1px solid oklch(0.35 0 0)',
                                                 borderRadius: '8px',
                                             }}
                                         />
@@ -293,21 +293,21 @@ export function MetricsPage() {
                                 <div className="h-64">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <AreaChart data={tokenUsageData}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.35 0 0)"/>
                                             <XAxis
                                                 dataKey="time"
-                                                stroke="hsl(var(--muted-foreground))"
+                                                stroke="oklch(0.70 0 0)"
                                                 fontSize={12}
                                             />
                                             <YAxis
-                                                stroke="hsl(var(--muted-foreground))"
+                                                stroke="oklch(0.70 0 0)"
                                                 fontSize={12}
                                                 tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
                                             />
                                             <Tooltip
                                                 contentStyle={{
-                                                    backgroundColor: 'hsl(var(--card))',
-                                                    border: '1px solid hsl(var(--border))',
+                                                    backgroundColor: 'oklch(0.20 0 0)',
+                                                    border: '1px solid oklch(0.35 0 0)',
                                                     borderRadius: '8px',
                                                 }}
                                             />
@@ -340,19 +340,19 @@ export function MetricsPage() {
                                 <div className="h-64">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={modelUsageData} layout="vertical">
-                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))"/>
-                                            <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12}/>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.35 0 0)"/>
+                                            <XAxis type="number" stroke="oklch(0.70 0 0)" fontSize={12}/>
                                             <YAxis
                                                 type="category"
                                                 dataKey="model"
-                                                stroke="hsl(var(--muted-foreground))"
+                                                stroke="oklch(0.70 0 0)"
                                                 fontSize={12}
                                                 width={100}
                                             />
                                             <Tooltip
                                                 contentStyle={{
-                                                    backgroundColor: 'hsl(var(--card))',
-                                                    border: '1px solid hsl(var(--border))',
+                                                    backgroundColor: 'oklch(0.20 0 0)',
+                                                    border: '1px solid oklch(0.35 0 0)',
                                                     borderRadius: '8px',
                                                 }}
                                             />
