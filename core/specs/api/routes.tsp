@@ -25,7 +25,6 @@ import "../domains/identity/user.tsp";
 import "../otel/storage.tsp";
 
 using TypeSpec.Http;
-using TypeSpec.Rest;
 using TypeSpec.OpenAPI;
 using TypeSpec.Versioning;
 
@@ -34,7 +33,6 @@ using Qyl.Common.Errors;
 using Qyl.Common.Pagination;
 using Qyl.OTel.Traces;
 using Qyl.OTel.Logs;
-using Qyl.OTel.Metrics;
 using Qyl.OTel.Enums;
 using Qyl.Storage;
 using Qyl.Domains.Observe.Session;

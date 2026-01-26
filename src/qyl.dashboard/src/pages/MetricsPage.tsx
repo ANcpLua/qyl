@@ -11,6 +11,7 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     Legend,
     Line,
     LineChart,
@@ -19,6 +20,24 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+
+// Brutalist signal palette - oklch for perceptual uniformity
+const CHART_COLORS = {
+    orange: 'oklch(0.70 0.20 45)',
+    green: 'oklch(0.85 0.25 145)',
+    violet: 'oklch(0.60 0.25 300)',
+    cyan: 'oklch(0.80 0.15 210)',
+    yellow: 'oklch(0.90 0.18 95)',
+    red: 'oklch(0.65 0.25 25)',
+};
+
+// Model-specific colors for bar charts
+const MODEL_COLORS: Record<string, string> = {
+    'gpt-4o': CHART_COLORS.orange,
+    'gpt-4o-mini': CHART_COLORS.green,
+    'claude-3.5-sonnet': CHART_COLORS.violet,
+    'claude-3-haiku': CHART_COLORS.cyan,
+};
 
 // Mock data for charts
 const latencyData = [
@@ -189,7 +208,7 @@ export function MetricsPage() {
                                             type="monotone"
                                             dataKey="p50"
                                             name="p50"
-                                            stroke="hsl(var(--chart-1))"
+                                            stroke={CHART_COLORS.orange}
                                             strokeWidth={2}
                                             dot={false}
                                         />
@@ -197,7 +216,7 @@ export function MetricsPage() {
                                             type="monotone"
                                             dataKey="p95"
                                             name="p95"
-                                            stroke="hsl(var(--chart-2))"
+                                            stroke={CHART_COLORS.violet}
                                             strokeWidth={2}
                                             dot={false}
                                         />
@@ -205,7 +224,7 @@ export function MetricsPage() {
                                             type="monotone"
                                             dataKey="p99"
                                             name="p99"
-                                            stroke="hsl(var(--chart-4))"
+                                            stroke={CHART_COLORS.yellow}
                                             strokeWidth={2}
                                             dot={false}
                                         />
@@ -247,15 +266,15 @@ export function MetricsPage() {
                                             type="monotone"
                                             dataKey="requests"
                                             name="Requests"
-                                            stroke="hsl(var(--chart-1))"
-                                            fill="hsl(var(--chart-1) / 0.2)"
+                                            stroke={CHART_COLORS.orange}
+                                            fill="oklch(0.70 0.20 45 / 0.3)"
                                         />
                                         <Area
                                             type="monotone"
                                             dataKey="errors"
                                             name="Errors"
-                                            stroke="hsl(var(--chart-5))"
-                                            fill="hsl(var(--chart-5) / 0.2)"
+                                            stroke={CHART_COLORS.red}
+                                            fill="oklch(0.65 0.25 25 / 0.3)"
                                         />
                                     </AreaChart>
                                 </ResponsiveContainer>
@@ -297,15 +316,15 @@ export function MetricsPage() {
                                                 type="monotone"
                                                 dataKey="input"
                                                 name="Input Tokens"
-                                                stroke="hsl(var(--chart-2))"
-                                                fill="hsl(var(--chart-2) / 0.2)"
+                                                stroke={CHART_COLORS.cyan}
+                                                fill="oklch(0.80 0.15 210 / 0.3)"
                                             />
                                             <Area
                                                 type="monotone"
                                                 dataKey="output"
                                                 name="Output Tokens"
-                                                stroke="hsl(var(--chart-3))"
-                                                fill="hsl(var(--chart-3) / 0.2)"
+                                                stroke={CHART_COLORS.green}
+                                                fill="oklch(0.85 0.25 145 / 0.3)"
                                             />
                                         </AreaChart>
                                     </ResponsiveContainer>
@@ -337,7 +356,14 @@ export function MetricsPage() {
                                                     borderRadius: '8px',
                                                 }}
                                             />
-                                            <Bar dataKey="requests" name="Requests" fill="hsl(var(--chart-2))"/>
+                                            <Bar dataKey="requests" name="Requests">
+                                                {modelUsageData.map((entry) => (
+                                                    <Cell
+                                                        key={entry.model}
+                                                        fill={MODEL_COLORS[entry.model] ?? 'oklch(0.55 0 0)'}
+                                                    />
+                                                ))}
+                                            </Bar>
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
