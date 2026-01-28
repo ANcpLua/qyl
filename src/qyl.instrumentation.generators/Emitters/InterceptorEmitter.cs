@@ -78,17 +78,17 @@ internal static class InterceptorEmitter
                 [InterceptsLocation(@"{EscapePath(target.FilePath)}", {target.Line}, {target.Column})]
             """);
 
-        if (isTask && !isVoid)
+        switch (isTask)
         {
-            EmitAsyncInterceptor(sb, target, methodId);
-        }
-        else if (isTask)
-        {
-            EmitAsyncVoidInterceptor(sb, target, methodId);
-        }
-        else
-        {
-            EmitSyncInterceptor(sb, target, methodId);
+            case true when !isVoid:
+                EmitAsyncInterceptor(sb, target, methodId);
+                break;
+            case true:
+                EmitAsyncVoidInterceptor(sb, target, methodId);
+                break;
+            default:
+                EmitSyncInterceptor(sb, target, methodId);
+                break;
         }
     }
 
@@ -154,7 +154,7 @@ internal static class InterceptorEmitter
 
     private static void EmitSyncInterceptor(StringBuilder sb, InterceptorTarget target, string methodId)
     {
-        var isVoid = target.ReturnType == "void" || target.ReturnType == "System.Void";
+        var isVoid = target.ReturnType is "void" or "System.Void";
 
         sb.AppendLine($$"""
                 internal static {{target.ReturnType}} {{methodId}}(
@@ -203,9 +203,9 @@ internal static class InterceptorEmitter
     private static string EscapePath(string path)
         => path.Replace("\\", "\\\\");
 
-    private static string FormatParameters(ParameterInfo[] parameters)
+    private static string FormatParameters(IReadOnlyCollection<ParameterInfo> parameters)
     {
-        if (parameters.Length is 0) return "";
+        if (parameters.Count is 0) return "";
         return ", " + string.Join(", ", parameters.Select(static p => $"{p.Type} @{p.Name}"));
     }
 

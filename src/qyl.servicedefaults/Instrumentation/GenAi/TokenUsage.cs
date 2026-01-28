@@ -1,7 +1,7 @@
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation.GenAi;
+namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 /// <summary>
-///     Represents token usage from a GenAI response.
+/// Represents token usage from a GenAI response.
 /// </summary>
 /// <param name="InputTokens">Number of tokens in the input/prompt.</param>
 /// <param name="OutputTokens">Number of tokens in the output/completion.</param>

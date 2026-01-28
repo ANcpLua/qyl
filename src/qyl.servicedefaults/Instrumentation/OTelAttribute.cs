@@ -1,38 +1,35 @@
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation;
+using Microsoft.Shared.Diagnostics;
+
+namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-///     Marks a property or parameter with an OpenTelemetry semantic convention attribute name.
+/// Marks a property or parameter with an OpenTelemetry semantic convention attribute name.
 /// </summary>
 /// <remarks>
-///     <para>
-///         Used by source generators to automatically emit Activity.SetTag() calls.
-///     </para>
-///     <para>
-///         Example usage:
-///         <code>
+/// <para>
+/// Used by source generators to automatically emit <c>Activity.SetTag()</c> calls.
+/// </para>
+/// <para>
+/// Example:
+/// <code>
 /// public record ChatRequest(
 ///     [OTel(GenAiRequestAttributes.Model)] string Model,
 ///     [OTel(GenAiRequestAttributes.MaxTokens)] int? MaxTokens);
 /// </code>
-///     </para>
+/// </para>
 /// </remarks>
+/// <param name="name">The OpenTelemetry semantic convention attribute name (e.g., "gen_ai.request.model").</param>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class OTelAttribute : Attribute
+public sealed class OTelAttribute(string name) : Attribute
 {
     /// <summary>
-    ///     Initializes a new instance of the <see cref="OTelAttribute" /> class.
+    /// Gets the OpenTelemetry semantic convention attribute name.
     /// </summary>
-    /// <param name="name">The OpenTelemetry semantic convention attribute name (e.g., "gen_ai.request.model").</param>
-    public OTelAttribute(string name) => Name = name ?? throw new ArgumentNullException(nameof(name));
+    public string Name { get; } = Throw.IfNull(name);
 
     /// <summary>
-    ///     Gets the OpenTelemetry semantic convention attribute name.
+    /// Gets or sets a value indicating whether this attribute should be skipped if the value is null.
     /// </summary>
-    public string Name { get; }
-
-    /// <summary>
-    ///     Gets or sets a value indicating whether this attribute should be skipped if the value is null.
-    /// </summary>
-    /// <value>Defaults to <c>true</c>.</value>
+    /// <value>Defaults to <see langword="true"/>.</value>
     public bool SkipIfNull { get; set; } = true;
 }

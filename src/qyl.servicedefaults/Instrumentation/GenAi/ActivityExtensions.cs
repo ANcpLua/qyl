@@ -1,13 +1,12 @@
 using System.Diagnostics;
-using Qyl.ServiceDefaults.Instrumentation;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation.GenAi;
+namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 /// <summary>
-///     Extension methods for setting GenAI semantic convention attributes on Activities.
+/// Extension methods for setting GenAI semantic convention attributes on Activities.
 /// </summary>
 /// <remarks>
-///     Provides fluent API for OTel 1.39 GenAI semantic conventions.
+/// Provides fluent API for OTel 1.39 GenAI semantic conventions.
 /// </remarks>
 public static class GenAiActivityExtensions
 {
@@ -16,7 +15,7 @@ public static class GenAiActivityExtensions
     private const string UsageOutputTokensReasoning = "gen_ai.usage.output_tokens.reasoning";
 
     /// <summary>
-    ///     Sets GenAI request attributes on the activity.
+    /// Sets GenAI request attributes on the activity.
     /// </summary>
     public static Activity SetGenAiRequest(
         this Activity activity,
@@ -47,7 +46,7 @@ public static class GenAiActivityExtensions
     }
 
     /// <summary>
-    ///     Sets GenAI token usage attributes on the activity.
+    /// Sets GenAI token usage attributes on the activity.
     /// </summary>
     public static Activity SetGenAiUsage(
         this Activity activity,
@@ -74,7 +73,7 @@ public static class GenAiActivityExtensions
     }
 
     /// <summary>
-    ///     Sets GenAI response attributes on the activity.
+    /// Sets GenAI response attributes on the activity.
     /// </summary>
     public static Activity SetGenAiResponse(
         this Activity activity,
@@ -97,7 +96,7 @@ public static class GenAiActivityExtensions
     }
 
     /// <summary>
-    ///     Sets GenAI agent attributes on the activity (OTel 1.38+).
+    /// Sets GenAI agent attributes on the activity (OTel 1.38+).
     /// </summary>
     public static Activity SetGenAiAgent(
         this Activity activity,
@@ -120,7 +119,7 @@ public static class GenAiActivityExtensions
     }
 
     /// <summary>
-    ///     Sets GenAI tool attributes on the activity (OTel 1.39).
+    /// Sets GenAI tool attributes on the activity (OTel 1.39).
     /// </summary>
     public static Activity SetGenAiTool(
         this Activity activity,

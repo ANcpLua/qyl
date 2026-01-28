@@ -61,7 +61,7 @@ internal static class TracedInterceptorEmitter
     ///     Thread-local to avoid issues with parallel compilation.
     /// </summary>
     [ThreadStatic]
-    private static Dictionary<string, string>? _activitySourceFieldNames;
+    private static Dictionary<string, string>? s_activitySourceFieldNames;
 
     private static void AppendActivitySourcesClass(StringBuilder sb, ImmutableArray<TracedInvocationInfo> invocations)
     {
@@ -73,7 +73,7 @@ internal static class TracedInterceptorEmitter
             .ToList();
 
         // Build a mapping from original name to unique field name
-        _activitySourceFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        s_activitySourceFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
         var usedFieldNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var name in activitySourceNames)
@@ -88,7 +88,7 @@ internal static class TracedInterceptorEmitter
                 fieldName = $"{baseFieldName}_{counter++}";
             }
 
-            _activitySourceFieldNames[name] = fieldName;
+            s_activitySourceFieldNames[name] = fieldName;
         }
 
         sb.AppendLine("namespace Qyl.ServiceDefaults.Generator");
@@ -98,7 +98,7 @@ internal static class TracedInterceptorEmitter
 
         foreach (var name in activitySourceNames)
         {
-            var fieldName = _activitySourceFieldNames[name];
+            var fieldName = s_activitySourceFieldNames[name];
             sb.AppendLine($"        internal static readonly global::System.Diagnostics.ActivitySource {fieldName} = new(\"{name}\");");
         }
 
@@ -109,7 +109,7 @@ internal static class TracedInterceptorEmitter
 
     private static string GetActivitySourceFieldName(string activitySourceName)
     {
-        return _activitySourceFieldNames?.TryGetValue(activitySourceName, out var fieldName) == true
+        return s_activitySourceFieldNames?.TryGetValue(activitySourceName, out var fieldName) == true
             ? fieldName
             : SanitizeFieldName(activitySourceName);
     }

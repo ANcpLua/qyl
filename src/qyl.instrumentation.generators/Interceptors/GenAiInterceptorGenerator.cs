@@ -38,13 +38,13 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
     // Target methods we know how to instrument
     private static readonly Dictionary<string, GenAiTarget> KnownTargets = new()
     {
-        ["OpenAI.Chat.ChatClient.CompleteChatAsync"] = new("openai", "chat", "chat {gen_ai.request.model}"),
-        ["OpenAI.Chat.ChatClient.CompleteChat"] = new("openai", "chat", "chat {gen_ai.request.model}"),
-        ["Anthropic.AnthropicClient.CreateMessageAsync"] = new("anthropic", "chat", "chat {gen_ai.request.model}"),
-        ["Anthropic.Messages.MessageClient.CreateAsync"] = new("anthropic", "chat", "chat {gen_ai.request.model}"),
-        ["OllamaSharp.OllamaApiClient.ChatAsync"] = new("ollama", "chat", "chat {gen_ai.request.model}"),
-        ["Azure.AI.Inference.ChatCompletionsClient.CompleteAsync"] = new("az.ai.inference", "chat", "chat {gen_ai.request.model}"),
-        ["Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService.GetChatMessageContentsAsync"] = new("semantic_kernel", "chat", "chat {gen_ai.request.model}"),
+        ["OpenAI.Chat.ChatClient.CompleteChatAsync"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
+        ["OpenAI.Chat.ChatClient.CompleteChat"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
+        ["Anthropic.AnthropicClient.CreateMessageAsync"] = new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
+        ["Anthropic.Messages.MessageClient.CreateAsync"] = new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
+        ["OllamaSharp.OllamaApiClient.ChatAsync"] = new GenAiTarget("ollama", "chat", "chat {gen_ai.request.model}"),
+        ["Azure.AI.Inference.ChatCompletionsClient.CompleteAsync"] = new GenAiTarget("az.ai.inference", "chat", "chat {gen_ai.request.model}"),
+        ["Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService.GetChatMessageContentsAsync"] = new GenAiTarget("semantic_kernel", "chat", "chat {gen_ai.request.model}"),
     };
 
     public void Initialize(IncrementalGeneratorInitializationContext context)
@@ -55,7 +55,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
                 predicate: static (node, _) => node is InvocationExpressionSyntax,
                 transform: static (ctx, ct) => GetInterceptTarget(ctx, ct))
             .Where(static target => target is not null)
-            .Select(static (target, _) => target!.Value);
+            .Select(static (target, _) => target.Value);
 
         // Collect and emit
         context.RegisterSourceOutput(
@@ -112,7 +112,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
         if (targets.IsDefaultOrEmpty)
             return;
 
-        var source = InterceptorEmitter.Emit(targets.ToArray());
+        var source = InterceptorEmitter.Emit([.. targets]);
         context.AddSource("GenAiInterceptors.g.cs", SourceText.From(source, Encoding.UTF8));
     }
 

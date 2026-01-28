@@ -19,7 +19,7 @@ internal static class DbCallSiteAnalyzer
     /// <summary>
     ///     Method patterns to intercept on DbCommand and derived types.
     /// </summary>
-    private static readonly Dictionary<string, (DbCommandMethod Method, bool IsAsync)> _methodPatterns = new(StringComparer.Ordinal)
+    private static readonly Dictionary<string, (DbCommandMethod Method, bool IsAsync)> MethodPatterns = new(StringComparer.Ordinal)
     {
         ["ExecuteReader"] = (DbCommandMethod.ExecuteReader, false),
         ["ExecuteReaderAsync"] = (DbCommandMethod.ExecuteReader, true),
@@ -83,7 +83,7 @@ internal static class DbCallSiteAnalyzer
 
         var methodName = invocation.TargetMethod.Name;
 
-        if (!_methodPatterns.TryGetValue(methodName, out var pattern))
+        if (!MethodPatterns.TryGetValue(methodName, out var pattern))
             return false;
 
         var containingType = invocation.TargetMethod.ContainingType;

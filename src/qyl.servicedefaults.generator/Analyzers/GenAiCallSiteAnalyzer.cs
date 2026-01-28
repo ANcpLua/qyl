@@ -16,7 +16,7 @@ internal static class GenAiCallSiteAnalyzer
     ///     Known GenAI method patterns to intercept.
     ///     Key: containing type prefix, Value: (method name, operation name, is async).
     /// </summary>
-    private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> _methodPatterns = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> MethodPatterns = new(StringComparer.OrdinalIgnoreCase)
     {
         ["OpenAI.Chat.ChatClient"] =
         [
@@ -116,7 +116,7 @@ internal static class GenAiCallSiteAnalyzer
         var typeName = containingType.ToDisplayString();
         var methodName = invocation.TargetMethod.Name;
 
-        foreach (var kvp in _methodPatterns)
+        foreach (var kvp in MethodPatterns)
         {
             var typePrefix = kvp.Key;
             var methods = kvp.Value;

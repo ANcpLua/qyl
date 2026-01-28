@@ -1,28 +1,27 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Diagnostics;
-using Qyl.ServiceDefaults.Instrumentation;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation.Db;
+namespace Qyl.ServiceDefaults.Instrumentation.Db;
 
 /// <summary>
-///     Instrumentation helpers for ADO.NET database calls.
+/// Instrumentation helpers for ADO.NET database calls.
 /// </summary>
 /// <remarks>
-///     <para>
-///         Called by generated interceptors to wrap DbCommand methods with OpenTelemetry spans.
-///     </para>
-///     <para>
-///         Note: Activity covers command execution, not reader iteration.
-///         This matches OTel semantic conventions for db.query spans.
-///     </para>
+/// <para>
+/// Called by generated interceptors to wrap DbCommand methods with OpenTelemetry spans.
+/// </para>
+/// <para>
+/// Note: Activity covers command execution, not reader iteration.
+/// This matches OTel semantic conventions for db.query spans.
+/// </para>
 /// </remarks>
 public static class DbInstrumentation
 {
-    private static readonly ConcurrentDictionary<Type, string> _sDbSystemCache = new();
+    private static readonly ConcurrentDictionary<Type, string> s_dbSystemCache = new();
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteReaderAsync(CancellationToken)" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteReaderAsync(CancellationToken)"/> with instrumentation.
     /// </summary>
     public static async Task<DbDataReader> ExecuteReaderAsync(
         DbCommand command,
@@ -42,7 +41,7 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteReader()" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteReader()"/> with instrumentation.
     /// </summary>
     public static DbDataReader ExecuteReader(DbCommand command)
     {
@@ -60,7 +59,7 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteNonQueryAsync(CancellationToken)" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteNonQueryAsync(CancellationToken)"/> with instrumentation.
     /// </summary>
     public static async Task<int> ExecuteNonQueryAsync(
         DbCommand command,
@@ -80,7 +79,7 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteNonQuery()" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteNonQuery()"/> with instrumentation.
     /// </summary>
     public static int ExecuteNonQuery(DbCommand command)
     {
@@ -98,7 +97,7 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteScalarAsync(CancellationToken)" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteScalarAsync(CancellationToken)"/> with instrumentation.
     /// </summary>
     public static async Task<object?> ExecuteScalarAsync(
         DbCommand command,
@@ -118,7 +117,7 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Executes <see cref="DbCommand.ExecuteScalar()" /> with instrumentation.
+    /// Executes <see cref="DbCommand.ExecuteScalar()"/> with instrumentation.
     /// </summary>
     public static object? ExecuteScalar(DbCommand command)
     {
@@ -166,25 +165,25 @@ public static class DbInstrumentation
     }
 
     /// <summary>
-    ///     Maps a DbConnection type to its OTel db.system.name value.
+    /// Maps a DbConnection type to its OTel db.system.name value.
     /// </summary>
     private static string GetDbSystem(DbConnection? connection)
     {
         if (connection is null)
             return "unknown";
 
-        return _sDbSystemCache.GetOrAdd(connection.GetType(), static type =>
+        return s_dbSystemCache.GetOrAdd(connection.GetType(), static type =>
             MapTypeNameToDbSystem(type.FullName ?? type.Name));
     }
 
     /// <summary>
-    ///     Gets the database system name for a type name. Exposed for testing.
+    /// Gets the database system name for a type name. Exposed for testing.
     /// </summary>
     internal static string GetDbSystemForTesting(string typeName) =>
         MapTypeNameToDbSystem(typeName);
 
     /// <summary>
-    ///     Maps a type name to the OTel db.system.name semantic convention value.
+    /// Maps a type name to the OTel db.system.name semantic convention value.
     /// </summary>
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch

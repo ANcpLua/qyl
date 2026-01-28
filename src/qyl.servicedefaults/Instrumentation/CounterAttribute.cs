@@ -1,42 +1,39 @@
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation;
+using Microsoft.Shared.Diagnostics;
+
+namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-///     Marks a partial method as a counter metric recorder.
+/// Marks a partial method as a counter metric recorder.
 /// </summary>
 /// <remarks>
-///     <para>
-///         The source generator creates a Counter instrument and implements the method
-///         to record increments with tags from parameters marked with [Tag].
-///     </para>
-///     <para>
-///         Example usage:
-///         <code>
+/// <para>
+/// The source generator creates a Counter instrument and implements the method
+/// to record increments with tags from parameters marked with <see cref="TagAttribute"/>.
+/// </para>
+/// <para>
+/// Example:
+/// <code>
 /// [Counter("orders.created", Unit = "{order}", Description = "Orders created")]
 /// public static partial void RecordOrderCreated([Tag("status")] string status);
 /// </code>
-///     </para>
+/// </para>
 /// </remarks>
+/// <param name="name">The metric name (e.g., "orders.created").</param>
 [AttributeUsage(AttributeTargets.Method)]
-public sealed class CounterAttribute : Attribute
+public sealed class CounterAttribute(string name) : Attribute
 {
     /// <summary>
-    ///     Initializes a new instance of the <see cref="CounterAttribute" /> class.
+    /// Gets the metric name.
     /// </summary>
-    /// <param name="name">The metric name (e.g., "orders.created").</param>
-    public CounterAttribute(string name) => Name = name ?? throw new ArgumentNullException(nameof(name));
+    public string Name { get; } = Throw.IfNull(name);
 
     /// <summary>
-    ///     Gets the metric name.
-    /// </summary>
-    public string Name { get; }
-
-    /// <summary>
-    ///     Gets or sets the unit of measurement.
+    /// Gets or sets the unit of measurement.
     /// </summary>
     public string? Unit { get; set; }
 
     /// <summary>
-    ///     Gets or sets the metric description.
+    /// Gets or sets the metric description.
     /// </summary>
     public string? Description { get; set; }
 }

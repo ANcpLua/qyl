@@ -1,18 +1,17 @@
 using System.Diagnostics;
-using Qyl.ServiceDefaults.Instrumentation;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.Instrumentation.GenAi;
+namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 /// <summary>
-///     Instrumentation helpers for GenAI SDK calls (OpenAI, Anthropic, Ollama).
+/// Instrumentation helpers for GenAI SDK calls (OpenAI, Anthropic, Ollama).
 /// </summary>
 /// <remarks>
-///     Called by generated interceptors to wrap GenAI API calls with OpenTelemetry spans.
+/// Called by generated interceptors to wrap GenAI API calls with OpenTelemetry spans.
 /// </remarks>
 public static class GenAiInstrumentation
 {
     /// <summary>
-    ///     Executes an async GenAI operation with instrumentation.
+    /// Executes an async GenAI operation with instrumentation.
     /// </summary>
     /// <typeparam name="TResponse">The response type.</typeparam>
     /// <param name="provider">The GenAI provider (e.g., "openai", "anthropic").</param>
@@ -51,7 +50,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    ///     Executes a sync GenAI operation with instrumentation.
+    /// Executes a sync GenAI operation with instrumentation.
     /// </summary>
     /// <typeparam name="TResponse">The response type.</typeparam>
     /// <param name="provider">The GenAI provider (e.g., "openai", "anthropic").</param>
@@ -91,7 +90,6 @@ public static class GenAiInstrumentation
 
     private static void SetRequestTags(Activity activity, string provider, string operation, string? model)
     {
-        // OTel 1.37+: gen_ai.system → gen_ai.provider.name
         activity.SetTag(GenAiProviderAttributes.Name, provider);
         activity.SetTag(GenAiOperationAttributes.Name, operation);
 
@@ -110,13 +108,11 @@ public static class GenAiInstrumentation
         try
         {
             var usage = extractUsage(response);
-            // OTel 1.37+: Explicit Usage prefix
             activity.SetTag(GenAiUsageAttributes.InputTokens, usage.InputTokens);
             activity.SetTag(GenAiUsageAttributes.OutputTokens, usage.OutputTokens);
         }
         catch (Exception ex)
         {
-            // Record extraction failure as event for debugging
             activity.AddEvent(new ActivityEvent("gen_ai.usage.extraction_failed",
                 tags: new ActivityTagsCollection { ["exception.message"] = ex.Message }));
         }
