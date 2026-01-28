@@ -23,6 +23,9 @@ RUN npm run build
 # Using Debian (not Alpine) because DuckDB native libs require glibc
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
+# Cache buster - change this value to force full rebuild
+ARG CACHE_BUST=2026-01-28-v2
+
 WORKDIR /src
 
 # Copy solution-level files for restore
