@@ -19,7 +19,6 @@
         <File Path="eng/CLAUDE.md" />
         <File Path="eng/MSBuild/Shared.props" />
         <File Path="eng/MSBuild/Shared.targets" />
-        <File Path="eng/MSBuild/LegacySupport.targets" />
     </Folder>
 
     <!-- Core schema (TypeSpec) -->
@@ -33,13 +32,13 @@
         <Project Path="src/qyl.collector/qyl.collector.csproj" />
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
-        <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj" />
         <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
         <File Path="src/qyl.protocol/CLAUDE.md" />
         <File Path="src/qyl.collector/CLAUDE.md" />
         <File Path="src/qyl.dashboard/CLAUDE.md" />
-        <File Path="src/qyl.instrumentation/CLAUDE.md" />
         <File Path="src/qyl.mcp/CLAUDE.md" />
+        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
+        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
     </Folder>
 
     <!-- Tests -->
@@ -50,16 +49,10 @@
 
     <!-- Examples -->
     <Folder Name="/examples/">
-        <Project Path="examples/qyl.AspNetCore.Example/qyl.AspNetCore.Example.csproj" />
-    </Folder>
-
-    <Folder Name="/examples/Microservices/">
+        <Project Path="examples/AspNetCoreExample/AspNetCoreExample.csproj" />
         <Project Path="examples/MicroserviceExample/Utils/Utils.csproj" />
         <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj" />
         <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj" />
-    </Folder>
-
-    <Folder Name="/examples/AgentsGateway/">
         <Project Path="examples/AgentsGateway/src/AgentGateway/AgentsGateway.csproj" />
         <Project Path="examples/AgentsGateway/test/AgentGateway.Tests/AgentGateway.Tests.csproj" />
     </Folder>
