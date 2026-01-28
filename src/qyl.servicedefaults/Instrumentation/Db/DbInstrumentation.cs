@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
-using System.Diagnostics;
 
 namespace Qyl.ServiceDefaults.Instrumentation.Db;
 

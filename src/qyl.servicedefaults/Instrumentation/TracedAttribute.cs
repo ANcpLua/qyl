@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using Microsoft.Shared.Diagnostics;
-
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>

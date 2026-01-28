@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
