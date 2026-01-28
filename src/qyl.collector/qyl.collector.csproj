@@ -3,11 +3,10 @@
   <PropertyGroup>
     <RootNamespace>qyl.collector</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <PublishAot>true</PublishAot>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- CA2007: ConfigureAwait not needed in ASP.NET Core apps (no SynchronizationContext) -->
-    <!-- NU1510: HealthChecks used via DI/abstractions, AOT pruner can't detect -->
+    <!-- NU1510: HealthChecks used via DI/abstractions, transitive dependency warning -->
     <NoWarn>$(NoWarn);CA2007;NU1510</NoWarn>
   </PropertyGroup>
 
@@ -38,9 +37,9 @@
     <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
     <PackageReference Include="Grpc.Tools"/>
-    <!-- ILCompiler is implicitly provided by SDK when PublishAot=true -->
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+    <PackageReference Include="OTelConventions"/>
     <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 
@@ -78,3 +77,4 @@
   </ItemGroup>
 
 </Project>
+# Cache bust 1769619742
