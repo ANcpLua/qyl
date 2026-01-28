@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
@@ -379,10 +380,10 @@ app.MapPost("/mcp/tools/call", async (McpToolCall call, McpServer mcp, Cancellat
     return response.IsError ? Results.BadRequest(response) : Results.Ok(response);
 });
 
-// Health check endpoints - use custom handlers that call IHealthCheckService
-// /health = liveness (is the process running?) - only "live" tagged checks
-// /ready = readiness (is the service ready for traffic?) - only "ready" tagged checks
-app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
+// Health check endpoints (Aspire standard)
+// /alive = Liveness (is the process running?) - only "live" tagged checks
+// /health = Readiness (is the service ready for traffic?) - only "ready" tagged checks
+app.MapGet("/alive", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
@@ -397,16 +398,16 @@ app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("LivenessCheck");
 
-app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
+app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
-        return Results.Ok(new qyl.collector.HealthResponse("ready"));
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
 
     var result = await healthService.CheckHealthAsync(
         c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
     if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
-        return Results.Ok(new qyl.collector.HealthResponse("ready"));
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("ReadinessCheck");
@@ -415,81 +416,63 @@ app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
 // API Stubs for OpenAPI Compliance
 // =============================================================================
 
-app.MapGet("/api/v1/traces", (string? serviceName, int? limit) => 
+app.MapGet("/api/v1/traces", (string? serviceName, int? limit) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapPost("/api/v1/traces/search", () => 
+app.MapPost("/api/v1/traces/search", () =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapGet("/api/v1/metrics", (string? serviceName) => 
+app.MapGet("/api/v1/metrics", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapPost("/api/v1/metrics/query", () => 
+app.MapPost("/api/v1/metrics/query", () =>
     Results.Ok(new { series = Array.Empty<object>() }));
 
-app.MapGet("/api/v1/metrics/{metricName}", (string metricName) => 
+app.MapGet("/api/v1/metrics/{metricName}", (string metricName) =>
     Results.NotFound());
 
-app.MapGet("/api/v1/errors", (string? serviceName) => 
+app.MapGet("/api/v1/errors", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapGet("/api/v1/errors/stats", () => 
+app.MapGet("/api/v1/errors/stats", () =>
     Results.Ok(new { total_count = 0 }));
 
-app.MapGet("/api/v1/errors/{errorId}", (string errorId) => 
+app.MapGet("/api/v1/errors/{errorId}", (string errorId) =>
     Results.NotFound());
 
-app.MapGet("/api/v1/exceptions", (string? serviceName) => 
+app.MapGet("/api/v1/exceptions", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapGet("/api/v1/exceptions/stats", () => 
+app.MapGet("/api/v1/exceptions/stats", () =>
     Results.Ok(new { total_count = 0 }));
 
-app.MapGet("/api/v1/deployments", (string? serviceName) => 
+app.MapGet("/api/v1/deployments", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapPost("/api/v1/deployments", () => 
+app.MapPost("/api/v1/deployments", () =>
     Results.Created("/api/v1/deployments/1", new { id = "1" }));
 
-app.MapGet("/api/v1/deployments/metrics/dora", () => 
-    Results.Ok(new { 
-        deployment_frequency = 0, 
-        lead_time_hours = 0, 
-        change_failure_rate = 0, 
-        mttr_hours = 0, 
-        performance_level = "low" 
+app.MapGet("/api/v1/deployments/metrics/dora", () =>
+    Results.Ok(new {
+        deployment_frequency = 0,
+        lead_time_hours = 0,
+        change_failure_rate = 0,
+        mttr_hours = 0,
+        performance_level = "low"
     }));
 
-app.MapGet("/api/v1/pipelines", () => 
+app.MapGet("/api/v1/pipelines", () =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapGet("/api/v1/pipelines/stats", () => 
+app.MapGet("/api/v1/pipelines/stats", () =>
     Results.Ok(new { total_runs = 0, success_rate = 0 }));
 
-app.MapGet("/api/v1/services", () => 
+app.MapGet("/api/v1/services", () =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
 
-app.MapGet("/api/v1/services/{serviceName}", (string serviceName) => 
+app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
     Results.Ok(new { name = serviceName, instance_count = 1 }));
 
-// Health check endpoints for OpenAPI compliance and platform standards
-// /health/live = Liveness (is the process running?)
-app.MapHealthChecks("/health/live", new HealthCheckOptions 
-{ 
-    Predicate = r => r.Tags.Contains("live") 
-});
-
-// /health/ready = Readiness (is the service ready for traffic?)
-app.MapHealthChecks("/health/ready", new HealthCheckOptions 
-{ 
-    Predicate = r => r.Tags.Contains("ready") 
-});
-
-// /health = Aggregated health (compatible with Railway default)
-app.MapHealthChecks("/health", new HealthCheckOptions 
-{ 
-    Predicate = _ => true 
-});
 
 app.MapFallback(context =>
 {
@@ -502,9 +485,7 @@ app.MapFallback(context =>
         return Task.CompletedTask;
     }
 
-    context.Response.ContentType = "text/html";
-    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
-    return File.Exists(indexPath) ? context.Response.SendFileAsync(indexPath) : context.Response.WriteAsync(GetFallbackHtml());
+    return Task.CompletedTask;
 });
 
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
@@ -514,213 +495,13 @@ StartupBanner.Print($"http://localhost:{port}", token, port, grpcPort, otlpCorsO
 
 app.Run();
 
-static string GetFallbackHtml() =>
-    """
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>qyl. Dashboard</title>
-        <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body {
-                font-family: system-ui, -apple-system, sans-serif;
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-                min-height: 100vh;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: #e0e0e0;
-            }
-            .container {
-                text-align: center;
-                padding: 2rem;
-                max-width: 500px;
-            }
-            h1 {
-                font-size: 3rem;
-                margin-bottom: 1rem;
-                background: linear-gradient(90deg, #00d4ff, #7c3aed);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-            }
-            .subtitle { color: #888; margin-bottom: 2rem; }
-            .login-form {
-                background: rgba(255,255,255,0.05);
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
-                padding: 2rem;
-                margin-bottom: 1.5rem;
-            }
-            .form-group { margin-bottom: 1rem; text-align: left; }
-            label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
-            input {
-                width: 100%;
-                padding: 0.75rem 1rem;
-                border: 1px solid rgba(255,255,255,0.2);
-                border-radius: 8px;
-                background: rgba(0,0,0,0.3);
-                color: #fff;
-                font-size: 1rem;
-                font-family: monospace;
-            }
-            input:focus { outline: none; border-color: #00d4ff; }
-            button {
-                width: 100%;
-                padding: 0.75rem;
-                border: none;
-                border-radius: 8px;
-                background: linear-gradient(90deg, #00d4ff, #7c3aed);
-                color: #fff;
-                font-size: 1rem;
-                font-weight: 600;
-                cursor: pointer;
-                transition: transform 0.2s, box-shadow 0.2s;
-            }
-            button:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,212,255,0.3); }
-            .help-link {
-                color: #00d4ff;
-                text-decoration: none;
-                font-size: 0.9rem;
-            }
-            .help-link:hover { text-decoration: underline; }
-            .help-modal {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.8);
-                align-items: center;
-                justify-content: center;
-            }
-            .help-modal.show { display: flex; }
-            .help-content {
-                background: #1a1a2e;
-                border: 1px solid rgba(255,255,255,0.1);
-                border-radius: 12px;
-                padding: 2rem;
-                max-width: 500px;
-                text-align: left;
-            }
-            .help-content h2 { margin-bottom: 1rem; }
-            .help-content pre {
-                background: rgba(0,0,0,0.3);
-                padding: 1rem;
-                border-radius: 8px;
-                overflow-x: auto;
-                color: #00d4ff;
-                margin: 1rem 0;
-            }
-            .help-content .close {
-                float: right;
-                background: none;
-                border: none;
-                color: #888;
-                font-size: 1.5rem;
-                cursor: pointer;
-                width: auto;
-                padding: 0;
-            }
-            .error { color: #ff6b6b; margin-top: 1rem; display: none; }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <h1>qyl.</h1>
-            <p class="subtitle">AI Observability Dashboard</p>
-
-            <div class="login-form">
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="token">Authentication Token</label>
-                        <input type="password" id="token" name="token" placeholder="Enter your token" autocomplete="off">
-                    </div>
-                    <button type="submit">Login</button>
-                    <p class="error" id="error">Invalid token. Please try again.</p>
-                </form>
-            </div>
-
-            <a href="#" class="help-link" onclick="showHelp()">Where do I find the token?</a>
-        </div>
-
-        <div class="help-modal" id="helpModal">
-            <div class="help-content">
-                <button class="close" onclick="hideHelp()">&times;</button>
-                <h2>Finding Your Token</h2>
-                <p>The authentication token is displayed in the console when qyl.collector starts.</p>
-                <p>Look for the line starting with <code>Login Token:</code> in your terminal output.</p>
-                <p>You can also:</p>
-                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
-                    <li>Click the login URL in the console output</li>
-                    <li>Set the <code>QYL_TOKEN</code> environment variable</li>
-                    <li>Pass <code>--QYL_TOKEN=yourtoken</code> on startup</li>
-                </ul>
-            </div>
-        </div>
-
-        <script>
-            document.getElementById('loginForm').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const token = document.getElementById('token').value;
-                const error = document.getElementById('error');
-
-                try {
-                    const res = await fetch('/api/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token })
-                    });
-
-                    if (res.ok) {
-                        window.location.reload();
-                    } else {
-                        error.style.display = 'block';
-                    }
-                } catch (err) {
-                    error.style.display = 'block';
-                }
-            });
-
-            function showHelp() { document.getElementById('helpModal').classList.add('show'); }
-            function hideHelp() { document.getElementById('helpModal').classList.remove('show'); }
-            document.getElementById('helpModal').addEventListener('click', (e) => {
-                if (e.target.id === 'helpModal') hideHelp();
-            });
-
-            // Check if already authenticated
-            fetch('/api/auth/check')
-                .then(r => r.json())
-                .then(data => {
-                    if (data.authenticated) {
-                        document.querySelector('.container').innerHTML = `
-                            <h1>qyl.</h1>
-                            <p class="subtitle">Dashboard not built yet</p>
-                            <p style="margin-top: 2rem;">Run <code>npm run build</code> in <code>src/qyl.dashboard</code></p>
-                            <p style="margin-top: 1rem;"><a href="/api/logout" class="help-link" onclick="fetch('/api/logout', {method:'POST'}).then(()=>location.reload());return false;">Logout</a></p>
-                        `;
-                    }
-                });
-        </script>
-    </body>
-    </html>
-    """;
-
 namespace qyl.collector
 {
     /// <summary>
-    ///     Span API endpoints with proper AOT attributes for dynamic OTLP deserialization.
+    ///     Span API endpoints.
     /// </summary>
     internal static class SpanEndpoints
     {
-        [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
-            Justification =
-                "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-            Justification =
-                "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
         public static async Task<IResult> GetSessionSpansAsync(string sessionId, DuckDbStore store,
             CancellationToken ct)
         {
@@ -750,12 +531,6 @@ namespace qyl.collector
             });
         }
 
-        [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
-            Justification =
-                "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
-        [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-            Justification =
-                "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
         public static async Task<IResult> GetTraceAsync(string traceId, DuckDbStore store)
         {
             var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
@@ -951,37 +726,30 @@ namespace qyl.collector
         /// <summary>
         ///     Extracts GenAI fields from a dictionary of attributes.
         /// </summary>
-#pragma warning disable CS0618 // Intentional use of deprecated attributes for backward compatibility
         public static GenAiFields Extract(IReadOnlyDictionary<string, object?> attributes)
         {
             Throw.IfNull(attributes);
 
-            var provider = GetString(attributes, GenAiAttributes.ProviderName)
-                           ?? GetString(attributes, GenAiAttributes.Deprecated.System);
-
-            var inputTokens = GetLong(attributes, GenAiAttributes.UsageInputTokens)
-                              ?? GetLong(attributes, GenAiAttributes.Deprecated.UsagePromptTokens);
-
-            var outputTokens = GetLong(attributes, GenAiAttributes.UsageOutputTokens)
-                               ?? GetLong(attributes, GenAiAttributes.Deprecated.UsageCompletionTokens);
+            var inputTokens = GetLong(attributes, GenAiUsageAttributes.InputTokens);
+            var outputTokens = GetLong(attributes, GenAiUsageAttributes.OutputTokens);
 
             return new GenAiFields
             {
-                ProviderName = provider,
-                OperationName = GetString(attributes, GenAiAttributes.OperationName),
-                RequestModel = GetString(attributes, GenAiAttributes.RequestModel),
-                ResponseModel = GetString(attributes, GenAiAttributes.ResponseModel),
+                ProviderName = GetString(attributes, GenAiProviderAttributes.Name),
+                OperationName = GetString(attributes, GenAiOperationAttributes.Name),
+                RequestModel = GetString(attributes, GenAiRequestAttributes.Model),
+                ResponseModel = GetString(attributes, GenAiResponseAttributes.Model),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
                 TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
-                Temperature = GetDouble(attributes, GenAiAttributes.RequestTemperature),
-                MaxTokens = GetLong(attributes, GenAiAttributes.RequestMaxTokens),
-                FinishReason = GetString(attributes, GenAiAttributes.ResponseFinishReasons),
+                Temperature = GetDouble(attributes, GenAiRequestAttributes.Temperature),
+                MaxTokens = GetLong(attributes, GenAiRequestAttributes.MaxTokens),
+                FinishReason = GetString(attributes, GenAiResponseAttributes.FinishReasons),
                 CostUsd = GetDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetString(attributes, QylAttributes.SessionId)
-                            ?? GetString(attributes, GenAiAttributes.ConversationId),
-                ToolName = GetString(attributes, GenAiAttributes.ToolName),
-                ToolCallId = GetString(attributes, GenAiAttributes.ToolCallId)
+                            ?? GetString(attributes, GenAiConversationAttributes.Id),
+                ToolName = GetString(attributes, GenAiToolAttributes.Name),
+                ToolCallId = GetString(attributes, GenAiToolAttributes.CallId)
             };
         }
 
@@ -992,56 +760,35 @@ namespace qyl.collector
         {
             Throw.IfNull(attributes);
 
-            return attributes.ContainsKey(GenAiAttributes.ProviderName) ||
-                   attributes.ContainsKey(GenAiAttributes.Deprecated.System) ||
-                   attributes.ContainsKey(GenAiAttributes.RequestModel);
+            return attributes.ContainsKey(GenAiProviderAttributes.Name) ||
+                   attributes.ContainsKey(GenAiRequestAttributes.Model);
         }
-
-        /// <summary>
-        ///     Checks if the attributes use deprecated GenAI attribute names.
-        /// </summary>
-        public static bool UsesDeprecatedAttributes(IReadOnlyDictionary<string, object?> attributes)
-        {
-            Throw.IfNull(attributes);
-
-            return attributes.ContainsKey(GenAiAttributes.Deprecated.System) ||
-                   attributes.ContainsKey(GenAiAttributes.Deprecated.UsagePromptTokens) ||
-                   attributes.ContainsKey(GenAiAttributes.Deprecated.UsageCompletionTokens);
-        }
-#pragma warning restore CS0618
 
         /// <summary>
         ///     Extracts GenAI fields from a JsonElement.
         /// </summary>
-#pragma warning disable CS0618 // Intentional use of deprecated attributes for backward compatibility
         public static GenAiFields Extract(JsonElement attributes)
         {
-            var provider = GetJsonString(attributes, GenAiAttributes.ProviderName)
-                           ?? GetJsonString(attributes, GenAiAttributes.Deprecated.System);
-
-            var inputTokens = GetJsonLong(attributes, GenAiAttributes.UsageInputTokens)
-                              ?? GetJsonLong(attributes, GenAiAttributes.Deprecated.UsagePromptTokens);
-
-            var outputTokens = GetJsonLong(attributes, GenAiAttributes.UsageOutputTokens)
-                               ?? GetJsonLong(attributes, GenAiAttributes.Deprecated.UsageCompletionTokens);
+            var inputTokens = GetJsonLong(attributes, GenAiUsageAttributes.InputTokens);
+            var outputTokens = GetJsonLong(attributes, GenAiUsageAttributes.OutputTokens);
 
             return new GenAiFields
             {
-                ProviderName = provider,
-                OperationName = GetJsonString(attributes, GenAiAttributes.OperationName),
-                RequestModel = GetJsonString(attributes, GenAiAttributes.RequestModel),
-                ResponseModel = GetJsonString(attributes, GenAiAttributes.ResponseModel),
+                ProviderName = GetJsonString(attributes, GenAiProviderAttributes.Name),
+                OperationName = GetJsonString(attributes, GenAiOperationAttributes.Name),
+                RequestModel = GetJsonString(attributes, GenAiRequestAttributes.Model),
+                ResponseModel = GetJsonString(attributes, GenAiResponseAttributes.Model),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
                 TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
-                Temperature = GetJsonDouble(attributes, GenAiAttributes.RequestTemperature),
-                MaxTokens = GetJsonLong(attributes, GenAiAttributes.RequestMaxTokens),
-                FinishReason = GetJsonString(attributes, GenAiAttributes.ResponseFinishReasons),
+                Temperature = GetJsonDouble(attributes, GenAiRequestAttributes.Temperature),
+                MaxTokens = GetJsonLong(attributes, GenAiRequestAttributes.MaxTokens),
+                FinishReason = GetJsonString(attributes, GenAiResponseAttributes.FinishReasons),
                 CostUsd = GetJsonDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetJsonString(attributes, QylAttributes.SessionId)
-                            ?? GetJsonString(attributes, GenAiAttributes.ConversationId),
-                ToolName = GetJsonString(attributes, GenAiAttributes.ToolName),
-                ToolCallId = GetJsonString(attributes, GenAiAttributes.ToolCallId)
+                            ?? GetJsonString(attributes, GenAiConversationAttributes.Id),
+                ToolName = GetJsonString(attributes, GenAiToolAttributes.Name),
+                ToolCallId = GetJsonString(attributes, GenAiToolAttributes.CallId)
             };
         }
 
@@ -1068,37 +815,8 @@ namespace qyl.collector
         ///     Checks if JsonElement contains any GenAI-related keys.
         /// </summary>
         public static bool IsGenAiSpan(JsonElement attributes) =>
-            attributes.TryGetProperty(GenAiAttributes.ProviderName, out _) ||
-            attributes.TryGetProperty(GenAiAttributes.Deprecated.System, out _) ||
-            attributes.TryGetProperty(GenAiAttributes.RequestModel, out _);
-
-        /// <summary>
-        ///     Checks if JSON attributes use deprecated GenAI attribute names.
-        /// </summary>
-        public static bool UsesDeprecatedAttributes(string? attributesJson)
-        {
-            if (string.IsNullOrEmpty(attributesJson))
-                return false;
-
-            try
-            {
-                using var doc = JsonDocument.Parse(attributesJson);
-                return UsesDeprecatedAttributes(doc.RootElement);
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        ///     Checks if JsonElement uses deprecated GenAI attribute names.
-        /// </summary>
-        public static bool UsesDeprecatedAttributes(JsonElement attributes) =>
-            attributes.TryGetProperty(GenAiAttributes.Deprecated.System, out _) ||
-            attributes.TryGetProperty(GenAiAttributes.Deprecated.UsagePromptTokens, out _) ||
-            attributes.TryGetProperty(GenAiAttributes.Deprecated.UsageCompletionTokens, out _);
-#pragma warning restore CS0618
+            attributes.TryGetProperty(GenAiProviderAttributes.Name, out _) ||
+            attributes.TryGetProperty(GenAiRequestAttributes.Model, out _);
     }
 
     /// <summary>

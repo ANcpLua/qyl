@@ -6,123 +6,94 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <!-- OTel Semantic Conventions (BCL-only, generated from @opentelemetry/semantic-conventions) -->
+    <PackageVersion Include="OTelConventions" Version="1.39.0"/>
     <!-- OpenTelemetry -->
-    <!-- Microsoft.DotNet.ILCompiler is implicitly defined by SDK when PublishAot=true, cannot have PackageVersion in CPM -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.EventSource" Version="10.0.2" />
-    <!-- Microsoft.NET.ILLink.Tasks is implicitly defined by SDK, cannot have PackageVersion in CPM -->
-    <PackageVersion Include="Nuke.Build" Version="10.1.0" />
-    <PackageVersion Include="OpenTelemetry" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.InMemory" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2"/>
+    <PackageVersion Include="OpenTelemetry" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0"/>
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0"/>
     <!-- Microsoft.Extensions -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0"/>
     <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->
-    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.2.0" />
-    <!-- TCP probes require preview: Microsoft.Extensions.Diagnostics.Probes (K8s-specific, optional) -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="10.2.0" />
-    <PackageVersion Include="Microsoft.Extensions.ObjectPool.DependencyInjection" Version="10.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="10.2.0"/>
+    <PackageVersion Include="Microsoft.Extensions.ObjectPool.DependencyInjection" Version="10.2.0"/>
     <!-- ASP.NET Core -->
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.2" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.2"/>
+    <!-- Service Discovery & Resilience -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.2.0"/>
     <!-- System -->
-    <PackageVersion Include="System.Text.Json" Version="10.0.2" />
-    <PackageVersion Include="System.Threading.Channels" Version="10.0.2" />
-    <PackageVersion Include="System.IO.Hashing" Version="10.0.2" />
-    <PackageVersion Include="System.IO.Pipelines" Version="10.0.2" />
-    <!-- DuckDB - https://www.nuget.org/packages/DuckDB.NET.Data.Full/1.4.3 -->
-    <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.4.3" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.2"/>
+    <!-- DuckDB -->
+    <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.4.3"/>
     <!-- gRPC & Protobuf -->
-    <PackageVersion Include="Google.Protobuf" Version="3.33.2" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0-pre1" />
-    <PackageVersion Include="Grpc.AspNetCore.Server.Reflection" Version="2.76.0-pre1" />
-    <PackageVersion Include="Grpc.Tools" Version="2.76.0" />
-    <!-- gRPC Client -->
-    <PackageVersion Include="Grpc.Net.Client" Version="2.76.0-pre1" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.GrpcNetClient" Version="1.15.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Prometheus.HttpListener" Version="1.15.0-beta.1" />
-    <PackageVersion Include="OpenTelemetry.Shims.OpenTracing" Version="1.15.0-beta.1" />
-    <!-- Azure OpenTelemetry -->
-    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
+    <PackageVersion Include="Google.Protobuf" Version="3.33.4"/>
+    <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0"/>
+    <PackageVersion Include="Grpc.Tools" Version="2.76.0"/>
+    <!-- Azure Monitor (for AgentsGateway example) -->
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0"/>
     <!-- Identity -->
-    <PackageVersion Include="Microsoft.IdentityModel.Validators" Version="8.15.0" />
-    <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2)
-         IMPORTANT: Use xunit.v3.mtp-v2 for .NET 10 SDK MTP compatibility.
-         Plain xunit.v3 uses MTP v1 which is incompatible with .NET 10 SDK. -->
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2" />
-    <PackageVersion Include="AwesomeAssertions" Version="9.3.0" />
-    <!-- Analyzers -->
-    <!-- NOTE: The following packages are managed by ANcpLua.NET.Sdk (1.6.29):
-         - ANcpLua.Analyzers
-         - Microsoft.CodeAnalysis.BannedApiAnalyzers
-         - JonSkeet.RoslynAnalyzers
-         - Microsoft.Sbom.Targets
-         Do NOT add them here to avoid NU1506 duplicate package errors.
-    -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.101"/>
+    <PackageVersion Include="Microsoft.IdentityModel.Validators" Version="8.15.0"/>
+    <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2) -->
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2"/>
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.0.2"/>
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.3.2"/>
+    <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0-2.final"/>
-    <!-- Roslyn Utilities - explicitly versioned for qyl project -->
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.18.3"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.18.3"/>
-    <!-- Roslyn (for qyl.analyzers) -->
-    <!-- Microsoft.Agents.AI (preview) -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260127.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260127.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260121.1" />
-    <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.3.176" />
-    <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="1.3.176" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0"/>
+    <!-- Roslyn Utilities -->
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.20.0"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.20.0"/>
+    <!-- Microsoft.Agents.AI (preview - for AgentsGateway example) -->
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260127.1"/>
+    <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.4.60-beta"/>
+    <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="1.4.60-beta"/>
     <!-- MCP & AI Clients -->
-    <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1" />
-    <PackageVersion Include="System.ClientModel" Version="1.8.1" />
-    <PackageVersion Include="Mscc.GenerativeAI.Microsoft" Version="2.9.7" />
-    <PackageVersion Include="OllamaSharp" Version="5.4.12" />
+    <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1"/>
+    <PackageVersion Include="System.ClientModel" Version="1.8.1"/>
+    <PackageVersion Include="Mscc.GenerativeAI.Microsoft" Version="2.9.7"/>
+    <PackageVersion Include="OllamaSharp" Version="5.4.12"/>
     <!-- Build Tooling (Nuke) -->
-    <PackageVersion Include="Nuke.Common" Version="10.1.0" />
-    <PackageVersion Include="Nuke.Components" Version="10.1.0" />
+    <PackageVersion Include="Nuke.Common" Version="10.1.0"/>
+    <PackageVersion Include="Nuke.Components" Version="10.1.0"/>
     <!-- OpenAPI YAML Parsing (for TypeSpec God Schema pipeline) -->
-    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
-    <!-- CLI -->
-    <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
-    <!-- Console example dependencies -->
+    <PackageVersion Include="YamlDotNet" Version="16.3.0"/>
+    <!-- Messaging -->
+    <PackageVersion Include="RabbitMQ.Client" Version="7.2.0"/>
   </ItemGroup>
   <ItemGroup>
-    <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]" />
-    <PackageDownload Include="ReportGenerator" Version="[5.5.0]" />
-    <PackageDownload Include="Versionize" Version="[2.4.0]" />
+    <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]"/>
+    <PackageDownload Include="ReportGenerator" Version="[5.5.0]"/>
+    <PackageDownload Include="Versionize" Version="[2.4.0]"/>
   </ItemGroup>
 </Project>

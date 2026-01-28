@@ -23,6 +23,9 @@ RUN npm run build
 # Using Debian (not Alpine) because DuckDB native libs require glibc
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 
+# Cache buster - change this value to force full rebuild
+ARG CACHE_BUST=2026-01-28-v2
+
 WORKDIR /src
 
 # Copy solution-level files for restore
@@ -43,6 +46,10 @@ WORKDIR /src
 COPY src/qyl.protocol/ src/qyl.protocol/
 COPY src/qyl.collector/ src/qyl.collector/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
+
+# Debug: show canary file and Program.cs header to verify correct files
+RUN echo "=== CANARY ===" && cat src/qyl.collector/CANARY.txt || echo "NO CANARY" && \
+    echo "=== PROGRAM.CS HEADER ===" && head -5 src/qyl.collector/Program.cs
 
 # Publish
 WORKDIR /src/src/qyl.collector

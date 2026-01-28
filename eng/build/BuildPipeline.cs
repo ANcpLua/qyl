@@ -46,6 +46,12 @@ interface IPipeline : IHasSolution
     AbsolutePath JsonSchemaOutput => TypeSpecGenerated;
 
     // ════════════════════════════════════════════════════════════════════════
+    // Semconv Generator Paths (OTel Semantic Conventions)
+    // ════════════════════════════════════════════════════════════════════════
+
+    AbsolutePath SemconvDirectory => RootDirectory / "tools" / "semconv-generator";
+
+    // ════════════════════════════════════════════════════════════════════════
     // Frontend Paths
     // ════════════════════════════════════════════════════════════════════════
 
@@ -140,6 +146,44 @@ interface IPipeline : IHasSolution
             }
 
             Log.Information("TypeSpec artifacts cleaned");
+        });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Semconv Targets (OTel Semantic Conventions)
+    // ════════════════════════════════════════════════════════════════════════
+
+    Target SemconvInstall => d => d
+        .Description("Install semconv-generator npm dependencies")
+        .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
+        .Executes(() =>
+        {
+            Log.Information("Installing semconv-generator dependencies...");
+
+            NpmTasks.NpmInstall(s => s
+                .SetProcessWorkingDirectory<NpmInstallSettings>(SemconvDirectory));
+
+            Log.Information("Semconv dependencies installed");
+        });
+
+    Target GenerateSemconv => d => d
+        .Description("Generate OTel Semantic Conventions (C# + TypeScript)")
+        .DependsOn(SemconvInstall)
+        .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
+        .Executes(() =>
+        {
+            Log.Information("Generating OTel Semantic Conventions...");
+
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(SemconvDirectory)
+                .SetCommand("generate"));
+
+            NpmTasks.NpmRun(s => s
+                .SetProcessWorkingDirectory<NpmRunSettings>(SemconvDirectory)
+                .SetCommand("deploy:all"));
+
+            Log.Information("Semconv generated and deployed:");
+            Log.Information("  C#: qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs");
+            Log.Information("  TS: qyl.dashboard/src/lib/semconv.ts");
         });
 
     // ════════════════════════════════════════════════════════════════════════
@@ -289,12 +333,13 @@ interface IPipeline : IHasSolution
 
     /// <summary>
     ///     Generate all code from OpenAPI spec.
-    ///     TypeSpec → OpenAPI → C#/DuckDB/TypeScript
+    ///     TypeSpec → OpenAPI → C#/DuckDB/TypeScript + OTel Semconv
     /// </summary>
     Target Generate => d => d
-        .Description("Generate ALL code from TypeSpec God Schema (C# + DuckDB + TypeScript)")
+        .Description("Generate ALL code from TypeSpec God Schema (C# + DuckDB + TypeScript + Semconv)")
         .DependsOn(TypeSpecCompile)
         .DependsOn(GenerateTypeScript)
+        .DependsOn(GenerateSemconv)
         .Executes(() =>
         {
             var force = ForceGenerate ?? false;
@@ -333,6 +378,7 @@ interface IPipeline : IHasSolution
             Log.Information("  TypeScript: dashboard/src/types/api.ts");
             Log.Information("  C# Records: protocol/*.g.cs");
             Log.Information("  DuckDB DDL: collector/Storage/DuckDbSchema.g.cs");
+            Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 }
