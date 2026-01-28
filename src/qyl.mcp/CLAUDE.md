@@ -1,205 +1,55 @@
 # qyl.mcp
 
-MCP server exposing qyl telemetry to AI assistants.
+MCP (Model Context Protocol) server for AI assistant integration.
 
 ## identity
 
 ```yaml
-name: qyl.mcp
-type: mcp-server
 sdk: ANcpLua.NET.Sdk
-transport: stdio
-role: ai-integration-layer
-```
-
-## architecture
-
-```yaml
-communication:
-  to: qyl.collector
-  via: http-only
-  reason: decoupled (no ProjectReference to collector)
-
-connection:
-  env: QYL_COLLECTOR_URL
-  default: http://localhost:5100
-  resilience: standard-handler (retry + circuit-breaker)
-  timeout: 30s
+protocol: stdio (MCP standard)
+connection: HTTP to collector only
 ```
 
 ## tools
 
 ```yaml
-telemetry-tools:
-  - name: qyl.search_agent_runs
-    purpose: Search agent runs by provider, model, error, time
-    params: [provider?, model?, errorType?, since?]
-
-  - name: qyl.get_agent_run
-    purpose: Get specific agent run details
-    params: [runId]
-
-  - name: qyl.get_token_usage
-    purpose: Token statistics with grouping
-    params: [since?, until?, groupBy=agent|model|hour]
-
-  - name: qyl.list_errors
-    purpose: Recent errors from agent runs
-    params: [limit=50, agentName?]
-
-  - name: qyl.get_latency_stats
-    purpose: Latency percentiles (P50, P95, P99)
-    params: [agentName?, hours=24]
-
-replay-tools:
-  - name: qyl.list_sessions
-    purpose: List available sessions for replay
-    params: [limit=20, serviceName?]
-
-  - name: qyl.get_session_transcript
-    purpose: Human-readable session transcript
-    params: [sessionId]
-
-  - name: qyl.get_trace
-    purpose: Trace details with span hierarchy
-    params: [traceId]
-
-  - name: qyl.analyze_session_errors
-    purpose: Error analysis for a session
-    params: [sessionId]
+query_spans: Search spans with filters
+get_session: Get session details
+get_trace: Get full trace tree
+analyze_tokens: Token usage analysis
 ```
 
-## collector-api
+## architecture
 
 ```yaml
-endpoints-used:
-  - GET /api/v1/sessions
-  - GET /api/v1/sessions/{id}
-  - GET /api/v1/sessions/{id}/spans
-  - GET /api/v1/traces/{traceId}
-
-response-format: snake_case JSON
-json-context: source-generated (AOT-safe)
-```
-
-## patterns
-
-```yaml
-http-client:
-  registration: |
-    builder.Services.AddHttpClient<ReplayTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddStandardResilienceHandler();
-
-mcp-setup:
-  registration: |
-    builder.Services
-        .AddMcpServer()
-        .WithStdioServerTransport()
-        .WithTools<TelemetryTools>(jsonOptions)
-        .WithTools<ReplayTools>(jsonOptions);
-
-tool-result:
-  pattern: |
-    public record ToolResult<T>(bool Success, T? Data, string? Error);
-    public static ToolResult<T> Ok<T>(T data) => new(true, data, null);
-    public static ToolResult<T> Error<T>(string msg) => new(false, default, msg);
-
-error-handling:
-  pattern: |
-    try { ... }
-    catch (HttpRequestException ex)
-    {
-        return ToolResult.Error<T>($"Failed to connect to qyl collector: {ex.Message}");
-    }
-
-time:
-  provider: TimeProvider.System
-  injection: constructor (for testability)
-
-agents-framework:
-  chat-client-agent: |
-    // Microsoft.Agents.AI 1.0.0-preview.260121.1+
-    // Constructor parameters (not ChatClientAgentOptions properties!)
-    var agent = new ChatClientAgent(
-        chatClient,
-        instructions: "You specialize in handling queries...",
-        name: "HostClient",
-        tools: toolsList);
-
-  a2a-client: |
-    // Resolve A2A agent card from remote endpoint
-    var agentCard = await A2ACardResolver.GetAgentCardAsync(baseUrl);
-    var agent = agentCard.AsAIAgent(loggerFactory: loggerFactory);
-
-    // Convert agent to AIFunction for tool use
-    tools.Add(agent.AsAIFunction());
-
-  telemetry-wrapper: |
-    // Wrap agent with OpenTelemetry instrumentation
-    var telemetryAgent = new TelemetryAgent(innerAgent, collector, agentName);
-
-    // Or via extension
-    var agent = innerAgent.WithTelemetry(collector, agentName);
+transport: stdio (stdin/stdout JSON-RPC)
+backend: HTTP calls to collector REST API
+no-direct-db: Must go through collector API
 ```
 
 ## dependencies
 
 ```yaml
-project-references:
-  - qyl.protocol (types only)
-
+project: qyl.protocol
 packages:
-  mcp:
-    - ModelContextProtocol (0.6.0-preview.1)
-
-  agents:
-    - Microsoft.Agents.AI (1.0.0-preview.260121.1)
-    - Microsoft.Agents.AI.A2A
-    - Microsoft.Agents.AI.Abstractions
-    - Microsoft.Agents.AI.Hosting.A2A
-    - Microsoft.Agents.AI.Hosting.A2A.AspNetCore
-
-  resilience:
-    - Microsoft.Extensions.Http.Resilience
-
-forbidden:
-  - qyl.collector (must use HTTP)
+  - ModelContextProtocol
 ```
 
 ## usage
 
-```yaml
-claude-desktop:
-  config: |
-    {
-      "mcpServers": {
-        "qyl": {
-          "command": "dotnet",
-          "args": ["run", "--project", "src/qyl.mcp"],
-          "env": {
-            "QYL_COLLECTOR_URL": "http://localhost:5100"
-          }
-        }
-      }
+```json
+{
+  "mcpServers": {
+    "qyl": {
+      "command": "dotnet",
+      "args": ["run", "--project", "src/qyl.mcp"]
     }
-
-standalone:
-  command: dotnet run --project src/qyl.mcp
-
-with-collector:
-  prerequisite: qyl collector must be running
-  start-collector: dotnet run --project src/qyl.collector
+  }
+}
 ```
 
+## rules
 
-<claude-mem-context>
-# Recent Activity
-
-<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
-
-*No recent activity*
-</claude-mem-context>
+- NO ProjectReference to collector (HTTP only)
+- All data access via collector REST API
+- Stdio transport for MCP compliance

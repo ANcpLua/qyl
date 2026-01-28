@@ -28,14 +28,18 @@ var dataDir = Path.GetDirectoryName(dataPath);
 if (!string.IsNullOrEmpty(dataDir))
     Directory.CreateDirectory(dataDir);
 
-// Configure Kestrel for HTTP (Dashboard/API) and gRPC (OTLP) endpoints
+// Configure Kestrel for HTTP (Dashboard/API) and optional gRPC (OTLP) endpoints
+// Set QYL_GRPC_PORT=0 to disable gRPC endpoint (useful on Railway/single-port platforms)
 builder.WebHost.ConfigureKestrel(options =>
 {
     // HTTP endpoint for Dashboard, REST API, and OTLP HTTP (/v1/traces)
     options.ListenAnyIP(port, listenOptions => { listenOptions.Protocols = HttpProtocols.Http1AndHttp2; });
 
-    // gRPC endpoint for OTLP gRPC (TraceService.Export) on port 4317
-    options.ListenAnyIP(grpcPort, listenOptions => { listenOptions.Protocols = HttpProtocols.Http2; });
+    // gRPC endpoint for OTLP gRPC (TraceService.Export) - disabled when grpcPort <= 0
+    if (grpcPort > 0)
+    {
+        options.ListenAnyIP(grpcPort, listenOptions => { listenOptions.Protocols = HttpProtocols.Http2; });
+    }
 });
 
 // Register gRPC services with compression support for OTLP clients

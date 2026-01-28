@@ -15,7 +15,8 @@ RUN npm ci
 
 # Copy source and build
 COPY src/qyl.dashboard/ ./
-RUN npm run build
+RUN npm run build && \
+    test -f ./dist/index.html || (echo "ERROR: Dashboard build failed - no index.html" && exit 1)
 
 # ============================================================================
 # STAGE 2: Build .NET
@@ -53,6 +54,8 @@ RUN echo "=== CANARY ===" && cat src/qyl.collector/CANARY.txt || echo "NO CANARY
 
 # Publish
 WORKDIR /src/src/qyl.collector
+# Publish with reduced analysis for CI stability
+# Note: Full analysis runs locally via Directory.Build.props
 RUN dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \
@@ -61,7 +64,7 @@ RUN dotnet publish -c Release -o /app --no-restore \
     -p:RunAnalyzers=false \
     -p:RunAnalyzersDuringBuild=false \
     -p:WarningLevel=0 \
-    || true && test -f /app/qyl.collector.dll
+    && test -f /app/qyl.collector.dll || (echo "ERROR: .NET publish failed" && exit 1)
 
 # ============================================================================
 # STAGE 3: Runtime image
@@ -80,8 +83,9 @@ WORKDIR /app
 # Copy published .NET app
 COPY --from=build /app .
 
-# Copy dashboard build to wwwroot
+# Copy dashboard build to wwwroot and verify
 COPY --from=dashboard /dashboard/dist ./wwwroot/
+RUN test -f ./wwwroot/index.html || (echo "ERROR: Dashboard not copied to wwwroot" && exit 1)
 
 # Set ownership
 RUN chown -R qyl:qyl /app
@@ -92,5 +96,7 @@ USER qyl
 EXPOSE 5100
 
 # Set QYL_PORT from Railway's PORT (Program.cs uses QYL_PORT for Kestrel config)
+# Set QYL_GRPC_PORT=0 by default to disable gRPC on Railway (single-port platform)
+# Override with QYL_GRPC_PORT=4317 to enable gRPC on platforms that support multiple ports
 # ASPNETCORE_URLS is ignored when explicit ConfigureKestrel is used
-ENTRYPOINT ["/bin/sh", "-c", "QYL_PORT=${PORT:-5100} exec dotnet qyl.collector.dll"]
+ENTRYPOINT ["/bin/sh", "-c", "QYL_PORT=${PORT:-5100} QYL_GRPC_PORT=${QYL_GRPC_PORT:-0} exec dotnet qyl.collector.dll"]

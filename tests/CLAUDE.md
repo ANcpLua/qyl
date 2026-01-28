@@ -1,133 +1,62 @@
 # tests
 
-@import "../CLAUDE.md"
+Test infrastructure using xUnit v3 with Microsoft Testing Platform.
 
-Test infrastructure for qyl. Uses xUnit v3 with Microsoft Testing Platform (MTP).
+## identity
 
-## Test Projects
-
-| Project                  | Namespace                | Target                   |
-|--------------------------|--------------------------|--------------------------|
-| `qyl.collector.tests`    | `*.Storage.*`            | DuckDbStore, queries     |
-| `qyl.collector.tests`    | `*.Ingestion.*`          | OTLP parsing             |
-| `qyl.collector.tests`    | `*.Integration.*`        | End-to-end API tests     |
-| `qyl.mcp.server.tests`   | `*.Unit.*`               | MCP server (EMPTY)       |
-
-## Test Execution
-
-```bash
-# Direct MTP execution (fast)
-./tests/qyl.collector.tests/bin/Debug/net10.0/qyl.collector.tests
-
-# Filter by namespace
-./tests/.../qyl.collector.tests -filter "/*/qyl.collector.tests.Storage/*"
-
-# Filter by method pattern
-./tests/.../qyl.collector.tests -filter "/*/*/*/Insert*"
+```yaml
+sdk: ANcpLua.NET.Sdk.Test
+framework: xUnit v3 (3.2.2)
+runner: Microsoft.Testing.Platform v2
 ```
 
-## qyl Test Infrastructure
+## structure
 
-### SpanBuilder (Fluent Builder)
-
-```csharp
-// GenAI span with defaults
-var span = SpanBuilder.GenAi(TestConstants.TraceDefault, TestConstants.SpanDefault)
-    .WithSessionId(TestConstants.SessionDefault)
-    .Build();
-
-// Minimal span
-var minimal = SpanBuilder.Minimal("trace-001", "span-001").Build();
-
-// Custom timing
-var timed = SpanBuilder.Create("trace-001", "span-001")
-    .AtTime(baseTime, offsetMs: 100, durationMs: 50)
-    .Build();
+```yaml
+qyl.collector.tests/
+  Diagnostics/       # Diagnostic tests
+  Helpers/           # Test utilities (DuckDbTestHelpers)
+  Ingestion/         # OTLP parsing tests
+  Integration/       # End-to-end API tests
+  Query/             # Query service tests
+  Storage/           # DuckDB storage tests
 ```
 
-### SpanFactory (Batch Creation)
+## commands
 
-```csharp
-// Sequential batch
-var batch = SpanFactory.CreateBatch(traceId, sessionId, count: 5, baseTime);
-
-// Trace hierarchy (root + children)
-var hierarchy = SpanFactory.CreateHierarchy(traceId, baseTime, childCount: 2);
-
-// GenAI stats test data
-var stats = SpanFactory.CreateGenAiStats(sessionId, baseTime);
+```yaml
+all: dotnet test
+filter: dotnet test --filter "FullyQualifiedName~Integration"
+coverage: nuke Coverage
 ```
 
-### DuckDbTestHelpers
+## patterns
 
 ```csharp
-// In-memory store
-var store = DuckDbTestHelpers.CreateInMemoryStore();
-await DuckDbTestHelpers.WaitForSchemaInit();
-
-// Write and wait
-await DuckDbTestHelpers.EnqueueAndWaitAsync(store, span);
-
-// Query extensions
-var columns = await connection.GetTableColumnsAsync("spans");
-var count = await connection.CountSpansAsync(traceId, spanId);
-```
-
-### TestConstants
-
-```csharp
-TestConstants.InMemoryDb              // ":memory:"
-TestConstants.SessionDefault          // "session-001"
-TestConstants.TraceDefault            // "trace-001"
-TestConstants.ProviderOpenAi          // "openai"
-TestConstants.TokensInDefault         // 50L
-TestConstants.SchemaInitDelayMs       // 200
-```
-
-## Coverage Gaps (P0/P1)
-
-### CRITICAL: Untested Code Paths
-
-| Gap ID   | Component              | Path                        | Priority |
-|----------|------------------------|-----------------------------|----------|
-| TEST-001 | qyl.mcp                | Entire server (0% coverage) | P0       |
-| TEST-002 | OtlpConverter          | Proto/gRPC path             | P1       |
-| TEST-003 | Realtime/SSE           | SseExtensions, SseEndpoints | P1       |
-| TEST-004 | TraceServiceImpl       | gRPC TraceService           | P1       |
-| TEST-005 | SpanBroadcaster        | Channel pub/sub             | P2       |
-
-### TimeProvider Usage ✅
-
-All test code now uses `TimeProvider.System.GetUtcNow().UtcDateTime` for time operations.
-
-**Compliant files:**
-
-- `Helpers/SpanBuilder.cs` - Uses TimeProvider in all timing methods
-- `Storage/DuckDbStoreTests.cs` - Uses TimeProvider
-- `Query/SessionQueryServiceTests.cs` - Uses TimeProvider
-- `Integration/*.cs` - All tests use TimeProvider
-
-## xUnit v3 Pattern
-
-```csharp
-public sealed class MyTests : IAsyncLifetime
+// xUnit v3 with MTP
+public class MyTests
 {
-    private DuckDbStore _store = null!;
-
-    public async ValueTask InitializeAsync()  // ValueTask, not Task
+    [Fact]
+    public async Task Should_DoSomething()
     {
-        _store = DuckDbTestHelpers.CreateInMemoryStore();
-        await DuckDbTestHelpers.WaitForSchemaInit();
-    }
-
-    public async ValueTask DisposeAsync()
-    {
-        await _store.DisposeAsync();
+        // Arrange, Act, Assert
     }
 }
+
+// DuckDB test helper
+using var db = DuckDbTestHelpers.CreateInMemory();
 ```
 
-## MTP Package Note
+## packages
 
-Use `xunit.v3.mtp-v2` (NOT plain `xunit.v3`) for .NET 10 SDK compatibility.
-Plain `xunit.v3` bundles MTP v1 which causes loader errors.
+```yaml
+- xunit.v3.mtp-v2
+- Microsoft.Testing.Extensions.TrxReport
+- Microsoft.AspNetCore.Mvc.Testing
+```
+
+## rules
+
+- Use descriptive test names (Should_X_When_Y)
+- In-memory DuckDB for isolation
+- No mocking of core types

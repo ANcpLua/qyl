@@ -53,10 +53,11 @@ public static class StartupBanner
         Console.WriteLine("│");
 
         Console.Write("  │  gRPC Port:  ");
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write(grpcPort);
+        Console.ForegroundColor = grpcPort > 0 ? ConsoleColor.Yellow : ConsoleColor.DarkGray;
+        var grpcText = grpcPort > 0 ? grpcPort.ToString() : "disabled";
+        Console.Write(grpcText);
         Console.ResetColor();
-        PadLine(grpcPort.ToString().Length + 13, 68);
+        PadLine(grpcText.Length + 13, 68);
         Console.WriteLine("│");
 
         Console.WriteLine("  │                                                                   │");
@@ -97,7 +98,8 @@ public static class StartupBanner
         Console.WriteLine("  Endpoints:");
         Console.WriteLine("    POST /api/v1/ingest     - qyl. native protocol (primary)");
         Console.WriteLine("    POST /v1/traces         - OTLP HTTP compatibility shim");
-        Console.WriteLine("    gRPC TraceService       - OTLP gRPC (port 4317)");
+        if (grpcPort > 0)
+            Console.WriteLine($"    gRPC TraceService       - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
         Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
         Console.WriteLine("    POST /api/login         - Token authentication");

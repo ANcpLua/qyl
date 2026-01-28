@@ -1,228 +1,79 @@
-# eng/build — NUKE Build System
+# eng
 
-Build orchestration for qyl. Enforces architecture through target dependencies.
+NUKE build system and MSBuild infrastructure.
 
-## identity
-
-```yaml
-name: eng/build
-type: nuke-build
-role: architecture-enforcer
-location: eng/build/
-nuke-version: "10.1.0"
-```
-
-## ecosystem-dependencies
+## structure
 
 ```yaml
-# qyl uses ANcpLua ecosystem packages from nuget.org
-sdk:
-    ANcpLua.NET.Sdk: "1.6.21"
-    ANcpLua.NET.Sdk.Web: "1.6.21"
-    ANcpLua.NET.Sdk.Test: "1.6.21"
+build/              # NUKE build project
+  Build.cs          # Main entry, target orchestration
+  BuildCore.cs      # Core targets (Compile, Test)
+  BuildInfra.cs     # Infrastructure (Docker, Pack)
+  BuildPipeline.cs  # CI/CD pipeline
+  BuildTest.cs      # Test targets
+  BuildVerify.cs    # Verification targets
+  SchemaGenerator.cs # TypeSpec -> C#/DuckDB/TS codegen
 
-analyzers:
-    ANcpLua.Analyzers: "1.9.0"
-
-roslyn-utilities:
-    ANcpLua.Roslyn.Utilities: "1.16.0"
-    ANcpLua.Roslyn.Utilities.Testing: "1.16.0"
-
-testing:
-    xunit.v3.mtp-v2: "3.2.2"
-    AwesomeAssertions: "9.3.0"
-
-otel:
-    OpenTelemetry: "1.15.0"
+MSBuild/            # Shared MSBuild infrastructure
+  Shared.props      # Common properties
+  Shared.targets    # Common targets
+  Shared.Claude.*   # CLAUDE.md generation system
 ```
 
-## targets
+## nuke-targets
 
 ```yaml
-schema:
-  - name: TypeSpecCompile
-    input: core/specs/*.tsp
-    output: core/openapi/openapi.yaml
-    command: tsp compile main.tsp
-    
-  - name: Generate
-    depends: [TypeSpecCompile]
-    input: core/openapi/openapi.yaml
-    outputs:
-      - src/qyl.protocol/Primitives/*.g.cs
-      - src/qyl.protocol/Enums/*.g.cs
-      - src/qyl.protocol/Models/*.g.cs
-      - src/qyl.collector/Storage/DuckDbSchema.g.cs
-      - src/qyl.dashboard/src/types/api.ts
+TypeSpecCompile:
+  input: core/specs/*.tsp
+  output: core/openapi/openapi.yaml
 
-build:
-  - name: Compile
-    input: src/**/*.csproj
-    output: bin/
-    command: dotnet build
-    
-  - name: DashboardBuild
-    input: src/qyl.dashboard/
-    output: src/qyl.dashboard/dist/
-    command: npm run build
-    working-dir: src/qyl.dashboard
+Generate:
+  depends: [TypeSpecCompile]
+  outputs:
+    - src/qyl.protocol/*.g.cs
+    - src/qyl.collector/Storage/DuckDbSchema.g.cs
+    - src/qyl.dashboard/src/types/api.ts
 
-embed:
-  - name: DashboardEmbed
-    depends: [DashboardBuild, Compile]
-    action: copy
-    source: src/qyl.dashboard/dist/
-    target: src/qyl.collector/wwwroot/
-    critical: true
+DashboardBuild:
+  command: npm run build
+  output: src/qyl.dashboard/dist/
 
-package:
-  - name: Publish
-    depends: [DashboardEmbed]
-    output: artifacts/publish/
-    command: dotnet publish -c Release
-    
-  - name: DockerBuild
-    depends: [Publish]
-    output: ghcr.io/ancplua/qyl:latest
-    dockerfile: Dockerfile
-    
-  - name: Pack
-    depends: [Publish]
-    output: artifacts/packages/*.nupkg
-    creates: dotnet-global-tool
+Compile:
+  command: dotnet build
 
-test:
-  - name: Test
-    command: dotnet test
-    
-  - name: Coverage
-    depends: [Test]
-    output: artifacts/coverage/
+DashboardEmbed:
+  depends: [DashboardBuild, Compile]
+  action: copy dist/ -> collector/wwwroot/
+
+Publish:
+  depends: [DashboardEmbed]
+  command: dotnet publish -c Release
+
+DockerBuild:
+  depends: [Publish]
+  dockerfile: src/qyl.collector/Dockerfile
 ```
 
-## dependency-graph
+## commands
 
 ```yaml
-order:
-  1: TypeSpecCompile
-  2: Generate
-  3: [DashboardBuild, Compile]  # parallel
-  4: DashboardEmbed
-  5: Publish
-  6: [DockerBuild, Pack]  # parallel
-
-critical-path:
-  - DashboardEmbed must run after BOTH DashboardBuild AND Compile
-  - DockerBuild must include embedded dashboard
-  - Pack must include embedded dashboard
+full-build: nuke Full
+generate: nuke Generate --force-generate
+docker: nuke DockerBuild
+test: nuke Test
+coverage: nuke Coverage
 ```
 
-## parameters
+## claude-md-generation
 
-```yaml
-flags:
-  - name: --configuration
-    default: Release
-    type: enum [Debug, Release]
-    
-  - name: --force-generate
-    default: false
-    type: bool
-    description: overwrite generated files
-    
-  - name: --docker-tag
-    default: latest
-    type: string
-    
-  - name: --skip-tests
-    default: false
-    type: bool
+MSBuild-based system for auto-generating CLAUDE.md files from csproj metadata:
+
+```xml
+<PropertyGroup>
+  <GenerateClaudeMd>true</GenerateClaudeMd>
+  <ClaudePurpose>Description here</ClaudePurpose>
+  <ClaudeRole>component-role</ClaudeRole>
+</PropertyGroup>
 ```
 
-## invocation
-
-```yaml
-common:
-  full-build: nuke Full
-  generate-only: nuke Generate --force-generate
-  docker-only: nuke DockerBuild
-  pack-only: nuke Pack
-  ci: nuke CI
-
-development:
-  watch-dashboard: cd src/qyl.dashboard && npm run dev
-  run-collector: dotnet run --project src/qyl.collector
-```
-
-## file-structure
-
-```yaml
-eng/:
-  build/:
-    Build.cs              # Main build class, target definitions
-    Build.Schema.cs       # TypeSpecCompile, Generate
-    Build.Dashboard.cs    # DashboardBuild, DashboardEmbed
-    Build.Docker.cs       # DockerBuild
-    Build.Pack.cs         # Pack (global tool)
-    Domain/:
-      CodeGen/:           # OpenAPI → C#/TS generators
-        CSharpScalarGenerator.cs
-        CSharpEnumGenerator.cs
-        CSharpModelGenerator.cs
-        DuckDbSchemaGenerator.cs
-        
-  MSBuild/:
-    BannedSymbols.txt     # Banned API enforcement
-```
-
-## generators
-
-```yaml
-location: eng/build/Domain/CodeGen/
-
-generators:
-  - name: CSharpScalarGenerator
-    input: openapi schemas with x-primitive
-    output: protocol/Primitives/*.g.cs
-    
-  - name: CSharpEnumGenerator
-    input: openapi enums
-    output: protocol/Enums/*.g.cs
-    
-  - name: CSharpModelGenerator
-    input: openapi schemas
-    output: protocol/Models/*.g.cs
-    
-  - name: DuckDbSchemaGenerator
-    input: openapi schemas with x-duckdb-table
-    output: collector/Storage/DuckDbSchema.g.cs
-
-extensions-used:
-  - x-csharp-type
-  - x-duckdb-table
-  - x-duckdb-column
-  - x-duckdb-type
-  - x-duckdb-primary-key
-  - x-duckdb-index
-  - x-primitive
-  - x-promoted
-```
-
-## enforcement
-
-```yaml
-rules:
-  - dashboard-must-embed: DashboardEmbed target ensures dist/ → wwwroot/
-  - no-manual-generation: all *.g.cs from Generate target
-  - docker-includes-dashboard: DockerBuild depends on DashboardEmbed
-  - pack-includes-dashboard: Pack depends on DashboardEmbed
-```
-
-
-<claude-mem-context>
-# Recent Activity
-
-<!-- This section is auto-generated by claude-mem. Edit content outside the tags. -->
-
-*No recent activity*
-</claude-mem-context>
+Currently disabled in qyl (hand-written CLAUDE.md preferred).
