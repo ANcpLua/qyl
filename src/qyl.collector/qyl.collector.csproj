@@ -1,5 +1,5 @@
 <Project Sdk="ANcpLua.NET.Sdk.Web">
-
+  <!-- Build: 2026-01-28T17:10:00Z -->
   <PropertyGroup>
     <RootNamespace>qyl.collector</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
@@ -77,4 +77,3 @@
   </ItemGroup>
 
 </Project>
-# Cache bust 1769619742
