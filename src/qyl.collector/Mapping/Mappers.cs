@@ -112,7 +112,7 @@ public static class SpanMapper
         IEnumerable<SpanStorageRow> records,
         Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
     [
-        .. records.Where(static _ => true).Select(r =>
+        .. records.Select(r =>
         {
             var (serviceName, serviceVersion) = serviceResolver(r);
             return ToDto(r, serviceName, serviceVersion);
@@ -125,7 +125,7 @@ public static class SpanMapper
         IEnumerable<SpanRecord> records,
         Func<SpanRecord, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
     [
-        .. records.Where(static _ => true).Select(r =>
+        .. records.Select(r =>
         {
             var (serviceName, serviceVersion) = serviceResolver(r);
             return ToDto(r, serviceName, serviceVersion);
@@ -161,49 +161,64 @@ public static class SpanMapper
         }
     }
 
-    private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record)
+    private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record) =>
+        ExtractGenAiDataCore(
+            record.GenAiInputTokens,
+            record.GenAiOutputTokens,
+            record.GenAiProviderName,
+            record.Name,
+            record.GenAiRequestModel,
+            record.GenAiResponseModel,
+            record.GenAiCostUsd,
+            record.GenAiTemperature,
+            record.GenAiStopReason,
+            record.GenAiToolName,
+            record.GenAiToolCallId);
+
+    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record) =>
+        ExtractGenAiDataCore(
+            record.GenAiInputTokens,
+            record.GenAiOutputTokens,
+            record.GenAiProviderName,
+            record.Name,
+            record.GenAiRequestModel,
+            record.GenAiResponseModel,
+            (double?)record.GenAiCostUsd,
+            record.GenAiTemperature,
+            record.GenAiStopReason,
+            record.GenAiToolName,
+            record.GenAiToolCallId);
+
+    private static GenAiSpanDataDto? ExtractGenAiDataCore(
+        long? inputTokens,
+        long? outputTokens,
+        string? providerName,
+        string spanName,
+        string? requestModel,
+        string? responseModel,
+        double? costUsd,
+        double? temperature,
+        string? stopReason,
+        string? toolName,
+        string? toolCallId)
     {
-        if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
-            string.IsNullOrEmpty(record.GenAiProviderName))
+        if (inputTokens is null && outputTokens is null && string.IsNullOrEmpty(providerName))
             return null;
 
         return new GenAiSpanDataDto
         {
-            ProviderName = record.GenAiProviderName,
-            OperationName = ExtractOperationName(record.Name),
-            RequestModel = record.GenAiRequestModel,
-            ResponseModel = record.GenAiResponseModel,
-            InputTokens = record.GenAiInputTokens,
-            OutputTokens = record.GenAiOutputTokens,
-            TotalTokens = (record.GenAiInputTokens ?? 0) + (record.GenAiOutputTokens ?? 0),
-            CostUsd = record.GenAiCostUsd,
-            Temperature = record.GenAiTemperature,
-            FinishReason = record.GenAiStopReason,
-            ToolName = record.GenAiToolName,
-            ToolCallId = record.GenAiToolCallId
-        };
-    }
-
-    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record)
-    {
-        if (record.GenAiInputTokens is null && record.GenAiOutputTokens is null &&
-            string.IsNullOrEmpty(record.GenAiProviderName))
-            return null;
-
-        return new GenAiSpanDataDto
-        {
-            ProviderName = record.GenAiProviderName,
-            OperationName = ExtractOperationName(record.Name),
-            RequestModel = record.GenAiRequestModel,
-            ResponseModel = record.GenAiResponseModel,
-            InputTokens = record.GenAiInputTokens,
-            OutputTokens = record.GenAiOutputTokens,
-            TotalTokens = (record.GenAiInputTokens ?? 0) + (record.GenAiOutputTokens ?? 0),
-            CostUsd = (double?)record.GenAiCostUsd,
-            Temperature = record.GenAiTemperature,
-            FinishReason = record.GenAiStopReason,
-            ToolName = record.GenAiToolName,
-            ToolCallId = record.GenAiToolCallId
+            ProviderName = providerName,
+            OperationName = ExtractOperationName(spanName),
+            RequestModel = requestModel,
+            ResponseModel = responseModel,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
+            CostUsd = costUsd,
+            Temperature = temperature,
+            FinishReason = stopReason,
+            ToolName = toolName,
+            ToolCallId = toolCallId
         };
     }
 
