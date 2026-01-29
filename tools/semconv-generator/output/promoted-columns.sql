@@ -5,159 +5,6 @@
 -- Promoted columns for fast queries (extracted from attributes_json)
 -- Include in CREATE TABLE statements as needed
 
--- aspnetcore.diagnostics attributes
-aspnetcore_diagnostics_exception_result VARCHAR,
-aspnetcore_diagnostics_handler_type VARCHAR,
-
--- aspnetcore.rate_limiting attributes
-aspnetcore_rate_limiting_policy VARCHAR,
-aspnetcore_rate_limiting_result VARCHAR,
-
--- aspnetcore.request attributes
-aspnetcore_request_is_unhandled VARCHAR,
-
--- aspnetcore.routing attributes
-aspnetcore_routing_is_fallback VARCHAR,
-aspnetcore_routing_match_status VARCHAR,
-
--- aspnetcore.user attributes
-aspnetcore_user_is_authenticated VARCHAR,
-
--- client.address attributes
-client_address VARCHAR,
-
--- client.port attributes
-client_port VARCHAR,
-
--- code.column attributes
-code_column_number VARCHAR,
-code_column VARCHAR,
-
--- code.file attributes
-code_file_path VARCHAR,
-
--- code.function attributes
-code_function_name VARCHAR,
-code_function VARCHAR,
-
--- code.line attributes
-code_line_number VARCHAR,
-
--- code.stacktrace attributes
-code_stacktrace VARCHAR,
-
--- db.collection attributes
-db_collection_name VARCHAR,
-
--- db.namespace attributes
-db_namespace VARCHAR,
-
--- db.operation attributes
-db_operation_batch_size VARCHAR,
-db_operation_name VARCHAR,
-db_operation VARCHAR,
-
--- db.query attributes
-db_query_summary VARCHAR,
-db_query_text VARCHAR,
-
--- db.response attributes
-db_response_status_code VARCHAR,
-db_response_returned_rows VARCHAR,
-
--- db.stored_procedure attributes
-db_stored_procedure_name VARCHAR,
-
--- db.system attributes
-db_system_name VARCHAR,
-db_system VARCHAR,
-
--- dotnet.gc attributes
-dotnet_gc_heap_generation VARCHAR,
-
--- error.type attributes
-error_type VARCHAR,
-
--- exception.escaped attributes
-exception_escaped VARCHAR,
-
--- exception.message attributes
-exception_message VARCHAR,
-
--- exception.stacktrace attributes
-exception_stacktrace VARCHAR,
-
--- exception.type attributes
-exception_type VARCHAR,
-
--- http.request attributes
-http_request_method VARCHAR,
-http_request_method_original VARCHAR,
-http_request_resend_count BIGINT,
-http_request_body_size VARCHAR,
-http_request_size VARCHAR,
-
--- http.response attributes
-http_response_status_code VARCHAR,
-http_response_body_size VARCHAR,
-http_response_size VARCHAR,
-
--- http.route attributes
-http_route VARCHAR,
-
--- network.local attributes
-network_local_address VARCHAR,
-network_local_port VARCHAR,
-
--- network.peer attributes
-network_peer_address VARCHAR,
-network_peer_port VARCHAR,
-
--- network.protocol attributes
-network_protocol_name VARCHAR,
-network_protocol_version VARCHAR,
-
--- network.transport attributes
-network_transport VARCHAR,
-
--- network.type attributes
-network_type VARCHAR,
-
--- otel.scope attributes
-otel_scope_name VARCHAR,
-otel_scope_version VARCHAR,
-otel_scope_schema_url VARCHAR,
-
--- otel.status_code attributes
-otel_status_code VARCHAR,
-
--- otel.status_description attributes
-otel_status_description VARCHAR,
-
--- signalr.connection attributes
-signalr_connection_status VARCHAR,
-
--- signalr.transport attributes
-signalr_transport VARCHAR,
-
--- url.fragment attributes
-url_fragment VARCHAR,
-
--- url.full attributes
-url_full VARCHAR,
-
--- url.path attributes
-url_path VARCHAR,
-
--- url.query attributes
-url_query VARCHAR,
-
--- url.scheme attributes
-url_scheme VARCHAR,
-
--- user_agent.original attributes
-user_agent_original VARCHAR,
-
 -- artifact.attestation attributes
 artifact_attestation_filename VARCHAR,
 artifact_attestation_hash VARCHAR,
@@ -183,6 +30,10 @@ aspnetcore_authentication_scheme VARCHAR,
 aspnetcore_authorization_policy VARCHAR,
 aspnetcore_authorization_result VARCHAR,
 
+-- aspnetcore.diagnostics attributes
+aspnetcore_diagnostics_exception_result VARCHAR,
+aspnetcore_diagnostics_handler_type VARCHAR,
+
 -- aspnetcore.identity attributes
 aspnetcore_identity_error_code VARCHAR,
 aspnetcore_identity_password_check_result VARCHAR,
@@ -191,14 +42,45 @@ aspnetcore_identity_sign_in_result VARCHAR,
 aspnetcore_identity_sign_in_type VARCHAR,
 aspnetcore_identity_token_purpose VARCHAR,
 aspnetcore_identity_token_verified VARCHAR,
-aspnetcore_identity_user_update_type VARCHAR,
 aspnetcore_identity_user_type VARCHAR,
+aspnetcore_identity_user_update_type VARCHAR,
 
 -- aspnetcore.memory_pool attributes
 aspnetcore_memory_pool_owner VARCHAR,
 
+-- aspnetcore.rate_limiting attributes
+aspnetcore_rate_limiting_policy VARCHAR,
+aspnetcore_rate_limiting_result VARCHAR,
+
+-- aspnetcore.request attributes
+aspnetcore_request_is_unhandled VARCHAR,
+
+-- aspnetcore.routing attributes
+aspnetcore_routing_is_fallback VARCHAR,
+aspnetcore_routing_match_status VARCHAR,
+
 -- aspnetcore.sign_in attributes
 aspnetcore_sign_in_is_persistent VARCHAR,
+
+-- aspnetcore.user attributes
+aspnetcore_user_is_authenticated VARCHAR,
+
+-- azure.client attributes
+azure_client_id VARCHAR,
+
+-- azure.cosmosdb attributes
+azure_cosmosdb_connection_mode VARCHAR,
+azure_cosmosdb_consistency_level VARCHAR,
+azure_cosmosdb_operation_contacted_regions VARCHAR,
+azure_cosmosdb_operation_request_charge VARCHAR,
+azure_cosmosdb_request_body_size VARCHAR,
+azure_cosmosdb_response_sub_status_code VARCHAR,
+
+-- azure.resource_provider attributes
+azure_resource_provider_namespace VARCHAR,
+
+-- azure.service attributes
+azure_service_request_id VARCHAR,
 
 -- browser.brands attributes
 browser_brands VARCHAR,
@@ -233,6 +115,12 @@ cicd_worker_id VARCHAR,
 cicd_worker_name VARCHAR,
 cicd_worker_state VARCHAR,
 cicd_worker_url_full VARCHAR,
+
+-- client.address attributes
+client_address VARCHAR,
+
+-- client.port attributes
+client_port VARCHAR,
 
 -- cloud.account attributes
 cloud_account_id VARCHAR,
@@ -288,14 +176,31 @@ cloudfoundry_space_name VARCHAR,
 cloudfoundry_system_id VARCHAR,
 cloudfoundry_system_instance_id VARCHAR,
 
+-- code.column attributes
+code_column VARCHAR,
+code_column_number VARCHAR,
+
+-- code.file attributes
+code_file_path VARCHAR,
+
 -- code.filepath attributes
 code_filepath VARCHAR,
+
+-- code.function attributes
+code_function VARCHAR,
+code_function_name VARCHAR,
+
+-- code.line attributes
+code_line_number VARCHAR,
 
 -- code.lineno attributes
 code_lineno VARCHAR,
 
 -- code.namespace attributes
 code_namespace VARCHAR,
+
+-- code.stacktrace attributes
+code_stacktrace VARCHAR,
 
 -- container.command attributes
 container_command VARCHAR,
@@ -346,6 +251,9 @@ db_client_connection_state VARCHAR,
 db_client_connections_pool_name VARCHAR,
 db_client_connections_state VARCHAR,
 
+-- db.collection attributes
+db_collection_name VARCHAR,
+
 -- db.connection_string attributes
 db_connection_string VARCHAR,
 
@@ -380,14 +288,37 @@ db_mssql_instance_name VARCHAR,
 -- db.name attributes
 db_name VARCHAR,
 
+-- db.namespace attributes
+db_namespace VARCHAR,
+
+-- db.operation attributes
+db_operation VARCHAR,
+db_operation_batch_size VARCHAR,
+db_operation_name VARCHAR,
+
+-- db.query attributes
+db_query_summary VARCHAR,
+db_query_text VARCHAR,
+
 -- db.redis attributes
 db_redis_database_index VARCHAR,
+
+-- db.response attributes
+db_response_returned_rows VARCHAR,
+db_response_status_code VARCHAR,
 
 -- db.sql attributes
 db_sql_table VARCHAR,
 
 -- db.statement attributes
 db_statement VARCHAR,
+
+-- db.stored_procedure attributes
+db_stored_procedure_name VARCHAR,
+
+-- db.system attributes
+db_system VARCHAR,
+db_system_name VARCHAR,
 
 -- db.user attributes
 db_user VARCHAR,
@@ -411,6 +342,9 @@ dns_answers VARCHAR,
 -- dns.question attributes
 dns_question_name VARCHAR,
 
+-- dotnet.gc attributes
+dotnet_gc_heap_generation VARCHAR,
+
 -- elasticsearch.node attributes
 elasticsearch_node_name VARCHAR,
 
@@ -428,6 +362,21 @@ enduser_scope VARCHAR,
 
 -- error.message attributes
 error_message VARCHAR,
+
+-- error.type attributes
+error_type VARCHAR,
+
+-- exception.escaped attributes
+exception_escaped VARCHAR,
+
+-- exception.message attributes
+exception_message VARCHAR,
+
+-- exception.stacktrace attributes
+exception_stacktrace VARCHAR,
+
+-- exception.type attributes
+exception_type VARCHAR,
 
 -- faas.coldstart attributes
 faas_coldstart VARCHAR,
@@ -708,11 +657,26 @@ http_request_content_length VARCHAR,
 -- http.request_content_length_uncompressed attributes
 http_request_content_length_uncompressed VARCHAR,
 
+-- http.request attributes
+http_request_body_size VARCHAR,
+http_request_method VARCHAR,
+http_request_method_original VARCHAR,
+http_request_resend_count BIGINT,
+http_request_size VARCHAR,
+
 -- http.response_content_length attributes
 http_response_content_length VARCHAR,
 
 -- http.response_content_length_uncompressed attributes
 http_response_content_length_uncompressed VARCHAR,
+
+-- http.response attributes
+http_response_body_size VARCHAR,
+http_response_size VARCHAR,
+http_response_status_code VARCHAR,
+
+-- http.route attributes
+http_route VARCHAR,
 
 -- http.scheme attributes
 http_scheme VARCHAR,
@@ -835,6 +799,10 @@ messaging_client_id VARCHAR,
 -- messaging.consumer attributes
 messaging_consumer_group_name VARCHAR,
 
+-- messaging.destination_publish attributes
+messaging_destination_publish_anonymous VARCHAR,
+messaging_destination_publish_name VARCHAR,
+
 -- messaging.destination attributes
 messaging_destination_anonymous VARCHAR,
 messaging_destination_name VARCHAR,
@@ -842,10 +810,6 @@ messaging_destination_partition_id VARCHAR,
 messaging_destination_subscription_name VARCHAR,
 messaging_destination_template VARCHAR,
 messaging_destination_temporary VARCHAR,
-
--- messaging.destination_publish attributes
-messaging_destination_publish_anonymous VARCHAR,
-messaging_destination_publish_name VARCHAR,
 
 -- messaging.eventhubs attributes
 messaging_eventhubs_consumer_group VARCHAR,
@@ -917,6 +881,31 @@ network_interface_name VARCHAR,
 -- network.io attributes
 network_io_direction VARCHAR,
 
+-- network.local attributes
+network_local_address VARCHAR,
+network_local_port VARCHAR,
+
+-- network.peer attributes
+network_peer_address VARCHAR,
+network_peer_port VARCHAR,
+
+-- network.protocol attributes
+network_protocol_name VARCHAR,
+network_protocol_version VARCHAR,
+
+-- network.transport attributes
+network_transport VARCHAR,
+
+-- network.type attributes
+network_type VARCHAR,
+
+-- openai.request attributes
+openai_request_service_tier VARCHAR,
+
+-- openai.response attributes
+openai_response_service_tier VARCHAR,
+openai_response_system_fingerprint VARCHAR,
+
 -- os.build_id attributes
 os_build_id VARCHAR,
 
@@ -943,9 +932,20 @@ otel_event_name VARCHAR,
 otel_library_name VARCHAR,
 otel_library_version VARCHAR,
 
+-- otel.scope attributes
+otel_scope_name VARCHAR,
+otel_scope_schema_url VARCHAR,
+otel_scope_version VARCHAR,
+
 -- otel.span attributes
 otel_span_parent_origin VARCHAR,
 otel_span_sampling_result VARCHAR,
+
+-- otel.status_code attributes
+otel_status_code VARCHAR,
+
+-- otel.status_description attributes
+otel_status_description VARCHAR,
 
 -- process.args_count attributes
 process_args_count BIGINT,
@@ -1067,11 +1067,39 @@ rpc_service VARCHAR,
 rpc_system VARCHAR,
 rpc_system_name VARCHAR,
 
+-- server.address attributes
+server_address VARCHAR,
+
+-- server.port attributes
+server_port VARCHAR,
+
+-- service.instance attributes
+service_instance_id VARCHAR,
+
+-- service.name attributes
+service_name VARCHAR,
+
+-- service.namespace attributes
+service_namespace VARCHAR,
+
+-- service.peer attributes
+service_peer_name VARCHAR,
+service_peer_namespace VARCHAR,
+
+-- service.version attributes
+service_version VARCHAR,
+
 -- session.id attributes
 session_id VARCHAR,
 
 -- session.previous_id attributes
 session_previous_id VARCHAR,
+
+-- signalr.connection attributes
+signalr_connection_status VARCHAR,
+
+-- signalr.transport attributes
+signalr_transport VARCHAR,
 
 -- system.cpu attributes
 system_cpu_logical_number VARCHAR,
@@ -1104,6 +1132,15 @@ system_process_status VARCHAR,
 
 -- system.processes attributes
 system_processes_status VARCHAR,
+
+-- telemetry.distro attributes
+telemetry_distro_name VARCHAR,
+telemetry_distro_version VARCHAR,
+
+-- telemetry.sdk attributes
+telemetry_sdk_language VARCHAR,
+telemetry_sdk_name VARCHAR,
+telemetry_sdk_version VARCHAR,
 
 -- test.case attributes
 test_case_name VARCHAR,
@@ -1170,14 +1207,29 @@ url_domain VARCHAR,
 -- url.extension attributes
 url_extension VARCHAR,
 
+-- url.fragment attributes
+url_fragment VARCHAR,
+
+-- url.full attributes
+url_full VARCHAR,
+
 -- url.original attributes
 url_original VARCHAR,
+
+-- url.path attributes
+url_path VARCHAR,
 
 -- url.port attributes
 url_port VARCHAR,
 
+-- url.query attributes
+url_query VARCHAR,
+
 -- url.registered_domain attributes
 url_registered_domain VARCHAR,
+
+-- url.scheme attributes
+url_scheme VARCHAR,
 
 -- url.subdomain attributes
 url_subdomain VARCHAR,
@@ -1187,6 +1239,22 @@ url_template VARCHAR,
 
 -- url.top_level_domain attributes
 url_top_level_domain VARCHAR,
+
+-- user_agent.name attributes
+user_agent_name VARCHAR,
+
+-- user_agent.original attributes
+user_agent_original VARCHAR,
+
+-- user_agent.os attributes
+user_agent_os_name VARCHAR,
+user_agent_os_version VARCHAR,
+
+-- user_agent.synthetic attributes
+user_agent_synthetic_type VARCHAR,
+
+-- user_agent.version attributes
+user_agent_version VARCHAR,
 
 -- user.email attributes
 user_email VARCHAR,
@@ -1205,19 +1273,6 @@ user_name VARCHAR,
 
 -- user.roles attributes
 user_roles VARCHAR,
-
--- user_agent.name attributes
-user_agent_name VARCHAR,
-
--- user_agent.os attributes
-user_agent_os_name VARCHAR,
-user_agent_os_version VARCHAR,
-
--- user_agent.synthetic attributes
-user_agent_synthetic_type VARCHAR,
-
--- user_agent.version attributes
-user_agent_version VARCHAR,
 
 -- vcs.change attributes
 vcs_change_id VARCHAR,

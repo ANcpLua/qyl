@@ -46,14 +46,4 @@
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
         <File Path="tests/CLAUDE.md" />
     </Folder>
-
-    <!-- Examples -->
-    <Folder Name="/examples/">
-        <Project Path="examples/AspNetCoreExample/AspNetCoreExample.csproj" />
-        <Project Path="examples/MicroserviceExample/Utils/Utils.csproj" />
-        <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj" />
-        <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj" />
-        <Project Path="examples/AgentsGateway/src/AgentGateway/AgentsGateway.csproj" />
-        <Project Path="examples/AgentsGateway/test/AgentGateway.Tests/AgentGateway.Tests.csproj" />
-    </Folder>
 </Solution>

@@ -14,12 +14,10 @@ namespace qyl.collector.Telemetry;
 /// </summary>
 public sealed class SpanContextEnricher(IAsyncContext<IngestionContext> context) : ILogEnricher
 {
-    private readonly IAsyncContext<IngestionContext> _context = context;
-
     /// <inheritdoc />
     public void Enrich(IEnrichmentTagCollector collector)
     {
-        if (_context.Get() is not { } ctx)
+        if (context.Get() is not { } ctx)
             return;
 
         if (ctx.SessionId is not null)

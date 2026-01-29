@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Collections.Immutable;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -36,14 +35,19 @@ namespace qyl.instrumentation.generators.Interceptors;
 public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 {
     // Target methods we know how to instrument
+    // Provider values: OTel semconv 1.39 (see qyl.protocol.Attributes.GenAiAttributes.Providers)
+    // QYL extensions: "ollama", "semantic_kernel" (not in OTel semconv)
     private static readonly Dictionary<string, GenAiTarget> KnownTargets = new()
     {
+        // OTel semconv 1.39 providers
         ["OpenAI.Chat.ChatClient.CompleteChatAsync"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
         ["OpenAI.Chat.ChatClient.CompleteChat"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
         ["Anthropic.AnthropicClient.CreateMessageAsync"] = new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
         ["Anthropic.Messages.MessageClient.CreateAsync"] = new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
+        ["Azure.AI.Inference.ChatCompletionsClient.CompleteAsync"] = new GenAiTarget("azure.ai.inference", "chat", "chat {gen_ai.request.model}"),
+
+        // QYL extension providers (not in OTel semconv)
         ["OllamaSharp.OllamaApiClient.ChatAsync"] = new GenAiTarget("ollama", "chat", "chat {gen_ai.request.model}"),
-        ["Azure.AI.Inference.ChatCompletionsClient.CompleteAsync"] = new GenAiTarget("az.ai.inference", "chat", "chat {gen_ai.request.model}"),
         ["Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService.GetChatMessageContentsAsync"] = new GenAiTarget("semantic_kernel", "chat", "chat {gen_ai.request.model}"),
     };
 
@@ -98,7 +102,6 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
             ContainingType: containingType,
             MethodName: method.Name,
             ReturnType: method.ReturnType.ToDisplayString(),
-            IsAsync: method.IsAsync || method.ReturnType.Name.Contains("Task"),
             Provider: target.Provider,
             Operation: target.Operation,
             SpanNameTemplate: target.SpanNameTemplate,
@@ -145,6 +148,11 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 
 internal readonly record struct GenAiTarget(string Provider, string Operation, string SpanNameTemplate);
 
+internal readonly record struct ParameterInfo(string Type, string Name);
+
+/// <summary>
+/// Target for interceptor code generation.
+/// </summary>
 internal readonly record struct InterceptorTarget(
     string FilePath,
     int Line,
@@ -152,10 +160,7 @@ internal readonly record struct InterceptorTarget(
     string ContainingType,
     string MethodName,
     string ReturnType,
-    bool IsAsync,
     string Provider,
     string Operation,
     string SpanNameTemplate,
-    ParameterInfo[] Parameters);
-
-internal readonly record struct ParameterInfo(string Type, string Name);
+    IReadOnlyList<ParameterInfo> Parameters);

@@ -4,7 +4,6 @@ using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Operations;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
 
@@ -77,7 +76,7 @@ internal static class TracedCallSiteAnalyzer
     }
 
     private static bool TryGetTracedAttribute(
-        IMethodSymbol method,
+        ISymbol method,
         Compilation compilation,
         [NotNullWhen(true)] out (string ActivitySourceName, string? SpanName, string SpanKind)? tracedInfo)
     {
@@ -118,7 +117,7 @@ internal static class TracedCallSiteAnalyzer
 
     private static AttributeData? GetTracedAttributeFromTypeHierarchy(
         INamedTypeSymbol? type,
-        INamedTypeSymbol tracedAttributeType)
+        ISymbol tracedAttributeType)
     {
         while (type is not null)
         {
@@ -132,7 +131,7 @@ internal static class TracedCallSiteAnalyzer
 
     private static AttributeData? GetTracedAttributeData(
         ImmutableArray<AttributeData> attributes,
-        INamedTypeSymbol tracedAttributeType)
+        ISymbol tracedAttributeType)
     {
         foreach (var attribute in attributes)
         {
@@ -147,11 +146,7 @@ internal static class TracedCallSiteAnalyzer
         string defaultSpanName)
     {
         // Get ActivitySourceName from constructor argument
-        if (attribute.ConstructorArguments.Length == 0)
-            return null;
-
-        var activitySourceName = attribute.ConstructorArguments[0].Value as string;
-        if (string.IsNullOrEmpty(activitySourceName))
+        if (attribute.ConstructorArguments is not [{ Value: string { Length: > 0 } activitySourceName }, ..])
             return null;
 
         string? spanName = null;
@@ -183,10 +178,10 @@ internal static class TracedCallSiteAnalyzer
             }
         }
 
-        return (activitySourceName!, spanName, spanKind);
+        return (activitySourceName, spanName, spanKind);
     }
 
-    private static IReadOnlyList<TracedTagInfo> ExtractTracedTags(
+    private static List<TracedTagInfo> ExtractTracedTags(
         IMethodSymbol method,
         Compilation compilation)
     {
@@ -226,7 +221,7 @@ internal static class TracedCallSiteAnalyzer
 
                 tags.Add(new TracedTagInfo(
                     parameter.Name,
-                    tagName!,
+                    tagName,
                     skipIfNull,
                     isNullable));
             }
@@ -245,7 +240,7 @@ internal static class TracedCallSiteAnalyzer
                returnTypeName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
     }
 
-    private static IReadOnlyList<TypeParameterInfo> ExtractTypeParameters(IMethodSymbol method)
+    private static List<TypeParameterInfo> ExtractTypeParameters(IMethodSymbol method)
     {
         if (method.TypeParameters.IsEmpty)
             return [];

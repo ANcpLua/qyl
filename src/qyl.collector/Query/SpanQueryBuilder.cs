@@ -670,30 +670,24 @@ public enum CompareOp
 
 internal readonly struct WhereClause(string column, CompareOp op, string? param)
 {
-    private readonly string _column = column;
-    private readonly string? _param = param;
-    private readonly CompareOp _op = op;
-
-    public string ToSql() => _op switch
+    public string ToSql() => op switch
     {
-        CompareOp.Eq => $"{_column} = {_param}",
-        CompareOp.Ne => $"{_column} != {_param}",
-        CompareOp.Lt => $"{_column} < {_param}",
-        CompareOp.Lte => $"{_column} <= {_param}",
-        CompareOp.Gt => $"{_column} > {_param}",
-        CompareOp.Gte => $"{_column} >= {_param}",
-        CompareOp.IsNull => $"{_column} IS NULL",
-        CompareOp.IsNotNull => $"{_column} IS NOT NULL",
-        CompareOp.Like => $"{_column} LIKE {_param}",
-        CompareOp.In => $"{_column} IN ({_param})",
-        CompareOp.Raw => _column,
+        CompareOp.Eq => $"{column} = {param}",
+        CompareOp.Ne => $"{column} != {param}",
+        CompareOp.Lt => $"{column} < {param}",
+        CompareOp.Lte => $"{column} <= {param}",
+        CompareOp.Gt => $"{column} > {param}",
+        CompareOp.Gte => $"{column} >= {param}",
+        CompareOp.IsNull => $"{column} IS NULL",
+        CompareOp.IsNotNull => $"{column} IS NOT NULL",
+        CompareOp.Like => $"{column} LIKE {param}",
+        CompareOp.In => $"{column} IN ({param})",
+        CompareOp.Raw => column,
         _ => throw new ArgumentOutOfRangeException()
     };
 }
 
 internal readonly struct OrderByClause(string expr, bool descending)
 {
-    private readonly string _expr = expr;
-    private readonly bool _descending = descending;
-    public string ToSql() => _descending ? $"{_expr} DESC" : _expr;
+    public string ToSql() => descending ? $"{expr} DESC" : expr;
 }

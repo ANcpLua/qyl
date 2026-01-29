@@ -2,1391 +2,1322 @@
 // Generated from @opentelemetry/semantic-conventions v1.39.0
 // Do not edit manually - run 'npm run generate' in SemconvGenerator
 
-// =============================================================================
-// Attribute Names
-// =============================================================================
-
-// aspnetcore.diagnostics
-export const ASPNETCORE_DIAGNOSTICS_EXCEPTION_RESULT = "aspnetcore.diagnostics.exception.result" as const;
-export const ASPNETCORE_DIAGNOSTICS_HANDLER_TYPE = "aspnetcore.diagnostics.handler.type" as const;
-
-// aspnetcore.rate_limiting
-export const ASPNETCORE_RATE_LIMITING_POLICY = "aspnetcore.rate_limiting.policy" as const;
-export const ASPNETCORE_RATE_LIMITING_RESULT = "aspnetcore.rate_limiting.result" as const;
-
-// aspnetcore.request
-export const ASPNETCORE_REQUEST_IS_UNHANDLED = "aspnetcore.request.is_unhandled" as const;
-
-// aspnetcore.routing
-export const ASPNETCORE_ROUTING_IS_FALLBACK = "aspnetcore.routing.is_fallback" as const;
-export const ASPNETCORE_ROUTING_MATCH_STATUS = "aspnetcore.routing.match_status" as const;
-
-// aspnetcore.user
-export const ASPNETCORE_USER_IS_AUTHENTICATED = "aspnetcore.user.is_authenticated" as const;
-
-// client.address
-export const CLIENT_ADDRESS = "client.address" as const;
-
-// client.port
-export const CLIENT_PORT = "client.port" as const;
-
-// code.column
-export const CODE_COLUMN_NUMBER = "code.column.number" as const;
-export const CODE_COLUMN = "code.column" as const;
-
-// code.file
-export const CODE_FILE_PATH = "code.file.path" as const;
-
-// code.function
-export const CODE_FUNCTION_NAME = "code.function.name" as const;
-export const CODE_FUNCTION = "code.function" as const;
-
-// code.line
-export const CODE_LINE_NUMBER = "code.line.number" as const;
-
-// code.stacktrace
-export const CODE_STACKTRACE = "code.stacktrace" as const;
-
-// db.collection
-export const DB_COLLECTION_NAME = "db.collection.name" as const;
-
-// db.namespace
-export const DB_NAMESPACE = "db.namespace" as const;
-
-// db.operation
-export const DB_OPERATION_BATCH_SIZE = "db.operation.batch.size" as const;
-export const DB_OPERATION_NAME = "db.operation.name" as const;
-export const DB_OPERATION = "db.operation" as const;
-
-// db.query
-export const DB_QUERY_SUMMARY = "db.query.summary" as const;
-export const DB_QUERY_TEXT = "db.query.text" as const;
-
-// db.response
-export const DB_RESPONSE_STATUS_CODE = "db.response.status_code" as const;
-export const DB_RESPONSE_RETURNED_ROWS = "db.response.returned_rows" as const;
-
-// db.stored_procedure
-export const DB_STORED_PROCEDURE_NAME = "db.stored_procedure.name" as const;
-
-// db.system
-export const DB_SYSTEM_NAME = "db.system.name" as const;
-export const DB_SYSTEM = "db.system" as const;
-
-// dotnet.gc
-export const DOTNET_GC_HEAP_GENERATION = "dotnet.gc.heap.generation" as const;
-
-// error.type
-export const ERROR_TYPE = "error.type" as const;
-
-// exception.escaped
-export const EXCEPTION_ESCAPED = "exception.escaped" as const;
-
-// exception.message
-export const EXCEPTION_MESSAGE = "exception.message" as const;
-
-// exception.stacktrace
-export const EXCEPTION_STACKTRACE = "exception.stacktrace" as const;
-
-// exception.type
-export const EXCEPTION_TYPE = "exception.type" as const;
-
-// http.request
-export const HTTP_REQUEST_METHOD = "http.request.method" as const;
-export const HTTP_REQUEST_METHOD_ORIGINAL = "http.request.method_original" as const;
-export const HTTP_REQUEST_RESEND_COUNT = "http.request.resend_count" as const;
-export const HTTP_REQUEST_BODY_SIZE = "http.request.body.size" as const;
-export const HTTP_REQUEST_SIZE = "http.request.size" as const;
-
-// http.response
-export const HTTP_RESPONSE_STATUS_CODE = "http.response.status_code" as const;
-export const HTTP_RESPONSE_BODY_SIZE = "http.response.body.size" as const;
-export const HTTP_RESPONSE_SIZE = "http.response.size" as const;
-
-// http.route
-export const HTTP_ROUTE = "http.route" as const;
-
-// network.local
-export const NETWORK_LOCAL_ADDRESS = "network.local.address" as const;
-export const NETWORK_LOCAL_PORT = "network.local.port" as const;
-
-// network.peer
-export const NETWORK_PEER_ADDRESS = "network.peer.address" as const;
-export const NETWORK_PEER_PORT = "network.peer.port" as const;
-
-// network.protocol
-export const NETWORK_PROTOCOL_NAME = "network.protocol.name" as const;
-export const NETWORK_PROTOCOL_VERSION = "network.protocol.version" as const;
-
-// network.transport
-export const NETWORK_TRANSPORT = "network.transport" as const;
-
-// network.type
-export const NETWORK_TYPE = "network.type" as const;
-
-// otel.scope
-export const OTEL_SCOPE_NAME = "otel.scope.name" as const;
-export const OTEL_SCOPE_VERSION = "otel.scope.version" as const;
-export const OTEL_SCOPE_SCHEMA_URL = "otel.scope.schema_url" as const;
-
-// otel.status_code
-export const OTEL_STATUS_CODE = "otel.status_code" as const;
-
-// otel.status_description
-export const OTEL_STATUS_DESCRIPTION = "otel.status_description" as const;
-
-// signalr.connection
-export const SIGNALR_CONNECTION_STATUS = "signalr.connection.status" as const;
-
-// signalr.transport
-export const SIGNALR_TRANSPORT = "signalr.transport" as const;
-
-// url.fragment
-export const URL_FRAGMENT = "url.fragment" as const;
-
-// url.full
-export const URL_FULL = "url.full" as const;
-
-// url.path
-export const URL_PATH = "url.path" as const;
-
-// url.query
-export const URL_QUERY = "url.query" as const;
-
-// url.scheme
-export const URL_SCHEME = "url.scheme" as const;
-
-// user_agent.original
-export const USER_AGENT_ORIGINAL = "user_agent.original" as const;
+// Attribute keys
 
 // artifact.attestation
-export const ARTIFACT_ATTESTATION_FILENAME = "artifact.attestation.filename" as const;
-export const ARTIFACT_ATTESTATION_HASH = "artifact.attestation.hash" as const;
-export const ARTIFACT_ATTESTATION_ID = "artifact.attestation.id" as const;
+export const ARTIFACT_ATTESTATION_FILENAME = "artifact.attestation.filename";
+export const ARTIFACT_ATTESTATION_HASH = "artifact.attestation.hash";
+export const ARTIFACT_ATTESTATION_ID = "artifact.attestation.id";
 
 // artifact.filename
-export const ARTIFACT_FILENAME = "artifact.filename" as const;
+export const ARTIFACT_FILENAME = "artifact.filename";
 
 // artifact.hash
-export const ARTIFACT_HASH = "artifact.hash" as const;
+export const ARTIFACT_HASH = "artifact.hash";
 
 // artifact.purl
-export const ARTIFACT_PURL = "artifact.purl" as const;
+export const ARTIFACT_PURL = "artifact.purl";
 
 // artifact.version
-export const ARTIFACT_VERSION = "artifact.version" as const;
+export const ARTIFACT_VERSION = "artifact.version";
 
 // aspnetcore.authentication
-export const ASPNETCORE_AUTHENTICATION_RESULT = "aspnetcore.authentication.result" as const;
-export const ASPNETCORE_AUTHENTICATION_SCHEME = "aspnetcore.authentication.scheme" as const;
+export const ASPNETCORE_AUTHENTICATION_RESULT = "aspnetcore.authentication.result";
+export const ASPNETCORE_AUTHENTICATION_SCHEME = "aspnetcore.authentication.scheme";
 
 // aspnetcore.authorization
-export const ASPNETCORE_AUTHORIZATION_POLICY = "aspnetcore.authorization.policy" as const;
-export const ASPNETCORE_AUTHORIZATION_RESULT = "aspnetcore.authorization.result" as const;
+export const ASPNETCORE_AUTHORIZATION_POLICY = "aspnetcore.authorization.policy";
+export const ASPNETCORE_AUTHORIZATION_RESULT = "aspnetcore.authorization.result";
+
+// aspnetcore.diagnostics
+export const ASPNETCORE_DIAGNOSTICS_EXCEPTION_RESULT = "aspnetcore.diagnostics.exception.result";
+export const ASPNETCORE_DIAGNOSTICS_HANDLER_TYPE = "aspnetcore.diagnostics.handler.type";
 
 // aspnetcore.identity
-export const ASPNETCORE_IDENTITY_ERROR_CODE = "aspnetcore.identity.error_code" as const;
-export const ASPNETCORE_IDENTITY_PASSWORD_CHECK_RESULT = "aspnetcore.identity.password_check_result" as const;
-export const ASPNETCORE_IDENTITY_RESULT = "aspnetcore.identity.result" as const;
-export const ASPNETCORE_IDENTITY_SIGN_IN_RESULT = "aspnetcore.identity.sign_in.result" as const;
-export const ASPNETCORE_IDENTITY_SIGN_IN_TYPE = "aspnetcore.identity.sign_in.type" as const;
-export const ASPNETCORE_IDENTITY_TOKEN_PURPOSE = "aspnetcore.identity.token_purpose" as const;
-export const ASPNETCORE_IDENTITY_TOKEN_VERIFIED = "aspnetcore.identity.token_verified" as const;
-export const ASPNETCORE_IDENTITY_USER_UPDATE_TYPE = "aspnetcore.identity.user.update_type" as const;
-export const ASPNETCORE_IDENTITY_USER_TYPE = "aspnetcore.identity.user_type" as const;
+export const ASPNETCORE_IDENTITY_ERROR_CODE = "aspnetcore.identity.error_code";
+export const ASPNETCORE_IDENTITY_PASSWORD_CHECK_RESULT = "aspnetcore.identity.password_check_result";
+export const ASPNETCORE_IDENTITY_RESULT = "aspnetcore.identity.result";
+export const ASPNETCORE_IDENTITY_SIGN_IN_RESULT = "aspnetcore.identity.sign_in.result";
+export const ASPNETCORE_IDENTITY_SIGN_IN_TYPE = "aspnetcore.identity.sign_in.type";
+export const ASPNETCORE_IDENTITY_TOKEN_PURPOSE = "aspnetcore.identity.token_purpose";
+export const ASPNETCORE_IDENTITY_TOKEN_VERIFIED = "aspnetcore.identity.token_verified";
+export const ASPNETCORE_IDENTITY_USER_TYPE = "aspnetcore.identity.user_type";
+export const ASPNETCORE_IDENTITY_USER_UPDATE_TYPE = "aspnetcore.identity.user.update_type";
 
 // aspnetcore.memory_pool
-export const ASPNETCORE_MEMORY_POOL_OWNER = "aspnetcore.memory_pool.owner" as const;
+export const ASPNETCORE_MEMORY_POOL_OWNER = "aspnetcore.memory_pool.owner";
+
+// aspnetcore.rate_limiting
+export const ASPNETCORE_RATE_LIMITING_POLICY = "aspnetcore.rate_limiting.policy";
+export const ASPNETCORE_RATE_LIMITING_RESULT = "aspnetcore.rate_limiting.result";
+
+// aspnetcore.request
+export const ASPNETCORE_REQUEST_IS_UNHANDLED = "aspnetcore.request.is_unhandled";
+
+// aspnetcore.routing
+export const ASPNETCORE_ROUTING_IS_FALLBACK = "aspnetcore.routing.is_fallback";
+export const ASPNETCORE_ROUTING_MATCH_STATUS = "aspnetcore.routing.match_status";
 
 // aspnetcore.sign_in
-export const ASPNETCORE_SIGN_IN_IS_PERSISTENT = "aspnetcore.sign_in.is_persistent" as const;
+export const ASPNETCORE_SIGN_IN_IS_PERSISTENT = "aspnetcore.sign_in.is_persistent";
+
+// aspnetcore.user
+export const ASPNETCORE_USER_IS_AUTHENTICATED = "aspnetcore.user.is_authenticated";
+
+// azure.client
+export const AZURE_CLIENT_ID = "azure.client.id";
+
+// azure.cosmosdb
+export const AZURE_COSMOSDB_CONNECTION_MODE = "azure.cosmosdb.connection.mode";
+export const AZURE_COSMOSDB_CONSISTENCY_LEVEL = "azure.cosmosdb.consistency.level";
+export const AZURE_COSMOSDB_OPERATION_CONTACTED_REGIONS = "azure.cosmosdb.operation.contacted_regions";
+export const AZURE_COSMOSDB_OPERATION_REQUEST_CHARGE = "azure.cosmosdb.operation.request_charge";
+export const AZURE_COSMOSDB_REQUEST_BODY_SIZE = "azure.cosmosdb.request.body.size";
+export const AZURE_COSMOSDB_RESPONSE_SUB_STATUS_CODE = "azure.cosmosdb.response.sub_status_code";
+
+// azure.resource_provider
+export const AZURE_RESOURCE_PROVIDER_NAMESPACE = "azure.resource_provider.namespace";
+
+// azure.service
+export const AZURE_SERVICE_REQUEST_ID = "azure.service.request.id";
 
 // browser.brands
-export const BROWSER_BRANDS = "browser.brands" as const;
+export const BROWSER_BRANDS = "browser.brands";
 
 // browser.language
-export const BROWSER_LANGUAGE = "browser.language" as const;
+export const BROWSER_LANGUAGE = "browser.language";
 
 // browser.mobile
-export const BROWSER_MOBILE = "browser.mobile" as const;
+export const BROWSER_MOBILE = "browser.mobile";
 
 // browser.platform
-export const BROWSER_PLATFORM = "browser.platform" as const;
+export const BROWSER_PLATFORM = "browser.platform";
 
 // cicd.pipeline
-export const CICD_PIPELINE_ACTION_NAME = "cicd.pipeline.action.name" as const;
-export const CICD_PIPELINE_NAME = "cicd.pipeline.name" as const;
-export const CICD_PIPELINE_RESULT = "cicd.pipeline.result" as const;
-export const CICD_PIPELINE_RUN_ID = "cicd.pipeline.run.id" as const;
-export const CICD_PIPELINE_RUN_STATE = "cicd.pipeline.run.state" as const;
-export const CICD_PIPELINE_RUN_URL_FULL = "cicd.pipeline.run.url.full" as const;
-export const CICD_PIPELINE_TASK_NAME = "cicd.pipeline.task.name" as const;
-export const CICD_PIPELINE_TASK_RUN_ID = "cicd.pipeline.task.run.id" as const;
-export const CICD_PIPELINE_TASK_RUN_RESULT = "cicd.pipeline.task.run.result" as const;
-export const CICD_PIPELINE_TASK_RUN_URL_FULL = "cicd.pipeline.task.run.url.full" as const;
-export const CICD_PIPELINE_TASK_TYPE = "cicd.pipeline.task.type" as const;
+export const CICD_PIPELINE_ACTION_NAME = "cicd.pipeline.action.name";
+export const CICD_PIPELINE_NAME = "cicd.pipeline.name";
+export const CICD_PIPELINE_RESULT = "cicd.pipeline.result";
+export const CICD_PIPELINE_RUN_ID = "cicd.pipeline.run.id";
+export const CICD_PIPELINE_RUN_STATE = "cicd.pipeline.run.state";
+export const CICD_PIPELINE_RUN_URL_FULL = "cicd.pipeline.run.url.full";
+export const CICD_PIPELINE_TASK_NAME = "cicd.pipeline.task.name";
+export const CICD_PIPELINE_TASK_RUN_ID = "cicd.pipeline.task.run.id";
+export const CICD_PIPELINE_TASK_RUN_RESULT = "cicd.pipeline.task.run.result";
+export const CICD_PIPELINE_TASK_RUN_URL_FULL = "cicd.pipeline.task.run.url.full";
+export const CICD_PIPELINE_TASK_TYPE = "cicd.pipeline.task.type";
 
 // cicd.system
-export const CICD_SYSTEM_COMPONENT = "cicd.system.component" as const;
+export const CICD_SYSTEM_COMPONENT = "cicd.system.component";
 
 // cicd.worker
-export const CICD_WORKER_ID = "cicd.worker.id" as const;
-export const CICD_WORKER_NAME = "cicd.worker.name" as const;
-export const CICD_WORKER_STATE = "cicd.worker.state" as const;
-export const CICD_WORKER_URL_FULL = "cicd.worker.url.full" as const;
+export const CICD_WORKER_ID = "cicd.worker.id";
+export const CICD_WORKER_NAME = "cicd.worker.name";
+export const CICD_WORKER_STATE = "cicd.worker.state";
+export const CICD_WORKER_URL_FULL = "cicd.worker.url.full";
+
+// client.address
+export const CLIENT_ADDRESS = "client.address";
+
+// client.port
+export const CLIENT_PORT = "client.port";
 
 // cloud.account
-export const CLOUD_ACCOUNT_ID = "cloud.account.id" as const;
+export const CLOUD_ACCOUNT_ID = "cloud.account.id";
 
 // cloud.availability_zone
-export const CLOUD_AVAILABILITY_ZONE = "cloud.availability_zone" as const;
+export const CLOUD_AVAILABILITY_ZONE = "cloud.availability_zone";
 
 // cloud.platform
-export const CLOUD_PLATFORM = "cloud.platform" as const;
+export const CLOUD_PLATFORM = "cloud.platform";
 
 // cloud.provider
-export const CLOUD_PROVIDER = "cloud.provider" as const;
+export const CLOUD_PROVIDER = "cloud.provider";
 
 // cloud.region
-export const CLOUD_REGION = "cloud.region" as const;
+export const CLOUD_REGION = "cloud.region";
 
 // cloud.resource_id
-export const CLOUD_RESOURCE_ID = "cloud.resource_id" as const;
+export const CLOUD_RESOURCE_ID = "cloud.resource_id";
 
 // cloudevents.event_id
-export const CLOUDEVENTS_EVENT_ID = "cloudevents.event_id" as const;
+export const CLOUDEVENTS_EVENT_ID = "cloudevents.event_id";
 
 // cloudevents.event_source
-export const CLOUDEVENTS_EVENT_SOURCE = "cloudevents.event_source" as const;
+export const CLOUDEVENTS_EVENT_SOURCE = "cloudevents.event_source";
 
 // cloudevents.event_spec_version
-export const CLOUDEVENTS_EVENT_SPEC_VERSION = "cloudevents.event_spec_version" as const;
+export const CLOUDEVENTS_EVENT_SPEC_VERSION = "cloudevents.event_spec_version";
 
 // cloudevents.event_subject
-export const CLOUDEVENTS_EVENT_SUBJECT = "cloudevents.event_subject" as const;
+export const CLOUDEVENTS_EVENT_SUBJECT = "cloudevents.event_subject";
 
 // cloudevents.event_type
-export const CLOUDEVENTS_EVENT_TYPE = "cloudevents.event_type" as const;
+export const CLOUDEVENTS_EVENT_TYPE = "cloudevents.event_type";
 
 // cloudfoundry.app
-export const CLOUDFOUNDRY_APP_ID = "cloudfoundry.app.id" as const;
-export const CLOUDFOUNDRY_APP_INSTANCE_ID = "cloudfoundry.app.instance.id" as const;
-export const CLOUDFOUNDRY_APP_NAME = "cloudfoundry.app.name" as const;
+export const CLOUDFOUNDRY_APP_ID = "cloudfoundry.app.id";
+export const CLOUDFOUNDRY_APP_INSTANCE_ID = "cloudfoundry.app.instance.id";
+export const CLOUDFOUNDRY_APP_NAME = "cloudfoundry.app.name";
 
 // cloudfoundry.org
-export const CLOUDFOUNDRY_ORG_ID = "cloudfoundry.org.id" as const;
-export const CLOUDFOUNDRY_ORG_NAME = "cloudfoundry.org.name" as const;
+export const CLOUDFOUNDRY_ORG_ID = "cloudfoundry.org.id";
+export const CLOUDFOUNDRY_ORG_NAME = "cloudfoundry.org.name";
 
 // cloudfoundry.process
-export const CLOUDFOUNDRY_PROCESS_ID = "cloudfoundry.process.id" as const;
-export const CLOUDFOUNDRY_PROCESS_TYPE = "cloudfoundry.process.type" as const;
+export const CLOUDFOUNDRY_PROCESS_ID = "cloudfoundry.process.id";
+export const CLOUDFOUNDRY_PROCESS_TYPE = "cloudfoundry.process.type";
 
 // cloudfoundry.space
-export const CLOUDFOUNDRY_SPACE_ID = "cloudfoundry.space.id" as const;
-export const CLOUDFOUNDRY_SPACE_NAME = "cloudfoundry.space.name" as const;
+export const CLOUDFOUNDRY_SPACE_ID = "cloudfoundry.space.id";
+export const CLOUDFOUNDRY_SPACE_NAME = "cloudfoundry.space.name";
 
 // cloudfoundry.system
-export const CLOUDFOUNDRY_SYSTEM_ID = "cloudfoundry.system.id" as const;
-export const CLOUDFOUNDRY_SYSTEM_INSTANCE_ID = "cloudfoundry.system.instance.id" as const;
+export const CLOUDFOUNDRY_SYSTEM_ID = "cloudfoundry.system.id";
+export const CLOUDFOUNDRY_SYSTEM_INSTANCE_ID = "cloudfoundry.system.instance.id";
+
+// code.column
+export const CODE_COLUMN = "code.column";
+export const CODE_COLUMN_NUMBER = "code.column.number";
+
+// code.file
+export const CODE_FILE_PATH = "code.file.path";
 
 // code.filepath
-export const CODE_FILEPATH = "code.filepath" as const;
+export const CODE_FILEPATH = "code.filepath";
+
+// code.function
+export const CODE_FUNCTION = "code.function";
+export const CODE_FUNCTION_NAME = "code.function.name";
+
+// code.line
+export const CODE_LINE_NUMBER = "code.line.number";
 
 // code.lineno
-export const CODE_LINENO = "code.lineno" as const;
+export const CODE_LINENO = "code.lineno";
 
 // code.namespace
-export const CODE_NAMESPACE = "code.namespace" as const;
+export const CODE_NAMESPACE = "code.namespace";
+
+// code.stacktrace
+export const CODE_STACKTRACE = "code.stacktrace";
 
 // container.command
-export const CONTAINER_COMMAND = "container.command" as const;
+export const CONTAINER_COMMAND = "container.command";
 
 // container.command_args
-export const CONTAINER_COMMAND_ARGS = "container.command_args" as const;
+export const CONTAINER_COMMAND_ARGS = "container.command_args";
 
 // container.command_line
-export const CONTAINER_COMMAND_LINE = "container.command_line" as const;
+export const CONTAINER_COMMAND_LINE = "container.command_line";
 
 // container.cpu
-export const CONTAINER_CPU_STATE = "container.cpu.state" as const;
+export const CONTAINER_CPU_STATE = "container.cpu.state";
 
 // container.csi
-export const CONTAINER_CSI_PLUGIN_NAME = "container.csi.plugin.name" as const;
-export const CONTAINER_CSI_VOLUME_ID = "container.csi.volume.id" as const;
+export const CONTAINER_CSI_PLUGIN_NAME = "container.csi.plugin.name";
+export const CONTAINER_CSI_VOLUME_ID = "container.csi.volume.id";
 
 // container.id
-export const CONTAINER_ID = "container.id" as const;
+export const CONTAINER_ID = "container.id";
 
 // container.image
-export const CONTAINER_IMAGE_ID = "container.image.id" as const;
-export const CONTAINER_IMAGE_NAME = "container.image.name" as const;
-export const CONTAINER_IMAGE_REPO_DIGESTS = "container.image.repo_digests" as const;
-export const CONTAINER_IMAGE_TAGS = "container.image.tags" as const;
+export const CONTAINER_IMAGE_ID = "container.image.id";
+export const CONTAINER_IMAGE_NAME = "container.image.name";
+export const CONTAINER_IMAGE_REPO_DIGESTS = "container.image.repo_digests";
+export const CONTAINER_IMAGE_TAGS = "container.image.tags";
 
 // container.name
-export const CONTAINER_NAME = "container.name" as const;
+export const CONTAINER_NAME = "container.name";
 
 // container.runtime
-export const CONTAINER_RUNTIME = "container.runtime" as const;
-export const CONTAINER_RUNTIME_DESCRIPTION = "container.runtime.description" as const;
-export const CONTAINER_RUNTIME_NAME = "container.runtime.name" as const;
-export const CONTAINER_RUNTIME_VERSION = "container.runtime.version" as const;
+export const CONTAINER_RUNTIME = "container.runtime";
+export const CONTAINER_RUNTIME_DESCRIPTION = "container.runtime.description";
+export const CONTAINER_RUNTIME_NAME = "container.runtime.name";
+export const CONTAINER_RUNTIME_VERSION = "container.runtime.version";
 
 // db.cassandra
-export const DB_CASSANDRA_CONSISTENCY_LEVEL = "db.cassandra.consistency_level" as const;
-export const DB_CASSANDRA_COORDINATOR_DC = "db.cassandra.coordinator.dc" as const;
-export const DB_CASSANDRA_COORDINATOR_ID = "db.cassandra.coordinator.id" as const;
-export const DB_CASSANDRA_IDEMPOTENCE = "db.cassandra.idempotence" as const;
-export const DB_CASSANDRA_PAGE_SIZE = "db.cassandra.page_size" as const;
-export const DB_CASSANDRA_SPECULATIVE_EXECUTION_COUNT = "db.cassandra.speculative_execution_count" as const;
-export const DB_CASSANDRA_TABLE = "db.cassandra.table" as const;
+export const DB_CASSANDRA_CONSISTENCY_LEVEL = "db.cassandra.consistency_level";
+export const DB_CASSANDRA_COORDINATOR_DC = "db.cassandra.coordinator.dc";
+export const DB_CASSANDRA_COORDINATOR_ID = "db.cassandra.coordinator.id";
+export const DB_CASSANDRA_IDEMPOTENCE = "db.cassandra.idempotence";
+export const DB_CASSANDRA_PAGE_SIZE = "db.cassandra.page_size";
+export const DB_CASSANDRA_SPECULATIVE_EXECUTION_COUNT = "db.cassandra.speculative_execution_count";
+export const DB_CASSANDRA_TABLE = "db.cassandra.table";
 
 // db.client
-export const DB_CLIENT_CONNECTION_POOL_NAME = "db.client.connection.pool.name" as const;
-export const DB_CLIENT_CONNECTION_STATE = "db.client.connection.state" as const;
-export const DB_CLIENT_CONNECTIONS_POOL_NAME = "db.client.connections.pool.name" as const;
-export const DB_CLIENT_CONNECTIONS_STATE = "db.client.connections.state" as const;
+export const DB_CLIENT_CONNECTION_POOL_NAME = "db.client.connection.pool.name";
+export const DB_CLIENT_CONNECTION_STATE = "db.client.connection.state";
+export const DB_CLIENT_CONNECTIONS_POOL_NAME = "db.client.connections.pool.name";
+export const DB_CLIENT_CONNECTIONS_STATE = "db.client.connections.state";
+
+// db.collection
+export const DB_COLLECTION_NAME = "db.collection.name";
 
 // db.connection_string
-export const DB_CONNECTION_STRING = "db.connection_string" as const;
+export const DB_CONNECTION_STRING = "db.connection_string";
 
 // db.cosmosdb
-export const DB_COSMOSDB_CLIENT_ID = "db.cosmosdb.client_id" as const;
-export const DB_COSMOSDB_CONNECTION_MODE = "db.cosmosdb.connection_mode" as const;
-export const DB_COSMOSDB_CONSISTENCY_LEVEL = "db.cosmosdb.consistency_level" as const;
-export const DB_COSMOSDB_CONTAINER = "db.cosmosdb.container" as const;
-export const DB_COSMOSDB_OPERATION_TYPE = "db.cosmosdb.operation_type" as const;
-export const DB_COSMOSDB_REGIONS_CONTACTED = "db.cosmosdb.regions_contacted" as const;
-export const DB_COSMOSDB_REQUEST_CHARGE = "db.cosmosdb.request_charge" as const;
-export const DB_COSMOSDB_REQUEST_CONTENT_LENGTH = "db.cosmosdb.request_content_length" as const;
-export const DB_COSMOSDB_STATUS_CODE = "db.cosmosdb.status_code" as const;
-export const DB_COSMOSDB_SUB_STATUS_CODE = "db.cosmosdb.sub_status_code" as const;
+export const DB_COSMOSDB_CLIENT_ID = "db.cosmosdb.client_id";
+export const DB_COSMOSDB_CONNECTION_MODE = "db.cosmosdb.connection_mode";
+export const DB_COSMOSDB_CONSISTENCY_LEVEL = "db.cosmosdb.consistency_level";
+export const DB_COSMOSDB_CONTAINER = "db.cosmosdb.container";
+export const DB_COSMOSDB_OPERATION_TYPE = "db.cosmosdb.operation_type";
+export const DB_COSMOSDB_REGIONS_CONTACTED = "db.cosmosdb.regions_contacted";
+export const DB_COSMOSDB_REQUEST_CHARGE = "db.cosmosdb.request_charge";
+export const DB_COSMOSDB_REQUEST_CONTENT_LENGTH = "db.cosmosdb.request_content_length";
+export const DB_COSMOSDB_STATUS_CODE = "db.cosmosdb.status_code";
+export const DB_COSMOSDB_SUB_STATUS_CODE = "db.cosmosdb.sub_status_code";
 
 // db.elasticsearch
-export const DB_ELASTICSEARCH_CLUSTER_NAME = "db.elasticsearch.cluster.name" as const;
-export const DB_ELASTICSEARCH_NODE_NAME = "db.elasticsearch.node.name" as const;
+export const DB_ELASTICSEARCH_CLUSTER_NAME = "db.elasticsearch.cluster.name";
+export const DB_ELASTICSEARCH_NODE_NAME = "db.elasticsearch.node.name";
 
 // db.instance
-export const DB_INSTANCE_ID = "db.instance.id" as const;
+export const DB_INSTANCE_ID = "db.instance.id";
 
 // db.jdbc
-export const DB_JDBC_DRIVER_CLASSNAME = "db.jdbc.driver_classname" as const;
+export const DB_JDBC_DRIVER_CLASSNAME = "db.jdbc.driver_classname";
 
 // db.mongodb
-export const DB_MONGODB_COLLECTION = "db.mongodb.collection" as const;
+export const DB_MONGODB_COLLECTION = "db.mongodb.collection";
 
 // db.mssql
-export const DB_MSSQL_INSTANCE_NAME = "db.mssql.instance_name" as const;
+export const DB_MSSQL_INSTANCE_NAME = "db.mssql.instance_name";
 
 // db.name
-export const DB_NAME = "db.name" as const;
+export const DB_NAME = "db.name";
+
+// db.namespace
+export const DB_NAMESPACE = "db.namespace";
+
+// db.operation
+export const DB_OPERATION = "db.operation";
+export const DB_OPERATION_BATCH_SIZE = "db.operation.batch.size";
+export const DB_OPERATION_NAME = "db.operation.name";
+
+// db.query
+export const DB_QUERY_SUMMARY = "db.query.summary";
+export const DB_QUERY_TEXT = "db.query.text";
 
 // db.redis
-export const DB_REDIS_DATABASE_INDEX = "db.redis.database_index" as const;
+export const DB_REDIS_DATABASE_INDEX = "db.redis.database_index";
+
+// db.response
+export const DB_RESPONSE_RETURNED_ROWS = "db.response.returned_rows";
+export const DB_RESPONSE_STATUS_CODE = "db.response.status_code";
 
 // db.sql
-export const DB_SQL_TABLE = "db.sql.table" as const;
+export const DB_SQL_TABLE = "db.sql.table";
 
 // db.statement
-export const DB_STATEMENT = "db.statement" as const;
+export const DB_STATEMENT = "db.statement";
+
+// db.stored_procedure
+export const DB_STORED_PROCEDURE_NAME = "db.stored_procedure.name";
+
+// db.system
+export const DB_SYSTEM = "db.system";
+export const DB_SYSTEM_NAME = "db.system.name";
 
 // db.user
-export const DB_USER = "db.user" as const;
+export const DB_USER = "db.user";
 
 // deployment.environment
-export const DEPLOYMENT_ENVIRONMENT = "deployment.environment" as const;
-export const DEPLOYMENT_ENVIRONMENT_NAME = "deployment.environment.name" as const;
+export const DEPLOYMENT_ENVIRONMENT = "deployment.environment";
+export const DEPLOYMENT_ENVIRONMENT_NAME = "deployment.environment.name";
 
 // deployment.id
-export const DEPLOYMENT_ID = "deployment.id" as const;
+export const DEPLOYMENT_ID = "deployment.id";
 
 // deployment.name
-export const DEPLOYMENT_NAME = "deployment.name" as const;
+export const DEPLOYMENT_NAME = "deployment.name";
 
 // deployment.status
-export const DEPLOYMENT_STATUS = "deployment.status" as const;
+export const DEPLOYMENT_STATUS = "deployment.status";
 
 // dns.answers
-export const DNS_ANSWERS = "dns.answers" as const;
+export const DNS_ANSWERS = "dns.answers";
 
 // dns.question
-export const DNS_QUESTION_NAME = "dns.question.name" as const;
+export const DNS_QUESTION_NAME = "dns.question.name";
+
+// dotnet.gc
+export const DOTNET_GC_HEAP_GENERATION = "dotnet.gc.heap.generation";
 
 // elasticsearch.node
-export const ELASTICSEARCH_NODE_NAME = "elasticsearch.node.name" as const;
+export const ELASTICSEARCH_NODE_NAME = "elasticsearch.node.name";
 
 // enduser.id
-export const ENDUSER_ID = "enduser.id" as const;
+export const ENDUSER_ID = "enduser.id";
 
 // enduser.pseudo
-export const ENDUSER_PSEUDO_ID = "enduser.pseudo.id" as const;
+export const ENDUSER_PSEUDO_ID = "enduser.pseudo.id";
 
 // enduser.role
-export const ENDUSER_ROLE = "enduser.role" as const;
+export const ENDUSER_ROLE = "enduser.role";
 
 // enduser.scope
-export const ENDUSER_SCOPE = "enduser.scope" as const;
+export const ENDUSER_SCOPE = "enduser.scope";
 
 // error.message
-export const ERROR_MESSAGE = "error.message" as const;
+export const ERROR_MESSAGE = "error.message";
+
+// error.type
+export const ERROR_TYPE = "error.type";
+
+// exception.escaped
+export const EXCEPTION_ESCAPED = "exception.escaped";
+
+// exception.message
+export const EXCEPTION_MESSAGE = "exception.message";
+
+// exception.stacktrace
+export const EXCEPTION_STACKTRACE = "exception.stacktrace";
+
+// exception.type
+export const EXCEPTION_TYPE = "exception.type";
 
 // faas.coldstart
-export const FAAS_COLDSTART = "faas.coldstart" as const;
+export const FAAS_COLDSTART = "faas.coldstart";
 
 // faas.cron
-export const FAAS_CRON = "faas.cron" as const;
+export const FAAS_CRON = "faas.cron";
 
 // faas.document
-export const FAAS_DOCUMENT_COLLECTION = "faas.document.collection" as const;
-export const FAAS_DOCUMENT_NAME = "faas.document.name" as const;
-export const FAAS_DOCUMENT_OPERATION = "faas.document.operation" as const;
-export const FAAS_DOCUMENT_TIME = "faas.document.time" as const;
+export const FAAS_DOCUMENT_COLLECTION = "faas.document.collection";
+export const FAAS_DOCUMENT_NAME = "faas.document.name";
+export const FAAS_DOCUMENT_OPERATION = "faas.document.operation";
+export const FAAS_DOCUMENT_TIME = "faas.document.time";
 
 // faas.instance
-export const FAAS_INSTANCE = "faas.instance" as const;
+export const FAAS_INSTANCE = "faas.instance";
 
 // faas.invocation_id
-export const FAAS_INVOCATION_ID = "faas.invocation_id" as const;
+export const FAAS_INVOCATION_ID = "faas.invocation_id";
 
 // faas.invoked_name
-export const FAAS_INVOKED_NAME = "faas.invoked_name" as const;
+export const FAAS_INVOKED_NAME = "faas.invoked_name";
 
 // faas.invoked_provider
-export const FAAS_INVOKED_PROVIDER = "faas.invoked_provider" as const;
+export const FAAS_INVOKED_PROVIDER = "faas.invoked_provider";
 
 // faas.invoked_region
-export const FAAS_INVOKED_REGION = "faas.invoked_region" as const;
+export const FAAS_INVOKED_REGION = "faas.invoked_region";
 
 // faas.max_memory
-export const FAAS_MAX_MEMORY = "faas.max_memory" as const;
+export const FAAS_MAX_MEMORY = "faas.max_memory";
 
 // faas.name
-export const FAAS_NAME = "faas.name" as const;
+export const FAAS_NAME = "faas.name";
 
 // faas.time
-export const FAAS_TIME = "faas.time" as const;
+export const FAAS_TIME = "faas.time";
 
 // faas.trigger
-export const FAAS_TRIGGER = "faas.trigger" as const;
+export const FAAS_TRIGGER = "faas.trigger";
 
 // faas.version
-export const FAAS_VERSION = "faas.version" as const;
+export const FAAS_VERSION = "faas.version";
 
 // feature_flag.context
-export const FEATURE_FLAG_CONTEXT_ID = "feature_flag.context.id" as const;
+export const FEATURE_FLAG_CONTEXT_ID = "feature_flag.context.id";
 
 // feature_flag.evaluation
-export const FEATURE_FLAG_EVALUATION_ERROR_MESSAGE = "feature_flag.evaluation.error.message" as const;
-export const FEATURE_FLAG_EVALUATION_REASON = "feature_flag.evaluation.reason" as const;
+export const FEATURE_FLAG_EVALUATION_ERROR_MESSAGE = "feature_flag.evaluation.error.message";
+export const FEATURE_FLAG_EVALUATION_REASON = "feature_flag.evaluation.reason";
 
 // feature_flag.key
-export const FEATURE_FLAG_KEY = "feature_flag.key" as const;
+export const FEATURE_FLAG_KEY = "feature_flag.key";
 
 // feature_flag.provider
-export const FEATURE_FLAG_PROVIDER_NAME = "feature_flag.provider.name" as const;
+export const FEATURE_FLAG_PROVIDER_NAME = "feature_flag.provider.name";
 
 // feature_flag.result
-export const FEATURE_FLAG_RESULT_REASON = "feature_flag.result.reason" as const;
-export const FEATURE_FLAG_RESULT_VALUE = "feature_flag.result.value" as const;
-export const FEATURE_FLAG_RESULT_VARIANT = "feature_flag.result.variant" as const;
+export const FEATURE_FLAG_RESULT_REASON = "feature_flag.result.reason";
+export const FEATURE_FLAG_RESULT_VALUE = "feature_flag.result.value";
+export const FEATURE_FLAG_RESULT_VARIANT = "feature_flag.result.variant";
 
 // feature_flag.set
-export const FEATURE_FLAG_SET_ID = "feature_flag.set.id" as const;
+export const FEATURE_FLAG_SET_ID = "feature_flag.set.id";
 
 // feature_flag.variant
-export const FEATURE_FLAG_VARIANT = "feature_flag.variant" as const;
+export const FEATURE_FLAG_VARIANT = "feature_flag.variant";
 
 // feature_flag.version
-export const FEATURE_FLAG_VERSION = "feature_flag.version" as const;
+export const FEATURE_FLAG_VERSION = "feature_flag.version";
 
 // file.accessed
-export const FILE_ACCESSED = "file.accessed" as const;
+export const FILE_ACCESSED = "file.accessed";
 
 // file.attributes
-export const FILE_ATTRIBUTES = "file.attributes" as const;
+export const FILE_ATTRIBUTES = "file.attributes";
 
 // file.changed
-export const FILE_CHANGED = "file.changed" as const;
+export const FILE_CHANGED = "file.changed";
 
 // file.created
-export const FILE_CREATED = "file.created" as const;
+export const FILE_CREATED = "file.created";
 
 // file.directory
-export const FILE_DIRECTORY = "file.directory" as const;
+export const FILE_DIRECTORY = "file.directory";
 
 // file.extension
-export const FILE_EXTENSION = "file.extension" as const;
+export const FILE_EXTENSION = "file.extension";
 
 // file.fork_name
-export const FILE_FORK_NAME = "file.fork_name" as const;
+export const FILE_FORK_NAME = "file.fork_name";
 
 // file.group
-export const FILE_GROUP_ID = "file.group.id" as const;
-export const FILE_GROUP_NAME = "file.group.name" as const;
+export const FILE_GROUP_ID = "file.group.id";
+export const FILE_GROUP_NAME = "file.group.name";
 
 // file.inode
-export const FILE_INODE = "file.inode" as const;
+export const FILE_INODE = "file.inode";
 
 // file.mode
-export const FILE_MODE = "file.mode" as const;
+export const FILE_MODE = "file.mode";
 
 // file.modified
-export const FILE_MODIFIED = "file.modified" as const;
+export const FILE_MODIFIED = "file.modified";
 
 // file.name
-export const FILE_NAME = "file.name" as const;
+export const FILE_NAME = "file.name";
 
 // file.owner
-export const FILE_OWNER_ID = "file.owner.id" as const;
-export const FILE_OWNER_NAME = "file.owner.name" as const;
+export const FILE_OWNER_ID = "file.owner.id";
+export const FILE_OWNER_NAME = "file.owner.name";
 
 // file.path
-export const FILE_PATH = "file.path" as const;
+export const FILE_PATH = "file.path";
 
 // file.size
-export const FILE_SIZE = "file.size" as const;
+export const FILE_SIZE = "file.size";
 
 // file.symbolic_link
-export const FILE_SYMBOLIC_LINK_TARGET_PATH = "file.symbolic_link.target_path" as const;
+export const FILE_SYMBOLIC_LINK_TARGET_PATH = "file.symbolic_link.target_path";
 
 // gen_ai.agent
-export const GEN_AI_AGENT_DESCRIPTION = "gen_ai.agent.description" as const;
-export const GEN_AI_AGENT_ID = "gen_ai.agent.id" as const;
-export const GEN_AI_AGENT_NAME = "gen_ai.agent.name" as const;
+export const GEN_AI_AGENT_DESCRIPTION = "gen_ai.agent.description";
+export const GEN_AI_AGENT_ID = "gen_ai.agent.id";
+export const GEN_AI_AGENT_NAME = "gen_ai.agent.name";
 
 // gen_ai.completion
-export const GEN_AI_COMPLETION = "gen_ai.completion" as const;
+export const GEN_AI_COMPLETION = "gen_ai.completion";
 
 // gen_ai.conversation
-export const GEN_AI_CONVERSATION_ID = "gen_ai.conversation.id" as const;
+export const GEN_AI_CONVERSATION_ID = "gen_ai.conversation.id";
 
 // gen_ai.data_source
-export const GEN_AI_DATA_SOURCE_ID = "gen_ai.data_source.id" as const;
+export const GEN_AI_DATA_SOURCE_ID = "gen_ai.data_source.id";
 
 // gen_ai.embeddings
-export const GEN_AI_EMBEDDINGS_DIMENSION_COUNT = "gen_ai.embeddings.dimension.count" as const;
+export const GEN_AI_EMBEDDINGS_DIMENSION_COUNT = "gen_ai.embeddings.dimension.count";
 
 // gen_ai.evaluation
-export const GEN_AI_EVALUATION_EXPLANATION = "gen_ai.evaluation.explanation" as const;
-export const GEN_AI_EVALUATION_NAME = "gen_ai.evaluation.name" as const;
-export const GEN_AI_EVALUATION_SCORE_LABEL = "gen_ai.evaluation.score.label" as const;
-export const GEN_AI_EVALUATION_SCORE_VALUE = "gen_ai.evaluation.score.value" as const;
+export const GEN_AI_EVALUATION_EXPLANATION = "gen_ai.evaluation.explanation";
+export const GEN_AI_EVALUATION_NAME = "gen_ai.evaluation.name";
+export const GEN_AI_EVALUATION_SCORE_LABEL = "gen_ai.evaluation.score.label";
+export const GEN_AI_EVALUATION_SCORE_VALUE = "gen_ai.evaluation.score.value";
 
 // gen_ai.input
-export const GEN_AI_INPUT_MESSAGES = "gen_ai.input.messages" as const;
+export const GEN_AI_INPUT_MESSAGES = "gen_ai.input.messages";
 
 // gen_ai.openai
-export const GEN_AI_OPENAI_REQUEST_RESPONSE_FORMAT = "gen_ai.openai.request.response_format" as const;
-export const GEN_AI_OPENAI_REQUEST_SEED = "gen_ai.openai.request.seed" as const;
-export const GEN_AI_OPENAI_REQUEST_SERVICE_TIER = "gen_ai.openai.request.service_tier" as const;
-export const GEN_AI_OPENAI_RESPONSE_SERVICE_TIER = "gen_ai.openai.response.service_tier" as const;
-export const GEN_AI_OPENAI_RESPONSE_SYSTEM_FINGERPRINT = "gen_ai.openai.response.system_fingerprint" as const;
+export const GEN_AI_OPENAI_REQUEST_RESPONSE_FORMAT = "gen_ai.openai.request.response_format";
+export const GEN_AI_OPENAI_REQUEST_SEED = "gen_ai.openai.request.seed";
+export const GEN_AI_OPENAI_REQUEST_SERVICE_TIER = "gen_ai.openai.request.service_tier";
+export const GEN_AI_OPENAI_RESPONSE_SERVICE_TIER = "gen_ai.openai.response.service_tier";
+export const GEN_AI_OPENAI_RESPONSE_SYSTEM_FINGERPRINT = "gen_ai.openai.response.system_fingerprint";
 
 // gen_ai.operation
-export const GEN_AI_OPERATION_NAME = "gen_ai.operation.name" as const;
+export const GEN_AI_OPERATION_NAME = "gen_ai.operation.name";
 
 // gen_ai.output
-export const GEN_AI_OUTPUT_MESSAGES = "gen_ai.output.messages" as const;
-export const GEN_AI_OUTPUT_TYPE = "gen_ai.output.type" as const;
+export const GEN_AI_OUTPUT_MESSAGES = "gen_ai.output.messages";
+export const GEN_AI_OUTPUT_TYPE = "gen_ai.output.type";
 
 // gen_ai.prompt
-export const GEN_AI_PROMPT = "gen_ai.prompt" as const;
-export const GEN_AI_PROMPT_NAME = "gen_ai.prompt.name" as const;
+export const GEN_AI_PROMPT = "gen_ai.prompt";
+export const GEN_AI_PROMPT_NAME = "gen_ai.prompt.name";
 
 // gen_ai.provider
-export const GEN_AI_PROVIDER_NAME = "gen_ai.provider.name" as const;
+export const GEN_AI_PROVIDER_NAME = "gen_ai.provider.name";
 
 // gen_ai.request
-export const GEN_AI_REQUEST_CHOICE_COUNT = "gen_ai.request.choice.count" as const;
-export const GEN_AI_REQUEST_ENCODING_FORMATS = "gen_ai.request.encoding_formats" as const;
-export const GEN_AI_REQUEST_FREQUENCY_PENALTY = "gen_ai.request.frequency_penalty" as const;
-export const GEN_AI_REQUEST_MAX_TOKENS = "gen_ai.request.max_tokens" as const;
-export const GEN_AI_REQUEST_MODEL = "gen_ai.request.model" as const;
-export const GEN_AI_REQUEST_PRESENCE_PENALTY = "gen_ai.request.presence_penalty" as const;
-export const GEN_AI_REQUEST_SEED = "gen_ai.request.seed" as const;
-export const GEN_AI_REQUEST_STOP_SEQUENCES = "gen_ai.request.stop_sequences" as const;
-export const GEN_AI_REQUEST_TEMPERATURE = "gen_ai.request.temperature" as const;
-export const GEN_AI_REQUEST_TOP_K = "gen_ai.request.top_k" as const;
-export const GEN_AI_REQUEST_TOP_P = "gen_ai.request.top_p" as const;
+export const GEN_AI_REQUEST_CHOICE_COUNT = "gen_ai.request.choice.count";
+export const GEN_AI_REQUEST_ENCODING_FORMATS = "gen_ai.request.encoding_formats";
+export const GEN_AI_REQUEST_FREQUENCY_PENALTY = "gen_ai.request.frequency_penalty";
+export const GEN_AI_REQUEST_MAX_TOKENS = "gen_ai.request.max_tokens";
+export const GEN_AI_REQUEST_MODEL = "gen_ai.request.model";
+export const GEN_AI_REQUEST_PRESENCE_PENALTY = "gen_ai.request.presence_penalty";
+export const GEN_AI_REQUEST_SEED = "gen_ai.request.seed";
+export const GEN_AI_REQUEST_STOP_SEQUENCES = "gen_ai.request.stop_sequences";
+export const GEN_AI_REQUEST_TEMPERATURE = "gen_ai.request.temperature";
+export const GEN_AI_REQUEST_TOP_K = "gen_ai.request.top_k";
+export const GEN_AI_REQUEST_TOP_P = "gen_ai.request.top_p";
 
 // gen_ai.response
-export const GEN_AI_RESPONSE_FINISH_REASONS = "gen_ai.response.finish_reasons" as const;
-export const GEN_AI_RESPONSE_ID = "gen_ai.response.id" as const;
-export const GEN_AI_RESPONSE_MODEL = "gen_ai.response.model" as const;
+export const GEN_AI_RESPONSE_FINISH_REASONS = "gen_ai.response.finish_reasons";
+export const GEN_AI_RESPONSE_ID = "gen_ai.response.id";
+export const GEN_AI_RESPONSE_MODEL = "gen_ai.response.model";
 
 // gen_ai.system
-export const GEN_AI_SYSTEM = "gen_ai.system" as const;
+export const GEN_AI_SYSTEM = "gen_ai.system";
 
 // gen_ai.system_instructions
-export const GEN_AI_SYSTEM_INSTRUCTIONS = "gen_ai.system_instructions" as const;
+export const GEN_AI_SYSTEM_INSTRUCTIONS = "gen_ai.system_instructions";
 
 // gen_ai.token
-export const GEN_AI_TOKEN_TYPE = "gen_ai.token.type" as const;
+export const GEN_AI_TOKEN_TYPE = "gen_ai.token.type";
 
 // gen_ai.tool
-export const GEN_AI_TOOL_CALL_ARGUMENTS = "gen_ai.tool.call.arguments" as const;
-export const GEN_AI_TOOL_CALL_ID = "gen_ai.tool.call.id" as const;
-export const GEN_AI_TOOL_CALL_RESULT = "gen_ai.tool.call.result" as const;
-export const GEN_AI_TOOL_DEFINITIONS = "gen_ai.tool.definitions" as const;
-export const GEN_AI_TOOL_DESCRIPTION = "gen_ai.tool.description" as const;
-export const GEN_AI_TOOL_NAME = "gen_ai.tool.name" as const;
-export const GEN_AI_TOOL_TYPE = "gen_ai.tool.type" as const;
+export const GEN_AI_TOOL_CALL_ARGUMENTS = "gen_ai.tool.call.arguments";
+export const GEN_AI_TOOL_CALL_ID = "gen_ai.tool.call.id";
+export const GEN_AI_TOOL_CALL_RESULT = "gen_ai.tool.call.result";
+export const GEN_AI_TOOL_DEFINITIONS = "gen_ai.tool.definitions";
+export const GEN_AI_TOOL_DESCRIPTION = "gen_ai.tool.description";
+export const GEN_AI_TOOL_NAME = "gen_ai.tool.name";
+export const GEN_AI_TOOL_TYPE = "gen_ai.tool.type";
 
 // gen_ai.usage
-export const GEN_AI_USAGE_COMPLETION_TOKENS = "gen_ai.usage.completion_tokens" as const;
-export const GEN_AI_USAGE_INPUT_TOKENS = "gen_ai.usage.input_tokens" as const;
-export const GEN_AI_USAGE_OUTPUT_TOKENS = "gen_ai.usage.output_tokens" as const;
-export const GEN_AI_USAGE_PROMPT_TOKENS = "gen_ai.usage.prompt_tokens" as const;
+export const GEN_AI_USAGE_COMPLETION_TOKENS = "gen_ai.usage.completion_tokens";
+export const GEN_AI_USAGE_INPUT_TOKENS = "gen_ai.usage.input_tokens";
+export const GEN_AI_USAGE_OUTPUT_TOKENS = "gen_ai.usage.output_tokens";
+export const GEN_AI_USAGE_PROMPT_TOKENS = "gen_ai.usage.prompt_tokens";
 
 // geo.continent
-export const GEO_CONTINENT_CODE = "geo.continent.code" as const;
+export const GEO_CONTINENT_CODE = "geo.continent.code";
 
 // geo.country
-export const GEO_COUNTRY_ISO_CODE = "geo.country.iso_code" as const;
+export const GEO_COUNTRY_ISO_CODE = "geo.country.iso_code";
 
 // geo.locality
-export const GEO_LOCALITY_NAME = "geo.locality.name" as const;
+export const GEO_LOCALITY_NAME = "geo.locality.name";
 
 // geo.location
-export const GEO_LOCATION_LAT = "geo.location.lat" as const;
-export const GEO_LOCATION_LON = "geo.location.lon" as const;
+export const GEO_LOCATION_LAT = "geo.location.lat";
+export const GEO_LOCATION_LON = "geo.location.lon";
 
 // geo.postal_code
-export const GEO_POSTAL_CODE = "geo.postal_code" as const;
+export const GEO_POSTAL_CODE = "geo.postal_code";
 
 // geo.region
-export const GEO_REGION_ISO_CODE = "geo.region.iso_code" as const;
+export const GEO_REGION_ISO_CODE = "geo.region.iso_code";
 
 // host.arch
-export const HOST_ARCH = "host.arch" as const;
+export const HOST_ARCH = "host.arch";
 
 // host.cpu
-export const HOST_CPU_CACHE_L2_SIZE = "host.cpu.cache.l2.size" as const;
-export const HOST_CPU_FAMILY = "host.cpu.family" as const;
-export const HOST_CPU_MODEL_ID = "host.cpu.model.id" as const;
-export const HOST_CPU_MODEL_NAME = "host.cpu.model.name" as const;
-export const HOST_CPU_STEPPING = "host.cpu.stepping" as const;
-export const HOST_CPU_VENDOR_ID = "host.cpu.vendor.id" as const;
+export const HOST_CPU_CACHE_L2_SIZE = "host.cpu.cache.l2.size";
+export const HOST_CPU_FAMILY = "host.cpu.family";
+export const HOST_CPU_MODEL_ID = "host.cpu.model.id";
+export const HOST_CPU_MODEL_NAME = "host.cpu.model.name";
+export const HOST_CPU_STEPPING = "host.cpu.stepping";
+export const HOST_CPU_VENDOR_ID = "host.cpu.vendor.id";
 
 // host.id
-export const HOST_ID = "host.id" as const;
+export const HOST_ID = "host.id";
 
 // host.image
-export const HOST_IMAGE_ID = "host.image.id" as const;
-export const HOST_IMAGE_NAME = "host.image.name" as const;
-export const HOST_IMAGE_VERSION = "host.image.version" as const;
+export const HOST_IMAGE_ID = "host.image.id";
+export const HOST_IMAGE_NAME = "host.image.name";
+export const HOST_IMAGE_VERSION = "host.image.version";
 
 // host.ip
-export const HOST_IP = "host.ip" as const;
+export const HOST_IP = "host.ip";
 
 // host.mac
-export const HOST_MAC = "host.mac" as const;
+export const HOST_MAC = "host.mac";
 
 // host.name
-export const HOST_NAME = "host.name" as const;
+export const HOST_NAME = "host.name";
 
 // host.type
-export const HOST_TYPE = "host.type" as const;
+export const HOST_TYPE = "host.type";
 
 // http.client_ip
-export const HTTP_CLIENT_IP = "http.client_ip" as const;
+export const HTTP_CLIENT_IP = "http.client_ip";
 
 // http.connection
-export const HTTP_CONNECTION_STATE = "http.connection.state" as const;
+export const HTTP_CONNECTION_STATE = "http.connection.state";
 
 // http.flavor
-export const HTTP_FLAVOR = "http.flavor" as const;
+export const HTTP_FLAVOR = "http.flavor";
 
 // http.host
-export const HTTP_HOST = "http.host" as const;
+export const HTTP_HOST = "http.host";
 
 // http.method
-export const HTTP_METHOD = "http.method" as const;
+export const HTTP_METHOD = "http.method";
 
 // http.request_content_length
-export const HTTP_REQUEST_CONTENT_LENGTH = "http.request_content_length" as const;
+export const HTTP_REQUEST_CONTENT_LENGTH = "http.request_content_length";
 
 // http.request_content_length_uncompressed
-export const HTTP_REQUEST_CONTENT_LENGTH_UNCOMPRESSED = "http.request_content_length_uncompressed" as const;
+export const HTTP_REQUEST_CONTENT_LENGTH_UNCOMPRESSED = "http.request_content_length_uncompressed";
+
+// http.request
+export const HTTP_REQUEST_BODY_SIZE = "http.request.body.size";
+export const HTTP_REQUEST_METHOD = "http.request.method";
+export const HTTP_REQUEST_METHOD_ORIGINAL = "http.request.method_original";
+export const HTTP_REQUEST_RESEND_COUNT = "http.request.resend_count";
+export const HTTP_REQUEST_SIZE = "http.request.size";
 
 // http.response_content_length
-export const HTTP_RESPONSE_CONTENT_LENGTH = "http.response_content_length" as const;
+export const HTTP_RESPONSE_CONTENT_LENGTH = "http.response_content_length";
 
 // http.response_content_length_uncompressed
-export const HTTP_RESPONSE_CONTENT_LENGTH_UNCOMPRESSED = "http.response_content_length_uncompressed" as const;
+export const HTTP_RESPONSE_CONTENT_LENGTH_UNCOMPRESSED = "http.response_content_length_uncompressed";
+
+// http.response
+export const HTTP_RESPONSE_BODY_SIZE = "http.response.body.size";
+export const HTTP_RESPONSE_SIZE = "http.response.size";
+export const HTTP_RESPONSE_STATUS_CODE = "http.response.status_code";
+
+// http.route
+export const HTTP_ROUTE = "http.route";
 
 // http.scheme
-export const HTTP_SCHEME = "http.scheme" as const;
+export const HTTP_SCHEME = "http.scheme";
 
 // http.server_name
-export const HTTP_SERVER_NAME = "http.server_name" as const;
+export const HTTP_SERVER_NAME = "http.server_name";
 
 // http.status_code
-export const HTTP_STATUS_CODE = "http.status_code" as const;
+export const HTTP_STATUS_CODE = "http.status_code";
 
 // http.target
-export const HTTP_TARGET = "http.target" as const;
+export const HTTP_TARGET = "http.target";
 
 // http.url
-export const HTTP_URL = "http.url" as const;
+export const HTTP_URL = "http.url";
 
 // http.user_agent
-export const HTTP_USER_AGENT = "http.user_agent" as const;
+export const HTTP_USER_AGENT = "http.user_agent";
 
 // k8s.cluster
-export const K8S_CLUSTER_NAME = "k8s.cluster.name" as const;
-export const K8S_CLUSTER_UID = "k8s.cluster.uid" as const;
+export const K8S_CLUSTER_NAME = "k8s.cluster.name";
+export const K8S_CLUSTER_UID = "k8s.cluster.uid";
 
 // k8s.container
-export const K8S_CONTAINER_NAME = "k8s.container.name" as const;
-export const K8S_CONTAINER_RESTART_COUNT = "k8s.container.restart_count" as const;
-export const K8S_CONTAINER_STATUS_LAST_TERMINATED_REASON = "k8s.container.status.last_terminated_reason" as const;
-export const K8S_CONTAINER_STATUS_REASON = "k8s.container.status.reason" as const;
-export const K8S_CONTAINER_STATUS_STATE = "k8s.container.status.state" as const;
+export const K8S_CONTAINER_NAME = "k8s.container.name";
+export const K8S_CONTAINER_RESTART_COUNT = "k8s.container.restart_count";
+export const K8S_CONTAINER_STATUS_LAST_TERMINATED_REASON = "k8s.container.status.last_terminated_reason";
+export const K8S_CONTAINER_STATUS_REASON = "k8s.container.status.reason";
+export const K8S_CONTAINER_STATUS_STATE = "k8s.container.status.state";
 
 // k8s.cronjob
-export const K8S_CRONJOB_NAME = "k8s.cronjob.name" as const;
-export const K8S_CRONJOB_UID = "k8s.cronjob.uid" as const;
+export const K8S_CRONJOB_NAME = "k8s.cronjob.name";
+export const K8S_CRONJOB_UID = "k8s.cronjob.uid";
 
 // k8s.daemonset
-export const K8S_DAEMONSET_NAME = "k8s.daemonset.name" as const;
-export const K8S_DAEMONSET_UID = "k8s.daemonset.uid" as const;
+export const K8S_DAEMONSET_NAME = "k8s.daemonset.name";
+export const K8S_DAEMONSET_UID = "k8s.daemonset.uid";
 
 // k8s.deployment
-export const K8S_DEPLOYMENT_NAME = "k8s.deployment.name" as const;
-export const K8S_DEPLOYMENT_UID = "k8s.deployment.uid" as const;
+export const K8S_DEPLOYMENT_NAME = "k8s.deployment.name";
+export const K8S_DEPLOYMENT_UID = "k8s.deployment.uid";
 
 // k8s.hpa
-export const K8S_HPA_METRIC_TYPE = "k8s.hpa.metric.type" as const;
-export const K8S_HPA_NAME = "k8s.hpa.name" as const;
-export const K8S_HPA_SCALETARGETREF_API_VERSION = "k8s.hpa.scaletargetref.api_version" as const;
-export const K8S_HPA_SCALETARGETREF_KIND = "k8s.hpa.scaletargetref.kind" as const;
-export const K8S_HPA_SCALETARGETREF_NAME = "k8s.hpa.scaletargetref.name" as const;
-export const K8S_HPA_UID = "k8s.hpa.uid" as const;
+export const K8S_HPA_METRIC_TYPE = "k8s.hpa.metric.type";
+export const K8S_HPA_NAME = "k8s.hpa.name";
+export const K8S_HPA_SCALETARGETREF_API_VERSION = "k8s.hpa.scaletargetref.api_version";
+export const K8S_HPA_SCALETARGETREF_KIND = "k8s.hpa.scaletargetref.kind";
+export const K8S_HPA_SCALETARGETREF_NAME = "k8s.hpa.scaletargetref.name";
+export const K8S_HPA_UID = "k8s.hpa.uid";
 
 // k8s.hugepage
-export const K8S_HUGEPAGE_SIZE = "k8s.hugepage.size" as const;
+export const K8S_HUGEPAGE_SIZE = "k8s.hugepage.size";
 
 // k8s.job
-export const K8S_JOB_NAME = "k8s.job.name" as const;
-export const K8S_JOB_UID = "k8s.job.uid" as const;
+export const K8S_JOB_NAME = "k8s.job.name";
+export const K8S_JOB_UID = "k8s.job.uid";
 
 // k8s.namespace
-export const K8S_NAMESPACE_NAME = "k8s.namespace.name" as const;
-export const K8S_NAMESPACE_PHASE = "k8s.namespace.phase" as const;
+export const K8S_NAMESPACE_NAME = "k8s.namespace.name";
+export const K8S_NAMESPACE_PHASE = "k8s.namespace.phase";
 
 // k8s.node
-export const K8S_NODE_CONDITION_STATUS = "k8s.node.condition.status" as const;
-export const K8S_NODE_CONDITION_TYPE = "k8s.node.condition.type" as const;
-export const K8S_NODE_NAME = "k8s.node.name" as const;
-export const K8S_NODE_UID = "k8s.node.uid" as const;
+export const K8S_NODE_CONDITION_STATUS = "k8s.node.condition.status";
+export const K8S_NODE_CONDITION_TYPE = "k8s.node.condition.type";
+export const K8S_NODE_NAME = "k8s.node.name";
+export const K8S_NODE_UID = "k8s.node.uid";
 
 // k8s.pod
-export const K8S_POD_HOSTNAME = "k8s.pod.hostname" as const;
-export const K8S_POD_IP = "k8s.pod.ip" as const;
-export const K8S_POD_NAME = "k8s.pod.name" as const;
-export const K8S_POD_START_TIME = "k8s.pod.start_time" as const;
-export const K8S_POD_STATUS_PHASE = "k8s.pod.status.phase" as const;
-export const K8S_POD_STATUS_REASON = "k8s.pod.status.reason" as const;
-export const K8S_POD_UID = "k8s.pod.uid" as const;
+export const K8S_POD_HOSTNAME = "k8s.pod.hostname";
+export const K8S_POD_IP = "k8s.pod.ip";
+export const K8S_POD_NAME = "k8s.pod.name";
+export const K8S_POD_START_TIME = "k8s.pod.start_time";
+export const K8S_POD_STATUS_PHASE = "k8s.pod.status.phase";
+export const K8S_POD_STATUS_REASON = "k8s.pod.status.reason";
+export const K8S_POD_UID = "k8s.pod.uid";
 
 // k8s.replicaset
-export const K8S_REPLICASET_NAME = "k8s.replicaset.name" as const;
-export const K8S_REPLICASET_UID = "k8s.replicaset.uid" as const;
+export const K8S_REPLICASET_NAME = "k8s.replicaset.name";
+export const K8S_REPLICASET_UID = "k8s.replicaset.uid";
 
 // k8s.replicationcontroller
-export const K8S_REPLICATIONCONTROLLER_NAME = "k8s.replicationcontroller.name" as const;
-export const K8S_REPLICATIONCONTROLLER_UID = "k8s.replicationcontroller.uid" as const;
+export const K8S_REPLICATIONCONTROLLER_NAME = "k8s.replicationcontroller.name";
+export const K8S_REPLICATIONCONTROLLER_UID = "k8s.replicationcontroller.uid";
 
 // k8s.resourcequota
-export const K8S_RESOURCEQUOTA_NAME = "k8s.resourcequota.name" as const;
-export const K8S_RESOURCEQUOTA_RESOURCE_NAME = "k8s.resourcequota.resource_name" as const;
-export const K8S_RESOURCEQUOTA_UID = "k8s.resourcequota.uid" as const;
+export const K8S_RESOURCEQUOTA_NAME = "k8s.resourcequota.name";
+export const K8S_RESOURCEQUOTA_RESOURCE_NAME = "k8s.resourcequota.resource_name";
+export const K8S_RESOURCEQUOTA_UID = "k8s.resourcequota.uid";
 
 // k8s.statefulset
-export const K8S_STATEFULSET_NAME = "k8s.statefulset.name" as const;
-export const K8S_STATEFULSET_UID = "k8s.statefulset.uid" as const;
+export const K8S_STATEFULSET_NAME = "k8s.statefulset.name";
+export const K8S_STATEFULSET_UID = "k8s.statefulset.uid";
 
 // k8s.storageclass
-export const K8S_STORAGECLASS_NAME = "k8s.storageclass.name" as const;
+export const K8S_STORAGECLASS_NAME = "k8s.storageclass.name";
 
 // k8s.volume
-export const K8S_VOLUME_NAME = "k8s.volume.name" as const;
-export const K8S_VOLUME_TYPE = "k8s.volume.type" as const;
+export const K8S_VOLUME_NAME = "k8s.volume.name";
+export const K8S_VOLUME_TYPE = "k8s.volume.type";
 
 // log.file
-export const LOG_FILE_NAME = "log.file.name" as const;
-export const LOG_FILE_NAME_RESOLVED = "log.file.name_resolved" as const;
-export const LOG_FILE_PATH = "log.file.path" as const;
-export const LOG_FILE_PATH_RESOLVED = "log.file.path_resolved" as const;
+export const LOG_FILE_NAME = "log.file.name";
+export const LOG_FILE_NAME_RESOLVED = "log.file.name_resolved";
+export const LOG_FILE_PATH = "log.file.path";
+export const LOG_FILE_PATH_RESOLVED = "log.file.path_resolved";
 
 // log.iostream
-export const LOG_IOSTREAM = "log.iostream" as const;
+export const LOG_IOSTREAM = "log.iostream";
 
 // log.record
-export const LOG_RECORD_ORIGINAL = "log.record.original" as const;
-export const LOG_RECORD_UID = "log.record.uid" as const;
+export const LOG_RECORD_ORIGINAL = "log.record.original";
+export const LOG_RECORD_UID = "log.record.uid";
 
 // messaging.batch
-export const MESSAGING_BATCH_MESSAGE_COUNT = "messaging.batch.message_count" as const;
+export const MESSAGING_BATCH_MESSAGE_COUNT = "messaging.batch.message_count";
 
 // messaging.client
-export const MESSAGING_CLIENT_ID = "messaging.client.id" as const;
+export const MESSAGING_CLIENT_ID = "messaging.client.id";
 
 // messaging.consumer
-export const MESSAGING_CONSUMER_GROUP_NAME = "messaging.consumer.group.name" as const;
-
-// messaging.destination
-export const MESSAGING_DESTINATION_ANONYMOUS = "messaging.destination.anonymous" as const;
-export const MESSAGING_DESTINATION_NAME = "messaging.destination.name" as const;
-export const MESSAGING_DESTINATION_PARTITION_ID = "messaging.destination.partition.id" as const;
-export const MESSAGING_DESTINATION_SUBSCRIPTION_NAME = "messaging.destination.subscription.name" as const;
-export const MESSAGING_DESTINATION_TEMPLATE = "messaging.destination.template" as const;
-export const MESSAGING_DESTINATION_TEMPORARY = "messaging.destination.temporary" as const;
+export const MESSAGING_CONSUMER_GROUP_NAME = "messaging.consumer.group.name";
 
 // messaging.destination_publish
-export const MESSAGING_DESTINATION_PUBLISH_ANONYMOUS = "messaging.destination_publish.anonymous" as const;
-export const MESSAGING_DESTINATION_PUBLISH_NAME = "messaging.destination_publish.name" as const;
+export const MESSAGING_DESTINATION_PUBLISH_ANONYMOUS = "messaging.destination_publish.anonymous";
+export const MESSAGING_DESTINATION_PUBLISH_NAME = "messaging.destination_publish.name";
+
+// messaging.destination
+export const MESSAGING_DESTINATION_ANONYMOUS = "messaging.destination.anonymous";
+export const MESSAGING_DESTINATION_NAME = "messaging.destination.name";
+export const MESSAGING_DESTINATION_PARTITION_ID = "messaging.destination.partition.id";
+export const MESSAGING_DESTINATION_SUBSCRIPTION_NAME = "messaging.destination.subscription.name";
+export const MESSAGING_DESTINATION_TEMPLATE = "messaging.destination.template";
+export const MESSAGING_DESTINATION_TEMPORARY = "messaging.destination.temporary";
 
 // messaging.eventhubs
-export const MESSAGING_EVENTHUBS_CONSUMER_GROUP = "messaging.eventhubs.consumer.group" as const;
-export const MESSAGING_EVENTHUBS_MESSAGE_ENQUEUED_TIME = "messaging.eventhubs.message.enqueued_time" as const;
+export const MESSAGING_EVENTHUBS_CONSUMER_GROUP = "messaging.eventhubs.consumer.group";
+export const MESSAGING_EVENTHUBS_MESSAGE_ENQUEUED_TIME = "messaging.eventhubs.message.enqueued_time";
 
 // messaging.gcp_pubsub
-export const MESSAGING_GCP_PUBSUB_MESSAGE_ACK_DEADLINE = "messaging.gcp_pubsub.message.ack_deadline" as const;
-export const MESSAGING_GCP_PUBSUB_MESSAGE_ACK_ID = "messaging.gcp_pubsub.message.ack_id" as const;
-export const MESSAGING_GCP_PUBSUB_MESSAGE_DELIVERY_ATTEMPT = "messaging.gcp_pubsub.message.delivery_attempt" as const;
-export const MESSAGING_GCP_PUBSUB_MESSAGE_ORDERING_KEY = "messaging.gcp_pubsub.message.ordering_key" as const;
+export const MESSAGING_GCP_PUBSUB_MESSAGE_ACK_DEADLINE = "messaging.gcp_pubsub.message.ack_deadline";
+export const MESSAGING_GCP_PUBSUB_MESSAGE_ACK_ID = "messaging.gcp_pubsub.message.ack_id";
+export const MESSAGING_GCP_PUBSUB_MESSAGE_DELIVERY_ATTEMPT = "messaging.gcp_pubsub.message.delivery_attempt";
+export const MESSAGING_GCP_PUBSUB_MESSAGE_ORDERING_KEY = "messaging.gcp_pubsub.message.ordering_key";
 
 // messaging.kafka
-export const MESSAGING_KAFKA_CONSUMER_GROUP = "messaging.kafka.consumer.group" as const;
-export const MESSAGING_KAFKA_DESTINATION_PARTITION = "messaging.kafka.destination.partition" as const;
-export const MESSAGING_KAFKA_MESSAGE_KEY = "messaging.kafka.message.key" as const;
-export const MESSAGING_KAFKA_MESSAGE_OFFSET = "messaging.kafka.message.offset" as const;
-export const MESSAGING_KAFKA_MESSAGE_TOMBSTONE = "messaging.kafka.message.tombstone" as const;
-export const MESSAGING_KAFKA_OFFSET = "messaging.kafka.offset" as const;
+export const MESSAGING_KAFKA_CONSUMER_GROUP = "messaging.kafka.consumer.group";
+export const MESSAGING_KAFKA_DESTINATION_PARTITION = "messaging.kafka.destination.partition";
+export const MESSAGING_KAFKA_MESSAGE_KEY = "messaging.kafka.message.key";
+export const MESSAGING_KAFKA_MESSAGE_OFFSET = "messaging.kafka.message.offset";
+export const MESSAGING_KAFKA_MESSAGE_TOMBSTONE = "messaging.kafka.message.tombstone";
+export const MESSAGING_KAFKA_OFFSET = "messaging.kafka.offset";
 
 // messaging.message
-export const MESSAGING_MESSAGE_BODY_SIZE = "messaging.message.body.size" as const;
-export const MESSAGING_MESSAGE_CONVERSATION_ID = "messaging.message.conversation_id" as const;
-export const MESSAGING_MESSAGE_ENVELOPE_SIZE = "messaging.message.envelope.size" as const;
-export const MESSAGING_MESSAGE_ID = "messaging.message.id" as const;
+export const MESSAGING_MESSAGE_BODY_SIZE = "messaging.message.body.size";
+export const MESSAGING_MESSAGE_CONVERSATION_ID = "messaging.message.conversation_id";
+export const MESSAGING_MESSAGE_ENVELOPE_SIZE = "messaging.message.envelope.size";
+export const MESSAGING_MESSAGE_ID = "messaging.message.id";
 
 // messaging.operation
-export const MESSAGING_OPERATION = "messaging.operation" as const;
-export const MESSAGING_OPERATION_NAME = "messaging.operation.name" as const;
-export const MESSAGING_OPERATION_TYPE = "messaging.operation.type" as const;
+export const MESSAGING_OPERATION = "messaging.operation";
+export const MESSAGING_OPERATION_NAME = "messaging.operation.name";
+export const MESSAGING_OPERATION_TYPE = "messaging.operation.type";
 
 // messaging.rabbitmq
-export const MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = "messaging.rabbitmq.destination.routing_key" as const;
-export const MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG = "messaging.rabbitmq.message.delivery_tag" as const;
+export const MESSAGING_RABBITMQ_DESTINATION_ROUTING_KEY = "messaging.rabbitmq.destination.routing_key";
+export const MESSAGING_RABBITMQ_MESSAGE_DELIVERY_TAG = "messaging.rabbitmq.message.delivery_tag";
 
 // messaging.rocketmq
-export const MESSAGING_ROCKETMQ_CLIENT_GROUP = "messaging.rocketmq.client_group" as const;
-export const MESSAGING_ROCKETMQ_CONSUMPTION_MODEL = "messaging.rocketmq.consumption_model" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_DELAY_TIME_LEVEL = "messaging.rocketmq.message.delay_time_level" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP = "messaging.rocketmq.message.delivery_timestamp" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_GROUP = "messaging.rocketmq.message.group" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_KEYS = "messaging.rocketmq.message.keys" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_TAG = "messaging.rocketmq.message.tag" as const;
-export const MESSAGING_ROCKETMQ_MESSAGE_TYPE = "messaging.rocketmq.message.type" as const;
-export const MESSAGING_ROCKETMQ_NAMESPACE = "messaging.rocketmq.namespace" as const;
+export const MESSAGING_ROCKETMQ_CLIENT_GROUP = "messaging.rocketmq.client_group";
+export const MESSAGING_ROCKETMQ_CONSUMPTION_MODEL = "messaging.rocketmq.consumption_model";
+export const MESSAGING_ROCKETMQ_MESSAGE_DELAY_TIME_LEVEL = "messaging.rocketmq.message.delay_time_level";
+export const MESSAGING_ROCKETMQ_MESSAGE_DELIVERY_TIMESTAMP = "messaging.rocketmq.message.delivery_timestamp";
+export const MESSAGING_ROCKETMQ_MESSAGE_GROUP = "messaging.rocketmq.message.group";
+export const MESSAGING_ROCKETMQ_MESSAGE_KEYS = "messaging.rocketmq.message.keys";
+export const MESSAGING_ROCKETMQ_MESSAGE_TAG = "messaging.rocketmq.message.tag";
+export const MESSAGING_ROCKETMQ_MESSAGE_TYPE = "messaging.rocketmq.message.type";
+export const MESSAGING_ROCKETMQ_NAMESPACE = "messaging.rocketmq.namespace";
 
 // messaging.servicebus
-export const MESSAGING_SERVICEBUS_DESTINATION_SUBSCRIPTION_NAME = "messaging.servicebus.destination.subscription_name" as const;
-export const MESSAGING_SERVICEBUS_DISPOSITION_STATUS = "messaging.servicebus.disposition_status" as const;
-export const MESSAGING_SERVICEBUS_MESSAGE_DELIVERY_COUNT = "messaging.servicebus.message.delivery_count" as const;
-export const MESSAGING_SERVICEBUS_MESSAGE_ENQUEUED_TIME = "messaging.servicebus.message.enqueued_time" as const;
+export const MESSAGING_SERVICEBUS_DESTINATION_SUBSCRIPTION_NAME = "messaging.servicebus.destination.subscription_name";
+export const MESSAGING_SERVICEBUS_DISPOSITION_STATUS = "messaging.servicebus.disposition_status";
+export const MESSAGING_SERVICEBUS_MESSAGE_DELIVERY_COUNT = "messaging.servicebus.message.delivery_count";
+export const MESSAGING_SERVICEBUS_MESSAGE_ENQUEUED_TIME = "messaging.servicebus.message.enqueued_time";
 
 // messaging.system
-export const MESSAGING_SYSTEM = "messaging.system" as const;
+export const MESSAGING_SYSTEM = "messaging.system";
 
 // network.carrier
-export const NETWORK_CARRIER_ICC = "network.carrier.icc" as const;
-export const NETWORK_CARRIER_MCC = "network.carrier.mcc" as const;
-export const NETWORK_CARRIER_MNC = "network.carrier.mnc" as const;
-export const NETWORK_CARRIER_NAME = "network.carrier.name" as const;
+export const NETWORK_CARRIER_ICC = "network.carrier.icc";
+export const NETWORK_CARRIER_MCC = "network.carrier.mcc";
+export const NETWORK_CARRIER_MNC = "network.carrier.mnc";
+export const NETWORK_CARRIER_NAME = "network.carrier.name";
 
 // network.connection
-export const NETWORK_CONNECTION_STATE = "network.connection.state" as const;
-export const NETWORK_CONNECTION_SUBTYPE = "network.connection.subtype" as const;
-export const NETWORK_CONNECTION_TYPE = "network.connection.type" as const;
+export const NETWORK_CONNECTION_STATE = "network.connection.state";
+export const NETWORK_CONNECTION_SUBTYPE = "network.connection.subtype";
+export const NETWORK_CONNECTION_TYPE = "network.connection.type";
 
 // network.interface
-export const NETWORK_INTERFACE_NAME = "network.interface.name" as const;
+export const NETWORK_INTERFACE_NAME = "network.interface.name";
 
 // network.io
-export const NETWORK_IO_DIRECTION = "network.io.direction" as const;
+export const NETWORK_IO_DIRECTION = "network.io.direction";
+
+// network.local
+export const NETWORK_LOCAL_ADDRESS = "network.local.address";
+export const NETWORK_LOCAL_PORT = "network.local.port";
+
+// network.peer
+export const NETWORK_PEER_ADDRESS = "network.peer.address";
+export const NETWORK_PEER_PORT = "network.peer.port";
+
+// network.protocol
+export const NETWORK_PROTOCOL_NAME = "network.protocol.name";
+export const NETWORK_PROTOCOL_VERSION = "network.protocol.version";
+
+// network.transport
+export const NETWORK_TRANSPORT = "network.transport";
+
+// network.type
+export const NETWORK_TYPE = "network.type";
+
+// openai.request
+export const OPENAI_REQUEST_SERVICE_TIER = "openai.request.service_tier";
+
+// openai.response
+export const OPENAI_RESPONSE_SERVICE_TIER = "openai.response.service_tier";
+export const OPENAI_RESPONSE_SYSTEM_FINGERPRINT = "openai.response.system_fingerprint";
 
 // os.build_id
-export const OS_BUILD_ID = "os.build_id" as const;
+export const OS_BUILD_ID = "os.build_id";
 
 // os.description
-export const OS_DESCRIPTION = "os.description" as const;
+export const OS_DESCRIPTION = "os.description";
 
 // os.name
-export const OS_NAME = "os.name" as const;
+export const OS_NAME = "os.name";
 
 // os.type
-export const OS_TYPE = "os.type" as const;
+export const OS_TYPE = "os.type";
 
 // os.version
-export const OS_VERSION = "os.version" as const;
+export const OS_VERSION = "os.version";
 
 // otel.component
-export const OTEL_COMPONENT_NAME = "otel.component.name" as const;
-export const OTEL_COMPONENT_TYPE = "otel.component.type" as const;
+export const OTEL_COMPONENT_NAME = "otel.component.name";
+export const OTEL_COMPONENT_TYPE = "otel.component.type";
 
 // otel.event
-export const OTEL_EVENT_NAME = "otel.event.name" as const;
+export const OTEL_EVENT_NAME = "otel.event.name";
 
 // otel.library
-export const OTEL_LIBRARY_NAME = "otel.library.name" as const;
-export const OTEL_LIBRARY_VERSION = "otel.library.version" as const;
+export const OTEL_LIBRARY_NAME = "otel.library.name";
+export const OTEL_LIBRARY_VERSION = "otel.library.version";
+
+// otel.scope
+export const OTEL_SCOPE_NAME = "otel.scope.name";
+export const OTEL_SCOPE_SCHEMA_URL = "otel.scope.schema_url";
+export const OTEL_SCOPE_VERSION = "otel.scope.version";
 
 // otel.span
-export const OTEL_SPAN_PARENT_ORIGIN = "otel.span.parent.origin" as const;
-export const OTEL_SPAN_SAMPLING_RESULT = "otel.span.sampling_result" as const;
+export const OTEL_SPAN_PARENT_ORIGIN = "otel.span.parent.origin";
+export const OTEL_SPAN_SAMPLING_RESULT = "otel.span.sampling_result";
+
+// otel.status_code
+export const OTEL_STATUS_CODE = "otel.status_code";
+
+// otel.status_description
+export const OTEL_STATUS_DESCRIPTION = "otel.status_description";
 
 // process.args_count
-export const PROCESS_ARGS_COUNT = "process.args_count" as const;
+export const PROCESS_ARGS_COUNT = "process.args_count";
 
 // process.command
-export const PROCESS_COMMAND = "process.command" as const;
+export const PROCESS_COMMAND = "process.command";
 
 // process.command_args
-export const PROCESS_COMMAND_ARGS = "process.command_args" as const;
+export const PROCESS_COMMAND_ARGS = "process.command_args";
 
 // process.command_line
-export const PROCESS_COMMAND_LINE = "process.command_line" as const;
+export const PROCESS_COMMAND_LINE = "process.command_line";
 
 // process.context_switch
-export const PROCESS_CONTEXT_SWITCH_TYPE = "process.context_switch.type" as const;
+export const PROCESS_CONTEXT_SWITCH_TYPE = "process.context_switch.type";
 
 // process.cpu
-export const PROCESS_CPU_STATE = "process.cpu.state" as const;
+export const PROCESS_CPU_STATE = "process.cpu.state";
 
 // process.creation
-export const PROCESS_CREATION_TIME = "process.creation.time" as const;
+export const PROCESS_CREATION_TIME = "process.creation.time";
 
 // process.executable
-export const PROCESS_EXECUTABLE_BUILD_ID_GNU = "process.executable.build_id.gnu" as const;
-export const PROCESS_EXECUTABLE_BUILD_ID_GO = "process.executable.build_id.go" as const;
-export const PROCESS_EXECUTABLE_BUILD_ID_HTLHASH = "process.executable.build_id.htlhash" as const;
-export const PROCESS_EXECUTABLE_BUILD_ID_PROFILING = "process.executable.build_id.profiling" as const;
-export const PROCESS_EXECUTABLE_NAME = "process.executable.name" as const;
-export const PROCESS_EXECUTABLE_PATH = "process.executable.path" as const;
+export const PROCESS_EXECUTABLE_BUILD_ID_GNU = "process.executable.build_id.gnu";
+export const PROCESS_EXECUTABLE_BUILD_ID_GO = "process.executable.build_id.go";
+export const PROCESS_EXECUTABLE_BUILD_ID_HTLHASH = "process.executable.build_id.htlhash";
+export const PROCESS_EXECUTABLE_BUILD_ID_PROFILING = "process.executable.build_id.profiling";
+export const PROCESS_EXECUTABLE_NAME = "process.executable.name";
+export const PROCESS_EXECUTABLE_PATH = "process.executable.path";
 
 // process.exit
-export const PROCESS_EXIT_CODE = "process.exit.code" as const;
-export const PROCESS_EXIT_TIME = "process.exit.time" as const;
+export const PROCESS_EXIT_CODE = "process.exit.code";
+export const PROCESS_EXIT_TIME = "process.exit.time";
 
 // process.group_leader
-export const PROCESS_GROUP_LEADER_PID = "process.group_leader.pid" as const;
+export const PROCESS_GROUP_LEADER_PID = "process.group_leader.pid";
 
 // process.interactive
-export const PROCESS_INTERACTIVE = "process.interactive" as const;
+export const PROCESS_INTERACTIVE = "process.interactive";
 
 // process.linux
-export const PROCESS_LINUX_CGROUP = "process.linux.cgroup" as const;
+export const PROCESS_LINUX_CGROUP = "process.linux.cgroup";
 
 // process.owner
-export const PROCESS_OWNER = "process.owner" as const;
+export const PROCESS_OWNER = "process.owner";
 
 // process.paging
-export const PROCESS_PAGING_FAULT_TYPE = "process.paging.fault_type" as const;
+export const PROCESS_PAGING_FAULT_TYPE = "process.paging.fault_type";
 
 // process.parent_pid
-export const PROCESS_PARENT_PID = "process.parent_pid" as const;
+export const PROCESS_PARENT_PID = "process.parent_pid";
 
 // process.pid
-export const PROCESS_PID = "process.pid" as const;
+export const PROCESS_PID = "process.pid";
 
 // process.real_user
-export const PROCESS_REAL_USER_ID = "process.real_user.id" as const;
-export const PROCESS_REAL_USER_NAME = "process.real_user.name" as const;
+export const PROCESS_REAL_USER_ID = "process.real_user.id";
+export const PROCESS_REAL_USER_NAME = "process.real_user.name";
 
 // process.runtime
-export const PROCESS_RUNTIME_DESCRIPTION = "process.runtime.description" as const;
-export const PROCESS_RUNTIME_NAME = "process.runtime.name" as const;
-export const PROCESS_RUNTIME_VERSION = "process.runtime.version" as const;
+export const PROCESS_RUNTIME_DESCRIPTION = "process.runtime.description";
+export const PROCESS_RUNTIME_NAME = "process.runtime.name";
+export const PROCESS_RUNTIME_VERSION = "process.runtime.version";
 
 // process.saved_user
-export const PROCESS_SAVED_USER_ID = "process.saved_user.id" as const;
-export const PROCESS_SAVED_USER_NAME = "process.saved_user.name" as const;
+export const PROCESS_SAVED_USER_ID = "process.saved_user.id";
+export const PROCESS_SAVED_USER_NAME = "process.saved_user.name";
 
 // process.session_leader
-export const PROCESS_SESSION_LEADER_PID = "process.session_leader.pid" as const;
+export const PROCESS_SESSION_LEADER_PID = "process.session_leader.pid";
 
 // process.state
-export const PROCESS_STATE = "process.state" as const;
+export const PROCESS_STATE = "process.state";
 
 // process.title
-export const PROCESS_TITLE = "process.title" as const;
+export const PROCESS_TITLE = "process.title";
 
 // process.user
-export const PROCESS_USER_ID = "process.user.id" as const;
-export const PROCESS_USER_NAME = "process.user.name" as const;
+export const PROCESS_USER_ID = "process.user.id";
+export const PROCESS_USER_NAME = "process.user.name";
 
 // process.vpid
-export const PROCESS_VPID = "process.vpid" as const;
+export const PROCESS_VPID = "process.vpid";
 
 // process.working_directory
-export const PROCESS_WORKING_DIRECTORY = "process.working_directory" as const;
+export const PROCESS_WORKING_DIRECTORY = "process.working_directory";
 
 // rpc.connect_rpc
-export const RPC_CONNECT_RPC_ERROR_CODE = "rpc.connect_rpc.error_code" as const;
+export const RPC_CONNECT_RPC_ERROR_CODE = "rpc.connect_rpc.error_code";
 
 // rpc.grpc
-export const RPC_GRPC_STATUS_CODE = "rpc.grpc.status_code" as const;
+export const RPC_GRPC_STATUS_CODE = "rpc.grpc.status_code";
 
 // rpc.jsonrpc
-export const RPC_JSONRPC_ERROR_CODE = "rpc.jsonrpc.error_code" as const;
-export const RPC_JSONRPC_ERROR_MESSAGE = "rpc.jsonrpc.error_message" as const;
-export const RPC_JSONRPC_REQUEST_ID = "rpc.jsonrpc.request_id" as const;
-export const RPC_JSONRPC_VERSION = "rpc.jsonrpc.version" as const;
+export const RPC_JSONRPC_ERROR_CODE = "rpc.jsonrpc.error_code";
+export const RPC_JSONRPC_ERROR_MESSAGE = "rpc.jsonrpc.error_message";
+export const RPC_JSONRPC_REQUEST_ID = "rpc.jsonrpc.request_id";
+export const RPC_JSONRPC_VERSION = "rpc.jsonrpc.version";
 
 // rpc.message
-export const RPC_MESSAGE_COMPRESSED_SIZE = "rpc.message.compressed_size" as const;
-export const RPC_MESSAGE_ID = "rpc.message.id" as const;
-export const RPC_MESSAGE_TYPE = "rpc.message.type" as const;
-export const RPC_MESSAGE_UNCOMPRESSED_SIZE = "rpc.message.uncompressed_size" as const;
+export const RPC_MESSAGE_COMPRESSED_SIZE = "rpc.message.compressed_size";
+export const RPC_MESSAGE_ID = "rpc.message.id";
+export const RPC_MESSAGE_TYPE = "rpc.message.type";
+export const RPC_MESSAGE_UNCOMPRESSED_SIZE = "rpc.message.uncompressed_size";
 
 // rpc.method
-export const RPC_METHOD = "rpc.method" as const;
+export const RPC_METHOD = "rpc.method";
 
 // rpc.method_original
-export const RPC_METHOD_ORIGINAL = "rpc.method_original" as const;
+export const RPC_METHOD_ORIGINAL = "rpc.method_original";
 
 // rpc.response
-export const RPC_RESPONSE_STATUS_CODE = "rpc.response.status_code" as const;
+export const RPC_RESPONSE_STATUS_CODE = "rpc.response.status_code";
 
 // rpc.service
-export const RPC_SERVICE = "rpc.service" as const;
+export const RPC_SERVICE = "rpc.service";
 
 // rpc.system
-export const RPC_SYSTEM = "rpc.system" as const;
-export const RPC_SYSTEM_NAME = "rpc.system.name" as const;
+export const RPC_SYSTEM = "rpc.system";
+export const RPC_SYSTEM_NAME = "rpc.system.name";
+
+// server.address
+export const SERVER_ADDRESS = "server.address";
+
+// server.port
+export const SERVER_PORT = "server.port";
+
+// service.instance
+export const SERVICE_INSTANCE_ID = "service.instance.id";
+
+// service.name
+export const SERVICE_NAME = "service.name";
+
+// service.namespace
+export const SERVICE_NAMESPACE = "service.namespace";
+
+// service.peer
+export const SERVICE_PEER_NAME = "service.peer.name";
+export const SERVICE_PEER_NAMESPACE = "service.peer.namespace";
+
+// service.version
+export const SERVICE_VERSION = "service.version";
 
 // session.id
-export const SESSION_ID = "session.id" as const;
+export const SESSION_ID = "session.id";
 
 // session.previous_id
-export const SESSION_PREVIOUS_ID = "session.previous_id" as const;
+export const SESSION_PREVIOUS_ID = "session.previous_id";
+
+// signalr.connection
+export const SIGNALR_CONNECTION_STATUS = "signalr.connection.status";
+
+// signalr.transport
+export const SIGNALR_TRANSPORT = "signalr.transport";
 
 // system.cpu
-export const SYSTEM_CPU_LOGICAL_NUMBER = "system.cpu.logical_number" as const;
-export const SYSTEM_CPU_STATE = "system.cpu.state" as const;
+export const SYSTEM_CPU_LOGICAL_NUMBER = "system.cpu.logical_number";
+export const SYSTEM_CPU_STATE = "system.cpu.state";
 
 // system.device
-export const SYSTEM_DEVICE = "system.device" as const;
+export const SYSTEM_DEVICE = "system.device";
 
 // system.filesystem
-export const SYSTEM_FILESYSTEM_MODE = "system.filesystem.mode" as const;
-export const SYSTEM_FILESYSTEM_MOUNTPOINT = "system.filesystem.mountpoint" as const;
-export const SYSTEM_FILESYSTEM_STATE = "system.filesystem.state" as const;
-export const SYSTEM_FILESYSTEM_TYPE = "system.filesystem.type" as const;
+export const SYSTEM_FILESYSTEM_MODE = "system.filesystem.mode";
+export const SYSTEM_FILESYSTEM_MOUNTPOINT = "system.filesystem.mountpoint";
+export const SYSTEM_FILESYSTEM_STATE = "system.filesystem.state";
+export const SYSTEM_FILESYSTEM_TYPE = "system.filesystem.type";
 
 // system.memory
-export const SYSTEM_MEMORY_LINUX_SLAB_STATE = "system.memory.linux.slab.state" as const;
-export const SYSTEM_MEMORY_STATE = "system.memory.state" as const;
+export const SYSTEM_MEMORY_LINUX_SLAB_STATE = "system.memory.linux.slab.state";
+export const SYSTEM_MEMORY_STATE = "system.memory.state";
 
 // system.network
-export const SYSTEM_NETWORK_STATE = "system.network.state" as const;
+export const SYSTEM_NETWORK_STATE = "system.network.state";
 
 // system.paging
-export const SYSTEM_PAGING_DIRECTION = "system.paging.direction" as const;
-export const SYSTEM_PAGING_FAULT_TYPE = "system.paging.fault.type" as const;
-export const SYSTEM_PAGING_STATE = "system.paging.state" as const;
-export const SYSTEM_PAGING_TYPE = "system.paging.type" as const;
+export const SYSTEM_PAGING_DIRECTION = "system.paging.direction";
+export const SYSTEM_PAGING_FAULT_TYPE = "system.paging.fault.type";
+export const SYSTEM_PAGING_STATE = "system.paging.state";
+export const SYSTEM_PAGING_TYPE = "system.paging.type";
 
 // system.process
-export const SYSTEM_PROCESS_STATUS = "system.process.status" as const;
+export const SYSTEM_PROCESS_STATUS = "system.process.status";
 
 // system.processes
-export const SYSTEM_PROCESSES_STATUS = "system.processes.status" as const;
+export const SYSTEM_PROCESSES_STATUS = "system.processes.status";
+
+// telemetry.distro
+export const TELEMETRY_DISTRO_NAME = "telemetry.distro.name";
+export const TELEMETRY_DISTRO_VERSION = "telemetry.distro.version";
+
+// telemetry.sdk
+export const TELEMETRY_SDK_LANGUAGE = "telemetry.sdk.language";
+export const TELEMETRY_SDK_NAME = "telemetry.sdk.name";
+export const TELEMETRY_SDK_VERSION = "telemetry.sdk.version";
 
 // test.case
-export const TEST_CASE_NAME = "test.case.name" as const;
-export const TEST_CASE_RESULT_STATUS = "test.case.result.status" as const;
+export const TEST_CASE_NAME = "test.case.name";
+export const TEST_CASE_RESULT_STATUS = "test.case.result.status";
 
 // test.suite
-export const TEST_SUITE_NAME = "test.suite.name" as const;
-export const TEST_SUITE_RUN_STATUS = "test.suite.run.status" as const;
+export const TEST_SUITE_NAME = "test.suite.name";
+export const TEST_SUITE_RUN_STATUS = "test.suite.run.status";
 
 // thread.id
-export const THREAD_ID = "thread.id" as const;
+export const THREAD_ID = "thread.id";
 
 // thread.name
-export const THREAD_NAME = "thread.name" as const;
+export const THREAD_NAME = "thread.name";
 
 // tls.cipher
-export const TLS_CIPHER = "tls.cipher" as const;
+export const TLS_CIPHER = "tls.cipher";
 
 // tls.client
-export const TLS_CLIENT_CERTIFICATE = "tls.client.certificate" as const;
-export const TLS_CLIENT_CERTIFICATE_CHAIN = "tls.client.certificate_chain" as const;
-export const TLS_CLIENT_HASH_MD5 = "tls.client.hash.md5" as const;
-export const TLS_CLIENT_HASH_SHA1 = "tls.client.hash.sha1" as const;
-export const TLS_CLIENT_HASH_SHA256 = "tls.client.hash.sha256" as const;
-export const TLS_CLIENT_ISSUER = "tls.client.issuer" as const;
-export const TLS_CLIENT_JA3 = "tls.client.ja3" as const;
-export const TLS_CLIENT_NOT_AFTER = "tls.client.not_after" as const;
-export const TLS_CLIENT_NOT_BEFORE = "tls.client.not_before" as const;
-export const TLS_CLIENT_SERVER_NAME = "tls.client.server_name" as const;
-export const TLS_CLIENT_SUBJECT = "tls.client.subject" as const;
-export const TLS_CLIENT_SUPPORTED_CIPHERS = "tls.client.supported_ciphers" as const;
+export const TLS_CLIENT_CERTIFICATE = "tls.client.certificate";
+export const TLS_CLIENT_CERTIFICATE_CHAIN = "tls.client.certificate_chain";
+export const TLS_CLIENT_HASH_MD5 = "tls.client.hash.md5";
+export const TLS_CLIENT_HASH_SHA1 = "tls.client.hash.sha1";
+export const TLS_CLIENT_HASH_SHA256 = "tls.client.hash.sha256";
+export const TLS_CLIENT_ISSUER = "tls.client.issuer";
+export const TLS_CLIENT_JA3 = "tls.client.ja3";
+export const TLS_CLIENT_NOT_AFTER = "tls.client.not_after";
+export const TLS_CLIENT_NOT_BEFORE = "tls.client.not_before";
+export const TLS_CLIENT_SERVER_NAME = "tls.client.server_name";
+export const TLS_CLIENT_SUBJECT = "tls.client.subject";
+export const TLS_CLIENT_SUPPORTED_CIPHERS = "tls.client.supported_ciphers";
 
 // tls.curve
-export const TLS_CURVE = "tls.curve" as const;
+export const TLS_CURVE = "tls.curve";
 
 // tls.established
-export const TLS_ESTABLISHED = "tls.established" as const;
+export const TLS_ESTABLISHED = "tls.established";
 
 // tls.next_protocol
-export const TLS_NEXT_PROTOCOL = "tls.next_protocol" as const;
+export const TLS_NEXT_PROTOCOL = "tls.next_protocol";
 
 // tls.protocol
-export const TLS_PROTOCOL_NAME = "tls.protocol.name" as const;
-export const TLS_PROTOCOL_VERSION = "tls.protocol.version" as const;
+export const TLS_PROTOCOL_NAME = "tls.protocol.name";
+export const TLS_PROTOCOL_VERSION = "tls.protocol.version";
 
 // tls.resumed
-export const TLS_RESUMED = "tls.resumed" as const;
+export const TLS_RESUMED = "tls.resumed";
 
 // tls.server
-export const TLS_SERVER_CERTIFICATE = "tls.server.certificate" as const;
-export const TLS_SERVER_CERTIFICATE_CHAIN = "tls.server.certificate_chain" as const;
-export const TLS_SERVER_HASH_MD5 = "tls.server.hash.md5" as const;
-export const TLS_SERVER_HASH_SHA1 = "tls.server.hash.sha1" as const;
-export const TLS_SERVER_HASH_SHA256 = "tls.server.hash.sha256" as const;
-export const TLS_SERVER_ISSUER = "tls.server.issuer" as const;
-export const TLS_SERVER_JA3S = "tls.server.ja3s" as const;
-export const TLS_SERVER_NOT_AFTER = "tls.server.not_after" as const;
-export const TLS_SERVER_NOT_BEFORE = "tls.server.not_before" as const;
-export const TLS_SERVER_SUBJECT = "tls.server.subject" as const;
+export const TLS_SERVER_CERTIFICATE = "tls.server.certificate";
+export const TLS_SERVER_CERTIFICATE_CHAIN = "tls.server.certificate_chain";
+export const TLS_SERVER_HASH_MD5 = "tls.server.hash.md5";
+export const TLS_SERVER_HASH_SHA1 = "tls.server.hash.sha1";
+export const TLS_SERVER_HASH_SHA256 = "tls.server.hash.sha256";
+export const TLS_SERVER_ISSUER = "tls.server.issuer";
+export const TLS_SERVER_JA3S = "tls.server.ja3s";
+export const TLS_SERVER_NOT_AFTER = "tls.server.not_after";
+export const TLS_SERVER_NOT_BEFORE = "tls.server.not_before";
+export const TLS_SERVER_SUBJECT = "tls.server.subject";
 
 // url.domain
-export const URL_DOMAIN = "url.domain" as const;
+export const URL_DOMAIN = "url.domain";
 
 // url.extension
-export const URL_EXTENSION = "url.extension" as const;
+export const URL_EXTENSION = "url.extension";
+
+// url.fragment
+export const URL_FRAGMENT = "url.fragment";
+
+// url.full
+export const URL_FULL = "url.full";
 
 // url.original
-export const URL_ORIGINAL = "url.original" as const;
+export const URL_ORIGINAL = "url.original";
+
+// url.path
+export const URL_PATH = "url.path";
 
 // url.port
-export const URL_PORT = "url.port" as const;
+export const URL_PORT = "url.port";
+
+// url.query
+export const URL_QUERY = "url.query";
 
 // url.registered_domain
-export const URL_REGISTERED_DOMAIN = "url.registered_domain" as const;
+export const URL_REGISTERED_DOMAIN = "url.registered_domain";
+
+// url.scheme
+export const URL_SCHEME = "url.scheme";
 
 // url.subdomain
-export const URL_SUBDOMAIN = "url.subdomain" as const;
+export const URL_SUBDOMAIN = "url.subdomain";
 
 // url.template
-export const URL_TEMPLATE = "url.template" as const;
+export const URL_TEMPLATE = "url.template";
 
 // url.top_level_domain
-export const URL_TOP_LEVEL_DOMAIN = "url.top_level_domain" as const;
-
-// user.email
-export const USER_EMAIL = "user.email" as const;
-
-// user.full_name
-export const USER_FULL_NAME = "user.full_name" as const;
-
-// user.hash
-export const USER_HASH = "user.hash" as const;
-
-// user.id
-export const USER_ID = "user.id" as const;
-
-// user.name
-export const USER_NAME = "user.name" as const;
-
-// user.roles
-export const USER_ROLES = "user.roles" as const;
+export const URL_TOP_LEVEL_DOMAIN = "url.top_level_domain";
 
 // user_agent.name
-export const USER_AGENT_NAME = "user_agent.name" as const;
+export const USER_AGENT_NAME = "user_agent.name";
+
+// user_agent.original
+export const USER_AGENT_ORIGINAL = "user_agent.original";
 
 // user_agent.os
-export const USER_AGENT_OS_NAME = "user_agent.os.name" as const;
-export const USER_AGENT_OS_VERSION = "user_agent.os.version" as const;
+export const USER_AGENT_OS_NAME = "user_agent.os.name";
+export const USER_AGENT_OS_VERSION = "user_agent.os.version";
 
 // user_agent.synthetic
-export const USER_AGENT_SYNTHETIC_TYPE = "user_agent.synthetic.type" as const;
+export const USER_AGENT_SYNTHETIC_TYPE = "user_agent.synthetic.type";
 
 // user_agent.version
-export const USER_AGENT_VERSION = "user_agent.version" as const;
+export const USER_AGENT_VERSION = "user_agent.version";
+
+// user.email
+export const USER_EMAIL = "user.email";
+
+// user.full_name
+export const USER_FULL_NAME = "user.full_name";
+
+// user.hash
+export const USER_HASH = "user.hash";
+
+// user.id
+export const USER_ID = "user.id";
+
+// user.name
+export const USER_NAME = "user.name";
+
+// user.roles
+export const USER_ROLES = "user.roles";
 
 // vcs.change
-export const VCS_CHANGE_ID = "vcs.change.id" as const;
-export const VCS_CHANGE_STATE = "vcs.change.state" as const;
-export const VCS_CHANGE_TITLE = "vcs.change.title" as const;
+export const VCS_CHANGE_ID = "vcs.change.id";
+export const VCS_CHANGE_STATE = "vcs.change.state";
+export const VCS_CHANGE_TITLE = "vcs.change.title";
 
 // vcs.line_change
-export const VCS_LINE_CHANGE_TYPE = "vcs.line_change.type" as const;
+export const VCS_LINE_CHANGE_TYPE = "vcs.line_change.type";
 
 // vcs.owner
-export const VCS_OWNER_NAME = "vcs.owner.name" as const;
+export const VCS_OWNER_NAME = "vcs.owner.name";
 
 // vcs.provider
-export const VCS_PROVIDER_NAME = "vcs.provider.name" as const;
+export const VCS_PROVIDER_NAME = "vcs.provider.name";
 
 // vcs.ref
-export const VCS_REF_BASE_NAME = "vcs.ref.base.name" as const;
-export const VCS_REF_BASE_REVISION = "vcs.ref.base.revision" as const;
-export const VCS_REF_BASE_TYPE = "vcs.ref.base.type" as const;
-export const VCS_REF_HEAD_NAME = "vcs.ref.head.name" as const;
-export const VCS_REF_HEAD_REVISION = "vcs.ref.head.revision" as const;
-export const VCS_REF_HEAD_TYPE = "vcs.ref.head.type" as const;
-export const VCS_REF_TYPE = "vcs.ref.type" as const;
+export const VCS_REF_BASE_NAME = "vcs.ref.base.name";
+export const VCS_REF_BASE_REVISION = "vcs.ref.base.revision";
+export const VCS_REF_BASE_TYPE = "vcs.ref.base.type";
+export const VCS_REF_HEAD_NAME = "vcs.ref.head.name";
+export const VCS_REF_HEAD_REVISION = "vcs.ref.head.revision";
+export const VCS_REF_HEAD_TYPE = "vcs.ref.head.type";
+export const VCS_REF_TYPE = "vcs.ref.type";
 
 // vcs.repository
-export const VCS_REPOSITORY_CHANGE_ID = "vcs.repository.change.id" as const;
-export const VCS_REPOSITORY_CHANGE_TITLE = "vcs.repository.change.title" as const;
-export const VCS_REPOSITORY_NAME = "vcs.repository.name" as const;
-export const VCS_REPOSITORY_REF_NAME = "vcs.repository.ref.name" as const;
-export const VCS_REPOSITORY_REF_REVISION = "vcs.repository.ref.revision" as const;
-export const VCS_REPOSITORY_REF_TYPE = "vcs.repository.ref.type" as const;
-export const VCS_REPOSITORY_URL_FULL = "vcs.repository.url.full" as const;
+export const VCS_REPOSITORY_CHANGE_ID = "vcs.repository.change.id";
+export const VCS_REPOSITORY_CHANGE_TITLE = "vcs.repository.change.title";
+export const VCS_REPOSITORY_NAME = "vcs.repository.name";
+export const VCS_REPOSITORY_REF_NAME = "vcs.repository.ref.name";
+export const VCS_REPOSITORY_REF_REVISION = "vcs.repository.ref.revision";
+export const VCS_REPOSITORY_REF_TYPE = "vcs.repository.ref.type";
+export const VCS_REPOSITORY_URL_FULL = "vcs.repository.url.full";
 
 // vcs.revision_delta
-export const VCS_REVISION_DELTA_DIRECTION = "vcs.revision_delta.direction" as const;
+export const VCS_REVISION_DELTA_DIRECTION = "vcs.revision_delta.direction";
 
 // webengine.description
-export const WEBENGINE_DESCRIPTION = "webengine.description" as const;
+export const WEBENGINE_DESCRIPTION = "webengine.description";
 
 // webengine.name
-export const WEBENGINE_NAME = "webengine.name" as const;
+export const WEBENGINE_NAME = "webengine.name";
 
 // webengine.version
-export const WEBENGINE_VERSION = "webengine.version" as const;
+export const WEBENGINE_VERSION = "webengine.version";
 
-// =============================================================================
-// Enum Values
-// =============================================================================
-
-export const AspnetcoreDiagnosticsExceptionResultValues = {
-  Aborted: "aborted",
-  Handled: "handled",
-  Skipped: "skipped",
-  Unhandled: "unhandled",
-} as const;
-
-export const AspnetcoreRateLimitingResultValues = {
-  Acquired: "acquired",
-  EndpointLimiter: "endpoint_limiter",
-  GlobalLimiter: "global_limiter",
-  RequestCanceled: "request_canceled",
-} as const;
-
-export const AspnetcoreRoutingMatchStatusValues = {
-  Failure: "failure",
-  Success: "success",
-} as const;
-
-export const DbSystemNameValues = {
-  Mariadb: "mariadb",
-  MicrosoftSqlServer: "microsoft.sql_server",
-  Mysql: "mysql",
-  Postgresql: "postgresql",
-  ActianIngres: "actian.ingres",
-  AwsDynamodb: "aws.dynamodb",
-  AwsRedshift: "aws.redshift",
-  AzureCosmosdb: "azure.cosmosdb",
-  Cassandra: "cassandra",
-  Clickhouse: "clickhouse",
-  Cockroachdb: "cockroachdb",
-  Couchbase: "couchbase",
-  Couchdb: "couchdb",
-  Derby: "derby",
-  Elasticsearch: "elasticsearch",
-  Firebirdsql: "firebirdsql",
-  GcpSpanner: "gcp.spanner",
-  Geode: "geode",
-  H2database: "h2database",
-  Hbase: "hbase",
-  Hive: "hive",
-  Hsqldb: "hsqldb",
-  IbmDb2: "ibm.db2",
-  IbmInformix: "ibm.informix",
-  IbmNetezza: "ibm.netezza",
-  Influxdb: "influxdb",
-  Instantdb: "instantdb",
-  IntersystemsCache: "intersystems.cache",
-  Memcached: "memcached",
-  Mongodb: "mongodb",
-  Neo4j: "neo4j",
-  Opensearch: "opensearch",
-  OracleDb: "oracle.db",
-  OtherSql: "other_sql",
-  Redis: "redis",
-  SapHana: "sap.hana",
-  SapMaxdb: "sap.maxdb",
-  SoftwareagAdabas: "softwareag.adabas",
-  Sqlite: "sqlite",
-  Teradata: "teradata",
-  Trino: "trino",
-} as const;
-
-export const DotnetGcHeapGenerationValues = {
-  Gen0: "gen0",
-  Gen1: "gen1",
-  Gen2: "gen2",
-  Loh: "loh",
-  Poh: "poh",
-} as const;
-
-export const ErrorTypeValues = {
-  Other: "_OTHER",
-} as const;
-
-export const HttpRequestMethodValues = {
-  Other: "_OTHER",
-  Connect: "CONNECT",
-  Delete: "DELETE",
-  Get: "GET",
-  Head: "HEAD",
-  Options: "OPTIONS",
-  Patch: "PATCH",
-  Post: "POST",
-  Put: "PUT",
-  Trace: "TRACE",
-  Query: "QUERY",
-} as const;
-
-export const NetworkTransportValues = {
-  Pipe: "pipe",
-  Quic: "quic",
-  Tcp: "tcp",
-  Udp: "udp",
-  Unix: "unix",
-} as const;
-
-export const NetworkTypeValues = {
-  Ipv4: "ipv4",
-  Ipv6: "ipv6",
-} as const;
-
-export const OtelStatusCodeValues = {
-  Error: "ERROR",
-  Ok: "OK",
-} as const;
-
-export const SignalrConnectionStatusValues = {
-  AppShutdown: "app_shutdown",
-  NormalClosure: "normal_closure",
-  Timeout: "timeout",
-} as const;
-
-export const SignalrTransportValues = {
-  LongPolling: "long_polling",
-  ServerSentEvents: "server_sent_events",
-  WebSockets: "web_sockets",
-} as const;
-
+// Enum values
 export const AspnetcoreAuthenticationResultValues = {
   Failure: "failure",
   None: "none",
@@ -1476,6 +1407,19 @@ export const AspnetcoreIdentityUserUpdateTypeValues = {
   SetTwoFactorEnabled: "set_two_factor_enabled",
   Update: "update",
   UserName: "user_name",
+} as const;
+
+export const AzureCosmosdbConnectionModeValues = {
+  Direct: "direct",
+  Gateway: "gateway",
+} as const;
+
+export const AzureCosmosdbConsistencyLevelValues = {
+  BoundedStaleness: "BoundedStaleness",
+  ConsistentPrefix: "ConsistentPrefix",
+  Eventual: "Eventual",
+  Session: "Session",
+  Strong: "Strong",
 } as const;
 
 export const CicdPipelineActionNameValues = {
@@ -1573,6 +1517,11 @@ export const CloudProviderValues = {
 
 export const ContainerCpuStateValues = {
   Kernel: "kernel",
+  System: "system",
+  User: "user",
+} as const;
+
+export const CpuModeValues = {
   System: "system",
   User: "user",
 } as const;
@@ -1689,6 +1638,50 @@ export const DbSystemValues = {
   Vertica: "vertica",
 } as const;
 
+export const DbSystemNameValues = {
+  ActianIngres: "actian.ingres",
+  AwsDynamodb: "aws.dynamodb",
+  AwsRedshift: "aws.redshift",
+  AzureCosmosdb: "azure.cosmosdb",
+  Cassandra: "cassandra",
+  Clickhouse: "clickhouse",
+  Cockroachdb: "cockroachdb",
+  Couchbase: "couchbase",
+  Couchdb: "couchdb",
+  Derby: "derby",
+  Elasticsearch: "elasticsearch",
+  Firebirdsql: "firebirdsql",
+  GcpSpanner: "gcp.spanner",
+  Geode: "geode",
+  H2database: "h2database",
+  Hbase: "hbase",
+  Hive: "hive",
+  Hsqldb: "hsqldb",
+  IbmDb2: "ibm.db2",
+  IbmInformix: "ibm.informix",
+  IbmNetezza: "ibm.netezza",
+  Influxdb: "influxdb",
+  Instantdb: "instantdb",
+  IntersystemsCache: "intersystems.cache",
+  Memcached: "memcached",
+  Mongodb: "mongodb",
+  Neo4j: "neo4j",
+  Opensearch: "opensearch",
+  OracleDb: "oracle.db",
+  OtherSql: "other_sql",
+  Redis: "redis",
+  SapHana: "sap.hana",
+  SapMaxdb: "sap.maxdb",
+  SoftwareagAdabas: "softwareag.adabas",
+  Sqlite: "sqlite",
+  Teradata: "teradata",
+  Trino: "trino",
+  Mariadb: "mariadb",
+  MicrosoftSqlServer: "microsoft.sql_server",
+  Mysql: "mysql",
+  Postgresql: "postgresql",
+} as const;
+
 export const DeploymentStatusValues = {
   Failed: "failed",
   Succeeded: "succeeded",
@@ -1717,101 +1710,23 @@ export const FaasTriggerValues = {
 } as const;
 
 export const FeatureFlagEvaluationReasonValues = {
-  Cached: "cached",
-  Default: "default",
-  Disabled: "disabled",
   Error: "error",
-  Split: "split",
-  Stale: "stale",
-  Static: "static",
-  TargetingMatch: "targeting_match",
-  Unknown: "unknown",
 } as const;
 
 export const FeatureFlagResultReasonValues = {
-  Cached: "cached",
-  Default: "default",
-  Disabled: "disabled",
   Error: "error",
-  Split: "split",
-  Stale: "stale",
-  Static: "static",
-  TargetingMatch: "targeting_match",
-  Unknown: "unknown",
-} as const;
-
-export const GenAiOpenaiRequestResponseFormatValues = {
-  JsonObject: "json_object",
-  JsonSchema: "json_schema",
-  Text: "text",
-} as const;
-
-export const GenAiOpenaiRequestServiceTierValues = {
-  Auto: "auto",
-  Default: "default",
-} as const;
-
-export const GenAiOperationNameValues = {
-  Chat: "chat",
-  CreateAgent: "create_agent",
-  Embeddings: "embeddings",
-  ExecuteTool: "execute_tool",
-  GenerateContent: "generate_content",
-  InvokeAgent: "invoke_agent",
-  TextCompletion: "text_completion",
-} as const;
-
-export const GenAiOutputTypeValues = {
-  Image: "image",
-  Json: "json",
-  Speech: "speech",
-  Text: "text",
 } as const;
 
 export const GenAiProviderNameValues = {
-  Anthropic: "anthropic",
-  AwsBedrock: "aws.bedrock",
   AzureAiInference: "azure.ai.inference",
   AzureAiOpenai: "azure.ai.openai",
-  Cohere: "cohere",
-  Deepseek: "deepseek",
-  GcpGemini: "gcp.gemini",
-  GcpGenAi: "gcp.gen_ai",
-  GcpVertexAi: "gcp.vertex_ai",
-  Groq: "groq",
-  IbmWatsonxAi: "ibm.watsonx.ai",
-  MistralAi: "mistral_ai",
   Openai: "openai",
-  Perplexity: "perplexity",
-  XAi: "x_ai",
 } as const;
 
 export const GenAiSystemValues = {
-  Anthropic: "anthropic",
-  AwsBedrock: "aws.bedrock",
-  AzAiInference: "az.ai.inference",
-  AzAiOpenai: "az.ai.openai",
   AzureAiInference: "azure.ai.inference",
   AzureAiOpenai: "azure.ai.openai",
-  Cohere: "cohere",
-  Deepseek: "deepseek",
-  GcpGemini: "gcp.gemini",
-  GcpGenAi: "gcp.gen_ai",
-  GcpVertexAi: "gcp.vertex_ai",
-  Gemini: "gemini",
-  Groq: "groq",
-  IbmWatsonxAi: "ibm.watsonx.ai",
-  MistralAi: "mistral_ai",
   Openai: "openai",
-  Perplexity: "perplexity",
-  VertexAi: "vertex_ai",
-  Xai: "xai",
-} as const;
-
-export const GenAiTokenTypeValues = {
-  Input: "input",
-  Completion: "output",
-  Output: "output",
 } as const;
 
 export const GeoContinentCodeValues = {
@@ -1847,6 +1762,25 @@ export const HttpFlavorValues = {
   Http30: "3.0",
   Quic: "QUIC",
   Spdy: "SPDY",
+} as const;
+
+export const HttpRequestMethodValues = {
+  Query: "QUERY",
+  Other: "_OTHER",
+  Connect: "CONNECT",
+  Delete: "DELETE",
+  Get: "GET",
+  Head: "HEAD",
+  Options: "OPTIONS",
+  Patch: "PATCH",
+  Post: "POST",
+  Put: "PUT",
+  Trace: "TRACE",
+} as const;
+
+export const HwTypeValues = {
+  LogicalDisk: "logical_disk",
+  Network: "network",
 } as const;
 
 export const K8sContainerStatusReasonValues = {
@@ -1914,6 +1848,10 @@ export const K8sVolumeTypeValues = {
 export const LogIostreamValues = {
   Stderr: "stderr",
   Stdout: "stdout",
+} as const;
+
+export const McpMethodNameValues = {
+  LoggingSetLevel: "logging/setLevel",
 } as const;
 
 export const MessagingOperationTypeValues = {
@@ -2011,6 +1949,11 @@ export const NetworkIoDirectionValues = {
   Transmit: "transmit",
 } as const;
 
+export const OpenaiRequestServiceTierValues = {
+  Auto: "auto",
+  Default: "default",
+} as const;
+
 export const OsTypeValues = {
   Aix: "aix",
   Darwin: "darwin",
@@ -2078,6 +2021,10 @@ export const ProcessStateValues = {
   Running: "running",
   Sleeping: "sleeping",
   Stopped: "stopped",
+} as const;
+
+export const ProfileFrameTypeValues = {
+  Dotnet: "dotnet",
 } as const;
 
 export const RpcConnectRpcErrorCodeValues = {
@@ -2232,6 +2179,10 @@ export const UserAgentSyntheticTypeValues = {
   Test: "test",
 } as const;
 
+export const V8jsHeapSpaceNameValues = {
+  CodeSpace: "code_space",
+} as const;
+
 export const VcsChangeStateValues = {
   Closed: "closed",
   Merged: "merged",
@@ -2275,4 +2226,80 @@ export const VcsRepositoryRefTypeValues = {
 export const VcsRevisionDeltaDirectionValues = {
   Ahead: "ahead",
   Behind: "behind",
+} as const;
+
+export const AspnetcoreDiagnosticsExceptionResultValues = {
+  Aborted: "aborted",
+  Handled: "handled",
+  Skipped: "skipped",
+  Unhandled: "unhandled",
+} as const;
+
+export const AspnetcoreRateLimitingResultValues = {
+  Acquired: "acquired",
+  EndpointLimiter: "endpoint_limiter",
+  GlobalLimiter: "global_limiter",
+  RequestCanceled: "request_canceled",
+} as const;
+
+export const AspnetcoreRoutingMatchStatusValues = {
+  Failure: "failure",
+  Success: "success",
+} as const;
+
+export const DotnetGcHeapGenerationValues = {
+  Gen0: "gen0",
+  Gen1: "gen1",
+  Gen2: "gen2",
+  Loh: "loh",
+  Poh: "poh",
+} as const;
+
+export const ErrorTypeValues = {
+  Other: "_OTHER",
+} as const;
+
+export const NetworkTransportValues = {
+  Pipe: "pipe",
+  Quic: "quic",
+  Tcp: "tcp",
+  Udp: "udp",
+  Unix: "unix",
+} as const;
+
+export const NetworkTypeValues = {
+  Ipv4: "ipv4",
+  Ipv6: "ipv6",
+} as const;
+
+export const OtelStatusCodeValues = {
+  Error: "ERROR",
+  Ok: "OK",
+} as const;
+
+export const SignalrConnectionStatusValues = {
+  AppShutdown: "app_shutdown",
+  NormalClosure: "normal_closure",
+  Timeout: "timeout",
+} as const;
+
+export const SignalrTransportValues = {
+  LongPolling: "long_polling",
+  ServerSentEvents: "server_sent_events",
+  WebSockets: "web_sockets",
+} as const;
+
+export const TelemetrySdkLanguageValues = {
+  Cpp: "cpp",
+  Dotnet: "dotnet",
+  Erlang: "erlang",
+  Go: "go",
+  Java: "java",
+  Nodejs: "nodejs",
+  Php: "php",
+  Python: "python",
+  Ruby: "ruby",
+  Rust: "rust",
+  Swift: "swift",
+  Webjs: "webjs",
 } as const;

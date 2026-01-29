@@ -11,7 +11,7 @@ namespace qyl.collector.Ingestion;
 ///     Converts OTLP protobuf/JSON to SpanStorageRow.
 ///     Single source of truth for both gRPC (port 4317) and HTTP (POST /v1/traces) endpoints.
 /// </summary>
-internal static class OtlpConverter
+public static class OtlpConverter
 {
     #region Proto Conversion (gRPC endpoint)
 

@@ -431,7 +431,7 @@ internal static class OtlpGenAiProviders
 /// <summary>
 ///     Single source of truth for deprecated OTel attribute mappings (1.39 migration).
 /// </summary>
-internal static class SchemaNormalizer
+public static class SchemaNormalizer
 {
 #pragma warning disable QYL0002 // Intentionally references deprecated attributes for migration
     /// <summary>
@@ -501,28 +501,28 @@ internal static class SchemaNormalizer
 // OTLP JSON DTOs
 // =============================================================================
 
-internal sealed record OtlpExportTraceServiceRequest
+public sealed record OtlpExportTraceServiceRequest
 {
     public List<OtlpResourceSpans>? ResourceSpans { get; init; }
 }
 
-internal sealed record OtlpResourceSpans
+public sealed record OtlpResourceSpans
 {
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeSpans>? ScopeSpans { get; init; }
 }
 
-internal sealed record OtlpResource
+public sealed record OtlpResource
 {
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
 
-internal sealed record OtlpScopeSpans
+public sealed record OtlpScopeSpans
 {
     public List<OtlpSpan>? Spans { get; init; }
 }
 
-internal sealed record OtlpSpan
+public sealed record OtlpSpan
 {
     public string? TraceId { get; init; }
     public string? SpanId { get; init; }
@@ -540,19 +540,19 @@ internal sealed record OtlpSpan
     public List<OtlpKeyValue>? Attributes { get; init; }
 }
 
-internal sealed record OtlpStatus
+public sealed record OtlpStatus
 {
     public int? Code { get; init; }
     public string? Message { get; init; }
 }
 
-internal sealed record OtlpKeyValue
+public sealed record OtlpKeyValue
 {
     public string? Key { get; init; }
     public OtlpAnyValue? Value { get; init; }
 }
 
-internal sealed record OtlpAnyValue
+public sealed record OtlpAnyValue
 {
     public string? StringValue { get; init; }
     public long? IntValue { get; init; }
@@ -621,7 +621,7 @@ internal sealed class ParsedSpan
 /// <summary>
 ///     OTel span kind enumeration.
 /// </summary>
-internal enum SpanKind : byte
+public enum SpanKind : byte
 {
     Unspecified = 0,
     Internal = 1,
@@ -634,7 +634,7 @@ internal enum SpanKind : byte
 /// <summary>
 ///     OTel span status code enumeration.
 /// </summary>
-internal enum StatusCode : byte
+public enum StatusCode : byte
 {
     Unset = 0,
     Ok = 1,
@@ -645,7 +645,7 @@ internal enum StatusCode : byte
 // OTLP LOGS JSON DTOs
 // =============================================================================
 
-internal sealed record OtlpExportLogsServiceRequest
+public sealed record OtlpExportLogsServiceRequest
 {
     public List<OtlpResourceLogs>? ResourceLogs { get; init; }
 }

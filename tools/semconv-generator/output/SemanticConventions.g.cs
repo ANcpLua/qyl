@@ -5,509 +5,6 @@
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-/// Semantic convention attributes for aspnetcore.diagnostics.*
-/// </summary>
-public static class AspnetcoreDiagnosticsAttributes
-{
-    /// <summary>aspnetcore.diagnostics.exception.result</summary>
-    public const string ExceptionResult = "aspnetcore.diagnostics.exception.result";
-
-    /// <summary>aspnetcore.diagnostics.handler.type</summary>
-    public const string HandlerType = "aspnetcore.diagnostics.handler.type";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for aspnetcore.rate_limiting.*
-/// </summary>
-public static class AspnetcoreRateLimitingAttributes
-{
-    /// <summary>aspnetcore.rate_limiting.policy</summary>
-    public const string Policy = "aspnetcore.rate_limiting.policy";
-
-    /// <summary>aspnetcore.rate_limiting.result</summary>
-    public const string Result = "aspnetcore.rate_limiting.result";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for aspnetcore.request.*
-/// </summary>
-public static class AspnetcoreRequestAttributes
-{
-    /// <summary>aspnetcore.request.is_unhandled</summary>
-    public const string IsUnhandled = "aspnetcore.request.is_unhandled";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for aspnetcore.routing.*
-/// </summary>
-public static class AspnetcoreRoutingAttributes
-{
-    /// <summary>aspnetcore.routing.is_fallback</summary>
-    public const string IsFallback = "aspnetcore.routing.is_fallback";
-
-    /// <summary>aspnetcore.routing.match_status</summary>
-    public const string MatchStatus = "aspnetcore.routing.match_status";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for aspnetcore.user.*
-/// </summary>
-public static class AspnetcoreUserAttributes
-{
-    /// <summary>aspnetcore.user.is_authenticated</summary>
-    public const string IsAuthenticated = "aspnetcore.user.is_authenticated";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for client.address.*
-/// </summary>
-public static class ClientAddressAttributes
-{
-    /// <summary>client.address</summary>
-    public const string Address = "client.address";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for client.port.*
-/// </summary>
-public static class ClientPortAttributes
-{
-    /// <summary>client.port</summary>
-    public const string Port = "client.port";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for code.column.*
-/// </summary>
-public static class CodeColumnAttributes
-{
-    /// <summary>code.column.number</summary>
-    public const string Number = "code.column.number";
-
-    /// <summary>code.column</summary>
-    public const string Column = "code.column";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for code.file.*
-/// </summary>
-public static class CodeFileAttributes
-{
-    /// <summary>code.file.path</summary>
-    public const string Path = "code.file.path";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for code.function.*
-/// </summary>
-public static class CodeFunctionAttributes
-{
-    /// <summary>code.function.name</summary>
-    public const string Name = "code.function.name";
-
-    /// <summary>code.function</summary>
-    public const string Function = "code.function";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for code.line.*
-/// </summary>
-public static class CodeLineAttributes
-{
-    /// <summary>code.line.number</summary>
-    public const string Number = "code.line.number";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for code.stacktrace.*
-/// </summary>
-public static class CodeStacktraceAttributes
-{
-    /// <summary>code.stacktrace</summary>
-    public const string Stacktrace = "code.stacktrace";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.collection.*
-/// </summary>
-public static class DbCollectionAttributes
-{
-    /// <summary>db.collection.name</summary>
-    public const string Name = "db.collection.name";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.namespace.*
-/// </summary>
-public static class DbNamespaceAttributes
-{
-    /// <summary>db.namespace</summary>
-    public const string Namespace = "db.namespace";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.operation.*
-/// </summary>
-public static class DbOperationAttributes
-{
-    /// <summary>db.operation.batch.size</summary>
-    public const string BatchSize = "db.operation.batch.size";
-
-    /// <summary>db.operation.name</summary>
-    public const string Name = "db.operation.name";
-
-    /// <summary>db.operation</summary>
-    public const string Operation = "db.operation";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.query.*
-/// </summary>
-public static class DbQueryAttributes
-{
-    /// <summary>db.query.summary</summary>
-    public const string Summary = "db.query.summary";
-
-    /// <summary>db.query.text</summary>
-    public const string Text = "db.query.text";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.response.*
-/// </summary>
-public static class DbResponseAttributes
-{
-    /// <summary>db.response.status_code</summary>
-    public const string StatusCode = "db.response.status_code";
-
-    /// <summary>db.response.returned_rows</summary>
-    public const string ReturnedRows = "db.response.returned_rows";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.stored_procedure.*
-/// </summary>
-public static class DbStoredProcedureAttributes
-{
-    /// <summary>db.stored_procedure.name</summary>
-    public const string Name = "db.stored_procedure.name";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for db.system.*
-/// </summary>
-public static class DbSystemAttributes
-{
-    /// <summary>db.system.name</summary>
-    public const string Name = "db.system.name";
-
-    /// <summary>db.system</summary>
-    public const string System = "db.system";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for dotnet.gc.*
-/// </summary>
-public static class DotnetGcAttributes
-{
-    /// <summary>dotnet.gc.heap.generation</summary>
-    public const string HeapGeneration = "dotnet.gc.heap.generation";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for error.type.*
-/// </summary>
-public static class ErrorTypeAttributes
-{
-    /// <summary>error.type</summary>
-    public const string Type = "error.type";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for exception.escaped.*
-/// </summary>
-public static class ExceptionEscapedAttributes
-{
-    /// <summary>exception.escaped</summary>
-    public const string Escaped = "exception.escaped";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for exception.message.*
-/// </summary>
-public static class ExceptionMessageAttributes
-{
-    /// <summary>exception.message</summary>
-    public const string Message = "exception.message";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for exception.stacktrace.*
-/// </summary>
-public static class ExceptionStacktraceAttributes
-{
-    /// <summary>exception.stacktrace</summary>
-    public const string Stacktrace = "exception.stacktrace";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for exception.type.*
-/// </summary>
-public static class ExceptionTypeAttributes
-{
-    /// <summary>exception.type</summary>
-    public const string Type = "exception.type";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for http.request.*
-/// </summary>
-public static class HttpRequestAttributes
-{
-    /// <summary>http.request.method</summary>
-    public const string Method = "http.request.method";
-
-    /// <summary>http.request.method_original</summary>
-    public const string MethodOriginal = "http.request.method_original";
-
-    /// <summary>http.request.resend_count</summary>
-    public const string ResendCount = "http.request.resend_count";
-
-    /// <summary>http.request.body.size</summary>
-    public const string BodySize = "http.request.body.size";
-
-    /// <summary>http.request.size</summary>
-    public const string Size = "http.request.size";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for http.response.*
-/// </summary>
-public static class HttpResponseAttributes
-{
-    /// <summary>http.response.status_code</summary>
-    public const string StatusCode = "http.response.status_code";
-
-    /// <summary>http.response.body.size</summary>
-    public const string BodySize = "http.response.body.size";
-
-    /// <summary>http.response.size</summary>
-    public const string Size = "http.response.size";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for http.route.*
-/// </summary>
-public static class HttpRouteAttributes
-{
-    /// <summary>http.route</summary>
-    public const string Route = "http.route";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for network.local.*
-/// </summary>
-public static class NetworkLocalAttributes
-{
-    /// <summary>network.local.address</summary>
-    public const string Address = "network.local.address";
-
-    /// <summary>network.local.port</summary>
-    public const string Port = "network.local.port";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for network.peer.*
-/// </summary>
-public static class NetworkPeerAttributes
-{
-    /// <summary>network.peer.address</summary>
-    public const string Address = "network.peer.address";
-
-    /// <summary>network.peer.port</summary>
-    public const string Port = "network.peer.port";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for network.protocol.*
-/// </summary>
-public static class NetworkProtocolAttributes
-{
-    /// <summary>network.protocol.name</summary>
-    public const string Name = "network.protocol.name";
-
-    /// <summary>network.protocol.version</summary>
-    public const string Version = "network.protocol.version";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for network.transport.*
-/// </summary>
-public static class NetworkTransportAttributes
-{
-    /// <summary>network.transport</summary>
-    public const string Transport = "network.transport";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for network.type.*
-/// </summary>
-public static class NetworkTypeAttributes
-{
-    /// <summary>network.type</summary>
-    public const string Type = "network.type";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for otel.scope.*
-/// </summary>
-public static class OtelScopeAttributes
-{
-    /// <summary>otel.scope.name</summary>
-    public const string Name = "otel.scope.name";
-
-    /// <summary>otel.scope.version</summary>
-    public const string Version = "otel.scope.version";
-
-    /// <summary>otel.scope.schema_url</summary>
-    public const string SchemaUrl = "otel.scope.schema_url";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for otel.status_code.*
-/// </summary>
-public static class OtelStatusCodeAttributes
-{
-    /// <summary>otel.status_code</summary>
-    public const string Status_code = "otel.status_code";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for otel.status_description.*
-/// </summary>
-public static class OtelStatusDescriptionAttributes
-{
-    /// <summary>otel.status_description</summary>
-    public const string Status_description = "otel.status_description";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for signalr.connection.*
-/// </summary>
-public static class SignalrConnectionAttributes
-{
-    /// <summary>signalr.connection.status</summary>
-    public const string Status = "signalr.connection.status";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for signalr.transport.*
-/// </summary>
-public static class SignalrTransportAttributes
-{
-    /// <summary>signalr.transport</summary>
-    public const string Transport = "signalr.transport";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for url.fragment.*
-/// </summary>
-public static class UrlFragmentAttributes
-{
-    /// <summary>url.fragment</summary>
-    public const string Fragment = "url.fragment";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for url.full.*
-/// </summary>
-public static class UrlFullAttributes
-{
-    /// <summary>url.full</summary>
-    public const string Full = "url.full";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for url.path.*
-/// </summary>
-public static class UrlPathAttributes
-{
-    /// <summary>url.path</summary>
-    public const string Path = "url.path";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for url.query.*
-/// </summary>
-public static class UrlQueryAttributes
-{
-    /// <summary>url.query</summary>
-    public const string Query = "url.query";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for url.scheme.*
-/// </summary>
-public static class UrlSchemeAttributes
-{
-    /// <summary>url.scheme</summary>
-    public const string Scheme = "url.scheme";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for user_agent.original.*
-/// </summary>
-public static class UserAgentOriginalAttributes
-{
-    /// <summary>user_agent.original</summary>
-    public const string Original = "user_agent.original";
-
-}
-
-/// <summary>
 /// Semantic convention attributes for artifact.attestation.*
 /// </summary>
 public static class ArtifactAttestationAttributes
@@ -590,6 +87,19 @@ public static class AspnetcoreAuthorizationAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for aspnetcore.diagnostics.*
+/// </summary>
+public static class AspnetcoreDiagnosticsAttributes
+{
+    /// <summary>aspnetcore.diagnostics.exception.result</summary>
+    public const string ExceptionResult = "aspnetcore.diagnostics.exception.result";
+
+    /// <summary>aspnetcore.diagnostics.handler.type</summary>
+    public const string HandlerType = "aspnetcore.diagnostics.handler.type";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for aspnetcore.identity.*
 /// </summary>
 public static class AspnetcoreIdentityAttributes
@@ -615,11 +125,11 @@ public static class AspnetcoreIdentityAttributes
     /// <summary>aspnetcore.identity.token_verified</summary>
     public const string TokenVerified = "aspnetcore.identity.token_verified";
 
-    /// <summary>aspnetcore.identity.user.update_type</summary>
-    public const string UserUpdateType = "aspnetcore.identity.user.update_type";
-
     /// <summary>aspnetcore.identity.user_type</summary>
     public const string UserType = "aspnetcore.identity.user_type";
+
+    /// <summary>aspnetcore.identity.user.update_type</summary>
+    public const string UserUpdateType = "aspnetcore.identity.user.update_type";
 
 }
 
@@ -634,12 +144,113 @@ public static class AspnetcoreMemoryPoolAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for aspnetcore.rate_limiting.*
+/// </summary>
+public static class AspnetcoreRateLimitingAttributes
+{
+    /// <summary>aspnetcore.rate_limiting.policy</summary>
+    public const string Policy = "aspnetcore.rate_limiting.policy";
+
+    /// <summary>aspnetcore.rate_limiting.result</summary>
+    public const string Result = "aspnetcore.rate_limiting.result";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for aspnetcore.request.*
+/// </summary>
+public static class AspnetcoreRequestAttributes
+{
+    /// <summary>aspnetcore.request.is_unhandled</summary>
+    public const string IsUnhandled = "aspnetcore.request.is_unhandled";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for aspnetcore.routing.*
+/// </summary>
+public static class AspnetcoreRoutingAttributes
+{
+    /// <summary>aspnetcore.routing.is_fallback</summary>
+    public const string IsFallback = "aspnetcore.routing.is_fallback";
+
+    /// <summary>aspnetcore.routing.match_status</summary>
+    public const string MatchStatus = "aspnetcore.routing.match_status";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for aspnetcore.sign_in.*
 /// </summary>
 public static class AspnetcoreSignInAttributes
 {
     /// <summary>aspnetcore.sign_in.is_persistent</summary>
     public const string IsPersistent = "aspnetcore.sign_in.is_persistent";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for aspnetcore.user.*
+/// </summary>
+public static class AspnetcoreUserAttributes
+{
+    /// <summary>aspnetcore.user.is_authenticated</summary>
+    public const string IsAuthenticated = "aspnetcore.user.is_authenticated";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for azure.client.*
+/// </summary>
+public static class AzureClientAttributes
+{
+    /// <summary>azure.client.id</summary>
+    public const string Id = "azure.client.id";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for azure.cosmosdb.*
+/// </summary>
+public static class AzureCosmosdbAttributes
+{
+    /// <summary>azure.cosmosdb.connection.mode</summary>
+    public const string ConnectionMode = "azure.cosmosdb.connection.mode";
+
+    /// <summary>azure.cosmosdb.consistency.level</summary>
+    public const string ConsistencyLevel = "azure.cosmosdb.consistency.level";
+
+    /// <summary>azure.cosmosdb.operation.contacted_regions</summary>
+    public const string OperationContactedRegions = "azure.cosmosdb.operation.contacted_regions";
+
+    /// <summary>azure.cosmosdb.operation.request_charge</summary>
+    public const string OperationRequestCharge = "azure.cosmosdb.operation.request_charge";
+
+    /// <summary>azure.cosmosdb.request.body.size</summary>
+    public const string RequestBodySize = "azure.cosmosdb.request.body.size";
+
+    /// <summary>azure.cosmosdb.response.sub_status_code</summary>
+    public const string ResponseSubStatusCode = "azure.cosmosdb.response.sub_status_code";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for azure.resource_provider.*
+/// </summary>
+public static class AzureResourceProviderAttributes
+{
+    /// <summary>azure.resource_provider.namespace</summary>
+    public const string Namespace = "azure.resource_provider.namespace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for azure.service.*
+/// </summary>
+public static class AzureServiceAttributes
+{
+    /// <summary>azure.service.request.id</summary>
+    public const string RequestId = "azure.service.request.id";
 
 }
 
@@ -749,6 +360,26 @@ public static class CicdWorkerAttributes
 
     /// <summary>cicd.worker.url.full</summary>
     public const string UrlFull = "cicd.worker.url.full";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for client.address.*
+/// </summary>
+public static class ClientAddressAttributes
+{
+    /// <summary>client.address</summary>
+    public const string Address = "client.address";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for client.port.*
+/// </summary>
+public static class ClientPortAttributes
+{
+    /// <summary>client.port</summary>
+    public const string Port = "client.port";
 
 }
 
@@ -931,12 +562,58 @@ public static class CloudfoundrySystemAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for code.column.*
+/// </summary>
+public static class CodeColumnAttributes
+{
+    /// <summary>code.column</summary>
+    public const string Column = "code.column";
+
+    /// <summary>code.column.number</summary>
+    public const string Number = "code.column.number";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for code.file.*
+/// </summary>
+public static class CodeFileAttributes
+{
+    /// <summary>code.file.path</summary>
+    public const string Path = "code.file.path";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for code.filepath.*
 /// </summary>
 public static class CodeFilepathAttributes
 {
     /// <summary>code.filepath</summary>
     public const string Filepath = "code.filepath";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for code.function.*
+/// </summary>
+public static class CodeFunctionAttributes
+{
+    /// <summary>code.function</summary>
+    public const string Function = "code.function";
+
+    /// <summary>code.function.name</summary>
+    public const string Name = "code.function.name";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for code.line.*
+/// </summary>
+public static class CodeLineAttributes
+{
+    /// <summary>code.line.number</summary>
+    public const string Number = "code.line.number";
 
 }
 
@@ -957,6 +634,16 @@ public static class CodeNamespaceAttributes
 {
     /// <summary>code.namespace</summary>
     public const string Namespace = "code.namespace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for code.stacktrace.*
+/// </summary>
+public static class CodeStacktraceAttributes
+{
+    /// <summary>code.stacktrace</summary>
+    public const string Stacktrace = "code.stacktrace";
 
 }
 
@@ -1119,6 +806,16 @@ public static class DbClientAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for db.collection.*
+/// </summary>
+public static class DbCollectionAttributes
+{
+    /// <summary>db.collection.name</summary>
+    public const string Name = "db.collection.name";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for db.connection_string.*
 /// </summary>
 public static class DbConnectionStringAttributes
@@ -1229,12 +926,64 @@ public static class DbNameAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for db.namespace.*
+/// </summary>
+public static class DbNamespaceAttributes
+{
+    /// <summary>db.namespace</summary>
+    public const string Namespace = "db.namespace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for db.operation.*
+/// </summary>
+public static class DbOperationAttributes
+{
+    /// <summary>db.operation</summary>
+    public const string Operation = "db.operation";
+
+    /// <summary>db.operation.batch.size</summary>
+    public const string BatchSize = "db.operation.batch.size";
+
+    /// <summary>db.operation.name</summary>
+    public const string Name = "db.operation.name";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for db.query.*
+/// </summary>
+public static class DbQueryAttributes
+{
+    /// <summary>db.query.summary</summary>
+    public const string Summary = "db.query.summary";
+
+    /// <summary>db.query.text</summary>
+    public const string Text = "db.query.text";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for db.redis.*
 /// </summary>
 public static class DbRedisAttributes
 {
     /// <summary>db.redis.database_index</summary>
     public const string DatabaseIndex = "db.redis.database_index";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for db.response.*
+/// </summary>
+public static class DbResponseAttributes
+{
+    /// <summary>db.response.returned_rows</summary>
+    public const string ReturnedRows = "db.response.returned_rows";
+
+    /// <summary>db.response.status_code</summary>
+    public const string StatusCode = "db.response.status_code";
 
 }
 
@@ -1255,6 +1004,29 @@ public static class DbStatementAttributes
 {
     /// <summary>db.statement</summary>
     public const string Statement = "db.statement";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for db.stored_procedure.*
+/// </summary>
+public static class DbStoredProcedureAttributes
+{
+    /// <summary>db.stored_procedure.name</summary>
+    public const string Name = "db.stored_procedure.name";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for db.system.*
+/// </summary>
+public static class DbSystemAttributes
+{
+    /// <summary>db.system</summary>
+    public const string System = "db.system";
+
+    /// <summary>db.system.name</summary>
+    public const string Name = "db.system.name";
 
 }
 
@@ -1332,6 +1104,16 @@ public static class DnsQuestionAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for dotnet.gc.*
+/// </summary>
+public static class DotnetGcAttributes
+{
+    /// <summary>dotnet.gc.heap.generation</summary>
+    public const string HeapGeneration = "dotnet.gc.heap.generation";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for elasticsearch.node.*
 /// </summary>
 public static class ElasticsearchNodeAttributes
@@ -1388,6 +1170,56 @@ public static class ErrorMessageAttributes
 {
     /// <summary>error.message</summary>
     public const string Message = "error.message";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for error.type.*
+/// </summary>
+public static class ErrorTypeAttributes
+{
+    /// <summary>error.type</summary>
+    public const string Type = "error.type";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for exception.escaped.*
+/// </summary>
+public static class ExceptionEscapedAttributes
+{
+    /// <summary>exception.escaped</summary>
+    public const string Escaped = "exception.escaped";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for exception.message.*
+/// </summary>
+public static class ExceptionMessageAttributes
+{
+    /// <summary>exception.message</summary>
+    public const string Message = "exception.message";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for exception.stacktrace.*
+/// </summary>
+public static class ExceptionStacktraceAttributes
+{
+    /// <summary>exception.stacktrace</summary>
+    public const string Stacktrace = "exception.stacktrace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for exception.type.*
+/// </summary>
+public static class ExceptionTypeAttributes
+{
+    /// <summary>exception.type</summary>
+    public const string Type = "exception.type";
 
 }
 
@@ -2306,6 +2138,28 @@ public static class HttpRequestContentLengthUncompressedAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for http.request.*
+/// </summary>
+public static class HttpRequestAttributes
+{
+    /// <summary>http.request.body.size</summary>
+    public const string BodySize = "http.request.body.size";
+
+    /// <summary>http.request.method</summary>
+    public const string Method = "http.request.method";
+
+    /// <summary>http.request.method_original</summary>
+    public const string MethodOriginal = "http.request.method_original";
+
+    /// <summary>http.request.resend_count</summary>
+    public const string ResendCount = "http.request.resend_count";
+
+    /// <summary>http.request.size</summary>
+    public const string Size = "http.request.size";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for http.response_content_length.*
 /// </summary>
 public static class HttpResponseContentLengthAttributes
@@ -2322,6 +2176,32 @@ public static class HttpResponseContentLengthUncompressedAttributes
 {
     /// <summary>http.response_content_length_uncompressed</summary>
     public const string Response_content_length_uncompressed = "http.response_content_length_uncompressed";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for http.response.*
+/// </summary>
+public static class HttpResponseAttributes
+{
+    /// <summary>http.response.body.size</summary>
+    public const string BodySize = "http.response.body.size";
+
+    /// <summary>http.response.size</summary>
+    public const string Size = "http.response.size";
+
+    /// <summary>http.response.status_code</summary>
+    public const string StatusCode = "http.response.status_code";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for http.route.*
+/// </summary>
+public static class HttpRouteAttributes
+{
+    /// <summary>http.route</summary>
+    public const string Route = "http.route";
 
 }
 
@@ -2718,6 +2598,19 @@ public static class MessagingConsumerAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for messaging.destination_publish.*
+/// </summary>
+public static class MessagingDestinationPublishAttributes
+{
+    /// <summary>messaging.destination_publish.anonymous</summary>
+    public const string Anonymous = "messaging.destination_publish.anonymous";
+
+    /// <summary>messaging.destination_publish.name</summary>
+    public const string Name = "messaging.destination_publish.name";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for messaging.destination.*
 /// </summary>
 public static class MessagingDestinationAttributes
@@ -2739,19 +2632,6 @@ public static class MessagingDestinationAttributes
 
     /// <summary>messaging.destination.temporary</summary>
     public const string Temporary = "messaging.destination.temporary";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for messaging.destination_publish.*
-/// </summary>
-public static class MessagingDestinationPublishAttributes
-{
-    /// <summary>messaging.destination_publish.anonymous</summary>
-    public const string Anonymous = "messaging.destination_publish.anonymous";
-
-    /// <summary>messaging.destination_publish.name</summary>
-    public const string Name = "messaging.destination_publish.name";
 
 }
 
@@ -2979,6 +2859,88 @@ public static class NetworkIoAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for network.local.*
+/// </summary>
+public static class NetworkLocalAttributes
+{
+    /// <summary>network.local.address</summary>
+    public const string Address = "network.local.address";
+
+    /// <summary>network.local.port</summary>
+    public const string Port = "network.local.port";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for network.peer.*
+/// </summary>
+public static class NetworkPeerAttributes
+{
+    /// <summary>network.peer.address</summary>
+    public const string Address = "network.peer.address";
+
+    /// <summary>network.peer.port</summary>
+    public const string Port = "network.peer.port";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for network.protocol.*
+/// </summary>
+public static class NetworkProtocolAttributes
+{
+    /// <summary>network.protocol.name</summary>
+    public const string Name = "network.protocol.name";
+
+    /// <summary>network.protocol.version</summary>
+    public const string Version = "network.protocol.version";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for network.transport.*
+/// </summary>
+public static class NetworkTransportAttributes
+{
+    /// <summary>network.transport</summary>
+    public const string Transport = "network.transport";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for network.type.*
+/// </summary>
+public static class NetworkTypeAttributes
+{
+    /// <summary>network.type</summary>
+    public const string Type = "network.type";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for openai.request.*
+/// </summary>
+public static class OpenaiRequestAttributes
+{
+    /// <summary>openai.request.service_tier</summary>
+    public const string ServiceTier = "openai.request.service_tier";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for openai.response.*
+/// </summary>
+public static class OpenaiResponseAttributes
+{
+    /// <summary>openai.response.service_tier</summary>
+    public const string ServiceTier = "openai.response.service_tier";
+
+    /// <summary>openai.response.system_fingerprint</summary>
+    public const string SystemFingerprint = "openai.response.system_fingerprint";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for os.build_id.*
 /// </summary>
 public static class OsBuildIdAttributes
@@ -3065,6 +3027,22 @@ public static class OtelLibraryAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for otel.scope.*
+/// </summary>
+public static class OtelScopeAttributes
+{
+    /// <summary>otel.scope.name</summary>
+    public const string Name = "otel.scope.name";
+
+    /// <summary>otel.scope.schema_url</summary>
+    public const string SchemaUrl = "otel.scope.schema_url";
+
+    /// <summary>otel.scope.version</summary>
+    public const string Version = "otel.scope.version";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for otel.span.*
 /// </summary>
 public static class OtelSpanAttributes
@@ -3074,6 +3052,26 @@ public static class OtelSpanAttributes
 
     /// <summary>otel.span.sampling_result</summary>
     public const string SamplingResult = "otel.span.sampling_result";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for otel.status_code.*
+/// </summary>
+public static class OtelStatusCodeAttributes
+{
+    /// <summary>otel.status_code</summary>
+    public const string Status_code = "otel.status_code";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for otel.status_description.*
+/// </summary>
+public static class OtelStatusDescriptionAttributes
+{
+    /// <summary>otel.status_description</summary>
+    public const string Status_description = "otel.status_description";
 
 }
 
@@ -3472,6 +3470,79 @@ public static class RpcSystemAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for server.address.*
+/// </summary>
+public static class ServerAddressAttributes
+{
+    /// <summary>server.address</summary>
+    public const string Address = "server.address";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for server.port.*
+/// </summary>
+public static class ServerPortAttributes
+{
+    /// <summary>server.port</summary>
+    public const string Port = "server.port";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for service.instance.*
+/// </summary>
+public static class ServiceInstanceAttributes
+{
+    /// <summary>service.instance.id</summary>
+    public const string Id = "service.instance.id";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for service.name.*
+/// </summary>
+public static class ServiceNameAttributes
+{
+    /// <summary>service.name</summary>
+    public const string Name = "service.name";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for service.namespace.*
+/// </summary>
+public static class ServiceNamespaceAttributes
+{
+    /// <summary>service.namespace</summary>
+    public const string Namespace = "service.namespace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for service.peer.*
+/// </summary>
+public static class ServicePeerAttributes
+{
+    /// <summary>service.peer.name</summary>
+    public const string Name = "service.peer.name";
+
+    /// <summary>service.peer.namespace</summary>
+    public const string Namespace = "service.peer.namespace";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for service.version.*
+/// </summary>
+public static class ServiceVersionAttributes
+{
+    /// <summary>service.version</summary>
+    public const string Version = "service.version";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for session.id.*
 /// </summary>
 public static class SessionIdAttributes
@@ -3488,6 +3559,26 @@ public static class SessionPreviousIdAttributes
 {
     /// <summary>session.previous_id</summary>
     public const string Previous_id = "session.previous_id";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for signalr.connection.*
+/// </summary>
+public static class SignalrConnectionAttributes
+{
+    /// <summary>signalr.connection.status</summary>
+    public const string Status = "signalr.connection.status";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for signalr.transport.*
+/// </summary>
+public static class SignalrTransportAttributes
+{
+    /// <summary>signalr.transport</summary>
+    public const string Transport = "signalr.transport";
 
 }
 
@@ -3592,6 +3683,35 @@ public static class SystemProcessesAttributes
 {
     /// <summary>system.processes.status</summary>
     public const string Status = "system.processes.status";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for telemetry.distro.*
+/// </summary>
+public static class TelemetryDistroAttributes
+{
+    /// <summary>telemetry.distro.name</summary>
+    public const string Name = "telemetry.distro.name";
+
+    /// <summary>telemetry.distro.version</summary>
+    public const string Version = "telemetry.distro.version";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for telemetry.sdk.*
+/// </summary>
+public static class TelemetrySdkAttributes
+{
+    /// <summary>telemetry.sdk.language</summary>
+    public const string Language = "telemetry.sdk.language";
+
+    /// <summary>telemetry.sdk.name</summary>
+    public const string Name = "telemetry.sdk.name";
+
+    /// <summary>telemetry.sdk.version</summary>
+    public const string Version = "telemetry.sdk.version";
 
 }
 
@@ -3805,12 +3925,42 @@ public static class UrlExtensionAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for url.fragment.*
+/// </summary>
+public static class UrlFragmentAttributes
+{
+    /// <summary>url.fragment</summary>
+    public const string Fragment = "url.fragment";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for url.full.*
+/// </summary>
+public static class UrlFullAttributes
+{
+    /// <summary>url.full</summary>
+    public const string Full = "url.full";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for url.original.*
 /// </summary>
 public static class UrlOriginalAttributes
 {
     /// <summary>url.original</summary>
     public const string Original = "url.original";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for url.path.*
+/// </summary>
+public static class UrlPathAttributes
+{
+    /// <summary>url.path</summary>
+    public const string Path = "url.path";
 
 }
 
@@ -3825,12 +3975,32 @@ public static class UrlPortAttributes
 }
 
 /// <summary>
+/// Semantic convention attributes for url.query.*
+/// </summary>
+public static class UrlQueryAttributes
+{
+    /// <summary>url.query</summary>
+    public const string Query = "url.query";
+
+}
+
+/// <summary>
 /// Semantic convention attributes for url.registered_domain.*
 /// </summary>
 public static class UrlRegisteredDomainAttributes
 {
     /// <summary>url.registered_domain</summary>
     public const string Registered_domain = "url.registered_domain";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for url.scheme.*
+/// </summary>
+public static class UrlSchemeAttributes
+{
+    /// <summary>url.scheme</summary>
+    public const string Scheme = "url.scheme";
 
 }
 
@@ -3861,6 +4031,59 @@ public static class UrlTopLevelDomainAttributes
 {
     /// <summary>url.top_level_domain</summary>
     public const string Top_level_domain = "url.top_level_domain";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for user_agent.name.*
+/// </summary>
+public static class UserAgentNameAttributes
+{
+    /// <summary>user_agent.name</summary>
+    public const string Name = "user_agent.name";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for user_agent.original.*
+/// </summary>
+public static class UserAgentOriginalAttributes
+{
+    /// <summary>user_agent.original</summary>
+    public const string Original = "user_agent.original";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for user_agent.os.*
+/// </summary>
+public static class UserAgentOsAttributes
+{
+    /// <summary>user_agent.os.name</summary>
+    public const string Name = "user_agent.os.name";
+
+    /// <summary>user_agent.os.version</summary>
+    public const string Version = "user_agent.os.version";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for user_agent.synthetic.*
+/// </summary>
+public static class UserAgentSyntheticAttributes
+{
+    /// <summary>user_agent.synthetic.type</summary>
+    public const string Type = "user_agent.synthetic.type";
+
+}
+
+/// <summary>
+/// Semantic convention attributes for user_agent.version.*
+/// </summary>
+public static class UserAgentVersionAttributes
+{
+    /// <summary>user_agent.version</summary>
+    public const string Version = "user_agent.version";
 
 }
 
@@ -3921,49 +4144,6 @@ public static class UserRolesAttributes
 {
     /// <summary>user.roles</summary>
     public const string Roles = "user.roles";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for user_agent.name.*
-/// </summary>
-public static class UserAgentNameAttributes
-{
-    /// <summary>user_agent.name</summary>
-    public const string Name = "user_agent.name";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for user_agent.os.*
-/// </summary>
-public static class UserAgentOsAttributes
-{
-    /// <summary>user_agent.os.name</summary>
-    public const string Name = "user_agent.os.name";
-
-    /// <summary>user_agent.os.version</summary>
-    public const string Version = "user_agent.os.version";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for user_agent.synthetic.*
-/// </summary>
-public static class UserAgentSyntheticAttributes
-{
-    /// <summary>user_agent.synthetic.type</summary>
-    public const string Type = "user_agent.synthetic.type";
-
-}
-
-/// <summary>
-/// Semantic convention attributes for user_agent.version.*
-/// </summary>
-public static class UserAgentVersionAttributes
-{
-    /// <summary>user_agent.version</summary>
-    public const string Version = "user_agent.version";
 
 }
 
@@ -4106,339 +4286,6 @@ public static class WebengineVersionAttributes
 {
     /// <summary>webengine.version</summary>
     public const string Version = "webengine.version";
-
-}
-
-/// <summary>
-/// Enum values for aspnetcore.diagnostics.exception.result
-/// </summary>
-public static class AspnetcoreDiagnosticsExceptionResultValues
-{
-    /// <summary>aborted</summary>
-    public const string Aborted = "aborted";
-
-    /// <summary>handled</summary>
-    public const string Handled = "handled";
-
-    /// <summary>skipped</summary>
-    public const string Skipped = "skipped";
-
-    /// <summary>unhandled</summary>
-    public const string Unhandled = "unhandled";
-
-}
-
-/// <summary>
-/// Enum values for aspnetcore.rate.limiting.result
-/// </summary>
-public static class AspnetcoreRateLimitingResultValues
-{
-    /// <summary>acquired</summary>
-    public const string Acquired = "acquired";
-
-    /// <summary>endpoint_limiter</summary>
-    public const string EndpointLimiter = "endpoint_limiter";
-
-    /// <summary>global_limiter</summary>
-    public const string GlobalLimiter = "global_limiter";
-
-    /// <summary>request_canceled</summary>
-    public const string RequestCanceled = "request_canceled";
-
-}
-
-/// <summary>
-/// Enum values for aspnetcore.routing.match.status
-/// </summary>
-public static class AspnetcoreRoutingMatchStatusValues
-{
-    /// <summary>failure</summary>
-    public const string Failure = "failure";
-
-    /// <summary>success</summary>
-    public const string Success = "success";
-
-}
-
-/// <summary>
-/// Enum values for db.system.name
-/// </summary>
-public static class DbSystemNameValues
-{
-    /// <summary>mariadb</summary>
-    public const string Mariadb = "mariadb";
-
-    /// <summary>microsoft.sql_server</summary>
-    public const string MicrosoftSqlServer = "microsoft.sql_server";
-
-    /// <summary>mysql</summary>
-    public const string Mysql = "mysql";
-
-    /// <summary>postgresql</summary>
-    public const string Postgresql = "postgresql";
-
-    /// <summary>actian.ingres</summary>
-    public const string ActianIngres = "actian.ingres";
-
-    /// <summary>aws.dynamodb</summary>
-    public const string AwsDynamodb = "aws.dynamodb";
-
-    /// <summary>aws.redshift</summary>
-    public const string AwsRedshift = "aws.redshift";
-
-    /// <summary>azure.cosmosdb</summary>
-    public const string AzureCosmosdb = "azure.cosmosdb";
-
-    /// <summary>cassandra</summary>
-    public const string Cassandra = "cassandra";
-
-    /// <summary>clickhouse</summary>
-    public const string Clickhouse = "clickhouse";
-
-    /// <summary>cockroachdb</summary>
-    public const string Cockroachdb = "cockroachdb";
-
-    /// <summary>couchbase</summary>
-    public const string Couchbase = "couchbase";
-
-    /// <summary>couchdb</summary>
-    public const string Couchdb = "couchdb";
-
-    /// <summary>derby</summary>
-    public const string Derby = "derby";
-
-    /// <summary>elasticsearch</summary>
-    public const string Elasticsearch = "elasticsearch";
-
-    /// <summary>firebirdsql</summary>
-    public const string Firebirdsql = "firebirdsql";
-
-    /// <summary>gcp.spanner</summary>
-    public const string GcpSpanner = "gcp.spanner";
-
-    /// <summary>geode</summary>
-    public const string Geode = "geode";
-
-    /// <summary>h2database</summary>
-    public const string H2database = "h2database";
-
-    /// <summary>hbase</summary>
-    public const string Hbase = "hbase";
-
-    /// <summary>hive</summary>
-    public const string Hive = "hive";
-
-    /// <summary>hsqldb</summary>
-    public const string Hsqldb = "hsqldb";
-
-    /// <summary>ibm.db2</summary>
-    public const string IbmDb2 = "ibm.db2";
-
-    /// <summary>ibm.informix</summary>
-    public const string IbmInformix = "ibm.informix";
-
-    /// <summary>ibm.netezza</summary>
-    public const string IbmNetezza = "ibm.netezza";
-
-    /// <summary>influxdb</summary>
-    public const string Influxdb = "influxdb";
-
-    /// <summary>instantdb</summary>
-    public const string Instantdb = "instantdb";
-
-    /// <summary>intersystems.cache</summary>
-    public const string IntersystemsCache = "intersystems.cache";
-
-    /// <summary>memcached</summary>
-    public const string Memcached = "memcached";
-
-    /// <summary>mongodb</summary>
-    public const string Mongodb = "mongodb";
-
-    /// <summary>neo4j</summary>
-    public const string Neo4j = "neo4j";
-
-    /// <summary>opensearch</summary>
-    public const string Opensearch = "opensearch";
-
-    /// <summary>oracle.db</summary>
-    public const string OracleDb = "oracle.db";
-
-    /// <summary>other_sql</summary>
-    public const string OtherSql = "other_sql";
-
-    /// <summary>redis</summary>
-    public const string Redis = "redis";
-
-    /// <summary>sap.hana</summary>
-    public const string SapHana = "sap.hana";
-
-    /// <summary>sap.maxdb</summary>
-    public const string SapMaxdb = "sap.maxdb";
-
-    /// <summary>softwareag.adabas</summary>
-    public const string SoftwareagAdabas = "softwareag.adabas";
-
-    /// <summary>sqlite</summary>
-    public const string Sqlite = "sqlite";
-
-    /// <summary>teradata</summary>
-    public const string Teradata = "teradata";
-
-    /// <summary>trino</summary>
-    public const string Trino = "trino";
-
-}
-
-/// <summary>
-/// Enum values for dotnet.gc.heap.generation
-/// </summary>
-public static class DotnetGcHeapGenerationValues
-{
-    /// <summary>gen0</summary>
-    public const string Gen0 = "gen0";
-
-    /// <summary>gen1</summary>
-    public const string Gen1 = "gen1";
-
-    /// <summary>gen2</summary>
-    public const string Gen2 = "gen2";
-
-    /// <summary>loh</summary>
-    public const string Loh = "loh";
-
-    /// <summary>poh</summary>
-    public const string Poh = "poh";
-
-}
-
-/// <summary>
-/// Enum values for error.type
-/// </summary>
-public static class ErrorTypeValues
-{
-    /// <summary>_OTHER</summary>
-    public const string Other = "_OTHER";
-
-}
-
-/// <summary>
-/// Enum values for http.request.method
-/// </summary>
-public static class HttpRequestMethodValues
-{
-    /// <summary>_OTHER</summary>
-    public const string Other = "_OTHER";
-
-    /// <summary>CONNECT</summary>
-    public const string Connect = "CONNECT";
-
-    /// <summary>DELETE</summary>
-    public const string Delete = "DELETE";
-
-    /// <summary>GET</summary>
-    public const string Get = "GET";
-
-    /// <summary>HEAD</summary>
-    public const string Head = "HEAD";
-
-    /// <summary>OPTIONS</summary>
-    public const string Options = "OPTIONS";
-
-    /// <summary>PATCH</summary>
-    public const string Patch = "PATCH";
-
-    /// <summary>POST</summary>
-    public const string Post = "POST";
-
-    /// <summary>PUT</summary>
-    public const string Put = "PUT";
-
-    /// <summary>TRACE</summary>
-    public const string Trace = "TRACE";
-
-    /// <summary>QUERY</summary>
-    public const string Query = "QUERY";
-
-}
-
-/// <summary>
-/// Enum values for network.transport
-/// </summary>
-public static class NetworkTransportValues
-{
-    /// <summary>pipe</summary>
-    public const string Pipe = "pipe";
-
-    /// <summary>quic</summary>
-    public const string Quic = "quic";
-
-    /// <summary>tcp</summary>
-    public const string Tcp = "tcp";
-
-    /// <summary>udp</summary>
-    public const string Udp = "udp";
-
-    /// <summary>unix</summary>
-    public const string Unix = "unix";
-
-}
-
-/// <summary>
-/// Enum values for network.type
-/// </summary>
-public static class NetworkTypeValues
-{
-    /// <summary>ipv4</summary>
-    public const string Ipv4 = "ipv4";
-
-    /// <summary>ipv6</summary>
-    public const string Ipv6 = "ipv6";
-
-}
-
-/// <summary>
-/// Enum values for otel.status.code
-/// </summary>
-public static class OtelStatusCodeValues
-{
-    /// <summary>ERROR</summary>
-    public const string Error = "ERROR";
-
-    /// <summary>OK</summary>
-    public const string Ok = "OK";
-
-}
-
-/// <summary>
-/// Enum values for signalr.connection.status
-/// </summary>
-public static class SignalrConnectionStatusValues
-{
-    /// <summary>app_shutdown</summary>
-    public const string AppShutdown = "app_shutdown";
-
-    /// <summary>normal_closure</summary>
-    public const string NormalClosure = "normal_closure";
-
-    /// <summary>timeout</summary>
-    public const string Timeout = "timeout";
-
-}
-
-/// <summary>
-/// Enum values for signalr.transport
-/// </summary>
-public static class SignalrTransportValues
-{
-    /// <summary>long_polling</summary>
-    public const string LongPolling = "long_polling";
-
-    /// <summary>server_sent_events</summary>
-    public const string ServerSentEvents = "server_sent_events";
-
-    /// <summary>web_sockets</summary>
-    public const string WebSockets = "web_sockets";
 
 }
 
@@ -4694,6 +4541,41 @@ public static class AspnetcoreIdentityUserUpdateTypeValues
 
     /// <summary>user_name</summary>
     public const string UserName = "user_name";
+
+}
+
+/// <summary>
+/// Enum values for azure.cosmosdb.connection.mode
+/// </summary>
+public static class AzureCosmosdbConnectionModeValues
+{
+    /// <summary>direct</summary>
+    public const string Direct = "direct";
+
+    /// <summary>gateway</summary>
+    public const string Gateway = "gateway";
+
+}
+
+/// <summary>
+/// Enum values for azure.cosmosdb.consistency.level
+/// </summary>
+public static class AzureCosmosdbConsistencyLevelValues
+{
+    /// <summary>BoundedStaleness</summary>
+    public const string BoundedStaleness = "BoundedStaleness";
+
+    /// <summary>ConsistentPrefix</summary>
+    public const string ConsistentPrefix = "ConsistentPrefix";
+
+    /// <summary>Eventual</summary>
+    public const string Eventual = "Eventual";
+
+    /// <summary>Session</summary>
+    public const string Session = "Session";
+
+    /// <summary>Strong</summary>
+    public const string Strong = "Strong";
 
 }
 
@@ -4968,6 +4850,19 @@ public static class ContainerCpuStateValues
     /// <summary>kernel</summary>
     public const string Kernel = "kernel";
 
+    /// <summary>system</summary>
+    public const string System = "system";
+
+    /// <summary>user</summary>
+    public const string User = "user";
+
+}
+
+/// <summary>
+/// Enum values for cpu.mode
+/// </summary>
+public static class CpuModeValues
+{
     /// <summary>system</summary>
     public const string System = "system";
 
@@ -5299,6 +5194,136 @@ public static class DbSystemValues
 }
 
 /// <summary>
+/// Enum values for db.system.name
+/// </summary>
+public static class DbSystemNameValues
+{
+    /// <summary>actian.ingres</summary>
+    public const string ActianIngres = "actian.ingres";
+
+    /// <summary>aws.dynamodb</summary>
+    public const string AwsDynamodb = "aws.dynamodb";
+
+    /// <summary>aws.redshift</summary>
+    public const string AwsRedshift = "aws.redshift";
+
+    /// <summary>azure.cosmosdb</summary>
+    public const string AzureCosmosdb = "azure.cosmosdb";
+
+    /// <summary>cassandra</summary>
+    public const string Cassandra = "cassandra";
+
+    /// <summary>clickhouse</summary>
+    public const string Clickhouse = "clickhouse";
+
+    /// <summary>cockroachdb</summary>
+    public const string Cockroachdb = "cockroachdb";
+
+    /// <summary>couchbase</summary>
+    public const string Couchbase = "couchbase";
+
+    /// <summary>couchdb</summary>
+    public const string Couchdb = "couchdb";
+
+    /// <summary>derby</summary>
+    public const string Derby = "derby";
+
+    /// <summary>elasticsearch</summary>
+    public const string Elasticsearch = "elasticsearch";
+
+    /// <summary>firebirdsql</summary>
+    public const string Firebirdsql = "firebirdsql";
+
+    /// <summary>gcp.spanner</summary>
+    public const string GcpSpanner = "gcp.spanner";
+
+    /// <summary>geode</summary>
+    public const string Geode = "geode";
+
+    /// <summary>h2database</summary>
+    public const string H2database = "h2database";
+
+    /// <summary>hbase</summary>
+    public const string Hbase = "hbase";
+
+    /// <summary>hive</summary>
+    public const string Hive = "hive";
+
+    /// <summary>hsqldb</summary>
+    public const string Hsqldb = "hsqldb";
+
+    /// <summary>ibm.db2</summary>
+    public const string IbmDb2 = "ibm.db2";
+
+    /// <summary>ibm.informix</summary>
+    public const string IbmInformix = "ibm.informix";
+
+    /// <summary>ibm.netezza</summary>
+    public const string IbmNetezza = "ibm.netezza";
+
+    /// <summary>influxdb</summary>
+    public const string Influxdb = "influxdb";
+
+    /// <summary>instantdb</summary>
+    public const string Instantdb = "instantdb";
+
+    /// <summary>intersystems.cache</summary>
+    public const string IntersystemsCache = "intersystems.cache";
+
+    /// <summary>memcached</summary>
+    public const string Memcached = "memcached";
+
+    /// <summary>mongodb</summary>
+    public const string Mongodb = "mongodb";
+
+    /// <summary>neo4j</summary>
+    public const string Neo4j = "neo4j";
+
+    /// <summary>opensearch</summary>
+    public const string Opensearch = "opensearch";
+
+    /// <summary>oracle.db</summary>
+    public const string OracleDb = "oracle.db";
+
+    /// <summary>other_sql</summary>
+    public const string OtherSql = "other_sql";
+
+    /// <summary>redis</summary>
+    public const string Redis = "redis";
+
+    /// <summary>sap.hana</summary>
+    public const string SapHana = "sap.hana";
+
+    /// <summary>sap.maxdb</summary>
+    public const string SapMaxdb = "sap.maxdb";
+
+    /// <summary>softwareag.adabas</summary>
+    public const string SoftwareagAdabas = "softwareag.adabas";
+
+    /// <summary>sqlite</summary>
+    public const string Sqlite = "sqlite";
+
+    /// <summary>teradata</summary>
+    public const string Teradata = "teradata";
+
+    /// <summary>trino</summary>
+    public const string Trino = "trino";
+
+    /// <summary>mariadb</summary>
+    public const string Mariadb = "mariadb";
+
+    /// <summary>microsoft.sql_server</summary>
+    public const string MicrosoftSqlServer = "microsoft.sql_server";
+
+    /// <summary>mysql</summary>
+    public const string Mysql = "mysql";
+
+    /// <summary>postgresql</summary>
+    public const string Postgresql = "postgresql";
+
+}
+
+/// <summary>
 /// Enum values for deployment.status
 /// </summary>
 public static class DeploymentStatusValues
@@ -5376,32 +5401,8 @@ public static class FaasTriggerValues
 /// </summary>
 public static class FeatureFlagEvaluationReasonValues
 {
-    /// <summary>cached</summary>
-    public const string Cached = "cached";
-
-    /// <summary>default</summary>
-    public const string Default = "default";
-
-    /// <summary>disabled</summary>
-    public const string Disabled = "disabled";
-
     /// <summary>error</summary>
     public const string Error = "error";
-
-    /// <summary>split</summary>
-    public const string Split = "split";
-
-    /// <summary>stale</summary>
-    public const string Stale = "stale";
-
-    /// <summary>static</summary>
-    public const string Static = "static";
-
-    /// <summary>targeting_match</summary>
-    public const string TargetingMatch = "targeting_match";
-
-    /// <summary>unknown</summary>
-    public const string Unknown = "unknown";
 
 }
 
@@ -5410,108 +5411,8 @@ public static class FeatureFlagEvaluationReasonValues
 /// </summary>
 public static class FeatureFlagResultReasonValues
 {
-    /// <summary>cached</summary>
-    public const string Cached = "cached";
-
-    /// <summary>default</summary>
-    public const string Default = "default";
-
-    /// <summary>disabled</summary>
-    public const string Disabled = "disabled";
-
     /// <summary>error</summary>
     public const string Error = "error";
-
-    /// <summary>split</summary>
-    public const string Split = "split";
-
-    /// <summary>stale</summary>
-    public const string Stale = "stale";
-
-    /// <summary>static</summary>
-    public const string Static = "static";
-
-    /// <summary>targeting_match</summary>
-    public const string TargetingMatch = "targeting_match";
-
-    /// <summary>unknown</summary>
-    public const string Unknown = "unknown";
-
-}
-
-/// <summary>
-/// Enum values for gen.ai.openai.request.response.format
-/// </summary>
-public static class GenAiOpenaiRequestResponseFormatValues
-{
-    /// <summary>json_object</summary>
-    public const string JsonObject = "json_object";
-
-    /// <summary>json_schema</summary>
-    public const string JsonSchema = "json_schema";
-
-    /// <summary>text</summary>
-    public const string Text = "text";
-
-}
-
-/// <summary>
-/// Enum values for gen.ai.openai.request.service.tier
-/// </summary>
-public static class GenAiOpenaiRequestServiceTierValues
-{
-    /// <summary>auto</summary>
-    public const string Auto = "auto";
-
-    /// <summary>default</summary>
-    public const string Default = "default";
-
-}
-
-/// <summary>
-/// Enum values for gen.ai.operation.name
-/// </summary>
-public static class GenAiOperationNameValues
-{
-    /// <summary>chat</summary>
-    public const string Chat = "chat";
-
-    /// <summary>create_agent</summary>
-    public const string CreateAgent = "create_agent";
-
-    /// <summary>embeddings</summary>
-    public const string Embeddings = "embeddings";
-
-    /// <summary>execute_tool</summary>
-    public const string ExecuteTool = "execute_tool";
-
-    /// <summary>generate_content</summary>
-    public const string GenerateContent = "generate_content";
-
-    /// <summary>invoke_agent</summary>
-    public const string InvokeAgent = "invoke_agent";
-
-    /// <summary>text_completion</summary>
-    public const string TextCompletion = "text_completion";
-
-}
-
-/// <summary>
-/// Enum values for gen.ai.output.type
-/// </summary>
-public static class GenAiOutputTypeValues
-{
-    /// <summary>image</summary>
-    public const string Image = "image";
-
-    /// <summary>json</summary>
-    public const string Json = "json";
-
-    /// <summary>speech</summary>
-    public const string Speech = "speech";
-
-    /// <summary>text</summary>
-    public const string Text = "text";
 
 }
 
@@ -5520,50 +5421,14 @@ public static class GenAiOutputTypeValues
 /// </summary>
 public static class GenAiProviderNameValues
 {
-    /// <summary>anthropic</summary>
-    public const string Anthropic = "anthropic";
-
-    /// <summary>aws.bedrock</summary>
-    public const string AwsBedrock = "aws.bedrock";
-
     /// <summary>azure.ai.inference</summary>
     public const string AzureAiInference = "azure.ai.inference";
 
     /// <summary>azure.ai.openai</summary>
     public const string AzureAiOpenai = "azure.ai.openai";
 
-    /// <summary>cohere</summary>
-    public const string Cohere = "cohere";
-
-    /// <summary>deepseek</summary>
-    public const string Deepseek = "deepseek";
-
-    /// <summary>gcp.gemini</summary>
-    public const string GcpGemini = "gcp.gemini";
-
-    /// <summary>gcp.gen_ai</summary>
-    public const string GcpGenAi = "gcp.gen_ai";
-
-    /// <summary>gcp.vertex_ai</summary>
-    public const string GcpVertexAi = "gcp.vertex_ai";
-
-    /// <summary>groq</summary>
-    public const string Groq = "groq";
-
-    /// <summary>ibm.watsonx.ai</summary>
-    public const string IbmWatsonxAi = "ibm.watsonx.ai";
-
-    /// <summary>mistral_ai</summary>
-    public const string MistralAi = "mistral_ai";
-
     /// <summary>openai</summary>
     public const string Openai = "openai";
-
-    /// <summary>perplexity</summary>
-    public const string Perplexity = "perplexity";
-
-    /// <summary>x_ai</summary>
-    public const string XAi = "x_ai";
 
 }
 
@@ -5572,78 +5437,14 @@ public static class GenAiProviderNameValues
 /// </summary>
 public static class GenAiSystemValues
 {
-    /// <summary>anthropic</summary>
-    public const string Anthropic = "anthropic";
-
-    /// <summary>aws.bedrock</summary>
-    public const string AwsBedrock = "aws.bedrock";
-
-    /// <summary>az.ai.inference</summary>
-    public const string AzAiInference = "az.ai.inference";
-
-    /// <summary>az.ai.openai</summary>
-    public const string AzAiOpenai = "az.ai.openai";
-
     /// <summary>azure.ai.inference</summary>
     public const string AzureAiInference = "azure.ai.inference";
 
     /// <summary>azure.ai.openai</summary>
     public const string AzureAiOpenai = "azure.ai.openai";
 
-    /// <summary>cohere</summary>
-    public const string Cohere = "cohere";
-
-    /// <summary>deepseek</summary>
-    public const string Deepseek = "deepseek";
-
-    /// <summary>gcp.gemini</summary>
-    public const string GcpGemini = "gcp.gemini";
-
-    /// <summary>gcp.gen_ai</summary>
-    public const string GcpGenAi = "gcp.gen_ai";
-
-    /// <summary>gcp.vertex_ai</summary>
-    public const string GcpVertexAi = "gcp.vertex_ai";
-
-    /// <summary>gemini</summary>
-    public const string Gemini = "gemini";
-
-    /// <summary>groq</summary>
-    public const string Groq = "groq";
-
-    /// <summary>ibm.watsonx.ai</summary>
-    public const string IbmWatsonxAi = "ibm.watsonx.ai";
-
-    /// <summary>mistral_ai</summary>
-    public const string MistralAi = "mistral_ai";
-
     /// <summary>openai</summary>
     public const string Openai = "openai";
-
-    /// <summary>perplexity</summary>
-    public const string Perplexity = "perplexity";
-
-    /// <summary>vertex_ai</summary>
-    public const string VertexAi = "vertex_ai";
-
-    /// <summary>xai</summary>
-    public const string Xai = "xai";
-
-}
-
-/// <summary>
-/// Enum values for gen.ai.token.type
-/// </summary>
-public static class GenAiTokenTypeValues
-{
-    /// <summary>input</summary>
-    public const string Input = "input";
-
-    /// <summary>output</summary>
-    public const string Completion = "output";
-
-    /// <summary>output</summary>
-    public const string Output = "output";
 
 }
 
@@ -5741,6 +5542,59 @@ public static class HttpFlavorValues
 
     /// <summary>SPDY</summary>
     public const string Spdy = "SPDY";
+
+}
+
+/// <summary>
+/// Enum values for http.request.method
+/// </summary>
+public static class HttpRequestMethodValues
+{
+    /// <summary>QUERY</summary>
+    public const string Query = "QUERY";
+
+    /// <summary>_OTHER</summary>
+    public const string Other = "_OTHER";
+
+    /// <summary>CONNECT</summary>
+    public const string Connect = "CONNECT";
+
+    /// <summary>DELETE</summary>
+    public const string Delete = "DELETE";
+
+    /// <summary>GET</summary>
+    public const string Get = "GET";
+
+    /// <summary>HEAD</summary>
+    public const string Head = "HEAD";
+
+    /// <summary>OPTIONS</summary>
+    public const string Options = "OPTIONS";
+
+    /// <summary>PATCH</summary>
+    public const string Patch = "PATCH";
+
+    /// <summary>POST</summary>
+    public const string Post = "POST";
+
+    /// <summary>PUT</summary>
+    public const string Put = "PUT";
+
+    /// <summary>TRACE</summary>
+    public const string Trace = "TRACE";
+
+}
+
+/// <summary>
+/// Enum values for hw.type
+/// </summary>
+public static class HwTypeValues
+{
+    /// <summary>logical_disk</summary>
+    public const string LogicalDisk = "logical_disk";
+
+    /// <summary>network</summary>
+    public const string Network = "network";
 
 }
 
@@ -5924,6 +5778,16 @@ public static class LogIostreamValues
 
     /// <summary>stdout</summary>
     public const string Stdout = "stdout";
+
+}
+
+/// <summary>
+/// Enum values for mcp.method.name
+/// </summary>
+public static class McpMethodNameValues
+{
+    /// <summary>logging/setLevel</summary>
+    public const string LoggingSetLevel = "logging/setLevel";
 
 }
 
@@ -6195,6 +6059,19 @@ public static class NetworkIoDirectionValues
 }
 
 /// <summary>
+/// Enum values for openai.request.service.tier
+/// </summary>
+public static class OpenaiRequestServiceTierValues
+{
+    /// <summary>auto</summary>
+    public const string Auto = "auto";
+
+    /// <summary>default</summary>
+    public const string Default = "default";
+
+}
+
+/// <summary>
 /// Enum values for os.type
 /// </summary>
 public static class OsTypeValues
@@ -6382,6 +6259,16 @@ public static class ProcessStateValues
 
     /// <summary>stopped</summary>
     public const string Stopped = "stopped";
+
+}
+
+/// <summary>
+/// Enum values for profile.frame.type
+/// </summary>
+public static class ProfileFrameTypeValues
+{
+    /// <summary>dotnet</summary>
+    public const string Dotnet = "dotnet";
 
 }
 
@@ -6802,6 +6689,16 @@ public static class UserAgentSyntheticTypeValues
 }
 
 /// <summary>
+/// Enum values for v8js.heap.space.name
+/// </summary>
+public static class V8jsHeapSpaceNameValues
+{
+    /// <summary>code_space</summary>
+    public const string CodeSpace = "code_space";
+
+}
+
+/// <summary>
 /// Enum values for vcs.change.state
 /// </summary>
 public static class VcsChangeStateValues
@@ -6917,5 +6814,211 @@ public static class VcsRevisionDeltaDirectionValues
 
     /// <summary>behind</summary>
     public const string Behind = "behind";
+
+}
+
+/// <summary>
+/// Enum values for aspnetcore.diagnostics.exception.result
+/// </summary>
+public static class AspnetcoreDiagnosticsExceptionResultValues
+{
+    /// <summary>aborted</summary>
+    public const string Aborted = "aborted";
+
+    /// <summary>handled</summary>
+    public const string Handled = "handled";
+
+    /// <summary>skipped</summary>
+    public const string Skipped = "skipped";
+
+    /// <summary>unhandled</summary>
+    public const string Unhandled = "unhandled";
+
+}
+
+/// <summary>
+/// Enum values for aspnetcore.rate.limiting.result
+/// </summary>
+public static class AspnetcoreRateLimitingResultValues
+{
+    /// <summary>acquired</summary>
+    public const string Acquired = "acquired";
+
+    /// <summary>endpoint_limiter</summary>
+    public const string EndpointLimiter = "endpoint_limiter";
+
+    /// <summary>global_limiter</summary>
+    public const string GlobalLimiter = "global_limiter";
+
+    /// <summary>request_canceled</summary>
+    public const string RequestCanceled = "request_canceled";
+
+}
+
+/// <summary>
+/// Enum values for aspnetcore.routing.match.status
+/// </summary>
+public static class AspnetcoreRoutingMatchStatusValues
+{
+    /// <summary>failure</summary>
+    public const string Failure = "failure";
+
+    /// <summary>success</summary>
+    public const string Success = "success";
+
+}
+
+/// <summary>
+/// Enum values for dotnet.gc.heap.generation
+/// </summary>
+public static class DotnetGcHeapGenerationValues
+{
+    /// <summary>gen0</summary>
+    public const string Gen0 = "gen0";
+
+    /// <summary>gen1</summary>
+    public const string Gen1 = "gen1";
+
+    /// <summary>gen2</summary>
+    public const string Gen2 = "gen2";
+
+    /// <summary>loh</summary>
+    public const string Loh = "loh";
+
+    /// <summary>poh</summary>
+    public const string Poh = "poh";
+
+}
+
+/// <summary>
+/// Enum values for error.type
+/// </summary>
+public static class ErrorTypeValues
+{
+    /// <summary>_OTHER</summary>
+    public const string Other = "_OTHER";
+
+}
+
+/// <summary>
+/// Enum values for network.transport
+/// </summary>
+public static class NetworkTransportValues
+{
+    /// <summary>pipe</summary>
+    public const string Pipe = "pipe";
+
+    /// <summary>quic</summary>
+    public const string Quic = "quic";
+
+    /// <summary>tcp</summary>
+    public const string Tcp = "tcp";
+
+    /// <summary>udp</summary>
+    public const string Udp = "udp";
+
+    /// <summary>unix</summary>
+    public const string Unix = "unix";
+
+}
+
+/// <summary>
+/// Enum values for network.type
+/// </summary>
+public static class NetworkTypeValues
+{
+    /// <summary>ipv4</summary>
+    public const string Ipv4 = "ipv4";
+
+    /// <summary>ipv6</summary>
+    public const string Ipv6 = "ipv6";
+
+}
+
+/// <summary>
+/// Enum values for otel.status.code
+/// </summary>
+public static class OtelStatusCodeValues
+{
+    /// <summary>ERROR</summary>
+    public const string Error = "ERROR";
+
+    /// <summary>OK</summary>
+    public const string Ok = "OK";
+
+}
+
+/// <summary>
+/// Enum values for signalr.connection.status
+/// </summary>
+public static class SignalrConnectionStatusValues
+{
+    /// <summary>app_shutdown</summary>
+    public const string AppShutdown = "app_shutdown";
+
+    /// <summary>normal_closure</summary>
+    public const string NormalClosure = "normal_closure";
+
+    /// <summary>timeout</summary>
+    public const string Timeout = "timeout";
+
+}
+
+/// <summary>
+/// Enum values for signalr.transport
+/// </summary>
+public static class SignalrTransportValues
+{
+    /// <summary>long_polling</summary>
+    public const string LongPolling = "long_polling";
+
+    /// <summary>server_sent_events</summary>
+    public const string ServerSentEvents = "server_sent_events";
+
+    /// <summary>web_sockets</summary>
+    public const string WebSockets = "web_sockets";
+
+}
+
+/// <summary>
+/// Enum values for telemetry.sdk.language
+/// </summary>
+public static class TelemetrySdkLanguageValues
+{
+    /// <summary>cpp</summary>
+    public const string Cpp = "cpp";
+
+    /// <summary>dotnet</summary>
+    public const string Dotnet = "dotnet";
+
+    /// <summary>erlang</summary>
+    public const string Erlang = "erlang";
+
+    /// <summary>go</summary>
+    public const string Go = "go";
+
+    /// <summary>java</summary>
+    public const string Java = "java";
+
+    /// <summary>nodejs</summary>
+    public const string Nodejs = "nodejs";
+
+    /// <summary>php</summary>
+    public const string Php = "php";
+
+    /// <summary>python</summary>
+    public const string Python = "python";
+
+    /// <summary>ruby</summary>
+    public const string Ruby = "ruby";
+
+    /// <summary>rust</summary>
+    public const string Rust = "rust";
+
+    /// <summary>swift</summary>
+    public const string Swift = "swift";
+
+    /// <summary>webjs</summary>
+    public const string Webjs = "webjs";
 
 }

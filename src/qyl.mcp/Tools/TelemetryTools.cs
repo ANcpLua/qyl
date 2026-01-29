@@ -6,8 +6,6 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 internal sealed class TelemetryTools(ITelemetryStore store)
 {
-    private readonly ITelemetryStore _store = store;
-
     [McpServerTool(Name = "qyl.search_agent_runs")]
     [Description("Search for agent run records by provider, model, error type, or time range.")]
     public async Task<ToolResult<AgentRun[]>> SearchAgentRunsAsync(
@@ -22,7 +20,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     {
         try
         {
-            var result = await _store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
+            var result = await store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
             return ToolResult.Ok(result);
         }
         catch (HttpRequestException ex)
@@ -42,7 +40,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     {
         try
         {
-            var result = await _store.GetRunAsync(runId).ConfigureAwait(false);
+            var result = await store.GetRunAsync(runId).ConfigureAwait(false);
             return ToolResult.Ok(result);
         }
         catch (HttpRequestException ex)
@@ -65,7 +63,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     {
         try
         {
-            var result = await _store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
+            var result = await store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
             return ToolResult.Ok(result);
         }
         catch (HttpRequestException ex)
@@ -87,7 +85,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     {
         try
         {
-            var result = await _store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
+            var result = await store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
             return ToolResult.Ok(result);
         }
         catch (HttpRequestException ex)
@@ -109,7 +107,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     {
         try
         {
-            var result = await _store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
+            var result = await store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
             return ToolResult.Ok(result);
         }
         catch (HttpRequestException ex)

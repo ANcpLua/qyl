@@ -169,7 +169,8 @@ public static partial class QylServiceDefaults
                     .AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
-                    .AddMeter("ANcpSdk.*");
+                    .AddMeter("ANcpSdk.*")
+                    .AddMeter("qyl.gen_ai"); // qyl instrumented chat client metrics
 
                 options.OpenTelemetry.ConfigureMetrics?.Invoke(metrics);
             })
@@ -184,7 +185,8 @@ public static partial class QylServiceDefaults
                             context.Request.Path != "/health" && context.Request.Path != "/alive";
                     })
                     .AddHttpClientInstrumentation()
-                    .AddSource("ANcpSdk.*");
+                    .AddSource("ANcpSdk.*")
+                    .AddSource("qyl.gen_ai"); // qyl instrumented chat client traces
 
                 options.OpenTelemetry.ConfigureTracing?.Invoke(tracing);
             });

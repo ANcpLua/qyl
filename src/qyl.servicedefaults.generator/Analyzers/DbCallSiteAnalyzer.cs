@@ -106,7 +106,7 @@ internal static class DbCallSiteAnalyzer
         return true;
     }
 
-    private static bool IsOrDerivesFrom(INamedTypeSymbol type, INamedTypeSymbol baseType)
+    private static bool IsOrDerivesFrom(ITypeSymbol type, ISymbol baseType)
     {
         if (SymbolEqualityComparer.Default.Equals(type, baseType))
             return true;

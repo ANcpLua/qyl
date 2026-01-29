@@ -5,7 +5,6 @@
     <OutputType>Exe</OutputType>
 
     <!-- Suppress A2A package AOT warnings - their JsonContext is private so we can't use it directly -->
-    <NoWarn>$(NoWarn);IL2026;IL3050;MA0002;MA0004;MA0006;MA0011;MA0048;MA0158;CA1062;CA1515;CA1812;CA1852;CA2007</NoWarn>
 
     <!-- Set up the NuGet package to be an MCP server -->
     <PackAsTool>true</PackAsTool>

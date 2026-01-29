@@ -25,20 +25,56 @@ internal sealed record TokenUsageDefinition(
 /// </summary>
 /// <remarks>
 ///     Provider definitions for compile-time detection in the source generator.
+///     Provider IDs use OTel Semantic Conventions v1.39 gen_ai.provider.name values.
+///     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
 /// </remarks>
 internal static class ProviderRegistry
 {
+    // OTel SemConv v1.39 gen_ai.provider.name values (inline for source generator compatibility)
+    private const string OpenAi = "openai";
+    private const string AzureAiOpenai = "azure.ai.openai";
+    private const string AzureAiInference = "azure.ai.inference";
+    private const string Anthropic = "anthropic";
+    private const string AwsBedrock = "aws.bedrock";
+    private const string GcpGemini = "gcp.gemini";
+    private const string GcpVertexAi = "gcp.vertex_ai";
+    private const string Cohere = "cohere";
+    private const string MistralAi = "mistral_ai";
+    private const string Groq = "groq";
+    private const string Deepseek = "deepseek";
+    private const string Perplexity = "perplexity";
+    private const string XAi = "x_ai";
+
     /// <summary>
-    ///     All GenAI providers.
+    ///     All GenAI providers with known SDK type patterns.
     /// </summary>
     public static readonly ImmutableArray<ProviderDefinition> GenAiProviders =
     [
-        new("openai", "OpenAI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
-        new("anthropic", "Anthropic", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
-        new("azure_openai", "Azure.AI.OpenAI", new TokenUsageDefinition("Usage.PromptTokens", "Usage.CompletionTokens")),
-        new("ollama", "Ollama", null),
-        new("google_ai", "GenerativeAI", null),
-        new("vertex_ai", "AIPlatform", null)
+        // OpenAI ecosystem
+        new(OpenAi, "OpenAI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
+        new(AzureAiOpenai, "Azure.AI.OpenAI", new TokenUsageDefinition("Usage.PromptTokens", "Usage.CompletionTokens")),
+        new(AzureAiInference, "Azure.AI.Inference", null),
+
+        // Anthropic
+        new(Anthropic, "Anthropic", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
+
+        // AWS
+        new(AwsBedrock, "Bedrock", null),
+
+        // Google
+        new(GcpGemini, "GenerativeAI", null),
+        new(GcpVertexAi, "AIPlatform", null),
+
+        // Other providers
+        new(Cohere, "Cohere", null),
+        new(MistralAi, "Mistral", null),
+        new(Groq, "Groq", null),
+        new(Deepseek, "Deepseek", null),
+        new(Perplexity, "Perplexity", null),
+        new(XAi, "xAI", null),
+
+        // Custom providers (not in OTel semconv)
+        new("ollama", "Ollama", null)
     ];
 }
 

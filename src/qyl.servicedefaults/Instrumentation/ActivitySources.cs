@@ -1,21 +1,56 @@
+// =============================================================================
+// Activity Sources - OTel Enterprise Pattern
+// Single source of truth for qyl ActivitySource and Meter instances
+// Based on: opentelemetry-dotnet-contrib patterns
+// =============================================================================
+
+using System.Reflection;
+using Qyl.ServiceDefaults.Internal;
+
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-/// Centralized ActivitySource definitions for instrumentation.
+/// Single source of truth for qyl activity sources and meters.
+/// Uses assembly-based versioning per OTel enterprise pattern.
 /// </summary>
-/// <remarks>
-/// These sources are automatically registered via <c>.AddSource("ANcpSdk.*")</c>
-/// in the service defaults configuration.
-/// </remarks>
-internal static class ActivitySources
+public static class ActivitySources
 {
-    /// <summary>
-    /// ActivitySource for GenAI SDK instrumentation (OpenAI, Anthropic, Ollama).
-    /// </summary>
-    public static readonly ActivitySource GenAi = new("ANcpSdk.GenAi");
+    /// <summary>Assembly containing the instrumentation.</summary>
+    internal static readonly Assembly Assembly = typeof(ActivitySources).Assembly;
 
-    /// <summary>
-    /// ActivitySource for ADO.NET database instrumentation (DuckDB, SQLite, Npgsql, etc.).
-    /// </summary>
-    public static readonly ActivitySource Db = new("ANcpSdk.Db");
+    /// <summary>Package version extracted from assembly metadata.</summary>
+    internal static readonly string Version = Assembly.GetPackageVersion();
+
+    /// <summary>GenAI operations source name.</summary>
+    public const string GenAi = GenAiConstants.SourceName;
+
+    /// <summary>Database operations source name.</summary>
+    public const string Db = "qyl.db";
+
+    /// <summary>General traced operations source name.</summary>
+    public const string Traced = "qyl.traced";
+
+    // Lazy-initialized ActivitySource instances
+    private static ActivitySource? s_genAi;
+    private static ActivitySource? s_db;
+    private static ActivitySource? s_traced;
+
+    // Lazy-initialized Meter instances
+    private static Meter? s_genAiMeter;
+    private static Meter? s_dbMeter;
+
+    /// <summary>ActivitySource for GenAI instrumentation.</summary>
+    public static ActivitySource GenAiSource => s_genAi ??= new(GenAi, Version);
+
+    /// <summary>ActivitySource for database instrumentation.</summary>
+    public static ActivitySource DbSource => s_db ??= new(Db, Version);
+
+    /// <summary>ActivitySource for general traced operations.</summary>
+    public static ActivitySource TracedSource => s_traced ??= new(Traced, Version);
+
+    /// <summary>Meter for GenAI metrics.</summary>
+    public static Meter GenAiMeter => s_genAiMeter ??= new(GenAi, Version);
+
+    /// <summary>Meter for database metrics.</summary>
+    public static Meter DbMeter => s_dbMeter ??= new(Db, Version);
 }

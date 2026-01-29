@@ -196,7 +196,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
     protected override async Task<AgentResponse> RunCoreAsync(
         IEnumerable<ChatMessage> messages,
-        AgentThread? thread = null,
+        AgentSession? session = null,
         AgentRunOptions? options = null,
         CancellationToken cancellationToken = default)
     {
@@ -209,7 +209,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
         var startTime = TimeProvider.System.GetTimestamp();
         try
         {
-            var response = await base.RunCoreAsync(messages, thread, options, cancellationToken).ConfigureAwait(false);
+            var response = await base.RunCoreAsync(messages, session, options, cancellationToken).ConfigureAwait(false);
             var elapsed = TimeProvider.System.GetElapsedTime(startTime);
 
             _collector.TrackAgentInvocation(_agentName, "RunAsync", elapsed);
@@ -235,7 +235,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
     protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
         IEnumerable<ChatMessage> messages,
-        AgentThread? thread = null,
+        AgentSession? session = null,
         AgentRunOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -247,7 +247,7 @@ public sealed class TelemetryAgent : DelegatingAIAgent
 
         var startTime = TimeProvider.System.GetTimestamp();
 
-        await foreach (var update in base.RunCoreStreamingAsync(messages, thread, options, cancellationToken))
+        await foreach (var update in base.RunCoreStreamingAsync(messages, session, options, cancellationToken))
             yield return update;
 
         var elapsed = TimeProvider.System.GetElapsedTime(startTime);

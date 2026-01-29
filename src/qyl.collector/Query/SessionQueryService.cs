@@ -12,7 +12,6 @@ namespace qyl.collector.Query;
 /// </summary>
 public sealed class SessionQueryService(DuckDbStore store)
 {
-    private readonly DuckDbStore _store = store;
     // =========================================================================
     // List Sessions
     // =========================================================================
@@ -26,7 +25,7 @@ public sealed class SessionQueryService(DuckDbStore store)
     {
         // Using raw SQL for complex COALESCE + GROUP BY pattern
         // SpanQueryBuilder is better for simpler queries
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
@@ -59,7 +58,7 @@ public sealed class SessionQueryService(DuckDbStore store)
 
     public async Task<SessionQueryRow?> GetSessionAsync(string sessionId, CancellationToken ct = default)
     {
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT
@@ -104,7 +103,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .LimitParam(2)
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter
@@ -146,7 +145,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
@@ -196,7 +195,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .LimitParam(2)
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
@@ -254,7 +253,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .WhereRaw("($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)")
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         AddParams(cmd, sessionId, after);
@@ -286,7 +285,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .OrderBy(SpanColumn.StartTimeUnixNano)
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter
@@ -324,7 +323,7 @@ public sealed class SessionQueryService(DuckDbStore store)
             .Limit(limit)
             .Build();
 
-        await using var lease = await _store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
 

@@ -1,4 +1,5 @@
 using System.Text;
+using DuckDB.NET.Data;
 using qyl.collector.Query;
 using qyl.collector.Storage;
 

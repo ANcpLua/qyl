@@ -22,7 +22,7 @@ internal static class MeterEmitter
         AppendFileHeader(sb);
         AppendUsings(sb);
 
-        foreach (var meter in meters.OrderBy(static m => m.ClassName))
+        foreach (var meter in meters.OrderBy(static m => m.OrderKey, StringComparer.Ordinal))
         {
             AppendMeterClass(sb, meter);
         }

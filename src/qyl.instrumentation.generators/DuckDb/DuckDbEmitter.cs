@@ -4,8 +4,6 @@
 // Owner: qyl.instrumentation.generators
 // =============================================================================
 
-using System.Text;
-
 namespace qyl.instrumentation.generators.DuckDb;
 
 /// <summary>

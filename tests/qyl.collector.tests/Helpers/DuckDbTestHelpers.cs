@@ -1,3 +1,4 @@
+using DuckDB.NET.Data;
 using qyl.collector.Storage;
 
 namespace qyl.collector.tests.Helpers;

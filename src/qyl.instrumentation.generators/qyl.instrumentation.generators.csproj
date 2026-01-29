@@ -12,7 +12,6 @@
     <!-- netstandard2.0 does not support AOT analysis -->
     <IsAotCompatible>false</IsAotCompatible>
     <!-- RS1032/RS2008: Internal generator, not published to NuGet - suppress analyzer release tracking -->
-    <NoWarn>$(NoWarn);RS1032;RS2008</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

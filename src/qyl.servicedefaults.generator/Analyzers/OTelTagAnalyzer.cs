@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
@@ -40,7 +41,7 @@ internal static class OTelTagAnalyzer
         SemanticModel semanticModel,
         CancellationToken cancellationToken)
     {
-        if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not IPropertySymbol propertySymbol)
+        if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not { } propertySymbol)
             return null;
 
         var otelAttr = FindOTelAttribute(propertySymbol.GetAttributes());
@@ -74,7 +75,7 @@ internal static class OTelTagAnalyzer
         SemanticModel semanticModel,
         CancellationToken cancellationToken)
     {
-        if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not IParameterSymbol parameterSymbol)
+        if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not { } parameterSymbol)
             return null;
 
         var otelAttr = FindOTelAttribute(parameterSymbol.GetAttributes());

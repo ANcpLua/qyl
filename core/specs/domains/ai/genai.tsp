@@ -90,10 +90,9 @@ model GenAiSpanAttributes {
   @maxValue(1.0)
   requestTopP?: float64;
 
-  @doc("The top_k sampling parameter")
+  @doc("Number of highest probability tokens to consider for sampling")
   @encodedName("application/json", "gen_ai.request.top_k")
-  @minValue(1)
-  requestTopK?: int32;
+  requestTopK?: float64;
 
   @doc("Maximum tokens to generate in the response")
   @encodedName("application/json", "gen_ai.request.max_tokens")
@@ -236,6 +235,112 @@ model GenAiSpanAttributes {
   @doc("Error type if the request failed")
   @encodedName("application/json", "error.type")
   errorType?: GenAiErrorType;
+
+  // ---------------------------------------------------------------------------
+  // Data Source & Evaluation Attributes (OTel 1.39)
+  // ---------------------------------------------------------------------------
+
+  @doc("Identifier for the data source being used")
+  @encodedName("application/json", "gen_ai.data_source.id")
+  dataSourceId?: string;
+
+  @doc("Explanation from an evaluation")
+  @encodedName("application/json", "gen_ai.evaluation.explanation")
+  evaluationExplanation?: string;
+
+  @doc("Name of the evaluation being performed")
+  @encodedName("application/json", "gen_ai.evaluation.name")
+  evaluationName?: string;
+
+  @doc("Label for the evaluation score")
+  @encodedName("application/json", "gen_ai.evaluation.score.label")
+  evaluationScoreLabel?: string;
+
+  @doc("Numeric value of the evaluation score")
+  @encodedName("application/json", "gen_ai.evaluation.score.value")
+  evaluationScoreValue?: float64;
+
+  // ---------------------------------------------------------------------------
+  // Input/Output Messages & Prompt Attributes
+  // ---------------------------------------------------------------------------
+
+  @doc("Input messages content (may be redacted)")
+  @encodedName("application/json", "gen_ai.input.messages")
+  inputMessages?: string;
+
+  @doc("Output messages content (may be redacted)")
+  @encodedName("application/json", "gen_ai.output.messages")
+  outputMessages?: string;
+
+  @doc("Output type (text, json, image, etc.)")
+  @encodedName("application/json", "gen_ai.output.type")
+  outputType?: GenAiOutputType;
+
+  @doc("Prompt content (may be redacted)")
+  @encodedName("application/json", "gen_ai.prompt")
+  prompt?: string;
+
+  @doc("Name of the prompt template being used")
+  @encodedName("application/json", "gen_ai.prompt.name")
+  promptName?: string;
+
+  @doc("System instructions provided to the model")
+  @encodedName("application/json", "gen_ai.system_instructions")
+  systemInstructions?: string;
+
+  @doc("Completion content (may be redacted)")
+  @encodedName("application/json", "gen_ai.completion")
+  completion?: string;
+
+  // ---------------------------------------------------------------------------
+  // Extended Request Attributes
+  // ---------------------------------------------------------------------------
+
+  @doc("Number of choices/completions requested")
+  @encodedName("application/json", "gen_ai.request.choice.count")
+  @minValue(1)
+  requestChoiceCount?: int32;
+
+  @doc("Encoding formats requested for embeddings")
+  @encodedName("application/json", "gen_ai.request.encoding_formats")
+  requestEncodingFormats?: string[];
+
+  // ---------------------------------------------------------------------------
+  // Extended Tool Attributes
+  // ---------------------------------------------------------------------------
+
+  @doc("Arguments passed to the tool call (JSON)")
+  @encodedName("application/json", "gen_ai.tool.call.arguments")
+  toolCallArguments?: string;
+
+  @doc("Result returned from the tool call")
+  @encodedName("application/json", "gen_ai.tool.call.result")
+  toolCallResult?: string;
+
+  @doc("Tool definitions provided to the model (JSON)")
+  @encodedName("application/json", "gen_ai.tool.definitions")
+  toolDefinitions?: string;
+
+  @doc("Description of the tool")
+  @encodedName("application/json", "gen_ai.tool.description")
+  toolDescription?: string;
+
+  @doc("Type of the tool (function, retrieval, etc.)")
+  @encodedName("application/json", "gen_ai.tool.type")
+  toolType?: GenAiToolType;
+
+  @doc("Token type for usage tracking")
+  @encodedName("application/json", "gen_ai.token.type")
+  tokenType?: GenAiTokenType;
+
+  // ---------------------------------------------------------------------------
+  // Embeddings Attributes
+  // ---------------------------------------------------------------------------
+
+  @doc("Number of dimensions in the embedding")
+  @encodedName("application/json", "gen_ai.embeddings.dimension.count")
+  @minValue(1)
+  embeddingsDimensionCount?: int32;
 }
 
 // =============================================================================
@@ -265,10 +370,9 @@ model GenAiRequestAttributes {
   @maxValue(1.0)
   topP?: float64;
 
-  @doc("Top-k sampling parameter")
+  @doc("Number of highest probability tokens to consider for sampling")
   @encodedName("application/json", "gen_ai.request.top_k")
-  @minValue(1)
-  topK?: int32;
+  topK?: float64;
 
   @doc("Stop sequences that will halt generation")
   @encodedName("application/json", "gen_ai.request.stop_sequences")
@@ -388,118 +492,139 @@ model GenAiCostEstimate {
 // GenAI Enumerations (18+ enums as promised)
 // =============================================================================
 
-@doc("GenAI provider names")
+// =============================================================================
+// GenAI Provider Names (OTel semconv 1.39 compliant)
+// =============================================================================
+
+@doc("GenAI provider names - OTel semconv 1.39 official values")
 enum GenAiProvider {
-  @doc("OpenAI / ChatGPT")
-  openai: "openai",
+  // ---------------------------------------------------------------------------
+  // OFFICIAL OTel semconv 1.39 values
+  // ---------------------------------------------------------------------------
 
   @doc("Anthropic / Claude")
   anthropic: "anthropic",
 
-  @doc("Google / Gemini")
-  google: "google",
-
-  @doc("Google Vertex AI")
-  vertexAi: "vertex_ai",
-
   @doc("Amazon Bedrock")
-  awsBedrock: "aws_bedrock",
+  awsBedrock: "aws.bedrock",
 
-  @doc("Azure OpenAI Service")
-  azureOpenai: "azure_openai",
+  @doc("Azure AI Inference")
+  azureAiInference: "azure.ai.inference",
+
+  @doc("Azure AI OpenAI")
+  azureAiOpenai: "azure.ai.openai",
 
   @doc("Cohere")
   cohere: "cohere",
 
-  @doc("Mistral AI")
-  mistral: "mistral",
+  @doc("DeepSeek")
+  deepseek: "deepseek",
 
-  @doc("Meta / Llama")
-  meta: "meta",
+  @doc("Google Gemini")
+  gcpGemini: "gcp.gemini",
 
-  @doc("Hugging Face")
-  huggingface: "huggingface",
+  @doc("Google GenAI")
+  gcpGenAi: "gcp.gen_ai",
 
-  @doc("Replicate")
-  replicate: "replicate",
-
-  @doc("Together AI")
-  togetherai: "together_ai",
-
-  @doc("Perplexity")
-  perplexity: "perplexity",
+  @doc("Google Vertex AI")
+  gcpVertexAi: "gcp.vertex_ai",
 
   @doc("Groq")
   groq: "groq",
 
-  @doc("Fireworks AI")
-  fireworks: "fireworks",
+  @doc("IBM watsonx.ai")
+  ibmWatsonxAi: "ibm.watsonx.ai",
 
-  @doc("Anyscale")
-  anyscale: "anyscale",
+  @doc("Mistral AI")
+  mistralAi: "mistral_ai",
 
-  @doc("DeepSeek")
-  deepseek: "deepseek",
+  @doc("OpenAI / ChatGPT")
+  openai: "openai",
+
+  @doc("Perplexity")
+  perplexity: "perplexity",
 
   @doc("xAI / Grok")
-  xai: "xai",
+  xAi: "x_ai",
 
-  @doc("Local/self-hosted model")
+  // ---------------------------------------------------------------------------
+  // QYL Extensions (not in OTel spec - use qyl.* for custom attributes)
+  // ---------------------------------------------------------------------------
+
+  @doc("Meta / Llama (qyl extension)")
+  meta: "meta",
+
+  @doc("Hugging Face (qyl extension)")
+  huggingface: "huggingface",
+
+  @doc("Replicate (qyl extension)")
+  replicate: "replicate",
+
+  @doc("Together AI (qyl extension)")
+  togetherai: "together_ai",
+
+  @doc("Fireworks AI (qyl extension)")
+  fireworks: "fireworks",
+
+  @doc("Anyscale (qyl extension)")
+  anyscale: "anyscale",
+
+  @doc("Local/self-hosted model (qyl extension)")
   local: "local",
 
-  @doc("Custom/other provider")
+  @doc("Custom/other provider (qyl extension)")
   custom: "custom",
 }
 
-@doc("GenAI operation types")
+// =============================================================================
+// GenAI Operation Types (OTel semconv 1.39 compliant)
+// =============================================================================
+
+@doc("GenAI operation types - OTel semconv 1.39 official values")
 enum GenAiOperationType {
+  // ---------------------------------------------------------------------------
+  // OFFICIAL OTel semconv 1.39 values
+  // ---------------------------------------------------------------------------
+
   @doc("Chat/conversation completion")
   chat: "chat",
-
-  @doc("Text completion (legacy)")
-  textCompletion: "text_completion",
 
   @doc("Text embedding generation")
   embeddings: "embeddings",
 
-  @doc("Image generation")
+  @doc("Text completion (legacy)")
+  textCompletion: "text_completion",
+
+  @doc("Create an AI agent")
+  createAgent: "create_agent",
+
+  @doc("Execute a tool/function")
+  executeTool: "execute_tool",
+
+  @doc("Generate content (generic)")
+  generateContent: "generate_content",
+
+  @doc("Invoke an AI agent")
+  invokeAgent: "invoke_agent",
+
+  // ---------------------------------------------------------------------------
+  // QYL Extensions (not in OTel spec)
+  // ---------------------------------------------------------------------------
+
+  @doc("Image generation (qyl extension)")
   imageGeneration: "image_generation",
 
-  @doc("Image editing")
-  imageEdit: "image_edit",
-
-  @doc("Image variation")
-  imageVariation: "image_variation",
-
-  @doc("Audio transcription (speech-to-text)")
+  @doc("Audio transcription (qyl extension)")
   audioTranscription: "audio_transcription",
 
-  @doc("Audio translation")
-  audioTranslation: "audio_translation",
-
-  @doc("Text-to-speech synthesis")
+  @doc("Text-to-speech synthesis (qyl extension)")
   textToSpeech: "text_to_speech",
 
-  @doc("Audio generation")
-  audioGeneration: "audio_generation",
-
-  @doc("Fine-tuning job")
-  fineTuning: "fine_tuning",
-
-  @doc("Model reranking")
+  @doc("Model reranking (qyl extension)")
   rerank: "rerank",
 
-  @doc("Content moderation")
+  @doc("Content moderation (qyl extension)")
   moderation: "moderation",
-
-  @doc("Structured data extraction")
-  extraction: "extraction",
-
-  @doc("Agent orchestration step")
-  agentStep: "agent_step",
-
-  @doc("Tool execution")
-  toolExecution: "tool_execution",
 }
 
 @doc("Reasons for generation completion")
@@ -652,25 +777,64 @@ enum GenAiErrorType {
   `unknown`: "unknown",
 }
 
-@doc("Token types for usage tracking")
+// =============================================================================
+// GenAI Token Types (OTel semconv 1.39 compliant)
+// =============================================================================
+
+@doc("Token types for usage tracking - OTel semconv 1.39 official values")
 enum GenAiTokenType {
+  // ---------------------------------------------------------------------------
+  // OFFICIAL OTel semconv 1.39 values
+  // ---------------------------------------------------------------------------
+
   @doc("Input/prompt tokens")
   input: "input",
 
   @doc("Output/completion tokens")
   output: "output",
 
-  @doc("Cached input tokens")
+  // ---------------------------------------------------------------------------
+  // QYL Extensions (not in OTel spec)
+  // ---------------------------------------------------------------------------
+
+  @doc("Cached input tokens (qyl extension)")
   cached: "cached",
 
-  @doc("Reasoning tokens (CoT)")
+  @doc("Reasoning tokens for CoT models (qyl extension)")
   reasoning: "reasoning",
+}
 
-  @doc("Audio tokens")
-  audio: "audio",
+// =============================================================================
+// GenAI Tool Types (OTel semconv 1.39 compliant)
+// =============================================================================
 
-  @doc("Image tokens")
-  image: "image",
+@doc("Tool types for GenAI function calling - OTel semconv 1.39 official values")
+enum GenAiToolType {
+  // ---------------------------------------------------------------------------
+  // OFFICIAL OTel semconv 1.39 values
+  // ---------------------------------------------------------------------------
+
+  @doc("Function/method call")
+  function: "function",
+
+  @doc("Extension tool")
+  extension: "extension",
+
+  @doc("Datastore access")
+  datastore: "datastore",
+
+  // ---------------------------------------------------------------------------
+  // QYL Extensions (not in OTel spec)
+  // ---------------------------------------------------------------------------
+
+  @doc("Code interpreter/execution (qyl extension)")
+  codeInterpreter: "code_interpreter",
+
+  @doc("MCP (Model Context Protocol) tool (qyl extension)")
+  mcp: "mcp",
+
+  @doc("Web search (qyl extension)")
+  webSearch: "web_search",
 }
 
 @doc("GenAI output types")
@@ -1141,4 +1305,46 @@ model LatencyPercentiles {
 
   @doc("P99 in milliseconds")
   p99: float64;
+}
+
+// =============================================================================
+// Vendor-Specific Extensions (OTel 1.39)
+// =============================================================================
+
+@doc("OpenAI-specific request attributes")
+model OpenAiRequestAttributes {
+  @doc("Response format requested (text, json_object, json_schema)")
+  @encodedName("application/json", "gen_ai.openai.request.response_format")
+  responseFormat?: OpenAiResponseFormat;
+
+  @doc("Random seed for deterministic generation")
+  @encodedName("application/json", "gen_ai.openai.request.seed")
+  seed?: int64;
+
+  @doc("Service tier for the request (auto, default, etc.)")
+  @encodedName("application/json", "gen_ai.openai.request.service_tier")
+  serviceTier?: string;
+}
+
+@doc("OpenAI-specific response attributes")
+model OpenAiResponseAttributes {
+  @doc("Service tier used for the response")
+  @encodedName("application/json", "gen_ai.openai.response.service_tier")
+  serviceTier?: string;
+
+  @doc("System fingerprint for reproducibility")
+  @encodedName("application/json", "gen_ai.openai.response.system_fingerprint")
+  systemFingerprint?: string;
+}
+
+@doc("OpenAI response format types")
+enum OpenAiResponseFormat {
+  @doc("Plain text response")
+  text: "text",
+
+  @doc("JSON object response")
+  jsonObject: "json_object",
+
+  @doc("JSON schema-constrained response")
+  jsonSchema: "json_schema",
 }

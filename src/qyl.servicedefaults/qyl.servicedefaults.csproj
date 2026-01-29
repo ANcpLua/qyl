@@ -14,6 +14,9 @@
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery"/>
 
+    <!-- Microsoft.Extensions.AI for IChatClient instrumentation -->
+    <PackageReference Include="Microsoft.Extensions.AI"/>
+
     <!-- .NET 10 Telemetry (Enrichment, Redaction, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
@@ -30,6 +33,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Shared types -->
+    <ProjectReference Include="../qyl.protocol/qyl.protocol.csproj"/>
+
     <!-- Source generator for auto-instrumentation -->
     <ProjectReference Include="../qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"
                       OutputItemType="Analyzer"

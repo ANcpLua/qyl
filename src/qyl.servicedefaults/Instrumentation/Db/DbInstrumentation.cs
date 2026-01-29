@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
+using qyl.protocol.Attributes;
 
 namespace Qyl.ServiceDefaults.Instrumentation.Db;
 
@@ -135,21 +136,21 @@ public static class DbInstrumentation
 
     private static Activity? StartDbActivity(DbCommand command, string operationName)
     {
-        var activity = ActivitySources.Db.StartActivity("db.query", ActivityKind.Client);
+        var activity = ActivitySources.DbSource.StartActivity("db.query", ActivityKind.Client);
 
         if (activity is null)
             return null;
 
         var dbSystem = GetDbSystem(command.Connection);
 
-        activity.SetTag(DbSystemAttributes.Name, dbSystem);
-        activity.SetTag(DbOperationAttributes.Name, operationName);
+        activity.SetTag(DbAttributes.SystemName, dbSystem);
+        activity.SetTag(DbAttributes.OperationName, operationName);
 
         if (command.CommandText is { Length: > 0 } sql)
-            activity.SetTag(DbQueryAttributes.Text, sql);
+            activity.SetTag(DbAttributes.QueryText, sql);
 
         if (command.Connection?.Database is { Length: > 0 } dbName)
-            activity.SetTag(DbNamespaceAttributes.Namespace, dbName);
+            activity.SetTag(DbAttributes.Namespace, dbName);
 
         return activity;
     }
@@ -187,13 +188,13 @@ public static class DbInstrumentation
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch
         {
-            _ when typeName.Contains("DuckDB", StringComparison.OrdinalIgnoreCase) => "duckdb",
-            _ when typeName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) => "postgresql",
-            _ when typeName.Contains("SqlClient", StringComparison.OrdinalIgnoreCase) => "mssql",
-            _ when typeName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) => "sqlite",
-            _ when typeName.Contains("Oracle", StringComparison.OrdinalIgnoreCase) => "oracle",
-            _ when typeName.Contains("MySql", StringComparison.OrdinalIgnoreCase) => "mysql",
-            _ when typeName.Contains("Firebird", StringComparison.OrdinalIgnoreCase) => "firebird",
+            _ when typeName.Contains("DuckDB", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.DuckDb,
+            _ when typeName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.PostgreSql,
+            _ when typeName.Contains("SqlClient", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.MsSql,
+            _ when typeName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Sqlite,
+            _ when typeName.Contains("Oracle", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Oracle,
+            _ when typeName.Contains("MySql", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.MySql,
+            _ when typeName.Contains("Firebird", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Firebird,
             _ => "unknown"
         };
 }

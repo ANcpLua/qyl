@@ -10,8 +10,6 @@ namespace WebApi.Controllers;
 [Route("[controller]")]
 public class SendMessageController(MessageSender messageSender) : ControllerBase
 {
-    private readonly MessageSender _messageSender = messageSender;
-
     [HttpGet]
-    public Task<string> Get() => _messageSender.SendMessageAsync();
+    public Task<string> Get() => messageSender.SendMessageAsync();
 }

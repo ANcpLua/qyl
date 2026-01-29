@@ -1081,7 +1081,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         return new ReadLease(this, con);
     }
 
-    private void ReturnRead(DuckDBConnection con)
+    internal void ReturnRead(DuckDBConnection con)
     {
         try
         {
@@ -1095,6 +1095,11 @@ public sealed class DuckDbStore : IAsyncDisposable
             _readGate.Release();
         }
     }
+
+    /// <summary>
+    /// Releases the read gate for shared connections (in-memory mode).
+    /// </summary>
+    internal void ReleaseReadGate() => _readGate.Release();
 
     // ==========================================================================
     // Private Methods - Schema & Mapping

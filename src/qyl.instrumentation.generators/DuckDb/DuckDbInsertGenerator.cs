@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Collections.Immutable;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -120,7 +119,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             TypeKind: typeDecl is RecordDeclarationSyntax ? "record" : "class",
             TableName: tableName!, // Validated non-null above by string.IsNullOrEmpty check
             OnConflict: onConflict,
-            Columns: columns.ToImmutableArray());
+            Columns: [..columns]);
     }
 
     private static DuckDbColumnInfo? ExtractColumnInfo(IPropertySymbol prop, int defaultOrdinal)

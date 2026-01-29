@@ -94,7 +94,7 @@ internal static class MeterAnalyzer
         return (name, version);
     }
 
-    private static List<MetricMethodInfo> ExtractMetricMethods(INamedTypeSymbol classSymbol)
+    private static List<MetricMethodInfo> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
     {
         var methods = new List<MetricMethodInfo>();
 

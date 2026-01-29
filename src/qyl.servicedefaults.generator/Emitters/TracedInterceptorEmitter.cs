@@ -408,7 +408,7 @@ internal static class TracedInterceptorEmitter
     /// <summary>
     ///     Parses generic type arguments, handling nested generics correctly.
     /// </summary>
-    private static IEnumerable<string> ParseGenericArguments(string argsContent)
+    private static List<string> ParseGenericArguments(string argsContent)
     {
         var args = new List<string>();
         var depth = 0;
@@ -457,7 +457,7 @@ internal static class TracedInterceptorEmitter
 
     private static IReadOnlyList<string> GetTypeParameterNames(TracedInvocationInfo invocation)
     {
-        return invocation.TypeParameters.Select(static tp => tp.Name).ToList();
+        return [.. invocation.TypeParameters.Select(static tp => tp.Name)];
     }
 
     private static string BuildArgumentList(TracedInvocationInfo invocation)

@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
@@ -7,8 +6,18 @@ using qyl.collector.Grpc;
 using qyl.collector.Health;
 using qyl.collector.Mcp;
 using qyl.collector.Telemetry;
+using Qyl.ServiceDefaults;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+
+// Service defaults: OpenTelemetry (with GenAI sources), resilience, service discovery
+builder.UseQyl(options =>
+{
+    // Collector has custom OpenAPI via stubs, not the standard AddOpenApi
+    options.EnableOpenApi = false;
+    // Collector has specialized DuckDB health checks
+    options.AdditionalActivitySources.Add("qyl.collector");
+});
 
 // Request decompression for OTLP clients sending gzip/deflate compressed payloads
 builder.Services.AddRequestDecompression();
@@ -734,26 +743,26 @@ namespace qyl.collector
         {
             Throw.IfNull(attributes);
 
-            var inputTokens = GetLong(attributes, GenAiUsageAttributes.InputTokens);
-            var outputTokens = GetLong(attributes, GenAiUsageAttributes.OutputTokens);
+            var inputTokens = GetLong(attributes, GenAiAttributes.UsageInputTokens);
+            var outputTokens = GetLong(attributes, GenAiAttributes.UsageOutputTokens);
 
             return new GenAiFields
             {
-                ProviderName = GetString(attributes, GenAiProviderAttributes.Name),
-                OperationName = GetString(attributes, GenAiOperationAttributes.Name),
-                RequestModel = GetString(attributes, GenAiRequestAttributes.Model),
-                ResponseModel = GetString(attributes, GenAiResponseAttributes.Model),
+                ProviderName = GetString(attributes, GenAiAttributes.ProviderName),
+                OperationName = GetString(attributes, GenAiAttributes.OperationName),
+                RequestModel = GetString(attributes, GenAiAttributes.RequestModel),
+                ResponseModel = GetString(attributes, GenAiAttributes.ResponseModel),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
                 TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
-                Temperature = GetDouble(attributes, GenAiRequestAttributes.Temperature),
-                MaxTokens = GetLong(attributes, GenAiRequestAttributes.MaxTokens),
-                FinishReason = GetString(attributes, GenAiResponseAttributes.FinishReasons),
+                Temperature = GetDouble(attributes, GenAiAttributes.RequestTemperature),
+                MaxTokens = GetLong(attributes, GenAiAttributes.RequestMaxTokens),
+                FinishReason = GetString(attributes, GenAiAttributes.ResponseFinishReasons),
                 CostUsd = GetDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetString(attributes, QylAttributes.SessionId)
-                            ?? GetString(attributes, GenAiConversationAttributes.Id),
-                ToolName = GetString(attributes, GenAiToolAttributes.Name),
-                ToolCallId = GetString(attributes, GenAiToolAttributes.CallId)
+                            ?? GetString(attributes, GenAiAttributes.ConversationId),
+                ToolName = GetString(attributes, GenAiAttributes.ToolName),
+                ToolCallId = GetString(attributes, GenAiAttributes.ToolCallId)
             };
         }
 
@@ -764,8 +773,8 @@ namespace qyl.collector
         {
             Throw.IfNull(attributes);
 
-            return attributes.ContainsKey(GenAiProviderAttributes.Name) ||
-                   attributes.ContainsKey(GenAiRequestAttributes.Model);
+            return attributes.ContainsKey(GenAiAttributes.ProviderName) ||
+                   attributes.ContainsKey(GenAiAttributes.RequestModel);
         }
 
         /// <summary>
@@ -773,26 +782,26 @@ namespace qyl.collector
         /// </summary>
         public static GenAiFields Extract(JsonElement attributes)
         {
-            var inputTokens = GetJsonLong(attributes, GenAiUsageAttributes.InputTokens);
-            var outputTokens = GetJsonLong(attributes, GenAiUsageAttributes.OutputTokens);
+            var inputTokens = GetJsonLong(attributes, GenAiAttributes.UsageInputTokens);
+            var outputTokens = GetJsonLong(attributes, GenAiAttributes.UsageOutputTokens);
 
             return new GenAiFields
             {
-                ProviderName = GetJsonString(attributes, GenAiProviderAttributes.Name),
-                OperationName = GetJsonString(attributes, GenAiOperationAttributes.Name),
-                RequestModel = GetJsonString(attributes, GenAiRequestAttributes.Model),
-                ResponseModel = GetJsonString(attributes, GenAiResponseAttributes.Model),
+                ProviderName = GetJsonString(attributes, GenAiAttributes.ProviderName),
+                OperationName = GetJsonString(attributes, GenAiAttributes.OperationName),
+                RequestModel = GetJsonString(attributes, GenAiAttributes.RequestModel),
+                ResponseModel = GetJsonString(attributes, GenAiAttributes.ResponseModel),
                 InputTokens = inputTokens,
                 OutputTokens = outputTokens,
                 TotalTokens = (inputTokens ?? 0) + (outputTokens ?? 0),
-                Temperature = GetJsonDouble(attributes, GenAiRequestAttributes.Temperature),
-                MaxTokens = GetJsonLong(attributes, GenAiRequestAttributes.MaxTokens),
-                FinishReason = GetJsonString(attributes, GenAiResponseAttributes.FinishReasons),
+                Temperature = GetJsonDouble(attributes, GenAiAttributes.RequestTemperature),
+                MaxTokens = GetJsonLong(attributes, GenAiAttributes.RequestMaxTokens),
+                FinishReason = GetJsonString(attributes, GenAiAttributes.ResponseFinishReasons),
                 CostUsd = GetJsonDouble(attributes, QylAttributes.CostUsd),
                 SessionId = GetJsonString(attributes, QylAttributes.SessionId)
-                            ?? GetJsonString(attributes, GenAiConversationAttributes.Id),
-                ToolName = GetJsonString(attributes, GenAiToolAttributes.Name),
-                ToolCallId = GetJsonString(attributes, GenAiToolAttributes.CallId)
+                            ?? GetJsonString(attributes, GenAiAttributes.ConversationId),
+                ToolName = GetJsonString(attributes, GenAiAttributes.ToolName),
+                ToolCallId = GetJsonString(attributes, GenAiAttributes.ToolCallId)
             };
         }
 
@@ -819,8 +828,8 @@ namespace qyl.collector
         ///     Checks if JsonElement contains any GenAI-related keys.
         /// </summary>
         public static bool IsGenAiSpan(JsonElement attributes) =>
-            attributes.TryGetProperty(GenAiProviderAttributes.Name, out _) ||
-            attributes.TryGetProperty(GenAiRequestAttributes.Model, out _);
+            attributes.TryGetProperty(GenAiAttributes.ProviderName, out _) ||
+            attributes.TryGetProperty(GenAiAttributes.RequestModel, out _);
     }
 
     /// <summary>
@@ -999,5 +1008,5 @@ namespace qyl.collector
     [JsonSerializable(typeof(TraceFromMemoryResponse))]
     [JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
     [JsonSerializable(typeof(BufferStatsResponse))]
-    internal partial class QylSerializerContext : JsonSerializerContext;
+    public partial class QylSerializerContext : JsonSerializerContext;
 }

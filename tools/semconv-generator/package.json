@@ -10,17 +10,16 @@
     "generate:utf8": "tsx generate-semconv.ts --utf8-only",
     "generate:sql": "tsx generate-semconv.ts --sql-only",
     "deploy:dashboard": "cp output/semconv.ts ../../src/qyl.dashboard/src/lib/semconv.ts",
-    "deploy:servicedefaults": "cp output/SemanticConventions.g.cs ../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs",
-    "deploy:all": "npm run deploy:dashboard && npm run deploy:servicedefaults",
+    "deploy:typespec": "cp output/semconv.g.tsp ../../core/specs/generated/semconv.g.tsp",
+    "deploy:all": "npm run deploy:dashboard && npm run deploy:typespec",
     "validate:dashboard": "diff -q output/semconv.ts ../../src/qyl.dashboard/src/lib/semconv.ts",
-    "validate:servicedefaults": "diff -q output/SemanticConventions.g.cs ../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs",
-    "validate:all": "npm run validate:dashboard && npm run validate:servicedefaults",
+    "validate:all": "npm run validate:dashboard",
     "ci": "npm run generate && npm run validate:all"
   },
   "devDependencies": {
     "@opentelemetry/semantic-conventions": "1.39.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^25.1.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.0"
+    "typescript": "^5.9.3"
   }
 }

@@ -1,3 +1,4 @@
+using DuckDB.NET.Data;
 using qyl.collector.Storage;
 
 namespace qyl.collector.tests.Storage;
@@ -76,8 +77,8 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task InitializeAsync_CreatesSessionEntities_And_LogsTables()
     {
         // Act & Assert
-        Assert.True(await _store.Connection.TableExistsAsync("session_entities"));
-        Assert.True(await _store.Connection.TableExistsAsync("logs"));
+        Assert.True(await _store.Connection.TableExistsAsync("session_entities") as bool?);
+        Assert.True(await _store.Connection.TableExistsAsync("logs") as bool?);
     }
 
     [Fact]

@@ -5,9 +5,11 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- CA2007: ConfigureAwait not needed in ASP.NET Core apps (no SynchronizationContext) -->
-    <!-- NU1510: HealthChecks used via DI/abstractions, transitive dependency warning -->
-    <NoWarn>$(NoWarn);CA2007;NU1510</NoWarn>
+    <!-- Disable AOT analyzers - collector is not AOT compiled -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
+    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
+    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
   </PropertyGroup>
 
   <!-- Expose internals to test project -->
@@ -67,6 +69,7 @@
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
+    <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj"/>
   </ItemGroup>
 
   <!-- Source generators (compile-time only) -->

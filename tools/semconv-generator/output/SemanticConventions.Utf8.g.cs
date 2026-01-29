@@ -7,509 +7,6 @@
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-/// UTF-8 attribute keys for aspnetcore.diagnostics.* (zero-allocation parsing)
-/// </summary>
-public static class AspnetcoreDiagnosticsUtf8
-{
-    /// <summary>aspnetcore.diagnostics.exception.result</summary>
-    public static ReadOnlySpan<byte> ExceptionResult => "aspnetcore.diagnostics.exception.result"u8;
-
-    /// <summary>aspnetcore.diagnostics.handler.type</summary>
-    public static ReadOnlySpan<byte> HandlerType => "aspnetcore.diagnostics.handler.type"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for aspnetcore.rate_limiting.* (zero-allocation parsing)
-/// </summary>
-public static class AspnetcoreRateLimitingUtf8
-{
-    /// <summary>aspnetcore.rate_limiting.policy</summary>
-    public static ReadOnlySpan<byte> Policy => "aspnetcore.rate_limiting.policy"u8;
-
-    /// <summary>aspnetcore.rate_limiting.result</summary>
-    public static ReadOnlySpan<byte> Result => "aspnetcore.rate_limiting.result"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for aspnetcore.request.* (zero-allocation parsing)
-/// </summary>
-public static class AspnetcoreRequestUtf8
-{
-    /// <summary>aspnetcore.request.is_unhandled</summary>
-    public static ReadOnlySpan<byte> IsUnhandled => "aspnetcore.request.is_unhandled"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for aspnetcore.routing.* (zero-allocation parsing)
-/// </summary>
-public static class AspnetcoreRoutingUtf8
-{
-    /// <summary>aspnetcore.routing.is_fallback</summary>
-    public static ReadOnlySpan<byte> IsFallback => "aspnetcore.routing.is_fallback"u8;
-
-    /// <summary>aspnetcore.routing.match_status</summary>
-    public static ReadOnlySpan<byte> MatchStatus => "aspnetcore.routing.match_status"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for aspnetcore.user.* (zero-allocation parsing)
-/// </summary>
-public static class AspnetcoreUserUtf8
-{
-    /// <summary>aspnetcore.user.is_authenticated</summary>
-    public static ReadOnlySpan<byte> IsAuthenticated => "aspnetcore.user.is_authenticated"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for client.address.* (zero-allocation parsing)
-/// </summary>
-public static class ClientAddressUtf8
-{
-    /// <summary>client.address</summary>
-    public static ReadOnlySpan<byte> Address => "client.address"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for client.port.* (zero-allocation parsing)
-/// </summary>
-public static class ClientPortUtf8
-{
-    /// <summary>client.port</summary>
-    public static ReadOnlySpan<byte> Port => "client.port"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for code.column.* (zero-allocation parsing)
-/// </summary>
-public static class CodeColumnUtf8
-{
-    /// <summary>code.column.number</summary>
-    public static ReadOnlySpan<byte> Number => "code.column.number"u8;
-
-    /// <summary>code.column</summary>
-    public static ReadOnlySpan<byte> Column => "code.column"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for code.file.* (zero-allocation parsing)
-/// </summary>
-public static class CodeFileUtf8
-{
-    /// <summary>code.file.path</summary>
-    public static ReadOnlySpan<byte> Path => "code.file.path"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for code.function.* (zero-allocation parsing)
-/// </summary>
-public static class CodeFunctionUtf8
-{
-    /// <summary>code.function.name</summary>
-    public static ReadOnlySpan<byte> Name => "code.function.name"u8;
-
-    /// <summary>code.function</summary>
-    public static ReadOnlySpan<byte> Function => "code.function"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for code.line.* (zero-allocation parsing)
-/// </summary>
-public static class CodeLineUtf8
-{
-    /// <summary>code.line.number</summary>
-    public static ReadOnlySpan<byte> Number => "code.line.number"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for code.stacktrace.* (zero-allocation parsing)
-/// </summary>
-public static class CodeStacktraceUtf8
-{
-    /// <summary>code.stacktrace</summary>
-    public static ReadOnlySpan<byte> Stacktrace => "code.stacktrace"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.collection.* (zero-allocation parsing)
-/// </summary>
-public static class DbCollectionUtf8
-{
-    /// <summary>db.collection.name</summary>
-    public static ReadOnlySpan<byte> Name => "db.collection.name"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.namespace.* (zero-allocation parsing)
-/// </summary>
-public static class DbNamespaceUtf8
-{
-    /// <summary>db.namespace</summary>
-    public static ReadOnlySpan<byte> Namespace => "db.namespace"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.operation.* (zero-allocation parsing)
-/// </summary>
-public static class DbOperationUtf8
-{
-    /// <summary>db.operation.batch.size</summary>
-    public static ReadOnlySpan<byte> BatchSize => "db.operation.batch.size"u8;
-
-    /// <summary>db.operation.name</summary>
-    public static ReadOnlySpan<byte> Name => "db.operation.name"u8;
-
-    /// <summary>db.operation</summary>
-    public static ReadOnlySpan<byte> Operation => "db.operation"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.query.* (zero-allocation parsing)
-/// </summary>
-public static class DbQueryUtf8
-{
-    /// <summary>db.query.summary</summary>
-    public static ReadOnlySpan<byte> Summary => "db.query.summary"u8;
-
-    /// <summary>db.query.text</summary>
-    public static ReadOnlySpan<byte> Text => "db.query.text"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.response.* (zero-allocation parsing)
-/// </summary>
-public static class DbResponseUtf8
-{
-    /// <summary>db.response.status_code</summary>
-    public static ReadOnlySpan<byte> StatusCode => "db.response.status_code"u8;
-
-    /// <summary>db.response.returned_rows</summary>
-    public static ReadOnlySpan<byte> ReturnedRows => "db.response.returned_rows"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.stored_procedure.* (zero-allocation parsing)
-/// </summary>
-public static class DbStoredProcedureUtf8
-{
-    /// <summary>db.stored_procedure.name</summary>
-    public static ReadOnlySpan<byte> Name => "db.stored_procedure.name"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for db.system.* (zero-allocation parsing)
-/// </summary>
-public static class DbSystemUtf8
-{
-    /// <summary>db.system.name</summary>
-    public static ReadOnlySpan<byte> Name => "db.system.name"u8;
-
-    /// <summary>db.system</summary>
-    public static ReadOnlySpan<byte> System => "db.system"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for dotnet.gc.* (zero-allocation parsing)
-/// </summary>
-public static class DotnetGcUtf8
-{
-    /// <summary>dotnet.gc.heap.generation</summary>
-    public static ReadOnlySpan<byte> HeapGeneration => "dotnet.gc.heap.generation"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for error.type.* (zero-allocation parsing)
-/// </summary>
-public static class ErrorTypeUtf8
-{
-    /// <summary>error.type</summary>
-    public static ReadOnlySpan<byte> Type => "error.type"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for exception.escaped.* (zero-allocation parsing)
-/// </summary>
-public static class ExceptionEscapedUtf8
-{
-    /// <summary>exception.escaped</summary>
-    public static ReadOnlySpan<byte> Escaped => "exception.escaped"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for exception.message.* (zero-allocation parsing)
-/// </summary>
-public static class ExceptionMessageUtf8
-{
-    /// <summary>exception.message</summary>
-    public static ReadOnlySpan<byte> Message => "exception.message"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for exception.stacktrace.* (zero-allocation parsing)
-/// </summary>
-public static class ExceptionStacktraceUtf8
-{
-    /// <summary>exception.stacktrace</summary>
-    public static ReadOnlySpan<byte> Stacktrace => "exception.stacktrace"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for exception.type.* (zero-allocation parsing)
-/// </summary>
-public static class ExceptionTypeUtf8
-{
-    /// <summary>exception.type</summary>
-    public static ReadOnlySpan<byte> Type => "exception.type"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for http.request.* (zero-allocation parsing)
-/// </summary>
-public static class HttpRequestUtf8
-{
-    /// <summary>http.request.method</summary>
-    public static ReadOnlySpan<byte> Method => "http.request.method"u8;
-
-    /// <summary>http.request.method_original</summary>
-    public static ReadOnlySpan<byte> MethodOriginal => "http.request.method_original"u8;
-
-    /// <summary>http.request.resend_count</summary>
-    public static ReadOnlySpan<byte> ResendCount => "http.request.resend_count"u8;
-
-    /// <summary>http.request.body.size</summary>
-    public static ReadOnlySpan<byte> BodySize => "http.request.body.size"u8;
-
-    /// <summary>http.request.size</summary>
-    public static ReadOnlySpan<byte> Size => "http.request.size"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for http.response.* (zero-allocation parsing)
-/// </summary>
-public static class HttpResponseUtf8
-{
-    /// <summary>http.response.status_code</summary>
-    public static ReadOnlySpan<byte> StatusCode => "http.response.status_code"u8;
-
-    /// <summary>http.response.body.size</summary>
-    public static ReadOnlySpan<byte> BodySize => "http.response.body.size"u8;
-
-    /// <summary>http.response.size</summary>
-    public static ReadOnlySpan<byte> Size => "http.response.size"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for http.route.* (zero-allocation parsing)
-/// </summary>
-public static class HttpRouteUtf8
-{
-    /// <summary>http.route</summary>
-    public static ReadOnlySpan<byte> Route => "http.route"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for network.local.* (zero-allocation parsing)
-/// </summary>
-public static class NetworkLocalUtf8
-{
-    /// <summary>network.local.address</summary>
-    public static ReadOnlySpan<byte> Address => "network.local.address"u8;
-
-    /// <summary>network.local.port</summary>
-    public static ReadOnlySpan<byte> Port => "network.local.port"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for network.peer.* (zero-allocation parsing)
-/// </summary>
-public static class NetworkPeerUtf8
-{
-    /// <summary>network.peer.address</summary>
-    public static ReadOnlySpan<byte> Address => "network.peer.address"u8;
-
-    /// <summary>network.peer.port</summary>
-    public static ReadOnlySpan<byte> Port => "network.peer.port"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for network.protocol.* (zero-allocation parsing)
-/// </summary>
-public static class NetworkProtocolUtf8
-{
-    /// <summary>network.protocol.name</summary>
-    public static ReadOnlySpan<byte> Name => "network.protocol.name"u8;
-
-    /// <summary>network.protocol.version</summary>
-    public static ReadOnlySpan<byte> Version => "network.protocol.version"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for network.transport.* (zero-allocation parsing)
-/// </summary>
-public static class NetworkTransportUtf8
-{
-    /// <summary>network.transport</summary>
-    public static ReadOnlySpan<byte> Transport => "network.transport"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for network.type.* (zero-allocation parsing)
-/// </summary>
-public static class NetworkTypeUtf8
-{
-    /// <summary>network.type</summary>
-    public static ReadOnlySpan<byte> Type => "network.type"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for otel.scope.* (zero-allocation parsing)
-/// </summary>
-public static class OtelScopeUtf8
-{
-    /// <summary>otel.scope.name</summary>
-    public static ReadOnlySpan<byte> Name => "otel.scope.name"u8;
-
-    /// <summary>otel.scope.version</summary>
-    public static ReadOnlySpan<byte> Version => "otel.scope.version"u8;
-
-    /// <summary>otel.scope.schema_url</summary>
-    public static ReadOnlySpan<byte> SchemaUrl => "otel.scope.schema_url"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for otel.status_code.* (zero-allocation parsing)
-/// </summary>
-public static class OtelStatusCodeUtf8
-{
-    /// <summary>otel.status_code</summary>
-    public static ReadOnlySpan<byte> Status_code => "otel.status_code"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for otel.status_description.* (zero-allocation parsing)
-/// </summary>
-public static class OtelStatusDescriptionUtf8
-{
-    /// <summary>otel.status_description</summary>
-    public static ReadOnlySpan<byte> Status_description => "otel.status_description"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for signalr.connection.* (zero-allocation parsing)
-/// </summary>
-public static class SignalrConnectionUtf8
-{
-    /// <summary>signalr.connection.status</summary>
-    public static ReadOnlySpan<byte> Status => "signalr.connection.status"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for signalr.transport.* (zero-allocation parsing)
-/// </summary>
-public static class SignalrTransportUtf8
-{
-    /// <summary>signalr.transport</summary>
-    public static ReadOnlySpan<byte> Transport => "signalr.transport"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for url.fragment.* (zero-allocation parsing)
-/// </summary>
-public static class UrlFragmentUtf8
-{
-    /// <summary>url.fragment</summary>
-    public static ReadOnlySpan<byte> Fragment => "url.fragment"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for url.full.* (zero-allocation parsing)
-/// </summary>
-public static class UrlFullUtf8
-{
-    /// <summary>url.full</summary>
-    public static ReadOnlySpan<byte> Full => "url.full"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for url.path.* (zero-allocation parsing)
-/// </summary>
-public static class UrlPathUtf8
-{
-    /// <summary>url.path</summary>
-    public static ReadOnlySpan<byte> Path => "url.path"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for url.query.* (zero-allocation parsing)
-/// </summary>
-public static class UrlQueryUtf8
-{
-    /// <summary>url.query</summary>
-    public static ReadOnlySpan<byte> Query => "url.query"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for url.scheme.* (zero-allocation parsing)
-/// </summary>
-public static class UrlSchemeUtf8
-{
-    /// <summary>url.scheme</summary>
-    public static ReadOnlySpan<byte> Scheme => "url.scheme"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for user_agent.original.* (zero-allocation parsing)
-/// </summary>
-public static class UserAgentOriginalUtf8
-{
-    /// <summary>user_agent.original</summary>
-    public static ReadOnlySpan<byte> Original => "user_agent.original"u8;
-
-}
-
-/// <summary>
 /// UTF-8 attribute keys for artifact.attestation.* (zero-allocation parsing)
 /// </summary>
 public static class ArtifactAttestationUtf8
@@ -592,6 +89,19 @@ public static class AspnetcoreAuthorizationUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for aspnetcore.diagnostics.* (zero-allocation parsing)
+/// </summary>
+public static class AspnetcoreDiagnosticsUtf8
+{
+    /// <summary>aspnetcore.diagnostics.exception.result</summary>
+    public static ReadOnlySpan<byte> ExceptionResult => "aspnetcore.diagnostics.exception.result"u8;
+
+    /// <summary>aspnetcore.diagnostics.handler.type</summary>
+    public static ReadOnlySpan<byte> HandlerType => "aspnetcore.diagnostics.handler.type"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for aspnetcore.identity.* (zero-allocation parsing)
 /// </summary>
 public static class AspnetcoreIdentityUtf8
@@ -617,11 +127,11 @@ public static class AspnetcoreIdentityUtf8
     /// <summary>aspnetcore.identity.token_verified</summary>
     public static ReadOnlySpan<byte> TokenVerified => "aspnetcore.identity.token_verified"u8;
 
-    /// <summary>aspnetcore.identity.user.update_type</summary>
-    public static ReadOnlySpan<byte> UserUpdateType => "aspnetcore.identity.user.update_type"u8;
-
     /// <summary>aspnetcore.identity.user_type</summary>
     public static ReadOnlySpan<byte> UserType => "aspnetcore.identity.user_type"u8;
+
+    /// <summary>aspnetcore.identity.user.update_type</summary>
+    public static ReadOnlySpan<byte> UserUpdateType => "aspnetcore.identity.user.update_type"u8;
 
 }
 
@@ -636,12 +146,113 @@ public static class AspnetcoreMemoryPoolUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for aspnetcore.rate_limiting.* (zero-allocation parsing)
+/// </summary>
+public static class AspnetcoreRateLimitingUtf8
+{
+    /// <summary>aspnetcore.rate_limiting.policy</summary>
+    public static ReadOnlySpan<byte> Policy => "aspnetcore.rate_limiting.policy"u8;
+
+    /// <summary>aspnetcore.rate_limiting.result</summary>
+    public static ReadOnlySpan<byte> Result => "aspnetcore.rate_limiting.result"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for aspnetcore.request.* (zero-allocation parsing)
+/// </summary>
+public static class AspnetcoreRequestUtf8
+{
+    /// <summary>aspnetcore.request.is_unhandled</summary>
+    public static ReadOnlySpan<byte> IsUnhandled => "aspnetcore.request.is_unhandled"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for aspnetcore.routing.* (zero-allocation parsing)
+/// </summary>
+public static class AspnetcoreRoutingUtf8
+{
+    /// <summary>aspnetcore.routing.is_fallback</summary>
+    public static ReadOnlySpan<byte> IsFallback => "aspnetcore.routing.is_fallback"u8;
+
+    /// <summary>aspnetcore.routing.match_status</summary>
+    public static ReadOnlySpan<byte> MatchStatus => "aspnetcore.routing.match_status"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for aspnetcore.sign_in.* (zero-allocation parsing)
 /// </summary>
 public static class AspnetcoreSignInUtf8
 {
     /// <summary>aspnetcore.sign_in.is_persistent</summary>
     public static ReadOnlySpan<byte> IsPersistent => "aspnetcore.sign_in.is_persistent"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for aspnetcore.user.* (zero-allocation parsing)
+/// </summary>
+public static class AspnetcoreUserUtf8
+{
+    /// <summary>aspnetcore.user.is_authenticated</summary>
+    public static ReadOnlySpan<byte> IsAuthenticated => "aspnetcore.user.is_authenticated"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for azure.client.* (zero-allocation parsing)
+/// </summary>
+public static class AzureClientUtf8
+{
+    /// <summary>azure.client.id</summary>
+    public static ReadOnlySpan<byte> Id => "azure.client.id"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for azure.cosmosdb.* (zero-allocation parsing)
+/// </summary>
+public static class AzureCosmosdbUtf8
+{
+    /// <summary>azure.cosmosdb.connection.mode</summary>
+    public static ReadOnlySpan<byte> ConnectionMode => "azure.cosmosdb.connection.mode"u8;
+
+    /// <summary>azure.cosmosdb.consistency.level</summary>
+    public static ReadOnlySpan<byte> ConsistencyLevel => "azure.cosmosdb.consistency.level"u8;
+
+    /// <summary>azure.cosmosdb.operation.contacted_regions</summary>
+    public static ReadOnlySpan<byte> OperationContactedRegions => "azure.cosmosdb.operation.contacted_regions"u8;
+
+    /// <summary>azure.cosmosdb.operation.request_charge</summary>
+    public static ReadOnlySpan<byte> OperationRequestCharge => "azure.cosmosdb.operation.request_charge"u8;
+
+    /// <summary>azure.cosmosdb.request.body.size</summary>
+    public static ReadOnlySpan<byte> RequestBodySize => "azure.cosmosdb.request.body.size"u8;
+
+    /// <summary>azure.cosmosdb.response.sub_status_code</summary>
+    public static ReadOnlySpan<byte> ResponseSubStatusCode => "azure.cosmosdb.response.sub_status_code"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for azure.resource_provider.* (zero-allocation parsing)
+/// </summary>
+public static class AzureResourceProviderUtf8
+{
+    /// <summary>azure.resource_provider.namespace</summary>
+    public static ReadOnlySpan<byte> Namespace => "azure.resource_provider.namespace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for azure.service.* (zero-allocation parsing)
+/// </summary>
+public static class AzureServiceUtf8
+{
+    /// <summary>azure.service.request.id</summary>
+    public static ReadOnlySpan<byte> RequestId => "azure.service.request.id"u8;
 
 }
 
@@ -751,6 +362,26 @@ public static class CicdWorkerUtf8
 
     /// <summary>cicd.worker.url.full</summary>
     public static ReadOnlySpan<byte> UrlFull => "cicd.worker.url.full"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for client.address.* (zero-allocation parsing)
+/// </summary>
+public static class ClientAddressUtf8
+{
+    /// <summary>client.address</summary>
+    public static ReadOnlySpan<byte> Address => "client.address"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for client.port.* (zero-allocation parsing)
+/// </summary>
+public static class ClientPortUtf8
+{
+    /// <summary>client.port</summary>
+    public static ReadOnlySpan<byte> Port => "client.port"u8;
 
 }
 
@@ -933,12 +564,58 @@ public static class CloudfoundrySystemUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for code.column.* (zero-allocation parsing)
+/// </summary>
+public static class CodeColumnUtf8
+{
+    /// <summary>code.column</summary>
+    public static ReadOnlySpan<byte> Column => "code.column"u8;
+
+    /// <summary>code.column.number</summary>
+    public static ReadOnlySpan<byte> Number => "code.column.number"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for code.file.* (zero-allocation parsing)
+/// </summary>
+public static class CodeFileUtf8
+{
+    /// <summary>code.file.path</summary>
+    public static ReadOnlySpan<byte> Path => "code.file.path"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for code.filepath.* (zero-allocation parsing)
 /// </summary>
 public static class CodeFilepathUtf8
 {
     /// <summary>code.filepath</summary>
     public static ReadOnlySpan<byte> Filepath => "code.filepath"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for code.function.* (zero-allocation parsing)
+/// </summary>
+public static class CodeFunctionUtf8
+{
+    /// <summary>code.function</summary>
+    public static ReadOnlySpan<byte> Function => "code.function"u8;
+
+    /// <summary>code.function.name</summary>
+    public static ReadOnlySpan<byte> Name => "code.function.name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for code.line.* (zero-allocation parsing)
+/// </summary>
+public static class CodeLineUtf8
+{
+    /// <summary>code.line.number</summary>
+    public static ReadOnlySpan<byte> Number => "code.line.number"u8;
 
 }
 
@@ -959,6 +636,16 @@ public static class CodeNamespaceUtf8
 {
     /// <summary>code.namespace</summary>
     public static ReadOnlySpan<byte> Namespace => "code.namespace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for code.stacktrace.* (zero-allocation parsing)
+/// </summary>
+public static class CodeStacktraceUtf8
+{
+    /// <summary>code.stacktrace</summary>
+    public static ReadOnlySpan<byte> Stacktrace => "code.stacktrace"u8;
 
 }
 
@@ -1121,6 +808,16 @@ public static class DbClientUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for db.collection.* (zero-allocation parsing)
+/// </summary>
+public static class DbCollectionUtf8
+{
+    /// <summary>db.collection.name</summary>
+    public static ReadOnlySpan<byte> Name => "db.collection.name"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for db.connection_string.* (zero-allocation parsing)
 /// </summary>
 public static class DbConnectionStringUtf8
@@ -1231,12 +928,64 @@ public static class DbNameUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for db.namespace.* (zero-allocation parsing)
+/// </summary>
+public static class DbNamespaceUtf8
+{
+    /// <summary>db.namespace</summary>
+    public static ReadOnlySpan<byte> Namespace => "db.namespace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for db.operation.* (zero-allocation parsing)
+/// </summary>
+public static class DbOperationUtf8
+{
+    /// <summary>db.operation</summary>
+    public static ReadOnlySpan<byte> Operation => "db.operation"u8;
+
+    /// <summary>db.operation.batch.size</summary>
+    public static ReadOnlySpan<byte> BatchSize => "db.operation.batch.size"u8;
+
+    /// <summary>db.operation.name</summary>
+    public static ReadOnlySpan<byte> Name => "db.operation.name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for db.query.* (zero-allocation parsing)
+/// </summary>
+public static class DbQueryUtf8
+{
+    /// <summary>db.query.summary</summary>
+    public static ReadOnlySpan<byte> Summary => "db.query.summary"u8;
+
+    /// <summary>db.query.text</summary>
+    public static ReadOnlySpan<byte> Text => "db.query.text"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for db.redis.* (zero-allocation parsing)
 /// </summary>
 public static class DbRedisUtf8
 {
     /// <summary>db.redis.database_index</summary>
     public static ReadOnlySpan<byte> DatabaseIndex => "db.redis.database_index"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for db.response.* (zero-allocation parsing)
+/// </summary>
+public static class DbResponseUtf8
+{
+    /// <summary>db.response.returned_rows</summary>
+    public static ReadOnlySpan<byte> ReturnedRows => "db.response.returned_rows"u8;
+
+    /// <summary>db.response.status_code</summary>
+    public static ReadOnlySpan<byte> StatusCode => "db.response.status_code"u8;
 
 }
 
@@ -1257,6 +1006,29 @@ public static class DbStatementUtf8
 {
     /// <summary>db.statement</summary>
     public static ReadOnlySpan<byte> Statement => "db.statement"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for db.stored_procedure.* (zero-allocation parsing)
+/// </summary>
+public static class DbStoredProcedureUtf8
+{
+    /// <summary>db.stored_procedure.name</summary>
+    public static ReadOnlySpan<byte> Name => "db.stored_procedure.name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for db.system.* (zero-allocation parsing)
+/// </summary>
+public static class DbSystemUtf8
+{
+    /// <summary>db.system</summary>
+    public static ReadOnlySpan<byte> System => "db.system"u8;
+
+    /// <summary>db.system.name</summary>
+    public static ReadOnlySpan<byte> Name => "db.system.name"u8;
 
 }
 
@@ -1334,6 +1106,16 @@ public static class DnsQuestionUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for dotnet.gc.* (zero-allocation parsing)
+/// </summary>
+public static class DotnetGcUtf8
+{
+    /// <summary>dotnet.gc.heap.generation</summary>
+    public static ReadOnlySpan<byte> HeapGeneration => "dotnet.gc.heap.generation"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for elasticsearch.node.* (zero-allocation parsing)
 /// </summary>
 public static class ElasticsearchNodeUtf8
@@ -1390,6 +1172,56 @@ public static class ErrorMessageUtf8
 {
     /// <summary>error.message</summary>
     public static ReadOnlySpan<byte> Message => "error.message"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for error.type.* (zero-allocation parsing)
+/// </summary>
+public static class ErrorTypeUtf8
+{
+    /// <summary>error.type</summary>
+    public static ReadOnlySpan<byte> Type => "error.type"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for exception.escaped.* (zero-allocation parsing)
+/// </summary>
+public static class ExceptionEscapedUtf8
+{
+    /// <summary>exception.escaped</summary>
+    public static ReadOnlySpan<byte> Escaped => "exception.escaped"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for exception.message.* (zero-allocation parsing)
+/// </summary>
+public static class ExceptionMessageUtf8
+{
+    /// <summary>exception.message</summary>
+    public static ReadOnlySpan<byte> Message => "exception.message"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for exception.stacktrace.* (zero-allocation parsing)
+/// </summary>
+public static class ExceptionStacktraceUtf8
+{
+    /// <summary>exception.stacktrace</summary>
+    public static ReadOnlySpan<byte> Stacktrace => "exception.stacktrace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for exception.type.* (zero-allocation parsing)
+/// </summary>
+public static class ExceptionTypeUtf8
+{
+    /// <summary>exception.type</summary>
+    public static ReadOnlySpan<byte> Type => "exception.type"u8;
 
 }
 
@@ -2308,6 +2140,28 @@ public static class HttpRequestContentLengthUncompressedUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for http.request.* (zero-allocation parsing)
+/// </summary>
+public static class HttpRequestUtf8
+{
+    /// <summary>http.request.body.size</summary>
+    public static ReadOnlySpan<byte> BodySize => "http.request.body.size"u8;
+
+    /// <summary>http.request.method</summary>
+    public static ReadOnlySpan<byte> Method => "http.request.method"u8;
+
+    /// <summary>http.request.method_original</summary>
+    public static ReadOnlySpan<byte> MethodOriginal => "http.request.method_original"u8;
+
+    /// <summary>http.request.resend_count</summary>
+    public static ReadOnlySpan<byte> ResendCount => "http.request.resend_count"u8;
+
+    /// <summary>http.request.size</summary>
+    public static ReadOnlySpan<byte> Size => "http.request.size"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for http.response_content_length.* (zero-allocation parsing)
 /// </summary>
 public static class HttpResponseContentLengthUtf8
@@ -2324,6 +2178,32 @@ public static class HttpResponseContentLengthUncompressedUtf8
 {
     /// <summary>http.response_content_length_uncompressed</summary>
     public static ReadOnlySpan<byte> Response_content_length_uncompressed => "http.response_content_length_uncompressed"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for http.response.* (zero-allocation parsing)
+/// </summary>
+public static class HttpResponseUtf8
+{
+    /// <summary>http.response.body.size</summary>
+    public static ReadOnlySpan<byte> BodySize => "http.response.body.size"u8;
+
+    /// <summary>http.response.size</summary>
+    public static ReadOnlySpan<byte> Size => "http.response.size"u8;
+
+    /// <summary>http.response.status_code</summary>
+    public static ReadOnlySpan<byte> StatusCode => "http.response.status_code"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for http.route.* (zero-allocation parsing)
+/// </summary>
+public static class HttpRouteUtf8
+{
+    /// <summary>http.route</summary>
+    public static ReadOnlySpan<byte> Route => "http.route"u8;
 
 }
 
@@ -2720,6 +2600,19 @@ public static class MessagingConsumerUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for messaging.destination_publish.* (zero-allocation parsing)
+/// </summary>
+public static class MessagingDestinationPublishUtf8
+{
+    /// <summary>messaging.destination_publish.anonymous</summary>
+    public static ReadOnlySpan<byte> Anonymous => "messaging.destination_publish.anonymous"u8;
+
+    /// <summary>messaging.destination_publish.name</summary>
+    public static ReadOnlySpan<byte> Name => "messaging.destination_publish.name"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for messaging.destination.* (zero-allocation parsing)
 /// </summary>
 public static class MessagingDestinationUtf8
@@ -2741,19 +2634,6 @@ public static class MessagingDestinationUtf8
 
     /// <summary>messaging.destination.temporary</summary>
     public static ReadOnlySpan<byte> Temporary => "messaging.destination.temporary"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for messaging.destination_publish.* (zero-allocation parsing)
-/// </summary>
-public static class MessagingDestinationPublishUtf8
-{
-    /// <summary>messaging.destination_publish.anonymous</summary>
-    public static ReadOnlySpan<byte> Anonymous => "messaging.destination_publish.anonymous"u8;
-
-    /// <summary>messaging.destination_publish.name</summary>
-    public static ReadOnlySpan<byte> Name => "messaging.destination_publish.name"u8;
 
 }
 
@@ -2981,6 +2861,88 @@ public static class NetworkIoUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for network.local.* (zero-allocation parsing)
+/// </summary>
+public static class NetworkLocalUtf8
+{
+    /// <summary>network.local.address</summary>
+    public static ReadOnlySpan<byte> Address => "network.local.address"u8;
+
+    /// <summary>network.local.port</summary>
+    public static ReadOnlySpan<byte> Port => "network.local.port"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for network.peer.* (zero-allocation parsing)
+/// </summary>
+public static class NetworkPeerUtf8
+{
+    /// <summary>network.peer.address</summary>
+    public static ReadOnlySpan<byte> Address => "network.peer.address"u8;
+
+    /// <summary>network.peer.port</summary>
+    public static ReadOnlySpan<byte> Port => "network.peer.port"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for network.protocol.* (zero-allocation parsing)
+/// </summary>
+public static class NetworkProtocolUtf8
+{
+    /// <summary>network.protocol.name</summary>
+    public static ReadOnlySpan<byte> Name => "network.protocol.name"u8;
+
+    /// <summary>network.protocol.version</summary>
+    public static ReadOnlySpan<byte> Version => "network.protocol.version"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for network.transport.* (zero-allocation parsing)
+/// </summary>
+public static class NetworkTransportUtf8
+{
+    /// <summary>network.transport</summary>
+    public static ReadOnlySpan<byte> Transport => "network.transport"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for network.type.* (zero-allocation parsing)
+/// </summary>
+public static class NetworkTypeUtf8
+{
+    /// <summary>network.type</summary>
+    public static ReadOnlySpan<byte> Type => "network.type"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for openai.request.* (zero-allocation parsing)
+/// </summary>
+public static class OpenaiRequestUtf8
+{
+    /// <summary>openai.request.service_tier</summary>
+    public static ReadOnlySpan<byte> ServiceTier => "openai.request.service_tier"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for openai.response.* (zero-allocation parsing)
+/// </summary>
+public static class OpenaiResponseUtf8
+{
+    /// <summary>openai.response.service_tier</summary>
+    public static ReadOnlySpan<byte> ServiceTier => "openai.response.service_tier"u8;
+
+    /// <summary>openai.response.system_fingerprint</summary>
+    public static ReadOnlySpan<byte> SystemFingerprint => "openai.response.system_fingerprint"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for os.build_id.* (zero-allocation parsing)
 /// </summary>
 public static class OsBuildIdUtf8
@@ -3067,6 +3029,22 @@ public static class OtelLibraryUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for otel.scope.* (zero-allocation parsing)
+/// </summary>
+public static class OtelScopeUtf8
+{
+    /// <summary>otel.scope.name</summary>
+    public static ReadOnlySpan<byte> Name => "otel.scope.name"u8;
+
+    /// <summary>otel.scope.schema_url</summary>
+    public static ReadOnlySpan<byte> SchemaUrl => "otel.scope.schema_url"u8;
+
+    /// <summary>otel.scope.version</summary>
+    public static ReadOnlySpan<byte> Version => "otel.scope.version"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for otel.span.* (zero-allocation parsing)
 /// </summary>
 public static class OtelSpanUtf8
@@ -3076,6 +3054,26 @@ public static class OtelSpanUtf8
 
     /// <summary>otel.span.sampling_result</summary>
     public static ReadOnlySpan<byte> SamplingResult => "otel.span.sampling_result"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for otel.status_code.* (zero-allocation parsing)
+/// </summary>
+public static class OtelStatusCodeUtf8
+{
+    /// <summary>otel.status_code</summary>
+    public static ReadOnlySpan<byte> Status_code => "otel.status_code"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for otel.status_description.* (zero-allocation parsing)
+/// </summary>
+public static class OtelStatusDescriptionUtf8
+{
+    /// <summary>otel.status_description</summary>
+    public static ReadOnlySpan<byte> Status_description => "otel.status_description"u8;
 
 }
 
@@ -3474,6 +3472,79 @@ public static class RpcSystemUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for server.address.* (zero-allocation parsing)
+/// </summary>
+public static class ServerAddressUtf8
+{
+    /// <summary>server.address</summary>
+    public static ReadOnlySpan<byte> Address => "server.address"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for server.port.* (zero-allocation parsing)
+/// </summary>
+public static class ServerPortUtf8
+{
+    /// <summary>server.port</summary>
+    public static ReadOnlySpan<byte> Port => "server.port"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for service.instance.* (zero-allocation parsing)
+/// </summary>
+public static class ServiceInstanceUtf8
+{
+    /// <summary>service.instance.id</summary>
+    public static ReadOnlySpan<byte> Id => "service.instance.id"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for service.name.* (zero-allocation parsing)
+/// </summary>
+public static class ServiceNameUtf8
+{
+    /// <summary>service.name</summary>
+    public static ReadOnlySpan<byte> Name => "service.name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for service.namespace.* (zero-allocation parsing)
+/// </summary>
+public static class ServiceNamespaceUtf8
+{
+    /// <summary>service.namespace</summary>
+    public static ReadOnlySpan<byte> Namespace => "service.namespace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for service.peer.* (zero-allocation parsing)
+/// </summary>
+public static class ServicePeerUtf8
+{
+    /// <summary>service.peer.name</summary>
+    public static ReadOnlySpan<byte> Name => "service.peer.name"u8;
+
+    /// <summary>service.peer.namespace</summary>
+    public static ReadOnlySpan<byte> Namespace => "service.peer.namespace"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for service.version.* (zero-allocation parsing)
+/// </summary>
+public static class ServiceVersionUtf8
+{
+    /// <summary>service.version</summary>
+    public static ReadOnlySpan<byte> Version => "service.version"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for session.id.* (zero-allocation parsing)
 /// </summary>
 public static class SessionIdUtf8
@@ -3490,6 +3561,26 @@ public static class SessionPreviousIdUtf8
 {
     /// <summary>session.previous_id</summary>
     public static ReadOnlySpan<byte> Previous_id => "session.previous_id"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for signalr.connection.* (zero-allocation parsing)
+/// </summary>
+public static class SignalrConnectionUtf8
+{
+    /// <summary>signalr.connection.status</summary>
+    public static ReadOnlySpan<byte> Status => "signalr.connection.status"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for signalr.transport.* (zero-allocation parsing)
+/// </summary>
+public static class SignalrTransportUtf8
+{
+    /// <summary>signalr.transport</summary>
+    public static ReadOnlySpan<byte> Transport => "signalr.transport"u8;
 
 }
 
@@ -3594,6 +3685,35 @@ public static class SystemProcessesUtf8
 {
     /// <summary>system.processes.status</summary>
     public static ReadOnlySpan<byte> Status => "system.processes.status"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for telemetry.distro.* (zero-allocation parsing)
+/// </summary>
+public static class TelemetryDistroUtf8
+{
+    /// <summary>telemetry.distro.name</summary>
+    public static ReadOnlySpan<byte> Name => "telemetry.distro.name"u8;
+
+    /// <summary>telemetry.distro.version</summary>
+    public static ReadOnlySpan<byte> Version => "telemetry.distro.version"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for telemetry.sdk.* (zero-allocation parsing)
+/// </summary>
+public static class TelemetrySdkUtf8
+{
+    /// <summary>telemetry.sdk.language</summary>
+    public static ReadOnlySpan<byte> Language => "telemetry.sdk.language"u8;
+
+    /// <summary>telemetry.sdk.name</summary>
+    public static ReadOnlySpan<byte> Name => "telemetry.sdk.name"u8;
+
+    /// <summary>telemetry.sdk.version</summary>
+    public static ReadOnlySpan<byte> Version => "telemetry.sdk.version"u8;
 
 }
 
@@ -3807,12 +3927,42 @@ public static class UrlExtensionUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for url.fragment.* (zero-allocation parsing)
+/// </summary>
+public static class UrlFragmentUtf8
+{
+    /// <summary>url.fragment</summary>
+    public static ReadOnlySpan<byte> Fragment => "url.fragment"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for url.full.* (zero-allocation parsing)
+/// </summary>
+public static class UrlFullUtf8
+{
+    /// <summary>url.full</summary>
+    public static ReadOnlySpan<byte> Full => "url.full"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for url.original.* (zero-allocation parsing)
 /// </summary>
 public static class UrlOriginalUtf8
 {
     /// <summary>url.original</summary>
     public static ReadOnlySpan<byte> Original => "url.original"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for url.path.* (zero-allocation parsing)
+/// </summary>
+public static class UrlPathUtf8
+{
+    /// <summary>url.path</summary>
+    public static ReadOnlySpan<byte> Path => "url.path"u8;
 
 }
 
@@ -3827,12 +3977,32 @@ public static class UrlPortUtf8
 }
 
 /// <summary>
+/// UTF-8 attribute keys for url.query.* (zero-allocation parsing)
+/// </summary>
+public static class UrlQueryUtf8
+{
+    /// <summary>url.query</summary>
+    public static ReadOnlySpan<byte> Query => "url.query"u8;
+
+}
+
+/// <summary>
 /// UTF-8 attribute keys for url.registered_domain.* (zero-allocation parsing)
 /// </summary>
 public static class UrlRegisteredDomainUtf8
 {
     /// <summary>url.registered_domain</summary>
     public static ReadOnlySpan<byte> Registered_domain => "url.registered_domain"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for url.scheme.* (zero-allocation parsing)
+/// </summary>
+public static class UrlSchemeUtf8
+{
+    /// <summary>url.scheme</summary>
+    public static ReadOnlySpan<byte> Scheme => "url.scheme"u8;
 
 }
 
@@ -3863,6 +4033,59 @@ public static class UrlTopLevelDomainUtf8
 {
     /// <summary>url.top_level_domain</summary>
     public static ReadOnlySpan<byte> Top_level_domain => "url.top_level_domain"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for user_agent.name.* (zero-allocation parsing)
+/// </summary>
+public static class UserAgentNameUtf8
+{
+    /// <summary>user_agent.name</summary>
+    public static ReadOnlySpan<byte> Name => "user_agent.name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for user_agent.original.* (zero-allocation parsing)
+/// </summary>
+public static class UserAgentOriginalUtf8
+{
+    /// <summary>user_agent.original</summary>
+    public static ReadOnlySpan<byte> Original => "user_agent.original"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for user_agent.os.* (zero-allocation parsing)
+/// </summary>
+public static class UserAgentOsUtf8
+{
+    /// <summary>user_agent.os.name</summary>
+    public static ReadOnlySpan<byte> Name => "user_agent.os.name"u8;
+
+    /// <summary>user_agent.os.version</summary>
+    public static ReadOnlySpan<byte> Version => "user_agent.os.version"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for user_agent.synthetic.* (zero-allocation parsing)
+/// </summary>
+public static class UserAgentSyntheticUtf8
+{
+    /// <summary>user_agent.synthetic.type</summary>
+    public static ReadOnlySpan<byte> Type => "user_agent.synthetic.type"u8;
+
+}
+
+/// <summary>
+/// UTF-8 attribute keys for user_agent.version.* (zero-allocation parsing)
+/// </summary>
+public static class UserAgentVersionUtf8
+{
+    /// <summary>user_agent.version</summary>
+    public static ReadOnlySpan<byte> Version => "user_agent.version"u8;
 
 }
 
@@ -3923,49 +4146,6 @@ public static class UserRolesUtf8
 {
     /// <summary>user.roles</summary>
     public static ReadOnlySpan<byte> Roles => "user.roles"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for user_agent.name.* (zero-allocation parsing)
-/// </summary>
-public static class UserAgentNameUtf8
-{
-    /// <summary>user_agent.name</summary>
-    public static ReadOnlySpan<byte> Name => "user_agent.name"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for user_agent.os.* (zero-allocation parsing)
-/// </summary>
-public static class UserAgentOsUtf8
-{
-    /// <summary>user_agent.os.name</summary>
-    public static ReadOnlySpan<byte> Name => "user_agent.os.name"u8;
-
-    /// <summary>user_agent.os.version</summary>
-    public static ReadOnlySpan<byte> Version => "user_agent.os.version"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for user_agent.synthetic.* (zero-allocation parsing)
-/// </summary>
-public static class UserAgentSyntheticUtf8
-{
-    /// <summary>user_agent.synthetic.type</summary>
-    public static ReadOnlySpan<byte> Type => "user_agent.synthetic.type"u8;
-
-}
-
-/// <summary>
-/// UTF-8 attribute keys for user_agent.version.* (zero-allocation parsing)
-/// </summary>
-public static class UserAgentVersionUtf8
-{
-    /// <summary>user_agent.version</summary>
-    public static ReadOnlySpan<byte> Version => "user_agent.version"u8;
 
 }
 
@@ -4108,339 +4288,6 @@ public static class WebengineVersionUtf8
 {
     /// <summary>webengine.version</summary>
     public static ReadOnlySpan<byte> Version => "webengine.version"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for aspnetcore.diagnostics.exception.result
-/// </summary>
-public static class AspnetcoreDiagnosticsExceptionResultUtf8Values
-{
-    /// <summary>aborted</summary>
-    public static ReadOnlySpan<byte> Aborted => "aborted"u8;
-
-    /// <summary>handled</summary>
-    public static ReadOnlySpan<byte> Handled => "handled"u8;
-
-    /// <summary>skipped</summary>
-    public static ReadOnlySpan<byte> Skipped => "skipped"u8;
-
-    /// <summary>unhandled</summary>
-    public static ReadOnlySpan<byte> Unhandled => "unhandled"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for aspnetcore.rate.limiting.result
-/// </summary>
-public static class AspnetcoreRateLimitingResultUtf8Values
-{
-    /// <summary>acquired</summary>
-    public static ReadOnlySpan<byte> Acquired => "acquired"u8;
-
-    /// <summary>endpoint_limiter</summary>
-    public static ReadOnlySpan<byte> EndpointLimiter => "endpoint_limiter"u8;
-
-    /// <summary>global_limiter</summary>
-    public static ReadOnlySpan<byte> GlobalLimiter => "global_limiter"u8;
-
-    /// <summary>request_canceled</summary>
-    public static ReadOnlySpan<byte> RequestCanceled => "request_canceled"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for aspnetcore.routing.match.status
-/// </summary>
-public static class AspnetcoreRoutingMatchStatusUtf8Values
-{
-    /// <summary>failure</summary>
-    public static ReadOnlySpan<byte> Failure => "failure"u8;
-
-    /// <summary>success</summary>
-    public static ReadOnlySpan<byte> Success => "success"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for db.system.name
-/// </summary>
-public static class DbSystemNameUtf8Values
-{
-    /// <summary>mariadb</summary>
-    public static ReadOnlySpan<byte> Mariadb => "mariadb"u8;
-
-    /// <summary>microsoft.sql_server</summary>
-    public static ReadOnlySpan<byte> MicrosoftSqlServer => "microsoft.sql_server"u8;
-
-    /// <summary>mysql</summary>
-    public static ReadOnlySpan<byte> Mysql => "mysql"u8;
-
-    /// <summary>postgresql</summary>
-    public static ReadOnlySpan<byte> Postgresql => "postgresql"u8;
-
-    /// <summary>actian.ingres</summary>
-    public static ReadOnlySpan<byte> ActianIngres => "actian.ingres"u8;
-
-    /// <summary>aws.dynamodb</summary>
-    public static ReadOnlySpan<byte> AwsDynamodb => "aws.dynamodb"u8;
-
-    /// <summary>aws.redshift</summary>
-    public static ReadOnlySpan<byte> AwsRedshift => "aws.redshift"u8;
-
-    /// <summary>azure.cosmosdb</summary>
-    public static ReadOnlySpan<byte> AzureCosmosdb => "azure.cosmosdb"u8;
-
-    /// <summary>cassandra</summary>
-    public static ReadOnlySpan<byte> Cassandra => "cassandra"u8;
-
-    /// <summary>clickhouse</summary>
-    public static ReadOnlySpan<byte> Clickhouse => "clickhouse"u8;
-
-    /// <summary>cockroachdb</summary>
-    public static ReadOnlySpan<byte> Cockroachdb => "cockroachdb"u8;
-
-    /// <summary>couchbase</summary>
-    public static ReadOnlySpan<byte> Couchbase => "couchbase"u8;
-
-    /// <summary>couchdb</summary>
-    public static ReadOnlySpan<byte> Couchdb => "couchdb"u8;
-
-    /// <summary>derby</summary>
-    public static ReadOnlySpan<byte> Derby => "derby"u8;
-
-    /// <summary>elasticsearch</summary>
-    public static ReadOnlySpan<byte> Elasticsearch => "elasticsearch"u8;
-
-    /// <summary>firebirdsql</summary>
-    public static ReadOnlySpan<byte> Firebirdsql => "firebirdsql"u8;
-
-    /// <summary>gcp.spanner</summary>
-    public static ReadOnlySpan<byte> GcpSpanner => "gcp.spanner"u8;
-
-    /// <summary>geode</summary>
-    public static ReadOnlySpan<byte> Geode => "geode"u8;
-
-    /// <summary>h2database</summary>
-    public static ReadOnlySpan<byte> H2database => "h2database"u8;
-
-    /// <summary>hbase</summary>
-    public static ReadOnlySpan<byte> Hbase => "hbase"u8;
-
-    /// <summary>hive</summary>
-    public static ReadOnlySpan<byte> Hive => "hive"u8;
-
-    /// <summary>hsqldb</summary>
-    public static ReadOnlySpan<byte> Hsqldb => "hsqldb"u8;
-
-    /// <summary>ibm.db2</summary>
-    public static ReadOnlySpan<byte> IbmDb2 => "ibm.db2"u8;
-
-    /// <summary>ibm.informix</summary>
-    public static ReadOnlySpan<byte> IbmInformix => "ibm.informix"u8;
-
-    /// <summary>ibm.netezza</summary>
-    public static ReadOnlySpan<byte> IbmNetezza => "ibm.netezza"u8;
-
-    /// <summary>influxdb</summary>
-    public static ReadOnlySpan<byte> Influxdb => "influxdb"u8;
-
-    /// <summary>instantdb</summary>
-    public static ReadOnlySpan<byte> Instantdb => "instantdb"u8;
-
-    /// <summary>intersystems.cache</summary>
-    public static ReadOnlySpan<byte> IntersystemsCache => "intersystems.cache"u8;
-
-    /// <summary>memcached</summary>
-    public static ReadOnlySpan<byte> Memcached => "memcached"u8;
-
-    /// <summary>mongodb</summary>
-    public static ReadOnlySpan<byte> Mongodb => "mongodb"u8;
-
-    /// <summary>neo4j</summary>
-    public static ReadOnlySpan<byte> Neo4j => "neo4j"u8;
-
-    /// <summary>opensearch</summary>
-    public static ReadOnlySpan<byte> Opensearch => "opensearch"u8;
-
-    /// <summary>oracle.db</summary>
-    public static ReadOnlySpan<byte> OracleDb => "oracle.db"u8;
-
-    /// <summary>other_sql</summary>
-    public static ReadOnlySpan<byte> OtherSql => "other_sql"u8;
-
-    /// <summary>redis</summary>
-    public static ReadOnlySpan<byte> Redis => "redis"u8;
-
-    /// <summary>sap.hana</summary>
-    public static ReadOnlySpan<byte> SapHana => "sap.hana"u8;
-
-    /// <summary>sap.maxdb</summary>
-    public static ReadOnlySpan<byte> SapMaxdb => "sap.maxdb"u8;
-
-    /// <summary>softwareag.adabas</summary>
-    public static ReadOnlySpan<byte> SoftwareagAdabas => "softwareag.adabas"u8;
-
-    /// <summary>sqlite</summary>
-    public static ReadOnlySpan<byte> Sqlite => "sqlite"u8;
-
-    /// <summary>teradata</summary>
-    public static ReadOnlySpan<byte> Teradata => "teradata"u8;
-
-    /// <summary>trino</summary>
-    public static ReadOnlySpan<byte> Trino => "trino"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for dotnet.gc.heap.generation
-/// </summary>
-public static class DotnetGcHeapGenerationUtf8Values
-{
-    /// <summary>gen0</summary>
-    public static ReadOnlySpan<byte> Gen0 => "gen0"u8;
-
-    /// <summary>gen1</summary>
-    public static ReadOnlySpan<byte> Gen1 => "gen1"u8;
-
-    /// <summary>gen2</summary>
-    public static ReadOnlySpan<byte> Gen2 => "gen2"u8;
-
-    /// <summary>loh</summary>
-    public static ReadOnlySpan<byte> Loh => "loh"u8;
-
-    /// <summary>poh</summary>
-    public static ReadOnlySpan<byte> Poh => "poh"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for error.type
-/// </summary>
-public static class ErrorTypeUtf8Values
-{
-    /// <summary>_OTHER</summary>
-    public static ReadOnlySpan<byte> Other => "_OTHER"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for http.request.method
-/// </summary>
-public static class HttpRequestMethodUtf8Values
-{
-    /// <summary>_OTHER</summary>
-    public static ReadOnlySpan<byte> Other => "_OTHER"u8;
-
-    /// <summary>CONNECT</summary>
-    public static ReadOnlySpan<byte> Connect => "CONNECT"u8;
-
-    /// <summary>DELETE</summary>
-    public static ReadOnlySpan<byte> Delete => "DELETE"u8;
-
-    /// <summary>GET</summary>
-    public static ReadOnlySpan<byte> Get => "GET"u8;
-
-    /// <summary>HEAD</summary>
-    public static ReadOnlySpan<byte> Head => "HEAD"u8;
-
-    /// <summary>OPTIONS</summary>
-    public static ReadOnlySpan<byte> Options => "OPTIONS"u8;
-
-    /// <summary>PATCH</summary>
-    public static ReadOnlySpan<byte> Patch => "PATCH"u8;
-
-    /// <summary>POST</summary>
-    public static ReadOnlySpan<byte> Post => "POST"u8;
-
-    /// <summary>PUT</summary>
-    public static ReadOnlySpan<byte> Put => "PUT"u8;
-
-    /// <summary>TRACE</summary>
-    public static ReadOnlySpan<byte> Trace => "TRACE"u8;
-
-    /// <summary>QUERY</summary>
-    public static ReadOnlySpan<byte> Query => "QUERY"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for network.transport
-/// </summary>
-public static class NetworkTransportUtf8Values
-{
-    /// <summary>pipe</summary>
-    public static ReadOnlySpan<byte> Pipe => "pipe"u8;
-
-    /// <summary>quic</summary>
-    public static ReadOnlySpan<byte> Quic => "quic"u8;
-
-    /// <summary>tcp</summary>
-    public static ReadOnlySpan<byte> Tcp => "tcp"u8;
-
-    /// <summary>udp</summary>
-    public static ReadOnlySpan<byte> Udp => "udp"u8;
-
-    /// <summary>unix</summary>
-    public static ReadOnlySpan<byte> Unix => "unix"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for network.type
-/// </summary>
-public static class NetworkTypeUtf8Values
-{
-    /// <summary>ipv4</summary>
-    public static ReadOnlySpan<byte> Ipv4 => "ipv4"u8;
-
-    /// <summary>ipv6</summary>
-    public static ReadOnlySpan<byte> Ipv6 => "ipv6"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for otel.status.code
-/// </summary>
-public static class OtelStatusCodeUtf8Values
-{
-    /// <summary>ERROR</summary>
-    public static ReadOnlySpan<byte> Error => "ERROR"u8;
-
-    /// <summary>OK</summary>
-    public static ReadOnlySpan<byte> Ok => "OK"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for signalr.connection.status
-/// </summary>
-public static class SignalrConnectionStatusUtf8Values
-{
-    /// <summary>app_shutdown</summary>
-    public static ReadOnlySpan<byte> AppShutdown => "app_shutdown"u8;
-
-    /// <summary>normal_closure</summary>
-    public static ReadOnlySpan<byte> NormalClosure => "normal_closure"u8;
-
-    /// <summary>timeout</summary>
-    public static ReadOnlySpan<byte> Timeout => "timeout"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for signalr.transport
-/// </summary>
-public static class SignalrTransportUtf8Values
-{
-    /// <summary>long_polling</summary>
-    public static ReadOnlySpan<byte> LongPolling => "long_polling"u8;
-
-    /// <summary>server_sent_events</summary>
-    public static ReadOnlySpan<byte> ServerSentEvents => "server_sent_events"u8;
-
-    /// <summary>web_sockets</summary>
-    public static ReadOnlySpan<byte> WebSockets => "web_sockets"u8;
 
 }
 
@@ -4696,6 +4543,41 @@ public static class AspnetcoreIdentityUserUpdateTypeUtf8Values
 
     /// <summary>user_name</summary>
     public static ReadOnlySpan<byte> UserName => "user_name"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for azure.cosmosdb.connection.mode
+/// </summary>
+public static class AzureCosmosdbConnectionModeUtf8Values
+{
+    /// <summary>direct</summary>
+    public static ReadOnlySpan<byte> Direct => "direct"u8;
+
+    /// <summary>gateway</summary>
+    public static ReadOnlySpan<byte> Gateway => "gateway"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for azure.cosmosdb.consistency.level
+/// </summary>
+public static class AzureCosmosdbConsistencyLevelUtf8Values
+{
+    /// <summary>BoundedStaleness</summary>
+    public static ReadOnlySpan<byte> BoundedStaleness => "BoundedStaleness"u8;
+
+    /// <summary>ConsistentPrefix</summary>
+    public static ReadOnlySpan<byte> ConsistentPrefix => "ConsistentPrefix"u8;
+
+    /// <summary>Eventual</summary>
+    public static ReadOnlySpan<byte> Eventual => "Eventual"u8;
+
+    /// <summary>Session</summary>
+    public static ReadOnlySpan<byte> Session => "Session"u8;
+
+    /// <summary>Strong</summary>
+    public static ReadOnlySpan<byte> Strong => "Strong"u8;
 
 }
 
@@ -4970,6 +4852,19 @@ public static class ContainerCpuStateUtf8Values
     /// <summary>kernel</summary>
     public static ReadOnlySpan<byte> Kernel => "kernel"u8;
 
+    /// <summary>system</summary>
+    public static ReadOnlySpan<byte> System => "system"u8;
+
+    /// <summary>user</summary>
+    public static ReadOnlySpan<byte> User => "user"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for cpu.mode
+/// </summary>
+public static class CpuModeUtf8Values
+{
     /// <summary>system</summary>
     public static ReadOnlySpan<byte> System => "system"u8;
 
@@ -5301,6 +5196,136 @@ public static class DbSystemUtf8Values
 }
 
 /// <summary>
+/// UTF-8 enum values for db.system.name
+/// </summary>
+public static class DbSystemNameUtf8Values
+{
+    /// <summary>actian.ingres</summary>
+    public static ReadOnlySpan<byte> ActianIngres => "actian.ingres"u8;
+
+    /// <summary>aws.dynamodb</summary>
+    public static ReadOnlySpan<byte> AwsDynamodb => "aws.dynamodb"u8;
+
+    /// <summary>aws.redshift</summary>
+    public static ReadOnlySpan<byte> AwsRedshift => "aws.redshift"u8;
+
+    /// <summary>azure.cosmosdb</summary>
+    public static ReadOnlySpan<byte> AzureCosmosdb => "azure.cosmosdb"u8;
+
+    /// <summary>cassandra</summary>
+    public static ReadOnlySpan<byte> Cassandra => "cassandra"u8;
+
+    /// <summary>clickhouse</summary>
+    public static ReadOnlySpan<byte> Clickhouse => "clickhouse"u8;
+
+    /// <summary>cockroachdb</summary>
+    public static ReadOnlySpan<byte> Cockroachdb => "cockroachdb"u8;
+
+    /// <summary>couchbase</summary>
+    public static ReadOnlySpan<byte> Couchbase => "couchbase"u8;
+
+    /// <summary>couchdb</summary>
+    public static ReadOnlySpan<byte> Couchdb => "couchdb"u8;
+
+    /// <summary>derby</summary>
+    public static ReadOnlySpan<byte> Derby => "derby"u8;
+
+    /// <summary>elasticsearch</summary>
+    public static ReadOnlySpan<byte> Elasticsearch => "elasticsearch"u8;
+
+    /// <summary>firebirdsql</summary>
+    public static ReadOnlySpan<byte> Firebirdsql => "firebirdsql"u8;
+
+    /// <summary>gcp.spanner</summary>
+    public static ReadOnlySpan<byte> GcpSpanner => "gcp.spanner"u8;
+
+    /// <summary>geode</summary>
+    public static ReadOnlySpan<byte> Geode => "geode"u8;
+
+    /// <summary>h2database</summary>
+    public static ReadOnlySpan<byte> H2database => "h2database"u8;
+
+    /// <summary>hbase</summary>
+    public static ReadOnlySpan<byte> Hbase => "hbase"u8;
+
+    /// <summary>hive</summary>
+    public static ReadOnlySpan<byte> Hive => "hive"u8;
+
+    /// <summary>hsqldb</summary>
+    public static ReadOnlySpan<byte> Hsqldb => "hsqldb"u8;
+
+    /// <summary>ibm.db2</summary>
+    public static ReadOnlySpan<byte> IbmDb2 => "ibm.db2"u8;
+
+    /// <summary>ibm.informix</summary>
+    public static ReadOnlySpan<byte> IbmInformix => "ibm.informix"u8;
+
+    /// <summary>ibm.netezza</summary>
+    public static ReadOnlySpan<byte> IbmNetezza => "ibm.netezza"u8;
+
+    /// <summary>influxdb</summary>
+    public static ReadOnlySpan<byte> Influxdb => "influxdb"u8;
+
+    /// <summary>instantdb</summary>
+    public static ReadOnlySpan<byte> Instantdb => "instantdb"u8;
+
+    /// <summary>intersystems.cache</summary>
+    public static ReadOnlySpan<byte> IntersystemsCache => "intersystems.cache"u8;
+
+    /// <summary>memcached</summary>
+    public static ReadOnlySpan<byte> Memcached => "memcached"u8;
+
+    /// <summary>mongodb</summary>
+    public static ReadOnlySpan<byte> Mongodb => "mongodb"u8;
+
+    /// <summary>neo4j</summary>
+    public static ReadOnlySpan<byte> Neo4j => "neo4j"u8;
+
+    /// <summary>opensearch</summary>
+    public static ReadOnlySpan<byte> Opensearch => "opensearch"u8;
+
+    /// <summary>oracle.db</summary>
+    public static ReadOnlySpan<byte> OracleDb => "oracle.db"u8;
+
+    /// <summary>other_sql</summary>
+    public static ReadOnlySpan<byte> OtherSql => "other_sql"u8;
+
+    /// <summary>redis</summary>
+    public static ReadOnlySpan<byte> Redis => "redis"u8;
+
+    /// <summary>sap.hana</summary>
+    public static ReadOnlySpan<byte> SapHana => "sap.hana"u8;
+
+    /// <summary>sap.maxdb</summary>
+    public static ReadOnlySpan<byte> SapMaxdb => "sap.maxdb"u8;
+
+    /// <summary>softwareag.adabas</summary>
+    public static ReadOnlySpan<byte> SoftwareagAdabas => "softwareag.adabas"u8;
+
+    /// <summary>sqlite</summary>
+    public static ReadOnlySpan<byte> Sqlite => "sqlite"u8;
+
+    /// <summary>teradata</summary>
+    public static ReadOnlySpan<byte> Teradata => "teradata"u8;
+
+    /// <summary>trino</summary>
+    public static ReadOnlySpan<byte> Trino => "trino"u8;
+
+    /// <summary>mariadb</summary>
+    public static ReadOnlySpan<byte> Mariadb => "mariadb"u8;
+
+    /// <summary>microsoft.sql_server</summary>
+    public static ReadOnlySpan<byte> MicrosoftSqlServer => "microsoft.sql_server"u8;
+
+    /// <summary>mysql</summary>
+    public static ReadOnlySpan<byte> Mysql => "mysql"u8;
+
+    /// <summary>postgresql</summary>
+    public static ReadOnlySpan<byte> Postgresql => "postgresql"u8;
+
+}
+
+/// <summary>
 /// UTF-8 enum values for deployment.status
 /// </summary>
 public static class DeploymentStatusUtf8Values
@@ -5378,32 +5403,8 @@ public static class FaasTriggerUtf8Values
 /// </summary>
 public static class FeatureFlagEvaluationReasonUtf8Values
 {
-    /// <summary>cached</summary>
-    public static ReadOnlySpan<byte> Cached => "cached"u8;
-
-    /// <summary>default</summary>
-    public static ReadOnlySpan<byte> Default => "default"u8;
-
-    /// <summary>disabled</summary>
-    public static ReadOnlySpan<byte> Disabled => "disabled"u8;
-
     /// <summary>error</summary>
     public static ReadOnlySpan<byte> Error => "error"u8;
-
-    /// <summary>split</summary>
-    public static ReadOnlySpan<byte> Split => "split"u8;
-
-    /// <summary>stale</summary>
-    public static ReadOnlySpan<byte> Stale => "stale"u8;
-
-    /// <summary>static</summary>
-    public static ReadOnlySpan<byte> Static => "static"u8;
-
-    /// <summary>targeting_match</summary>
-    public static ReadOnlySpan<byte> TargetingMatch => "targeting_match"u8;
-
-    /// <summary>unknown</summary>
-    public static ReadOnlySpan<byte> Unknown => "unknown"u8;
 
 }
 
@@ -5412,108 +5413,8 @@ public static class FeatureFlagEvaluationReasonUtf8Values
 /// </summary>
 public static class FeatureFlagResultReasonUtf8Values
 {
-    /// <summary>cached</summary>
-    public static ReadOnlySpan<byte> Cached => "cached"u8;
-
-    /// <summary>default</summary>
-    public static ReadOnlySpan<byte> Default => "default"u8;
-
-    /// <summary>disabled</summary>
-    public static ReadOnlySpan<byte> Disabled => "disabled"u8;
-
     /// <summary>error</summary>
     public static ReadOnlySpan<byte> Error => "error"u8;
-
-    /// <summary>split</summary>
-    public static ReadOnlySpan<byte> Split => "split"u8;
-
-    /// <summary>stale</summary>
-    public static ReadOnlySpan<byte> Stale => "stale"u8;
-
-    /// <summary>static</summary>
-    public static ReadOnlySpan<byte> Static => "static"u8;
-
-    /// <summary>targeting_match</summary>
-    public static ReadOnlySpan<byte> TargetingMatch => "targeting_match"u8;
-
-    /// <summary>unknown</summary>
-    public static ReadOnlySpan<byte> Unknown => "unknown"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for gen.ai.openai.request.response.format
-/// </summary>
-public static class GenAiOpenaiRequestResponseFormatUtf8Values
-{
-    /// <summary>json_object</summary>
-    public static ReadOnlySpan<byte> JsonObject => "json_object"u8;
-
-    /// <summary>json_schema</summary>
-    public static ReadOnlySpan<byte> JsonSchema => "json_schema"u8;
-
-    /// <summary>text</summary>
-    public static ReadOnlySpan<byte> Text => "text"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for gen.ai.openai.request.service.tier
-/// </summary>
-public static class GenAiOpenaiRequestServiceTierUtf8Values
-{
-    /// <summary>auto</summary>
-    public static ReadOnlySpan<byte> Auto => "auto"u8;
-
-    /// <summary>default</summary>
-    public static ReadOnlySpan<byte> Default => "default"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for gen.ai.operation.name
-/// </summary>
-public static class GenAiOperationNameUtf8Values
-{
-    /// <summary>chat</summary>
-    public static ReadOnlySpan<byte> Chat => "chat"u8;
-
-    /// <summary>create_agent</summary>
-    public static ReadOnlySpan<byte> CreateAgent => "create_agent"u8;
-
-    /// <summary>embeddings</summary>
-    public static ReadOnlySpan<byte> Embeddings => "embeddings"u8;
-
-    /// <summary>execute_tool</summary>
-    public static ReadOnlySpan<byte> ExecuteTool => "execute_tool"u8;
-
-    /// <summary>generate_content</summary>
-    public static ReadOnlySpan<byte> GenerateContent => "generate_content"u8;
-
-    /// <summary>invoke_agent</summary>
-    public static ReadOnlySpan<byte> InvokeAgent => "invoke_agent"u8;
-
-    /// <summary>text_completion</summary>
-    public static ReadOnlySpan<byte> TextCompletion => "text_completion"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for gen.ai.output.type
-/// </summary>
-public static class GenAiOutputTypeUtf8Values
-{
-    /// <summary>image</summary>
-    public static ReadOnlySpan<byte> Image => "image"u8;
-
-    /// <summary>json</summary>
-    public static ReadOnlySpan<byte> Json => "json"u8;
-
-    /// <summary>speech</summary>
-    public static ReadOnlySpan<byte> Speech => "speech"u8;
-
-    /// <summary>text</summary>
-    public static ReadOnlySpan<byte> Text => "text"u8;
 
 }
 
@@ -5522,50 +5423,14 @@ public static class GenAiOutputTypeUtf8Values
 /// </summary>
 public static class GenAiProviderNameUtf8Values
 {
-    /// <summary>anthropic</summary>
-    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
-
-    /// <summary>aws.bedrock</summary>
-    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
-
     /// <summary>azure.ai.inference</summary>
     public static ReadOnlySpan<byte> AzureAiInference => "azure.ai.inference"u8;
 
     /// <summary>azure.ai.openai</summary>
     public static ReadOnlySpan<byte> AzureAiOpenai => "azure.ai.openai"u8;
 
-    /// <summary>cohere</summary>
-    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
-
-    /// <summary>deepseek</summary>
-    public static ReadOnlySpan<byte> Deepseek => "deepseek"u8;
-
-    /// <summary>gcp.gemini</summary>
-    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
-
-    /// <summary>gcp.gen_ai</summary>
-    public static ReadOnlySpan<byte> GcpGenAi => "gcp.gen_ai"u8;
-
-    /// <summary>gcp.vertex_ai</summary>
-    public static ReadOnlySpan<byte> GcpVertexAi => "gcp.vertex_ai"u8;
-
-    /// <summary>groq</summary>
-    public static ReadOnlySpan<byte> Groq => "groq"u8;
-
-    /// <summary>ibm.watsonx.ai</summary>
-    public static ReadOnlySpan<byte> IbmWatsonxAi => "ibm.watsonx.ai"u8;
-
-    /// <summary>mistral_ai</summary>
-    public static ReadOnlySpan<byte> MistralAi => "mistral_ai"u8;
-
     /// <summary>openai</summary>
     public static ReadOnlySpan<byte> Openai => "openai"u8;
-
-    /// <summary>perplexity</summary>
-    public static ReadOnlySpan<byte> Perplexity => "perplexity"u8;
-
-    /// <summary>x_ai</summary>
-    public static ReadOnlySpan<byte> XAi => "x_ai"u8;
 
 }
 
@@ -5574,78 +5439,14 @@ public static class GenAiProviderNameUtf8Values
 /// </summary>
 public static class GenAiSystemUtf8Values
 {
-    /// <summary>anthropic</summary>
-    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
-
-    /// <summary>aws.bedrock</summary>
-    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
-
-    /// <summary>az.ai.inference</summary>
-    public static ReadOnlySpan<byte> AzAiInference => "az.ai.inference"u8;
-
-    /// <summary>az.ai.openai</summary>
-    public static ReadOnlySpan<byte> AzAiOpenai => "az.ai.openai"u8;
-
     /// <summary>azure.ai.inference</summary>
     public static ReadOnlySpan<byte> AzureAiInference => "azure.ai.inference"u8;
 
     /// <summary>azure.ai.openai</summary>
     public static ReadOnlySpan<byte> AzureAiOpenai => "azure.ai.openai"u8;
 
-    /// <summary>cohere</summary>
-    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
-
-    /// <summary>deepseek</summary>
-    public static ReadOnlySpan<byte> Deepseek => "deepseek"u8;
-
-    /// <summary>gcp.gemini</summary>
-    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
-
-    /// <summary>gcp.gen_ai</summary>
-    public static ReadOnlySpan<byte> GcpGenAi => "gcp.gen_ai"u8;
-
-    /// <summary>gcp.vertex_ai</summary>
-    public static ReadOnlySpan<byte> GcpVertexAi => "gcp.vertex_ai"u8;
-
-    /// <summary>gemini</summary>
-    public static ReadOnlySpan<byte> Gemini => "gemini"u8;
-
-    /// <summary>groq</summary>
-    public static ReadOnlySpan<byte> Groq => "groq"u8;
-
-    /// <summary>ibm.watsonx.ai</summary>
-    public static ReadOnlySpan<byte> IbmWatsonxAi => "ibm.watsonx.ai"u8;
-
-    /// <summary>mistral_ai</summary>
-    public static ReadOnlySpan<byte> MistralAi => "mistral_ai"u8;
-
     /// <summary>openai</summary>
     public static ReadOnlySpan<byte> Openai => "openai"u8;
-
-    /// <summary>perplexity</summary>
-    public static ReadOnlySpan<byte> Perplexity => "perplexity"u8;
-
-    /// <summary>vertex_ai</summary>
-    public static ReadOnlySpan<byte> VertexAi => "vertex_ai"u8;
-
-    /// <summary>xai</summary>
-    public static ReadOnlySpan<byte> Xai => "xai"u8;
-
-}
-
-/// <summary>
-/// UTF-8 enum values for gen.ai.token.type
-/// </summary>
-public static class GenAiTokenTypeUtf8Values
-{
-    /// <summary>input</summary>
-    public static ReadOnlySpan<byte> Input => "input"u8;
-
-    /// <summary>output</summary>
-    public static ReadOnlySpan<byte> Completion => "output"u8;
-
-    /// <summary>output</summary>
-    public static ReadOnlySpan<byte> Output => "output"u8;
 
 }
 
@@ -5743,6 +5544,59 @@ public static class HttpFlavorUtf8Values
 
     /// <summary>SPDY</summary>
     public static ReadOnlySpan<byte> Spdy => "SPDY"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for http.request.method
+/// </summary>
+public static class HttpRequestMethodUtf8Values
+{
+    /// <summary>QUERY</summary>
+    public static ReadOnlySpan<byte> Query => "QUERY"u8;
+
+    /// <summary>_OTHER</summary>
+    public static ReadOnlySpan<byte> Other => "_OTHER"u8;
+
+    /// <summary>CONNECT</summary>
+    public static ReadOnlySpan<byte> Connect => "CONNECT"u8;
+
+    /// <summary>DELETE</summary>
+    public static ReadOnlySpan<byte> Delete => "DELETE"u8;
+
+    /// <summary>GET</summary>
+    public static ReadOnlySpan<byte> Get => "GET"u8;
+
+    /// <summary>HEAD</summary>
+    public static ReadOnlySpan<byte> Head => "HEAD"u8;
+
+    /// <summary>OPTIONS</summary>
+    public static ReadOnlySpan<byte> Options => "OPTIONS"u8;
+
+    /// <summary>PATCH</summary>
+    public static ReadOnlySpan<byte> Patch => "PATCH"u8;
+
+    /// <summary>POST</summary>
+    public static ReadOnlySpan<byte> Post => "POST"u8;
+
+    /// <summary>PUT</summary>
+    public static ReadOnlySpan<byte> Put => "PUT"u8;
+
+    /// <summary>TRACE</summary>
+    public static ReadOnlySpan<byte> Trace => "TRACE"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for hw.type
+/// </summary>
+public static class HwTypeUtf8Values
+{
+    /// <summary>logical_disk</summary>
+    public static ReadOnlySpan<byte> LogicalDisk => "logical_disk"u8;
+
+    /// <summary>network</summary>
+    public static ReadOnlySpan<byte> Network => "network"u8;
 
 }
 
@@ -5926,6 +5780,16 @@ public static class LogIostreamUtf8Values
 
     /// <summary>stdout</summary>
     public static ReadOnlySpan<byte> Stdout => "stdout"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for mcp.method.name
+/// </summary>
+public static class McpMethodNameUtf8Values
+{
+    /// <summary>logging/setLevel</summary>
+    public static ReadOnlySpan<byte> LoggingSetLevel => "logging/setLevel"u8;
 
 }
 
@@ -6197,6 +6061,19 @@ public static class NetworkIoDirectionUtf8Values
 }
 
 /// <summary>
+/// UTF-8 enum values for openai.request.service.tier
+/// </summary>
+public static class OpenaiRequestServiceTierUtf8Values
+{
+    /// <summary>auto</summary>
+    public static ReadOnlySpan<byte> Auto => "auto"u8;
+
+    /// <summary>default</summary>
+    public static ReadOnlySpan<byte> Default => "default"u8;
+
+}
+
+/// <summary>
 /// UTF-8 enum values for os.type
 /// </summary>
 public static class OsTypeUtf8Values
@@ -6384,6 +6261,16 @@ public static class ProcessStateUtf8Values
 
     /// <summary>stopped</summary>
     public static ReadOnlySpan<byte> Stopped => "stopped"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for profile.frame.type
+/// </summary>
+public static class ProfileFrameTypeUtf8Values
+{
+    /// <summary>dotnet</summary>
+    public static ReadOnlySpan<byte> Dotnet => "dotnet"u8;
 
 }
 
@@ -6804,6 +6691,16 @@ public static class UserAgentSyntheticTypeUtf8Values
 }
 
 /// <summary>
+/// UTF-8 enum values for v8js.heap.space.name
+/// </summary>
+public static class V8jsHeapSpaceNameUtf8Values
+{
+    /// <summary>code_space</summary>
+    public static ReadOnlySpan<byte> CodeSpace => "code_space"u8;
+
+}
+
+/// <summary>
 /// UTF-8 enum values for vcs.change.state
 /// </summary>
 public static class VcsChangeStateUtf8Values
@@ -6919,5 +6816,211 @@ public static class VcsRevisionDeltaDirectionUtf8Values
 
     /// <summary>behind</summary>
     public static ReadOnlySpan<byte> Behind => "behind"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for aspnetcore.diagnostics.exception.result
+/// </summary>
+public static class AspnetcoreDiagnosticsExceptionResultUtf8Values
+{
+    /// <summary>aborted</summary>
+    public static ReadOnlySpan<byte> Aborted => "aborted"u8;
+
+    /// <summary>handled</summary>
+    public static ReadOnlySpan<byte> Handled => "handled"u8;
+
+    /// <summary>skipped</summary>
+    public static ReadOnlySpan<byte> Skipped => "skipped"u8;
+
+    /// <summary>unhandled</summary>
+    public static ReadOnlySpan<byte> Unhandled => "unhandled"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for aspnetcore.rate.limiting.result
+/// </summary>
+public static class AspnetcoreRateLimitingResultUtf8Values
+{
+    /// <summary>acquired</summary>
+    public static ReadOnlySpan<byte> Acquired => "acquired"u8;
+
+    /// <summary>endpoint_limiter</summary>
+    public static ReadOnlySpan<byte> EndpointLimiter => "endpoint_limiter"u8;
+
+    /// <summary>global_limiter</summary>
+    public static ReadOnlySpan<byte> GlobalLimiter => "global_limiter"u8;
+
+    /// <summary>request_canceled</summary>
+    public static ReadOnlySpan<byte> RequestCanceled => "request_canceled"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for aspnetcore.routing.match.status
+/// </summary>
+public static class AspnetcoreRoutingMatchStatusUtf8Values
+{
+    /// <summary>failure</summary>
+    public static ReadOnlySpan<byte> Failure => "failure"u8;
+
+    /// <summary>success</summary>
+    public static ReadOnlySpan<byte> Success => "success"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for dotnet.gc.heap.generation
+/// </summary>
+public static class DotnetGcHeapGenerationUtf8Values
+{
+    /// <summary>gen0</summary>
+    public static ReadOnlySpan<byte> Gen0 => "gen0"u8;
+
+    /// <summary>gen1</summary>
+    public static ReadOnlySpan<byte> Gen1 => "gen1"u8;
+
+    /// <summary>gen2</summary>
+    public static ReadOnlySpan<byte> Gen2 => "gen2"u8;
+
+    /// <summary>loh</summary>
+    public static ReadOnlySpan<byte> Loh => "loh"u8;
+
+    /// <summary>poh</summary>
+    public static ReadOnlySpan<byte> Poh => "poh"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for error.type
+/// </summary>
+public static class ErrorTypeUtf8Values
+{
+    /// <summary>_OTHER</summary>
+    public static ReadOnlySpan<byte> Other => "_OTHER"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for network.transport
+/// </summary>
+public static class NetworkTransportUtf8Values
+{
+    /// <summary>pipe</summary>
+    public static ReadOnlySpan<byte> Pipe => "pipe"u8;
+
+    /// <summary>quic</summary>
+    public static ReadOnlySpan<byte> Quic => "quic"u8;
+
+    /// <summary>tcp</summary>
+    public static ReadOnlySpan<byte> Tcp => "tcp"u8;
+
+    /// <summary>udp</summary>
+    public static ReadOnlySpan<byte> Udp => "udp"u8;
+
+    /// <summary>unix</summary>
+    public static ReadOnlySpan<byte> Unix => "unix"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for network.type
+/// </summary>
+public static class NetworkTypeUtf8Values
+{
+    /// <summary>ipv4</summary>
+    public static ReadOnlySpan<byte> Ipv4 => "ipv4"u8;
+
+    /// <summary>ipv6</summary>
+    public static ReadOnlySpan<byte> Ipv6 => "ipv6"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for otel.status.code
+/// </summary>
+public static class OtelStatusCodeUtf8Values
+{
+    /// <summary>ERROR</summary>
+    public static ReadOnlySpan<byte> Error => "ERROR"u8;
+
+    /// <summary>OK</summary>
+    public static ReadOnlySpan<byte> Ok => "OK"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for signalr.connection.status
+/// </summary>
+public static class SignalrConnectionStatusUtf8Values
+{
+    /// <summary>app_shutdown</summary>
+    public static ReadOnlySpan<byte> AppShutdown => "app_shutdown"u8;
+
+    /// <summary>normal_closure</summary>
+    public static ReadOnlySpan<byte> NormalClosure => "normal_closure"u8;
+
+    /// <summary>timeout</summary>
+    public static ReadOnlySpan<byte> Timeout => "timeout"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for signalr.transport
+/// </summary>
+public static class SignalrTransportUtf8Values
+{
+    /// <summary>long_polling</summary>
+    public static ReadOnlySpan<byte> LongPolling => "long_polling"u8;
+
+    /// <summary>server_sent_events</summary>
+    public static ReadOnlySpan<byte> ServerSentEvents => "server_sent_events"u8;
+
+    /// <summary>web_sockets</summary>
+    public static ReadOnlySpan<byte> WebSockets => "web_sockets"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for telemetry.sdk.language
+/// </summary>
+public static class TelemetrySdkLanguageUtf8Values
+{
+    /// <summary>cpp</summary>
+    public static ReadOnlySpan<byte> Cpp => "cpp"u8;
+
+    /// <summary>dotnet</summary>
+    public static ReadOnlySpan<byte> Dotnet => "dotnet"u8;
+
+    /// <summary>erlang</summary>
+    public static ReadOnlySpan<byte> Erlang => "erlang"u8;
+
+    /// <summary>go</summary>
+    public static ReadOnlySpan<byte> Go => "go"u8;
+
+    /// <summary>java</summary>
+    public static ReadOnlySpan<byte> Java => "java"u8;
+
+    /// <summary>nodejs</summary>
+    public static ReadOnlySpan<byte> Nodejs => "nodejs"u8;
+
+    /// <summary>php</summary>
+    public static ReadOnlySpan<byte> Php => "php"u8;
+
+    /// <summary>python</summary>
+    public static ReadOnlySpan<byte> Python => "python"u8;
+
+    /// <summary>ruby</summary>
+    public static ReadOnlySpan<byte> Ruby => "ruby"u8;
+
+    /// <summary>rust</summary>
+    public static ReadOnlySpan<byte> Rust => "rust"u8;
+
+    /// <summary>swift</summary>
+    public static ReadOnlySpan<byte> Swift => "swift"u8;
+
+    /// <summary>webjs</summary>
+    public static ReadOnlySpan<byte> Webjs => "webjs"u8;
 
 }

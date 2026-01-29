@@ -4,7 +4,6 @@
 // Owner: qyl.instrumentation.generators
 // =============================================================================
 
-using System.Text;
 using qyl.instrumentation.generators.Interceptors;
 
 namespace qyl.instrumentation.generators.Emitters;

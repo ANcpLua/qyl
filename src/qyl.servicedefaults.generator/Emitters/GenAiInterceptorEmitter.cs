@@ -57,6 +57,7 @@ internal static class GenAiInterceptorEmitter
         sb.AppendLine("using System.Diagnostics;");
         sb.AppendLine("using Qyl.ServiceDefaults.Instrumentation;");
         sb.AppendLine("using Qyl.ServiceDefaults.Instrumentation.GenAi;");
+        sb.AppendLine("using qyl.protocol.Attributes;");
         sb.AppendLine();
     }
 
@@ -105,6 +106,10 @@ internal static class GenAiInterceptorEmitter
             ? $"\"{invocation.Model}\""
             : "null";
 
+        // Use compile-time verified constants instead of literal strings
+        var providerConst = GetProviderConstant(invocation.Provider);
+        var operationConst = GetOperationConstant(invocation.Operation);
+
         var usageExtractor = GetUsageExtractor(invocation.Provider, invocation.Operation);
 
         if (invocation.IsAsync)
@@ -116,8 +121,8 @@ internal static class GenAiInterceptorEmitter
                             public static async {{returnType}} {{methodName}}({{parameters}})
                             {
                                 return await GenAiInstrumentation.ExecuteAsync(
-                                    "{{invocation.Provider}}",
-                                    "{{invocation.Operation}}",
+                                    {{providerConst}},
+                                    {{operationConst}},
                                     {{modelArg}},
                                     async () => await @this.{{originalMethod}}({{arguments}}),
                                     {{usageExtractor}});
@@ -130,8 +135,8 @@ internal static class GenAiInterceptorEmitter
                             public static async {{returnType}} {{methodName}}({{parameters}})
                             {
                                 return await GenAiInstrumentation.ExecuteAsync(
-                                    "{{invocation.Provider}}",
-                                    "{{invocation.Operation}}",
+                                    {{providerConst}},
+                                    {{operationConst}},
                                     {{modelArg}},
                                     async () => await @this.{{originalMethod}}({{arguments}}));
                             }
@@ -147,8 +152,8 @@ internal static class GenAiInterceptorEmitter
                             public static {{returnType}} {{methodName}}({{parameters}})
                             {
                                 return GenAiInstrumentation.Execute(
-                                    "{{invocation.Provider}}",
-                                    "{{invocation.Operation}}",
+                                    {{providerConst}},
+                                    {{operationConst}},
                                     {{modelArg}},
                                     () => @this.{{originalMethod}}({{arguments}}),
                                     {{usageExtractor}});
@@ -161,8 +166,8 @@ internal static class GenAiInterceptorEmitter
                             public static {{returnType}} {{methodName}}({{parameters}})
                             {
                                 return GenAiInstrumentation.Execute(
-                                    "{{invocation.Provider}}",
-                                    "{{invocation.Operation}}",
+                                    {{providerConst}},
+                                    {{operationConst}},
                                     {{modelArg}},
                                     () => @this.{{originalMethod}}({{arguments}}));
                             }
@@ -222,4 +227,44 @@ internal static class GenAiInterceptorEmitter
                       }
                       """);
     }
+
+    /// <summary>
+    ///     Maps a provider ID to its GenAiAttributes.Providers constant reference.
+    ///     Falls back to literal string for unknown providers.
+    /// </summary>
+    private static string GetProviderConstant(string providerId) =>
+        providerId switch
+        {
+            "openai" => "GenAiAttributes.Providers.OpenAi",
+            "azure.ai.openai" => "GenAiAttributes.Providers.AzureOpenAi",
+            "azure.ai.inference" => "GenAiAttributes.Providers.AzureAiInference",
+            "anthropic" => "GenAiAttributes.Providers.Anthropic",
+            "aws.bedrock" => "GenAiAttributes.Providers.AwsBedrock",
+            "gcp.gemini" => "GenAiAttributes.Providers.GcpGemini",
+            "gcp.vertex_ai" => "GenAiAttributes.Providers.GcpVertexAi",
+            "cohere" => "GenAiAttributes.Providers.Cohere",
+            "mistral_ai" => "GenAiAttributes.Providers.MistralAi",
+            "groq" => "GenAiAttributes.Providers.Groq",
+            "deepseek" => "GenAiAttributes.Providers.DeepSeek",
+            "perplexity" => "GenAiAttributes.Providers.Perplexity",
+            "x_ai" => "GenAiAttributes.Providers.XAi",
+            _ => $"\"{providerId}\"" // Fallback for custom providers
+        };
+
+    /// <summary>
+    ///     Maps an operation ID to its GenAiAttributes.Operations constant reference.
+    ///     Falls back to literal string for unknown operations.
+    /// </summary>
+    private static string GetOperationConstant(string operationId) =>
+        operationId switch
+        {
+            "chat" => "GenAiAttributes.Operations.Chat",
+            "embeddings" => "GenAiAttributes.Operations.Embeddings",
+            "text_completion" => "GenAiAttributes.Operations.TextCompletion",
+            "create_agent" => "GenAiAttributes.Operations.CreateAgent",
+            "invoke_agent" => "GenAiAttributes.Operations.InvokeAgent",
+            "execute_tool" => "GenAiAttributes.Operations.ExecuteTool",
+            "generate_content" => "GenAiAttributes.Operations.GenerateContent",
+            _ => $"\"{operationId}\"" // Fallback for custom operations
+        };
 }

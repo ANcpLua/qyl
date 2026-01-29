@@ -8,15 +8,13 @@ namespace qyl.collector.Health;
 /// </summary>
 public sealed class DuckDbHealthCheck(DuckDbStore store) : IHealthCheck
 {
-    private readonly DuckDbStore _store = store;
-
     public async Task<HealthCheckResult> CheckHealthAsync(
         HealthCheckContext context,
         CancellationToken cancellationToken = default)
     {
         try
         {
-            var stats = await _store.GetStorageStatsAsync(cancellationToken).ConfigureAwait(false);
+            var stats = await store.GetStorageStatsAsync(cancellationToken).ConfigureAwait(false);
 
             return HealthCheckResult.Healthy(
                 "DuckDB connection is healthy",
