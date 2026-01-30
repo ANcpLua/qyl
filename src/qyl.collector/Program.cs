@@ -411,10 +411,21 @@ app.MapGet("/alive", async (IServiceProvider sp, CancellationToken ct) =>
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
 }).WithName("LivenessCheck");
 
-app.MapGet("/health", ReadinessCheckAsync).WithName("ReadinessCheck");
-app.MapGet("/ready", ReadinessCheckAsync).WithName("ReadyCheck"); // Kubernetes standard alias
+app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
+{
+    var healthService = sp.GetService<HealthCheckService>();
+    if (healthService is null)
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
 
-static async Task<IResult> ReadinessCheckAsync(IServiceProvider sp, CancellationToken ct)
+    var result = await healthService.CheckHealthAsync(
+        c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
+    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
+        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
+
+    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+}).WithName("HealthCheck");
+
+app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
 {
     var healthService = sp.GetService<HealthCheckService>();
     if (healthService is null)
@@ -426,7 +437,7 @@ static async Task<IResult> ReadinessCheckAsync(IServiceProvider sp, Cancellation
         return Results.Ok(new qyl.collector.HealthResponse("ready"));
 
     return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-}
+}).WithName("ReadyCheck");
 
 // =============================================================================
 // API Stubs for OpenAPI Compliance
