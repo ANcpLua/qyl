@@ -513,9 +513,11 @@ app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
-    // Return 404 for API routes that don't exist
+    // Return 404 for API routes and static asset paths that don't exist
+    // /assets/ is where Vite outputs JS/CSS - let UseStaticFiles handle it
     if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase))
+        path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 404;
         return;
