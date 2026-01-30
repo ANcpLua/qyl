@@ -66,7 +66,7 @@ builder.Services.AddSingleton(new TokenAuthOptions
     [
         "/health", "/ready", "/alive",      // Health checks
         "/v1/traces",                        // OTLP ingestion
-        "/api/login", "/api/auth/check",    // Auth endpoints
+        "/api/",                             // Dashboard API (public)
         "/assets/",                          // Dashboard static assets
         "/favicon.ico",                      // Favicon
     ]
