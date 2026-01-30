@@ -23,9 +23,7 @@ internal static class MeterEmitter
         AppendUsings(sb);
 
         foreach (var meter in meters.OrderBy(static m => m.OrderKey, StringComparer.Ordinal))
-        {
             AppendMeterClass(sb, meter);
-        }
 
         return sb.ToString();
     }
@@ -60,18 +58,12 @@ internal static class MeterEmitter
         sb.AppendLine();
 
         // Instrument fields
-        foreach (var method in meter.Methods)
-        {
-            AppendInstrumentField(sb, method);
-        }
+        foreach (var method in meter.Methods) AppendInstrumentField(sb, method);
 
         sb.AppendLine();
 
         // Method implementations
-        foreach (var method in meter.Methods)
-        {
-            AppendMethodImplementation(sb, method);
-        }
+        foreach (var method in meter.Methods) AppendMethodImplementation(sb, method);
 
         sb.AppendLine("    }");
         sb.AppendLine("}");
@@ -115,21 +107,16 @@ internal static class MeterEmitter
         var paramParts = new List<string>();
 
         if (method is { Kind: MetricKind.Histogram, ValueTypeName: not null })
-        {
             paramParts.Add($"{method.ValueTypeName} value");
-        }
 
-        foreach (var tag in method.Tags)
-        {
-            paramParts.Add($"{tag.TypeName} {tag.ParameterName}");
-        }
+        foreach (var tag in method.Tags) paramParts.Add($"{tag.TypeName} {tag.ParameterName}");
 
         var paramList = string.Join(", ", paramParts);
 
         sb.AppendLine($"        public static partial void {method.MethodName}({paramList})");
         sb.AppendLine("        {");
 
-        if (method.Tags.Count == 0)
+        if (method.Tags.Count is 0)
         {
             sb.AppendLine(method.Kind == MetricKind.Counter
                 ? $"            {fieldName}.Add(1);"
@@ -174,7 +161,7 @@ internal static class MeterEmitter
         for (var i = 0; i < parts.Length; i++)
         {
             var part = parts[i];
-            if (i == 0)
+            if (i is 0)
                 sb.Append(part);
             else
                 sb.Append(char.ToUpperInvariant(part[0])).Append(part[1..]);

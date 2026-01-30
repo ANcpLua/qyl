@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 namespace System;
 
 /// <summary>
-///     Backport of <see cref="Range" /> for .NET Standard 2.0 and .NET Framework.
+///     Backport of <c>Range</c> for .NET Standard 2.0 and .NET Framework.
 /// </summary>
 /// <remarks>
 ///     <para>
@@ -13,8 +13,8 @@ namespace System;
 ///         available on .NET Core 3.0+ and .NET Standard 2.1+ through the standard library.
 ///     </para>
 ///     <para>
-///         A <see cref="Range" /> represents a contiguous region within a collection, defined by
-///         a start and end <see cref="Index" />. This enables the C# range syntax: <c>array[1..^1]</c>
+///         A <c>Range</c> represents a contiguous region within a collection, defined by
+///         a start and end <c>Index</c>. This enables the C# range syntax: <c>array[1..^1]</c>
 ///         to get all elements except the first and last.
 ///     </para>
 ///     <para>
@@ -49,7 +49,7 @@ internal readonly struct Range : IEquatable<Range>
     public Index End { get; }
 
     /// <summary>
-    ///     Initializes a new instance of the <see cref="Range" /> struct with the specified start and end indices.
+    ///     Initializes a new instance of the <c>Range</c> struct with the specified start and end indices.
     /// </summary>
     /// <param name="start">The inclusive start index of the range.</param>
     /// <param name="end">The exclusive end index of the range.</param>
@@ -96,20 +96,20 @@ internal readonly struct Range : IEquatable<Range>
     ///     Creates a range starting at the specified index and ending at the end of the collection.
     /// </summary>
     /// <param name="start">The inclusive start index.</param>
-    /// <returns>A <see cref="Range" /> equivalent to <c>start..</c> in C# syntax.</returns>
+    /// <returns>A <c>Range</c> equivalent to <c>start..</c> in C# syntax.</returns>
     public static Range StartAt(Index start) => new(start, Index.End);
 
     /// <summary>
     ///     Creates a range starting at the beginning and ending at the specified index.
     /// </summary>
     /// <param name="end">The exclusive end index.</param>
-    /// <returns>A <see cref="Range" /> equivalent to <c>..end</c> in C# syntax.</returns>
+    /// <returns>A <c>Range</c> equivalent to <c>..end</c> in C# syntax.</returns>
     public static Range EndAt(Index end) => new(Index.Start, end);
 
     /// <summary>
     ///     Gets a range representing the entire collection.
     /// </summary>
-    /// <value>A <see cref="Range" /> equivalent to <c>..</c> in C# syntax (from start to end).</value>
+    /// <value>A <c>Range</c> equivalent to <c>..</c> in C# syntax (from start to end).</value>
     public static Range All => new(Index.Start, Index.End);
 
     /// <summary>

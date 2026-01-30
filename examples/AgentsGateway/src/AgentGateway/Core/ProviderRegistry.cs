@@ -73,7 +73,7 @@ public static class ProviderDiscovery
                 })
             {
                 var meta = type.GetCustomAttribute<ModelProviderAttribute>();
-                if (meta != null)
+                if (meta is not null)
                     registry.Register(
                         meta.ProviderId,
                         meta.DisplayName,

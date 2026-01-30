@@ -18,7 +18,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     };
 
     private readonly QylWebApplicationFactory _factory;
-    private HttpClient _client = null!;
+    private HttpClient? _client;
 
     public OtlpIngestionTests(QylWebApplicationFactory factory) => _factory = factory;
 
@@ -31,9 +31,11 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
+        _client?.Dispose();
         return ValueTask.CompletedTask;
     }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // OTLP /v1/traces Endpoint
@@ -46,7 +48,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/v1/traces", content);
+        var response = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
@@ -61,7 +63,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/v1/traces", content);
+        var response = await Client.PostAsync("/v1/traces", content);
 
         // Empty but valid request should be accepted
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -73,7 +75,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         const string json = "{}";
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/v1/traces", content);
+        var response = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -83,7 +85,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     {
         var content = new StringContent("{ invalid json }", Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/v1/traces", content);
+        var response = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -95,7 +97,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/v1/traces", content);
+        var response = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
@@ -121,7 +123,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         var json = JsonSerializer.Serialize(batch, SSnakeCaseOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/api/v1/ingest", content);
+        var response = await Client.PostAsync("/api/v1/ingest", content);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
@@ -132,7 +134,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         const string json = """{"spans": []}""";
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/api/v1/ingest", content);
+        var response = await Client.PostAsync("/api/v1/ingest", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -142,7 +144,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     {
         var content = new StringContent("not valid json", Encoding.UTF8, "application/json");
 
-        var response = await _client.PostAsync("/api/v1/ingest", content);
+        var response = await Client.PostAsync("/api/v1/ingest", content);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

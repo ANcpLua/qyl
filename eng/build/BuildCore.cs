@@ -42,7 +42,8 @@ sealed class Configuration : Enumeration
 
 interface IHasSolution : INukeBuild
 {
-    [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)!;
+    [Solution(GenerateProjects = true)] Solution Solution => TryGetValue(() => Solution)
+        ?? throw new InvalidOperationException("Solution not available. Ensure the build is properly initialized.");
 
     // ─── Build Artifacts ────────────────────────────────────────────────────
     AbsolutePath ArtifactsDirectory => RootDirectory / "Artifacts";
@@ -190,7 +191,8 @@ interface ICompile : IHasSolution
 
 interface IVersionize : IHasSolution
 {
-    [PathVariable] Tool Versionize => TryGetValue(() => Versionize)!;
+    [PathVariable] Tool Versionize => TryGetValue(() => Versionize)
+        ?? throw new InvalidOperationException("Versionize tool not found. Ensure it is installed: dotnet tool install -g Versionize");
 
     Target Changelog => d => d
         .Description("Generate CHANGELOG from conventional commits")

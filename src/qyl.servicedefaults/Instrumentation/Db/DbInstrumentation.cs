@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Data.Common;
+using ANcpLua.Roslyn.Utilities;
 using qyl.protocol.Attributes;
 
 namespace Qyl.ServiceDefaults.Instrumentation.Db;
@@ -188,13 +189,13 @@ public static class DbInstrumentation
     private static string MapTypeNameToDbSystem(string typeName) =>
         typeName switch
         {
-            _ when typeName.Contains("DuckDB", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.DuckDb,
-            _ when typeName.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.PostgreSql,
-            _ when typeName.Contains("SqlClient", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.MsSql,
-            _ when typeName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Sqlite,
-            _ when typeName.Contains("Oracle", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Oracle,
-            _ when typeName.Contains("MySql", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.MySql,
-            _ when typeName.Contains("Firebird", StringComparison.OrdinalIgnoreCase) => DbAttributes.Systems.Firebird,
+            _ when typeName.ContainsIgnoreCase("DuckDB") => DbAttributes.Systems.DuckDb,
+            _ when typeName.ContainsIgnoreCase("Npgsql") => DbAttributes.Systems.PostgreSql,
+            _ when typeName.ContainsIgnoreCase("SqlClient") => DbAttributes.Systems.MsSql,
+            _ when typeName.ContainsIgnoreCase("Sqlite") => DbAttributes.Systems.Sqlite,
+            _ when typeName.ContainsIgnoreCase("Oracle") => DbAttributes.Systems.Oracle,
+            _ when typeName.ContainsIgnoreCase("MySql") => DbAttributes.Systems.MySql,
+            _ when typeName.ContainsIgnoreCase("Firebird") => DbAttributes.Systems.Firebird,
             _ => "unknown"
         };
 }

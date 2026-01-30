@@ -19,8 +19,10 @@ internal static class MeterAnalyzer
     /// <summary>
     ///     Predicate for filtering syntax nodes that might be [Meter] classes.
     /// </summary>
-    public static bool IsPotentialMeterClass(SyntaxNode node, CancellationToken _) =>
-        node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
+    public static bool IsPotentialMeterClass(SyntaxNode node, CancellationToken _)
+    {
+        return node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
+    }
 
     /// <summary>
     ///     Transforms a syntax node into MeterClassInfo if it has a [Meter] attribute.
@@ -54,7 +56,7 @@ internal static class MeterAnalyzer
             return null;
 
         var methods = ExtractMetricMethods(classSymbol);
-        if (methods.Count == 0)
+        if (methods.Count is 0)
             return null;
 
         return new MeterClassInfo(
@@ -69,10 +71,8 @@ internal static class MeterAnalyzer
     private static AttributeData? FindAttribute(ImmutableArray<AttributeData> attributes, string fullName)
     {
         foreach (var attr in attributes)
-        {
             if (attr.AttributeClass?.ToDisplayString() == fullName)
                 return attr;
-        }
 
         return null;
     }
@@ -86,10 +86,8 @@ internal static class MeterAnalyzer
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
-        {
             if (namedArg is { Key: "Version", Value.Value: string versionValue })
                 version = versionValue;
-        }
 
         return (name, version);
     }
@@ -130,13 +128,11 @@ internal static class MeterAnalyzer
 
                 // First non-tagged parameter is the value for histogram
                 foreach (var param in method.Parameters)
-                {
                     if (FindAttribute(param.GetAttributes(), TagAttributeFullName) is null)
                     {
                         valueTypeName = param.Type.ToDisplayString();
                         break;
                     }
-                }
             }
             else
             {
@@ -171,7 +167,6 @@ internal static class MeterAnalyzer
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
-        {
             switch (namedArg.Key)
             {
                 case "Unit" when namedArg.Value.Value is string unitValue:
@@ -181,7 +176,6 @@ internal static class MeterAnalyzer
                     description = descValue;
                     break;
             }
-        }
 
         return (name, unit, description);
     }

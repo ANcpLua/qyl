@@ -4,6 +4,7 @@
 // =============================================================================
 
 using System.Reflection;
+using ANcpLua.Roslyn.Utilities;
 
 namespace Qyl.ServiceDefaults.Internal;
 
@@ -21,10 +22,12 @@ internal static class AssemblyVersionExtensions
     /// </remarks>
     public static string GetPackageVersion(this Assembly assembly)
     {
-        Debug.Assert(assembly != null, "assembly was null");
-        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        Debug.Assert(!string.IsNullOrEmpty(informationalVersion), "AssemblyInformationalVersionAttribute was not found");
-        return ParsePackageVersion(informationalVersion!);
+        Debug.Assert(assembly is not null, "assembly was null");
+        var informationalVersion =
+            assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        Debug.Assert(!string.IsNullOrEmpty(informationalVersion),
+            "AssemblyInformationalVersionAttribute was not found");
+        return ParsePackageVersion(informationalVersion);
     }
 
     /// <summary>
@@ -32,20 +35,22 @@ internal static class AssemblyVersionExtensions
     /// </summary>
     public static bool TryGetPackageVersion(this Assembly assembly, [NotNullWhen(true)] out string? packageVersion)
     {
-        var informationalVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+        var informationalVersion =
+            assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
         if (string.IsNullOrEmpty(informationalVersion))
         {
             packageVersion = null;
             return false;
         }
-        packageVersion = ParsePackageVersion(informationalVersion!);
+
+        packageVersion = ParsePackageVersion(informationalVersion);
         return true;
     }
 
     private static string ParsePackageVersion(string informationalVersion)
     {
         // Strip git SHA after '+' sign
-        var indexOfPlusSign = informationalVersion.IndexOf('+', StringComparison.Ordinal);
+        var indexOfPlusSign = informationalVersion.IndexOfOrdinal("+");
         return indexOfPlusSign > 0
             ? informationalVersion[..indexOfPlusSign]
             : informationalVersion;

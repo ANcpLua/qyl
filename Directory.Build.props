@@ -1,7 +1,7 @@
 <Project>
   <!-- =======================================================================
        qyl Root Build Properties
-       .NET 10.0 | C# 14 | Single-TFM | AOT-Compatible
+       .NET 10.0 | C# 14 | Single-TFM
        Uses ANcpLua.NET.Sdk for shared infrastructure
        ======================================================================= -->
 
@@ -41,11 +41,6 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Critical async/dispose rules - VSTHRD* removed (analyzer never installed) -->
     <WarningsAsErrors>CA1816;CA2012;CA2016</WarningsAsErrors>
-  </PropertyGroup>
-
-  <!-- AOT -->
-  <PropertyGroup>
-    <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
   <!-- Packaging (default off) -->

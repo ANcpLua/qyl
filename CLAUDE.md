@@ -1,127 +1,173 @@
-# qyl
+# qyl - AI Observability Platform
 
-AI Observability Platform. Observe everything. Judge nothing. Document perfectly.
+**Question Your Logs** - observe everything, judge nothing, document perfectly.
 
-## cross-cutting-rules
+## Architecture Overview
 
-See @.claude/rules/architecture-rules.md for type ownership and dependencies.
-See @.claude/rules/coding-patterns.md for .NET 10 patterns and banned APIs.
-See @.claude/rules/genai-semconv.md for OTel 1.39 GenAI semantic conventions.
-See @.claude/rules/build-workflow.md for NUKE targets and Docker build.
-See @.claude/rules/codegen.md for generated code rules (never edit *.g.cs).
-See @.claude/rules/frontend.md for React 19 and TypeScript guidelines.
-
-## identity
-
-```yaml
-name: qyl
-tagline: "question your logs -> don't need to anymore"
-domain: GenAI telemetry (OTel 1.39 semconv)
+```
+                      +------------------+
+                      |   qyl.dashboard  |
+                      |    (React 19)    |
+                      +--------+---------+
+                               | HTTP
+                               v
++-------------+       +------------------+       +-------------+
+|  qyl.mcp    |------>|  qyl.collector   |<------|    OTLP     |
+| (MCP stdio) | HTTP  |  (ASP.NET Core)  | gRPC  |   Clients   |
++-------------+       +--------+---------+       +-------------+
+                               |
+                               v
+                      +------------------+
+                      |     DuckDB       |
+                      | (columnar store) |
+                      +------------------+
 ```
 
-## architecture
+## Quick Start
 
-```yaml
-components:
-  collector:
-    path: src/qyl.collector
-    sdk: ANcpLua.NET.Sdk.Web
-    ports: [5100 (http), 4317 (grpc)]
-    role: primary-runtime (this IS qyl from user perspective)
+```bash
+# Development - run collector
+dotnet run --project src/qyl.collector
 
-  dashboard:
-    path: src/qyl.dashboard
-    runtime: node-22
-    framework: react-19 + vite-7
-    embedding: collector/wwwroot/
+# Development - run dashboard (separate terminal)
+cd src/qyl.dashboard && npm run dev
 
-  protocol:
-    path: src/qyl.protocol
-    sdk: ANcpLua.NET.Sdk
-    constraint: bcl-only (zero packages)
-
-  mcp:
-    path: src/qyl.mcp
-    sdk: ANcpLua.NET.Sdk
-    protocol: model-context-protocol (stdio)
-
-  servicedefaults:
-    path: src/qyl.servicedefaults
-    sdk: ANcpLua.NET.Sdk
-    role: aspire-style defaults
-
-  generators:
-    path: src/qyl.instrumentation.generators
-    sdk: ANcpLua.NET.Sdk
-    role: roslyn-source-generators
+# Production - Docker
+docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest
 ```
 
-## dependencies
+## Build Commands
+
+```bash
+# Full build with dashboard embedding
+nuke Full
+
+# Regenerate types from TypeSpec
+nuke Generate --force-generate
+
+# Docker image
+nuke DockerBuild
+
+# Run tests
+dotnet test
+```
+
+## Project Structure
+
+| Directory | Purpose |
+|-----------|---------|
+| `core/` | TypeSpec schemas (source of truth) |
+| `eng/` | NUKE build system |
+| `src/qyl.collector/` | Backend API service |
+| `src/qyl.dashboard/` | React frontend |
+| `src/qyl.mcp/` | MCP server for AI agents |
+| `src/qyl.protocol/` | Shared types (BCL-only) |
+| `src/qyl.servicedefaults/` | Aspire-style defaults |
+| `src/qyl.servicedefaults.generator/` | GenAI interceptor generator |
+| `src/qyl.copilot/` | GitHub Copilot integration |
+| `tests/` | Test projects |
+
+## TypeSpec-First Design
+
+All types are defined in TypeSpec (`core/specs/`) and generated downstream:
+
+```
+core/specs/*.tsp
+       |
+       v (tsp compile)
+core/openapi/openapi.yaml
+       |
+       v (nuke Generate)
++------+------+------+
+|      |      |      |
+v      v      v      v
+C#    DuckDB  TS    JSON
+```
+
+**Rule**: Never edit `*.g.cs` or `api.ts` - edit TypeSpec and regenerate.
+
+## Component Dependencies
 
 ```yaml
 allowed:
-  - collector -> protocol (ProjectReference)
-  - mcp -> protocol (ProjectReference)
-  - dashboard -> collector (HTTP at runtime)
-  - mcp -> collector (HTTP at runtime)
+  collector -> protocol (ProjectReference)
+  mcp -> protocol (ProjectReference)
+  dashboard -> collector (HTTP runtime)
+  mcp -> collector (HTTP runtime)
 
 forbidden:
-  - mcp -> collector (ProjectReference) # must use HTTP
-  - protocol -> any-package # must stay BCL-only
-  - dashboard -> any-dotnet # pure frontend
+  mcp -> collector (ProjectReference)  # must use HTTP
+  protocol -> any-package              # must stay BCL-only
 ```
 
-## tech-stack
+## Tech Stack
 
-```yaml
-dotnet:
-  runtime: .NET 10.0 LTS
-  lang: C# 14
-  sdk: ANcpLua.NET.Sdk (1.7.2)
+| Layer | Technology |
+|-------|------------|
+| Runtime | .NET 10.0 LTS, C# 14 |
+| Frontend | React 19, Vite 7, Tailwind CSS 4 |
+| Storage | DuckDB (columnar, glibc required) |
+| Protocol | OpenTelemetry Semantic Conventions 1.39 |
+| Testing | xUnit v3, Microsoft Testing Platform |
 
-frontend:
-  runtime: Node 22
-  framework: React 19
-  build: Vite 7
-  styling: Tailwind CSS 4
+## Key Patterns
 
-testing:
-  framework: xUnit v3 (3.2.2)
-  runner: Microsoft.Testing.Platform v2
+### Time Handling
 
-otel:
-  semconv: "1.39.0"
-  sdk: "1.15.0"
+```csharp
+// Protocol layer (cross-platform): long (signed 64-bit)
+long timestampNanos = ...;
+
+// Collector layer (DuckDB): ulong (unsigned 64-bit)
+ulong storedTimestamp = (ulong)timestampNanos;
 ```
 
-## commands
+### Locking
 
-```yaml
-development:
-  collector: dotnet run --project src/qyl.collector
-  dashboard: cd src/qyl.dashboard && npm run dev
+```csharp
+// Sync context
+private readonly Lock _lock = new();
+using (_lock.EnterScope()) { /* sync only */ }
 
-build:
-  full: nuke Full
-  generate: nuke Generate --force-generate
-  docker: nuke DockerBuild
-
-test:
-  all: dotnet test
+// Async context
+private readonly SemaphoreSlim _asyncLock = new(1, 1);
+await _asyncLock.WaitAsync(ct);
 ```
 
-## documentation-map
+### JSON Options (CA1869)
 
-```yaml
-root: CLAUDE.md (this file)
-rules: .claude/rules/*.md
-core: core/CLAUDE.md (TypeSpec schema)
-eng: eng/CLAUDE.md (NUKE build)
-collector: src/qyl.collector/CLAUDE.md
-dashboard: src/qyl.dashboard/CLAUDE.md
-protocol: src/qyl.protocol/CLAUDE.md
-mcp: src/qyl.mcp/CLAUDE.md
-generators: src/qyl.instrumentation.generators/CLAUDE.md
-servicedefaults: src/qyl.servicedefaults/CLAUDE.md
-tests: tests/CLAUDE.md
+```csharp
+private static readonly JsonSerializerOptions s_options = new()
+{
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+};
 ```
+
+## Ports
+
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| 5100 | HTTP | REST API, SSE, Dashboard |
+| 4317 | gRPC | OTLP traces/logs/metrics |
+| 5173 | HTTP | Dashboard dev server |
+
+## Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `QYL_PORT` | 5100 | HTTP API port |
+| `QYL_GRPC_PORT` | 4317 | gRPC OTLP port (0 to disable) |
+| `QYL_DATA_PATH` | ./qyl.duckdb | DuckDB file location |
+
+## Documentation Map
+
+| File | Purpose |
+|------|---------|
+| `.claude/rules/architecture-rules.md` | Type ownership, dependencies |
+| `.claude/rules/coding-patterns.md` | .NET 10 patterns, banned APIs |
+| `.claude/rules/genai-semconv.md` | OTel 1.39 GenAI conventions |
+| `.claude/rules/build-workflow.md` | NUKE targets, Docker build |
+| `core/CLAUDE.md` | TypeSpec schema details |
+| `eng/CLAUDE.md` | Build system |
+| `src/*/CLAUDE.md` | Component-specific docs |

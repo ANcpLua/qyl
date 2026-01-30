@@ -259,19 +259,19 @@ public static class QylServiceDefaultsExtensions
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddHealthChecks()
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"])
-            .AddCheck("ready", () => HealthCheckResult.Healthy(), ["ready"]);
+            .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"])
+            .AddCheck("ready", static () => HealthCheckResult.Healthy(), ["ready"]);
     }
 
     private static void ConfigureHttpClients<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
     {
         builder.Services.AddServiceDiscovery();
-        builder.Services.ConfigureHttpClientDefaults(http =>
+        builder.Services.ConfigureHttpClientDefaults(static http =>
         {
             http.AddStandardResilienceHandler();
             http.AddServiceDiscovery();
-            http.ConfigureHttpClient((sp, client) =>
+            http.ConfigureHttpClient(static (sp, client) =>
             {
                 var env = sp.GetRequiredService<IHostEnvironment>();
                 var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";

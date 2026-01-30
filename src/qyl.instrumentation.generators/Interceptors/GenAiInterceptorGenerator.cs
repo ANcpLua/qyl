@@ -58,8 +58,8 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 predicate: static (node, _) => node is InvocationExpressionSyntax,
                 transform: static (ctx, ct) => GetInterceptTarget(ctx, ct))
-            .Where(static target => target is not null)
-            .Select(static (target, _) => target.Value);
+            .Where(static target => target.HasValue)
+            .Select(static (target, _) => target.GetValueOrDefault());
 
         // Collect and emit
         context.RegisterSourceOutput(

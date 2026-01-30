@@ -10,6 +10,7 @@
     <PackageVersion Include="OTelConventions" Version="1.39.0"/>
     <!-- OpenTelemetry -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.2"/>
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.2"/>
     <PackageVersion Include="OpenTelemetry" Version="1.15.0"/>
     <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0"/>
     <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.0"/>
@@ -68,22 +69,24 @@
     <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.20.0"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.20.0"/>
-    <!-- Microsoft.Agents.AI (preview - for AgentsGateway example) -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260127.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260127.1"/>
+    <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260128.1"/>
+    <!-- GitHub Copilot SDK -->
+    <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.4.60-beta"/>
     <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="1.4.60-beta"/>
     <!-- MCP & AI Clients -->
     <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1"/>
-    <PackageVersion Include="System.ClientModel" Version="1.8.1"/>
+    <PackageVersion Include="System.ClientModel" Version="1.9.0"/>
     <PackageVersion Include="Mscc.GenerativeAI.Microsoft" Version="2.9.7"/>
     <PackageVersion Include="OllamaSharp" Version="5.4.12"/>
     <!-- Build Tooling (Nuke) -->

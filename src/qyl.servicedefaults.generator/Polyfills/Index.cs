@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 
 #if !NETCOREAPP3_0_OR_GREATER && !NETSTANDARD2_1_OR_GREATER
@@ -180,6 +181,6 @@ internal readonly struct Index : IEquatable<Index>
     ///     For "from end" indices, returns <c>^N</c> (e.g., "^1").
     ///     For "from start" indices, returns the numeric value (e.g., "0").
     /// </returns>
-    public override string ToString() => IsFromEnd ? "^" + Value : ((uint)Value).ToString();
+    public override string ToString() => IsFromEnd ? "^" + Value : ((uint)Value).ToString(CultureInfo.InvariantCulture);
 }
 #endif

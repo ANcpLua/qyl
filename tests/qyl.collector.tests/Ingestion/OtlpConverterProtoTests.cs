@@ -105,8 +105,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test the fix: finish_reasons (plural) should be extracted
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        var attributes = GetFirstSpanAttributes(request);
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.finish_reasons",
             Value = new OtlpAnyValueProto
@@ -131,8 +131,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test backward compat: singular finish_reason should still work
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        var attributes = GetFirstSpanAttributes(request);
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.finish_reason",
             Value = new OtlpAnyValueProto { StringValue = "stop" }
@@ -151,8 +151,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test deprecated attribute fallback
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        var attributes = GetFirstSpanAttributes(request);
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.system",  // deprecated
             Value = new OtlpAnyValueProto { StringValue = "anthropic" }
@@ -171,8 +171,8 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange - test deprecated token attribute fallback
         var request = CreateProtoRequest("trace", "span", "chat");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        var attributes = GetFirstSpanAttributes(request);
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.prompt_tokens",  // deprecated
             Value = new OtlpAnyValueProto { IntValue = 150 }
@@ -309,29 +309,32 @@ public sealed class OtlpConverterProtoTests
         long outputTokens)
     {
         var request = CreateProtoRequest("trace001", "span001", "chat gpt-4", "genai-service");
-        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0]!;
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
 
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        // Attributes is initialized by CreateSpan, but we assert for safety
+        var attributes = protoSpan.Attributes ?? throw new InvalidOperationException("Attributes should be initialized");
+
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.provider.name",
             Value = new OtlpAnyValueProto { StringValue = providerName }
         });
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.request.model",
             Value = new OtlpAnyValueProto { StringValue = requestModel }
         });
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.response.model",
             Value = new OtlpAnyValueProto { StringValue = responseModel }
         });
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.input_tokens",
             Value = new OtlpAnyValueProto { IntValue = inputTokens }
         });
-        protoSpan.Attributes!.Add(new OtlpKeyValueProto
+        attributes.Add(new OtlpKeyValueProto
         {
             Key = "gen_ai.usage.output_tokens",
             Value = new OtlpAnyValueProto { IntValue = outputTokens }
@@ -367,5 +370,18 @@ public sealed class OtlpConverterProtoTests
             EndTimeUnixNano = 2000000000UL,
             Attributes = [] // Initialize to allow adding attributes in tests
         };
+    }
+
+    /// <summary>
+    ///     Gets the attributes list from the first span in a request, asserting that all parts exist.
+    /// </summary>
+    private static List<OtlpKeyValueProto> GetFirstSpanAttributes(ExportTraceServiceRequest request)
+    {
+        Assert.NotEmpty(request.ResourceSpans);
+        Assert.NotEmpty(request.ResourceSpans[0].ScopeSpans);
+        Assert.NotEmpty(request.ResourceSpans[0].ScopeSpans[0].Spans);
+        var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
+        Assert.NotNull(protoSpan.Attributes);
+        return protoSpan.Attributes;
     }
 }

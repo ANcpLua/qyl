@@ -567,7 +567,7 @@ public sealed record OtlpAnyValue
 /// <summary>
 ///     Parsed span data with promoted GenAI attributes.
 /// </summary>
-internal sealed class ParsedSpan
+public sealed class ParsedSpan
 {
     public TraceId TraceId { get; set; }
     public SpanId SpanId { get; set; }
@@ -650,18 +650,18 @@ public sealed record OtlpExportLogsServiceRequest
     public List<OtlpResourceLogs>? ResourceLogs { get; init; }
 }
 
-internal sealed record OtlpResourceLogs
+public sealed record OtlpResourceLogs
 {
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeLogs>? ScopeLogs { get; init; }
 }
 
-internal sealed record OtlpScopeLogs
+public sealed record OtlpScopeLogs
 {
     public List<OtlpLogRecord>? LogRecords { get; init; }
 }
 
-internal sealed record OtlpLogRecord
+public sealed record OtlpLogRecord
 {
     public ulong TimeUnixNano { get; init; }
     public ulong ObservedTimeUnixNano { get; init; }

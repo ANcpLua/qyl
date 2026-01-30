@@ -200,7 +200,7 @@ internal static class InterceptorEmitter
         => name.Replace(".", "_").Replace("<", "_").Replace(">", "_").Replace(",", "_").Replace(" ", "");
 
     private static string EscapePath(string path)
-        => path.Replace("\\", "\\\\");
+        => path.Replace("\\", @"\\");
 
     private static string FormatParameters(IReadOnlyCollection<ParameterInfo> parameters)
     {

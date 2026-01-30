@@ -66,7 +66,7 @@ public sealed class ProviderRouterChatClient : IChatClient
         return _pipeline.ExecuteAsync(async ct =>
         {
             var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
-            if (modelId != null)
+            if (modelId is not null)
             {
                 options ??= new ChatOptions();
                 options.ModelId = modelId;
@@ -81,7 +81,7 @@ public sealed class ProviderRouterChatClient : IChatClient
         ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
         var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
-        if (modelId != null)
+        if (modelId is not null)
         {
             options ??= new ChatOptions();
             options.ModelId = modelId;

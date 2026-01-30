@@ -9,8 +9,8 @@ namespace qyl.collector.tests.Query;
 /// </summary>
 public sealed class SessionQueryServiceTests : IAsyncLifetime
 {
-    private SessionQueryService _queryService = null!;
-    private DuckDbStore _store = null!;
+    private SessionQueryService? _queryService;
+    private DuckDbStore? _store;
 
     public async ValueTask InitializeAsync()
     {
@@ -19,7 +19,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         _queryService = new SessionQueryService(_store);
     }
 
-    public ValueTask DisposeAsync() => _store.DisposeAsync();
+    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
+    private SessionQueryService QueryService => _queryService ?? throw new InvalidOperationException("QueryService not initialized");
 
     #region GetSessionsAsync Tests
 
@@ -27,7 +30,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionsAsync_NoSpans_ReturnsEmptyList()
     {
         // Act
-        var sessions = await _queryService.GetSessionsAsync();
+        var sessions = await QueryService.GetSessionsAsync();
 
         // Assert
         Assert.Empty(sessions);
@@ -56,10 +59,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var sessions = await _queryService.GetSessionsAsync();
+        var sessions = await QueryService.GetSessionsAsync();
 
         // Assert
         Assert.Single(sessions);
@@ -96,11 +99,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .WithTokens(100, 50)
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch1);
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch2);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch1);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch2);
 
         // Act
-        var sessions = await _queryService.GetSessionsAsync();
+        var sessions = await QueryService.GetSessionsAsync();
 
         // Assert - ordered by last activity DESC
         Assert.Equal(2, sessions.Count);
@@ -119,11 +122,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .WithSessionId($"session-{i:D3}")
                 .AtTime(now.AddMinutes(-i), 0, 50)
                 .Build();
-            await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+            await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
         }
 
         // Act
-        var sessions = await _queryService.GetSessionsAsync(3);
+        var sessions = await QueryService.GetSessionsAsync(3);
 
         // Assert
         Assert.Equal(3, sessions.Count);
@@ -140,11 +143,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .WithSessionId($"session-{i:D3}")
                 .AtTime(now.AddMinutes(-i), 0, 50)
                 .Build();
-            await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+            await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
         }
 
         // Act
-        var sessions = await _queryService.GetSessionsAsync(10, 2);
+        var sessions = await QueryService.GetSessionsAsync(10, 2);
 
         // Assert
         Assert.Equal(3, sessions.Count);
@@ -166,11 +169,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .AtTime(now, 0, 50)
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, oldSpan);
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, newSpan);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, oldSpan);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, newSpan);
 
         // Act
-        var sessions = await _queryService.GetSessionsAsync(after: now.AddDays(-1));
+        var sessions = await QueryService.GetSessionsAsync(after: now.AddDays(-1));
 
         // Assert
         Assert.Single(sessions);
@@ -191,10 +194,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .WithCost(0.08)
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
 
         // Act
-        var session = await _queryService.GetSessionAsync("target-session");
+        var session = await QueryService.GetSessionAsync("target-session");
 
         // Assert
         Assert.NotNull(session);
@@ -208,7 +211,7 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     public async Task GetSessionAsync_NonExistentSession_ReturnsNull()
     {
         // Act
-        var session = await _queryService.GetSessionAsync("non-existent");
+        var session = await QueryService.GetSessionAsync("non-existent");
 
         // Assert
         Assert.Null(session);
@@ -222,10 +225,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .WithSessionId(null)
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
 
         // Act - Query using trace_id as fallback
-        var session = await _queryService.GetSessionAsync("trace-fallback");
+        var session = await QueryService.GetSessionAsync("trace-fallback");
 
         // Assert
         Assert.NotNull(session);
@@ -260,10 +263,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var spans = await _queryService.GetSessionSpansAsync("session-timeline");
+        var spans = await QueryService.GetSessionSpansAsync("session-timeline");
 
         // Assert - ordered by start_time ASC
         Assert.Equal(3, spans.Count);
@@ -285,11 +288,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build())
             .ToList();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, new SpanBatch(spans),
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, new SpanBatch(spans),
             TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var result = await _queryService.GetSessionSpansAsync("session-limited", 5);
+        var result = await QueryService.GetSessionSpansAsync("session-limited", 5);
 
         // Assert
         Assert.Equal(5, result.Count);
@@ -332,10 +335,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var stats = await _queryService.GetGenAiStatsAsync("stats-session");
+        var stats = await QueryService.GetGenAiStatsAsync("stats-session");
 
         // Assert
         Assert.Equal(2, stats.RequestCount); // Only GenAI spans
@@ -370,10 +373,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act - no sessionId filter
-        var stats = await _queryService.GetGenAiStatsAsync();
+        var stats = await QueryService.GetGenAiStatsAsync();
 
         // Assert
         Assert.Equal(2, stats.RequestCount);
@@ -390,10 +393,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .WithProvider(null)
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
 
         // Act
-        var stats = await _queryService.GetGenAiStatsAsync("no-genai-session");
+        var stats = await QueryService.GetGenAiStatsAsync("no-genai-session");
 
         // Assert
         Assert.Equal(0, stats.RequestCount);
@@ -430,11 +433,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .AtTime(now, 100 + i * 10, 50)
                 .Build());
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, new SpanBatch(spans),
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, new SpanBatch(spans),
             TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var models = await _queryService.GetTopModelsAsync();
+        var models = await QueryService.GetTopModelsAsync();
 
         // Assert
         Assert.Equal(2, models.Count);
@@ -467,10 +470,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var models = await _queryService.GetTopModelsAsync();
+        var models = await QueryService.GetTopModelsAsync();
 
         // Assert
         Assert.Single(models);
@@ -517,10 +520,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var summary = await _queryService.GetErrorSummaryAsync("error-session");
+        var summary = await QueryService.GetErrorSummaryAsync("error-session");
 
         // Assert
         Assert.Equal(4, summary.TotalSpans);
@@ -537,10 +540,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
             .WithStatusCode(1) // OK
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
 
         // Act
-        var summary = await _queryService.GetErrorSummaryAsync("no-errors");
+        var summary = await QueryService.GetErrorSummaryAsync("no-errors");
 
         // Assert
         Assert.Equal(1, summary.TotalSpans);
@@ -569,10 +572,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var session = await _queryService.GetSessionAsync("duration-session");
+        var session = await QueryService.GetSessionAsync("duration-session");
 
         // Assert
         Assert.NotNull(session);
@@ -604,10 +607,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
                 .Build()
         ]);
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, batch, TestConstants.LargeBatchProcessingDelayMs);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
         // Act
-        var session = await _queryService.GetSessionAsync("multi-model");
+        var session = await QueryService.GetSessionAsync("multi-model");
 
         // Assert
         Assert.NotNull(session);

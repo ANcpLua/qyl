@@ -565,7 +565,7 @@ public static class CoverageSummaryConverter
     public static void ConvertPerProject(
         AbsolutePath coberturaPath,
         AbsolutePath sourceRoot,
-        IReadOnlyDictionary<string, AbsolutePath> projectOutputs)
+        IDictionary<string, AbsolutePath> projectOutputs)
     {
         if (!coberturaPath.FileExists())
         {
@@ -596,7 +596,7 @@ public static class CoverageSummaryConverter
         }
     }
 
-    static Dictionary<string, CoverageFile> ExtractAllFileIssues(XElement coverageElement, string sourceRoot)
+    static Dictionary<string, CoverageFile> ExtractAllFileIssues(XContainer coverageElement, string sourceRoot)
     {
         Dictionary<string, CoverageFile> result = new(StringComparer.OrdinalIgnoreCase);
 
@@ -624,7 +624,7 @@ public static class CoverageSummaryConverter
     }
 
     static void ProcessClassIssues(
-        XElement classElement,
+        XContainer classElement,
         string normalizedPath,
         Dictionary<string, CoverageFile> result,
         string? ruleTag,
@@ -814,8 +814,8 @@ public static class CoverageSummaryConverter
     // ─── DTOs ───────────────────────────────────────────────────────────────
     sealed class CoverageFile
     {
-        [JsonIgnore] public Dictionary<int, CoverageLine> LineDict { get; } = [];
-        [JsonIgnore] public Dictionary<int, CoverageBranch> BranchDict { get; } = [];
+        [JsonIgnore] public readonly Dictionary<int, CoverageLine> LineDict = [];
+        [JsonIgnore] public readonly Dictionary<int, CoverageBranch> BranchDict = [];
 
         public IEnumerable<CoverageLine> Lines => LineDict.Values.OrderBy(static l => l.Line);
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(static b => b.Line);

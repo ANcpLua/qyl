@@ -1,62 +1,129 @@
-# tests
+# tests - Test Infrastructure
 
-Test infrastructure using xUnit v3 with Microsoft Testing Platform.
+Test projects using xUnit v3 with Microsoft Testing Platform.
 
-## identity
+## Identity
 
-```yaml
-sdk: ANcpLua.NET.Sdk.Test
-framework: xUnit v3 (3.2.2)
-runner: Microsoft.Testing.Platform v2
+| Property | Value |
+|----------|-------|
+| SDK | ANcpLua.NET.Sdk.Test |
+| Framework | xUnit v3 (3.2.2) |
+| Runner | Microsoft Testing Platform v2 |
+
+## Test Projects
+
 ```
-
-## structure
-
-```yaml
 qyl.collector.tests/
-  Diagnostics/       # Diagnostic tests
-  Helpers/           # Test utilities (DuckDbTestHelpers)
-  Ingestion/         # OTLP parsing tests
-  Integration/       # End-to-end API tests
-  Query/             # Query service tests
-  Storage/           # DuckDB storage tests
+  Diagnostics/           # Diagnostic tests
+  Helpers/               # Test utilities (DuckDbTestHelpers)
+  Ingestion/             # OTLP parsing tests
+  Integration/           # End-to-end API tests
+  Query/                 # Query service tests
+  Storage/               # DuckDB storage tests
 ```
 
-## commands
+## Commands
 
-```yaml
-all: dotnet test
-filter: dotnet test --filter "FullyQualifiedName~Integration"
-coverage: nuke Coverage
+```bash
+# Run all tests
+dotnet test
+
+# Run specific test project
+dotnet test tests/qyl.collector.tests
+
+# Filter tests
+dotnet test --filter "FullyQualifiedName~Integration"
+
+# With coverage
+nuke Coverage
 ```
 
-## patterns
+## Test Patterns
+
+### Basic Test
 
 ```csharp
-// xUnit v3 with MTP
-public class MyTests
+public class SessionQueryTests
 {
     [Fact]
-    public async Task Should_DoSomething()
+    public async Task GetSession_WhenExists_ReturnsSession()
     {
-        // Arrange, Act, Assert
+        // Arrange
+        using var db = DuckDbTestHelpers.CreateInMemory();
+        var service = new SessionQueryService(db);
+
+        // Act
+        var result = await service.GetSessionAsync("session-123");
+
+        // Assert
+        result.Should().NotBeNull();
+        result.SessionId.Should().Be("session-123");
     }
 }
+```
 
-// DuckDB test helper
+### DuckDB Test Helper
+
+```csharp
+// In-memory database for isolation
 using var db = DuckDbTestHelpers.CreateInMemory();
+
+// Pre-seed test data
+await db.InsertSpansAsync(new[]
+{
+    new SpanRecord { TraceId = "trace-1", SpanId = "span-1" }
+});
 ```
 
-## packages
+### Integration Test with WebApplicationFactory
 
-```yaml
-- xunit.v3.mtp-v2
-- Microsoft.Testing.Extensions.TrxReport
-- Microsoft.AspNetCore.Mvc.Testing
+```csharp
+public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+{
+    private readonly HttpClient _client;
+
+    public ApiIntegrationTests(WebApplicationFactory<Program> factory)
+    {
+        _client = factory.CreateClient();
+    }
+
+    [Fact]
+    public async Task GetTraces_ReturnsOk()
+    {
+        var response = await _client.GetAsync("/api/v1/traces");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+}
 ```
 
-## rules
+## Packages
 
-- Use descriptive test names (Should_X_When_Y)
-- In-memory DuckDB for isolation
-- No mocking of core types
+| Package | Purpose |
+|---------|---------|
+| `xunit.v3.mtp-v2` | xUnit v3 with MTP |
+| `Microsoft.Testing.Extensions.TrxReport` | TRX report generation |
+| `Microsoft.AspNetCore.Mvc.Testing` | Integration test factory |
+| `AwesomeAssertions` | Fluent assertions |
+
+## Naming Conventions
+
+Use descriptive test names following `Should_X_When_Y`:
+
+```csharp
+[Fact]
+public async Task Should_ReturnNotFound_When_TraceIdDoesNotExist()
+
+[Fact]
+public async Task Should_FilterByServiceName_When_ProviderSpecified()
+
+[Fact]
+public async Task Should_IncludeChildSpans_When_FetchingTrace()
+```
+
+## Rules
+
+- Use in-memory DuckDB for test isolation
+- No mocking of core domain types
+- Prefer integration tests over unit tests for API endpoints
+- Clean up test data in `Dispose()` if using shared fixtures

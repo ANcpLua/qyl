@@ -1,3 +1,5 @@
 <Project>
-    <!-- Examples standalone - no external build targets needed -->
+    <!-- Import qyl.servicedefaults transitive targets for auto-instrumentation -->
+    <Import Project="$(MSBuildThisFileDirectory)../src/qyl.servicedefaults/build/Qyl.ServiceDefaults.targets"
+            Condition="Exists('$(MSBuildThisFileDirectory)../src/qyl.servicedefaults/build/Qyl.ServiceDefaults.targets')" />
 </Project>

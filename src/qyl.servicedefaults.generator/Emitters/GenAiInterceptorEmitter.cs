@@ -81,7 +81,10 @@ internal static class GenAiInterceptorEmitter
         var index = 0;
         foreach (var invocation in orderedInvocations)
         {
-            AppendSingleInterceptor(sb, invocation, index);
+            if (invocation.IsStreaming)
+                AppendStreamingInterceptor(sb, invocation, index);
+            else
+                AppendSingleInterceptor(sb, invocation, index);
             index++;
         }
     }
@@ -113,7 +116,6 @@ internal static class GenAiInterceptorEmitter
         var usageExtractor = GetUsageExtractor(invocation.Provider, invocation.Operation);
 
         if (invocation.IsAsync)
-        {
             sb.AppendLine(usageExtractor is not null
                 ? $$"""
                             // Intercepted call at {{displayLocation}}
@@ -142,9 +144,7 @@ internal static class GenAiInterceptorEmitter
                             }
 
                     """);
-        }
         else
-        {
             sb.AppendLine(usageExtractor is not null
                 ? $$"""
                             // Intercepted call at {{displayLocation}}
@@ -173,7 +173,62 @@ internal static class GenAiInterceptorEmitter
                             }
 
                     """);
-        }
+    }
+
+    private static void AppendStreamingInterceptor(
+        StringBuilder sb,
+        GenAiInvocationInfo invocation,
+        int index)
+    {
+        var displayLocation = invocation.InterceptableLocation.GetDisplayLocation();
+        var interceptAttribute = invocation.InterceptableLocation.GetInterceptsLocationAttributeSyntax();
+
+        var methodName = $"Intercept_GenAi_{index}";
+        var returnType = invocation.ReturnTypeName;
+        var containingType = invocation.ContainingTypeName;
+        var originalMethod = invocation.MethodName;
+
+        var parameters = BuildParameterList(invocation, containingType);
+        var arguments = BuildArgumentList(invocation);
+
+        var modelArg = invocation.Model is not null
+            ? $"\"{invocation.Model}\""
+            : "null";
+
+        var providerConst = GetProviderConstant(invocation.Provider);
+        var operationConst = GetOperationConstant(invocation.Operation);
+
+        // Extract the element type from IAsyncEnumerable<T>
+        var elementType = ExtractStreamingElementType(returnType);
+
+        sb.AppendLine($$"""
+                    // Intercepted streaming call at {{displayLocation}}
+                    {{interceptAttribute}}
+                    public static {{returnType}} {{methodName}}({{parameters}})
+                    {
+                        return GenAiInstrumentation.ExecuteStreamingAsync<{{elementType}}>(
+                            {{providerConst}},
+                            {{operationConst}},
+                            {{modelArg}},
+                            () => @this.{{originalMethod}}({{arguments}}));
+                    }
+
+            """);
+    }
+
+    /// <summary>
+    ///     Extracts the element type from IAsyncEnumerable&lt;T&gt;.
+    /// </summary>
+    private static string ExtractStreamingElementType(string returnType)
+    {
+        // Expected format: System.Collections.Generic.IAsyncEnumerable<ElementType>
+        var start = returnType.IndexOf('<');
+        var end = returnType.LastIndexOf('>');
+
+        if (start < 0 || end < 0 || end <= start)
+            return "object"; // Fallback
+
+        return returnType.Substring(start + 1, end - start - 1);
     }
 
     /// <summary>
@@ -188,13 +243,15 @@ internal static class GenAiInterceptorEmitter
         if (definition?.TokenUsage is null)
             return null;
 
-        if (operation != "chat" && operation != "embeddings")
+        // Operations that support token usage extraction
+        if (operation != "chat" && operation != "embeddings" && operation != "invoke_agent")
             return null;
 
         var usage = definition.TokenUsage;
-        var outputTokens = operation == "embeddings" ? "0" : $"r.{usage.OutputProperty}";
+        var outputTokens = operation == "embeddings" ? "0" : $"r.{usage.OutputProperty} ?? 0";
+        var inputTokens = $"r.{usage.InputProperty} ?? 0";
 
-        return $"static r => new TokenUsage(r.{usage.InputProperty}, {outputTokens})";
+        return $"static r => new TokenUsage({inputTokens}, {outputTokens})";
     }
 
     private static string BuildParameterList(GenAiInvocationInfo invocation, string containingType)
@@ -203,14 +260,42 @@ internal static class GenAiInterceptorEmitter
         sb.Append($"this global::{containingType} @this");
 
         for (var i = 0; i < invocation.ParameterTypes.Count; i++)
-            sb.Append($", global::{invocation.ParameterTypes[i]} arg{i}");
+            sb.Append($", {EscapeTypeName(invocation.ParameterTypes[i])} arg{i}");
 
         return sb.ToString();
     }
 
+    /// <summary>
+    ///     Escapes a type name for use in generated code.
+    ///     Primitive type aliases (string, int, etc.) cannot be prefixed with global::
+    /// </summary>
+    private static string EscapeTypeName(string typeName)
+    {
+        // Primitive type aliases don't need global:: prefix
+        return typeName switch
+        {
+            "string" or "string?" => typeName,
+            "bool" or "bool?" => typeName,
+            "byte" or "byte?" => typeName,
+            "sbyte" or "sbyte?" => typeName,
+            "short" or "short?" => typeName,
+            "ushort" or "ushort?" => typeName,
+            "int" or "int?" => typeName,
+            "uint" or "uint?" => typeName,
+            "long" or "long?" => typeName,
+            "ulong" or "ulong?" => typeName,
+            "float" or "float?" => typeName,
+            "double" or "double?" => typeName,
+            "decimal" or "decimal?" => typeName,
+            "char" or "char?" => typeName,
+            "object" or "object?" => typeName,
+            _ => $"global::{typeName}"
+        };
+    }
+
     private static string BuildArgumentList(GenAiInvocationInfo invocation)
     {
-        if (invocation.ParameterTypes.Count == 0)
+        if (invocation.ParameterTypes.Count is 0)
             return string.Empty;
 
         var args = new string[invocation.ParameterTypes.Count];
@@ -232,8 +317,9 @@ internal static class GenAiInterceptorEmitter
     ///     Maps a provider ID to its GenAiAttributes.Providers constant reference.
     ///     Falls back to literal string for unknown providers.
     /// </summary>
-    private static string GetProviderConstant(string providerId) =>
-        providerId switch
+    private static string GetProviderConstant(string providerId)
+    {
+        return providerId switch
         {
             "openai" => "GenAiAttributes.Providers.OpenAi",
             "azure.ai.openai" => "GenAiAttributes.Providers.AzureOpenAi",
@@ -248,15 +334,18 @@ internal static class GenAiInterceptorEmitter
             "deepseek" => "GenAiAttributes.Providers.DeepSeek",
             "perplexity" => "GenAiAttributes.Providers.Perplexity",
             "x_ai" => "GenAiAttributes.Providers.XAi",
+            "github_copilot" => "GenAiAttributes.Providers.GitHubCopilot",
             _ => $"\"{providerId}\"" // Fallback for custom providers
         };
+    }
 
     /// <summary>
     ///     Maps an operation ID to its GenAiAttributes.Operations constant reference.
     ///     Falls back to literal string for unknown operations.
     /// </summary>
-    private static string GetOperationConstant(string operationId) =>
-        operationId switch
+    private static string GetOperationConstant(string operationId)
+    {
+        return operationId switch
         {
             "chat" => "GenAiAttributes.Operations.Chat",
             "embeddings" => "GenAiAttributes.Operations.Embeddings",
@@ -267,4 +356,5 @@ internal static class GenAiInterceptorEmitter
             "generate_content" => "GenAiAttributes.Operations.GenerateContent",
             _ => $"\"{operationId}\"" // Fallback for custom operations
         };
+    }
 }

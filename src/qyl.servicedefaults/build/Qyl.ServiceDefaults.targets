@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Transitive build targets for qyl.servicedefaults consumers.
+  Automatically flows the source generator and required settings to projects
+  that reference qyl.servicedefaults, enabling the "magic" experience.
+-->
+<Project>
+  <PropertyGroup>
+    <!-- Enable interceptors namespace for generated code -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Flow the source generator to consumers.
+      The generator DLL path is relative to this targets file location.
+      For ProjectReference builds, this resolves to the generator output.
+    -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll')" />
+  </ItemGroup>
+</Project>

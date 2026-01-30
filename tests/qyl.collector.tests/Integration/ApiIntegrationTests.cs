@@ -9,7 +9,7 @@ namespace qyl.collector.tests.Integration;
 public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
     private readonly QylWebApplicationFactory _factory;
-    private HttpClient _client = null!;
+    private HttpClient? _client;
 
     public ApiIntegrationTests(QylWebApplicationFactory factory) => _factory = factory;
 
@@ -23,9 +23,11 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
+        _client?.Dispose();
         return ValueTask.CompletedTask;
     }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // Health Endpoints
@@ -34,7 +36,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task Health_ReturnsOk()
     {
-        var response = await _client.GetAsync("/health");
+        var response = await Client.GetAsync("/health");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -45,7 +47,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task Ready_ReturnsOk()
     {
-        var response = await _client.GetAsync("/ready");
+        var response = await Client.GetAsync("/ready");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -61,7 +63,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     public async Task AuthCheck_ReturnsOk()
     {
         // Auth check should always return OK (with authenticated:true or false)
-        var authResponse = await _client.GetAsync("/api/auth/check");
+        var authResponse = await Client.GetAsync("/api/auth/check");
 
         Assert.Equal(HttpStatusCode.OK, authResponse.StatusCode);
 
@@ -78,7 +80,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
         {
             token = QylWebApplicationFactory.TestToken
         };
-        var response = await _client.PostAsJsonAsync("/api/login", loginRequest);
+        var response = await Client.PostAsJsonAsync("/api/login", loginRequest);
 
         // Login should return OK with valid token or BadRequest with invalid
         Assert.True(
@@ -94,7 +96,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
         {
             token = "invalid-token"
         };
-        var response = await _client.PostAsJsonAsync("/api/login", loginRequest);
+        var response = await Client.PostAsJsonAsync("/api/login", loginRequest);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
@@ -106,7 +108,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetSessions_ReturnsOk()
     {
-        var response = await _client.GetAsync("/api/v1/sessions");
+        var response = await Client.GetAsync("/api/v1/sessions");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -118,7 +120,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetSessions_WithLimit_ReturnsOk()
     {
-        var response = await _client.GetAsync("/api/v1/sessions?limit=10");
+        var response = await Client.GetAsync("/api/v1/sessions?limit=10");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -126,7 +128,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetSession_NonExistent_ReturnsNotFound()
     {
-        var response = await _client.GetAsync("/api/v1/sessions/non-existent-session-id");
+        var response = await Client.GetAsync("/api/v1/sessions/non-existent-session-id");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -139,7 +141,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     public async Task GetTrace_NonExistent_ReturnsNotFoundOrServerError()
     {
         // Non-existent trace should return 404, but may return 500 if DB not initialized
-        var response = await _client.GetAsync("/api/v1/traces/non-existent-trace-id");
+        var response = await Client.GetAsync("/api/v1/traces/non-existent-trace-id");
 
         Assert.True(
             response.StatusCode == HttpStatusCode.NotFound ||
@@ -154,7 +156,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task PostFeedback_ReturnsAccepted()
     {
-        var response = await _client.PostAsync("/api/v1/feedback", null);
+        var response = await Client.PostAsync("/api/v1/feedback", null);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
     }
@@ -162,7 +164,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetSessionFeedback_ReturnsOk()
     {
-        var response = await _client.GetAsync("/api/v1/sessions/test-session/feedback");
+        var response = await Client.GetAsync("/api/v1/sessions/test-session/feedback");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -177,7 +179,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task McpManifest_ReturnsOk()
     {
-        var response = await _client.GetAsync("/mcp/manifest");
+        var response = await Client.GetAsync("/mcp/manifest");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -192,7 +194,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetConsole_ReturnsOk()
     {
-        var response = await _client.GetAsync("/api/v1/console");
+        var response = await Client.GetAsync("/api/v1/console");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
@@ -200,7 +202,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     [Fact]
     public async Task GetConsoleErrors_ReturnsOk()
     {
-        var response = await _client.GetAsync("/api/v1/console/errors");
+        var response = await Client.GetAsync("/api/v1/console/errors");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }

@@ -109,7 +109,7 @@ app.MapGet("/v1/catalog/providers", (IProviderRegistry reg) => Results.Ok(reg.Al
 app.MapGet("/v1/catalog/providers/{id}/models", async (string id, IProviderRegistry reg, IServiceProvider sp) =>
 {
     var catalog = reg.ResolveCatalog(id, sp);
-    return catalog != null ? Results.Ok(await catalog.ListModelsAsync()) : Results.NotFound();
+    return catalog is not null ? Results.Ok(await catalog.ListModelsAsync()) : Results.NotFound();
 });
 
 app.MapGet("/healthz", () => Results.Ok(new

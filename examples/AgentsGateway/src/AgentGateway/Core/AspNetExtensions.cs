@@ -26,7 +26,7 @@ public static class AspNetExtensions
 
         if (!tokenValidationSection.Exists())
         {
-            if (logger != null)
+            if (logger is not null)
                 AgentGatewayLogs.LogMissingConfiguration(logger, tokenValidationSectionName);
             throw new InvalidOperationException(
                 $"Missing configuration section '{tokenValidationSectionName}'. This section is required to be present in appsettings.json");
@@ -37,7 +37,7 @@ public static class AspNetExtensions
         var audiences = tokenValidationSection.GetSection("Audiences").Get<List<string>>() ?? new List<string>();
 
         // If ValidIssuers is empty, default for ABS Public Cloud
-        if (validTokenIssuers.Count == 0)
+        if (validTokenIssuers.Count is 0)
         {
             validTokenIssuers =
             [
@@ -60,7 +60,7 @@ public static class AspNetExtensions
             }
         }
 
-        if (audiences.Count == 0)
+        if (audiences.Count is 0)
             throw new ArgumentException($"{tokenValidationSectionName}:Audiences requires at least one value");
 
         var isGov = tokenValidationSection.GetValue("IsGov", false);
@@ -160,17 +160,17 @@ public static class AspNetExtensions
 
                     OnTokenValidated = _ =>
                     {
-                        if (logger != null) AgentGatewayLogs.LogTokenValidated(logger);
+                        if (logger is not null) AgentGatewayLogs.LogTokenValidated(logger);
                         return Task.CompletedTask;
                     },
                     OnForbidden = context =>
                     {
-                        if (logger != null && logger.IsEnabled(LogLevel.Warning)) AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
+                        if (logger is not null && logger.IsEnabled(LogLevel.Warning)) AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
                         return Task.CompletedTask;
                     },
                     OnAuthenticationFailed = context =>
                     {
-                        if (logger != null) AgentGatewayLogs.LogAuthFailed(logger, context.Exception);
+                        if (logger is not null) AgentGatewayLogs.LogAuthFailed(logger, context.Exception);
                         return Task.CompletedTask;
                     }
                 };

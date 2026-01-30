@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <!-- Demo: Suppress unused parameter warnings for placeholder APIs -->
+        <NoWarn>$(NoWarn);IDE0060</NoWarn>
+    </PropertyGroup>
+
+    <!-- That's it! Two references give you everything -->
+    <!-- Auto-instrumentation flows transitively via qyl.servicedefaults -->
+    <ItemGroup>
+        <ProjectReference Include="../../src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
+        <ProjectReference Include="../../src/qyl.copilot/qyl.copilot.csproj"/>
+    </ItemGroup>
+</Project>

@@ -70,13 +70,14 @@ public sealed class QylRequestEnricher : ILogEnricher
         var remoteIp = context.Connection.RemoteIpAddress;
         if (remoteIp is not null)
         {
+            var ipString = remoteIp.ToString();
             // Only log local/internal IPs, redact external
-            if (remoteIp.ToString().StartsWith("127.") ||
-                remoteIp.ToString().StartsWith("::1") ||
-                remoteIp.ToString().StartsWith("10.") ||
-                remoteIp.ToString().StartsWith("192.168."))
+            if (ipString.StartsWith("127.", StringComparison.Ordinal) ||
+                ipString.StartsWith("::1", StringComparison.Ordinal) ||
+                ipString.StartsWith("10.", StringComparison.Ordinal) ||
+                ipString.StartsWith("192.168.", StringComparison.Ordinal))
             {
-                collector.Add("client.address", remoteIp.ToString());
+                collector.Add("client.address", ipString);
             }
             else
             {

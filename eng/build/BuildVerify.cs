@@ -49,7 +49,7 @@ interface IVerify : IHasSolution
                 .Concat(paths.CollectorStorage.GlobFiles("*.g.cs"))
                 .ToList();
 
-            if (generatedFiles.Count == 0)
+            if (generatedFiles.Count is 0)
             {
                 Log.Warning("No generated files found to verify");
                 return;
@@ -126,10 +126,7 @@ interface IVerify : IHasSolution
 
                 // Check for camelCase (lowercase start, has uppercase after first char)
                 // Skip snake_case (has underscores) and single words
-                if (IsCamelCase(propName))
-                {
-                    violations.Add(propName);
-                }
+                if (IsCamelCase(propName)) violations.Add(propName);
             }
 
             if (violations.Count > 0)

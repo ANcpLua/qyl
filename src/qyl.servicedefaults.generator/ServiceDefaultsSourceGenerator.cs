@@ -38,6 +38,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             interceptionCandidates.Combine(hasServiceDefaults),
             EmitInterceptors);
 
+        // Separate check for GenAI instrumentation (doesn't require full service defaults)
+        var hasGenAiInstrumentation = context.CompilationProvider
+            .Select(HasGenAiInstrumentationType)
+            .WithTrackingName(TrackingNames.GenAiInstrumentationAvailable);
+
         var genAiInvocations = context.SyntaxProvider
             .CreateSyntaxProvider(
                 GenAiCallSiteAnalyzer.IsPotentialGenAiCall,
@@ -48,7 +53,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WithTrackingName(TrackingNames.CollectedGenAiCalls);
 
         context.RegisterSourceOutput(
-            genAiInvocations.Combine(hasServiceDefaults),
+            genAiInvocations.Combine(hasGenAiInstrumentation),
             EmitGenAiInterceptors);
 
         var dbInvocations = context.SyntaxProvider
@@ -107,6 +112,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     }
 
     private static bool HasServiceDefaultsType(Compilation compilation, CancellationToken _) => compilation.GetTypeByMetadataName(MetadataNames.ServiceDefaultsClass) is not null;
+
+    private static bool HasGenAiInstrumentationType(Compilation compilation, CancellationToken _) => compilation.GetTypeByMetadataName(MetadataNames.GenAiInstrumentation) is not null;
 
     private static bool IsPotentialBuildCall(SyntaxNode node, CancellationToken _) => node.IsKind(SyntaxKind.InvocationExpression);
 
@@ -208,9 +215,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     private static void EmitGenAiInterceptors(
         SourceProductionContext context,
-        (ImmutableArray<GenAiInvocationInfo> Invocations, bool HasServiceDefaults) source)
+        (ImmutableArray<GenAiInvocationInfo> Invocations, bool HasGenAiInstrumentation) source)
     {
-        if (!source.HasServiceDefaults || source.Invocations.IsEmpty)
+        if (!source.HasGenAiInstrumentation || source.Invocations.IsEmpty)
             return;
 
         var sourceCode = GenAiInterceptorEmitter.Emit(source.Invocations);
@@ -345,7 +352,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     {
         public const string WebApplicationBuilder = "Microsoft.AspNetCore.Builder.WebApplicationBuilder";
         public const string WebApplication = "Microsoft.AspNetCore.Builder.WebApplication";
-        public const string ServiceDefaultsClass = "Qyl.ServiceDefaults.QylServiceDefaults";
+        public const string ServiceDefaultsClass = "Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.QylServiceDefaults";
+        public const string GenAiInstrumentation = "Qyl.ServiceDefaults.Instrumentation.GenAi.GenAiInstrumentation";
     }
 
     /// <summary>Method names used in interception and generated code.</summary>
@@ -361,6 +369,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static class TrackingNames
     {
         public const string ServiceDefaultsAvailable = nameof(ServiceDefaultsAvailable);
+        public const string GenAiInstrumentationAvailable = nameof(GenAiInstrumentationAvailable);
         public const string InterceptionCandidates = nameof(InterceptionCandidates);
         public const string CollectedBuildCalls = nameof(CollectedBuildCalls);
         public const string GenAiInvocations = nameof(GenAiInvocations);
@@ -403,7 +412,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string InterceptorsNamespaceOpen = """
                                                         namespace Qyl.ServiceDefaults.Generator
                                                         {
-                                                            using Qyl.ServiceDefaults;
+                                                            using Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
 
                                                             file static partial class Interceptors
                                                             {

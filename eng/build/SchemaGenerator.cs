@@ -58,7 +58,7 @@ public static class SchemaGenerator
             var fileName = GetFileNameFromNamespace(group.Key) + "Enums";
             files.Add(new GeneratedFile(
                 protocolDir / "Enums" / $"{fileName}.g.cs",
-                GenerateEnumsForNamespace(group.Key, [.. group])));
+                GenerateEnumsForNamespace(group.Key, group)));
         }
 
         // C# Models (grouped by namespace)
@@ -69,7 +69,7 @@ public static class SchemaGenerator
             var fileName = GetFileNameFromNamespace(group.Key);
             files.Add(new GeneratedFile(
                 protocolDir / "Models" / $"{fileName}.g.cs",
-                GenerateModels(group.Key, (List<SchemaDefinition>)[.. group])));
+                GenerateModels(group.Key, group)));
         }
 
         // DuckDB Schema
@@ -142,9 +142,13 @@ public static class SchemaGenerator
                         "    public bool IsValid => !string.IsNullOrEmpty(Value) && s_pattern.IsMatch(Value);");
                 }
                 else if (underlying == "string")
+                {
                     sb.AppendLine("    public bool IsValid => !string.IsNullOrEmpty(Value);");
+                }
                 else
+                {
                     sb.AppendLine("    public bool IsValid => true;");
+                }
 
                 // Hex parsing for TraceId/SpanId
                 if (isHex) AppendHexParsing(sb, typeName, hexLen);
@@ -234,7 +238,7 @@ public static class SchemaGenerator
     // C# ENUMS - Integer and string-backed enumerations
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateEnumsForNamespace(string ns, List<SchemaDefinition> enums)
+    static string GenerateEnumsForNamespace(string ns, IEnumerable<SchemaDefinition> enums)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, $"Enumeration types for {ns}");
@@ -290,7 +294,9 @@ public static class SchemaGenerator
                 // Emit member
                 if (isIntegerEnum)
                     // Integer enum: memberName = value
+                {
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    {memberName} = {rawValue},");
+                }
                 else
                 {
                     // String enum: need EnumMember for serialization
@@ -358,16 +364,20 @@ public static class SchemaGenerator
 
         foreach (var c in value)
             if (c is '_' or '-' or ' ' or '.')
+            {
                 capitalizeNext = true;
+            }
             else if (capitalizeNext)
             {
                 sb.Append(char.ToUpperInvariant(c));
                 capitalizeNext = false;
             }
             else
+            {
                 sb.Append(c);
+            }
 
-        if (sb.Length == 0) return "Unknown";
+        if (sb.Length is 0) return "Unknown";
 
         // C# identifiers cannot start with a digit - prefix with underscore
         var result = sb.ToString();
@@ -618,7 +628,9 @@ public static class SchemaGenerator
                 sb.Append('_');
             }
             else
+            {
                 sb.Append(c);
+            }
         }
 
         return sb.ToString();
@@ -687,15 +699,20 @@ public static class SchemaGenerator
         if (schemaName.StartsWith("Qyl.Domains.Identity.", StringComparison.Ordinal)) return "Qyl.Domains.Identity";
 
         // Domain namespaces - Observe (most specific first)
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Error.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Error";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Exceptions.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Exceptions";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Log.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Log";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Session.", StringComparison.Ordinal)) return "Qyl.Domains.Observe.Session";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Error.", StringComparison.Ordinal))
+            return "Qyl.Domains.Observe.Error";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Exceptions.", StringComparison.Ordinal))
+            return "Qyl.Domains.Observe.Exceptions";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Log.", StringComparison.Ordinal))
+            return "Qyl.Domains.Observe.Log";
+        if (schemaName.StartsWith("Qyl.Domains.Observe.Session.", StringComparison.Ordinal))
+            return "Qyl.Domains.Observe.Session";
         if (schemaName.StartsWith("Qyl.Domains.Observe.", StringComparison.Ordinal)) return "Qyl.Domains.Observe";
 
         // Domain namespaces - Ops (most specific first)
         if (schemaName.StartsWith("Qyl.Domains.Ops.Cicd.", StringComparison.Ordinal)) return "Qyl.Domains.Ops.Cicd";
-        if (schemaName.StartsWith("Qyl.Domains.Ops.Deployment.", StringComparison.Ordinal)) return "Qyl.Domains.Ops.Deployment";
+        if (schemaName.StartsWith("Qyl.Domains.Ops.Deployment.", StringComparison.Ordinal))
+            return "Qyl.Domains.Ops.Deployment";
         if (schemaName.StartsWith("Qyl.Domains.Ops.", StringComparison.Ordinal)) return "Qyl.Domains.Ops";
 
         // Domain namespaces - Others
@@ -823,7 +840,7 @@ public sealed record OpenApiSchema(
 
         var root = (YamlMappingNode)yaml.Documents[0].RootNode;
         var info = GetMapping(root, "info")
-            ?? throw new InvalidOperationException($"OpenAPI schema missing required 'info' section: {path}");
+                   ?? throw new InvalidOperationException($"OpenAPI schema missing required 'info' section: {path}");
         var title = GetString(info, "title") ?? "API";
         var version = GetString(info, "version") ?? "0.0.0";
 
@@ -857,7 +874,7 @@ public sealed record OpenApiSchema(
         var propsMapping = GetMapping(node, "properties");
         var hasNoProperties = propsMapping is null || !propsMapping.Children.Any();
         var isScalar = extensions.ContainsKey("x-csharp-struct") ||
-                       (type is "string" or "integer" or "number" && enumValues.Length == 0 && hasNoProperties);
+                       (type is "string" or "integer" or "number" && enumValues.Length is 0 && hasNoProperties);
 
         // Determine if enum
         var isEnum = enumValues.Length > 0;
@@ -1072,7 +1089,9 @@ public sealed partial class GenerationGuard
             }
         }
         else
+        {
             Log.Debug("  [NEW] {Description}", description);
+        }
 
         path.Parent.CreateDirectory();
         File.WriteAllText(path, content);

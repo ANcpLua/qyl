@@ -60,8 +60,7 @@ internal static class TracedInterceptorEmitter
     ///     Maps original ActivitySource names to unique field names.
     ///     Thread-local to avoid issues with parallel compilation.
     /// </summary>
-    [ThreadStatic]
-    private static Dictionary<string, string>? s_activitySourceFieldNames;
+    [ThreadStatic] private static Dictionary<string, string>? s_activitySourceFieldNames;
 
     private static void AppendActivitySourcesClass(StringBuilder sb, ImmutableArray<TracedInvocationInfo> invocations)
     {
@@ -83,10 +82,7 @@ internal static class TracedInterceptorEmitter
             var counter = 1;
 
             // Ensure uniqueness
-            while (!usedFieldNames.Add(fieldName))
-            {
-                fieldName = $"{baseFieldName}_{counter++}";
-            }
+            while (!usedFieldNames.Add(fieldName)) fieldName = $"{baseFieldName}_{counter++}";
 
             s_activitySourceFieldNames[name] = fieldName;
         }
@@ -99,7 +95,8 @@ internal static class TracedInterceptorEmitter
         foreach (var name in activitySourceNames)
         {
             var fieldName = s_activitySourceFieldNames[name];
-            sb.AppendLine($"        internal static readonly global::System.Diagnostics.ActivitySource {fieldName} = new(\"{name}\");");
+            sb.AppendLine(
+                $"        internal static readonly global::System.Diagnostics.ActivitySource {fieldName} = new(\"{name}\");");
         }
 
         sb.AppendLine("    }");
@@ -118,10 +115,7 @@ internal static class TracedInterceptorEmitter
     {
         // Convert "MyApp.Orders" to "MyApp_Orders"
         var sanitized = new StringBuilder();
-        foreach (var c in activitySourceName)
-        {
-            sanitized.Append(char.IsLetterOrDigit(c) ? c : '_');
-        }
+        foreach (var c in activitySourceName) sanitized.Append(char.IsLetterOrDigit(c) ? c : '_');
         return sanitized.ToString();
     }
 
@@ -175,15 +169,11 @@ internal static class TracedInterceptorEmitter
             : $"@this.{originalMethod}{typeParams}({arguments})";
 
         if (invocation.IsAsync)
-        {
             EmitAsyncInterceptor(sb, invocation, methodName, typeParams, constraints, returnType, parameters,
                 displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
-        }
         else
-        {
             EmitSyncInterceptor(sb, invocation, methodName, typeParams, constraints, returnType, parameters,
                 displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
-        }
     }
 
     private static void EmitAsyncInterceptor(
@@ -201,17 +191,17 @@ internal static class TracedInterceptorEmitter
         string methodCall)
     {
         var hasReturnValue = !returnType.EndsWith("Task", StringComparison.Ordinal) &&
-                            !returnType.EndsWith("ValueTask", StringComparison.Ordinal);
+                             !returnType.EndsWith("ValueTask", StringComparison.Ordinal);
 
         sb.AppendLine($$"""
-                // Intercepted call at {{displayLocation}}
-                {{interceptAttribute}}
-                public static async {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
-                {
-                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
-                        "{{invocation.SpanName}}",
-                        global::System.Diagnostics.ActivityKind.{{invocation.SpanKind}});
-        """);
+                                // Intercepted call at {{displayLocation}}
+                                {{interceptAttribute}}
+                                public static async {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
+                                {
+                                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
+                                        "{{invocation.SpanName}}",
+                                        global::System.Diagnostics.ActivityKind.{{invocation.SpanKind}});
+                        """);
 
         if (!string.IsNullOrEmpty(tagSetters))
         {
@@ -275,14 +265,14 @@ internal static class TracedInterceptorEmitter
         var hasReturnValue = returnType != "void";
 
         sb.AppendLine($$"""
-                // Intercepted call at {{displayLocation}}
-                {{interceptAttribute}}
-                public static {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
-                {
-                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
-                        "{{invocation.SpanName}}",
-                        global::System.Diagnostics.ActivityKind.{{invocation.SpanKind}});
-        """);
+                                // Intercepted call at {{displayLocation}}
+                                {{interceptAttribute}}
+                                public static {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
+                                {
+                                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
+                                        "{{invocation.SpanName}}",
+                                        global::System.Diagnostics.ActivityKind.{{invocation.SpanKind}});
+                        """);
 
         if (!string.IsNullOrEmpty(tagSetters))
         {
@@ -329,15 +319,13 @@ internal static class TracedInterceptorEmitter
                 """);
     }
 
-    private static string BuildParameterList(TracedInvocationInfo invocation, string containingType, IReadOnlyList<string>? typeParamNames = null)
+    private static string BuildParameterList(TracedInvocationInfo invocation, string containingType,
+        IReadOnlyList<string>? typeParamNames = null)
     {
         var sb = new StringBuilder();
 
         // Static methods don't have a 'this' parameter
-        if (!invocation.IsStatic)
-        {
-            sb.Append($"this global::{containingType} @this");
-        }
+        if (!invocation.IsStatic) sb.Append($"this global::{containingType} @this");
 
         for (var i = 0; i < invocation.ParameterTypes.Count; i++)
         {
@@ -415,7 +403,6 @@ internal static class TracedInterceptorEmitter
         var start = 0;
 
         for (var i = 0; i < argsContent.Length; i++)
-        {
             switch (argsContent[i])
             {
                 case '<':
@@ -424,12 +411,11 @@ internal static class TracedInterceptorEmitter
                 case '>':
                     depth--;
                     break;
-                case ',' when depth == 0:
+                case ',' when depth is 0:
                     args.Add(argsContent[start..i].Trim());
                     start = i + 1;
                     break;
             }
-        }
 
         if (start < argsContent.Length)
             args.Add(argsContent[start..].Trim());
@@ -439,7 +425,7 @@ internal static class TracedInterceptorEmitter
 
     private static string BuildTypeParameterList(TracedInvocationInfo invocation)
     {
-        if (invocation.TypeParameters.Count == 0)
+        if (invocation.TypeParameters.Count is 0)
             return "";
 
         return "<" + string.Join(", ", invocation.TypeParameters.Select(static tp => tp.Name)) + ">";
@@ -473,7 +459,6 @@ internal static class TracedInterceptorEmitter
         var sb = new StringBuilder();
 
         foreach (var tag in invocation.TracedTags)
-        {
             if (tag.SkipIfNull && tag.IsNullable)
             {
                 sb.AppendLine($"                if ({tag.ParameterName} is not null)");
@@ -483,7 +468,6 @@ internal static class TracedInterceptorEmitter
             {
                 sb.AppendLine($"                activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
             }
-        }
 
         return sb.ToString();
     }

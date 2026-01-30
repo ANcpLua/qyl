@@ -13,6 +13,9 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- AOT not supported for netstandard2.0 (required for Roslyn analyzer compatibility) -->
+    <IsAotCompatible>false</IsAotCompatible>
+    <EnableAotAnalyzer>false</EnableAotAnalyzer>
     <!-- Suppress experimental Roslyn interceptor warnings -->
     <NoWarn>$(NoWarn);RSEXPERIMENTAL002</NoWarn>
   </PropertyGroup>

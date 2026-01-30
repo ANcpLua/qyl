@@ -363,7 +363,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Verify session - SessionId stores GUID as string without hyphens (format "N")
         Assert.NotNull(span.SessionId);
-        Assert.Equal("a1b2c3d4e5f67890abcdef1234567890", span.SessionId!.Value.Value);
+        Assert.Equal("a1b2c3d4e5f67890abcdef1234567890", span.SessionId.Value.Value);
 
         // Verify it's recognized as GenAI span
         Assert.True(span.IsGenAiSpan);

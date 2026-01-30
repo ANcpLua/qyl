@@ -295,7 +295,7 @@ public static partial class QylServiceDefaults
 
         app.MapGet("/dev-logs.js", () =>
         {
-            var script = DevLogsScript.Replace("{{ROUTE}}", options.DevLogs.RoutePattern);
+            var script = DevLogsScript.Replace("{{ROUTE}}", options.DevLogs.RoutePattern, StringComparison.Ordinal);
             return Results.Content(script, "application/javascript");
         }).ExcludeFromDescription();
     }

@@ -1,0 +1,40 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>qyl.copilot</RootNamespace>
+    <LangVersion>14</LangVersion>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- Required for source generator interceptors -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <!-- SDK Throw class global using -->
+  <ItemGroup>
+    <Using Include="Microsoft.Shared.Diagnostics"/>
+  </ItemGroup>
+
+  <!-- GitHub Copilot Agent SDK (versions from Directory.Packages.props) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.GitHub.Copilot"/>
+    <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
+    <PackageReference Include="Microsoft.Agents.AI.Workflows"/>
+  </ItemGroup>
+
+  <!-- OpenTelemetry for instrumentation -->
+  <ItemGroup>
+    <PackageReference Include="OpenTelemetry.Api"/>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+  </ItemGroup>
+
+  <!-- Core dependencies -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
+    <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj"/>
+    <!-- Auto-instrumentation generator (intercepts AIAgent.RunAsync calls) -->
+    <ProjectReference Include="..\qyl.servicedefaults.generator\qyl.servicedefaults.generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"/>
+  </ItemGroup>
+
+</Project>

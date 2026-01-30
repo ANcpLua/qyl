@@ -47,6 +47,13 @@ internal static class GenAiCallSiteAnalyzer
             ("GetChatCompletions", "chat", false),
             ("GetEmbeddingsAsync", "embeddings", true),
             ("GetEmbeddings", "embeddings", false)
+        ],
+
+        // GitHub Copilot via Microsoft Agent Framework
+        ["Microsoft.Agents.AI.AIAgent"] =
+        [
+            ("RunAsync", "invoke_agent", true),
+            ("RunStreamingAsync", "invoke_agent", true)
         ]
     };
 

@@ -280,6 +280,9 @@ public static class GenAiAttributes
         /// <summary>groq - Groq.</summary>
         public const string Groq = "groq";
 
+        /// <summary>github_copilot - GitHub Copilot.</summary>
+        public const string GitHubCopilot = "github_copilot";
+
         /// <summary>ibm.watsonx.ai - IBM Watsonx AI.</summary>
         public const string IbmWatsonxAi = "ibm.watsonx.ai";
 

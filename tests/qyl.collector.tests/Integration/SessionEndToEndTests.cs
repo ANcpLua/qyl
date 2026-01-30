@@ -13,7 +13,7 @@ namespace qyl.collector.tests.Integration;
 public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
     private readonly QylWebApplicationFactory _factory;
-    private HttpClient _client = null!;
+    private HttpClient? _client;
 
     public SessionEndToEndTests(QylWebApplicationFactory factory) => _factory = factory;
 
@@ -26,9 +26,11 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
 
     public ValueTask DisposeAsync()
     {
-        _client.Dispose();
+        _client?.Dispose();
         return ValueTask.CompletedTask;
     }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // Full Flow Tests
@@ -47,7 +49,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         // Act - Ingest the span
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
-        var ingestResponse = await _client.PostAsync("/v1/traces", content);
+        var ingestResponse = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);
 
@@ -55,7 +57,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         await Task.Delay(TestConstants.BatchProcessingDelayMs);
 
         // Act - Query the sessions list
-        var sessionsResponse = await _client.GetAsync("/api/v1/sessions");
+        var sessionsResponse = await Client.GetAsync("/api/v1/sessions");
 
         Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
 
@@ -79,7 +81,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         // Act - Ingest
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
-        var ingestResponse = await _client.PostAsync("/v1/traces", content);
+        var ingestResponse = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);
 
@@ -87,7 +89,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         await Task.Delay(TestConstants.BatchProcessingDelayMs);
 
         // Query sessions
-        var sessionsResponse = await _client.GetAsync("/api/v1/sessions");
+        var sessionsResponse = await Client.GetAsync("/api/v1/sessions");
 
         Assert.Equal(HttpStatusCode.OK, sessionsResponse.StatusCode);
     }
@@ -141,7 +143,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         // Act - Ingest
         var json = JsonSerializer.Serialize(otlpRequest, QylSerializerContext.Default.OtlpExportTraceServiceRequest);
         var content = new StringContent(json, Encoding.UTF8, MediaTypeHeaderValue.Parse("application/json"));
-        var ingestResponse = await _client.PostAsync("/v1/traces", content);
+        var ingestResponse = await Client.PostAsync("/v1/traces", content);
 
         Assert.Equal(HttpStatusCode.Accepted, ingestResponse.StatusCode);
 
@@ -149,7 +151,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         await Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
 
         // Query the trace
-        var traceResponse = await _client.GetAsync($"/api/v1/traces/{testTraceId}");
+        var traceResponse = await Client.GetAsync($"/api/v1/traces/{testTraceId}");
 
         // Should find the trace, NotFound if not indexed yet, or InternalServerError if DB issue
         Assert.True(

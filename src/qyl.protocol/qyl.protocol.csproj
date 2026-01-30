@@ -13,14 +13,10 @@
     <InjectSharedThrow>true</InjectSharedThrow>
     <!-- Note: Inject*OnLegacy properties removed - not needed for net10.0 single-TFM -->
 
-    <!-- AOT compatibility -->
-    <IsAotCompatible>true</IsAotCompatible>
-
     <!-- CLAUDE.md v2 generation available - enable with GenerateClaudeMd=true -->
     <!-- Currently using hand-written CLAUDE.md (richer content) -->
   </PropertyGroup>
 
   <!-- BCL only - LEAF project has no external dependencies -->
-  <!-- Microsoft.NET.ILLink.Tasks is implicitly provided by SDK when IsAotCompatible=true -->
 
 </Project>

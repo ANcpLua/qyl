@@ -7,7 +7,7 @@ namespace qyl.collector.tests.Diagnostics;
 
 public class DiagnosticTest : IAsyncLifetime
 {
-    private DuckDbStore _store = null!;
+    private DuckDbStore? _store;
 
     public async ValueTask InitializeAsync()
     {
@@ -15,7 +15,9 @@ public class DiagnosticTest : IAsyncLifetime
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public ValueTask DisposeAsync() => _store.DisposeAsync();
+    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+
+    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
 
     [Fact]
     public async Task Debug_TestErrorSummaryQuery()
@@ -26,10 +28,10 @@ public class DiagnosticTest : IAsyncLifetime
             .WithStatusCode(1) // OK
             .Build();
 
-        await DuckDbTestHelpers.EnqueueAndWaitAsync(_store, span);
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, span);
 
         // Check raw data
-        await using var checkCmd = _store.Connection.CreateCommand();
+        await using var checkCmd = Store.Connection.CreateCommand();
         checkCmd.CommandText = "SELECT trace_id, session_id, status_code, start_time_unix_nano FROM spans";
         await using var checkReader = await checkCmd.ExecuteReaderAsync();
 
@@ -55,7 +57,7 @@ public class DiagnosticTest : IAsyncLifetime
         }
 
         // Simple count with parameter
-        await using var countCmd = _store.Connection.CreateCommand();
+        await using var countCmd = Store.Connection.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id = $1";
         countCmd.Parameters.Add(new DuckDBParameter
         {
@@ -65,13 +67,13 @@ public class DiagnosticTest : IAsyncLifetime
         Console.WriteLine($"\nSimple COUNT(*) WHERE session_id = $1 (param): {count}");
 
         // Simple count with literal
-        await using var countCmd2 = _store.Connection.CreateCommand();
+        await using var countCmd2 = Store.Connection.CreateCommand();
         countCmd2.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id = 'no-errors'";
         var count2 = await countCmd2.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"Simple COUNT(*) WHERE session_id = 'no-errors' (literal): {count2}");
 
         // LIKE workaround
-        await using var countCmd3 = _store.Connection.CreateCommand();
+        await using var countCmd3 = Store.Connection.CreateCommand();
         countCmd3.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id LIKE $1";
         countCmd3.Parameters.Add(new DuckDBParameter
         {
@@ -81,13 +83,13 @@ public class DiagnosticTest : IAsyncLifetime
         Console.WriteLine($"Simple COUNT(*) WHERE session_id LIKE '%no-errors%' (param): {count3}");
 
         // Test with lower()
-        await using var countCmd4 = _store.Connection.CreateCommand();
+        await using var countCmd4 = Store.Connection.CreateCommand();
         countCmd4.CommandText = "SELECT COUNT(*) FROM spans WHERE lower(session_id) = 'no-errors'";
         var count4 = await countCmd4.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"COUNT(*) WHERE lower(session_id) = 'no-errors': {count4}");
 
         // Test with raw SQL comparison
-        await using var countCmd5 = _store.Connection.CreateCommand();
+        await using var countCmd5 = Store.Connection.CreateCommand();
         countCmd5.CommandText =
             "SELECT COUNT(*), session_id, session_id = 'no-errors' as eq_test FROM spans GROUP BY session_id";
         await using var reader5 = await countCmd5.ExecuteReaderAsync();
@@ -100,20 +102,20 @@ public class DiagnosticTest : IAsyncLifetime
         }
 
         // Test with subquery
-        await using var countCmd6 = _store.Connection.CreateCommand();
+        await using var countCmd6 = Store.Connection.CreateCommand();
         countCmd6.CommandText = "SELECT COUNT(*) FROM (SELECT * FROM spans) sub WHERE sub.session_id = 'no-errors'";
         var count6 = await countCmd6.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"Subquery WHERE session_id = 'no-errors': {count6}");
 
         // Test with IS NOT DISTINCT FROM
-        await using var countCmd7 = _store.Connection.CreateCommand();
+        await using var countCmd7 = Store.Connection.CreateCommand();
         countCmd7.CommandText = "SELECT COUNT(*) FROM spans WHERE session_id IS NOT DISTINCT FROM 'no-errors'";
         var count7 = await countCmd7.ExecuteScalarAsync() ?? 0L;
         Console.WriteLine($"WHERE session_id IS NOT DISTINCT FROM 'no-errors': {count7}");
 
         // === HEX DEBUG - what does DuckDB actually see? ===
         Console.WriteLine("\n=== DuckDB HEX DEBUG ===");
-        await using var hexCmd = _store.Connection.CreateCommand();
+        await using var hexCmd = Store.Connection.CreateCommand();
         hexCmd.CommandText =
             "SELECT length(session_id) as len, hex(session_id) as hex_val, typeof(session_id) as dtype FROM spans";
         await using var hexReader = await hexCmd.ExecuteReaderAsync();
@@ -127,7 +129,7 @@ public class DiagnosticTest : IAsyncLifetime
         }
 
         // Test what DuckDB thinks about equality
-        await using var eqCmd = _store.Connection.CreateCommand();
+        await using var eqCmd = Store.Connection.CreateCommand();
         eqCmd.CommandText = """
                             SELECT
                                 session_id,
@@ -148,7 +150,7 @@ public class DiagnosticTest : IAsyncLifetime
         }
 
         // Check schema
-        await using var schemaCmd = _store.Connection.CreateCommand();
+        await using var schemaCmd = Store.Connection.CreateCommand();
         schemaCmd.CommandText =
             "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'spans' AND column_name = 'session_id'";
         await using var schemaReader = await schemaCmd.ExecuteReaderAsync();
@@ -168,7 +170,7 @@ public class DiagnosticTest : IAsyncLifetime
         Console.WriteLine("\nGenerated SQL:");
         Console.WriteLine(sql);
 
-        await using var cmd = _store.Connection.CreateCommand();
+        await using var cmd = Store.Connection.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.Add(new DuckDBParameter
         {

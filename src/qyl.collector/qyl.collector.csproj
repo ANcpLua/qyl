@@ -5,11 +5,6 @@
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
-    <!-- Disable AOT analyzers - collector is not AOT compiled -->
-    <IsAotCompatible>false</IsAotCompatible>
-    <EnableAotAnalyzer>false</EnableAotAnalyzer>
-    <EnableTrimAnalyzer>false</EnableTrimAnalyzer>
-    <EnableSingleFileAnalyzer>false</EnableSingleFileAnalyzer>
   </PropertyGroup>
 
   <!-- Expose internals to test project -->
@@ -52,7 +47,7 @@
     <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks"/>
+    <!-- HealthChecks is transitive from HealthChecks.Common - explicit reference causes NU1510 -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>

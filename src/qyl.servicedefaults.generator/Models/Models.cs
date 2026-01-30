@@ -44,6 +44,7 @@ internal static class ProviderRegistry
     private const string Deepseek = "deepseek";
     private const string Perplexity = "perplexity";
     private const string XAi = "x_ai";
+    private const string GithubCopilot = "github_copilot";
 
     /// <summary>
     ///     All GenAI providers with known SDK type patterns.
@@ -72,6 +73,10 @@ internal static class ProviderRegistry
         new(Deepseek, "Deepseek", null),
         new(Perplexity, "Perplexity", null),
         new(XAi, "xAI", null),
+
+        // GitHub Copilot via Microsoft Agent Framework
+        // AgentResponse.Usage is Microsoft.Extensions.AI.UsageDetails
+        new(GithubCopilot, "Agents.AI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
 
         // Custom providers (not in OTel semconv)
         new("ollama", "Ollama", null)
@@ -115,7 +120,13 @@ internal sealed record GenAiInvocationInfo(
     bool IsAsync,
     string ReturnTypeName,
     IReadOnlyList<string> ParameterTypes,
-    InterceptableLocation InterceptableLocation);
+    InterceptableLocation InterceptableLocation)
+{
+    /// <summary>
+    ///     Indicates if the return type is a streaming enumerable (IAsyncEnumerable).
+    /// </summary>
+    public bool IsStreaming => ReturnTypeName.StartsWith("System.Collections.Generic.IAsyncEnumerable<", StringComparison.Ordinal);
+}
 
 #endregion
 

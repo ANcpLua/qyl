@@ -33,7 +33,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor VirtualCallCannotBeIntercepted = new(
         id: "QYL0002",
         title: "Virtual method call cannot be intercepted",
-        messageFormat: "The virtual call to '{0}' cannot be intercepted.",
+        messageFormat: "The virtual call to '{0}' cannot be intercepted",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -45,7 +45,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor CompiledAssemblyCannotBeIntercepted = new(
         id: "QYL0003",
         title: "Call in compiled assembly cannot be intercepted",
-        messageFormat: "The call to '{0}' is in a compiled assembly.",
+        messageFormat: "The call to '{0}' is in a compiled assembly",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
@@ -57,7 +57,7 @@ public static class DiagnosticDescriptors
     public static readonly DiagnosticDescriptor GenAiCallIntercepted = new(
         id: "QYL1001",
         title: "GenAI call intercepted",
-        messageFormat: "The call to '{0}' will be instrumented with OTel GenAI semantic conventions.",
+        messageFormat: "The call to '{0}' will be instrumented with OTel GenAI semantic conventions",
         category: Category,
         defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,

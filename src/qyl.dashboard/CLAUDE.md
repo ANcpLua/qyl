@@ -1,66 +1,141 @@
-# qyl.dashboard
+# qyl.dashboard - React Frontend
 
-React 19 SPA for telemetry visualization.
+React 19 SPA for telemetry visualization. Embedded in collector at build time.
 
-## identity
+## Identity
 
-```yaml
-runtime: Node 22
-framework: React 19
-build: Vite 7
-styling: Tailwind CSS 4
+| Property | Value |
+|----------|-------|
+| Runtime | Node 22 |
+| Framework | React 19 |
+| Build | Vite 7 |
+| Styling | Tailwind CSS 4 |
+
+## Commands
+
+```bash
+# Development server (port 5173)
+npm run dev
+
+# Production build
+npm run build
+
+# Regenerate TypeScript types from OpenAPI
+npm run generate:types
 ```
 
-## stack
+## Tech Stack
 
-```yaml
-state: TanStack Query 5
-components: Radix UI
-charts: Recharts
-icons: Lucide React
-types: Generated from OpenAPI
+| Library | Purpose |
+|---------|---------|
+| TanStack Query 5 | Data fetching, caching |
+| Radix UI | Accessible components |
+| Recharts | Charts and visualizations |
+| Lucide React | Icons |
+
+## Directory Structure
+
 ```
-
-## structure
-
-```yaml
 src/
-  components/    # UI components
-  hooks/         # Custom React hooks
-  lib/           # Utilities, API client
-  types/         # Generated TypeScript types
-    api.ts       # DO NOT EDIT - from openapi.yaml
-  App.tsx        # Main app component
+  components/           # UI components
+    sessions/           # Session views
+    traces/             # Trace views
+    errors/             # Error views
+    layout/             # Layout components
+  hooks/                # Custom React hooks
+  lib/                  # Utilities, API client
+  types/
+    api.ts              # Generated - DO NOT EDIT
+  App.tsx               # Main app component
+  main.tsx              # Entry point
 ```
 
-## commands
-
-```yaml
-dev: npm run dev
-build: npm run build
-types: npm run generate:types
-```
-
-## embedding
-
-Built output (dist/) is copied to collector/wwwroot/ at build time.
-Served as static files by collector with SPA fallback.
-
-## api-consumption
+## Data Fetching
 
 ```typescript
-// TanStack Query for data fetching
-const { data } = useQuery({
-  queryKey: ['sessions'],
-  queryFn: () => fetch('/api/v1/sessions').then(r => r.json())
-})
+// TanStack Query for server state
+const { data, isLoading, error } = useQuery({
+  queryKey: ['sessions', filters],
+  queryFn: () => api.getSessions(filters),
+  staleTime: 30_000,
+});
 
-// SSE for real-time updates
-const eventSource = new EventSource('/api/v1/live')
+// Mutations
+const mutation = useMutation({
+  mutationFn: api.updateError,
+  onSuccess: () => queryClient.invalidateQueries(['errors']),
+});
 ```
 
-## rules
+## SSE Streaming
 
-- Never edit src/types/api.ts (generated)
-- Use Radix UI for accessibility
-- Tailwind v4 syntax (no @tailwind directives)
+```typescript
+// Real-time updates via Server-Sent Events
+useEffect(() => {
+  const eventSource = new EventSource('/api/v1/live');
+
+  eventSource.onmessage = (event) => {
+    const span = JSON.parse(event.data);
+    queryClient.setQueryData(['spans'], (old) => [span, ...old]);
+  };
+
+  return () => eventSource.close();
+}, []);
+```
+
+## API Client
+
+```typescript
+// src/lib/api.ts
+const api = {
+  getSessions: async (filters?: SessionFilters) => {
+    const params = new URLSearchParams(filters);
+    const res = await fetch(`/api/v1/sessions?${params}`);
+    return res.json();
+  },
+
+  getTrace: async (traceId: string) => {
+    const res = await fetch(`/api/v1/traces/${traceId}`);
+    return res.json();
+  },
+};
+```
+
+## Embedding
+
+Build output is copied to collector's wwwroot directory:
+
+```
+npm run build
+    |
+    v
+dist/
+    |
+    v (nuke DashboardEmbed)
+src/qyl.collector/wwwroot/
+```
+
+The collector serves static files with SPA fallback routing.
+
+## Tailwind CSS 4
+
+Uses Tailwind v4 syntax (no @tailwind directives):
+
+```css
+/* src/index.css */
+@import "tailwindcss";
+```
+
+```tsx
+// Component styling
+<div className="flex items-center gap-4 p-4 bg-gray-100 dark:bg-gray-800">
+  <span className="text-sm text-gray-600">Label</span>
+</div>
+```
+
+## Rules
+
+- **Never edit** `src/types/api.ts` - it's generated from OpenAPI
+- Use Radix UI primitives for accessibility
+- Prefer TanStack Query over local state for server data
+- Use `useQuery` for reads, `useMutation` for writes
