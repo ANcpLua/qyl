@@ -50,7 +50,7 @@ public sealed class TokenAuthOptions
     /// <summary>
     /// Gets or sets paths excluded from token authentication.
     /// </summary>
-    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces", "/api/login", "/api/auth/check"];
+    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces", "/api/"];
 }
 
 public sealed class TokenAuthMiddleware
