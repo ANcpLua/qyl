@@ -38,7 +38,7 @@ public static class GenAiInstrumentation
         string? sourceName = null,
         bool? enableSensitiveData = null)
     {
-        ArgumentNullException.ThrowIfNull(client);
+        Throw.IfNull(client);
 
         // Don't double-wrap
         if (client is OpenTelemetryChatClient)
@@ -84,8 +84,7 @@ public static class GenAiInstrumentation
         string? toolType = GenAiAttributes.ToolTypes.Function)
     {
         var activity = ActivitySources.GenAiSource.StartActivity(
-            $"{GenAiAttributes.Operations.ExecuteTool} {toolName}",
-            ActivityKind.Internal);
+            $"{GenAiAttributes.Operations.ExecuteTool} {toolName}");
 
         if (activity is not null)
         {
@@ -308,6 +307,98 @@ public static class GenAiInstrumentation
         string? model,
         Func<T> execute) =>
         Execute(provider, operation, model, execute, extractUsage: null);
+
+    /// <summary>
+    /// Wraps a streaming GenAI operation with OTel instrumentation.
+    /// Creates a span that covers the entire enumeration, tracking token usage as items are yielded.
+    /// Called by generated interceptor code for streaming SDK calls.
+    /// </summary>
+    /// <typeparam name="T">The element type of the stream.</typeparam>
+    /// <param name="provider">Provider identifier (e.g., "openai", "anthropic").</param>
+    /// <param name="operation">Operation name (e.g., "chat").</param>
+    /// <param name="model">Optional model name.</param>
+    /// <param name="streamFactory">Factory that creates the async enumerable stream.</param>
+    /// <param name="cancellationToken">Cancellation token for the enumeration.</param>
+    /// <returns>An instrumented async enumerable.</returns>
+    public static async IAsyncEnumerable<T> ExecuteStreamingAsync<T>(
+        string provider,
+        string operation,
+        string? model,
+        Func<IAsyncEnumerable<T>> streamFactory,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var spanName = model is not null ? $"{operation} {model}" : operation;
+        using var activity = ActivitySources.GenAiSource.StartActivity(spanName, ActivityKind.Client);
+
+        var sw = Stopwatch.StartNew();
+        long outputTokens = 0;
+
+        if (activity is not null)
+        {
+            activity.SetTag(GenAiAttributes.OperationName, operation);
+            activity.SetTag(GenAiAttributes.ProviderName, provider);
+            if (model is not null)
+                activity.SetTag(GenAiAttributes.RequestModel, model);
+        }
+
+        IAsyncEnumerable<T> stream;
+        try
+        {
+            stream = streamFactory();
+        }
+        catch (Exception ex)
+        {
+            sw.Stop();
+            if (activity is not null)
+                RecordError(activity, ex, provider, operation, sw.Elapsed.TotalSeconds);
+            throw;
+        }
+
+        Exception? caughtException = null;
+
+        await using var enumerator = stream.GetAsyncEnumerator(cancellationToken);
+        while (true)
+        {
+            T current;
+            try
+            {
+                if (!await enumerator.MoveNextAsync().ConfigureAwait(false))
+                    break;
+                current = enumerator.Current;
+                outputTokens++; // Count each yielded item as a token approximation
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+                break;
+            }
+
+            yield return current;
+        }
+
+        sw.Stop();
+        var duration = sw.Elapsed.TotalSeconds;
+
+        if (caughtException is not null)
+        {
+            if (activity is not null)
+                RecordError(activity, caughtException, provider, operation, duration);
+            throw caughtException;
+        }
+
+        if (activity is not null && outputTokens > 0)
+        {
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+            TokenUsageHistogram.Record(outputTokens,
+                new(GenAiAttributes.OperationName, operation),
+                new(GenAiAttributes.ProviderName, provider),
+                new(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+        }
+
+        OperationDurationHistogram.Record(duration,
+            new(GenAiAttributes.OperationName, operation),
+            new(GenAiAttributes.ProviderName, provider));
+    }
 
     private static void RecordUsageAndDuration(
         Activity activity,

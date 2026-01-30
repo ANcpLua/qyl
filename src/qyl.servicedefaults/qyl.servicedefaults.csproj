@@ -5,6 +5,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Qyl.ServiceDefaults</RootNamespace>
+    <!-- Required for source generator interceptors -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
+    <!-- Suppress transitive ValidationsGenerator hint name collision (Microsoft.Extensions.Telemetry) -->
+    <NoWarn>$(NoWarn);CS8785</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +17,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Microsoft.Extensions.ServiceDiscovery"/>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
 
     <!-- Microsoft.Extensions.AI for IChatClient instrumentation -->
     <PackageReference Include="Microsoft.Extensions.AI"/>
