@@ -61,7 +61,15 @@ builder.Services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceSer
 
 builder.Services.AddSingleton(new TokenAuthOptions
 {
-    Token = token
+    Token = token,
+    ExcludedPaths =
+    [
+        "/health", "/ready", "/alive",      // Health checks
+        "/v1/traces",                        // OTLP ingestion
+        "/api/login", "/api/auth/check",    // Auth endpoints
+        "/assets/",                          // Dashboard static assets
+        "/favicon.ico",                      // Favicon
+    ]
 });
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));

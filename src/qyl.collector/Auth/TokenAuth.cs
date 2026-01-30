@@ -68,6 +68,13 @@ public sealed class TokenAuthMiddleware
     {
         var path = context.Request.Path.Value ?? "/";
 
+        // Allow dashboard root and static files without auth
+        if (path == "/" || IsStaticFile(path))
+        {
+            await _next(context).ConfigureAwait(false);
+            return;
+        }
+
         if (_options.ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
         {
             await _next(context).ConfigureAwait(false);
@@ -147,6 +154,26 @@ public sealed class TokenAuthMiddleware
     }
 
     public string GetToken() => _options.Token;
+
+    private static bool IsStaticFile(string path)
+    {
+        // Common static file extensions for dashboard assets
+        ReadOnlySpan<string> staticExtensions =
+        [
+            ".js", ".css", ".html", ".htm", ".json",
+            ".png", ".jpg", ".jpeg", ".gif", ".svg", ".ico", ".webp",
+            ".woff", ".woff2", ".ttf", ".eot",
+            ".map", ".txt"
+        ];
+
+        foreach (var ext in staticExtensions)
+        {
+            if (path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
 }
 
 public sealed record LoginRequest(string Token);
