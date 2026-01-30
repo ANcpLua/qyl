@@ -1,22 +1,26 @@
 # qyl
 
-**Question Your Logs** — OpenTelemetry observability for AI workloads.
+**Question Your Logs** — OpenTelemetry collector and instrumentation for AI workloads.
 
-Collects and visualizes telemetry from AI systems: token usage, latency, errors, and costs across LLM operations.
+## What qyl Does
 
-## Features
+**Collects** — Receives OpenTelemetry data from any OTLP-compatible source
+**Instruments** — Provides .NET source generators that auto-instrument GenAI calls
+**Visualizes** — Real-time dashboard for traces, spans, metrics, and AI-specific data
 
-- **OTLP Ingestion** — Native OpenTelemetry protocol support (gRPC and HTTP)
-- **GenAI Semantic Conventions** — Full OTel 1.39 gen_ai.* attribute support
-- **Real-time Dashboard** — Live streaming of traces, spans, and metrics
-- **DuckDB Storage** — Fast columnar analytics on telemetry data
-- **Zero Config** — Works out of the box with any OTel-instrumented app
+## Components
+
+| Package | Purpose |
+|---------|---------|
+| `qyl.collector` | OTLP receiver, DuckDB storage, REST API, dashboard |
+| `qyl.servicedefaults` | .NET instrumentation with GenAI interceptor generator |
+| `qyl.mcp` | MCP server for AI agent integration |
 
 ## Quick Start
 
-**Railway (hosted)**
+**Hosted**
 
-Visit: https://qyl-api-production.up.railway.app
+https://qyl-api-production.up.railway.app
 
 **Docker**
 
@@ -33,36 +37,62 @@ cd qyl
 dotnet run --project src/qyl.collector
 ```
 
-Dashboard: http://localhost:5100
+## Instrument Your .NET App
 
-## Send Telemetry
+Add the service defaults package to automatically instrument GenAI calls:
 
-Configure your OpenTelemetry SDK to export to qyl:
+```csharp
+// Program.cs
+builder.AddQylServiceDefaults();
+```
+
+This auto-instruments:
+- `IChatClient` calls (Microsoft.Extensions.AI)
+- Token usage, latency, model info
+- Full OTel 1.39 GenAI semantic conventions
+
+Set the exporter endpoint:
 
 ```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:5100"
+```
+
+## Use with Any OTel App
+
+qyl accepts standard OTLP from any language/framework:
+
+```bash
+# Point any OpenTelemetry SDK at qyl
 export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:5100"
 export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 ```
 
-Or for gRPC:
-
-```bash
-export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
-```
+Supported protocols:
+- OTLP/HTTP (port 5100)
+- OTLP/gRPC (port 4317)
 
 ## Architecture
 
 ```
-┌─────────────────┐     OTLP      ┌─────────────────┐
-│  Your AI App    │──────────────▶│  qyl.collector  │
-│  (OTel SDK)     │   gRPC/HTTP   │   (ASP.NET)     │
-└─────────────────┘               └────────┬────────┘
-                                           │
-                                           ▼
-┌─────────────────┐               ┌─────────────────┐
-│  qyl.dashboard  │◀──────────────│     DuckDB      │
-│   (React 19)    │     REST      │  (columnar)     │
-└─────────────────┘               └─────────────────┘
+┌─────────────────┐                    ┌─────────────────┐
+│  Your .NET App  │                    │  Any OTel App   │
+│  (servicedefaults)                   │  (Python, Go..) │
+└────────┬────────┘                    └────────┬────────┘
+         │                                      │
+         │              OTLP                    │
+         └──────────────┬───────────────────────┘
+                        ▼
+              ┌─────────────────┐
+              │  qyl.collector  │
+              │   (ASP.NET)     │
+              └────────┬────────┘
+                       │
+         ┌─────────────┼─────────────┐
+         ▼             ▼             ▼
+   ┌──────────┐  ┌──────────┐  ┌──────────┐
+   │  DuckDB  │  │ Dashboard│  │   MCP    │
+   │ (storage)│  │ (React)  │  │ (agents) │
+   └──────────┘  └──────────┘  └──────────┘
 ```
 
 ## Ports
@@ -72,24 +102,24 @@ export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
 | 5100 | HTTP | REST API, Dashboard, OTLP/HTTP |
 | 4317 | gRPC | OTLP/gRPC ingestion |
 
-## Tech Stack
+## GenAI Telemetry
 
-- .NET 10, C# 14
-- React 19, Vite, Tailwind CSS
-- DuckDB (columnar storage)
-- OpenTelemetry Semantic Conventions 1.39
+qyl captures OpenTelemetry 1.39 GenAI semantic conventions:
+
+| Attribute | Description |
+|-----------|-------------|
+| `gen_ai.system` | Provider (openai, anthropic, etc) |
+| `gen_ai.request.model` | Model name |
+| `gen_ai.usage.input_tokens` | Prompt tokens |
+| `gen_ai.usage.output_tokens` | Completion tokens |
+| `gen_ai.response.finish_reasons` | Stop reason |
 
 ## Development
 
 ```bash
-# Build everything
-nuke Full
-
-# Run tests
-dotnet test
-
-# Dashboard dev server
-cd src/qyl.dashboard && npm run dev
+nuke Full          # Build everything
+dotnet test        # Run tests
+cd src/qyl.dashboard && npm run dev  # Dashboard dev
 ```
 
 ## License
