@@ -509,18 +509,30 @@ app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
     Results.Ok(new { name = serviceName, instance_count = 1 }));
 
 
-app.MapFallback(context =>
+app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
+    // Return 404 for API routes that don't exist
     if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 404;
-        return Task.CompletedTask;
+        return;
     }
 
-    return Task.CompletedTask;
+    // Serve index.html for SPA client-side routing
+    var indexPath = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
+    if (File.Exists(indexPath))
+    {
+        context.Response.ContentType = "text/html";
+        await context.Response.SendFileAsync(indexPath);
+    }
+    else
+    {
+        context.Response.StatusCode = 404;
+        await context.Response.WriteAsync("Dashboard not found. Build with: nuke DashboardEmbed");
+    }
 });
 
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
