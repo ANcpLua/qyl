@@ -981,7 +981,7 @@ namespace qyl.collector
     public sealed record ErrorResponse(string Error, string? Message = null);
 
     [JsonSourceGenerationOptions(
-        PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
+        PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         WriteIndented = false)]
     [JsonSerializable(typeof(LoginRequest))]
