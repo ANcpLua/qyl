@@ -1,40 +1,96 @@
 # qyl
 
-[![Railway Deploy](https://img.shields.io/badge/railway-deployed-success)](https://qyl-api-production.up.railway.app/)
-[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2Fancplua%2Fqyl-blue)](https://github.com/ancplua/qyl/pkgs/container/qyl)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+**Question Your Logs** — OpenTelemetry observability for AI workloads.
 
-**Question Your Logs** — AI Observability Platform für OpenTelemetry GenAI-Daten
+Collects and visualizes telemetry from AI systems: token usage, latency, errors, and costs across LLM operations.
 
-Sammelt Telemetrie von AI Agent-Systemen: Token-Nutzung, Latenz, Errors und Kosten über alle AI-Workloads hinweg.
+## Features
 
-## 🚀 Quick Start
+- **OTLP Ingestion** — Native OpenTelemetry protocol support (gRPC and HTTP)
+- **GenAI Semantic Conventions** — Full OTel 1.39 gen_ai.* attribute support
+- **Real-time Dashboard** — Live streaming of traces, spans, and metrics
+- **DuckDB Storage** — Fast columnar analytics on telemetry data
+- **Zero Config** — Works out of the box with any OTel-instrumented app
+
+## Quick Start
+
+**Railway (hosted)**
+
+Visit: https://qyl-api-production.up.railway.app
+
+**Docker**
 
 ```bash
-# Docker (empfohlen)
-docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest
-
-# .NET Global Tool
-dotnet tool install -g qyl && qyl start
+docker build -f src/qyl.collector/Dockerfile -t qyl .
+docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 ```
 
-Dashboard öffnen: http://localhost:5100
+**From Source**
 
-## 📚 Dokumentation
+```bash
+git clone https://github.com/ANcpLua/qyl.git
+cd qyl
+dotnet run --project src/qyl.collector
+```
 
-Vollständige Dokumentation, API-Referenz, Beispiele und Architektur-Details:
+Dashboard: http://localhost:5100
 
-**[→ ancplua.mintlify.app](https://ancplua.mintlify.app/)**
+## Send Telemetry
 
-## 🌐 Live Demo
+Configure your OpenTelemetry SDK to export to qyl:
 
-Produktions-Deployment auf Railway:
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:5100"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+```
 
-**[→ qyl-api-production.up.railway.app](https://qyl-api-production.up.railway.app/)**
+Or for gRPC:
 
-## 📦 Installation & Konfiguration
+```bash
+export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317"
+```
 
-Alle Details zu Installation, OTLP-Konfiguration, MCP-Integration und Entwicklung finden Sie in der [Dokumentation](https://ancplua.mintlify.app/).
+## Architecture
+
+```
+┌─────────────────┐     OTLP      ┌─────────────────┐
+│  Your AI App    │──────────────▶│  qyl.collector  │
+│  (OTel SDK)     │   gRPC/HTTP   │   (ASP.NET)     │
+└─────────────────┘               └────────┬────────┘
+                                           │
+                                           ▼
+┌─────────────────┐               ┌─────────────────┐
+│  qyl.dashboard  │◀──────────────│     DuckDB      │
+│   (React 19)    │     REST      │  (columnar)     │
+└─────────────────┘               └─────────────────┘
+```
+
+## Ports
+
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| 5100 | HTTP | REST API, Dashboard, OTLP/HTTP |
+| 4317 | gRPC | OTLP/gRPC ingestion |
+
+## Tech Stack
+
+- .NET 10, C# 14
+- React 19, Vite, Tailwind CSS
+- DuckDB (columnar storage)
+- OpenTelemetry Semantic Conventions 1.39
+
+## Development
+
+```bash
+# Build everything
+nuke Full
+
+# Run tests
+dotnet test
+
+# Dashboard dev server
+cd src/qyl.dashboard && npm run dev
+```
 
 ## License
 
