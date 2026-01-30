@@ -12,9 +12,9 @@ namespace qyl.collector.tests.Integration;
 /// </summary>
 public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
-    private static readonly JsonSerializerOptions SSnakeCaseOptions = new()
+    private static readonly JsonSerializerOptions SCamelCaseOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
     private readonly QylWebApplicationFactory _factory;
@@ -120,7 +120,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
                 MapSpanToDto(span)
             }
         };
-        var json = JsonSerializer.Serialize(batch, SSnakeCaseOptions);
+        var json = JsonSerializer.Serialize(batch, SCamelCaseOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
         var response = await Client.PostAsync("/api/v1/ingest", content);
@@ -306,29 +306,29 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     private static object MapSpanToDto(SpanStorageRow span) =>
         new
         {
-            trace_id = span.TraceId,
-            span_id = span.SpanId,
-            parent_span_id = span.ParentSpanId,
-            name = span.Name,
-            kind = span.Kind,
-            start_time_unix_nano = span.StartTimeUnixNano,
-            end_time_unix_nano = span.EndTimeUnixNano,
-            duration_ns = span.DurationNs,
-            status_code = span.StatusCode,
-            status_message = span.StatusMessage,
-            service_name = span.ServiceName,
-            session_id = span.SessionId,
-            gen_ai_provider_name = span.GenAiProviderName,
-            gen_ai_request_model = span.GenAiRequestModel,
-            gen_ai_response_model = span.GenAiResponseModel,
-            gen_ai_input_tokens = span.GenAiInputTokens,
-            gen_ai_output_tokens = span.GenAiOutputTokens,
-            gen_ai_temperature = span.GenAiTemperature,
-            gen_ai_stop_reason = span.GenAiStopReason,
-            gen_ai_tool_name = span.GenAiToolName,
-            gen_ai_tool_call_id = span.GenAiToolCallId,
-            gen_ai_cost_usd = span.GenAiCostUsd,
-            attributes_json = span.AttributesJson,
-            resource_json = span.ResourceJson
+            TraceId = span.TraceId,
+            SpanId = span.SpanId,
+            ParentSpanId = span.ParentSpanId,
+            Name = span.Name,
+            Kind = span.Kind,
+            StartTimeUnixNano = span.StartTimeUnixNano,
+            EndTimeUnixNano = span.EndTimeUnixNano,
+            DurationNs = span.DurationNs,
+            StatusCode = span.StatusCode,
+            StatusMessage = span.StatusMessage,
+            ServiceName = span.ServiceName,
+            SessionId = span.SessionId,
+            GenAiProviderName = span.GenAiProviderName,
+            GenAiRequestModel = span.GenAiRequestModel,
+            GenAiResponseModel = span.GenAiResponseModel,
+            GenAiInputTokens = span.GenAiInputTokens,
+            GenAiOutputTokens = span.GenAiOutputTokens,
+            GenAiTemperature = span.GenAiTemperature,
+            GenAiStopReason = span.GenAiStopReason,
+            GenAiToolName = span.GenAiToolName,
+            GenAiToolCallId = span.GenAiToolCallId,
+            GenAiCostUsd = span.GenAiCostUsd,
+            AttributesJson = span.AttributesJson,
+            ResourceJson = span.ResourceJson
         };
 }
