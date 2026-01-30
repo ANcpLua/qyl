@@ -983,6 +983,7 @@ namespace qyl.collector
     [JsonSourceGenerationOptions(
         PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString,
         WriteIndented = false)]
     [JsonSerializable(typeof(LoginRequest))]
     [JsonSerializable(typeof(LoginResponse))]
