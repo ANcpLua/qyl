@@ -83,12 +83,12 @@ jobs:
         working-directory: src/qyl.dashboard
         run: npm run build
 
-      - name: Publish qyl.collector (Native AOT)
+      - name: Publish qyl.collector
         run: |
           dotnet publish src/qyl.collector/qyl.collector.csproj \
             --configuration Release \
             --output ./publish/collector \
-            -p:PublishAot=true \
+            -p:PublishAot=false \
             -p:Version=${{ steps.version.outputs.version_number }}
 
       - name: Package artifacts
