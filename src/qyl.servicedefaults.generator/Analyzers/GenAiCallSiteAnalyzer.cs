@@ -58,15 +58,17 @@ internal static class GenAiCallSiteAnalyzer
     };
 
     /// <summary>
-    ///     Checks if the syntax node could potentially be a GenAI method call.
+    ///     Fast syntactic pre-filter: could this syntax node be a GenAI invocation?
+    ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool IsPotentialGenAiCall(SyntaxNode node, CancellationToken _) =>
+    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken _) =>
         node.IsKind(SyntaxKind.InvocationExpression);
 
     /// <summary>
-    ///     Transforms a potential GenAI call to invocation info if it matches known patterns.
+    ///     Extracts a GenAI call site from a syntax context if it matches known SDK patterns.
+    ///     Returns null if not a GenAI call or if already intercepted.
     /// </summary>
-    public static GenAiInvocationInfo? TransformToGenAiInvocation(
+    public static GenAiCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
@@ -93,8 +95,8 @@ internal static class GenAiCallSiteAnalyzer
         var method = invocation.TargetMethod;
         var model = TryExtractModelName(invocation);
 
-        return new GenAiInvocationInfo(
-            AnalyzerHelpers.FormatOrderKey(context.Node),
+        return new GenAiCallSite(
+            AnalyzerHelpers.FormatSortKey(context.Node),
             provider,
             operation,
             model,

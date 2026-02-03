@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -51,12 +52,58 @@ internal static class AnalyzerHelpers
     }
 
     /// <summary>
-    ///     Formats a syntax node location as an order key for deterministic output.
+    ///     Formats a syntax node location as a sort key for deterministic output ordering.
     /// </summary>
-    public static string FormatOrderKey(SyntaxNode node)
+    public static string FormatSortKey(SyntaxNode node)
     {
         var span = node.GetLocation().GetLineSpan();
         var start = span.StartLinePosition;
         return $"{node.SyntaxTree.FilePath}:{start.Line}:{start.Character}";
+    }
+
+    /// <summary>
+    ///     Finds an attribute by its full metadata name in a collection of attributes.
+    /// </summary>
+    public static AttributeData? FindAttributeByName(
+        ImmutableArray<AttributeData> attributes,
+        string fullMetadataName)
+    {
+        foreach (var attr in attributes)
+        {
+            if (attr.AttributeClass?.ToDisplayString() == fullMetadataName)
+                return attr;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Checks if a type is or derives from a base type.
+    /// </summary>
+    public static bool IsOrDerivesFrom(ITypeSymbol type, ISymbol baseType)
+    {
+        if (SymbolEqualityComparer.Default.Equals(type, baseType))
+            return true;
+
+        var current = type.BaseType;
+        while (current is not null)
+        {
+            if (SymbolEqualityComparer.Default.Equals(current, baseType))
+                return true;
+
+            current = current.BaseType;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Checks if a method's return type indicates an async method (Task, ValueTask, or their generic variants).
+    /// </summary>
+    public static bool IsAsyncReturnType(IMethodSymbol method)
+    {
+        var returnTypeName = method.ReturnType.ToDisplayString();
+        return returnTypeName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
+               returnTypeName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
     }
 }

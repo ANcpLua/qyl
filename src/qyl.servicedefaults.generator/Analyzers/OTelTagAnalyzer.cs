@@ -14,15 +14,17 @@ internal static class OTelTagAnalyzer
     private const string OTelAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.OTelAttribute";
 
     /// <summary>
-    ///     Predicate for filtering syntax nodes that might have [OTel] attributes.
+    ///     Fast syntactic pre-filter: could this syntax node have an [OTel] attribute?
+    ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool IsPotentialOTelMember(SyntaxNode node, CancellationToken _) =>
+    public static bool CouldHaveOTelAttribute(SyntaxNode node, CancellationToken _) =>
         node is PropertyDeclarationSyntax { AttributeLists.Count: > 0 } or ParameterSyntax { AttributeLists.Count: > 0 };
 
     /// <summary>
-    ///     Transforms a syntax node into OTelTagInfo if it has an [OTel] attribute.
+    ///     Extracts an OTel tag binding from a syntax context if it has an [OTel] attribute.
+    ///     Returns null if no [OTel] attribute is present.
     /// </summary>
-    public static OTelTagInfo? TransformToOTelTagInfo(
+    public static OTelTagBinding? ExtractTagBinding(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
@@ -36,7 +38,7 @@ internal static class OTelTagAnalyzer
         };
     }
 
-    private static OTelTagInfo? AnalyzeProperty(
+    private static OTelTagBinding? AnalyzeProperty(
         PropertyDeclarationSyntax property,
         SemanticModel semanticModel,
         CancellationToken cancellationToken)
@@ -44,7 +46,7 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not { } propertySymbol)
             return null;
 
-        var otelAttr = FindOTelAttribute(propertySymbol.GetAttributes());
+        var otelAttr = AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeFullName);
         if (otelAttr is null)
             return null;
 
@@ -56,7 +58,7 @@ internal static class OTelTagAnalyzer
         if (attributeName is null)
             return null;
 
-        return new OTelTagInfo(
+        return new OTelTagBinding(
             containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             propertySymbol.Name,
             propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -70,7 +72,7 @@ internal static class OTelTagAnalyzer
             });
     }
 
-    private static OTelTagInfo? AnalyzeParameter(
+    private static OTelTagBinding? AnalyzeParameter(
         ParameterSyntax parameter,
         SemanticModel semanticModel,
         CancellationToken cancellationToken)
@@ -78,7 +80,7 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not { } parameterSymbol)
             return null;
 
-        var otelAttr = FindOTelAttribute(parameterSymbol.GetAttributes());
+        var otelAttr = AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeFullName);
         if (otelAttr is null)
             return null;
 
@@ -90,7 +92,7 @@ internal static class OTelTagAnalyzer
         if (attributeName is null)
             return null;
 
-        return new OTelTagInfo(
+        return new OTelTagBinding(
             containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             parameterSymbol.Name,
             parameterSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
@@ -104,21 +106,6 @@ internal static class OTelTagAnalyzer
             });
     }
 
-    private static AttributeData? FindOTelAttribute(ImmutableArray<AttributeData> attributes)
-    {
-        foreach (var attr in attributes)
-        {
-            var attrClass = attr.AttributeClass;
-            if (attrClass is null)
-                continue;
-
-            var fullName = attrClass.ToDisplayString();
-            if (fullName == OTelAttributeFullName)
-                return attr;
-        }
-
-        return null;
-    }
 
     private static (string? Name, bool SkipIfNull) ExtractAttributeValues(AttributeData attr)
     {

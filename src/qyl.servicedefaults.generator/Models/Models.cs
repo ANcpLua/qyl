@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Qyl.ServiceDefaults.Generator.Models;
@@ -85,33 +86,42 @@ internal static class ProviderRegistry
 
 #endregion
 
-#region Interception Types
+#region ASP.NET Builder Call Site Types
 
 /// <summary>
-///     The kind of method interception.
+///     The kind of ASP.NET Core builder call being intercepted.
 /// </summary>
-internal enum InterceptionMethodKind
+internal enum BuilderCallKind
 {
+    /// <summary>WebApplicationBuilder.Build() - the final build step.</summary>
     Build
 }
 
 /// <summary>
-///     Represents a method invocation to be intercepted.
+///     A discovered call site for ASP.NET builder methods.
 /// </summary>
-internal sealed record InterceptionData(
-    string OrderKey,
-    InterceptionMethodKind Kind,
-    InterceptableLocation InterceptableLocation);
+/// <remarks>
+///     "CallSite" follows Roslyn terminology: WHERE in code the call occurs.
+///     SortKey ensures deterministic code generation across compilations.
+/// </remarks>
+internal sealed record BuilderCallSite(
+    string SortKey,
+    BuilderCallKind Kind,
+    InterceptableLocation Location);
 
 #endregion
 
-#region GenAI Types
+#region GenAI Call Site Types
 
 /// <summary>
-///     Represents a GenAI SDK method invocation to be intercepted.
+///     A discovered GenAI SDK call site ready for instrumentation.
 /// </summary>
-internal sealed record GenAiInvocationInfo(
-    string OrderKey,
+/// <remarks>
+///     Contains complete semantic information extracted from a GenAI method call.
+///     This enables generating OTel-compliant spans with proper gen_ai.* attributes.
+/// </remarks>
+internal sealed record GenAiCallSite(
+    string SortKey,
     string Provider,
     string Operation,
     string? Model,
@@ -120,17 +130,17 @@ internal sealed record GenAiInvocationInfo(
     bool IsAsync,
     string ReturnTypeName,
     IReadOnlyList<string> ParameterTypes,
-    InterceptableLocation InterceptableLocation)
+    InterceptableLocation Location)
 {
     /// <summary>
-    ///     Indicates if the return type is a streaming enumerable (IAsyncEnumerable).
+    ///     True if return type is IAsyncEnumerable (streaming response).
     /// </summary>
     public bool IsStreaming => ReturnTypeName.StartsWith("System.Collections.Generic.IAsyncEnumerable<", StringComparison.Ordinal);
 }
 
 #endregion
 
-#region Database Types
+#region Database Call Site Types
 
 /// <summary>
 ///     The ADO.NET DbCommand methods that can be intercepted.
@@ -143,23 +153,27 @@ internal enum DbCommandMethod
 }
 
 /// <summary>
-///     Represents an ADO.NET DbCommand method invocation to be intercepted.
+///     A discovered database call site ready for instrumentation.
 /// </summary>
-internal sealed record DbInvocationInfo(
-    string OrderKey,
+internal sealed record DbCallSite(
+    string SortKey,
     DbCommandMethod Method,
     bool IsAsync,
     string? ConcreteCommandType,
-    InterceptableLocation InterceptableLocation);
+    InterceptableLocation Location);
 
 #endregion
 
-#region OTel Types
+#region OTel Tag Binding Types
 
 /// <summary>
-///     Information about a type member decorated with [OTel] attribute.
+///     A discovered [OTel] attribute binding that maps a member to an Activity tag.
 /// </summary>
-internal sealed record OTelTagInfo(
+/// <remarks>
+///     The "Binding" suffix indicates the relationship between a code member
+///     and its corresponding OTel tag name for Activity enrichment.
+/// </remarks>
+internal sealed record OTelTagBinding(
     string ContainingTypeName,
     string MemberName,
     string MemberTypeName,
@@ -169,18 +183,22 @@ internal sealed record OTelTagInfo(
 
 #endregion
 
-#region Meter Types
+#region Meter Definition Types
 
 /// <summary>
-///     Information about a class decorated with [Meter] attribute.
+///     A discovered [Meter]-decorated class defining custom metrics.
 /// </summary>
-internal sealed record MeterClassInfo(
-    string OrderKey,
+/// <remarks>
+///     The "Definition" suffix indicates this describes WHAT to generate,
+///     not WHERE a call occurs (unlike "CallSite").
+/// </remarks>
+internal sealed record MeterDefinition(
+    string SortKey,
     string Namespace,
     string ClassName,
     string MeterName,
     string? MeterVersion,
-    IReadOnlyList<MetricMethodInfo> Methods);
+    IReadOnlyList<MetricMethodDefinition> Methods);
 
 /// <summary>
 ///     The kind of metric instrument.
@@ -192,34 +210,34 @@ internal enum MetricKind
 }
 
 /// <summary>
-///     Information about a metric method.
+///     A partial method that defines a metric recording operation.
 /// </summary>
-internal sealed record MetricMethodInfo(
+internal sealed record MetricMethodDefinition(
     string MethodName,
     MetricKind Kind,
     string MetricName,
     string? Unit,
     string? Description,
     string? ValueTypeName,
-    IReadOnlyList<MetricTagInfo> Tags);
+    IReadOnlyList<MetricTagParameter> Tags);
 
 /// <summary>
-///     Information about a metric tag parameter.
+///     A [Tag]-decorated parameter that becomes a metric dimension.
 /// </summary>
-internal sealed record MetricTagInfo(
+internal sealed record MetricTagParameter(
     string ParameterName,
     string TagName,
     string TypeName);
 
 #endregion
 
-#region Traced Types
+#region Traced Call Site Types
 
 /// <summary>
-///     Represents a method decorated with [Traced] attribute to be intercepted.
+///     A discovered call site for a [Traced]-decorated method.
 /// </summary>
-internal sealed record TracedInvocationInfo(
-    string OrderKey,
+internal sealed record TracedCallSite(
+    string SortKey,
     string ActivitySourceName,
     string SpanName,
     string SpanKind,
@@ -230,23 +248,23 @@ internal sealed record TracedInvocationInfo(
     string ReturnTypeName,
     IReadOnlyList<string> ParameterTypes,
     IReadOnlyList<string> ParameterNames,
-    IReadOnlyList<TracedTagInfo> TracedTags,
-    IReadOnlyList<TypeParameterInfo> TypeParameters,
-    InterceptableLocation InterceptableLocation);
+    IReadOnlyList<TracedTagParameter> TracedTags,
+    IReadOnlyList<TypeParameterConstraint> TypeParameters,
+    InterceptableLocation Location);
 
 /// <summary>
-///     Information about a parameter decorated with [TracedTag] attribute.
+///     A [TracedTag]-decorated parameter that becomes a span attribute.
 /// </summary>
-internal sealed record TracedTagInfo(
+internal sealed record TracedTagParameter(
     string ParameterName,
     string TagName,
     bool SkipIfNull,
     bool IsNullable);
 
 /// <summary>
-///     Information about a type parameter on a generic method.
+///     Type parameter with its constraints for generic method interception.
 /// </summary>
-internal sealed record TypeParameterInfo(
+internal sealed record TypeParameterConstraint(
     string Name,
     string? Constraints);
 

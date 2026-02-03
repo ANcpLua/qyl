@@ -30,15 +30,17 @@ internal static class DbCallSiteAnalyzer
     };
 
     /// <summary>
-    ///     Checks if the syntax node could potentially be a DbCommand method call.
+    ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
+    ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool IsPotentialDbCall(SyntaxNode node, CancellationToken _) =>
+    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
         node.IsKind(SyntaxKind.InvocationExpression);
 
     /// <summary>
-    ///     Transforms a potential DbCommand call to invocation info if it matches known patterns.
+    ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.
+    ///     Returns null if not a DbCommand call or if already intercepted.
     /// </summary>
-    public static DbInvocationInfo? TransformToDbInvocation(
+    public static DbCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
@@ -62,8 +64,8 @@ internal static class DbCallSiteAnalyzer
         if (interceptLocation is null)
             return null;
 
-        return new DbInvocationInfo(
-            AnalyzerHelpers.FormatOrderKey(context.Node),
+        return new DbCallSite(
+            AnalyzerHelpers.FormatSortKey(context.Node),
             method,
             isAsync,
             concreteType,
@@ -94,7 +96,7 @@ internal static class DbCallSiteAnalyzer
         if (dbCommandType is null)
             return false;
 
-        if (!IsOrDerivesFrom(containingType, dbCommandType))
+        if (!AnalyzerHelpers.IsOrDerivesFrom(containingType, dbCommandType))
             return false;
 
         method = pattern.Method;
@@ -106,20 +108,4 @@ internal static class DbCallSiteAnalyzer
         return true;
     }
 
-    private static bool IsOrDerivesFrom(ITypeSymbol type, ISymbol baseType)
-    {
-        if (SymbolEqualityComparer.Default.Equals(type, baseType))
-            return true;
-
-        var current = type.BaseType;
-        while (current is not null)
-        {
-            if (SymbolEqualityComparer.Default.Equals(current, baseType))
-                return true;
-
-            current = current.BaseType;
-        }
-
-        return false;
-    }
 }

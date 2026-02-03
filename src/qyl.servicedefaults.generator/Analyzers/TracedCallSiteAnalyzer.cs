@@ -17,15 +17,17 @@ internal static class TracedCallSiteAnalyzer
     private const string NoTraceAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.NoTraceAttribute";
 
     /// <summary>
-    ///     Checks if the syntax node could potentially be a traced method invocation.
+    ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
+    ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool IsPotentialTracedCall(SyntaxNode node, CancellationToken _) =>
+    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken _) =>
         node.IsKind(SyntaxKind.InvocationExpression);
 
     /// <summary>
-    ///     Transforms a potential traced call to invocation info if it targets a [Traced] method.
+    ///     Extracts a traced call site from a syntax context if the target has [Traced] attribute.
+    ///     Returns null if not a traced method or if already intercepted.
     /// </summary>
-    public static TracedInvocationInfo? TransformToTracedInvocation(
+    public static TracedCallSite? ExtractCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
@@ -56,10 +58,10 @@ internal static class TracedCallSiteAnalyzer
         var typeParameters = ExtractTypeParameters(method);
 
         var isStatic = method.IsStatic;
-        var isAsync = IsAsyncMethod(method);
+        var isAsync = AnalyzerHelpers.IsAsyncReturnType(method);
 
-        return new TracedInvocationInfo(
-            AnalyzerHelpers.FormatOrderKey(context.Node),
+        return new TracedCallSite(
+            AnalyzerHelpers.FormatSortKey(context.Node),
             tracedInfo.Value.ActivitySourceName,
             tracedInfo.Value.SpanName ?? method.Name,
             tracedInfo.Value.SpanKind,
@@ -181,7 +183,7 @@ internal static class TracedCallSiteAnalyzer
         return (activitySourceName, spanName, spanKind);
     }
 
-    private static List<TracedTagInfo> ExtractTracedTags(
+    private static List<TracedTagParameter> ExtractTracedTags(
         IMethodSymbol method,
         Compilation compilation)
     {
@@ -189,7 +191,7 @@ internal static class TracedCallSiteAnalyzer
         if (tracedTagAttributeType is null)
             return [];
 
-        var tags = new List<TracedTagInfo>();
+        var tags = new List<TracedTagParameter>();
 
         foreach (var parameter in method.Parameters)
         {
@@ -219,7 +221,7 @@ internal static class TracedCallSiteAnalyzer
                 var isNullable = parameter.Type.NullableAnnotation == NullableAnnotation.Annotated ||
                                  parameter.Type.IsReferenceType;
 
-                tags.Add(new TracedTagInfo(
+                tags.Add(new TracedTagParameter(
                     parameter.Name,
                     tagName,
                     skipIfNull,
@@ -230,27 +232,18 @@ internal static class TracedCallSiteAnalyzer
         return tags;
     }
 
-    private static bool IsAsyncMethod(IMethodSymbol method)
-    {
-        // Check if return type is Task, Task<T>, ValueTask, or ValueTask<T>
-        var returnType = method.ReturnType;
-        var returnTypeName = returnType.ToDisplayString();
 
-        return returnTypeName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
-               returnTypeName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
-    }
-
-    private static List<TypeParameterInfo> ExtractTypeParameters(IMethodSymbol method)
+    private static List<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method)
     {
         if (method.TypeParameters.IsEmpty)
             return [];
 
-        var result = new List<TypeParameterInfo>();
+        var result = new List<TypeParameterConstraint>();
 
         foreach (var tp in method.TypeParameters)
         {
             var constraints = BuildConstraintClause(tp);
-            result.Add(new TypeParameterInfo(tp.Name, constraints));
+            result.Add(new TypeParameterConstraint(tp.Name, constraints));
         }
 
         return result;

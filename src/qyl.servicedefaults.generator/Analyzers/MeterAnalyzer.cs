@@ -17,17 +17,19 @@ internal static class MeterAnalyzer
     private const string TagAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.TagAttribute";
 
     /// <summary>
-    ///     Predicate for filtering syntax nodes that might be [Meter] classes.
+    ///     Fast syntactic pre-filter: could this syntax node be a [Meter] class?
+    ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool IsPotentialMeterClass(SyntaxNode node, CancellationToken _)
+    public static bool CouldBeMeterClass(SyntaxNode node, CancellationToken _)
     {
         return node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
     }
 
     /// <summary>
-    ///     Transforms a syntax node into MeterClassInfo if it has a [Meter] attribute.
+    ///     Extracts a meter definition from a syntax context if it has a [Meter] attribute.
+    ///     Returns null if no [Meter] attribute or if the class is not properly decorated.
     /// </summary>
-    public static MeterClassInfo? TransformToMeterClassInfo(
+    public static MeterDefinition? ExtractDefinition(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
@@ -42,7 +44,7 @@ internal static class MeterAnalyzer
         if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
             return null;
 
-        var meterAttr = FindAttribute(classSymbol.GetAttributes(), MeterAttributeFullName);
+        var meterAttr = AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName);
         if (meterAttr is null)
             return null;
 
@@ -59,8 +61,8 @@ internal static class MeterAnalyzer
         if (methods.Count is 0)
             return null;
 
-        return new MeterClassInfo(
-            AnalyzerHelpers.FormatOrderKey(context.Node),
+        return new MeterDefinition(
+            AnalyzerHelpers.FormatSortKey(context.Node),
             classSymbol.ContainingNamespace.ToDisplayString(),
             classSymbol.Name,
             meterName,
@@ -68,14 +70,6 @@ internal static class MeterAnalyzer
             methods);
     }
 
-    private static AttributeData? FindAttribute(ImmutableArray<AttributeData> attributes, string fullName)
-    {
-        foreach (var attr in attributes)
-            if (attr.AttributeClass?.ToDisplayString() == fullName)
-                return attr;
-
-        return null;
-    }
 
     private static (string? Name, string? Version) ExtractMeterAttributeValues(AttributeData attr)
     {
@@ -92,9 +86,9 @@ internal static class MeterAnalyzer
         return (name, version);
     }
 
-    private static List<MetricMethodInfo> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
+    private static List<MetricMethodDefinition> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
     {
-        var methods = new List<MetricMethodInfo>();
+        var methods = new List<MetricMethodDefinition>();
 
         foreach (var member in classSymbol.GetMembers())
         {
@@ -104,8 +98,8 @@ internal static class MeterAnalyzer
             if (!method.IsPartialDefinition)
                 continue;
 
-            var counterAttr = FindAttribute(method.GetAttributes(), CounterAttributeFullName);
-            var histogramAttr = FindAttribute(method.GetAttributes(), HistogramAttributeFullName);
+            var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), CounterAttributeFullName);
+            var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), HistogramAttributeFullName);
 
             if (counterAttr is null && histogramAttr is null)
                 continue;
@@ -128,7 +122,7 @@ internal static class MeterAnalyzer
 
                 // First non-tagged parameter is the value for histogram
                 foreach (var param in method.Parameters)
-                    if (FindAttribute(param.GetAttributes(), TagAttributeFullName) is null)
+                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {
                         valueTypeName = param.Type.ToDisplayString();
                         break;
@@ -144,7 +138,7 @@ internal static class MeterAnalyzer
 
             var tags = ExtractTags(method);
 
-            methods.Add(new MetricMethodInfo(
+            methods.Add(new MetricMethodDefinition(
                 method.Name,
                 kind,
                 metricName,
@@ -180,13 +174,13 @@ internal static class MeterAnalyzer
         return (name, unit, description);
     }
 
-    private static List<MetricTagInfo> ExtractTags(IMethodSymbol method)
+    private static List<MetricTagParameter> ExtractTags(IMethodSymbol method)
     {
-        var tags = new List<MetricTagInfo>();
+        var tags = new List<MetricTagParameter>();
 
         foreach (var param in method.Parameters)
         {
-            var tagAttr = FindAttribute(param.GetAttributes(), TagAttributeFullName);
+            var tagAttr = AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName);
             if (tagAttr is null)
                 continue;
 
@@ -197,7 +191,7 @@ internal static class MeterAnalyzer
             if (tagName is null)
                 continue;
 
-            tags.Add(new MetricTagInfo(
+            tags.Add(new MetricTagParameter(
                 param.Name,
                 tagName,
                 param.Type.ToDisplayString()));

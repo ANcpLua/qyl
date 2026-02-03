@@ -1,6 +1,6 @@
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Text;
+using ANcpLua.Roslyn.Utilities;
 using Qyl.ServiceDefaults.Generator.Analyzers;
 using Qyl.ServiceDefaults.Generator.Emitters;
 using Qyl.ServiceDefaults.Generator.Models;
@@ -23,371 +23,412 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
-        var hasServiceDefaults = context.CompilationProvider
-            .Select(HasServiceDefaultsType)
-            .WithTrackingName(TrackingNames.ServiceDefaultsAvailable);
+        // =====================================================================
+        // BUILDER INTERCEPTION PIPELINE
+        // Discovers WebApplicationBuilder.Build() calls and intercepts them
+        // to inject Qyl service defaults and endpoint registration.
+        // =====================================================================
 
-        var interceptionCandidates = context.SyntaxProvider
-            .CreateSyntaxProvider(IsPotentialBuildCall, TransformToBuildInterception)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.InterceptionCandidates)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedBuildCalls);
+        // Step 1: Detect if Qyl runtime is available (prerequisite gate)
+        var qylRuntimeAvailable = context.CompilationProvider
+            .Select(IsQylRuntimeReferenced)
+            .WithTrackingName(PipelineStage.QylRuntimeCheck);
 
-        context.RegisterSourceOutput(
-            interceptionCandidates.Combine(hasServiceDefaults),
-            EmitInterceptors);
-
-        // Separate check for GenAI instrumentation (doesn't require full service defaults)
-        var hasGenAiInstrumentation = context.CompilationProvider
-            .Select(HasGenAiInstrumentationType)
-            .WithTrackingName(TrackingNames.GenAiInstrumentationAvailable);
-
-        var genAiInvocations = context.SyntaxProvider
+        // Step 2: Discover Build() call sites eligible for interception
+        var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                GenAiCallSiteAnalyzer.IsPotentialGenAiCall,
-                GenAiCallSiteAnalyzer.TransformToGenAiInvocation)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.GenAiInvocations)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedGenAiCalls);
+                predicate: CouldBeInvocation,           // Fast syntactic pre-filter
+                transform: ExtractBuilderCallSite)      // Semantic analysis
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.BuilderCallSitesCollected);
+
+        // Step 3: Emit interceptor code when prerequisites are met
+        context.RegisterSourceOutput(
+            builderCallSites.CombineWith(qylRuntimeAvailable),
+            EmitBuilderInterceptors);
+
+        // =====================================================================
+        // GENAI SDK INTERCEPTION PIPELINE
+        // Discovers GenAI SDK calls and wraps them with OTel telemetry.
+        // =====================================================================
+
+        var genAiRuntimeAvailable = context.CompilationProvider
+            .Select(IsGenAiRuntimeReferenced)
+            .WithTrackingName(PipelineStage.GenAiRuntimeCheck);
+
+        var genAiCallSites = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                predicate: GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
+                transform: GenAiCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.GenAiCallSitesCollected);
 
         context.RegisterSourceOutput(
-            genAiInvocations.Combine(hasGenAiInstrumentation),
+            genAiCallSites.CombineWith(genAiRuntimeAvailable),
             EmitGenAiInterceptors);
 
-        var dbInvocations = context.SyntaxProvider
+        // =====================================================================
+        // DATABASE INTERCEPTION PIPELINE
+        // Discovers DbCommand calls and wraps them with database telemetry.
+        // =====================================================================
+
+        var dbCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                DbCallSiteAnalyzer.IsPotentialDbCall,
-                DbCallSiteAnalyzer.TransformToDbInvocation)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.DbInvocations)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedDbCalls);
+                predicate: DbCallSiteAnalyzer.CouldBeDbInvocation,
+                transform: DbCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.DbCallSitesDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.DbCallSitesCollected);
 
         context.RegisterSourceOutput(
-            dbInvocations.Combine(hasServiceDefaults),
+            dbCallSites.CombineWith(qylRuntimeAvailable),
             EmitDbInterceptors);
 
-        var otelTags = context.SyntaxProvider
+        // =====================================================================
+        // OTEL TAG BINDING PIPELINE
+        // Discovers [OTel] attributes and generates tag extraction helpers.
+        // =====================================================================
+
+        var otelTagBindings = context.SyntaxProvider
             .CreateSyntaxProvider(
-                OTelTagAnalyzer.IsPotentialOTelMember,
-                OTelTagAnalyzer.TransformToOTelTagInfo)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.OTelTags)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedOTelTags);
+                predicate: OTelTagAnalyzer.CouldHaveOTelAttribute,
+                transform: OTelTagAnalyzer.ExtractTagBinding)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.OTelTagBindingsDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.OTelTagBindingsCollected);
 
         context.RegisterSourceOutput(
-            otelTags.Combine(hasServiceDefaults),
+            otelTagBindings.CombineWith(qylRuntimeAvailable),
             EmitOTelTagExtensions);
 
-        // Meter instrumentation pipeline
-        var meterClasses = context.SyntaxProvider
+        // =====================================================================
+        // METER DEFINITION PIPELINE
+        // Discovers [Meter] classes and generates metric implementations.
+        // =====================================================================
+
+        var meterDefinitions = context.SyntaxProvider
             .CreateSyntaxProvider(
-                MeterAnalyzer.IsPotentialMeterClass,
-                MeterAnalyzer.TransformToMeterClassInfo)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.MeterClasses)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedMeterClasses);
+                predicate: MeterAnalyzer.CouldBeMeterClass,
+                transform: MeterAnalyzer.ExtractDefinition)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.MeterDefinitionsCollected);
 
         context.RegisterSourceOutput(
-            meterClasses.Combine(hasServiceDefaults),
+            meterDefinitions.CombineWith(qylRuntimeAvailable),
             EmitMeterImplementations);
 
-        // Traced instrumentation pipeline
-        var tracedInvocations = context.SyntaxProvider
+        // =====================================================================
+        // TRACED METHOD PIPELINE
+        // Discovers [Traced] methods and generates span interceptors.
+        // =====================================================================
+
+        var tracedCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                TracedCallSiteAnalyzer.IsPotentialTracedCall,
-                TracedCallSiteAnalyzer.TransformToTracedInvocation)
-            .SelectMany(AsSingletonOrEmpty)
-            .WithTrackingName(TrackingNames.TracedInvocations)
-            .Collect()
-            .WithTrackingName(TrackingNames.CollectedTracedCalls);
+                predicate: TracedCallSiteAnalyzer.CouldBeTracedInvocation,
+                transform: TracedCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.TracedCallSitesDiscovered)
+            .CollectAsEquatableArray()
+            .WithTrackingName(PipelineStage.TracedCallSitesCollected);
 
         context.RegisterSourceOutput(
-            tracedInvocations.Combine(hasServiceDefaults),
+            tracedCallSites.CombineWith(qylRuntimeAvailable),
             EmitTracedInterceptors);
     }
 
-    private static bool HasServiceDefaultsType(Compilation compilation, CancellationToken _) => compilation.GetTypeByMetadataName(MetadataNames.ServiceDefaultsClass) is not null;
+    // =========================================================================
+    // RUNTIME AVAILABILITY CHECKS
+    // These gate code generation based on whether required libraries are referenced.
+    // =========================================================================
 
-    private static bool HasGenAiInstrumentationType(Compilation compilation, CancellationToken _) => compilation.GetTypeByMetadataName(MetadataNames.GenAiInstrumentation) is not null;
+    /// <summary>
+    ///     Checks if the Qyl.ServiceDefaults runtime is referenced.
+    ///     This is the prerequisite for most codegen operations.
+    /// </summary>
+    private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _) =>
+        compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
 
-    private static bool IsPotentialBuildCall(SyntaxNode node, CancellationToken _) => node.IsKind(SyntaxKind.InvocationExpression);
+    /// <summary>
+    ///     Checks if the GenAI instrumentation runtime is referenced.
+    ///     GenAI interception can work independently of full service defaults.
+    /// </summary>
+    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _) =>
+        compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
 
-    private static ImmutableArray<T> AsSingletonOrEmpty<T>(T? item, CancellationToken _) where T : class =>
-        item is not null ? [item] : [];
+    // =========================================================================
+    // SYNTACTIC PRE-FILTER
+    // Fast check that runs on every syntax node. Must be cheap - no semantic model!
+    // =========================================================================
 
-    private static InterceptionData? TransformToBuildInterception(
+    /// <summary>
+    ///     Fast syntactic check: could this node be a method invocation?
+    ///     This casts a wide net; semantic analysis narrows it down.
+    /// </summary>
+    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _) =>
+        node.IsKind(SyntaxKind.InvocationExpression);
+
+    // =========================================================================
+    // BUILDER CALL SITE EXTRACTION
+    // Semantic analysis to identify and validate WebApplicationBuilder.Build() calls.
+    // =========================================================================
+
+    /// <summary>
+    ///     Analyzes an invocation to determine if it's a WebApplicationBuilder.Build()
+    ///     call that should be intercepted.
+    /// </summary>
+    /// <returns>A validated call site descriptor, or null if not applicable.</returns>
+    private static BuilderCallSite? ExtractBuilderCallSite(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken)
     {
-        if (!TryGetBuildInvocation(context, cancellationToken, out var invocation))
+        if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
-        if (!IsWebApplicationBuilderBuild(invocation, context.SemanticModel.Compilation))
+        if (!IsWebApplicationBuilderBuildCall(invocation, context.SemanticModel.Compilation))
             return null;
 
-        // Skip if already intercepted by another generator
-        if (IsAlreadyIntercepted(context, cancellationToken))
+        // Avoid conflicts: skip if another generator has already intercepted this call
+        if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
-        var interceptLocation = GetInterceptableLocation(context, cancellationToken);
-        return interceptLocation is null ? null : CreateInterceptionData(context.Node, interceptLocation);
+        var location = ExtractInterceptableLocation(context, cancellationToken);
+        return location is null
+            ? null
+            : new BuilderCallSite(
+                AnalyzerHelpers.FormatSortKey(context.Node),
+                BuilderCallKind.Build,
+                location);
     }
 
-    /// <summary>
-    ///     Checks if a call is already being intercepted by another source generator.
-    /// </summary>
-    /// <seealso href="https://github.com/dotnet/roslyn/issues/72093" />
-    private static bool IsAlreadyIntercepted(GeneratorSyntaxContext context, CancellationToken cancellationToken)
-    {
-        if (context.Node is not InvocationExpressionSyntax invocationSyntax)
-            return false;
 
-        var interceptor = context.SemanticModel.GetInterceptorMethod(invocationSyntax, cancellationToken);
-        return interceptor is not null;
-    }
-
-    private static bool TryGetBuildInvocation(
-        GeneratorSyntaxContext context,
-        CancellationToken cancellationToken,
-        [NotNullWhen(true)] out IInvocationOperation? invocation)
-    {
-        if (context.SemanticModel.GetOperation(context.Node, cancellationToken)
-            is not IInvocationOperation op)
-        {
-            invocation = null;
-            return false;
-        }
-
-        invocation = op;
-        return true;
-    }
-
-    private static bool IsWebApplicationBuilderBuild(
+    private static bool IsWebApplicationBuilderBuildCall(
         IInvocationOperation invocation,
         Compilation compilation)
     {
-        if (invocation.TargetMethod.Name != MethodNames.Build)
+        if (invocation.TargetMethod.Name != MethodName.Build)
             return false;
 
-        var webAppBuilderType = compilation.GetTypeByMetadataName(MetadataNames.WebApplicationBuilder);
+        var webAppBuilderType = compilation.GetTypeByMetadataName(WellKnownType.WebApplicationBuilder);
         return SymbolEqualityComparer.Default.Equals(
             invocation.TargetMethod.ContainingType,
             webAppBuilderType);
     }
 
-    private static InterceptableLocation? GetInterceptableLocation(
+
+    private static InterceptableLocation? ExtractInterceptableLocation(
         GeneratorSyntaxContext context,
         CancellationToken cancellationToken) =>
         context.SemanticModel.GetInterceptableLocation(
             (InvocationExpressionSyntax)context.Node,
             cancellationToken);
 
-    private static InterceptionData CreateInterceptionData(
-        SyntaxNode node,
-        InterceptableLocation location) =>
-        new(
-            FormatLocationKey(node),
-            InterceptionMethodKind.Build,
-            location);
 
-    private static string FormatLocationKey(SyntaxNode node)
-    {
-        var span = node.GetLocation().GetLineSpan();
-        var start = span.StartLinePosition;
-        return $"{node.SyntaxTree.FilePath}:{start.Line}:{start.Character}";
-    }
+    // =========================================================================
+    // CODE EMITTERS
+    // Transform discovered call sites into generated source code.
+    // =========================================================================
 
-    private static void EmitInterceptors(
+    private static void EmitBuilderInterceptors(
         SourceProductionContext context,
-        (ImmutableArray<InterceptionData> Candidates, bool HasServiceDefaults) source)
+        (EquatableArray<BuilderCallSite> CallSites, bool QylRuntimeAvailable) input)
     {
-        if (!source.HasServiceDefaults)
+        if (!input.QylRuntimeAvailable)
             return;
 
-        var sourceCode = BuildInterceptorsSource(source.Candidates);
-        context.AddSource(OutputFileNames.Interceptors, SourceText.From(sourceCode, Encoding.UTF8));
+        var sourceCode = GenerateBuilderInterceptorSource(input.CallSites.AsImmutableArray());
+        context.AddSource(GeneratedFile.BuilderInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     private static void EmitGenAiInterceptors(
         SourceProductionContext context,
-        (ImmutableArray<GenAiInvocationInfo> Invocations, bool HasGenAiInstrumentation) source)
+        (EquatableArray<GenAiCallSite> CallSites, bool GenAiRuntimeAvailable) input)
     {
-        if (!source.HasGenAiInstrumentation || source.Invocations.IsEmpty)
+        if (!input.GenAiRuntimeAvailable || input.CallSites.IsEmpty)
             return;
 
-        var sourceCode = GenAiInterceptorEmitter.Emit(source.Invocations);
+        var sourceCode = GenAiInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
         if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(OutputFileNames.GenAiInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
+            context.AddSource(GeneratedFile.GenAiInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     private static void EmitDbInterceptors(
         SourceProductionContext context,
-        (ImmutableArray<DbInvocationInfo> Invocations, bool HasServiceDefaults) source)
+        (EquatableArray<DbCallSite> CallSites, bool QylRuntimeAvailable) input)
     {
-        if (!source.HasServiceDefaults || source.Invocations.IsEmpty)
+        if (!input.QylRuntimeAvailable || input.CallSites.IsEmpty)
             return;
 
-        var sourceCode = DbInterceptorEmitter.Emit(source.Invocations);
+        var sourceCode = DbInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
         if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(OutputFileNames.DbInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
+            context.AddSource(GeneratedFile.DbInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     private static void EmitOTelTagExtensions(
         SourceProductionContext context,
-        (ImmutableArray<OTelTagInfo> Tags, bool HasServiceDefaults) source)
+        (EquatableArray<OTelTagBinding> Bindings, bool QylRuntimeAvailable) input)
     {
-        if (!source.HasServiceDefaults || source.Tags.IsEmpty)
+        if (!input.QylRuntimeAvailable || input.Bindings.IsEmpty)
             return;
 
-        var sourceCode = OTelTagsEmitter.Emit(source.Tags);
+        var sourceCode = OTelTagsEmitter.Emit(input.Bindings.AsImmutableArray());
         if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(OutputFileNames.OTelTagExtensions, SourceText.From(sourceCode, Encoding.UTF8));
+            context.AddSource(GeneratedFile.OTelTagExtensions, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     private static void EmitMeterImplementations(
         SourceProductionContext context,
-        (ImmutableArray<MeterClassInfo> Meters, bool HasServiceDefaults) source)
+        (EquatableArray<MeterDefinition> Definitions, bool QylRuntimeAvailable) input)
     {
-        if (!source.HasServiceDefaults || source.Meters.IsEmpty)
+        if (!input.QylRuntimeAvailable || input.Definitions.IsEmpty)
             return;
 
-        var sourceCode = MeterEmitter.Emit(source.Meters);
+        var sourceCode = MeterEmitter.Emit(input.Definitions.AsImmutableArray());
         if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(OutputFileNames.MeterImplementations, SourceText.From(sourceCode, Encoding.UTF8));
+            context.AddSource(GeneratedFile.MeterImplementations, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
     private static void EmitTracedInterceptors(
         SourceProductionContext context,
-        (ImmutableArray<TracedInvocationInfo> Invocations, bool HasServiceDefaults) source)
+        (EquatableArray<TracedCallSite> CallSites, bool QylRuntimeAvailable) input)
     {
-        if (!source.HasServiceDefaults || source.Invocations.IsEmpty)
+        if (!input.QylRuntimeAvailable || input.CallSites.IsEmpty)
             return;
 
-        var sourceCode = TracedInterceptorEmitter.Emit(source.Invocations);
+        var sourceCode = TracedInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
         if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(OutputFileNames.TracedInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
+            context.AddSource(GeneratedFile.TracedInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
-    private static string BuildInterceptorsSource(ImmutableArray<InterceptionData> candidates)
+    // =========================================================================
+    // SOURCE CODE GENERATION
+    // =========================================================================
+
+    private static string GenerateBuilderInterceptorSource(ImmutableArray<BuilderCallSite> callSites)
     {
         var sb = new StringBuilder();
 
-        AppendFileHeader(sb);
-        AppendInterceptsLocationAttribute(sb);
-        AppendInterceptorsClassOpen(sb);
-        AppendInterceptorMethods(sb, candidates);
-        AppendInterceptorsClassClose(sb);
+        sb.AppendLine(CodeTemplate.AutoGeneratedHeader);
+        sb.AppendLine(CodeTemplate.PragmaDisableAll);
+        sb.AppendLine();
+        sb.AppendLine(CodeTemplate.InterceptsLocationAttribute);
+        sb.AppendLine(CodeTemplate.InterceptorsNamespaceOpen);
 
+        var orderedCallSites = callSites.OrderBy(static c => c.SortKey, StringComparer.Ordinal);
+        var index = 0;
+        foreach (var callSite in orderedCallSites)
+        {
+            if (callSite.Kind is BuilderCallKind.Build)
+                AppendBuildInterceptorMethod(sb, callSite, index);
+            index++;
+        }
+
+        sb.AppendLine(CodeTemplate.InterceptorsNamespaceClose);
         return sb.ToString();
     }
 
-    private static void AppendFileHeader(StringBuilder sb)
-    {
-        sb.AppendLine(SourceTemplates.AutoGeneratedHeader);
-        sb.AppendLine(SourceTemplates.PragmaDisable);
-        sb.AppendLine();
-    }
-
-    private static void AppendInterceptsLocationAttribute(StringBuilder sb)
-    {
-        sb.AppendLine(SourceTemplates.InterceptsLocationAttribute);
-    }
-
-    private static void AppendInterceptorsClassOpen(StringBuilder sb)
-    {
-        sb.AppendLine(SourceTemplates.InterceptorsNamespaceOpen);
-    }
-
-    private static void AppendInterceptorMethods(
+    private static void AppendBuildInterceptorMethod(
         StringBuilder sb,
-        ImmutableArray<InterceptionData> candidates)
-    {
-        var orderedCandidates = candidates
-            .OrderBy(static c => c.OrderKey, StringComparer.Ordinal);
-
-        var index = 0;
-        foreach (var candidate in orderedCandidates)
-        {
-            if (candidate.Kind is InterceptionMethodKind.Build)
-                AppendBuildInterceptor(sb, candidate, index);
-
-            index++;
-        }
-    }
-
-    private static void AppendBuildInterceptor(
-        StringBuilder sb,
-        InterceptionData candidate,
+        BuilderCallSite callSite,
         int index)
     {
-        var displayLocation = candidate.InterceptableLocation.GetDisplayLocation();
-        var interceptAttribute = candidate.InterceptableLocation.GetInterceptsLocationAttributeSyntax();
+        var displayLocation = callSite.Location.GetDisplayLocation();
+        var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
 
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
-                                public static global::{{MetadataNames.WebApplication}} {{MethodNames.InterceptBuildPrefix}}{{index}}(
-                                    this global::{{MetadataNames.WebApplicationBuilder}} builder)
+                                public static global::{{WellKnownType.WebApplication}} {{MethodName.InterceptBuildPrefix}}{{index}}(
+                                    this global::{{WellKnownType.WebApplicationBuilder}} builder)
                                 {
-                                    builder.{{MethodNames.TryUseConventions}}();
-                                    var app = builder.{{MethodNames.Build}}();
-                                    app.{{MethodNames.MapDefaultEndpoints}}();
+                                    builder.{{MethodName.TryUseQylConventions}}();
+                                    var app = builder.{{MethodName.Build}}();
+                                    app.{{MethodName.MapQylDefaultEndpoints}}();
                                     return app;
                                 }
                         """);
     }
 
-    private static void AppendInterceptorsClassClose(StringBuilder sb)
-    {
-        sb.AppendLine(SourceTemplates.InterceptorsNamespaceClose);
-    }
+    // =========================================================================
+    // CONSTANTS - Organized by semantic category
+    // =========================================================================
 
-    /// <summary>Fully-qualified metadata names for type lookups.</summary>
-    private static class MetadataNames
+    /// <summary>
+    ///     Fully-qualified type names for semantic analysis and code generation.
+    /// </summary>
+    private static class WellKnownType
     {
+        // ASP.NET Core types we intercept
         public const string WebApplicationBuilder = "Microsoft.AspNetCore.Builder.WebApplicationBuilder";
         public const string WebApplication = "Microsoft.AspNetCore.Builder.WebApplication";
-        public const string ServiceDefaultsClass = "Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.QylServiceDefaults";
+
+        // Qyl runtime types that enable codegen
+        public const string QylServiceDefaults = "Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.QylServiceDefaults";
         public const string GenAiInstrumentation = "Qyl.ServiceDefaults.Instrumentation.GenAi.GenAiInstrumentation";
     }
 
-    /// <summary>Method names used in interception and generated code.</summary>
-    private static class MethodNames
+    /// <summary>
+    ///     Method names used in interception detection and code generation.
+    /// </summary>
+    private static class MethodName
     {
+        // Methods we intercept
         public const string Build = "Build";
-        public const string TryUseConventions = "TryUseQylConventions";
-        public const string MapDefaultEndpoints = "MapQylDefaultEndpoints";
+
+        // Methods injected into generated code
+        public const string TryUseQylConventions = "TryUseQylConventions";
+        public const string MapQylDefaultEndpoints = "MapQylDefaultEndpoints";
         public const string InterceptBuildPrefix = "Intercept_Build";
     }
 
-    /// <summary>Tracking names for incremental generator debugging.</summary>
-    private static class TrackingNames
+    /// <summary>
+    ///     Pipeline stage names for incremental generator debugging.
+    ///     These appear in Roslyn's generator driver diagnostics.
+    /// </summary>
+    private static class PipelineStage
     {
-        public const string ServiceDefaultsAvailable = nameof(ServiceDefaultsAvailable);
-        public const string GenAiInstrumentationAvailable = nameof(GenAiInstrumentationAvailable);
-        public const string InterceptionCandidates = nameof(InterceptionCandidates);
-        public const string CollectedBuildCalls = nameof(CollectedBuildCalls);
-        public const string GenAiInvocations = nameof(GenAiInvocations);
-        public const string CollectedGenAiCalls = nameof(CollectedGenAiCalls);
-        public const string DbInvocations = nameof(DbInvocations);
-        public const string CollectedDbCalls = nameof(CollectedDbCalls);
-        public const string OTelTags = nameof(OTelTags);
-        public const string CollectedOTelTags = nameof(CollectedOTelTags);
-        public const string MeterClasses = nameof(MeterClasses);
-        public const string CollectedMeterClasses = nameof(CollectedMeterClasses);
-        public const string TracedInvocations = nameof(TracedInvocations);
-        public const string CollectedTracedCalls = nameof(CollectedTracedCalls);
+        // Runtime availability checks
+        public const string QylRuntimeCheck = nameof(QylRuntimeCheck);
+        public const string GenAiRuntimeCheck = nameof(GenAiRuntimeCheck);
+
+        // Builder interception pipeline
+        public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
+        public const string BuilderCallSitesCollected = nameof(BuilderCallSitesCollected);
+
+        // GenAI interception pipeline
+        public const string GenAiCallSitesDiscovered = nameof(GenAiCallSitesDiscovered);
+        public const string GenAiCallSitesCollected = nameof(GenAiCallSitesCollected);
+
+        // Database interception pipeline
+        public const string DbCallSitesDiscovered = nameof(DbCallSitesDiscovered);
+        public const string DbCallSitesCollected = nameof(DbCallSitesCollected);
+
+        // OTel tag binding pipeline
+        public const string OTelTagBindingsDiscovered = nameof(OTelTagBindingsDiscovered);
+        public const string OTelTagBindingsCollected = nameof(OTelTagBindingsCollected);
+
+        // Meter definition pipeline
+        public const string MeterDefinitionsDiscovered = nameof(MeterDefinitionsDiscovered);
+        public const string MeterDefinitionsCollected = nameof(MeterDefinitionsCollected);
+
+        // Traced method pipeline
+        public const string TracedCallSitesDiscovered = nameof(TracedCallSitesDiscovered);
+        public const string TracedCallSitesCollected = nameof(TracedCallSitesCollected);
     }
 
-    /// <summary>Output file names for generated source.</summary>
-    private static class OutputFileNames
+    /// <summary>
+    ///     Output file names for generated source files.
+    /// </summary>
+    private static class GeneratedFile
     {
-        public const string Interceptors = "Intercepts.g.cs";
+        public const string BuilderInterceptors = "Intercepts.g.cs";
         public const string GenAiInterceptors = "GenAiIntercepts.g.cs";
         public const string DbInterceptors = "DbIntercepts.g.cs";
         public const string OTelTagExtensions = "OTelTagExtensions.g.cs";
@@ -395,11 +436,13 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
     }
 
-    /// <summary>Source code templates for generated output.</summary>
-    private static class SourceTemplates
+    /// <summary>
+    ///     Source code templates for generated output.
+    /// </summary>
+    private static class CodeTemplate
     {
         public const string AutoGeneratedHeader = "// <auto-generated/>";
-        public const string PragmaDisable = "#pragma warning disable";
+        public const string PragmaDisableAll = "#pragma warning disable";
 
         public const string InterceptsLocationAttribute = """
                                                           namespace System.Runtime.CompilerServices
