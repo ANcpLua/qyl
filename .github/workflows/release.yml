@@ -215,8 +215,8 @@ jobs:
             ancplua/qyl:${{ steps.version.outputs.version }}
             ancplua/qyl:${{ steps.version.outputs.version_number }}
             ancplua/qyl:latest
-            ghcr.io/${{ github.repository }}/collector:${{ steps.version.outputs.version }}
-            ghcr.io/${{ github.repository }}/collector:latest
+            ghcr.io/ancplua/qyl:${{ steps.version.outputs.version }}
+            ghcr.io/ancplua/qyl:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
