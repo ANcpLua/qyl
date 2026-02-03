@@ -28,6 +28,7 @@
 | `qyl.collector` | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
 | `qyl.servicedefaults` | .NET instrumentation library with OTel setup |
 | `qyl.servicedefaults.generator` | Roslyn source generator for GenAI/DB interceptors |
+| `qyl.Analyzers` | Roslyn analyzers for OTel/GenAI best practices (15 rules) |
 | `qyl.mcp` | MCP server for AI agent integration |
 | `qyl.protocol` | Shared types (BCL-only, no dependencies) |
 
@@ -180,8 +181,24 @@ src/
   qyl.protocol/               # Shared types (BCL-only)
   qyl.servicedefaults/        # OTel instrumentation library
   qyl.servicedefaults.generator/  # Roslyn source generator
+  qyl.Analyzers/              # Roslyn analyzers (QYL001-QYL015)
+  qyl.Analyzers.CodeFixes/    # Code fix providers
 tests/          # Test projects
 ```
+
+## Analyzers
+
+qyl includes 15 Roslyn analyzers for OpenTelemetry and GenAI best practices:
+
+| ID | Rule | Category |
+|----|------|----------|
+| QYL001-003 | OTel semantic conventions | OpenTelemetry |
+| QYL004-006 | GenAI span requirements | GenAI |
+| QYL007-008 | Metric registration/naming | Metrics |
+| QYL009-010 | ServiceDefaults config | Configuration |
+| QYL011-012 | Source generator requirements | Metrics |
+| QYL013 | Traced attribute validation | OpenTelemetry |
+| QYL014-015 | GenAI semconv/cardinality | GenAI/Metrics |
 
 ## License
 

@@ -64,6 +64,8 @@ dotnet test
 | `src/qyl.protocol/` | Shared types (BCL-only) |
 | `src/qyl.servicedefaults/` | Aspire-style defaults |
 | `src/qyl.servicedefaults.generator/` | GenAI interceptor generator |
+| `src/qyl.Analyzers/` | Roslyn analyzers (QYL001-015) |
+| `src/qyl.Analyzers.CodeFixes/` | Code fix providers |
 | `src/qyl.copilot/` | GitHub Copilot integration |
 | `tests/` | Test projects |
 

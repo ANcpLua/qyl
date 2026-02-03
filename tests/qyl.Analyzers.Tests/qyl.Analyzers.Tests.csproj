@@ -1,0 +1,20 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+
+        <!-- Skip xunit injection - already added by tests/Directory.Build.props -->
+        <SkipXunitInjection>true</SkipXunitInjection>
+
+        <!-- Suppress SDK stricter rules for test project -->
+        <NoWarn>$(NoWarn);RS0030;IDE0028;IDE0055;IDE1006;CA1707</NoWarn>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\src\qyl.Analyzers\qyl.Analyzers.csproj"/>
+    </ItemGroup>
+</Project>
