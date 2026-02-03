@@ -187,9 +187,16 @@ jobs:
             VERSION="${GITHUB_REF#refs/tags/}"
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_number=${VERSION#v}" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -198,14 +205,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push collector image
+      - name: Build and push image
         uses: docker/build-push-action@v6
         with:
-          context: ./src
+          context: .
           file: src/qyl.collector/Dockerfile
           push: true
           tags: |
+            ancplua/qyl:${{ steps.version.outputs.version }}
+            ancplua/qyl:${{ steps.version.outputs.version_number }}
+            ancplua/qyl:latest
             ghcr.io/${{ github.repository }}/collector:${{ steps.version.outputs.version }}
             ghcr.io/${{ github.repository }}/collector:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          labels: |
+            org.opencontainers.image.title=qyl
+            org.opencontainers.image.description=AI Observability Platform - OpenTelemetry collector with DuckDB storage
+            org.opencontainers.image.version=${{ steps.version.outputs.version_number }}
+            org.opencontainers.image.source=https://github.com/ANcpLua/qyl
