@@ -178,7 +178,7 @@ internal static class TracedCallSiteAnalyzer
                     break;
             }
 
-        return (activitySourceName, spanName, spanKind);
+        return (activitySourceName, spanName ?? defaultSpanName, spanKind);
     }
 
     private static List<TracedTagParameter> ExtractTracedTags(

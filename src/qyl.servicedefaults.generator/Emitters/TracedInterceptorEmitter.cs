@@ -29,7 +29,7 @@ internal static class TracedInterceptorEmitter
         EmitterHelpers.AppendFileHeader(sb, true);
         AppendUsings(sb);
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
-        AppendActivitySourcesClass(sb, invocations, activitySourceFieldNames);
+        AppendActivitySourcesClass(sb, activitySourceFieldNames);
         AppendClassOpen(sb);
         AppendInterceptorMethods(sb, invocations, activitySourceFieldNames);
         EmitterHelpers.AppendClassClose(sb);
@@ -78,7 +78,6 @@ internal static class TracedInterceptorEmitter
 
     private static void AppendActivitySourcesClass(
         StringBuilder sb,
-        ImmutableArray<TracedCallSite> invocations,
         Dictionary<string, string> activitySourceFieldNames)
     {
         var activitySourceNames = activitySourceFieldNames.Keys
