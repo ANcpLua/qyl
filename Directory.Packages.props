@@ -67,8 +67,8 @@
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.4.1"/>
     <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
+    <!-- Microsoft.CodeAnalysis.CSharp is implicitly referenced by SDK for IsRoslynComponent=true projects -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0"/>
-    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0"/>
     <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.28.0"/>
