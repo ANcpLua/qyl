@@ -1,4 +1,0 @@
-interface:
-  display_name: "Revert"
-  short_description: "Git-aware undo by logical work unit (track, phase, or task)"
-  default_prompt: "Use $revert to git-aware undo by logical work unit (track, phase, or task)."

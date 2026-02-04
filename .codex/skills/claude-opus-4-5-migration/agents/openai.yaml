@@ -1,4 +1,0 @@
-interface:
-  display_name: "Claude Opus 4 5 Migration"
-  short_description: "Migrate prompts and code from Claude Sonnet 4.0, Sonnet 4.5,..."
-  default_prompt: "Use $claude-opus-4-5-migration to migrate prompts and code from claude sonnet 4.0, sonnet 4.5,."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Claude Md Improver"
-  short_description: "Audit and improve CLAUDE.md files in repositories."
-  default_prompt: "Use $claude-md-improver to audit and improve claude.md files in repositories."

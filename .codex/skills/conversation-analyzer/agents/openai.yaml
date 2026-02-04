@@ -1,4 +1,0 @@
-interface:
-  display_name: "Conversation Analyzer"
-  short_description: "Use this agent when analyzing conversation transcripts to fin..."
-  default_prompt: "Use $conversation-analyzer to use this agent when analyzing conversation transcripts to fin."

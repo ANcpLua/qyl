@@ -1,4 +1,0 @@
-interface:
-  display_name: "Track Management"
-  short_description: "Use this skill when creating, managing, or working with Condu..."
-  default_prompt: "Use $track-management to use this skill when creating, managing, or working with condu."

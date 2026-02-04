@@ -1,4 +1,0 @@
-interface:
-  display_name: "Example Skill"
-  short_description: "Brief description of what this skill does."
-  default_prompt: "Use $example-skill to brief description of what this skill does."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Help"
-  short_description: "Get help with the hookify plugin"
-  default_prompt: "Use $help to get help with the hookify plugin."

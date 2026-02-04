@@ -1,4 +1,0 @@
-interface:
-  display_name: "Hookify"
-  short_description: "Create hooks to prevent unwanted behaviors from conversation..."
-  default_prompt: "Use $hookify to create hooks to prevent unwanted behaviors from conversation."

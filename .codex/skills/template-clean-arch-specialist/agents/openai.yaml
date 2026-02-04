@@ -1,4 +1,0 @@
-interface:
-  display_name: "Template Clean Arch Specialist"
-  short_description: "Specialized agent for Clean Architecture ASP.NET Core templat..."
-  default_prompt: "Use $template-clean-arch-specialist to specialized agent for clean architecture asp.net core templat."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Claude Automation Recommender"
-  short_description: "Analyze a codebase and recommend Claude Code automations (hoo..."
-  default_prompt: "Use $claude-automation-recommender to analyze a codebase and recommend claude code automations (hoo."

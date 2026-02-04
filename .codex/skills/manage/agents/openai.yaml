@@ -1,4 +1,0 @@
-interface:
-  display_name: "Manage"
-  short_description: "Manage track lifecycle: archive, restore, delete, rename, and..."
-  default_prompt: "Use $manage to manage track lifecycle: archive, restore, delete, rename, and."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Revise Claude Md"
-  short_description: "Update CLAUDE.md with learnings from this session"
-  default_prompt: "Use $revise-claude-md to update claude.md with learnings from this session."

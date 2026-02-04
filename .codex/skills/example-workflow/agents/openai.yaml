@@ -1,4 +1,0 @@
-interface:
-  display_name: "Example Workflow"
-  short_description: "Use when demonstrating plugin workflow features - shows how s..."
-  default_prompt: "Use $example-workflow to use when demonstrating plugin workflow features - shows how s."

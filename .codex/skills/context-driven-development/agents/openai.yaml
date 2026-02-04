@@ -1,4 +1,0 @@
-interface:
-  display_name: "Context Driven Development"
-  short_description: "Use this skill when working with Conductor's context-driven d..."
-  default_prompt: "Use $context-driven-development to use this skill when working with conductor's context-driven d."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Checkpoint"
-  short_description: "Quick timestamped state save to Session Log"
-  default_prompt: "Use $checkpoint to quick timestamped state save to session log."

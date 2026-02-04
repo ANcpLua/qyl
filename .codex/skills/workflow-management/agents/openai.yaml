@@ -1,4 +1,0 @@
-interface:
-  display_name: "Workflow Management"
-  short_description: "This skill should be used when the user asks \"continue from l..."
-  default_prompt: "Use $workflow-management to this skill should be used when the user asks \"continue from l."

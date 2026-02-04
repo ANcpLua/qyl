@@ -586,5 +586,143 @@
       ]
     }
   },
-  "skipped_companion_dirs": []
+  "skipped_companion_dirs": [],
+  "pruned_skills": [
+    {
+      "name": "working-with-claude-code",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "developing-claude-code-plugins",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "claude-automation-recommender",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "claude-md-improver",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "revise-claude-md",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "hookify",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "writing-hookify-rules",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "writing-rules",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "configure",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "list",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "help",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "conversation-analyzer",
+      "reason": "hookify-specific"
+    },
+    {
+      "name": "workflow",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "workflow-management",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "checkpoint",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "improve-workflow",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "workflow-patterns",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "context-driven-development",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "manage",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "track-management",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "revert",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "conductor-validator",
+      "reason": "workflow-sync-specific"
+    },
+    {
+      "name": "qyl-agents-readme",
+      "reason": "claude-code-specific"
+    },
+    {
+      "name": "new-sdk-app",
+      "reason": "anthropic-agent-sdk"
+    },
+    {
+      "name": "agent-sdk-verifier-py",
+      "reason": "anthropic-agent-sdk"
+    },
+    {
+      "name": "agent-sdk-verifier-ts",
+      "reason": "anthropic-agent-sdk"
+    },
+    {
+      "name": "claude-opus-4-5-migration",
+      "reason": "claude-model-specific"
+    },
+    {
+      "name": "ralph-loop",
+      "reason": "claude-model-specific"
+    },
+    {
+      "name": "example-skill",
+      "reason": "example-template"
+    },
+    {
+      "name": "example-command",
+      "reason": "example-template"
+    },
+    {
+      "name": "example-workflow",
+      "reason": "example-template"
+    },
+    {
+      "name": "hello",
+      "reason": "example-template"
+    },
+    {
+      "name": "remembering-conversations",
+      "reason": "placeholder"
+    },
+    {
+      "name": "template-clean-arch-specialist",
+      "reason": "template-specific"
+    }
+  ]
 }
