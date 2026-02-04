@@ -12,7 +12,7 @@ WORKDIR /dashboard
 
 # Copy package files and install dependencies with cache mount
 COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
+RUN --mount=type=cache,id=npm,target=/root/.npm \
     npm ci --prefer-offline
 
 # Copy source and build
