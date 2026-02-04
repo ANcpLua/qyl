@@ -1,0 +1,78 @@
+# =============================================================================
+# QYL Project-Specific Assertions - Ground Truth
+# =============================================================================
+# Authority levels:
+#   - authoritative: External source, never question
+#   - verified: Tested, high confidence
+# =============================================================================
+
+# =============================================================================
+# SEMCONV GENERATOR - The solution EXISTS and WORKS
+# =============================================================================
+semconv:
+  generator:
+    location: "tools/semconv-generator/generate-semconv.ts"
+    source: "@opentelemetry/semantic-conventions NPM package"
+    version: "1.39.0"
+    authority: verified
+    outputs:
+      - "output/SemanticConventions.g.cs"
+      - "output/SemanticConventions.Utf8.g.cs"
+      - "output/semconv.ts"
+      - "output/semconv.g.tsp"
+      - "output/promoted-columns.sql"
+    command: "cd tools/semconv-generator && npm run generate"
+
+  # CRITICAL: domains/ contains HYBRID content, NOT pure OTel copies
+  domains_status:
+    authority: verified
+    contains_otel_copies: true
+    contains_qyl_models: true
+    action: "NEVER rm -rf domains/ - must analyze each file first"
+    tracking_issue: "https://github.com/ANcpLua/qyl/issues/25"
+    qyl_specific_models:
+      - "CodeLocation, StackFrame, StackTrace, CodeCoverage (ai/code.tsp)"
+      - "DbStats, DbSlowQuery, DbSystemStats (data/db.tsp)"
+      - "SessionSummary, SessionAggregation (observe/session.tsp)"
+      - "Various metric models with qyl-specific aggregations"
+
+# =============================================================================
+# BANNED APPROACHES - Never suggest these
+# =============================================================================
+banned_approaches:
+  weaver_for_csharp:
+    pattern: "weaver.*generate.*csharp|weaver.*C#|OTel Weaver.*\\.NET"
+    authority: authoritative
+    reason: "OTel Weaver has NO official C# templates. Custom Jinja2 templates would need to be written and maintained. The NPM-based generator already exists and works."
+    correction: "Use existing generator: tools/semconv-generator/generate-semconv.ts"
+
+  delete_domains_blindly:
+    pattern: "rm -rf.*domains|delete.*domains.*folder|remove all.*domains"
+    authority: authoritative
+    reason: "core/specs/domains/ contains qyl-specific models mixed with OTel copies. Blind deletion would break the build."
+    correction: "See GitHub issue #25 - each file must be analyzed for qyl-specific content before any deletion."
+
+  manual_semconv_constants:
+    pattern: "manually.*define.*OTel|copy.*semantic conventions|hardcode.*gen_ai\\."
+    authority: verified
+    reason: "OTel semconv constants should come from the generator, not manual definitions."
+    correction: "Run: cd tools/semconv-generator && npm run generate"
+
+# =============================================================================
+# TYPESPEC STRUCTURE
+# =============================================================================
+typespec:
+  generated_semconv:
+    location: "core/specs/generated/semconv.g.tsp"
+    authority: verified
+    note: "Generated from NPM package - DO NOT EDIT"
+
+  source_of_truth:
+    location: "core/specs/"
+    note: "TypeSpec files here generate OpenAPI, C#, TypeScript"
+
+  workflow:
+    1_generate_semconv: "cd tools/semconv-generator && npm run generate"
+    2_copy_tsp: "cp output/semconv.g.tsp ../core/specs/generated/"
+    3_compile_typespec: "cd core/specs && npm run compile"
+    4_nuke_generate: "nuke Generate --force-generate"

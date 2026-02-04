@@ -43,10 +43,11 @@ packages/
 .nuke/temp/
 .nuke/build.schema.json
 
-# Claude Code local files (keep agents/ for team sharing)
+# Claude Code local files (keep agents/, rules/, blackboard/ for team sharing)
 .claude/*
 !.claude/agents/
 !.claude/rules/
+!.claude/blackboard/
 
 # Node.js / npm
 node_modules/
