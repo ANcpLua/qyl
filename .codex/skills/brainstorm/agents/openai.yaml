@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brainstorm"
+  short_description: "You MUST use this before any creative work - creating feature..."
+  default_prompt: "Use $brainstorm to you must use this before any creative work - creating feature."

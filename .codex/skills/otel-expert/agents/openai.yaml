@@ -1,0 +1,4 @@
+interface:
+  display_name: "Otel Expert"
+  short_description: "Use this when working with OpenTelemetry, telemetry, observab..."
+  default_prompt: "Use $otel-expert to use this when working with opentelemetry, telemetry, observab."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Comment Analyzer"
+  short_description: "Use this agent when you need to analyze code comments for acc..."
+  default_prompt: "Use $comment-analyzer to use this agent when you need to analyze code comments for acc."

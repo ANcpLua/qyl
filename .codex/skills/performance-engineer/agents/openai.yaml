@@ -1,0 +1,4 @@
+interface:
+  display_name: "Performance Engineer"
+  short_description: "Expert performance engineer specializing in modern observabil..."
+  default_prompt: "Use $performance-engineer to expert performance engineer specializing in modern observabil."

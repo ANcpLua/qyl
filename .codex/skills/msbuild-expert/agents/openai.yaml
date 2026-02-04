@@ -1,0 +1,4 @@
+interface:
+  display_name: "Msbuild Expert"
+  short_description: "MSBuild project files, NuGet packaging, .targets/.props, and..."
+  default_prompt: "Use $msbuild-expert to msbuild project files, nuget packaging, .targets/.props, and."

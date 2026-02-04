@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System Patterns"
+  short_description: "Build scalable design systems with design tokens, theming inf..."
+  default_prompt: "Use $design-system-patterns to build scalable design systems with design tokens, theming inf."

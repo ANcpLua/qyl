@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vector Index Tuning"
+  short_description: "Optimize vector index performance for latency, recall, and me..."
+  default_prompt: "Use $vector-index-tuning to optimize vector index performance for latency, recall, and me."

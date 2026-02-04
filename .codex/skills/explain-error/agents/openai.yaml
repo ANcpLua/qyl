@@ -1,0 +1,4 @@
+interface:
+  display_name: "Explain Error"
+  short_description: "Explain Stripe error codes and provide solutions with code ex..."
+  default_prompt: "Use $explain-error to explain stripe error codes and provide solutions with code ex."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Finishing A Development Branch"
+  short_description: "Use when implementation is complete, all tests pass, and you..."
+  default_prompt: "Use $finishing-a-development-branch to use when implementation is complete, all tests pass, and you."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Collector"
+  short_description: "Backend specialist for OTLP ingestion, DuckDB storage, and RE..."
+  default_prompt: "Use $qyl-collector to backend specialist for otlp ingestion, duckdb storage, and re."

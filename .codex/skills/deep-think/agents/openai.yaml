@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Think"
+  short_description: "Extended reasoning with multiple perspectives for complex pro..."
+  default_prompt: "Use $deep-think to extended reasoning with multiple perspectives for complex pro."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Batch Implement"
+  short_description: "Parallel implementation of multiple similar items using share..."
+  default_prompt: "Use $batch-implement to parallel implementation of multiple similar items using share."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Interaction Design"
+  short_description: "Design and implement microinteractions, motion design, transi..."
+  default_prompt: "Use $interaction-design to design and implement microinteractions, motion design, transi."

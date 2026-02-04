@@ -1,0 +1,4 @@
+interface:
+  display_name: "Requesting Code Review"
+  short_description: "Use when completing tasks, implementing major features, or be..."
+  default_prompt: "Use $requesting-code-review to use when completing tasks, implementing major features, or be."

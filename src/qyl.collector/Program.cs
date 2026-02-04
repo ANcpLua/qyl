@@ -618,7 +618,7 @@ app.MapFallback(async context =>
     else
     {
         context.Response.StatusCode = 404;
-        await context.Response.WriteAsync("Dashboard not found. Build with: nuke DashboardEmbed");
+        await context.Response.WriteAsync("Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
     }
 });
 

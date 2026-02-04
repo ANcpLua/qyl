@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Plans"
+  short_description: "Use when you have a spec or requirements for a multi-step tas..."
+  default_prompt: "Use $writing-plans to use when you have a spec or requirements for a multi-step tas."

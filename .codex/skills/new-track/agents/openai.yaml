@@ -1,0 +1,4 @@
+interface:
+  display_name: "New Track"
+  short_description: "Create a new track with specification and phased implementati..."
+  default_prompt: "Use $new-track to create a new track with specification and phased implementati."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Accessibility Expert"
+  short_description: "Expert accessibility specialist ensuring WCAG compliance, inc..."
+  default_prompt: "Use $accessibility-expert to expert accessibility specialist ensuring wcag compliance, inc."

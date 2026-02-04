@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fix Pipeline"
+  short_description: "Systematic fix pipeline - takes audit findings through deep a..."
+  default_prompt: "Use $fix-pipeline to systematic fix pipeline - takes audit findings through deep a."

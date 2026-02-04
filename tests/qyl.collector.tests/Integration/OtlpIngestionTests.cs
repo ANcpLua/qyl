@@ -10,26 +10,21 @@ namespace qyl.collector.tests.Integration;
 ///     Integration tests for OTLP JSON ingestion endpoints.
 ///     Tests POST /v1/traces (OpenTelemetry standard) and POST /api/v1/ingest (native).
 /// </summary>
-public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
+public sealed class OtlpIngestionTests(QylWebApplicationFactory factory)
+    : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
     private static readonly JsonSerializerOptions SCamelCaseOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
-
-    public OtlpIngestionTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
 
     private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
-        _client = _factory.CreateClient();
+        _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {QylWebApplicationFactory.TestToken}");
         return ValueTask.CompletedTask;
     }
@@ -158,7 +153,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
 
     private static OtlpExportTraceServiceRequest CreateValidOtlpRequest()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = TestConstants.ReferenceTime;
         var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
         var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 100) * 1_000_000);
 
@@ -212,7 +207,7 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
 
     private static OtlpExportTraceServiceRequest CreateGenAiOtlpRequest()
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = TestConstants.ReferenceTime;
         var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
         var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 500) * 1_000_000);
 

@@ -9,11 +9,11 @@
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <RootNamespace>qyl.instrumentation.generators</RootNamespace>
+    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <!-- RS1032/RS2008: Internal generator, not published to NuGet - suppress analyzer release tracking -->
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all"/>
   </ItemGroup>
 

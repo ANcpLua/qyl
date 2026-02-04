@@ -1,0 +1,4 @@
+interface:
+  display_name: "Completion Integrity"
+  short_description: "Prevents shortcuts and cheating when completing tasks."
+  default_prompt: "Use $completion-integrity to prevents shortcuts and cheating when completing tasks."

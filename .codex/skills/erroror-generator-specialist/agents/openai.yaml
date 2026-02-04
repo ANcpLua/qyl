@@ -1,0 +1,4 @@
+interface:
+  display_name: "Erroror Generator Specialist"
+  short_description: "Specialized agent for ErrorOrX source generator - endpoint ge..."
+  default_prompt: "Use $erroror-generator-specialist to specialized agent for errororx source generator - endpoint ge."

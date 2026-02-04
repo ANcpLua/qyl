@@ -64,11 +64,9 @@ public class MyGenerator : IIncrementalGenerator
 | Package                         | Purpose             |
 |---------------------------------|---------------------|
 | `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs         |
-| `ANcpLua.Roslyn.Utilities`      | Generator utilities |
 
 ## Rules
 
 - Target netstandard2.0 for analyzer compatibility
 - Use incremental generators only (IIncrementalGenerator)
 - Never emit code at runtime - compile-time only
-- Test with ANcpLua.Roslyn.Utilities.Testing

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tournament Review"
+  short_description: "Target: staged|collector|mcp|dashboard|protocol"
+  default_prompt: "Use $tournament-review to target: staged|collector|mcp|dashboard|protocol."

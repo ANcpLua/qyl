@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langchain Agent"
+  short_description: "Create LangGraph-based agent with modern patterns"
+  default_prompt: "Use $langchain-agent to create langgraph-based agent with modern patterns."

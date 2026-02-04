@@ -1,0 +1,4 @@
+interface:
+  display_name: "Financial Projections"
+  short_description: "Create detailed 3-5 year financial model with revenue, costs,..."
+  default_prompt: "Use $financial-projections to create detailed 3-5 year financial model with revenue, costs,."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System Architect"
+  short_description: "Expert design system architect specializing in design tokens,..."
+  default_prompt: "Use $design-system-architect to expert design system architect specializing in design tokens,."

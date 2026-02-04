@@ -1,0 +1,4 @@
+interface:
+  display_name: "Xml Doc Generator"
+  short_description: "Generate professional XML documentation comments for C# code..."
+  default_prompt: "Use $xml-doc-generator to generate professional xml documentation comments for c# code."

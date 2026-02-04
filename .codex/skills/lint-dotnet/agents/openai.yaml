@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lint Dotnet"
+  short_description: "Run .NET architecture linter to check for MSBuild/CPM violations"
+  default_prompt: "Use $lint-dotnet to run .net architecture linter to check for msbuild/cpm violations."

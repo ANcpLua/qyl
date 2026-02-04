@@ -1,0 +1,4 @@
+interface:
+  display_name: "Docs Lookup"
+  short_description: "What to look up workflow for Codex"
+  default_prompt: "Use $docs-lookup to what to look up workflow for codex."

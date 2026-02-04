@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Component"
+  short_description: "Guided component creation with proper patterns"
+  default_prompt: "Use $create-component to guided component creation with proper patterns."

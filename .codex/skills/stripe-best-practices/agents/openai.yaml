@@ -1,0 +1,4 @@
+interface:
+  display_name: "Stripe Best Practices"
+  short_description: "Best practices for building Stripe integrations."
+  default_prompt: "Use $stripe-best-practices to best practices for building stripe integrations."

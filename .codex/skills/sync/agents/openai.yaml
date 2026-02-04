@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sync"
+  short_description: "Force sync even if docs are fresh (optional)"
+  default_prompt: "Use $sync to force sync even if docs are fresh (optional)."

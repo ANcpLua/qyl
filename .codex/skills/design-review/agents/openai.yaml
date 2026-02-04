@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Review"
+  short_description: "Review existing UI for issues and improvements"
+  default_prompt: "Use $design-review to review existing ui for issues and improvements."

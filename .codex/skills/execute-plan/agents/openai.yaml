@@ -1,0 +1,4 @@
+interface:
+  display_name: "Execute Plan"
+  short_description: "Execute plan in batches with review checkpoints"
+  default_prompt: "Use $execute-plan to execute plan in batches with review checkpoints."

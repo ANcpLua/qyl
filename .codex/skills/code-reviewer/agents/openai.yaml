@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Reviewer"
+  short_description: "Reviews code for bugs, logic errors, security vulnerabilities..."
+  default_prompt: "Use $code-reviewer to reviews code for bugs, logic errors, security vulnerabilities."

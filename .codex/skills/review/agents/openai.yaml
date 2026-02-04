@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review"
+  short_description: "Perform a comprehensive code review on specified files or cha..."
+  default_prompt: "Use $review to perform a comprehensive code review on specified files or cha."

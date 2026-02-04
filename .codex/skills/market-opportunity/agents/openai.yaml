@@ -1,0 +1,4 @@
+interface:
+  display_name: "Market Opportunity"
+  short_description: "Generate comprehensive market opportunity analysis with TAM/S..."
+  default_prompt: "Use $market-opportunity to generate comprehensive market opportunity analysis with tam/s."

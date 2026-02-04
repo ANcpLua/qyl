@@ -1,0 +1,4 @@
+interface:
+  display_name: "React Native Design"
+  short_description: "Master React Native styling, navigation, and Reanimated anima..."
+  default_prompt: "Use $react-native-design to master react native styling, navigation, and reanimated anima."

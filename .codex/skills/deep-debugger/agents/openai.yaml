@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Debugger"
+  short_description: "Systematic debugging for complex issues - race conditions, in..."
+  default_prompt: "Use $deep-debugger to systematic debugging for complex issues - race conditions, in."

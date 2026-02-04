@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ancplua Analyzers Specialist"
+  short_description: "Specialized agent for ANcpLua.Analyzers Roslyn analyzer packa..."
+  default_prompt: "Use $ancplua-analyzers-specialist to specialized agent for ancplua.analyzers roslyn analyzer packa."

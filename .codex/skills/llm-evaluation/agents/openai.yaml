@@ -1,0 +1,4 @@
+interface:
+  display_name: "Llm Evaluation"
+  short_description: "Implement comprehensive evaluation strategies for LLM applica..."
+  default_prompt: "Use $llm-evaluation to implement comprehensive evaluation strategies for llm applica."

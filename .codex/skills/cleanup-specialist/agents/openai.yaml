@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cleanup Specialist"
+  short_description: "Ruthless code cleanup at any scope."
+  default_prompt: "Use $cleanup-specialist to ruthless code cleanup at any scope."

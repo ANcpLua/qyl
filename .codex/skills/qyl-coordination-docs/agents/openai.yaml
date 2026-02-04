@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Coordination Docs"
+  short_description: "Coordination guide for qyl agent collaboration"
+  default_prompt: "Use $qyl-coordination-docs to coordination guide for qyl agent collaboration."

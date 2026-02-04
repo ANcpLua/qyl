@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit"
+  short_description: "Create a git commit workflow"
+  default_prompt: "Use $commit to create a git commit workflow."

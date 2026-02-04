@@ -1,0 +1,4 @@
+interface:
+  display_name: "Write Plan"
+  short_description: "Create detailed implementation plan with bite-sized tasks"
+  default_prompt: "Use $write-plan to create detailed implementation plan with bite-sized tasks."

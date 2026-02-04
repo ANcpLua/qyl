@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Optimize"
+  short_description: "Optimize prompts for production with CoT, few-shot, and const..."
+  default_prompt: "Use $prompt-optimize to optimize prompts for production with cot, few-shot, and const."

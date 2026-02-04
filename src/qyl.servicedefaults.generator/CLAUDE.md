@@ -99,7 +99,7 @@ public static async Task<Response> Intercept_CreateMessageAsync(
 | Package                         | Purpose             |
 |---------------------------------|---------------------|
 | `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs         |
-| `ANcpLua.Roslyn.Utilities`      | Generator utilities |
+| Local incremental utilities     | `Utilities/IncrementalUtilities.cs` helpers |
 
 ## Rules
 

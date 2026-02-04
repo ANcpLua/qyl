@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Observability Specialist"
+  short_description: "Specialized agent for qyl AI observability platform - OTLP in..."
+  default_prompt: "Use $qyl-observability-specialist to specialized agent for qyl ai observability platform - otlp in."

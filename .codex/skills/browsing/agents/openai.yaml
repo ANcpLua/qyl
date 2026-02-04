@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browsing"
+  short_description: "Use when you need direct browser control - teaches Chrome Dev..."
+  default_prompt: "Use $browsing to use when you need direct browser control - teaches chrome dev."

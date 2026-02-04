@@ -1,0 +1,4 @@
+interface:
+  display_name: "Metacognitive Guard"
+  short_description: "Monitors Claude's responses for struggle signals and suggests..."
+  default_prompt: "Use $metacognitive-guard to monitors claude's responses for struggle signals and suggests."

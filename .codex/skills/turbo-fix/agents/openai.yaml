@@ -1,0 +1,4 @@
+interface:
+  display_name: "Turbo Fix"
+  short_description: "Maximum parallelism fix pipeline - 16 agents across 4 phases..."
+  default_prompt: "Use $turbo-fix to maximum parallelism fix pipeline - 16 agents across 4 phases."

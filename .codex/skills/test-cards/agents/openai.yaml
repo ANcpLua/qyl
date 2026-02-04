@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Cards"
+  short_description: "Display Stripe test card numbers for various testing scenarios"
+  default_prompt: "Use $test-cards to display stripe test card numbers for various testing scenarios."

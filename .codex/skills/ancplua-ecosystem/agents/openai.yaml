@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ancplua Ecosystem"
+  short_description: "Master context for the ANcpLua ecosystem."
+  default_prompt: "Use $ancplua-ecosystem to master context for the ancplua ecosystem."
