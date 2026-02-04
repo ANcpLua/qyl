@@ -27,7 +27,10 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.TypeInfoResolverChain.Insert(0, QylSerializerContext.Default);
 });
 
-var port = builder.Configuration.GetValue("QYL_PORT", 5100);
+// QYL_PORT takes precedence, but fallback to PORT (Railway standard) for PaaS compatibility
+var port = builder.Configuration.GetValue<int?>("QYL_PORT")
+    ?? builder.Configuration.GetValue<int?>("PORT")
+    ?? 5100;
 var grpcPort = builder.Configuration.GetValue("QYL_GRPC_PORT", 4317);
 var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
 var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";

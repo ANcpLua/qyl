@@ -91,8 +91,8 @@ USER qyl
 EXPOSE 5100 4317
 
 # Environment defaults (can be overridden at runtime)
-ENV QYL_PORT=5100 \
-    QYL_GRPC_PORT=0 \
+# Note: QYL_PORT not set - allows Railway's PORT to take effect via fallback in Program.cs
+ENV QYL_GRPC_PORT=0 \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_gcServer=1
 
