@@ -8,6 +8,8 @@ using qyl.collector.Mcp;
 using qyl.collector.Telemetry;
 using Qyl.ServiceDefaults;
 
+Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
+
 var builder = WebApplication.CreateSlimBuilder(args);
 
 // Service defaults: OpenTelemetry (with GenAI sources), resilience, service discovery
@@ -32,6 +34,10 @@ var port = builder.Configuration.GetValue<int?>("QYL_PORT")
     ?? builder.Configuration.GetValue<int?>("PORT")
     ?? 5100;
 var grpcPort = builder.Configuration.GetValue("QYL_GRPC_PORT", 4317);
+
+// Startup diagnostics for Railway debugging
+Console.WriteLine($"[qyl] Starting on port {port} (QYL_PORT={Environment.GetEnvironmentVariable("QYL_PORT")}, PORT={Environment.GetEnvironmentVariable("PORT")})");
+Console.WriteLine($"[qyl] gRPC port: {grpcPort} (0=disabled)");
 var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
 var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
 
@@ -620,6 +626,10 @@ app.MapFallback(async context =>
 // No need to set app.Urls when using explicit Kestrel configuration
 
 StartupBanner.Print($"http://localhost:{port}", token, port, grpcPort, otlpCorsOptions, otlpApiKeyOptions);
+
+// Log when application is ready to accept requests
+app.Lifetime.ApplicationStarted.Register(() =>
+    Console.WriteLine($"[qyl] Application started and listening on port {port}"));
 
 app.Run();
 
