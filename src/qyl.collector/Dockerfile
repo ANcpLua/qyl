@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# qyl.collector - Telemetry API Backend (Optimized)
+# qyl.collector - Telemetry API Backend
 # Build from repository root:
 #   docker build -f src/qyl.collector/Dockerfile -t qyl-collector .
 
@@ -10,9 +10,9 @@ FROM node:22-slim AS dashboard
 
 WORKDIR /dashboard
 
-# Copy package files and install dependencies with cache mount
+# Copy package files and install dependencies with Railway cache mount
 COPY src/qyl.dashboard/package.json src/qyl.dashboard/package-lock.json ./
-RUN --mount=type=cache,id=npm,target=/root/.npm \
+RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-npm,target=/root/.npm \
     npm ci --prefer-offline
 
 # Copy source and build
@@ -39,9 +39,9 @@ COPY src/qyl.servicedefaults/*.csproj src/qyl.servicedefaults/
 COPY src/qyl.servicedefaults.generator/*.csproj src/qyl.servicedefaults.generator/
 COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
 
-# Restore dependencies with NuGet cache mount
+# Restore dependencies with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-nuget,target=/root/.nuget/packages \
     dotnet restore
 
 # Copy source files
@@ -52,9 +52,9 @@ COPY src/qyl.servicedefaults/ src/qyl.servicedefaults/
 COPY src/qyl.servicedefaults.generator/ src/qyl.servicedefaults.generator/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
 
-# Publish with NuGet cache mount
+# Publish with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector
-RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages \
+RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-nuget,target=/root/.nuget/packages \
     dotnet publish -c Release -o /app --no-restore \
     -p:TreatWarningsAsErrors=false \
     -p:PublishAot=false \
