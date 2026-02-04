@@ -495,7 +495,7 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "DuckDB schema definitions");
 
-        var version = int.Parse(DateTimeOffset.UtcNow.ToString("yyyyMMdd", CultureInfo.InvariantCulture),
+        var version = int.Parse(TimeProvider.System.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             CultureInfo.InvariantCulture);
 
         sb.AppendLine("namespace qyl.collector.Storage;");
@@ -646,7 +646,7 @@ public static class SchemaGenerator
         sb.AppendLine("// AUTO-GENERATED FILE - DO NOT EDIT");
         sb.AppendLine("// =============================================================================");
         sb.AppendLine("//     Source:    core/openapi/openapi.yaml");
-        sb.AppendLine(CultureInfo.InvariantCulture, $"//     Generated: {DateTimeOffset.UtcNow:O}");
+        sb.AppendLine(CultureInfo.InvariantCulture, $"//     Generated: {TimeProvider.System.GetUtcNow():O}");
         sb.AppendLine(CultureInfo.InvariantCulture, $"//     {description}");
         sb.AppendLine("// =============================================================================");
         sb.AppendLine("// To modify: update TypeSpec in core/specs/ then run: nuke Generate");
@@ -1034,18 +1034,11 @@ public readonly record struct GenerationResult(int FileCount, GenerationStats St
 // ════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Controls file overwrites during generation.</summary>
-public sealed partial class GenerationGuard
+public sealed partial class GenerationGuard(bool force = false, bool dryRun = false, bool skipExisting = false)
 {
-    public GenerationGuard(bool force = false, bool dryRun = false, bool skipExisting = false)
-    {
-        Force = force;
-        DryRun = dryRun;
-        SkipExisting = skipExisting;
-    }
-
-    public bool Force { get; }
-    public bool DryRun { get; }
-    public bool SkipExisting { get; }
+    public bool Force { get; } = force;
+    public bool DryRun { get; } = dryRun;
+    public bool SkipExisting { get; } = skipExisting;
     public GenerationStats Stats { get; } = new();
 
     public static GenerationGuard ForCi() => new(true);

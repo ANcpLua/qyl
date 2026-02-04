@@ -10,21 +10,16 @@ namespace qyl.collector.tests.Integration;
 ///     End-to-end tests verifying full data flow:
 ///     Ingest → Store → Query → API Response
 /// </summary>
-public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
+public sealed class SessionEndToEndTests(QylWebApplicationFactory factory)
+    : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
-
-    public SessionEndToEndTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
 
     private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
-        _client = _factory.CreateClient();
+        _client = factory.CreateClient();
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {QylWebApplicationFactory.TestToken}");
         return ValueTask.CompletedTask;
     }
@@ -171,7 +166,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
     private static OtlpExportTraceServiceRequest CreateOtlpRequestWithSession(
         string traceId, string spanId, string sessionId)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = TestConstants.ReferenceTime;
         var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
         var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 100) * 1_000_000);
 
@@ -237,7 +232,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         string traceId, string spanId, string sessionId,
         long inputTokens, long outputTokens)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = TestConstants.ReferenceTime;
         var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
         var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 500) * 1_000_000);
 
@@ -333,7 +328,7 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
 
     private static OtlpSpan CreateSpan(string traceId, string spanId, string sessionId, string name)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = TestConstants.ReferenceTime;
         var startNano = (ulong)(now.ToUnixTimeMilliseconds() * 1_000_000);
         var endNano = (ulong)((now.ToUnixTimeMilliseconds() + 50) * 1_000_000);
 

@@ -89,6 +89,9 @@ internal static class TestConstants
     public const int ArchiveDaysOld = 2;
     public const int ArchiveCutoffDays = 1;
 
+    // Reference timestamp for deterministic tests (2026-01-15 12:00:00 UTC)
+    public static readonly DateTimeOffset ReferenceTime = new(2026, 1, 15, 12, 0, 0, TimeSpan.Zero);
+
     // Large data
     public const int LargeJsonPadding = 10000;
 
