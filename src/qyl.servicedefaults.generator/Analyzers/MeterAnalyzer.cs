@@ -13,6 +13,7 @@ internal static class MeterAnalyzer
     private const string MeterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.MeterAttribute";
     private const string CounterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
+    private const string GaugeAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.GaugeAttribute";
     private const string TagAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.TagAttribute";
 
     /// <summary>
@@ -99,8 +100,9 @@ internal static class MeterAnalyzer
 
             var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), CounterAttributeFullName);
             var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), HistogramAttributeFullName);
+            var gaugeAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), GaugeAttributeFullName);
 
-            if (counterAttr is null && histogramAttr is null)
+            if (counterAttr is null && histogramAttr is null && gaugeAttr is null)
                 continue;
 
             MetricKind kind;
@@ -120,6 +122,19 @@ internal static class MeterAnalyzer
                 (metricName, unit, description) = ExtractMetricAttributeValues(histogramAttr);
 
                 // First non-tagged parameter is the value for histogram
+                foreach (var param in method.Parameters)
+                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
+                    {
+                        valueTypeName = param.Type.ToDisplayString();
+                        break;
+                    }
+            }
+            else if (gaugeAttr is not null)
+            {
+                kind = MetricKind.Gauge;
+                (metricName, unit, description) = ExtractMetricAttributeValues(gaugeAttr);
+
+                // First non-tagged parameter is the value for gauge
                 foreach (var param in method.Parameters)
                     if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {

@@ -80,16 +80,34 @@ internal static class MeterEmitter
         if (method.Description is not null)
             args += $", \"{method.Description}\"";
 
-        if (method.Kind == MetricKind.Counter)
+        switch (method.Kind)
         {
-            sb.AppendLine($"        private static readonly Counter<long> {fieldName} =");
-            sb.AppendLine($"            _meter.CreateCounter<long>({args});");
-        }
-        else
-        {
-            var valueType = method.ValueTypeName ?? "double";
-            sb.AppendLine($"        private static readonly Histogram<{valueType}> {fieldName} =");
-            sb.AppendLine($"            _meter.CreateHistogram<{valueType}>({args});");
+            case MetricKind.Counter:
+                sb.AppendLine($"        private static readonly Counter<long> {fieldName} =");
+                sb.AppendLine($"            _meter.CreateCounter<long>({args});");
+                break;
+
+            case MetricKind.Histogram:
+            {
+                var valueType = method.ValueTypeName ?? "double";
+                sb.AppendLine($"        private static readonly Histogram<{valueType}> {fieldName} =");
+                sb.AppendLine($"            _meter.CreateHistogram<{valueType}>({args});");
+                break;
+            }
+
+            case MetricKind.Gauge:
+            {
+                // ObservableGauge uses stored value pattern:
+                // 1. Storage field for current value
+                // 2. ObservableGauge reads from storage via callback
+                var valueType = method.ValueTypeName ?? "long";
+                var storageFieldName = ToStorageFieldName(method.MetricName);
+
+                sb.AppendLine($"        private static {valueType} {storageFieldName};");
+                sb.AppendLine($"        private static readonly ObservableGauge<{valueType}> {fieldName} =");
+                sb.AppendLine($"            _meter.CreateObservableGauge({args}, () => {storageFieldName});");
+                break;
+            }
         }
     }
 
@@ -100,7 +118,8 @@ internal static class MeterEmitter
         // Build parameter list
         var paramParts = new List<string>();
 
-        if (method is { Kind: MetricKind.Histogram, ValueTypeName: not null })
+        // Histogram and Gauge both take a value parameter
+        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge && method.ValueTypeName is not null)
             paramParts.Add($"{method.ValueTypeName} value");
 
         foreach (var tag in method.Tags) paramParts.Add($"{tag.TypeName} {tag.ParameterName}");
@@ -108,6 +127,16 @@ internal static class MeterEmitter
         var paramList = string.Join(", ", paramParts);
 
         sb.AppendLine($"        public static partial void {method.MethodName}({paramList})");
+
+        // Gauge uses expression-body syntax for simple storage update
+        if (method.Kind == MetricKind.Gauge)
+        {
+            var storageFieldName = ToStorageFieldName(method.MetricName);
+            sb.AppendLine($"            => {storageFieldName} = value;");
+            sb.AppendLine();
+            return;
+        }
+
         sb.AppendLine("        {");
 
         if (method.Tags.Count is 0)
@@ -160,6 +189,18 @@ internal static class MeterEmitter
             else
                 sb.Append(char.ToUpperInvariant(part[0])).Append(part[1..]);
         }
+
+        return sb.ToString();
+    }
+
+    private static string ToStorageFieldName(string metricName)
+    {
+        // system.memory.usage -> _currentSystemMemoryUsage
+        var parts = metricName.Split('.');
+        var sb = new StringBuilder("_current");
+
+        foreach (var part in parts)
+            sb.Append(char.ToUpperInvariant(part[0])).Append(part[1..]);
 
         return sb.ToString();
     }

@@ -214,7 +214,8 @@ internal sealed record MeterDefinition(
 internal enum MetricKind
 {
     Counter,
-    Histogram
+    Histogram,
+    Gauge
 }
 
 /// <summary>
