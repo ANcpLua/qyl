@@ -1,0 +1,4 @@
+interface:
+  display_name: "Red Blue Review"
+  short_description: "Adversarial Red Team / Blue Team review - Red attacks, Blue d..."
+  default_prompt: "Use $red-blue-review to adversarial red team / blue team review - red attacks, blue d."

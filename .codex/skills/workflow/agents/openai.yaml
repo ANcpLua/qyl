@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow"
+  short_description: "Manage workflow state (status|new|checkpoint|clear|export)"
+  default_prompt: "Use $workflow to manage workflow state (status|new|checkpoint|clear|export)."

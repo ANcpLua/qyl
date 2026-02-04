@@ -1,0 +1,4 @@
+interface:
+  display_name: "List"
+  short_description: "List all configured hookify rules"
+  default_prompt: "Use $list to list all configured hookify rules."

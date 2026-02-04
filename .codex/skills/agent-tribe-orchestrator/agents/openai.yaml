@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Tribe Orchestrator"
+  short_description: "Spawns parallel subagents to optimize agents, skills, and plu..."
+  default_prompt: "Use $agent-tribe-orchestrator to spawns parallel subagents to optimize agents, skills, and plu."

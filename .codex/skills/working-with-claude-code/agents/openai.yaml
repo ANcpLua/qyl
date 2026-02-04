@@ -1,0 +1,4 @@
+interface:
+  display_name: "Working With Claude Code"
+  short_description: "Use when working with Claude Code CLI, plugins, hooks, MCP se..."
+  default_prompt: "Use $working-with-claude-code to use when working with claude code cli, plugins, hooks, mcp se."

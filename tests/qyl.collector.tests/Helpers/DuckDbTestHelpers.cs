@@ -27,34 +27,16 @@ internal static class DuckDbTestHelpers
         return Task.Delay(TestConstants.SchemaInitDelayMs);
     }
 
-    /// <summary>Waits for single span processing.</summary>
-    public static Task WaitForSingleSpan()
-    {
-        return Task.Delay(TestConstants.SingleSpanProcessingDelayMs);
-    }
-
     /// <summary>Waits for batch processing.</summary>
     public static Task WaitForBatch()
     {
         return Task.Delay(TestConstants.BatchProcessingDelayMs);
     }
 
-    /// <summary>Waits for large batch processing.</summary>
-    public static Task WaitForLargeBatch()
-    {
-        return Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
-    }
-
     /// <summary>Waits for archive processing.</summary>
     public static Task WaitForArchive()
     {
         return Task.Delay(TestConstants.ArchiveProcessingDelayMs);
-    }
-
-    /// <summary>Waits for concurrent read operations.</summary>
-    public static Task WaitForConcurrentReads()
-    {
-        return Task.Delay(TestConstants.ConcurrentReadDelayMs);
     }
 
     /// <summary>Writes a batch synchronously (waits for completion).</summary>
@@ -184,21 +166,6 @@ internal static class DuckDbQueryExtensions
         });
 
         return Convert.ToInt64(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
-    }
-
-    /// <summary>Gets the calculated duration_ms for a span.</summary>
-    public static async Task<double> GetDurationMsAsync(
-        this DuckDBConnection connection,
-        string spanId)
-    {
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = "SELECT duration_ms FROM spans WHERE span_id = $1";
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = spanId
-        });
-
-        return Convert.ToDouble(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
     }
 }
 

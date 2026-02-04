@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual Design Foundations"
+  short_description: "Apply typography, color theory, spacing systems, and iconogra..."
+  default_prompt: "Use $visual-design-foundations to apply typography, color theory, spacing systems, and iconogra."

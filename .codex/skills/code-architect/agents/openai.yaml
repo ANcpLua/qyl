@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Architect"
+  short_description: "Designs feature architectures by analyzing existing codebase..."
+  default_prompt: "Use $code-architect to designs feature architectures by analyzing existing codebase."

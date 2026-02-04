@@ -1,0 +1,4 @@
+interface:
+  display_name: "Servicedefaults Specialist"
+  short_description: "Specialized agent for ServiceDefaults1 OpenTelemetry instrume..."
+  default_prompt: "Use $servicedefaults-specialist to specialized agent for servicedefaults1 opentelemetry instrume."

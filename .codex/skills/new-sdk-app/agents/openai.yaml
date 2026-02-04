@@ -1,0 +1,4 @@
+interface:
+  display_name: "New Sdk App"
+  short_description: "Create and setup a new Claude Agent SDK application"
+  default_prompt: "Use $new-sdk-app to create and setup a new claude agent sdk application."

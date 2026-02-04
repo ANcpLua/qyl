@@ -1,0 +1,4 @@
+interface:
+  display_name: "Configure"
+  short_description: "Enable or disable hookify rules interactively"
+  default_prompt: "Use $configure to enable or disable hookify rules interactively."

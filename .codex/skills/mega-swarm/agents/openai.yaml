@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mega Swarm"
+  short_description: "Maximum parallel audit - configurable agent count for codebas..."
+  default_prompt: "Use $mega-swarm to maximum parallel audit - configurable agent count for codebas."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Slice Validate"
+  short_description: "Slice to validate: VS-01|VS-02|VS-03|VS-04|all"
+  default_prompt: "Use $slice-validate to slice to validate: vs-01|vs-02|vs-03|vs-04|all."

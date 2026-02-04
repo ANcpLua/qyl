@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design System Setup"
+  short_description: "Initialize a design system with tokens"
+  default_prompt: "Use $design-system-setup to initialize a design system with tokens."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playground"
+  short_description: "Creates interactive HTML playgrounds — self-contained single-..."
+  default_prompt: "Use $playground to creates interactive html playgrounds — self-contained single-."

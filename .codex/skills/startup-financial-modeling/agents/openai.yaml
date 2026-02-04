@@ -1,0 +1,4 @@
+interface:
+  display_name: "Startup Financial Modeling"
+  short_description: "This skill should be used when the user asks to \"create finan..."
+  default_prompt: "Use $startup-financial-modeling to this skill should be used when the user asks to \"create finan."

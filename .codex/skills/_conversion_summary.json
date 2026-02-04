@@ -1,0 +1,590 @@
+{
+  "created": [
+    "/Users/ancplua/qyl/.codex/skills/accessibility-audit",
+    "/Users/ancplua/qyl/.codex/skills/accessibility-compliance",
+    "/Users/ancplua/qyl/.codex/skills/accessibility-expert",
+    "/Users/ancplua/qyl/.codex/skills/agent-sdk-verifier-py",
+    "/Users/ancplua/qyl/.codex/skills/agent-sdk-verifier-ts",
+    "/Users/ancplua/qyl/.codex/skills/agent-tribe-orchestrator",
+    "/Users/ancplua/qyl/.codex/skills/agent-tribe-workflow",
+    "/Users/ancplua/qyl/.codex/skills/ai-assistant",
+    "/Users/ancplua/qyl/.codex/skills/ai-engineer",
+    "/Users/ancplua/qyl/.codex/skills/ancplua-analyzers-specialist",
+    "/Users/ancplua/qyl/.codex/skills/ancplua-docs-generator",
+    "/Users/ancplua/qyl/.codex/skills/ancplua-ecosystem",
+    "/Users/ancplua/qyl/.codex/skills/ancplua-sdk-specialist",
+    "/Users/ancplua/qyl/.codex/skills/arch-reviewer",
+    "/Users/ancplua/qyl/.codex/skills/autonomous-ci",
+    "/Users/ancplua/qyl/.codex/skills/batch-implement",
+    "/Users/ancplua/qyl/.codex/skills/brainstorm",
+    "/Users/ancplua/qyl/.codex/skills/brainstorming",
+    "/Users/ancplua/qyl/.codex/skills/browser-user",
+    "/Users/ancplua/qyl/.codex/skills/browsing",
+    "/Users/ancplua/qyl/.codex/skills/business-case",
+    "/Users/ancplua/qyl/.codex/skills/cancel-ralph",
+    "/Users/ancplua/qyl/.codex/skills/checkpoint",
+    "/Users/ancplua/qyl/.codex/skills/claude-automation-recommender",
+    "/Users/ancplua/qyl/.codex/skills/claude-md-improver",
+    "/Users/ancplua/qyl/.codex/skills/claude-opus-4-5-migration",
+    "/Users/ancplua/qyl/.codex/skills/clean-gone",
+    "/Users/ancplua/qyl/.codex/skills/cleanup-specialist",
+    "/Users/ancplua/qyl/.codex/skills/code-architect",
+    "/Users/ancplua/qyl/.codex/skills/code-explorer",
+    "/Users/ancplua/qyl/.codex/skills/code-review",
+    "/Users/ancplua/qyl/.codex/skills/code-reviewer",
+    "/Users/ancplua/qyl/.codex/skills/code-simplifier",
+    "/Users/ancplua/qyl/.codex/skills/codebase-cohesion",
+    "/Users/ancplua/qyl/.codex/skills/codebase-improver",
+    "/Users/ancplua/qyl/.codex/skills/comment-analyzer",
+    "/Users/ancplua/qyl/.codex/skills/commit",
+    "/Users/ancplua/qyl/.codex/skills/commit-push-pr",
+    "/Users/ancplua/qyl/.codex/skills/competitive-landscape",
+    "/Users/ancplua/qyl/.codex/skills/competitive-review",
+    "/Users/ancplua/qyl/.codex/skills/completion-integrity",
+    "/Users/ancplua/qyl/.codex/skills/conductor-validator",
+    "/Users/ancplua/qyl/.codex/skills/configure",
+    "/Users/ancplua/qyl/.codex/skills/context-driven-development",
+    "/Users/ancplua/qyl/.codex/skills/conversation-analyzer",
+    "/Users/ancplua/qyl/.codex/skills/create-component",
+    "/Users/ancplua/qyl/.codex/skills/deep-debugger",
+    "/Users/ancplua/qyl/.codex/skills/deep-think",
+    "/Users/ancplua/qyl/.codex/skills/deep-think-partner",
+    "/Users/ancplua/qyl/.codex/skills/design-review",
+    "/Users/ancplua/qyl/.codex/skills/design-system-architect",
+    "/Users/ancplua/qyl/.codex/skills/design-system-patterns",
+    "/Users/ancplua/qyl/.codex/skills/design-system-setup",
+    "/Users/ancplua/qyl/.codex/skills/developing-claude-code-plugins",
+    "/Users/ancplua/qyl/.codex/skills/dispatching-parallel-agents",
+    "/Users/ancplua/qyl/.codex/skills/docs-lookup",
+    "/Users/ancplua/qyl/.codex/skills/dotnet-mtp-advisor",
+    "/Users/ancplua/qyl/.codex/skills/embedding-strategies",
+    "/Users/ancplua/qyl/.codex/skills/epistemic-checkpoint",
+    "/Users/ancplua/qyl/.codex/skills/erroror-generator-specialist",
+    "/Users/ancplua/qyl/.codex/skills/example-command",
+    "/Users/ancplua/qyl/.codex/skills/example-skill",
+    "/Users/ancplua/qyl/.codex/skills/example-workflow",
+    "/Users/ancplua/qyl/.codex/skills/execute-plan",
+    "/Users/ancplua/qyl/.codex/skills/executing-plans",
+    "/Users/ancplua/qyl/.codex/skills/explain-error",
+    "/Users/ancplua/qyl/.codex/skills/feature-dev",
+    "/Users/ancplua/qyl/.codex/skills/financial-projections",
+    "/Users/ancplua/qyl/.codex/skills/finishing-a-development-branch",
+    "/Users/ancplua/qyl/.codex/skills/fix",
+    "/Users/ancplua/qyl/.codex/skills/fix-pipeline",
+    "/Users/ancplua/qyl/.codex/skills/frontend-design",
+    "/Users/ancplua/qyl/.codex/skills/frontend-developer",
+    "/Users/ancplua/qyl/.codex/skills/hello",
+    "/Users/ancplua/qyl/.codex/skills/help",
+    "/Users/ancplua/qyl/.codex/skills/hookify",
+    "/Users/ancplua/qyl/.codex/skills/hybrid-search-implementation",
+    "/Users/ancplua/qyl/.codex/skills/impl-reviewer",
+    "/Users/ancplua/qyl/.codex/skills/implement",
+    "/Users/ancplua/qyl/.codex/skills/improve",
+    "/Users/ancplua/qyl/.codex/skills/improve-workflow",
+    "/Users/ancplua/qyl/.codex/skills/interaction-design",
+    "/Users/ancplua/qyl/.codex/skills/langchain-agent",
+    "/Users/ancplua/qyl/.codex/skills/langchain-architecture",
+    "/Users/ancplua/qyl/.codex/skills/lint-dotnet",
+    "/Users/ancplua/qyl/.codex/skills/list",
+    "/Users/ancplua/qyl/.codex/skills/llm-evaluation",
+    "/Users/ancplua/qyl/.codex/skills/manage",
+    "/Users/ancplua/qyl/.codex/skills/market-opportunity",
+    "/Users/ancplua/qyl/.codex/skills/market-sizing-analysis",
+    "/Users/ancplua/qyl/.codex/skills/mega-swarm",
+    "/Users/ancplua/qyl/.codex/skills/metacognitive-guard",
+    "/Users/ancplua/qyl/.codex/skills/mintlify-migration",
+    "/Users/ancplua/qyl/.codex/skills/mobile-android-design",
+    "/Users/ancplua/qyl/.codex/skills/mobile-ios-design",
+    "/Users/ancplua/qyl/.codex/skills/msbuild-expert",
+    "/Users/ancplua/qyl/.codex/skills/new-sdk-app",
+    "/Users/ancplua/qyl/.codex/skills/new-track",
+    "/Users/ancplua/qyl/.codex/skills/observability-engineer",
+    "/Users/ancplua/qyl/.codex/skills/otel-expert",
+    "/Users/ancplua/qyl/.codex/skills/otel-genai-architect",
+    "/Users/ancplua/qyl/.codex/skills/otel-guide",
+    "/Users/ancplua/qyl/.codex/skills/otel-librarian",
+    "/Users/ancplua/qyl/.codex/skills/parallel-explore",
+    "/Users/ancplua/qyl/.codex/skills/performance-engineer",
+    "/Users/ancplua/qyl/.codex/skills/playground",
+    "/Users/ancplua/qyl/.codex/skills/pr-test-analyzer",
+    "/Users/ancplua/qyl/.codex/skills/prompt-engineer",
+    "/Users/ancplua/qyl/.codex/skills/prompt-engineering-patterns",
+    "/Users/ancplua/qyl/.codex/skills/prompt-optimize",
+    "/Users/ancplua/qyl/.codex/skills/qyl-agents-readme",
+    "/Users/ancplua/qyl/.codex/skills/qyl-build",
+    "/Users/ancplua/qyl/.codex/skills/qyl-collector",
+    "/Users/ancplua/qyl/.codex/skills/qyl-coordination-docs",
+    "/Users/ancplua/qyl/.codex/skills/qyl-dashboard",
+    "/Users/ancplua/qyl/.codex/skills/qyl-observability-specialist",
+    "/Users/ancplua/qyl/.codex/skills/rag-implementation",
+    "/Users/ancplua/qyl/.codex/skills/ralph-loop",
+    "/Users/ancplua/qyl/.codex/skills/react-native-design",
+    "/Users/ancplua/qyl/.codex/skills/receiving-code-review",
+    "/Users/ancplua/qyl/.codex/skills/red-blue-review",
+    "/Users/ancplua/qyl/.codex/skills/requesting-code-review",
+    "/Users/ancplua/qyl/.codex/skills/responsive-design",
+    "/Users/ancplua/qyl/.codex/skills/revert",
+    "/Users/ancplua/qyl/.codex/skills/review",
+    "/Users/ancplua/qyl/.codex/skills/review-pr",
+    "/Users/ancplua/qyl/.codex/skills/revise-claude-md",
+    "/Users/ancplua/qyl/.codex/skills/servicedefaults-specialist",
+    "/Users/ancplua/qyl/.codex/skills/setup",
+    "/Users/ancplua/qyl/.codex/skills/silent-failure-hunter",
+    "/Users/ancplua/qyl/.codex/skills/similarity-search-patterns",
+    "/Users/ancplua/qyl/.codex/skills/slice-validate",
+    "/Users/ancplua/qyl/.codex/skills/startup-analyst",
+    "/Users/ancplua/qyl/.codex/skills/startup-financial-modeling",
+    "/Users/ancplua/qyl/.codex/skills/startup-metrics-framework",
+    "/Users/ancplua/qyl/.codex/skills/status",
+    "/Users/ancplua/qyl/.codex/skills/stripe-best-practices",
+    "/Users/ancplua/qyl/.codex/skills/subagent-driven-development",
+    "/Users/ancplua/qyl/.codex/skills/swarm-audit",
+    "/Users/ancplua/qyl/.codex/skills/sync",
+    "/Users/ancplua/qyl/.codex/skills/systematic-debugging",
+    "/Users/ancplua/qyl/.codex/skills/team-composition-analysis",
+    "/Users/ancplua/qyl/.codex/skills/template-clean-arch-specialist",
+    "/Users/ancplua/qyl/.codex/skills/test-cards",
+    "/Users/ancplua/qyl/.codex/skills/test-driven-development",
+    "/Users/ancplua/qyl/.codex/skills/tournament",
+    "/Users/ancplua/qyl/.codex/skills/tournament-review",
+    "/Users/ancplua/qyl/.codex/skills/track-management",
+    "/Users/ancplua/qyl/.codex/skills/turbo-fix",
+    "/Users/ancplua/qyl/.codex/skills/type-design-analyzer",
+    "/Users/ancplua/qyl/.codex/skills/type-ownership",
+    "/Users/ancplua/qyl/.codex/skills/ui-designer",
+    "/Users/ancplua/qyl/.codex/skills/using-git-worktrees",
+    "/Users/ancplua/qyl/.codex/skills/using-superpowers",
+    "/Users/ancplua/qyl/.codex/skills/vector-database-engineer",
+    "/Users/ancplua/qyl/.codex/skills/vector-index-tuning",
+    "/Users/ancplua/qyl/.codex/skills/verification-before-completion",
+    "/Users/ancplua/qyl/.codex/skills/verification-subagent",
+    "/Users/ancplua/qyl/.codex/skills/visual-design-foundations",
+    "/Users/ancplua/qyl/.codex/skills/web-component-design",
+    "/Users/ancplua/qyl/.codex/skills/workflow",
+    "/Users/ancplua/qyl/.codex/skills/workflow-management",
+    "/Users/ancplua/qyl/.codex/skills/workflow-patterns",
+    "/Users/ancplua/qyl/.codex/skills/working-with-claude-code",
+    "/Users/ancplua/qyl/.codex/skills/write-plan",
+    "/Users/ancplua/qyl/.codex/skills/writing-clearly-and-concisely",
+    "/Users/ancplua/qyl/.codex/skills/writing-hookify-rules",
+    "/Users/ancplua/qyl/.codex/skills/writing-plans",
+    "/Users/ancplua/qyl/.codex/skills/writing-rules",
+    "/Users/ancplua/qyl/.codex/skills/writing-skills",
+    "/Users/ancplua/qyl/.codex/skills/xml-doc-generator"
+  ],
+  "collisions": {
+    "deep-think-partner": {
+      "winner": "/Users/ancplua/qyl/.claude/agents/deep-think-partner.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/agents/deep-think-partner.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/agents/deep-think-partner.md"
+      ]
+    },
+    "autonomous-ci": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/autonomous-ci/0.1.0/skills/autonomous-ci/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/autonomous-ci/skills/autonomous-ci/SKILL.md"
+      ]
+    },
+    "code-review": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/code-review/0.1.0/skills/code-review/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/code-review/skills/code-review/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/code-review/commands/code-review.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-review/commands/code-review.md"
+      ]
+    },
+    "review": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/code-review/0.1.0/commands/review.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/code-review/commands/review.md"
+      ]
+    },
+    "completion-integrity": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/completion-integrity/1.0.0/skills/completion-integrity/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/completion-integrity/skills/completion-integrity/SKILL.md"
+      ]
+    },
+    "lint-dotnet": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/dotnet-architecture-lint/1.0.0/skills/dotnet-architecture-lint/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/dotnet-architecture-lint/skills/dotnet-architecture-lint/SKILL.md"
+      ]
+    },
+    "code-architect": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/feature-dev/1.0.0/agents/code-architect.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/feature-dev/agents/code-architect.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/feature-dev/agents/code-architect.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/feature-dev/agents/code-architect.md"
+      ]
+    },
+    "code-explorer": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/feature-dev/1.0.0/agents/code-explorer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/feature-dev/agents/code-explorer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/feature-dev/agents/code-explorer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/feature-dev/agents/code-explorer.md"
+      ]
+    },
+    "code-reviewer": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/feature-dev/1.0.0/agents/code-reviewer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/superpowers/4.1.1/agents/code-reviewer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/feature-dev/agents/code-reviewer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/feature-dev/agents/code-reviewer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/code-reviewer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/feature-dev/agents/code-reviewer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/code-reviewer.md"
+      ]
+    },
+    "feature-dev": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/feature-dev/1.0.0/commands/feature-dev.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/feature-dev/commands/feature-dev.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/feature-dev/commands/feature-dev.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/feature-dev/commands/feature-dev.md"
+      ]
+    },
+    "writing-rules": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/skills/writing-rules/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/skills/writing-rules/SKILL.md"
+      ]
+    },
+    "conversation-analyzer": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/agents/conversation-analyzer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/agents/conversation-analyzer.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/agents/conversation-analyzer.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/agents/conversation-analyzer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/agents/conversation-analyzer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/agents/conversation-analyzer.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/agents/conversation-analyzer.md"
+      ]
+    },
+    "configure": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/commands/configure.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/commands/configure.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/commands/configure.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/commands/configure.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/commands/configure.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/commands/configure.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/commands/configure.md"
+      ]
+    },
+    "help": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/commands/help.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/27d2b86d72da/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/61d5cc60cd54/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/64e3e0b88be8/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/d49ad3558669/commands/help.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/e30768372b41/commands/help.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/commands/help.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/commands/help.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/ralph-wiggum/commands/help.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/commands/help.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/commands/help.md"
+      ]
+    },
+    "hookify": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/commands/hookify.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/commands/hookify.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/commands/hookify.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/commands/hookify.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/commands/hookify.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/commands/hookify.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/commands/hookify.md"
+      ]
+    },
+    "list": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/commands/list.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/hookify/0.2.0/commands/list.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/commands/list.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/commands/list.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/hookify/commands/list.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/commands/list.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/commands/list.md"
+      ]
+    },
+    "competitive-review": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/skills/competitive-review/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/skills/competitive-review/SKILL.md"
+      ]
+    },
+    "epistemic-checkpoint": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/skills/epistemic-checkpoint/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/skills/epistemic-checkpoint/SKILL.md"
+      ]
+    },
+    "metacognitive-guard": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/skills/metacognitive-guard/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/skills/metacognitive-guard/SKILL.md"
+      ]
+    },
+    "verification-before-completion": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/superpowers/4.1.1/skills/verification-before-completion/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/skills/verification-before-completion/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/skills/verification-before-completion/SKILL.md"
+      ]
+    },
+    "arch-reviewer": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/agents/arch-reviewer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/agents/arch-reviewer.md"
+      ]
+    },
+    "impl-reviewer": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/metacognitive-guard/0.2.6/agents/impl-reviewer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/metacognitive-guard/agents/impl-reviewer.md"
+      ]
+    },
+    "otel-expert": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/otelwiki/1.0.6/skills/otel-expert/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/otelwiki/skills/otel-expert/SKILL.md"
+      ]
+    },
+    "otel-guide": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/otelwiki/1.0.6/agents/otel-guide.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/otelwiki/agents/otel-guide.md"
+      ]
+    },
+    "otel-librarian": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/otelwiki/1.0.6/agents/otel-librarian.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/otelwiki/agents/otel-librarian.md"
+      ]
+    },
+    "sync": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/otelwiki/1.0.6/commands/sync.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/otelwiki/commands/sync.md"
+      ]
+    },
+    "batch-implement": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/batch-implement.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/batch-implement.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/batch-implement.md"
+      ]
+    },
+    "deep-think": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/deep-think.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/deep-think.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/deep-think.md"
+      ]
+    },
+    "fix-pipeline": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/fix-pipeline.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/fix-pipeline.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/fix-pipeline.md"
+      ]
+    },
+    "mega-swarm": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/mega-swarm.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/mega-swarm.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/mega-swarm.md"
+      ]
+    },
+    "tournament": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/tournament.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/tournament.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/tournament.md"
+      ]
+    },
+    "turbo-fix": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/turbo-fix.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/1.0.1/commands/turbo-fix.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/turbo-fix.md"
+      ]
+    },
+    "fix": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/fix.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/fix.md"
+      ]
+    },
+    "red-blue-review": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/ancplua-claude-plugins/workflow-tools/2.0.0/commands/red-blue-review.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/plugins/workflow-tools/commands/red-blue-review.md"
+      ]
+    },
+    "claude-md-improver": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/skills/claude-md-improver/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/claude-md-management/skills/claude-md-improver/SKILL.md"
+      ]
+    },
+    "revise-claude-md": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/claude-md-management/1.0.0/commands/revise-claude-md.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/claude-md-management/commands/revise-claude-md.md"
+      ]
+    },
+    "code-simplifier": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/code-simplifier/1.0.0/agents/code-simplifier.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/code-simplifier.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/code-simplifier/agents/code-simplifier.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/code-simplifier.md"
+      ]
+    },
+    "clean-gone": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/27d2b86d72da/commands/clean_gone.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/61d5cc60cd54/commands/clean_gone.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/64e3e0b88be8/commands/clean_gone.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/d49ad3558669/commands/clean_gone.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/e30768372b41/commands/clean_gone.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/commit-commands/commands/clean_gone.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/commit-commands/commands/clean_gone.md"
+      ]
+    },
+    "commit-push-pr": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/27d2b86d72da/commands/commit-push-pr.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/61d5cc60cd54/commands/commit-push-pr.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/64e3e0b88be8/commands/commit-push-pr.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/d49ad3558669/commands/commit-push-pr.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/e30768372b41/commands/commit-push-pr.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/commit-commands/commands/commit-push-pr.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/commit-commands/commands/commit-push-pr.md"
+      ]
+    },
+    "commit": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/27d2b86d72da/commands/commit.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/61d5cc60cd54/commands/commit.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/64e3e0b88be8/commands/commit.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/d49ad3558669/commands/commit.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/commit-commands/e30768372b41/commands/commit.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/commit-commands/commands/commit.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/commit-commands/commands/commit.md"
+      ]
+    },
+    "frontend-design": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/frontend-design/27d2b86d72da/skills/frontend-design/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/frontend-design/61d5cc60cd54/skills/frontend-design/SKILL.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/frontend-design/64e3e0b88be8/skills/frontend-design/SKILL.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/frontend-design/d49ad3558669/skills/frontend-design/SKILL.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/frontend-design/e30768372b41/skills/frontend-design/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/frontend-design/skills/frontend-design/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/frontend-design/skills/frontend-design/SKILL.md"
+      ]
+    },
+    "writing-hookify-rules": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/27d2b86d72da/skills/writing-rules/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/d49ad3558669/skills/writing-rules/SKILL.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/hookify/e30768372b41/skills/writing-rules/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/hookify/skills/writing-rules/SKILL.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/hookify/skills/writing-rules/SKILL.md"
+      ]
+    },
+    "cancel-ralph": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/27d2b86d72da/commands/cancel-ralph.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/61d5cc60cd54/commands/cancel-ralph.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/64e3e0b88be8/commands/cancel-ralph.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/d49ad3558669/commands/cancel-ralph.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/e30768372b41/commands/cancel-ralph.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/ralph-wiggum/commands/cancel-ralph.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/commands/cancel-ralph.md"
+      ]
+    },
+    "ralph-loop": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/27d2b86d72da/commands/ralph-loop.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/61d5cc60cd54/commands/ralph-loop.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/64e3e0b88be8/commands/ralph-loop.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/d49ad3558669/commands/ralph-loop.md",
+        "/Users/ancplua/.claude/plugins/cache/claude-plugins-official/ralph-loop/e30768372b41/commands/ralph-loop.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/ralph-wiggum/commands/ralph-loop.md",
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop/commands/ralph-loop.md"
+      ]
+    },
+    "example-workflow": {
+      "winner": "/Users/ancplua/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/examples/full-featured-plugin/skills/workflow/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/cache/superpowers-marketplace/superpowers-developing-for-claude-code/0.3.1/examples/full-featured-plugin/skills/workflow/SKILL.md"
+      ]
+    },
+    "example-skill": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/ancplua-claude-plugins/tooling/templates/plugin-template/skills/example-skill/SKILL.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin/skills/example-skill/SKILL.md"
+      ]
+    },
+    "agent-sdk-verifier-py": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/agent-sdk-dev/agents/agent-sdk-verifier-py.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/agent-sdk-dev/agents/agent-sdk-verifier-py.md"
+      ]
+    },
+    "agent-sdk-verifier-ts": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/agent-sdk-dev/agents/agent-sdk-verifier-ts.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/agent-sdk-dev/agents/agent-sdk-verifier-ts.md"
+      ]
+    },
+    "new-sdk-app": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/agent-sdk-dev/commands/new-sdk-app.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/agent-sdk-dev/commands/new-sdk-app.md"
+      ]
+    },
+    "comment-analyzer": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/comment-analyzer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/comment-analyzer.md"
+      ]
+    },
+    "pr-test-analyzer": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/pr-test-analyzer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/pr-test-analyzer.md"
+      ]
+    },
+    "silent-failure-hunter": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/silent-failure-hunter.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/silent-failure-hunter.md"
+      ]
+    },
+    "type-design-analyzer": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/agents/type-design-analyzer.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/agents/type-design-analyzer.md"
+      ]
+    },
+    "review-pr": {
+      "winner": "/Users/ancplua/.claude/plugins/marketplaces/claude-code-plugins/plugins/pr-review-toolkit/commands/review-pr.md",
+      "losers": [
+        "/Users/ancplua/.claude/plugins/marketplaces/claude-plugins-official/plugins/pr-review-toolkit/commands/review-pr.md"
+      ]
+    }
+  },
+  "skipped_companion_dirs": []
+}

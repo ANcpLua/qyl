@@ -1,0 +1,4 @@
+interface:
+  display_name: "Executing Plans"
+  short_description: "Use when you have a written implementation plan to execute in..."
+  default_prompt: "Use $executing-plans to use when you have a written implementation plan to execute in."

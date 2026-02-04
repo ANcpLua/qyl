@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using Superpowers"
+  short_description: "Use when starting any conversation - establishes how to find..."
+  default_prompt: "Use $using-superpowers to use when starting any conversation - establishes how to find."

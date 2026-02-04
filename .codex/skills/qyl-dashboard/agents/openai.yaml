@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Dashboard"
+  short_description: "Frontend specialist for React 19 SPA and real-time visualization"
+  default_prompt: "Use $qyl-dashboard to frontend specialist for react 19 spa and real-time visualization."

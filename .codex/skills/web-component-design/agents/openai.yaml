@@ -1,0 +1,4 @@
+interface:
+  display_name: "Web Component Design"
+  short_description: "Master React, Vue, and Svelte component patterns including CS..."
+  default_prompt: "Use $web-component-design to master react, vue, and svelte component patterns including cs."

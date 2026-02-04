@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit Push Pr"
+  short_description: "Commit, push, and open a PR"
+  default_prompt: "Use $commit-push-pr to commit, push, and open a pr."

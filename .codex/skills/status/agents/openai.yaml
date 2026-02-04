@@ -1,0 +1,4 @@
+interface:
+  display_name: "Status"
+  short_description: "Display project status, active tracks, and next actions"
+  default_prompt: "Use $status to display project status, active tracks, and next actions."

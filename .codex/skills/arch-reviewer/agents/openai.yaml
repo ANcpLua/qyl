@@ -1,0 +1,4 @@
+interface:
+  display_name: "Arch Reviewer"
+  short_description: "Architecture-focused competitive reviewer."
+  default_prompt: "Use $arch-reviewer to architecture-focused competitive reviewer."

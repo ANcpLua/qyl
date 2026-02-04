@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rag Implementation"
+  short_description: "Build Retrieval-Augmented Generation (RAG) systems for LLM ap..."
+  default_prompt: "Use $rag-implementation to build retrieval-augmented generation (rag) systems for llm ap."

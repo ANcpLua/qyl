@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Dev"
+  short_description: "Guided feature development with codebase understanding and ar..."
+  default_prompt: "Use $feature-dev to guided feature development with codebase understanding and ar."

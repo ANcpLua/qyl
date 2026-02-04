@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Cohesion"
+  short_description: "Refactor repositories for exceptional maintainability."
+  default_prompt: "Use $codebase-cohesion to refactor repositories for exceptional maintainability."

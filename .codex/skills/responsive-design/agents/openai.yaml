@@ -1,0 +1,4 @@
+interface:
+  display_name: "Responsive Design"
+  short_description: "Implement modern responsive layouts using container queries,..."
+  default_prompt: "Use $responsive-design to implement modern responsive layouts using container queries,."

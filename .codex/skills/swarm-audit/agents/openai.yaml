@@ -1,0 +1,4 @@
+interface:
+  display_name: "Swarm Audit"
+  short_description: "Audit mode: full|protocol|collector|mcp|dashboard|otel|tourna..."
+  default_prompt: "Use $swarm-audit to audit mode: full|protocol|collector|mcp|dashboard|otel|tourna."

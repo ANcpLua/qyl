@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile Android Design"
+  short_description: "Master Material Design 3 and Jetpack Compose patterns for bui..."
+  default_prompt: "Use $mobile-android-design to master material design 3 and jetpack compose patterns for bui."

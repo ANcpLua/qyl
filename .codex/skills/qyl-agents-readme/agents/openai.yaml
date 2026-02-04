@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Agents Readme"
+  short_description: "Documentation for qyl agent setup and usage"
+  default_prompt: "Use $qyl-agents-readme to documentation for qyl agent setup and usage."

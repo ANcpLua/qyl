@@ -1,0 +1,4 @@
+interface:
+  display_name: "Clean Gone"
+  short_description: "Cleans up all git branches marked as [gone] (branches that ha..."
+  default_prompt: "Use $clean-gone to cleans up all git branches marked as [gone] (branches that ha."

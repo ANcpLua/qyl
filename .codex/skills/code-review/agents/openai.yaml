@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Review"
+  short_description: "Perform comprehensive code reviews covering security, style,..."
+  default_prompt: "Use $code-review to perform comprehensive code reviews covering security, style,."

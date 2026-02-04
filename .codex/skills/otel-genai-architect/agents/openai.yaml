@@ -1,0 +1,4 @@
+interface:
+  display_name: "Otel Genai Architect"
+  short_description: "OpenTelemetry instrumentation for AI/GenAI - semantic convent..."
+  default_prompt: "Use $otel-genai-architect to opentelemetry instrumentation for ai/genai - semantic convent."

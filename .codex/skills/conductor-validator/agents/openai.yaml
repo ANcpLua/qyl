@@ -1,0 +1,4 @@
+interface:
+  display_name: "Conductor Validator"
+  short_description: "Validates Conductor project artifacts for completeness, consi..."
+  default_prompt: "Use $conductor-validator to validates conductor project artifacts for completeness, consi."

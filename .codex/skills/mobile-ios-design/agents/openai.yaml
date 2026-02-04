@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mobile Ios Design"
+  short_description: "Master iOS Human Interface Guidelines and SwiftUI patterns fo..."
+  default_prompt: "Use $mobile-ios-design to master ios human interface guidelines and swiftui patterns fo."

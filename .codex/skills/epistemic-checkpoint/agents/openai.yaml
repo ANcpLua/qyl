@@ -1,0 +1,4 @@
+interface:
+  display_name: "Epistemic Checkpoint"
+  short_description: "Force verification before answering questions involving versi..."
+  default_prompt: "Use $epistemic-checkpoint to force verification before answering questions involving versi."

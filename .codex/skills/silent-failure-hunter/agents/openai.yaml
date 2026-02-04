@@ -1,0 +1,4 @@
+interface:
+  display_name: "Silent Failure Hunter"
+  short_description: "Use this agent when reviewing code changes in a pull request..."
+  default_prompt: "Use $silent-failure-hunter to use this agent when reviewing code changes in a pull request."

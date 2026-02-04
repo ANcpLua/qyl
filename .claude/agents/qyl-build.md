@@ -81,21 +81,12 @@ Generate:
   outputs: *.g.cs files
   ci-behavior: FAIL if stale
 
-DashboardBuild:
+FrontendBuild:
   command: npm run build
   output: dist/
 
-DashboardEmbed:
-  depends: [DashboardBuild, Compile]
-  action: copy dist/ to collector/wwwroot/
-  critical: true
-
-Publish:
-  depends: [DashboardEmbed]
-  command: dotnet publish -c Release
-
-DockerBuild:
-  depends: [Publish]
+DockerImageBuild:
+  description: Multi-stage build - embeds dashboard in wwwroot
   command: docker build -t ghcr.io/ancplua/qyl:latest .
 ```
 
@@ -118,8 +109,7 @@ x-enum-varnames: enum member names
 rules:
   - TypeSpec is SSOT - never edit openapi.yaml directly
   - Never edit *.g.cs files
-  - DashboardEmbed MUST run before Publish
-  - Docker MUST include embedded dashboard
+  - Docker multi-stage build handles dashboard embedding
 
 ci-enforcement:
   - Generate target fails if *.g.cs differs from openapi.yaml
@@ -159,5 +149,4 @@ cd core/specs && npm run format   # Format
 1. Read `eng/CLAUDE.md` and `core/specs/CLAUDE.md`
 2. Run `/type-ownership` to verify type locations
 3. Verify NUKE target dependency graph
-4. Ensure `DashboardEmbed` copies `dist/` to `wwwroot/`
-5. Run `/slice-validate all` to check completeness
+4. Run `/slice-validate all` to check completeness

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Type Design Analyzer"
+  short_description: "Use this agent when you need expert analysis of type design i..."
+  default_prompt: "Use $type-design-analyzer to use this agent when you need expert analysis of type design i."

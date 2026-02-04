@@ -1,0 +1,4 @@
+interface:
+  display_name: "Otel Guide"
+  short_description: "Use this agent when working with OpenTelemetry, telemetry, ob..."
+  default_prompt: "Use $otel-guide to use this agent when working with opentelemetry, telemetry, ob."

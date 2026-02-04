@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve Workflow"
+  short_description: "Use when analyzing a codebase for improvement opportunities -..."
+  default_prompt: "Use $improve-workflow to use when analyzing a codebase for improvement opportunities -."

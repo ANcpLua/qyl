@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Explorer"
+  short_description: "Deeply analyzes existing codebase features by tracing executi..."
+  default_prompt: "Use $code-explorer to deeply analyzes existing codebase features by tracing executi."

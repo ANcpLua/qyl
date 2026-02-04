@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ai Engineer"
+  short_description: "Build production-ready LLM applications, advanced RAG systems..."
+  default_prompt: "Use $ai-engineer to build production-ready llm applications, advanced rag systems."

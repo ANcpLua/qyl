@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Pr"
+  short_description: "Comprehensive PR review using specialized agents"
+  default_prompt: "Use $review-pr to comprehensive pr review using specialized agents."

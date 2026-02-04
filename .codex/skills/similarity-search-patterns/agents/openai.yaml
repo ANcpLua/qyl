@@ -1,0 +1,4 @@
+interface:
+  display_name: "Similarity Search Patterns"
+  short_description: "Implement efficient similarity search with vector databases."
+  default_prompt: "Use $similarity-search-patterns to implement efficient similarity search with vector databases."

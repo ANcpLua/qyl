@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workflow Patterns"
+  short_description: "Use this skill when implementing tasks according to Conductor..."
+  default_prompt: "Use $workflow-patterns to use this skill when implementing tasks according to conductor."

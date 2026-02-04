@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embedding Strategies"
+  short_description: "Select and optimize embedding models for semantic search and..."
+  default_prompt: "Use $embedding-strategies to select and optimize embedding models for semantic search and."

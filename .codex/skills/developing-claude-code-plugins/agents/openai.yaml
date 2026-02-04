@@ -1,0 +1,4 @@
+interface:
+  display_name: "Developing Claude Code Plugins"
+  short_description: "Use when working on Claude Code plugins (creating, modifying,..."
+  default_prompt: "Use $developing-claude-code-plugins to use when working on claude code plugins (creating, modifying,."

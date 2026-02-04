@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dotnet Mtp Advisor"
+  short_description: "Microsoft Testing Platform (MTP) issues - xUnit v3, exit code..."
+  default_prompt: "Use $dotnet-mtp-advisor to microsoft testing platform (mtp) issues - xunit v3, exit code."

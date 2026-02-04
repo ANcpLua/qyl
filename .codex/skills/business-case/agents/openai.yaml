@@ -1,0 +1,4 @@
+interface:
+  display_name: "Business Case"
+  short_description: "Generate comprehensive investor-ready business case document..."
+  default_prompt: "Use $business-case to generate comprehensive investor-ready business case document."

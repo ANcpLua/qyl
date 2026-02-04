@@ -1,0 +1,4 @@
+interface:
+  display_name: "Fix"
+  short_description: "Unified fix pipeline - configurable parallelism for issue res..."
+  default_prompt: "Use $fix to unified fix pipeline - configurable parallelism for issue res."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Example Command"
+  short_description: "An example slash command that demonstrates command frontmatte..."
+  default_prompt: "Use $example-command to an example slash command that demonstrates command frontmatte."

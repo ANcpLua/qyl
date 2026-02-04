@@ -880,7 +880,7 @@ function generateCSharpEnumsFile(data: ParsedData): string {
 
 function generateCSharpForDomain(
     data: ParsedData,
-    domain: string,
+    _domain: string,
     attrs: string[],
     _domainEnums: Map<string, EnumValue[]>
 ): string {
@@ -946,7 +946,7 @@ function generateCSharpUtf8ForPackage(data: ParsedData): string {
     // Group by top-level domain
     const domainGroups = groupByTopLevelPrefix(data.attributes.map(a => a.value));
 
-    for (const [domain, attrs] of domainGroups) {
+    for (const [, attrs] of domainGroups) {
         // Sub-group by second-level prefix
         const subGroups = new Map<string, string[]>();
         for (const attr of attrs) {

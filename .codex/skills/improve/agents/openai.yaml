@@ -1,0 +1,4 @@
+interface:
+  display_name: "Improve"
+  short_description: "Deep codebase analysis for library adoption, cohesive refacto..."
+  default_prompt: "Use $improve to deep codebase analysis for library adoption, cohesive refacto."

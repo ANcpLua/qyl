@@ -1,0 +1,4 @@
+interface:
+  display_name: "Accessibility Compliance"
+  short_description: "Implement WCAG 2.2 compliant interfaces with mobile accessibi..."
+  default_prompt: "Use $accessibility-compliance to implement wcag 2.2 compliant interfaces with mobile accessibi."

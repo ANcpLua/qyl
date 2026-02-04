@@ -1,0 +1,4 @@
+interface:
+  display_name: "Autonomous Ci"
+  short_description: "Ensures Claude verifies both local tests AND remote CI before..."
+  default_prompt: "Use $autonomous-ci to ensures claude verifies both local tests and remote ci before."

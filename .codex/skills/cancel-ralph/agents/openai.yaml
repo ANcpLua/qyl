@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cancel Ralph"
+  short_description: "Cancel active Ralph Loop workflow"
+  default_prompt: "Use $cancel-ralph to cancel active ralph loop workflow."

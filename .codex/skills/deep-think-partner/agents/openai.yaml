@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deep Think Partner"
+  short_description: "Use this agent when you encounter complex logical problems, m..."
+  default_prompt: "Use $deep-think-partner to use this agent when you encounter complex logical problems, m."

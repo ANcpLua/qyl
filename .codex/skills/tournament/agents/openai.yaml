@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tournament"
+  short_description: "Competitive coding tournament with penalty scoring - N agents..."
+  default_prompt: "Use $tournament to competitive coding tournament with penalty scoring - n agents."

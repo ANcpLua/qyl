@@ -1,0 +1,4 @@
+interface:
+  display_name: "Mintlify Migration"
+  short_description: "Migrate documentation from DocFX, MkDocs, or plain Markdown t..."
+  default_prompt: "Use $mintlify-migration to migrate documentation from docfx, mkdocs, or plain markdown t."

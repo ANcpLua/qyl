@@ -1,0 +1,4 @@
+interface:
+  display_name: "Langchain Architecture"
+  short_description: "Design LLM applications using LangChain 1.x and LangGraph for..."
+  default_prompt: "Use $langchain-architecture to design llm applications using langchain 1.x and langgraph for."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ralph Loop"
+  short_description: "Start Ralph Loop in current session"
+  default_prompt: "Use $ralph-loop to start ralph loop in current session."

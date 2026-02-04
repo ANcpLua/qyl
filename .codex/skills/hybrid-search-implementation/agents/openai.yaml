@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hybrid Search Implementation"
+  short_description: "Combine vector and keyword search for improved retrieval."
+  default_prompt: "Use $hybrid-search-implementation to combine vector and keyword search for improved retrieval."

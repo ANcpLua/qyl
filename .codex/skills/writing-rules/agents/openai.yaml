@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Rules"
+  short_description: "Guide for creating hookify rules to prevent unwanted AI behav..."
+  default_prompt: "Use $writing-rules to guide for creating hookify rules to prevent unwanted ai behav."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Sdk Verifier Ts"
+  short_description: "Use this agent to verify that a TypeScript Agent SDK applicat..."
+  default_prompt: "Use $agent-sdk-verifier-ts to use this agent to verify that a typescript agent sdk applicat."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verification Subagent"
+  short_description: "Blackbox validator that runs FULL test suites before any comp..."
+  default_prompt: "Use $verification-subagent to blackbox validator that runs full test suites before any comp."

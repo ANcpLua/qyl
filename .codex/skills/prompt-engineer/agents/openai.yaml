@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prompt Engineer"
+  short_description: "Expert prompt engineer specializing in advanced prompting tec..."
+  default_prompt: "Use $prompt-engineer to expert prompt engineer specializing in advanced prompting tec."

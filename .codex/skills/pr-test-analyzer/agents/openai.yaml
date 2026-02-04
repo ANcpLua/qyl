@@ -1,0 +1,4 @@
+interface:
+  display_name: "Pr Test Analyzer"
+  short_description: "Use this agent when you need to review a pull request for tes..."
+  default_prompt: "Use $pr-test-analyzer to use this agent when you need to review a pull request for tes."

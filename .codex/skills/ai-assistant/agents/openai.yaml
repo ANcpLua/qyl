@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ai Assistant"
+  short_description: "Build AI assistant application with NLU, dialog management, a..."
+  default_prompt: "Use $ai-assistant to build ai assistant application with nlu, dialog management, a."

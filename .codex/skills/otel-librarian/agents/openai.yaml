@@ -1,0 +1,4 @@
+interface:
+  display_name: "Otel Librarian"
+  short_description: "Validates and syncs OTel documentation from upstream repos."
+  default_prompt: "Use $otel-librarian to validates and syncs otel documentation from upstream repos."

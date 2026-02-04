@@ -1,0 +1,4 @@
+interface:
+  display_name: "Hello"
+  short_description: "Greet the user and demonstrate custom slash command functiona..."
+  default_prompt: "Use $hello to greet the user and demonstrate custom slash command functiona."

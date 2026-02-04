@@ -10,26 +10,29 @@ paths:
 ## NUKE Target Dependencies
 
 ```
-TypeSpecCompile → Generate → Compile
-                             ↓
-DashboardBuild → DashboardEmbed → Publish → DockerBuild
+TypeSpecCompile → Generate → Compile → Test
+                                ↓
+FrontendBuild ------→ DockerImageBuild
 ```
 
 ## Critical Path: Dashboard Embedding
 
+Dashboard embedding happens inside Docker multi-stage build:
+
 ```bash
-npm run build → dist/
-               ↓
-nuke DashboardEmbed → collector/wwwroot/
-                     ↓
-dotnet publish → includes embedded dashboard
+# NUKE builds frontend
+nuke FrontendBuild → dist/
+
+# Docker multi-stage build embeds dashboard
+nuke DockerImageBuild:
+  Stage 1: Build frontend (if not cached)
+  Stage 2: Build .NET collector
+  Stage 3: Copy dashboard dist/ to wwwroot/
 ```
 
-**MUST happen in this order:**
-1. DashboardBuild (creates dist/)
-2. Compile (builds collector)
-3. DashboardEmbed (copies dist/ to wwwroot/)
-4. Publish (packages everything)
+**Build order for Docker:**
+1. FrontendBuild (creates dist/)
+2. DockerImageBuild (multi-stage, embeds dashboard)
 
 ## Code Generation Flow
 

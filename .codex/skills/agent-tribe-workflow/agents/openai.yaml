@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Tribe Workflow"
+  short_description: "Orchestrates parallel multi-agent workflows to optimize agent..."
+  default_prompt: "Use $agent-tribe-workflow to orchestrates parallel multi-agent workflows to optimize agent."

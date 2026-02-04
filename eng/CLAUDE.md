@@ -24,25 +24,23 @@ MSBuild/                # Shared MSBuild infrastructure
 ### Build Pipeline
 
 ```
-TypeSpecCompile -> Generate -> Compile
+TypeSpecCompile -> Generate -> Compile -> Test
                                   |
-DashboardBuild -> DashboardEmbed -+-> Publish -> DockerBuild
+FrontendBuild -----> DockerImageBuild (embeds dashboard in multi-stage build)
 ```
 
 ### Target Reference
 
-| Target            | Purpose                 | Command                |
-|-------------------|-------------------------|------------------------|
-| `TypeSpecCompile` | TypeSpec -> OpenAPI     | `nuke TypeSpecCompile` |
-| `Generate`        | OpenAPI -> C#/DuckDB/TS | `nuke Generate`        |
-| `DashboardBuild`  | Build React app         | `nuke DashboardBuild`  |
-| `Compile`         | Build .NET projects     | `nuke Compile`         |
-| `DashboardEmbed`  | Copy dist to wwwroot    | `nuke DashboardEmbed`  |
-| `Publish`         | dotnet publish          | `nuke Publish`         |
-| `DockerBuild`     | Build Docker image      | `nuke DockerBuild`     |
-| `Test`            | Run tests               | `nuke Test`            |
-| `Coverage`        | Run with coverage       | `nuke Coverage`        |
-| `Full`            | Complete build          | `nuke Full`            |
+| Target             | Purpose                 | Command                 |
+|--------------------|-------------------------|-------------------------|
+| `TypeSpecCompile`  | TypeSpec -> OpenAPI     | `nuke TypeSpecCompile`  |
+| `Generate`         | OpenAPI -> C#/DuckDB/TS | `nuke Generate`         |
+| `FrontendBuild`    | Build React app         | `nuke FrontendBuild`    |
+| `Compile`          | Build .NET projects     | `nuke Compile`          |
+| `DockerImageBuild` | Build Docker images     | `nuke DockerImageBuild` |
+| `Test`             | Run tests               | `nuke Test`             |
+| `Coverage`         | Run with coverage       | `nuke Coverage`         |
+| `Full`             | Complete build          | `nuke Full`             |
 
 ## Common Commands
 

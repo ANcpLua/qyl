@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qyl Build"
+  short_description: "Build system and infrastructure specialist for NUKE, TypeSpec..."
+  default_prompt: "Use $qyl-build to build system and infrastructure specialist for nuke, typespec."

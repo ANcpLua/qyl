@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement"
+  short_description: "Execute tasks from a track's implementation plan following TD..."
+  default_prompt: "Use $implement to execute tasks from a track's implementation plan following td."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Browser User"
+  short_description: "Analyzes web content and browser behavior using Chrome DevToo..."
+  default_prompt: "Use $browser-user to analyzes web content and browser behavior using chrome devtoo."

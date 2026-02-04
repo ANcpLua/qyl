@@ -1,0 +1,4 @@
+interface:
+  display_name: "Type Ownership"
+  short_description: "Validate type ownership rules - shared types in protocol, int..."
+  default_prompt: "Use $type-ownership to validate type ownership rules - shared types in protocol, int."

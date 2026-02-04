@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ancplua Docs Generator"
+  short_description: "Generates and updates documentation content for the ANcpLua.i..."
+  default_prompt: "Use $ancplua-docs-generator to generates and updates documentation content for the ancplua.i."

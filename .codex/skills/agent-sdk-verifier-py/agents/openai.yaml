@@ -1,0 +1,4 @@
+interface:
+  display_name: "Agent Sdk Verifier Py"
+  short_description: "Use this agent to verify that a Python Agent SDK application..."
+  default_prompt: "Use $agent-sdk-verifier-py to use this agent to verify that a python agent sdk application."

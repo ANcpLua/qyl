@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Improver"
+  short_description: "Deep codebase analysis specialist for library adoption opport..."
+  default_prompt: "Use $codebase-improver to deep codebase analysis specialist for library adoption opport."

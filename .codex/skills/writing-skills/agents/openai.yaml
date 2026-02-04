@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Skills"
+  short_description: "Use when creating new skills, editing existing skills, or ver..."
+  default_prompt: "Use $writing-skills to use when creating new skills, editing existing skills, or ver."

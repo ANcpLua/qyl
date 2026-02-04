@@ -1,0 +1,4 @@
+interface:
+  display_name: "Setup"
+  short_description: "Initialize project with Conductor artifacts (product definiti..."
+  default_prompt: "Use $setup to initialize project with conductor artifacts (product definiti."

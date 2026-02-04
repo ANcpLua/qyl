@@ -111,16 +111,16 @@ const api = {
 
 ## Embedding
 
-Build output is copied to collector's wwwroot directory:
+Build output is embedded via Docker multi-stage build:
 
 ```
-npm run build
+npm run build (or nuke FrontendBuild)
     |
     v
 dist/
     |
-    v (nuke DashboardEmbed)
-src/qyl.collector/wwwroot/
+    v (Docker multi-stage build)
+collector/wwwroot/ (in final image)
 ```
 
 The collector serves static files with SPA fallback routing.

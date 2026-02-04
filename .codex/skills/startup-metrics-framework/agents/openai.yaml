@@ -1,0 +1,4 @@
+interface:
+  display_name: "Startup Metrics Framework"
+  short_description: "This skill should be used when the user asks about \"key start..."
+  default_prompt: "Use $startup-metrics-framework to this skill should be used when the user asks about \"key start."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Writing Clearly And Concisely"
+  short_description: "Apply Strunk's timeless writing rules to ANY prose humans wil..."
+  default_prompt: "Use $writing-clearly-and-concisely to apply strunk's timeless writing rules to any prose humans wil."
