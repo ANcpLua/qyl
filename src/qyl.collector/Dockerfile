@@ -75,8 +75,10 @@ LABEL org.opencontainers.image.description="qyl Telemetry Collector API"
 LABEL org.opencontainers.image.source="https://github.com/ANcpLua/qyl"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Create non-root user (Debian syntax)
-RUN groupadd --system qyl && useradd --system --gid qyl qyl
+# Create non-root user and writable app directory (Debian syntax)
+# IMPORTANT: Create /app with qyl ownership BEFORE WORKDIR so qyl can write files (DuckDB)
+RUN groupadd --system qyl && useradd --system --gid qyl qyl && \
+    mkdir -p /app /data && chown -R qyl:qyl /app /data
 
 WORKDIR /app
 
@@ -92,7 +94,9 @@ EXPOSE 5100 4317
 
 # Environment defaults (can be overridden at runtime)
 # Note: QYL_PORT not set - allows Railway's PORT to take effect via fallback in Program.cs
+# QYL_DATA_PATH uses /data for volume mount compatibility
 ENV QYL_GRPC_PORT=0 \
+    QYL_DATA_PATH=/data/qyl.duckdb \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_gcServer=1
 
