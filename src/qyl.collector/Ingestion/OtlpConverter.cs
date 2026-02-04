@@ -56,10 +56,7 @@ public static class OtlpConverter
         List<OtlpKeyValueProto>? protoAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["service.name"] = serviceName
-        };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
 
         if (protoAttributes is null) return attributes;
 
@@ -134,7 +131,8 @@ public static class OtlpConverter
             GenAiToolName = genAi.ToolName,
             GenAiToolCallId = genAi.ToolCallId,
             GenAiCostUsd = genAi.CostUsd,
-            AttributesJson = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+            AttributesJson =
+                JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
             ResourceJson = null
         };
     }
@@ -172,10 +170,7 @@ public static class OtlpConverter
         List<OtlpKeyValue>? jsonAttributes,
         string serviceName)
     {
-        var attributes = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["service.name"] = serviceName
-        };
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal) { ["service.name"] = serviceName };
 
         if (jsonAttributes is null) return attributes;
 
@@ -231,7 +226,8 @@ public static class OtlpConverter
             GenAiToolName = genAi.ToolName,
             GenAiToolCallId = genAi.ToolCallId,
             GenAiCostUsd = genAi.CostUsd,
-            AttributesJson = JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
+            AttributesJson =
+                JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
             ResourceJson = null
         };
     }

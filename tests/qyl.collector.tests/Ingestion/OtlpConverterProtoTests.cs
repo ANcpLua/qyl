@@ -18,10 +18,9 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange
         var request = CreateProtoRequest(
-            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
-            spanId: "00f067aa0ba902b7",
-            name: "test-span",
-            serviceName: "test-service");
+            "4bf92f3577b34da6a3ce929d0e0e4736",
+            "00f067aa0ba902b7",
+            "test-span");
 
         // Act
         var spans = OtlpConverter.ConvertProtoToStorageRows(request);
@@ -81,11 +80,11 @@ public sealed class OtlpConverterProtoTests
     {
         // Arrange
         var request = CreateProtoRequestWithGenAi(
-            providerName: "openai",
-            requestModel: "gpt-4",
-            responseModel: "gpt-4-0613",
-            inputTokens: 100,
-            outputTokens: 200);
+            "openai",
+            "gpt-4",
+            "gpt-4-0613",
+            100,
+            200);
 
         // Act
         var spans = OtlpConverter.ConvertProtoToStorageRows(request);
@@ -154,7 +153,7 @@ public sealed class OtlpConverterProtoTests
         var attributes = GetFirstSpanAttributes(request);
         attributes.Add(new OtlpKeyValueProto
         {
-            Key = "gen_ai.system",  // deprecated
+            Key = "gen_ai.system", // deprecated
             Value = new OtlpAnyValueProto { StringValue = "anthropic" }
         });
 
@@ -174,7 +173,7 @@ public sealed class OtlpConverterProtoTests
         var attributes = GetFirstSpanAttributes(request);
         attributes.Add(new OtlpKeyValueProto
         {
-            Key = "gen_ai.usage.prompt_tokens",  // deprecated
+            Key = "gen_ai.usage.prompt_tokens", // deprecated
             Value = new OtlpAnyValueProto { IntValue = 150 }
         });
 
@@ -312,7 +311,8 @@ public sealed class OtlpConverterProtoTests
         var protoSpan = request.ResourceSpans[0].ScopeSpans[0].Spans[0];
 
         // Attributes is initialized by CreateSpan, but we assert for safety
-        var attributes = protoSpan.Attributes ?? throw new InvalidOperationException("Attributes should be initialized");
+        var attributes = protoSpan.Attributes ??
+                         throw new InvalidOperationException("Attributes should be initialized");
 
         attributes.Add(new OtlpKeyValueProto
         {

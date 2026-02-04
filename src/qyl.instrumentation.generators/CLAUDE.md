@@ -4,12 +4,12 @@ Roslyn source generators for telemetry instrumentation.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | netstandard2.0 |
-| Role | compile-time-only |
-| Output | Analyzer DLL |
+| Property  | Value             |
+|-----------|-------------------|
+| SDK       | ANcpLua.NET.Sdk   |
+| Framework | netstandard2.0    |
+| Role      | compile-time-only |
+| Output    | Analyzer DLL      |
 
 ## Purpose
 
@@ -61,10 +61,10 @@ public class MyGenerator : IIncrementalGenerator
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs |
-| `ANcpLua.Roslyn.Utilities` | Generator utilities |
+| Package                         | Purpose             |
+|---------------------------------|---------------------|
+| `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs         |
+| `ANcpLua.Roslyn.Utilities`      | Generator utilities |
 
 ## Rules
 

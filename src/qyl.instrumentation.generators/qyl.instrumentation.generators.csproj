@@ -13,15 +13,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all"/>
   </ItemGroup>
 
   <!-- Analyzer release tracking (RS2008) -->
   <ItemGroup>
-    <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Shipped.md" />
-    <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Unshipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Shipped.md"/>
+    <AdditionalFiles Include="AnalyzerReleases\AnalyzerReleases.Unshipped.md"/>
   </ItemGroup>
 
 </Project>

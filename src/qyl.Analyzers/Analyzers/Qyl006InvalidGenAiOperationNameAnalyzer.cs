@@ -16,10 +16,10 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl006InvalidGenAiOperationNameAnalyzer : QylAnalyzer {
-    private static readonly HashSet<string> ValidOperationNames = new(StringComparer.OrdinalIgnoreCase) {
-        "chat", "text_completion", "embeddings"
-    };
+public sealed partial class Qyl006InvalidGenAiOperationNameAnalyzer : QylAnalyzer
+{
+    private static readonly HashSet<string> ValidOperationNames =
+        new(StringComparer.OrdinalIgnoreCase) { "chat", "text_completion", "embeddings" };
 
     private static readonly LocalizableResourceString Title = new(
         nameof(Resources.QYL006AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
@@ -43,29 +43,35 @@ public sealed partial class Qyl006InvalidGenAiOperationNameAnalyzer : QylAnalyze
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterOperationAction(AnalyzeInvocation, OperationKind.Invocation);
 
-    private static void AnalyzeInvocation(OperationAnalysisContext context) {
+    private static void AnalyzeInvocation(OperationAnalysisContext context)
+    {
         var invocation = (IInvocationOperation)context.Operation;
 
         // Look for SetTag calls with "gen_ai.operation.name" key
-        if (invocation.TargetMethod.Name != "SetTag" || invocation.Arguments.Length < 2) {
+        if (invocation.TargetMethod.Name != "SetTag" || invocation.Arguments.Length < 2)
+        {
             return;
         }
 
         // Check if the first argument is "gen_ai.operation.name"
-        if (invocation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string tagName }) {
+        if (invocation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string tagName })
+        {
             return;
         }
 
-        if (!tagName.Equals("gen_ai.operation.name", StringComparison.OrdinalIgnoreCase)) {
+        if (!tagName.Equals("gen_ai.operation.name", StringComparison.OrdinalIgnoreCase))
+        {
             return;
         }
 
         // Check if the second argument is a valid operation name
-        if (invocation.Arguments[1].Value.ConstantValue is not { HasValue: true, Value: string operationName }) {
+        if (invocation.Arguments[1].Value.ConstantValue is not { HasValue: true, Value: string operationName })
+        {
             return;
         }
 
-        if (!ValidOperationNames.Contains(operationName)) {
+        if (!ValidOperationNames.Contains(operationName))
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 invocation.Arguments[1].Syntax.GetLocation(),

@@ -15,7 +15,9 @@ public sealed class McpServer
         _console = console;
         _jsonOptions = new JsonSerializerOptions
         {
-            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull, WriteIndented = false
+            PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false
         };
     }
 
@@ -32,10 +34,7 @@ public sealed class McpServer
 
             "get_console_logs" => GetConsoleLogs(call.Arguments),
             "get_console_errors" => GetConsoleErrors(call.Arguments),
-            _ => new McpResponse
-            {
-                Error = $"Unknown tool: {call.Name}"
-            }
+            _ => new McpResponse { Error = $"Unknown tool: {call.Name}" }
         };
 
     public static McpManifest GetManifest() =>
@@ -59,10 +58,7 @@ public sealed class McpServer
                             {
                                 type = "integer", description = "Max sessions to return", @default = 10
                             },
-                            service_name = new
-                            {
-                                type = "string", description = "Filter by service name"
-                            }
+                            service_name = new { type = "string", description = "Filter by service name" }
                         }
                     }
                 },
@@ -75,15 +71,9 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            trace_id = new
-                            {
-                                type = "string", description = "The trace ID to fetch"
-                            }
+                            trace_id = new { type = "string", description = "The trace ID to fetch" }
                         },
-                        required = new[]
-                        {
-                            "trace_id"
-                        }
+                        required = new[] { "trace_id" }
                     }
                 },
                 new McpTool
@@ -95,27 +85,16 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new
-                            {
-                                type = "string", description = "Filter by session ID"
-                            },
+                            session_id = new { type = "string", description = "Filter by session ID" },
                             provider_name =
                                 new
                                 {
-                                    type = "string", description = "Filter by GenAI provider (openai, anthropic, etc.)"
+                                    type = "string",
+                                    description = "Filter by GenAI provider (openai, anthropic, etc.)"
                                 },
-                            model = new
-                            {
-                                type = "string", description = "Filter by model name"
-                            },
-                            status = new
-                            {
-                                type = "string", description = "Filter by status (ok, error)"
-                            },
-                            limit = new
-                            {
-                                type = "integer", description = "Max spans to return", @default = 100
-                            }
+                            model = new { type = "string", description = "Filter by model name" },
+                            status = new { type = "string", description = "Filter by status (ok, error)" },
+                            limit = new { type = "integer", description = "Max spans to return", @default = 100 }
                         }
                     }
                 },
@@ -128,10 +107,7 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session_id = new
-                            {
-                                type = "string", description = "Filter by session ID"
-                            },
+                            session_id = new { type = "string", description = "Filter by session ID" },
                             hours = new
                             {
                                 type = "integer", description = "Time window in hours", @default = 24
@@ -165,7 +141,8 @@ public sealed class McpServer
                 },
                 new McpTool
                 {
-                    Name = "get_storage_stats", Description = "Get storage statistics (span count, time range, etc.)"
+                    Name = "get_storage_stats",
+                    Description = "Get storage statistics (span count, time range, etc.)"
                 },
                 new McpTool
                 {
@@ -178,7 +155,9 @@ public sealed class McpServer
                         {
                             older_than_days = new
                             {
-                                type = "integer", description = "Archive spans older than N days", @default = 7
+                                type = "integer",
+                                description = "Archive spans older than N days",
+                                @default = 7
                             }
                         }
                     }
@@ -194,10 +173,7 @@ public sealed class McpServer
                         type = "object",
                         properties = new
                         {
-                            session = new
-                            {
-                                type = "string", description = "Filter by session ID"
-                            },
+                            session = new { type = "string", description = "Filter by session ID" },
                             level = new
                             {
                                 type = "string", description = "Min level: debug, log, info, warn, error"
@@ -206,10 +182,7 @@ public sealed class McpServer
                             {
                                 type = "string", description = "Text pattern to search in messages"
                             },
-                            limit = new
-                            {
-                                type = "integer", description = "Max logs to return", @default = 50
-                            }
+                            limit = new { type = "integer", description = "Max logs to return", @default = 50 }
                         }
                     }
                 },
@@ -243,7 +216,8 @@ public sealed class McpServer
         {
             Content = new McpContent
             {
-                Type = "text", Text = $"Storage has {stats.SpanCount} spans across {stats.SessionCount} sessions"
+                Type = "text",
+                Text = $"Storage has {stats.SpanCount} spans across {stats.SessionCount} sessions"
             }
         };
     }
@@ -253,19 +227,13 @@ public sealed class McpServer
         var traceId = args?.GetProperty("trace_id").GetString();
         if (string.IsNullOrEmpty(traceId))
         {
-            return new McpResponse
-            {
-                Error = "trace_id is required"
-            };
+            return new McpResponse { Error = "trace_id is required" };
         }
 
         var spans = await _store.GetTraceAsync(traceId, ct);
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions)
-            }
+            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(spans, _jsonOptions) }
         };
     }
 
@@ -393,10 +361,7 @@ public sealed class McpServer
         var stats = await _store.GetStorageStatsAsync(ct);
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text", Text = JsonSerializer.Serialize(stats, _jsonOptions)
-            }
+            Content = new McpContent { Type = "text", Text = JsonSerializer.Serialize(stats, _jsonOptions) }
         };
     }
 
@@ -411,10 +376,7 @@ public sealed class McpServer
 
         return new McpResponse
         {
-            Content = new McpContent
-            {
-                Type = "text", Text = $"Archived {count} spans to Parquet files"
-            }
+            Content = new McpContent { Type = "text", Text = $"Archived {count} spans to Parquet files" }
         };
     }
 

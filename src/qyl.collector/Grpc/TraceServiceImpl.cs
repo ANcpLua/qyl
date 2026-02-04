@@ -34,7 +34,7 @@ public sealed class TraceServiceImpl : TraceServiceBase
             var batch = new SpanBatch(spans);
 
             // Push to ring buffer for real-time queries
-            _ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
+            _ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord).ToList());
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
             _broadcaster.PublishSpans(batch);
@@ -128,7 +128,8 @@ public static class TraceContextParser
             return false;
 
         // Version check (compare bytes, not chars)
-        if (traceParentUtf8[0] is not (byte)'0' || traceParentUtf8[1] is not (byte)'0' || traceParentUtf8[2] != (byte)'-')
+        if (traceParentUtf8[0] is not (byte)'0' || traceParentUtf8[1] is not (byte)'0' ||
+            traceParentUtf8[2] != (byte)'-')
             return false;
 
         // Parse trace-id

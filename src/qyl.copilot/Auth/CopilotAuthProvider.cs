@@ -4,8 +4,6 @@
 // OTel 1.39 compliant instrumentation
 // =============================================================================
 
-using System.Diagnostics;
-using System.Text.Json;
 using qyl.protocol.Copilot;
 
 namespace qyl.copilot.Auth;
@@ -96,9 +94,9 @@ public sealed record AuthResult
 /// </summary>
 public sealed class CopilotAuthProvider
 {
+    private readonly Lock _lock = new();
     private readonly CopilotAuthOptions _options;
     private readonly TimeProvider _timeProvider;
-    private readonly Lock _lock = new();
 
     private AuthResult? _cachedResult;
     private DateTimeOffset _cacheExpiry;
@@ -252,10 +250,23 @@ public sealed class CopilotAuthProvider
 
             process.Start();
 
-            var tokenTask = process.StandardOutput.ReadToEndAsync(ct);
-            var errorTask = process.StandardError.ReadToEndAsync(ct);
+            // Use a timeout to prevent hanging on gh CLI issues
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(10));
 
-            await process.WaitForExitAsync(ct).ConfigureAwait(false);
+            var tokenTask = process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
+            var errorTask = process.StandardError.ReadToEndAsync(timeoutCts.Token);
+
+            try
+            {
+                await process.WaitForExitAsync(timeoutCts.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            {
+                // Timeout occurred, kill the process
+                try { process.Kill(); } catch { /* ignore */ }
+                return AuthResult.Failed("gh auth token timed out after 10 seconds");
+            }
 
             if (process.ExitCode is 0)
             {
@@ -271,7 +282,11 @@ public sealed class CopilotAuthProvider
             var error = await errorTask.ConfigureAwait(false);
             return AuthResult.Failed($"gh auth token failed: {error}");
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw; // Propagate user cancellation
+        }
+        catch (Exception ex)
         {
             return AuthResult.Failed($"GitHub CLI not available: {ex.Message}");
         }

@@ -1,4 +1,3 @@
-
 namespace qyl.collector.Storage;
 
 /// <summary>

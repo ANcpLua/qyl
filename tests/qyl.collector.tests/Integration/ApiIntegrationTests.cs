@@ -11,7 +11,12 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
     private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
 
-    public ApiIntegrationTests(QylWebApplicationFactory factory) => _factory = factory;
+    public ApiIntegrationTests(QylWebApplicationFactory factory)
+    {
+        _factory = factory;
+    }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
@@ -26,8 +31,6 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
         _client?.Dispose();
         return ValueTask.CompletedTask;
     }
-
-    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // Health Endpoints

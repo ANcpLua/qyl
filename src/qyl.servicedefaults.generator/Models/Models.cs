@@ -50,12 +50,18 @@ internal static class ProviderRegistry
     /// <summary>
     ///     All GenAI providers with known SDK type patterns.
     /// </summary>
+    /// <remarks>
+    ///     Order matters: more specific patterns should come before generic ones.
+    ///     Azure.AI.OpenAI must be checked before OpenAI to avoid incorrect matching.
+    /// </remarks>
     public static readonly ImmutableArray<ProviderDefinition> GenAiProviders =
     [
-        // OpenAI ecosystem
-        new(OpenAi, "OpenAI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
-        new(AzureAiOpenai, "Azure.AI.OpenAI", new TokenUsageDefinition("Usage.PromptTokens", "Usage.CompletionTokens")),
+        // Azure (must come before OpenAI due to type name overlap)
+        new(AzureAiOpenai, "Azure.AI.OpenAI", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
         new(AzureAiInference, "Azure.AI.Inference", null),
+
+        // OpenAI ecosystem (OpenAI SDK v2.x uses InputTokenCount/OutputTokenCount)
+        new(OpenAi, "OpenAI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
 
         // Anthropic
         new(Anthropic, "Anthropic", new TokenUsageDefinition("Usage.InputTokens", "Usage.OutputTokens")),
@@ -70,7 +76,7 @@ internal static class ProviderRegistry
         // Other providers
         new(Cohere, "Cohere", null),
         new(MistralAi, "Mistral", null),
-        new(Groq, "Groq", null),
+        new(Groq, "Groq", new TokenUsageDefinition("Usage.PromptTokens", "Usage.CompletionTokens")),
         new(Deepseek, "Deepseek", null),
         new(Perplexity, "Perplexity", null),
         new(XAi, "xAI", null),
@@ -80,7 +86,9 @@ internal static class ProviderRegistry
         new(GithubCopilot, "Agents.AI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
 
         // Custom providers (not in OTel semconv)
-        new("ollama", "Ollama", null)
+        new("ollama", "Ollama", null),
+        new("together", "Together", null),
+        new("replicate", "Replicate", null)
     ];
 }
 

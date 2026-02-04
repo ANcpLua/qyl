@@ -4,11 +4,11 @@ GitHub Copilot integration with qyl observability features.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
-| Role | copilot-integration |
+| Property  | Value               |
+|-----------|---------------------|
+| SDK       | ANcpLua.NET.Sdk     |
+| Framework | net10.0             |
+| Role      | copilot-integration |
 
 ## Purpose
 
@@ -99,9 +99,9 @@ await foreach (var update in engine.ExecuteAsync("analyze-errors", parameters, c
 
 ## OTel Attributes
 
-| Attribute | Value |
-|-----------|-------|
-| `gen_ai.system` | `github_copilot` |
+| Attribute               | Value                |
+|-------------------------|----------------------|
+| `gen_ai.system`         | `github_copilot`     |
 | `gen_ai.operation.name` | `chat` or `workflow` |
 
 ### Spans

@@ -16,6 +16,7 @@ namespace qyl.collector.Dashboard;
 /// </summary>
 public sealed partial class EmbeddedDashboardMiddleware
 {
+    private const string ResourcePrefix = "qyl.collector.wwwroot.";
     private readonly string _basePath;
     private readonly CachedResource? _indexHtml;
     private readonly ILogger<EmbeddedDashboardMiddleware> _logger;
@@ -116,8 +117,6 @@ public sealed partial class EmbeddedDashboardMiddleware
             await context.Response.Body.WriteAsync(resource.Content, context.RequestAborted).ConfigureAwait(false);
         }
     }
-
-    private const string ResourcePrefix = "qyl.collector.wwwroot.";
 
     private FrozenDictionary<string, CachedResource> LoadEmbeddedResources()
     {

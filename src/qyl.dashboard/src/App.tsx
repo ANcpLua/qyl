@@ -2,7 +2,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
-import {GenAIPage, LoginPage, LogsPage, MetricsPage, ResourcesPage, SettingsPage, TracesPage,} from '@/pages';
+import {GenAIPage, LoginPage, LogsPage, ResourcesPage, SettingsPage, TracesPage,} from '@/pages';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -27,7 +27,6 @@ export default function App() {
                         <Route path="/" element={<ResourcesPage/>}/>
                         <Route path="/traces" element={<TracesPage/>}/>
                         <Route path="/logs" element={<LogsPage/>}/>
-                        <Route path="/metrics" element={<MetricsPage/>}/>
                         <Route path="/genai" element={<GenAIPage/>}/>
                         <Route path="/settings" element={<SettingsPage/>}/>
                     </Route>

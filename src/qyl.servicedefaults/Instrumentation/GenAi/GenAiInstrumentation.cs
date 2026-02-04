@@ -4,33 +4,34 @@
 // Uses qyl.protocol.Attributes for OTel 1.39 semantic conventions
 // =============================================================================
 
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using qyl.protocol.Attributes;
 
 namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 /// <summary>
-/// Token usage data for GenAI operations.
+///     Token usage data for GenAI operations.
 /// </summary>
 /// <param name="InputTokens">Number of input/prompt tokens.</param>
 /// <param name="OutputTokens">Number of output/completion tokens.</param>
 public readonly record struct TokenUsage(long InputTokens, long OutputTokens);
 
 /// <summary>
-/// GenAI instrumentation that leverages Microsoft.Extensions.AI.OpenTelemetryChatClient.
-/// Provides OTel Semantic Conventions v1.39 compliance automatically.
+///     GenAI instrumentation that leverages Microsoft.Extensions.AI.OpenTelemetryChatClient.
+///     Provides OTel Semantic Conventions v1.39 compliance automatically.
 /// </summary>
 public static class GenAiInstrumentation
 {
     /// <summary>
-    /// Wraps an IChatClient with OpenTelemetry instrumentation.
-    /// Uses M.E.AI.OpenTelemetryChatClient which is fully OTel GenAI SemConv compliant.
+    ///     Wraps an IChatClient with OpenTelemetry instrumentation.
+    ///     Uses M.E.AI.OpenTelemetryChatClient which is fully OTel GenAI SemConv compliant.
     /// </summary>
     /// <param name="client">The chat client to wrap.</param>
     /// <param name="sourceName">Optional custom activity source name.</param>
     /// <param name="enableSensitiveData">
-    /// Whether to capture message content.
-    /// Can also be set via OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT env var.
+    ///     Whether to capture message content.
+    ///     Can also be set via OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT env var.
     /// </param>
     /// <returns>An instrumented chat client.</returns>
     public static IChatClient WithQylTelemetry(
@@ -61,7 +62,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Extension for ChatClientBuilder pipeline - preferred approach.
+    ///     Extension for ChatClientBuilder pipeline - preferred approach.
     /// </summary>
     public static ChatClientBuilder UseQylTelemetry(
         this ChatClientBuilder builder,
@@ -76,7 +77,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Creates a span for tool execution (execute_tool operation).
+    ///     Creates a span for tool execution (execute_tool operation).
     /// </summary>
     public static Activity? StartToolExecutionSpan(
         string toolName,
@@ -106,7 +107,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Records tool execution result on the current activity.
+    ///     Records tool execution result on the current activity.
     /// </summary>
     public static void RecordToolResult(Activity? activity, bool success, string? error = null)
     {
@@ -120,7 +121,7 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Records an exception on the activity with culture-invariant formatting.
+    ///     Records an exception on the activity with culture-invariant formatting.
     /// </summary>
     public static void RecordException(Activity? activity, Exception exception)
     {
@@ -149,8 +150,8 @@ public static class GenAiInstrumentation
             GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
 
     /// <summary>
-    /// Executes an async GenAI operation with full OTel instrumentation.
-    /// Called by generated interceptor code for direct SDK calls.
+    ///     Executes an async GenAI operation with full OTel instrumentation.
+    ///     Called by generated interceptor code for direct SDK calls.
     /// </summary>
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="provider">Provider identifier (e.g., "openai", "anthropic").</param>
@@ -193,7 +194,8 @@ public static class GenAiInstrumentation
                     try
                     {
                         var usage = extractUsage(result);
-                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens, duration);
+                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens,
+                            duration);
                     }
                     catch
                     {
@@ -219,18 +221,8 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Executes an async GenAI operation with full OTel instrumentation (no usage extraction).
-    /// </summary>
-    public static Task<T> ExecuteAsync<T>(
-        string provider,
-        string operation,
-        string? model,
-        Func<Task<T>> execute) =>
-        ExecuteAsync(provider, operation, model, execute, extractUsage: null);
-
-    /// <summary>
-    /// Executes a synchronous GenAI operation with full OTel instrumentation.
-    /// Called by generated interceptor code for direct SDK calls.
+    ///     Executes a synchronous GenAI operation with full OTel instrumentation.
+    ///     Called by generated interceptor code for direct SDK calls.
     /// </summary>
     /// <typeparam name="T">The result type.</typeparam>
     /// <param name="provider">Provider identifier (e.g., "openai", "anthropic").</param>
@@ -273,7 +265,8 @@ public static class GenAiInstrumentation
                     try
                     {
                         var usage = extractUsage(result);
-                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens, duration);
+                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens,
+                            duration);
                     }
                     catch
                     {
@@ -299,19 +292,9 @@ public static class GenAiInstrumentation
     }
 
     /// <summary>
-    /// Executes a synchronous GenAI operation with full OTel instrumentation (no usage extraction).
-    /// </summary>
-    public static T Execute<T>(
-        string provider,
-        string operation,
-        string? model,
-        Func<T> execute) =>
-        Execute(provider, operation, model, execute, extractUsage: null);
-
-    /// <summary>
-    /// Wraps a streaming GenAI operation with OTel instrumentation.
-    /// Creates a span that covers the entire enumeration, tracking token usage as items are yielded.
-    /// Called by generated interceptor code for streaming SDK calls.
+    ///     Wraps a streaming GenAI operation with OTel instrumentation.
+    ///     Creates a span that covers the entire enumeration, tracking token usage as items are yielded.
+    ///     Called by generated interceptor code for streaming SDK calls.
     /// </summary>
     /// <typeparam name="T">The element type of the stream.</typeparam>
     /// <param name="provider">Provider identifier (e.g., "openai", "anthropic").</param>
@@ -325,7 +308,7 @@ public static class GenAiInstrumentation
         string operation,
         string? model,
         Func<IAsyncEnumerable<T>> streamFactory,
-        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var spanName = model is not null ? $"{operation} {model}" : operation;
         using var activity = ActivitySources.GenAiSource.StartActivity(spanName, ActivityKind.Client);
@@ -390,14 +373,14 @@ public static class GenAiInstrumentation
         {
             activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
             TokenUsageHistogram.Record(outputTokens,
-                new(GenAiAttributes.OperationName, operation),
-                new(GenAiAttributes.ProviderName, provider),
-                new(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
         }
 
         OperationDurationHistogram.Record(duration,
-            new(GenAiAttributes.OperationName, operation),
-            new(GenAiAttributes.ProviderName, provider));
+            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
     }
 
     private static void RecordUsageAndDuration(
@@ -412,31 +395,29 @@ public static class GenAiInstrumentation
         {
             activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
             TokenUsageHistogram.Record(inputTokens,
-                new(GenAiAttributes.OperationName, operation),
-                new(GenAiAttributes.ProviderName, provider),
-                new(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Input));
+                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Input));
         }
 
         if (outputTokens > 0)
         {
             activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
             TokenUsageHistogram.Record(outputTokens,
-                new(GenAiAttributes.OperationName, operation),
-                new(GenAiAttributes.ProviderName, provider),
-                new(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
+                new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+                new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
+                new KeyValuePair<string, object?>(GenAiAttributes.TokenType, GenAiAttributes.TokenTypes.Output));
         }
 
         OperationDurationHistogram.Record(durationSeconds,
-            new(GenAiAttributes.OperationName, operation),
-            new(GenAiAttributes.ProviderName, provider));
+            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
     }
 
-    private static void RecordDuration(string provider, string operation, double durationSeconds)
-    {
+    private static void RecordDuration(string provider, string operation, double durationSeconds) =>
         OperationDurationHistogram.Record(durationSeconds,
-            new(GenAiAttributes.OperationName, operation),
-            new(GenAiAttributes.ProviderName, provider));
-    }
+            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
 
     private static void RecordError(
         Activity activity,
@@ -457,9 +438,9 @@ public static class GenAiInstrumentation
         activity.AddException(ex);
 
         OperationDurationHistogram.Record(durationSeconds,
-            new(GenAiAttributes.OperationName, operation),
-            new(GenAiAttributes.ProviderName, provider),
-            new(GenAiAttributes.ErrorType, errorType));
+            new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
+            new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
+            new KeyValuePair<string, object?>(GenAiAttributes.ErrorType, errorType));
     }
 
     #endregion

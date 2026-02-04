@@ -8,36 +8,45 @@ using Microsoft.Extensions.AI;
 namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 /// <summary>
-/// Extension methods for adding qyl instrumentation to <see cref="IChatClient"/>.
+///     Extension methods for adding qyl instrumentation to <see cref="IChatClient" />.
 /// </summary>
 public static class ChatClientExtensions
 {
     /// <summary>
-    /// Adds qyl instrumentation to the chat client pipeline.
+    ///     Adds qyl instrumentation to the chat client pipeline.
     /// </summary>
     /// <param name="builder">The chat client builder.</param>
     /// <returns>The builder for fluent chaining.</returns>
     /// <remarks>
-    /// <para>Zero-config instrumentation via M.E.AI.OpenTelemetryChatClient includes:</para>
-    /// <list type="bullet">
-    ///   <item><term>OTel 1.37+ GenAI Semconv</term><description>Full attribute compliance</description></item>
-    ///   <item><term>Token Usage Metrics</term><description>gen_ai.client.token.usage histogram</description></item>
-    ///   <item><term>Operation Duration</term><description>gen_ai.client.operation.duration histogram</description></item>
-    ///   <item><term>Sensitive Data Control</term><description>Via OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</description></item>
-    /// </list>
-    /// <para>
-    /// Example:
-    /// <code>
+    ///     <para>Zero-config instrumentation via M.E.AI.OpenTelemetryChatClient includes:</para>
+    ///     <list type="bullet">
+    ///         <item>
+    ///             <term>OTel 1.37+ GenAI Semconv</term><description>Full attribute compliance</description>
+    ///         </item>
+    ///         <item>
+    ///             <term>Token Usage Metrics</term><description>gen_ai.client.token.usage histogram</description>
+    ///         </item>
+    ///         <item>
+    ///             <term>Operation Duration</term><description>gen_ai.client.operation.duration histogram</description>
+    ///         </item>
+    ///         <item>
+    ///             <term>Sensitive Data Control</term>
+    ///             <description>Via OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT</description>
+    ///         </item>
+    ///     </list>
+    ///     <para>
+    ///         Example:
+    ///         <code>
     /// builder.Services.AddChatClient(new OpenAIClient(key).AsChatClient("gpt-4o"))
     ///     .UseQylInstrumentation();
     /// </code>
-    /// </para>
+    ///     </para>
     /// </remarks>
     public static ChatClientBuilder UseQylInstrumentation(this ChatClientBuilder builder)
-        => builder.UseQylInstrumentation(configure: null);
+        => builder.UseQylInstrumentation(null);
 
     /// <summary>
-    /// Adds qyl instrumentation to the chat client pipeline with configuration.
+    ///     Adds qyl instrumentation to the chat client pipeline with configuration.
     /// </summary>
     /// <param name="builder">The chat client builder.</param>
     /// <param name="configure">Optional configuration for the OpenTelemetryChatClient.</param>
@@ -54,18 +63,16 @@ public static class ChatClientExtensions
     }
 
     /// <summary>
-    /// Adds qyl instrumentation with sensitive data capture enabled.
+    ///     Adds qyl instrumentation with sensitive data capture enabled.
     /// </summary>
     /// <param name="builder">The chat client builder.</param>
     /// <param name="enableSensitiveData">Whether to capture message content.</param>
     /// <returns>The builder for fluent chaining.</returns>
     public static ChatClientBuilder UseQylInstrumentation(
         this ChatClientBuilder builder,
-        bool enableSensitiveData)
-    {
-        return builder.UseQylInstrumentation(otel =>
+        bool enableSensitiveData) =>
+        builder.UseQylInstrumentation(otel =>
         {
             otel.EnableSensitiveData = enableSensitiveData;
         });
-    }
 }

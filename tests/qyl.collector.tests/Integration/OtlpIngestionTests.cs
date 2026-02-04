@@ -20,7 +20,12 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
     private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
 
-    public OtlpIngestionTests(QylWebApplicationFactory factory) => _factory = factory;
+    public OtlpIngestionTests(QylWebApplicationFactory factory)
+    {
+        _factory = factory;
+    }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
@@ -34,8 +39,6 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         _client?.Dispose();
         return ValueTask.CompletedTask;
     }
-
-    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // OTLP /v1/traces Endpoint
@@ -303,32 +306,34 @@ public sealed class OtlpIngestionTests : IClassFixture<QylWebApplicationFactory>
         };
     }
 
-    private static object MapSpanToDto(SpanStorageRow span) =>
-        new
+    private static object MapSpanToDto(SpanStorageRow span)
+    {
+        return new
         {
-            TraceId = span.TraceId,
-            SpanId = span.SpanId,
-            ParentSpanId = span.ParentSpanId,
-            Name = span.Name,
-            Kind = span.Kind,
-            StartTimeUnixNano = span.StartTimeUnixNano,
-            EndTimeUnixNano = span.EndTimeUnixNano,
-            DurationNs = span.DurationNs,
-            StatusCode = span.StatusCode,
-            StatusMessage = span.StatusMessage,
-            ServiceName = span.ServiceName,
-            SessionId = span.SessionId,
-            GenAiProviderName = span.GenAiProviderName,
-            GenAiRequestModel = span.GenAiRequestModel,
-            GenAiResponseModel = span.GenAiResponseModel,
-            GenAiInputTokens = span.GenAiInputTokens,
-            GenAiOutputTokens = span.GenAiOutputTokens,
-            GenAiTemperature = span.GenAiTemperature,
-            GenAiStopReason = span.GenAiStopReason,
-            GenAiToolName = span.GenAiToolName,
-            GenAiToolCallId = span.GenAiToolCallId,
-            GenAiCostUsd = span.GenAiCostUsd,
-            AttributesJson = span.AttributesJson,
-            ResourceJson = span.ResourceJson
+            span.TraceId,
+            span.SpanId,
+            span.ParentSpanId,
+            span.Name,
+            span.Kind,
+            span.StartTimeUnixNano,
+            span.EndTimeUnixNano,
+            span.DurationNs,
+            span.StatusCode,
+            span.StatusMessage,
+            span.ServiceName,
+            span.SessionId,
+            span.GenAiProviderName,
+            span.GenAiRequestModel,
+            span.GenAiResponseModel,
+            span.GenAiInputTokens,
+            span.GenAiOutputTokens,
+            span.GenAiTemperature,
+            span.GenAiStopReason,
+            span.GenAiToolName,
+            span.GenAiToolCallId,
+            span.GenAiCostUsd,
+            span.AttributesJson,
+            span.ResourceJson
         };
+    }
 }

@@ -249,16 +249,35 @@ app.MapPost("/v1/traces", async (
     HttpContext context,
     DuckDbStore store,
     ITelemetrySseBroadcaster broadcaster,
-    SpanRingBuffer ringBuffer) =>
+    SpanRingBuffer ringBuffer,
+    CancellationToken ct) =>
 {
     try
     {
-        var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
-            QylSerializerContext.Default.OtlpExportTraceServiceRequest);
+        List<SpanStorageRow> spans;
+        var contentType = context.Request.ContentType;
 
-        if (otlpData?.ResourceSpans is null) return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
+        // Handle protobuf format (application/x-protobuf)
+        if (OtlpProtobufParser.IsProtobufContentType(contentType))
+        {
+            var protoRequest = await OtlpProtobufParser.ParseFromRequestAsync(context.Request, ct);
+            if (protoRequest.ResourceSpans.Count is 0)
+                return Results.Accepted();
 
-        var spans = OtlpConverter.ConvertJsonToStorageRows(otlpData);
+            spans = OtlpConverter.ConvertProtoToStorageRows(protoRequest);
+        }
+        // Handle JSON format (application/json or default)
+        else
+        {
+            var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportTraceServiceRequest>(
+                QylSerializerContext.Default.OtlpExportTraceServiceRequest, ct);
+
+            if (otlpData?.ResourceSpans is null)
+                return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
+
+            spans = OtlpConverter.ConvertJsonToStorageRows(otlpData);
+        }
+
         if (spans.Count is 0) return Results.Accepted();
 
         var batch = new SpanBatch(spans);
@@ -266,7 +285,7 @@ app.MapPost("/v1/traces", async (
         // Push to ring buffer for real-time queries
         ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
 
-        await store.EnqueueAsync(batch);
+        await store.EnqueueAsync(batch, ct);
 
         broadcaster.PublishSpans(batch);
 
@@ -392,6 +411,63 @@ app.MapGet("/api/v1/console/live",
             // Client disconnected - expected for SSE streams
         }
     });
+
+// =============================================================================
+// Telemetry Management API - Clear/Reset telemetry data
+// =============================================================================
+
+app.MapDelete("/api/v1/telemetry", async (
+    DuckDbStore store,
+    SpanRingBuffer ringBuffer,
+    FrontendConsole console,
+    string? type,
+    CancellationToken ct) =>
+{
+    // If type is specified, clear only that type
+    if (!string.IsNullOrEmpty(type))
+    {
+        var deleted = type.ToLowerInvariant() switch
+        {
+            "spans" or "traces" => await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
+            "logs" => await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
+            "sessions" => await store.ClearAllSessionsAsync(ct).ConfigureAwait(false),
+            "console" => ClearConsole(console),
+            _ => throw new ArgumentException($"Unknown telemetry type: {type}")
+        };
+        return Results.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, type));
+    }
+
+    // Clear all telemetry
+    var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
+    ringBuffer.Clear();
+    console.Clear();
+
+    return Results.Ok(new ClearTelemetryResponse(
+        result.SpansDeleted,
+        result.LogsDeleted,
+        result.SessionsDeleted,
+        0, // console count not tracked
+        "all"));
+
+    static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
+    {
+        var deleted = await store.ClearAllSpansAsync(ct).ConfigureAwait(false);
+        ringBuffer.Clear();
+        return deleted;
+    }
+
+    static int ClearConsole(FrontendConsole console)
+    {
+        console.Clear();
+        return 0; // Console doesn't track count
+    }
+});
+
+app.MapGet("/api/v1/telemetry/stats", async (DuckDbStore store, CancellationToken ct) =>
+{
+    var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
+    return Results.Ok(stats);
+});
 
 app.MapGet("/mcp/manifest", () => Results.Ok(McpServer.GetManifest()));
 
@@ -980,6 +1056,14 @@ namespace qyl.collector
 
     public sealed record ErrorResponse(string Error, string? Message = null);
 
+    /// <summary>Response from clearing telemetry data.</summary>
+    public sealed record ClearTelemetryResponse(
+        int SpansDeleted,
+        int LogsDeleted,
+        int SessionsDeleted,
+        int ConsoleCleared,
+        string Type);
+
     [JsonSourceGenerationOptions(
         PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -1045,5 +1129,7 @@ namespace qyl.collector
     [JsonSerializable(typeof(TraceFromMemoryResponse))]
     [JsonSerializable(typeof(SessionSpansFromMemoryResponse))]
     [JsonSerializable(typeof(BufferStatsResponse))]
+    // Telemetry management types
+    [JsonSerializable(typeof(ClearTelemetryResponse))]
     public partial class QylSerializerContext : JsonSerializerContext;
 }

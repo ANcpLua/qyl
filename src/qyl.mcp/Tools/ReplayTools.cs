@@ -18,18 +18,23 @@ public sealed class ReplayTools
 
     [McpServerTool(Name = "qyl.list_sessions")]
     [Description("""
-                 List available sessions for replay or analysis.
+                 List AI sessions captured by qyl for replay or analysis.
 
-                 Parameters:
-                 - limit: Max sessions to return (default: 20)
-                 - service_name: Filter by service name
+                 A session groups related AI interactions (prompts, completions, tool calls).
+                 Use this to find sessions to investigate, then use get_session_transcript
+                 or analyze_session_errors for details.
 
-                 Returns: List of session IDs with summary info
+                 Example queries:
+                 - Recent sessions: list_sessions()
+                 - From specific service: list_sessions(service_name="my-api")
+                 - More results: list_sessions(limit=50)
+
+                 Returns: Session IDs with span counts, error counts, token usage, and costs
                  """)]
     public async Task<string> ListSessionsAsync(
-        [Description("Maximum number of sessions to return")]
+        [Description("Maximum sessions to return (default: 20, max: 100)")]
         int limit = 20,
-        [Description("Filter by service name")]
+        [Description("Filter by service/application name")]
         string? serviceName = null)
     {
         try
@@ -76,15 +81,22 @@ public sealed class ReplayTools
     [McpServerTool(Name = "qyl.get_session_transcript")]
     [Description("""
                  Get a human-readable transcript of an AI session.
-                 Shows prompts, responses, models used, and timing information.
 
-                 Parameters:
-                 - session_id: The session ID to analyze
+                 Shows the timeline of AI operations including:
+                 - Provider and model used for each call
+                 - Input/output token counts
+                 - Cost estimates in USD
+                 - Duration of each operation
+                 - Errors and their messages
 
-                 Returns: Formatted transcript of the session
+                 Use list_sessions first to find a session_id.
+
+                 Example: get_session_transcript(session_id="session-abc123")
+
+                 Returns: Formatted transcript with timing, tokens, costs, and errors
                  """)]
     public async Task<string> GetSessionTranscriptAsync(
-        [Description("The session ID to get transcript for")]
+        [Description("The session ID from list_sessions (required)")]
         string sessionId)
     {
         try
@@ -152,21 +164,28 @@ public sealed class ReplayTools
 
     [McpServerTool(Name = "qyl.get_trace")]
     [Description("""
-                 Get detailed information about a specific trace.
-                 Shows the full span tree with timing and attributes.
+                 Get the complete span tree for a distributed trace.
 
-                 Parameters:
-                 - trace_id: The trace ID to analyze
+                 A trace shows all operations across services for a single request.
+                 Each span represents one operation (AI call, HTTP request, DB query).
 
-                 Returns: Trace details with span hierarchy
+                 The trace_id can be found in:
+                 - Session transcript spans
+                 - Error reports
+                 - Structured logs
+
+                 Example: get_trace(trace_id="abc123def456...")
+
+                 Returns: Span hierarchy with timing, status, and GenAI attributes
                  """)]
     public async Task<string> GetTraceAsync(
-        [Description("The trace ID to get details for")]
+        [Description("The trace ID (hex string, required)")]
         string traceId)
     {
         try
         {
-            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}", ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
+            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
+                    ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
                 return $"Trace '{traceId}' not found";
 
             var sb = new StringBuilder();
@@ -201,16 +220,22 @@ public sealed class ReplayTools
 
     [McpServerTool(Name = "qyl.analyze_session_errors")]
     [Description("""
-                 Analyze errors in a session.
-                 Shows all failed spans with error details.
+                 Analyze all errors in a session.
 
-                 Parameters:
-                 - session_id: The session ID to analyze
+                 Shows failed spans with:
+                 - Error messages and types
+                 - Provider and model that failed
+                 - Span timing and context
+                 - Parent-child relationships
 
-                 Returns: List of errors with context
+                 Use this to understand why an AI workflow failed.
+
+                 Example: analyze_session_errors(session_id="session-abc123")
+
+                 Returns: Error details grouped by span with full context
                  """)]
     public async Task<string> AnalyzeSessionErrorsAsync(
-        [Description("The session ID to analyze for errors")]
+        [Description("The session ID from list_sessions (required)")]
         string sessionId)
     {
         try

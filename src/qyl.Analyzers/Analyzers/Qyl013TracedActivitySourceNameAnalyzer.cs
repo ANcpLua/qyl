@@ -19,14 +19,15 @@ namespace qyl.Analyzers.Analyzers;
 ///         <code>
 ///         [Traced("MyApp.Orders")]  // Valid: descriptive source name
 ///         public class OrderService { }
-///
+/// 
 ///         [Traced("")]  // Error: empty source name
 ///         public class BadService { }
 ///         </code>
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl013TracedActivitySourceNameAnalyzer : QylAnalyzer {
+public sealed partial class Qyl013TracedActivitySourceNameAnalyzer : QylAnalyzer
+{
     private const string TracedAttributeFullName = "qyl.ServiceDefaults.Instrumentation.TracedAttribute";
 
     private static readonly LocalizableResourceString Title = new(
@@ -48,29 +49,36 @@ public sealed partial class Qyl013TracedActivitySourceNameAnalyzer : QylAnalyzer
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
 
     /// <summary>Registers symbol actions to analyze types and methods with [Traced] attribute.</summary>
-    protected override void RegisterActions(AnalysisContext context) {
+    protected override void RegisterActions(AnalysisContext context)
+    {
         context.RegisterSymbolAction(AnalyzeNamedType, SymbolKind.NamedType);
         context.RegisterSymbolAction(AnalyzeMethod, SymbolKind.Method);
     }
 
-    private static void AnalyzeNamedType(SymbolAnalysisContext context) {
+    private static void AnalyzeNamedType(SymbolAnalysisContext context)
+    {
         var namedType = (INamedTypeSymbol)context.Symbol;
         AnalyzeSymbol(context, namedType, namedType.Name);
     }
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context) {
+    private static void AnalyzeMethod(SymbolAnalysisContext context)
+    {
         var method = (IMethodSymbol)context.Symbol;
         AnalyzeSymbol(context, method, method.Name);
     }
 
-    private static void AnalyzeSymbol(SymbolAnalysisContext context, ISymbol symbol, string symbolName) {
+    private static void AnalyzeSymbol(SymbolAnalysisContext context, ISymbol symbol, string symbolName)
+    {
         var tracedAttributeType = context.Compilation.GetTypeByMetadataName(TracedAttributeFullName);
-        if (tracedAttributeType is null) {
+        if (tracedAttributeType is null)
+        {
             return;
         }
 
-        foreach (var attribute in symbol.GetAttributes()) {
-            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedAttributeType)) {
+        foreach (var attribute in symbol.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedAttributeType))
+            {
                 continue;
             }
 
@@ -79,26 +87,31 @@ public sealed partial class Qyl013TracedActivitySourceNameAnalyzer : QylAnalyzer
 
             // Check first constructor argument (ActivitySourceName)
             if (attribute.ConstructorArguments.Length > 0 &&
-                attribute.ConstructorArguments[0].Value is string ctorArg) {
+                attribute.ConstructorArguments[0].Value is string ctorArg)
+            {
                 activitySourceName = ctorArg;
             }
 
             // Check named argument (ActivitySourceName = "...")
-            foreach (var namedArg in attribute.NamedArguments) {
-                if (namedArg.Key == "ActivitySourceName" && namedArg.Value.Value is string namedValue) {
+            foreach (var namedArg in attribute.NamedArguments)
+            {
+                if (namedArg.Key == "ActivitySourceName" && namedArg.Value.Value is string namedValue)
+                {
                     activitySourceName = namedValue;
                     break;
                 }
             }
 
             // Report if ActivitySourceName is empty/whitespace or not provided at all
-            if (string.IsNullOrWhiteSpace(activitySourceName)) {
+            if (string.IsNullOrWhiteSpace(activitySourceName))
+            {
                 ReportDiagnostic(context, attribute, symbolName);
             }
         }
     }
 
-    private static void ReportDiagnostic(SymbolAnalysisContext context, AttributeData attribute, string symbolName) {
+    private static void ReportDiagnostic(SymbolAnalysisContext context, AttributeData attribute, string symbolName)
+    {
         var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken).GetLocation()
                        ?? Location.None;
 

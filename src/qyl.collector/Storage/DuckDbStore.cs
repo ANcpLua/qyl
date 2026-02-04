@@ -1,3 +1,4 @@
+using qyl.collector.Ingestion;
 using static System.Threading.Volatile;
 
 namespace qyl.collector.Storage;
@@ -242,10 +243,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                            WHERE session_id = $1
                            ORDER BY start_time_unix_nano ASC
                            """;
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = sessionId
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -267,10 +265,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                            WHERE trace_id = $1
                            ORDER BY start_time_unix_nano ASC
                            """;
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = traceId
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -300,56 +295,39 @@ public sealed class DuckDbStore : IAsyncDisposable
         if (!string.IsNullOrEmpty(sessionId))
         {
             conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = sessionId
-            });
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (!string.IsNullOrEmpty(providerName))
         {
             conditions.Add($"gen_ai_provider_name = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = providerName
-            });
+            parameters.Add(new DuckDBParameter { Value = providerName });
         }
 
         if (startAfter.HasValue)
         {
             conditions.Add($"start_time_unix_nano >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)startAfter.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
         }
 
         if (startBefore.HasValue)
         {
             conditions.Add($"start_time_unix_nano <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)startBefore.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = (decimal)startBefore.Value });
         }
 
         if (statusCode.HasValue)
         {
             conditions.Add($"status_code = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = statusCode.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = statusCode.Value });
         }
 
         if (!string.IsNullOrEmpty(searchText))
         {
             // Search in status_message, name, and attributes_json
-            conditions.Add($"(status_message ILIKE ${paramIndex} OR name ILIKE ${paramIndex} OR attributes_json ILIKE ${paramIndex})");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = $"%{searchText}%"
-            });
+            conditions.Add(
+                $"(status_message ILIKE ${paramIndex} OR name ILIKE ${paramIndex} OR attributes_json ILIKE ${paramIndex})");
+            parameters.Add(new DuckDBParameter { Value = $"%{searchText}%" });
             paramIndex++;
         }
 
@@ -365,10 +343,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                            """;
 
         cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = limit
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -420,29 +395,20 @@ public sealed class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        var conditions = new List<string>
-        {
-            "gen_ai_provider_name IS NOT NULL"
-        };
+        var conditions = new List<string> { "gen_ai_provider_name IS NOT NULL" };
         var parameters = new List<DuckDBParameter>();
         var paramIndex = 1;
 
         if (!string.IsNullOrEmpty(sessionId))
         {
             conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = sessionId
-            });
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (startAfter.HasValue)
         {
             conditions.Add($"start_time_unix_nano >= ${paramIndex}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)startAfter.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
         }
 
         var whereClause = string.Join(" AND ", conditions);
@@ -524,6 +490,185 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     // ==========================================================================
+    // Cleanup Operations
+    // ==========================================================================
+
+    public async Task<long> GetSpanCountAsync(CancellationToken ct = default)
+    {
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM spans";
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        return result is long count ? count : 0;
+    }
+
+    public async Task<long> GetLogCountAsync(CancellationToken ct = default)
+    {
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM logs";
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        return result is long count ? count : 0;
+    }
+
+    public async Task<int> DeleteSpansBeforeAsync(ulong timestampNanos, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
+            cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)timestampNanos });
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    public async Task<int> DeleteOldestSpansAsync(long count, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                DELETE FROM spans
+                WHERE span_id IN (
+                    SELECT span_id FROM spans
+                    ORDER BY start_time_unix_nano ASC
+                    LIMIT $1
+                )
+                """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = count });
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    public async Task<int> DeleteOldestLogsAsync(long count, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                DELETE FROM logs
+                WHERE rowid IN (
+                    SELECT rowid FROM logs
+                    ORDER BY time_unix_nano ASC
+                    LIMIT $1
+                )
+                """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = count });
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    // ==========================================================================
+    // Clear All Operations (for dashboard controls)
+    // ==========================================================================
+
+    /// <summary>
+    ///     Clears all spans from the database.
+    /// </summary>
+    public async Task<int> ClearAllSpansAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(static async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "DELETE FROM spans";
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Clears all logs from the database.
+    /// </summary>
+    public async Task<int> ClearAllLogsAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(static async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "DELETE FROM logs";
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Clears all sessions from the database.
+    /// </summary>
+    public async Task<int> ClearAllSessionsAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(static async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "DELETE FROM session_entities";
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Clears all telemetry data (spans, logs, sessions) from the database.
+    /// </summary>
+    public async Task<ClearTelemetryResult> ClearAllTelemetryAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<ClearTelemetryResult>(static async (con, token) =>
+        {
+            // Use transaction for atomic clear
+            await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
+
+            int spansDeleted, logsDeleted, sessionsDeleted;
+
+            await using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM spans";
+                spansDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM logs";
+                logsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await using (var cmd = con.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "DELETE FROM session_entities";
+                sessionsDeleted = await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }
+
+            await tx.CommitAsync(token).ConfigureAwait(false);
+
+            return new ClearTelemetryResult(spansDeleted, logsDeleted, sessionsDeleted);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    // ==========================================================================
     // Log Operations
     // ==========================================================================
 
@@ -581,64 +726,43 @@ public sealed class DuckDbStore : IAsyncDisposable
         if (!string.IsNullOrEmpty(sessionId))
         {
             conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = sessionId
-            });
+            parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         if (!string.IsNullOrEmpty(traceId))
         {
             conditions.Add($"trace_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = traceId
-            });
+            parameters.Add(new DuckDBParameter { Value = traceId });
         }
 
         if (!string.IsNullOrEmpty(severityText))
         {
             conditions.Add($"severity_text = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = severityText
-            });
+            parameters.Add(new DuckDBParameter { Value = severityText });
         }
 
         if (minSeverity.HasValue)
         {
             conditions.Add($"severity_number >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = minSeverity.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = minSeverity.Value });
         }
 
         if (!string.IsNullOrEmpty(search))
         {
             conditions.Add($"body LIKE ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = $"%{search}%"
-            });
+            parameters.Add(new DuckDBParameter { Value = $"%{search}%" });
         }
 
         if (after.HasValue)
         {
             conditions.Add($"time_unix_nano >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)after.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = (decimal)after.Value });
         }
 
         if (before.HasValue)
         {
             conditions.Add($"time_unix_nano <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)before.Value
-            });
+            parameters.Add(new DuckDBParameter { Value = (decimal)before.Value });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
@@ -656,10 +780,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                            """;
 
         cmd.Parameters.AddRange(parameters);
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = limit
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -771,10 +892,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         await using var countCmd = con.CreateCommand();
         countCmd.CommandText = "SELECT COUNT(*) FROM spans WHERE start_time_unix_nano < $1";
-        countCmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)cutoffNano
-        });
+        countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
         var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false));
         if (count is 0)
             return 0;
@@ -792,10 +910,7 @@ public sealed class DuckDbStore : IAsyncDisposable
                                      TO '{tempPath}'
                                      (FORMAT PARQUET, COMPRESSION ZSTD, ROW_GROUP_SIZE 100000)
                                      """;
-            exportCmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = (decimal)cutoffNano
-            });
+            exportCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
             await exportCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
@@ -805,10 +920,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         await using var deleteCmd = con.CreateCommand();
         deleteCmd.Transaction = tx;
         deleteCmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
-        deleteCmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)cutoffNano
-        });
+        deleteCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)cutoffNano });
         await deleteCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         await tx.CommitAsync(ct).ConfigureAwait(false);
 
@@ -816,70 +928,80 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     // ==========================================================================
-    // Private Methods - Multi-Row Insert SQL Builders
+    // Private Methods - Multi-Row Insert SQL Builders (with caching)
     // ==========================================================================
 
+    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
+    private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
+
     /// <summary>
-    ///     Builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
-    ///     Example for 2 spans: INSERT INTO spans (...) VALUES ($1,...,$24), ($25,...,$48) ON CONFLICT...
+    ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
+    ///     Caches SQL for common batch sizes to reduce allocations.
     /// </summary>
     private static string BuildMultiRowSpanInsertSql(int spanCount)
     {
         Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
 
-        var sb = new StringBuilder(2048);
-        sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
-
-        for (var i = 0; i < spanCount; i++)
+        return s_spanInsertSqlCache.GetOrAdd(spanCount, static count =>
         {
-            if (i > 0)
-                sb.Append(", ");
+            var sb = new StringBuilder(2048);
+            sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
 
-            var baseParam = i * SpanColumnCount;
-            sb.Append('(');
-            for (var col = 0; col < SpanColumnCount; col++)
+            for (var i = 0; i < count; i++)
             {
-                if (col > 0)
+                if (i > 0)
                     sb.Append(", ");
-                sb.Append('$').Append(baseParam + col + 1);
+
+                var baseParam = i * SpanColumnCount;
+                sb.Append('(');
+                for (var col = 0; col < SpanColumnCount; col++)
+                {
+                    if (col > 0)
+                        sb.Append(", ");
+                    sb.Append('$').Append(baseParam + col + 1);
+                }
+
+                sb.Append(')');
             }
 
-            sb.Append(')');
-        }
-
-        sb.Append(' ').Append(SpanOnConflictClause);
-        return sb.ToString();
+            sb.Append(' ').Append(SpanOnConflictClause);
+            return sb.ToString();
+        });
     }
 
     /// <summary>
-    ///     Builds a multi-row INSERT statement for logs (no ON CONFLICT).
-    ///     Example for 2 logs: INSERT INTO logs (...) VALUES ($1,...,$12), ($13,...,$24)
+    ///     Gets or builds a multi-row INSERT statement for logs (no ON CONFLICT).
+    ///     Caches SQL for common batch sizes to reduce allocations.
     /// </summary>
     private static string BuildMultiRowLogInsertSql(int logCount)
     {
         Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
 
-        var sb = new StringBuilder(1024);
-        sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
-
-        for (var i = 0; i < logCount; i++)
+        return s_logInsertSqlCache.GetOrAdd(logCount, static count =>
         {
-            if (i > 0)
-                sb.Append(", ");
+            var sb = new StringBuilder(1024);
+            sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
 
-            var baseParam = i * LogColumnCount;
-            sb.Append('(');
-            for (var col = 0; col < LogColumnCount; col++)
+            for (var i = 0; i < count; i++)
             {
-                if (col > 0)
+                if (i > 0)
                     sb.Append(", ");
-                sb.Append('$').Append(baseParam + col + 1);
+
+                var baseParam = i * LogColumnCount;
+                sb.Append('(');
+                for (var col = 0; col < LogColumnCount; col++)
+                {
+                    if (col > 0)
+                        sb.Append(", ");
+                    sb.Append('$').Append(baseParam + col + 1);
+                }
+
+                sb.Append(')');
             }
 
-            sb.Append(')');
-        }
-
-        return sb.ToString();
+            return sb.ToString();
+        });
     }
 
     /// <summary>
@@ -889,108 +1011,36 @@ public sealed class DuckDbStore : IAsyncDisposable
     private static void AddSpanParameters(DuckDBCommand cmd, SpanStorageRow span)
     {
         // Identity (4 columns)
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.SpanId
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.TraceId
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.ParentSpanId ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.SessionId ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
 
         // Core fields (8 columns) - UBIGINT passed as decimal for DuckDB.NET
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.Name
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.Kind
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)span.StartTimeUnixNano
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)span.EndTimeUnixNano
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)span.DurationNs
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.StatusCode
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.StatusMessage ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.ServiceName ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.StartTimeUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.EndTimeUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.DurationNs });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
 
         // GenAI fields (10 columns)
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiProviderName ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiRequestModel ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiResponseModel ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiInputTokens ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiOutputTokens ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiTemperature ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiStopReason ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiToolName ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiToolCallId ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.GenAiCostUsd ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiProviderName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiRequestModel ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiResponseModel ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiInputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiOutputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiTemperature ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiStopReason ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
 
         // JSON storage (2 columns)
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.AttributesJson ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = span.ResourceJson ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
     }
 
     /// <summary>
@@ -999,54 +1049,21 @@ public sealed class DuckDbStore : IAsyncDisposable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AddLogParameters(DuckDBCommand cmd, LogStorageRow log)
     {
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.LogId
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.TraceId ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.SpanId ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.SessionId ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = (decimal)log.TimeUnixNano
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.LogId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)log.TimeUnixNano });
         cmd.Parameters.Add(new DuckDBParameter
         {
             Value = log.ObservedTimeUnixNano.HasValue ? (decimal)log.ObservedTimeUnixNano.Value : DBNull.Value
         });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.SeverityNumber
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.SeverityText ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.Body ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.ServiceName ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.AttributesJson ?? (object)DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.ResourceJson ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
     }
 
     // ==========================================================================
@@ -1097,7 +1114,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     /// <summary>
-    /// Releases the read gate for shared connections (in-memory mode).
+    ///     Releases the read gate for shared connections (in-memory mode).
     /// </summary>
     internal void ReleaseReadGate() => _readGate.Release();
 
@@ -1153,7 +1170,10 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         // Block path traversal sequences before canonicalization
         if (outputDirectory.Contains("..") || outputDirectory.Contains('\0'))
-            throw new ArgumentException("Output directory contains invalid traversal sequences", nameof(outputDirectory));
+        {
+            throw new ArgumentException("Output directory contains invalid traversal sequences",
+                nameof(outputDirectory));
+        }
 
         // Canonicalize and verify path
         var fullPath = Path.GetFullPath(outputDirectory);
@@ -1170,7 +1190,10 @@ public sealed class DuckDbStore : IAsyncDisposable
         foreach (var prefix in dangerousPrefixes)
         {
             if (fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                throw new ArgumentException($"Output directory cannot be under system path: {prefix}", nameof(outputDirectory));
+            {
+                throw new ArgumentException($"Output directory cannot be under system path: {prefix}",
+                    nameof(outputDirectory));
+            }
         }
     }
 
@@ -1326,4 +1349,16 @@ public sealed class DuckDbStore : IAsyncDisposable
             }
         }
     }
+}
+
+/// <summary>
+///     Result of clearing all telemetry data from the database.
+/// </summary>
+/// <param name="SpansDeleted">Number of spans deleted.</param>
+/// <param name="LogsDeleted">Number of logs deleted.</param>
+/// <param name="SessionsDeleted">Number of sessions deleted.</param>
+public sealed record ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int SessionsDeleted)
+{
+    /// <summary>Total number of records deleted across all tables.</summary>
+    public int TotalDeleted => SpansDeleted + LogsDeleted + SessionsDeleted;
 }

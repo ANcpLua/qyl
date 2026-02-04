@@ -19,7 +19,10 @@ internal sealed class CompilerFeatureRequiredAttribute : Attribute
     /// </summary>
     public const string RequiredMembers = nameof(RequiredMembers);
 
-    public CompilerFeatureRequiredAttribute(string featureName) => FeatureName = featureName;
+    public CompilerFeatureRequiredAttribute(string featureName)
+    {
+        FeatureName = featureName;
+    }
 
     /// <summary>
     ///     The name of the compiler feature.

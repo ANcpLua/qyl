@@ -1,17 +1,7 @@
 import {memo, useMemo, useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import {
-    Activity,
-    AlertCircle,
-    ArrowUpRight,
-    Clock,
-    DollarSign,
-    LayoutGrid,
-    List,
-    Server,
-    Zap,
-} from 'lucide-react';
+import {Activity, AlertCircle, ArrowUpRight, Clock, DollarSign, LayoutGrid, List, Server, Zap,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
@@ -86,7 +76,8 @@ function ResourceCard({session}: { session: Session }) {
             {/* Header */}
             <div className="flex items-start justify-between p-4 border-b-3 border-brutal-zinc">
                 <div className="flex items-center gap-3">
-                    <div className={cn('status-dot', hasErrors ? 'bg-signal-red glow-red' : 'bg-signal-green glow-green')}/>
+                    <div
+                        className={cn('status-dot', hasErrors ? 'bg-signal-red glow-red' : 'bg-signal-green glow-green')}/>
                     <div>
                         <div className="font-bold text-brutal-white tracking-wider">{getPrimaryService(session)}</div>
                         <div className="text-[10px] text-brutal-slate tracking-wider mt-1">
@@ -333,7 +324,8 @@ function GraphView({sessions}: { sessions: Session[] }) {
                                 'w-8 h-8 mx-auto mb-2',
                                 node.errors > 0 ? 'text-signal-red' : 'text-signal-cyan'
                             )}/>
-                            <div className="font-bold text-sm truncate text-brutal-white tracking-wider">{node.name}</div>
+                            <div
+                                className="font-bold text-sm truncate text-brutal-white tracking-wider">{node.name}</div>
                             <div className="text-xs text-brutal-slate mt-1 font-mono">
                                 {node.spans.toLocaleString()} SPANS
                             </div>
@@ -476,7 +468,9 @@ export function ResourcesPage() {
                         <div className="col-span-full bg-brutal-dark border-3 border-brutal-zinc p-12 text-center">
                             <Activity className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                             <div className="text-brutal-slate font-bold tracking-wider">NO ACTIVE SESSIONS</div>
-                            <div className="text-sm text-brutal-zinc mt-2">SESSIONS WILL APPEAR AS TELEMETRY DATA ARRIVES</div>
+                            <div className="text-sm text-brutal-zinc mt-2">SESSIONS WILL APPEAR AS TELEMETRY DATA
+                                ARRIVES
+                            </div>
                         </div>
                     )}
                 </div>

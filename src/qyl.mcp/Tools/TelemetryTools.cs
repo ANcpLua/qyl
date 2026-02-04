@@ -3,19 +3,36 @@ using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
 
+/// <summary>
+///     MCP tools for high-level agent run telemetry.
+///     These wrap the ITelemetryStore interface for observability queries.
+/// </summary>
 [McpServerToolType]
 internal sealed class TelemetryTools(ITelemetryStore store)
 {
     [McpServerTool(Name = "qyl.search_agent_runs")]
-    [Description("Search for agent run records by provider, model, error type, or time range.")]
+    [Description("""
+                 Search for AI agent run records.
+
+                 An agent run represents a complete AI workflow execution,
+                 potentially involving multiple LLM calls and tool invocations.
+
+                 Filter by:
+                 - Provider: 'anthropic', 'openai', 'google', 'azure'
+                 - Model: Full or partial model name
+                 - Error type: 'RateLimitError', 'TimeoutError', etc.
+                 - Time range: Since a specific timestamp
+
+                 Returns: List of agent runs with tokens, costs, and status
+                 """)]
     public async Task<ToolResult<AgentRun[]>> SearchAgentRunsAsync(
         [Description("Filter by AI provider (e.g., 'anthropic', 'openai', 'google')")]
         string? provider = null,
-        [Description("Filter by model name (e.g., 'claude-4-haiku', 'gpt-5o')")]
+        [Description("Filter by model name (partial match, e.g., 'claude-3')")]
         string? model = null,
         [Description("Filter by error type (e.g., 'RateLimitError', 'TimeoutError')")]
         string? errorType = null,
-        [Description("Only include runs since this timestamp")]
+        [Description("Only include runs since this ISO timestamp")]
         DateTime? since = null)
     {
         try
@@ -34,9 +51,21 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     }
 
     [McpServerTool(Name = "qyl.get_agent_run")]
-    [Description("Get details of a specific agent run by ID.")]
+    [Description("""
+                 Get detailed information about a specific agent run.
+
+                 Returns the complete run record including:
+                 - Provider and model used
+                 - Token counts (input/output)
+                 - Duration and timing
+                 - Success/failure status
+                 - Error details if failed
+
+                 The run_id can be obtained from search_agent_runs.
+                 """)]
     public async Task<ToolResult<AgentRun?>> GetAgentRunAsync(
-        [Description("The unique run ID")] string runId)
+        [Description("The unique run ID from search_agent_runs")]
+        string runId)
     {
         try
         {
@@ -54,11 +83,23 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     }
 
     [McpServerTool(Name = "qyl.get_token_usage")]
-    [Description("Get token usage statistics for agents within a time range.")]
+    [Description("""
+                 Get aggregated token usage statistics.
+
+                 Groups token consumption by:
+                 - 'agent': Per agent/service
+                 - 'model': Per AI model
+                 - 'hour': Hourly breakdown
+
+                 Returns input/output tokens, run counts, and time ranges.
+                 Use this for cost analysis and usage monitoring.
+                 """)]
     public async Task<ToolResult<TokenUsageSummary[]>> GetTokenUsageAsync(
-        [Description("Start of time range")] DateTime? since = null,
-        [Description("End of time range")] DateTime? until = null,
-        [Description("Group by: 'agent', 'model', or 'hour'")]
+        [Description("Start of time range (ISO timestamp)")]
+        DateTime? since = null,
+        [Description("End of time range (ISO timestamp)")]
+        DateTime? until = null,
+        [Description("Group by: 'agent', 'model', or 'hour' (default: agent)")]
         string groupBy = "agent")
     {
         try
@@ -77,11 +118,22 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     }
 
     [McpServerTool(Name = "qyl.list_errors")]
-    [Description("List recent errors from agent runs.")]
+    [Description("""
+                 List recent errors from agent runs.
+
+                 Shows failed runs with:
+                 - Error type and message
+                 - Agent/service that failed
+                 - When the error occurred
+                 - Stack trace (if available)
+
+                 Use this to quickly identify and diagnose failures.
+                 """)]
     public async Task<ToolResult<AgentError[]>> ListErrorsAsync(
-        [Description("Maximum number of errors to return")]
+        [Description("Maximum errors to return (default: 50)")]
         int limit = 50,
-        [Description("Filter by agent name")] string? agentName = null)
+        [Description("Filter by agent/service name")]
+        string? agentName = null)
     {
         try
         {
@@ -99,10 +151,20 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     }
 
     [McpServerTool(Name = "qyl.get_latency_stats")]
-    [Description("Get latency statistics for agent operations.")]
+    [Description("""
+                 Get latency percentiles for agent operations.
+
+                 Returns:
+                 - P50, P95, P99 latencies
+                 - Average, min, max latencies
+                 - Sample count
+
+                 Use this to monitor performance and identify slow operations.
+                 """)]
     public async Task<ToolResult<LatencyStats>> GetLatencyStatsAsync(
-        [Description("Filter by agent name")] string? agentName = null,
-        [Description("Time range in hours (default: 24)")]
+        [Description("Filter by agent/service name")]
+        string? agentName = null,
+        [Description("Time window in hours (default: 24)")]
         int hours = 24)
     {
         try

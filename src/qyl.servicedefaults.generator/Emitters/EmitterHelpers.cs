@@ -56,9 +56,40 @@ internal static class EmitterHelpers
     /// <summary>
     ///     Escapes a type name for use in generated code.
     ///     Primitive type aliases (string, int, etc.) cannot be prefixed with global::
+    ///     Handles arrays, nullable types, and generic types.
     /// </summary>
     public static string ToGlobalTypeName(string typeName)
     {
+        if (string.IsNullOrEmpty(typeName))
+            return typeName;
+
+        // Handle array types (e.g., "string[]", "int[][]")
+        if (typeName.EndsWith("[]", StringComparison.Ordinal))
+        {
+            var elementType = typeName[..^2];
+            return ToGlobalTypeName(elementType) + "[]";
+        }
+
+        // Handle nullable reference types (trailing ?)
+        if (typeName.EndsWith("?", StringComparison.Ordinal) &&
+            !IsPrimitiveKeyword(typeName[..^1]))
+        {
+            return ToGlobalTypeName(typeName[..^1]) + "?";
+        }
+
+        // Handle generic types: Task<Order> or Dictionary<string, Order>
+        var genericStart = typeName.IndexOf('<');
+        if (genericStart > 0 && typeName.EndsWith(">", StringComparison.Ordinal))
+        {
+            var baseTypeName = typeName[..genericStart];
+            var argsContent = typeName[(genericStart + 1)..^1];
+
+            var args = ParseGenericArguments(argsContent);
+            var qualifiedArgs = args.Select(ToGlobalTypeName);
+
+            return $"{ToGlobalTypeName(baseTypeName)}<{string.Join(", ", qualifiedArgs)}>";
+        }
+
         // Primitive type aliases don't need global:: prefix
         return typeName switch
         {
@@ -83,21 +114,63 @@ internal static class EmitterHelpers
     }
 
     /// <summary>
+    ///     Checks if a type name is a C# primitive keyword.
+    /// </summary>
+    private static bool IsPrimitiveKeyword(string typeName)
+    {
+        return typeName is "string" or "bool" or "byte" or "sbyte" or "short" or "ushort"
+            or "int" or "uint" or "long" or "ulong" or "float" or "double"
+            or "decimal" or "char" or "object" or "void";
+    }
+
+    /// <summary>
+    ///     Parses generic type arguments, handling nested generics correctly.
+    /// </summary>
+    private static List<string> ParseGenericArguments(string argsContent)
+    {
+        var args = new List<string>();
+        var depth = 0;
+        var start = 0;
+
+        for (var i = 0; i < argsContent.Length; i++)
+            switch (argsContent[i])
+            {
+                case '<':
+                    depth++;
+                    break;
+                case '>':
+                    depth--;
+                    break;
+                case ',' when depth is 0:
+                    args.Add(argsContent[start..i].Trim());
+                    start = i + 1;
+                    break;
+            }
+
+        if (start < argsContent.Length)
+            args.Add(argsContent[start..].Trim());
+
+        return args;
+    }
+
+    /// <summary>
     ///     Checks if a type name represents a primitive value type.
     /// </summary>
-    public static bool IsPrimitiveValueType(string typeName) =>
-        typeName.StartsWith("global::System.Int", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.UInt", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Double", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Single", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Decimal", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Boolean", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Byte", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.SByte", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Char", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.DateTime", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.TimeSpan", StringComparison.Ordinal) ||
-        typeName.StartsWith("global::System.Guid", StringComparison.Ordinal) ||
-        typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
-                    "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
+    public static bool IsPrimitiveValueType(string typeName)
+    {
+        return typeName.StartsWith("global::System.Int", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.UInt", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Double", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Single", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Decimal", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Boolean", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Byte", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.SByte", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Char", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.DateTime", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.TimeSpan", StringComparison.Ordinal) ||
+               typeName.StartsWith("global::System.Guid", StringComparison.Ordinal) ||
+               typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
+                   "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
+    }
 }

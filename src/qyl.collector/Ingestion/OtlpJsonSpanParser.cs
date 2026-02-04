@@ -45,17 +45,11 @@ public ref struct OtlpJsonSpanParser
 
     public OtlpJsonSpanParser(ReadOnlySpan<byte> json) =>
         _reader = new Utf8JsonReader(json,
-            new JsonReaderOptions
-            {
-                AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip
-            });
+            new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
 
     public OtlpJsonSpanParser(ReadOnlySequence<byte> json) =>
         _reader = new Utf8JsonReader(json,
-            new JsonReaderOptions
-            {
-                AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip
-            });
+            new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip });
 
     /// <summary>
     ///     Parse OTLP ExportTraceServiceRequest JSON into spans.
@@ -537,7 +531,9 @@ public ref struct OtlpJsonSpanParser
                 result = _reader.GetString();
             else if (propName.SequenceEqual("intValue"u8))
             {
-                if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64(); else if (_reader.TokenType == JsonTokenType.String && Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
+                if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64();
+                else if (_reader.TokenType == JsonTokenType.String &&
+                         Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
             }
             else if (propName.SequenceEqual("doubleValue"u8))
                 result = _reader.GetDouble();
@@ -595,7 +591,9 @@ public ref struct OtlpJsonSpanParser
                     result = _reader.GetString();
                 else if (propName.SequenceEqual("intValue"u8))
                 {
-                    if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64(); else if (_reader.TokenType == JsonTokenType.String && Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
+                    if (_reader.TokenType == JsonTokenType.Number) result = _reader.GetInt64();
+                    else if (_reader.TokenType == JsonTokenType.String &&
+                             Utf8Parser.TryParse(_reader.ValueSpan, out long v, out _)) result = v;
                 }
                 else if (propName.SequenceEqual("doubleValue"u8))
                     result = _reader.GetDouble();

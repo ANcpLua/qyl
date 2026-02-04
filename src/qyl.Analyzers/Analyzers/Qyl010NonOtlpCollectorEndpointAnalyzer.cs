@@ -15,17 +15,20 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl010NonOtlpCollectorEndpointAnalyzer : QylAnalyzer {
-    private static readonly string[] OtlpPatterns = [
-        "4317",      // gRPC default port
-        "4318",      // HTTP default port
+public sealed partial class Qyl010NonOtlpCollectorEndpointAnalyzer : QylAnalyzer
+{
+    private static readonly string[] OtlpPatterns =
+    [
+        "4317", // gRPC default port
+        "4318", // HTTP default port
         "/v1/traces",
         "/v1/metrics",
         "/v1/logs",
         "otlp"
     ];
 
-    private static readonly string[] EndpointPropertyNames = [
+    private static readonly string[] EndpointPropertyNames =
+    [
         "Endpoint", "CollectorEndpoint", "OtlpEndpoint", "ExporterEndpoint"
     ];
 
@@ -51,22 +54,26 @@ public sealed partial class Qyl010NonOtlpCollectorEndpointAnalyzer : QylAnalyzer
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterOperationAction(AnalyzeAssignment, OperationKind.SimpleAssignment);
 
-    private static void AnalyzeAssignment(OperationAnalysisContext context) {
+    private static void AnalyzeAssignment(OperationAnalysisContext context)
+    {
         var assignment = (ISimpleAssignmentOperation)context.Operation;
 
         // Check if this is an endpoint property assignment
         var propertyName = GetPropertyName(assignment.Target);
-        if (propertyName is null || !EndpointPropertyNames.Contains(propertyName, StringComparer.OrdinalIgnoreCase)) {
+        if (propertyName is null || !EndpointPropertyNames.Contains(propertyName, StringComparer.OrdinalIgnoreCase))
+        {
             return;
         }
 
         // Get the assigned value
-        if (assignment.Value.ConstantValue is not { HasValue: true, Value: string endpoint }) {
+        if (assignment.Value.ConstantValue is not { HasValue: true, Value: string endpoint })
+        {
             return;
         }
 
         // Check if the endpoint looks like OTLP
-        if (!IsOtlpEndpoint(endpoint)) {
+        if (!IsOtlpEndpoint(endpoint))
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 assignment.Syntax.GetLocation(),
@@ -75,15 +82,19 @@ public sealed partial class Qyl010NonOtlpCollectorEndpointAnalyzer : QylAnalyzer
     }
 
     private static string? GetPropertyName(IOperation target) =>
-        target switch {
+        target switch
+        {
             IPropertyReferenceOperation propRef => propRef.Property.Name,
             IMemberReferenceOperation memberRef => memberRef.Member.Name,
             _ => null
         };
 
-    private static bool IsOtlpEndpoint(string endpoint) {
-        foreach (var pattern in OtlpPatterns) {
-            if (endpoint.Contains(pattern, StringComparison.OrdinalIgnoreCase)) {
+    private static bool IsOtlpEndpoint(string endpoint)
+    {
+        foreach (var pattern in OtlpPatterns)
+        {
+            if (endpoint.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }

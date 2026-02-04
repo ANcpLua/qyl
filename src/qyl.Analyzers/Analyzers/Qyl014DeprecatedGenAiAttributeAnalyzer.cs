@@ -23,11 +23,13 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer {
+public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer
+{
     /// <summary>
     ///     Mapping of deprecated GenAI attribute names to their replacements.
     /// </summary>
-    private static readonly Dictionary<string, string> DeprecatedAttributes = new(StringComparer.Ordinal) {
+    private static readonly Dictionary<string, string> DeprecatedAttributes = new(StringComparer.Ordinal)
+    {
         // Old token counting attributes (pre-1.27.0 style)
         ["gen_ai.prompt.tokens"] = "gen_ai.usage.input_tokens",
         ["gen_ai.completion.tokens"] = "gen_ai.usage.output_tokens",
@@ -73,39 +75,52 @@ public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSyntaxNodeAction(AnalyzeStringLiteral, SyntaxKind.StringLiteralExpression);
 
-    private static void AnalyzeStringLiteral(SyntaxNodeAnalysisContext context) {
+    private static void AnalyzeStringLiteral(SyntaxNodeAnalysisContext context)
+    {
         var literal = (LiteralExpressionSyntax)context.Node;
         var value = literal.Token.ValueText;
 
-        if (string.IsNullOrEmpty(value)) {
+        if (string.IsNullOrEmpty(value))
+        {
             return;
         }
 
         // Check if this is a deprecated attribute name
-        if (!DeprecatedAttributes.TryGetValue(value, out var replacement)) {
+        if (!DeprecatedAttributes.TryGetValue(value, out var replacement))
+        {
             return;
         }
 
         // Only flag if in a telemetry context (avoid false positives)
-        if (!IsInTelemetryContext(literal)) {
+        if (!IsInTelemetryContext(literal))
+        {
             return;
         }
+
+        // Include replacement in properties for code fix
+        var properties = ImmutableDictionary.CreateBuilder<string, string?>();
+        properties.Add("Replacement", replacement);
 
         context.ReportDiagnostic(Diagnostic.Create(
             Rule,
             literal.GetLocation(),
+            properties.ToImmutable(),
             value,
             replacement));
     }
 
-    private static bool IsInTelemetryContext(SyntaxNode node) {
+    private static bool IsInTelemetryContext(SyntaxNode node)
+    {
         var current = node.Parent;
 
-        while (current is not null) {
-            switch (current) {
+        while (current is not null)
+        {
+            switch (current)
+            {
                 // Dictionary/collection indexers: tags["gen_ai.prompt.tokens"]
                 case ElementAccessExpressionSyntax elementAccess:
-                    if (IsLikelyTelemetryContainer(GetIdentifierName(elementAccess.Expression))) {
+                    if (IsLikelyTelemetryContainer(GetIdentifierName(elementAccess.Expression)))
+                    {
                         return true;
                     }
 
@@ -113,7 +128,8 @@ public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer
 
                 // Method invocations: SetTag("gen_ai.prompt.tokens", value)
                 case InvocationExpressionSyntax invocation:
-                    if (IsLikelyTelemetryMethod(GetMethodName(invocation))) {
+                    if (IsLikelyTelemetryMethod(GetMethodName(invocation)))
+                    {
                         return true;
                     }
 
@@ -134,8 +150,10 @@ public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer
         return false;
     }
 
-    private static bool IsLikelyTelemetryContainer(string? identifier) {
-        if (string.IsNullOrEmpty(identifier)) {
+    private static bool IsLikelyTelemetryContainer(string? identifier)
+    {
+        if (string.IsNullOrEmpty(identifier))
+        {
             return false;
         }
 
@@ -148,28 +166,44 @@ public sealed partial class Qyl014DeprecatedGenAiAttributeAnalyzer : QylAnalyzer
                upper.Contains("ACTIVITY", StringComparison.Ordinal);
     }
 
-    private static bool IsLikelyTelemetryMethod(string? methodName) {
-        if (string.IsNullOrEmpty(methodName)) {
+    private static bool IsLikelyTelemetryMethod(string? methodName)
+    {
+        if (string.IsNullOrEmpty(methodName))
+        {
             return false;
         }
 
+        // More precise matching to reduce false positives
+        // Match exact method names or those with Tag/Attribute suffixes
         var name = methodName!;
-        return name.Contains("Tag", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Attribute", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Set", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Add", StringComparison.OrdinalIgnoreCase) ||
-               name.Contains("Record", StringComparison.OrdinalIgnoreCase);
+        return name switch
+        {
+            // Exact matches for common telemetry methods
+            "SetTag" or "AddTag" or "SetAttribute" or "AddAttribute" => true,
+            "SetStatus" or "RecordException" => true,
+
+            // Pattern matches for telemetry-related methods
+            _ when name.EndsWith("Tag", StringComparison.Ordinal) => true,
+            _ when name.EndsWith("Attribute", StringComparison.Ordinal) => true,
+            _ when name.StartsWith("SetTag", StringComparison.Ordinal) => true,
+            _ when name.StartsWith("AddTag", StringComparison.Ordinal) => true,
+            _ when name.StartsWith("Record", StringComparison.Ordinal) => true,
+
+            _ => false
+        };
     }
 
     private static string? GetMethodName(InvocationExpressionSyntax invocation) =>
-        invocation.Expression switch {
+        invocation.Expression switch
+        {
             MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
             IdentifierNameSyntax identifier => identifier.Identifier.Text,
             _ => null
         };
 
     private static string? GetIdentifierName(ExpressionSyntax expression) =>
-        expression switch {
+        expression switch
+        {
             IdentifierNameSyntax identifier => identifier.Identifier.Text,
             MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
             _ => null

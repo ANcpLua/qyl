@@ -22,7 +22,8 @@ public static class QylTelemetry
     /// </summary>
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
-        Version = ServiceVersion, TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
+        Version = ServiceVersion,
+        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
     });
 
     // ==========================================================================
@@ -91,10 +92,7 @@ public static class QylTelemetry
         bool hasGenAi = false) =>
         activity.AddEvent(new ActivityEvent(
             "spans.ingested",
-            tags: new ActivityTagsCollection
-            {
-                ["span.count"] = spanCount, ["has_genai"] = hasGenAi
-            }));
+            tags: new ActivityTagsCollection { ["span.count"] = spanCount, ["has_genai"] = hasGenAi }));
 
     // ==========================================================================
     // Activity Names (following OTel GenAI semantic conventions)
@@ -259,12 +257,7 @@ public static class QylMetrics
     /// </summary>
     public static void RecordError(string errorType, string? provider = null)
     {
-        var tags = new TagList
-        {
-            {
-                "error.type", errorType
-            }
-        };
+        var tags = new TagList { { "error.type", errorType } };
         if (provider is not null) tags.Add("gen_ai.provider.name", provider);
 
         IngestionErrors.Add(1, tags);

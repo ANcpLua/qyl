@@ -9,16 +9,18 @@ namespace qyl.Analyzers.Analyzers;
 ///     <para>
 ///         GenAI spans require these attributes for proper observability:
 ///         <list type="bullet">
-///             <item>gen_ai.system - The GenAI system (e.g., "openai")</item>
+///             <item>gen_ai.provider.name - The GenAI provider (e.g., "openai")</item>
 ///             <item>gen_ai.request.model - The model name</item>
 ///             <item>gen_ai.operation.name - The operation type</item>
 ///         </list>
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAnalyzer {
-    private static readonly string[] RequiredGenAiAttributes = [
-        "gen_ai.system",
+public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAnalyzer
+{
+    private static readonly string[] RequiredGenAiAttributes =
+    [
+        "gen_ai.provider.name",
         "gen_ai.request.model",
         "gen_ai.operation.name"
     ];
@@ -45,17 +47,20 @@ public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAn
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterOperationAction(AnalyzeInvocation, OperationKind.Invocation);
 
-    private static void AnalyzeInvocation(OperationAnalysisContext context) {
+    private static void AnalyzeInvocation(OperationAnalysisContext context)
+    {
         var invocation = (IInvocationOperation)context.Operation;
 
         // Look for ActivitySource.StartActivity calls
-        if (invocation.TargetMethod.Name != "StartActivity") {
+        if (invocation.TargetMethod.Name != "StartActivity")
+        {
             return;
         }
 
         // Check if the activity name contains "gen_ai" or "genai" (case insensitive)
         var activityName = GetActivityName(invocation);
-        if (activityName is null || !IsGenAiActivity(activityName)) {
+        if (activityName is null || !IsGenAiActivity(activityName))
+        {
             return;
         }
 
@@ -63,7 +68,8 @@ public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAn
         var containingMethod = invocation.SemanticModel?.GetEnclosingSymbol(
             invocation.Syntax.SpanStart, context.CancellationToken) as IMethodSymbol;
 
-        if (containingMethod is null) {
+        if (containingMethod is null)
+        {
             return;
         }
 
@@ -71,8 +77,10 @@ public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAn
         var setTags = CollectSetTagCalls(invocation);
 
         // Check for missing required attributes
-        foreach (var requiredAttribute in RequiredGenAiAttributes) {
-            if (!setTags.Contains(requiredAttribute, StringComparer.OrdinalIgnoreCase)) {
+        foreach (var requiredAttribute in RequiredGenAiAttributes)
+        {
+            if (!setTags.Contains(requiredAttribute, StringComparer.OrdinalIgnoreCase))
+            {
                 context.ReportDiagnostic(Diagnostic.Create(
                     Rule,
                     invocation.Syntax.GetLocation(),
@@ -82,10 +90,12 @@ public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAn
         }
     }
 
-    private static string? GetActivityName(IInvocationOperation invocation) {
+    private static string? GetActivityName(IInvocationOperation invocation)
+    {
         // First argument is typically the activity name
         if (invocation.Arguments.Length > 0 &&
-            invocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string name }) {
+            invocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string name })
+        {
             return name;
         }
 
@@ -99,21 +109,25 @@ public sealed partial class Qyl004GenAiMissingRequiredAttributesAnalyzer : QylAn
         activityName.Contains("completion", StringComparison.OrdinalIgnoreCase) ||
         activityName.Contains("embedding", StringComparison.OrdinalIgnoreCase);
 
-    private static HashSet<string> CollectSetTagCalls(IInvocationOperation startActivity) {
+    private static HashSet<string> CollectSetTagCalls(IInvocationOperation startActivity)
+    {
         var tags = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         // Walk sibling operations looking for SetTag calls
         var parent = startActivity.Parent;
-        if (parent is null) {
+        if (parent is null)
+        {
             return tags;
         }
 
         // Simple heuristic: look for SetTag calls in the same block
-        foreach (var child in parent.ChildOperations) {
+        foreach (var child in parent.ChildOperations)
+        {
             if (child is IInvocationOperation childInvocation &&
                 childInvocation.TargetMethod.Name == "SetTag" &&
                 childInvocation.Arguments.Length >= 1 &&
-                childInvocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string tagName }) {
+                childInvocation.Arguments[0].Value.ConstantValue is { HasValue: true, Value: string tagName })
+            {
                 tags.Add(tagName);
             }
         }

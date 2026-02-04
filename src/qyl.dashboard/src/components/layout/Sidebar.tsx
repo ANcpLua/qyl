@@ -1,7 +1,6 @@
 import {NavLink, useLocation} from 'react-router-dom';
 import {
     Activity,
-    BarChart3,
     ChevronLeft,
     ChevronRight,
     FileText,
@@ -23,11 +22,10 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    {to: '/', icon: Activity, label: 'RESOURCES', shortcut: 'G'},
+    {to: '/', icon: Activity, label: 'RESOURCES', shortcut: 'R'},
     {to: '/traces', icon: Network, label: 'TRACES', shortcut: 'T'},
-    {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'L'},
-    {to: '/metrics', icon: BarChart3, label: 'METRICS', shortcut: 'M'},
-    {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'A'},
+    {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
+    {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
 ];
 
 interface SidebarProps {
@@ -49,7 +47,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {/* BRUTALIST Logo */}
             <div className="flex items-center h-14 px-4 border-b-3 border-brutal-zinc bg-brutal-dark">
                 <NavLink to="/" className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
+                    <div
+                        className="w-8 h-8 bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
                         <Terminal className="w-5 h-5 text-brutal-black"/>
                     </div>
                     {!collapsed && (
@@ -106,7 +105,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         return (
                             <Tooltip key={item.to} delayDuration={0}>
                                 <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-                                <TooltipContent side="right" className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
+                                <TooltipContent side="right"
+                                                className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
                                     <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
                                 </TooltipContent>
@@ -150,7 +150,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         return (
                             <Tooltip delayDuration={0}>
                                 <TooltipTrigger asChild>{settingsContent}</TooltipTrigger>
-                                <TooltipContent side="right" className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
+                                <TooltipContent side="right"
+                                                className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     SETTINGS
                                     <kbd className="kbd text-[10px]">,</kbd>
                                 </TooltipContent>

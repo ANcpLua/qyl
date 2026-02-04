@@ -8,24 +8,10 @@ namespace qyl.mcp.Tools;
 ///     HTTP-based telemetry store querying qyl.collector REST API.
 ///     Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
 /// </summary>
-public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger) : ITelemetryStore
+public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger)
+    : ITelemetryStore
 {
     public ValueTask RecordRunAsync(AgentRun run) => ValueTask.CompletedTask; // Read-only observation
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get run {RunId} from collector")]
-    private partial void LogFailedGetRun(Exception ex, string runId);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to search runs from collector")]
-    private partial void LogFailedSearchRuns(Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get token usage from collector")]
-    private partial void LogFailedGetTokenUsage(Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to list errors from collector")]
-    private partial void LogFailedListErrors(Exception ex);
-
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get latency stats from collector")]
-    private partial void LogFailedGetLatencyStats(Exception ex);
 
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
     {
@@ -59,8 +45,10 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             return response?.Items?
                 .Select(s => MapToRun(s, time))
                 .Where(r =>
-                    (string.IsNullOrEmpty(model) || r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) is true) &&
-                    (string.IsNullOrEmpty(errorType) || r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) is true) &&
+                    (string.IsNullOrEmpty(model) ||
+                     r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) is true) &&
+                    (string.IsNullOrEmpty(errorType) ||
+                     r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) is true) &&
                     (!since.HasValue || r.StartedAt >= since.Value))
                 .ToArray() ?? [];
         }
@@ -172,6 +160,21 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             return new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0);
         }
     }
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get run {RunId} from collector")]
+    private partial void LogFailedGetRun(Exception ex, string runId);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to search runs from collector")]
+    private partial void LogFailedSearchRuns(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get token usage from collector")]
+    private partial void LogFailedGetTokenUsage(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to list errors from collector")]
+    private partial void LogFailedListErrors(Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to get latency stats from collector")]
+    private partial void LogFailedGetLatencyStats(Exception ex);
 
     private static AgentRun MapToRun(StoreSession s, TimeProvider time)
     {

@@ -5403,8 +5403,32 @@ public static class FaasTriggerUtf8Values
 /// </summary>
 public static class FeatureFlagEvaluationReasonUtf8Values
 {
+    /// <summary>cached</summary>
+    public static ReadOnlySpan<byte> Cached => "cached"u8;
+
+    /// <summary>default</summary>
+    public static ReadOnlySpan<byte> Default => "default"u8;
+
+    /// <summary>disabled</summary>
+    public static ReadOnlySpan<byte> Disabled => "disabled"u8;
+
     /// <summary>error</summary>
     public static ReadOnlySpan<byte> Error => "error"u8;
+
+    /// <summary>split</summary>
+    public static ReadOnlySpan<byte> Split => "split"u8;
+
+    /// <summary>stale</summary>
+    public static ReadOnlySpan<byte> Stale => "stale"u8;
+
+    /// <summary>static</summary>
+    public static ReadOnlySpan<byte> Static => "static"u8;
+
+    /// <summary>targeting_match</summary>
+    public static ReadOnlySpan<byte> TargetingMatch => "targeting_match"u8;
+
+    /// <summary>unknown</summary>
+    public static ReadOnlySpan<byte> Unknown => "unknown"u8;
 
 }
 
@@ -5413,8 +5437,108 @@ public static class FeatureFlagEvaluationReasonUtf8Values
 /// </summary>
 public static class FeatureFlagResultReasonUtf8Values
 {
+    /// <summary>cached</summary>
+    public static ReadOnlySpan<byte> Cached => "cached"u8;
+
+    /// <summary>default</summary>
+    public static ReadOnlySpan<byte> Default => "default"u8;
+
+    /// <summary>disabled</summary>
+    public static ReadOnlySpan<byte> Disabled => "disabled"u8;
+
     /// <summary>error</summary>
     public static ReadOnlySpan<byte> Error => "error"u8;
+
+    /// <summary>split</summary>
+    public static ReadOnlySpan<byte> Split => "split"u8;
+
+    /// <summary>stale</summary>
+    public static ReadOnlySpan<byte> Stale => "stale"u8;
+
+    /// <summary>static</summary>
+    public static ReadOnlySpan<byte> Static => "static"u8;
+
+    /// <summary>targeting_match</summary>
+    public static ReadOnlySpan<byte> TargetingMatch => "targeting_match"u8;
+
+    /// <summary>unknown</summary>
+    public static ReadOnlySpan<byte> Unknown => "unknown"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for gen.ai.openai.request.response.format
+/// </summary>
+public static class GenAiOpenaiRequestResponseFormatUtf8Values
+{
+    /// <summary>json_object</summary>
+    public static ReadOnlySpan<byte> JsonObject => "json_object"u8;
+
+    /// <summary>json_schema</summary>
+    public static ReadOnlySpan<byte> JsonSchema => "json_schema"u8;
+
+    /// <summary>text</summary>
+    public static ReadOnlySpan<byte> Text => "text"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for gen.ai.openai.request.service.tier
+/// </summary>
+public static class GenAiOpenaiRequestServiceTierUtf8Values
+{
+    /// <summary>auto</summary>
+    public static ReadOnlySpan<byte> Auto => "auto"u8;
+
+    /// <summary>default</summary>
+    public static ReadOnlySpan<byte> Default => "default"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for gen.ai.operation.name
+/// </summary>
+public static class GenAiOperationNameUtf8Values
+{
+    /// <summary>chat</summary>
+    public static ReadOnlySpan<byte> Chat => "chat"u8;
+
+    /// <summary>create_agent</summary>
+    public static ReadOnlySpan<byte> CreateAgent => "create_agent"u8;
+
+    /// <summary>embeddings</summary>
+    public static ReadOnlySpan<byte> Embeddings => "embeddings"u8;
+
+    /// <summary>execute_tool</summary>
+    public static ReadOnlySpan<byte> ExecuteTool => "execute_tool"u8;
+
+    /// <summary>generate_content</summary>
+    public static ReadOnlySpan<byte> GenerateContent => "generate_content"u8;
+
+    /// <summary>invoke_agent</summary>
+    public static ReadOnlySpan<byte> InvokeAgent => "invoke_agent"u8;
+
+    /// <summary>text_completion</summary>
+    public static ReadOnlySpan<byte> TextCompletion => "text_completion"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for gen.ai.output.type
+/// </summary>
+public static class GenAiOutputTypeUtf8Values
+{
+    /// <summary>image</summary>
+    public static ReadOnlySpan<byte> Image => "image"u8;
+
+    /// <summary>json</summary>
+    public static ReadOnlySpan<byte> Json => "json"u8;
+
+    /// <summary>speech</summary>
+    public static ReadOnlySpan<byte> Speech => "speech"u8;
+
+    /// <summary>text</summary>
+    public static ReadOnlySpan<byte> Text => "text"u8;
 
 }
 
@@ -5423,14 +5547,50 @@ public static class FeatureFlagResultReasonUtf8Values
 /// </summary>
 public static class GenAiProviderNameUtf8Values
 {
+    /// <summary>anthropic</summary>
+    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
+
+    /// <summary>aws.bedrock</summary>
+    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
+
     /// <summary>azure.ai.inference</summary>
     public static ReadOnlySpan<byte> AzureAiInference => "azure.ai.inference"u8;
 
     /// <summary>azure.ai.openai</summary>
     public static ReadOnlySpan<byte> AzureAiOpenai => "azure.ai.openai"u8;
 
+    /// <summary>cohere</summary>
+    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
+
+    /// <summary>deepseek</summary>
+    public static ReadOnlySpan<byte> Deepseek => "deepseek"u8;
+
+    /// <summary>gcp.gemini</summary>
+    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
+
+    /// <summary>gcp.gen_ai</summary>
+    public static ReadOnlySpan<byte> GcpGenAi => "gcp.gen_ai"u8;
+
+    /// <summary>gcp.vertex_ai</summary>
+    public static ReadOnlySpan<byte> GcpVertexAi => "gcp.vertex_ai"u8;
+
+    /// <summary>groq</summary>
+    public static ReadOnlySpan<byte> Groq => "groq"u8;
+
+    /// <summary>ibm.watsonx.ai</summary>
+    public static ReadOnlySpan<byte> IbmWatsonxAi => "ibm.watsonx.ai"u8;
+
+    /// <summary>mistral_ai</summary>
+    public static ReadOnlySpan<byte> MistralAi => "mistral_ai"u8;
+
     /// <summary>openai</summary>
     public static ReadOnlySpan<byte> Openai => "openai"u8;
+
+    /// <summary>perplexity</summary>
+    public static ReadOnlySpan<byte> Perplexity => "perplexity"u8;
+
+    /// <summary>x_ai</summary>
+    public static ReadOnlySpan<byte> XAi => "x_ai"u8;
 
 }
 
@@ -5439,14 +5599,78 @@ public static class GenAiProviderNameUtf8Values
 /// </summary>
 public static class GenAiSystemUtf8Values
 {
+    /// <summary>anthropic</summary>
+    public static ReadOnlySpan<byte> Anthropic => "anthropic"u8;
+
+    /// <summary>aws.bedrock</summary>
+    public static ReadOnlySpan<byte> AwsBedrock => "aws.bedrock"u8;
+
+    /// <summary>az.ai.inference</summary>
+    public static ReadOnlySpan<byte> AzAiInference => "az.ai.inference"u8;
+
+    /// <summary>az.ai.openai</summary>
+    public static ReadOnlySpan<byte> AzAiOpenai => "az.ai.openai"u8;
+
     /// <summary>azure.ai.inference</summary>
     public static ReadOnlySpan<byte> AzureAiInference => "azure.ai.inference"u8;
 
     /// <summary>azure.ai.openai</summary>
     public static ReadOnlySpan<byte> AzureAiOpenai => "azure.ai.openai"u8;
 
+    /// <summary>cohere</summary>
+    public static ReadOnlySpan<byte> Cohere => "cohere"u8;
+
+    /// <summary>deepseek</summary>
+    public static ReadOnlySpan<byte> Deepseek => "deepseek"u8;
+
+    /// <summary>gcp.gemini</summary>
+    public static ReadOnlySpan<byte> GcpGemini => "gcp.gemini"u8;
+
+    /// <summary>gcp.gen_ai</summary>
+    public static ReadOnlySpan<byte> GcpGenAi => "gcp.gen_ai"u8;
+
+    /// <summary>gcp.vertex_ai</summary>
+    public static ReadOnlySpan<byte> GcpVertexAi => "gcp.vertex_ai"u8;
+
+    /// <summary>gemini</summary>
+    public static ReadOnlySpan<byte> Gemini => "gemini"u8;
+
+    /// <summary>groq</summary>
+    public static ReadOnlySpan<byte> Groq => "groq"u8;
+
+    /// <summary>ibm.watsonx.ai</summary>
+    public static ReadOnlySpan<byte> IbmWatsonxAi => "ibm.watsonx.ai"u8;
+
+    /// <summary>mistral_ai</summary>
+    public static ReadOnlySpan<byte> MistralAi => "mistral_ai"u8;
+
     /// <summary>openai</summary>
     public static ReadOnlySpan<byte> Openai => "openai"u8;
+
+    /// <summary>perplexity</summary>
+    public static ReadOnlySpan<byte> Perplexity => "perplexity"u8;
+
+    /// <summary>vertex_ai</summary>
+    public static ReadOnlySpan<byte> VertexAi => "vertex_ai"u8;
+
+    /// <summary>xai</summary>
+    public static ReadOnlySpan<byte> Xai => "xai"u8;
+
+}
+
+/// <summary>
+/// UTF-8 enum values for gen.ai.token.type
+/// </summary>
+public static class GenAiTokenTypeUtf8Values
+{
+    /// <summary>input</summary>
+    public static ReadOnlySpan<byte> Input => "input"u8;
+
+    /// <summary>output</summary>
+    public static ReadOnlySpan<byte> Completion => "output"u8;
+
+    /// <summary>output</summary>
+    public static ReadOnlySpan<byte> Output => "output"u8;
 
 }
 

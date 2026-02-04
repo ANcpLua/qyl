@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis.CSharp;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Emitters;
 
@@ -20,7 +20,7 @@ internal static class DbInterceptorEmitter
 
         var sb = new StringBuilder();
 
-        EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
+        EmitterHelpers.AppendFileHeader(sb, true);
         AppendUsings(sb);
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
         AppendClassOpen(sb);
@@ -223,5 +223,4 @@ internal static class DbInterceptorEmitter
 
                         """);
     }
-
 }

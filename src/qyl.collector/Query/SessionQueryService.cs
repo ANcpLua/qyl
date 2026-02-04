@@ -78,10 +78,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                           GROUP BY COALESCE(session_id, trace_id)
                           """;
 
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = sessionId
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
         var results = await ExecuteSessionQueryAsync(cmd, ct);
         return results.Count > 0 ? results[0] : null;
@@ -106,14 +103,8 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = sessionId
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = limit
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var spans = new List<SpanStorageRow>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -205,14 +196,9 @@ public sealed class SessionQueryService(DuckDbStore store)
             var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
             afterUnixNano = (ulong)ticks * 100UL;
         }
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = afterUnixNano
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = limit
-        });
+
+        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var models = new List<ModelUsage>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -264,7 +250,9 @@ public sealed class SessionQueryService(DuckDbStore store)
         {
             return new ErrorSummary
             {
-                TotalSpans = reader.Col(0).GetInt64(0), ErrorCount = reader.Col(1).GetInt64(0), ErrorRate = reader.Col(2).GetDouble(0)
+                TotalSpans = reader.Col(0).GetInt64(0),
+                ErrorCount = reader.Col(1).GetInt64(0),
+                ErrorRate = reader.Col(2).GetDouble(0)
             };
         }
 
@@ -288,10 +276,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = traceId
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
         var spans = new List<SpanStorageRow>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -329,10 +314,7 @@ public sealed class SessionQueryService(DuckDbStore store)
 
         if (sessionId is not null)
         {
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = sessionId
-            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
         }
 
         var spans = new List<SpanStorageRow>();
@@ -350,10 +332,7 @@ public sealed class SessionQueryService(DuckDbStore store)
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
     {
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = sessionId ?? (object)DBNull.Value
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
         // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
         object afterUnixNano = DBNull.Value;
         if (after.HasValue)
@@ -361,23 +340,15 @@ public sealed class SessionQueryService(DuckDbStore store)
             var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
             afterUnixNano = (ulong)ticks * 100UL;
         }
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = afterUnixNano
-        });
+
+        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
     }
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after, int limit, int offset)
     {
         AddParams(cmd, sessionId, after);
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = limit
-        });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = offset
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+        cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
 
     private static async Task<List<SessionQueryRow>> ExecuteSessionQueryAsync(DuckDBCommand cmd, CancellationToken ct)

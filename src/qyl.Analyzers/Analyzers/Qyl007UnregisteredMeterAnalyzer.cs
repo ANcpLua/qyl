@@ -12,7 +12,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl007UnregisteredMeterAnalyzer : QylAnalyzer {
+public sealed partial class Qyl007UnregisteredMeterAnalyzer : QylAnalyzer
+{
     private const string MeterTypeName = "System.Diagnostics.Metrics.Meter";
 
     private static readonly LocalizableResourceString Title = new(
@@ -37,17 +38,20 @@ public sealed partial class Qyl007UnregisteredMeterAnalyzer : QylAnalyzer {
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterOperationAction(AnalyzeObjectCreation, OperationKind.ObjectCreation);
 
-    private static void AnalyzeObjectCreation(OperationAnalysisContext context) {
+    private static void AnalyzeObjectCreation(OperationAnalysisContext context)
+    {
         var objectCreation = (IObjectCreationOperation)context.Operation;
 
         // Check if this is Meter creation
-        if (objectCreation.Type?.ToDisplayString() != MeterTypeName) {
+        if (objectCreation.Type?.ToDisplayString() != MeterTypeName)
+        {
             return;
         }
 
         // Get the meter name from constructor argument
         if (objectCreation.Arguments.Length == 0 ||
-            objectCreation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string meterName }) {
+            objectCreation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string meterName })
+        {
             return;
         }
 

@@ -71,7 +71,7 @@ app.MapPost("/workflow/{name}", async (string name, WorkflowRequest request, Wor
 
     await foreach (var update in engine.ExecuteAsync(name, request.Parameters, request.Context, ct))
     {
-        await http.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(update)}\n\n", ct);
+        await http.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(update, qyl.copilot.CopilotJsonContext.Default.StreamUpdate)}\n\n", ct);
         await http.Response.Body.FlushAsync(ct);
     }
 });

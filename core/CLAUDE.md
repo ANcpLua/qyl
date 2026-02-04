@@ -40,44 +40,44 @@ nuke Generate --force-generate
 
 ## TypeSpec Packages
 
-| Package | Purpose |
-|---------|---------|
-| `@typespec/compiler` | Core compiler |
-| `@typespec/http` | HTTP decorators |
-| `@typespec/rest` | REST patterns |
-| `@typespec/openapi` | OpenAPI decorators |
-| `@typespec/openapi3` | OpenAPI 3.x emitter |
-| `@typespec/versioning` | API versioning |
-| `@typespec/sse` | Server-Sent Events |
+| Package                | Purpose             |
+|------------------------|---------------------|
+| `@typespec/compiler`   | Core compiler       |
+| `@typespec/http`       | HTTP decorators     |
+| `@typespec/rest`       | REST patterns       |
+| `@typespec/openapi`    | OpenAPI decorators  |
+| `@typespec/openapi3`   | OpenAPI 3.x emitter |
+| `@typespec/versioning` | API versioning      |
+| `@typespec/sse`        | Server-Sent Events  |
 
 ## Custom Extensions
 
 These `x-*` extensions are read by `SchemaGenerator.cs`:
 
-| Extension | Purpose |
-|-----------|---------|
-| `x-duckdb-table` | Mark model for DuckDB table generation |
-| `x-duckdb-column` | Override column name |
-| `x-duckdb-type` | Override DuckDB type (JSON, BLOB) |
-| `x-duckdb-primary-key` | Mark primary key column |
-| `x-duckdb-index` | Create index on column |
-| `x-primitive` | Mark scalar as strongly-typed wrapper |
-| `x-promoted` | Promote from attributes_json to column |
-| `x-csharp-type` | Override C# type name |
+| Extension              | Purpose                                |
+|------------------------|----------------------------------------|
+| `x-duckdb-table`       | Mark model for DuckDB table generation |
+| `x-duckdb-column`      | Override column name                   |
+| `x-duckdb-type`        | Override DuckDB type (JSON, BLOB)      |
+| `x-duckdb-primary-key` | Mark primary key column                |
+| `x-duckdb-index`       | Create index on column                 |
+| `x-primitive`          | Mark scalar as strongly-typed wrapper  |
+| `x-promoted`           | Promote from attributes_json to column |
+| `x-csharp-type`        | Override C# type name                  |
 
 ## Storage Tables
 
 Tables marked with `@extension("x-duckdb-table", ...)`:
 
-| Model | Table | Location |
-|-------|-------|----------|
-| `Span` | spans | otel/span.tsp |
-| `LogRecord` | logs | otel/logs.tsp |
-| `SessionEntity` | session_entities | domains/observe/session.tsp |
-| `ErrorEntity` | errors | domains/observe/error.tsp |
-| `TestRunEntity` | test_runs | domains/observe/test.tsp |
-| `TestCaseEntity` | test_cases | domains/observe/test.tsp |
-| `DeploymentEntity` | deployments | domains/ops/deployment.tsp |
+| Model              | Table            | Location                    |
+|--------------------|------------------|-----------------------------|
+| `Span`             | spans            | otel/span.tsp               |
+| `LogRecord`        | logs             | otel/logs.tsp               |
+| `SessionEntity`    | session_entities | domains/observe/session.tsp |
+| `ErrorEntity`      | errors           | domains/observe/error.tsp   |
+| `TestRunEntity`    | test_runs        | domains/observe/test.tsp    |
+| `TestCaseEntity`   | test_cases       | domains/observe/test.tsp    |
+| `DeploymentEntity` | deployments      | domains/ops/deployment.tsp  |
 
 ## Code Generation Flow
 

@@ -15,7 +15,7 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { fileURLToPath } from "url";
+import {fileURLToPath} from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,7 +174,7 @@ function parseDeclarationFile(filePath: string): {
         });
     }
 
-    return { attrs, enums };
+    return {attrs, enums};
 }
 
 function parse(): ParsedData {
@@ -197,7 +197,7 @@ function parse(): ParsedData {
             if (stat.isDirectory()) {
                 walkDir(fullPath);
             } else if (file.endsWith(".d.ts")) {
-                const { attrs, enums } = parseDeclarationFile(fullPath);
+                const {attrs, enums} = parseDeclarationFile(fullPath);
                 allAttrs.push(...attrs);
                 allEnums.push(...enums);
             }
@@ -816,7 +816,7 @@ function generatePackage(data: ParsedData): void {
 
     // Ensure package directory exists
     if (!fs.existsSync(packageDir)) {
-        fs.mkdirSync(packageDir, { recursive: true });
+        fs.mkdirSync(packageDir, {recursive: true});
     }
 
     // Group attributes by top-level prefix
@@ -1036,13 +1036,13 @@ async function main() {
     // Ensure output directory exists
     const outputDir = path.join(__dirname, "output");
     if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
+        fs.mkdirSync(outputDir, {recursive: true});
     }
 
     if (generateAll || tsOnly) {
         const ts = generateTypeScript(data);
         const tsPath = path.join(__dirname, CONFIG.outputs.typescript);
-        fs.mkdirSync(path.dirname(tsPath), { recursive: true });
+        fs.mkdirSync(path.dirname(tsPath), {recursive: true});
         fs.writeFileSync(tsPath, ts);
         console.log(`✓ Generated ${CONFIG.outputs.typescript}`);
     }
@@ -1058,7 +1058,7 @@ async function main() {
         const csPath = outputOverride
             ? path.join(__dirname, outputOverride)
             : path.join(__dirname, CONFIG.outputs.csharp);
-        fs.mkdirSync(path.dirname(csPath), { recursive: true });
+        fs.mkdirSync(path.dirname(csPath), {recursive: true});
         fs.writeFileSync(csPath, cs);
         console.log(`✓ Generated ${outputOverride || CONFIG.outputs.csharp}`);
 
@@ -1077,7 +1077,7 @@ async function main() {
         const utf8Path = outputOverride
             ? path.join(__dirname, outputOverride)
             : path.join(__dirname, CONFIG.outputs.csharpUtf8);
-        fs.mkdirSync(path.dirname(utf8Path), { recursive: true });
+        fs.mkdirSync(path.dirname(utf8Path), {recursive: true});
         fs.writeFileSync(utf8Path, utf8);
         console.log(`✓ Generated ${utf8Path.replace(__dirname + "/", "")}`);
 
@@ -1096,7 +1096,7 @@ async function main() {
         const tspPath = outputOverride
             ? path.join(__dirname, outputOverride)
             : path.join(__dirname, CONFIG.outputs.typespec);
-        fs.mkdirSync(path.dirname(tspPath), { recursive: true });
+        fs.mkdirSync(path.dirname(tspPath), {recursive: true});
         fs.writeFileSync(tspPath, tsp);
         console.log(`✓ Generated ${tspPath.replace(__dirname + "/", "")}`);
 
@@ -1107,7 +1107,7 @@ async function main() {
     if (generateAll || sqlOnly) {
         const sql = generateDuckDb(data);
         const sqlPath = path.join(__dirname, CONFIG.outputs.duckdb);
-        fs.mkdirSync(path.dirname(sqlPath), { recursive: true });
+        fs.mkdirSync(path.dirname(sqlPath), {recursive: true});
         fs.writeFileSync(sqlPath, sql);
         console.log(`✓ Generated ${CONFIG.outputs.duckdb}`);
     }

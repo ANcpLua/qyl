@@ -102,10 +102,16 @@ public sealed class SchemaNormalizerTests
     }
 
     [Fact]
-    public void IsDeprecated_GenAiProviderName_ReturnsTrue() => Assert.True(SchemaNormalizer.IsDeprecated("gen_ai.system"));
+    public void IsDeprecated_GenAiProviderName_ReturnsTrue()
+    {
+        Assert.True(SchemaNormalizer.IsDeprecated("gen_ai.system"));
+    }
 
     [Fact]
-    public void IsDeprecated_GenAiProviderName_ReturnsFalse() => Assert.False(SchemaNormalizer.IsDeprecated("gen_ai.provider.name"));
+    public void IsDeprecated_GenAiProviderName_ReturnsFalse()
+    {
+        Assert.False(SchemaNormalizer.IsDeprecated("gen_ai.provider.name"));
+    }
 
     #endregion
 
@@ -130,12 +136,18 @@ public sealed class SchemaNormalizerTests
     [Theory]
     [InlineData("gen_ai.usage.prompt_tokens")]
     [InlineData("gen_ai.usage.completion_tokens")]
-    public void IsDeprecated_TokenUsageAttributes_ReturnsTrue(string deprecated) => Assert.True(SchemaNormalizer.IsDeprecated(deprecated));
+    public void IsDeprecated_TokenUsageAttributes_ReturnsTrue(string deprecated)
+    {
+        Assert.True(SchemaNormalizer.IsDeprecated(deprecated));
+    }
 
     [Theory]
     [InlineData("gen_ai.usage.input_tokens")]
     [InlineData("gen_ai.usage.output_tokens")]
-    public void IsDeprecated_CurrentTokenAttributes_ReturnsFalse(string current) => Assert.False(SchemaNormalizer.IsDeprecated(current));
+    public void IsDeprecated_CurrentTokenAttributes_ReturnsFalse(string current)
+    {
+        Assert.False(SchemaNormalizer.IsDeprecated(current));
+    }
 
     #endregion
 

@@ -112,9 +112,8 @@ export type GetTraceSpansResponse =
 export type StreamTracesQuery = operations['StreamingApi_streamTraces']['parameters']['query'];
 export type StreamTraceSpansPath = operations['StreamingApi_streamTraceSpans']['parameters']['path'];
 
-// Health
-export type HealthCheckResponse =
-    operations['HealthApi_check']['responses']['200']['content']['application/json'];
+// Health - uses schema directly since health check is not in operations
+export type HealthCheckResponse = HealthResponse;
 
 // =============================================================================
 // Utility Functions for Working with Span
@@ -193,10 +192,14 @@ export function isErrorSpan(span: Span): boolean {
 /** Get status label from numeric code */
 export function getStatusLabel(code: SpanStatusCode): string {
     switch (code) {
-        case 0: return 'unset';
-        case 1: return 'ok';
-        case 2: return 'error';
-        default: return 'unknown';
+        case 0:
+            return 'unset';
+        case 1:
+            return 'ok';
+        case 2:
+            return 'error';
+        default:
+            return 'unknown';
     }
 }
 

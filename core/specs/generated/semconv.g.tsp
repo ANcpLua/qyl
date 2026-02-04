@@ -2335,40 +2335,196 @@ union FaasTriggerValue {
 
 /** Known values for feature.flag.evaluation.reason */
 union FeatureFlagEvaluationReasonValue {
+  /** "cached" */
+  cached: "cached",
+  /** "default" */
+  default: "default",
+  /** "disabled" */
+  disabled: "disabled",
   /** "error" */
   error: "error",
+  /** "split" */
+  split: "split",
+  /** "stale" */
+  stale: "stale",
+  /** "static" */
+  static: "static",
+  /** "targeting_match" */
+  targetingMatch: "targeting_match",
+  /** "unknown" */
+  unknown: "unknown",
   /** Allow unknown/custom values */
   string,
 }
 
 /** Known values for feature.flag.result.reason */
 union FeatureFlagResultReasonValue {
+  /** "cached" */
+  cached: "cached",
+  /** "default" */
+  default: "default",
+  /** "disabled" */
+  disabled: "disabled",
   /** "error" */
   error: "error",
+  /** "split" */
+  split: "split",
+  /** "stale" */
+  stale: "stale",
+  /** "static" */
+  static: "static",
+  /** "targeting_match" */
+  targetingMatch: "targeting_match",
+  /** "unknown" */
+  unknown: "unknown",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for gen.ai.openai.request.response.format */
+union GenAiOpenaiRequestResponseFormatValue {
+  /** "json_object" */
+  jsonObject: "json_object",
+  /** "json_schema" */
+  jsonSchema: "json_schema",
+  /** "text" */
+  text: "text",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for gen.ai.openai.request.service.tier */
+union GenAiOpenaiRequestServiceTierValue {
+  /** "auto" */
+  auto: "auto",
+  /** "default" */
+  default: "default",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for gen.ai.operation.name */
+union GenAiOperationNameValue {
+  /** "chat" */
+  chat: "chat",
+  /** "create_agent" */
+  createAgent: "create_agent",
+  /** "embeddings" */
+  embeddings: "embeddings",
+  /** "execute_tool" */
+  executeTool: "execute_tool",
+  /** "generate_content" */
+  generateContent: "generate_content",
+  /** "invoke_agent" */
+  invokeAgent: "invoke_agent",
+  /** "text_completion" */
+  textCompletion: "text_completion",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for gen.ai.output.type */
+union GenAiOutputTypeValue {
+  /** "image" */
+  image: "image",
+  /** "json" */
+  json: "json",
+  /** "speech" */
+  speech: "speech",
+  /** "text" */
+  text: "text",
   /** Allow unknown/custom values */
   string,
 }
 
 /** Known values for gen.ai.provider.name */
 union GenAiProviderNameValue {
+  /** "anthropic" */
+  anthropic: "anthropic",
+  /** "aws.bedrock" */
+  awsBedrock: "aws.bedrock",
   /** "azure.ai.inference" */
   azureAiInference: "azure.ai.inference",
   /** "azure.ai.openai" */
   azureAiOpenai: "azure.ai.openai",
+  /** "cohere" */
+  cohere: "cohere",
+  /** "deepseek" */
+  deepseek: "deepseek",
+  /** "gcp.gemini" */
+  gcpGemini: "gcp.gemini",
+  /** "gcp.gen_ai" */
+  gcpGenAi: "gcp.gen_ai",
+  /** "gcp.vertex_ai" */
+  gcpVertexAi: "gcp.vertex_ai",
+  /** "groq" */
+  groq: "groq",
+  /** "ibm.watsonx.ai" */
+  ibmWatsonxAi: "ibm.watsonx.ai",
+  /** "mistral_ai" */
+  mistralAi: "mistral_ai",
   /** "openai" */
   openai: "openai",
+  /** "perplexity" */
+  perplexity: "perplexity",
+  /** "x_ai" */
+  xAi: "x_ai",
   /** Allow unknown/custom values */
   string,
 }
 
 /** Known values for gen.ai.system */
 union GenAiSystemValue {
+  /** "anthropic" */
+  anthropic: "anthropic",
+  /** "aws.bedrock" */
+  awsBedrock: "aws.bedrock",
+  /** "az.ai.inference" */
+  azAiInference: "az.ai.inference",
+  /** "az.ai.openai" */
+  azAiOpenai: "az.ai.openai",
   /** "azure.ai.inference" */
   azureAiInference: "azure.ai.inference",
   /** "azure.ai.openai" */
   azureAiOpenai: "azure.ai.openai",
+  /** "cohere" */
+  cohere: "cohere",
+  /** "deepseek" */
+  deepseek: "deepseek",
+  /** "gcp.gemini" */
+  gcpGemini: "gcp.gemini",
+  /** "gcp.gen_ai" */
+  gcpGenAi: "gcp.gen_ai",
+  /** "gcp.vertex_ai" */
+  gcpVertexAi: "gcp.vertex_ai",
+  /** "gemini" */
+  gemini: "gemini",
+  /** "groq" */
+  groq: "groq",
+  /** "ibm.watsonx.ai" */
+  ibmWatsonxAi: "ibm.watsonx.ai",
+  /** "mistral_ai" */
+  mistralAi: "mistral_ai",
   /** "openai" */
   openai: "openai",
+  /** "perplexity" */
+  perplexity: "perplexity",
+  /** "vertex_ai" */
+  vertexAi: "vertex_ai",
+  /** "xai" */
+  xai: "xai",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for gen.ai.token.type */
+union GenAiTokenTypeValue {
+  /** "input" */
+  input: "input",
+  /** "output" */
+  completion: "output",
+  /** "output" */
+  output: "output",
   /** Allow unknown/custom values */
   string,
 }

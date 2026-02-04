@@ -36,10 +36,7 @@ public sealed class OtlpCorsOptions
 
     public IEnumerable<string> GetHeaders()
     {
-        var defaults = new[]
-        {
-            "content-type", "x-otlp-api-key"
-        };
+        var defaults = new[] { "content-type", "x-otlp-api-key" };
         var custom = AllowedHeaders?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                      ?? [];
         return defaults.Concat(custom).Distinct(StringComparer.OrdinalIgnoreCase);

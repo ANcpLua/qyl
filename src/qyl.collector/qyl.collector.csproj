@@ -36,7 +36,6 @@
     <PackageReference Include="Grpc.Tools"/>
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
-    <PackageReference Include="OTelConventions"/>
     <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 

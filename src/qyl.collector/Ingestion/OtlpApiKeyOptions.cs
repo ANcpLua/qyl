@@ -15,7 +15,8 @@ public sealed class OtlpApiKeyOptions
         get;
         set => field = ValidAuthModes.Contains(value, StringComparer.OrdinalIgnoreCase)
             ? value
-            : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", ValidAuthModes)}", nameof(value));
+            : throw new ArgumentException($"AuthMode must be one of: {string.Join(", ", ValidAuthModes)}",
+                nameof(value));
     } = "Unsecured";
 
     /// <summary>

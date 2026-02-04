@@ -100,13 +100,13 @@ internal static class OTelTagsEmitter
 
         if (tag.SkipIfNull && (tag.IsNullable || !EmitterHelpers.IsPrimitiveValueType(tag.MemberTypeName)))
             sb.AppendLine($"""
-                                            if ({accessor} is not null)
-                                                activity.SetTag("{attributeName}", {accessor});
-                            """);
+                                           if ({accessor} is not null)
+                                               activity.SetTag("{attributeName}", {accessor});
+                           """);
         else
             sb.AppendLine($"""
-                                            activity.SetTag("{attributeName}", {accessor});
-                            """);
+                                           activity.SetTag("{attributeName}", {accessor});
+                           """);
     }
 
     private static string GenerateMethodName(string typeName)
@@ -121,6 +121,4 @@ internal static class OTelTagsEmitter
 
         return name;
     }
-
-
 }

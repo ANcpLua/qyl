@@ -15,9 +15,11 @@ internal static class AnalyzerHelpers
     /// <summary>
     ///     Checks if a file is generated code based on its file path.
     /// </summary>
-    public static bool IsGeneratedFile(string filePath) =>
-        filePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
-        filePath.EndsWith(".generated.cs", StringComparison.OrdinalIgnoreCase);
+    public static bool IsGeneratedFile(string filePath)
+    {
+        return filePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
+               filePath.EndsWith(".generated.cs", StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
     ///     Tries to get an invocation operation from the syntax context.
@@ -69,10 +71,8 @@ internal static class AnalyzerHelpers
         string fullMetadataName)
     {
         foreach (var attr in attributes)
-        {
             if (attr.AttributeClass?.ToDisplayString() == fullMetadataName)
                 return attr;
-        }
 
         return null;
     }

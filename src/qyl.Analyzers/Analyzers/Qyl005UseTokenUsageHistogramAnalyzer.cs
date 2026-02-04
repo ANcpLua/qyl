@@ -15,11 +15,13 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl005UseTokenUsageHistogramAnalyzer : QylAnalyzer {
+public sealed partial class Qyl005UseTokenUsageHistogramAnalyzer : QylAnalyzer
+{
     private const string CorrectMetricName = "gen_ai.client.token.usage";
     private const string HistogramAttributeFullName = "qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
 
-    private static readonly string[] TokenRelatedPatterns = [
+    private static readonly string[] TokenRelatedPatterns =
+    [
         "token", "input_token", "output_token", "prompt_token", "completion_token"
     ];
 
@@ -45,32 +47,39 @@ public sealed partial class Qyl005UseTokenUsageHistogramAnalyzer : QylAnalyzer {
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSymbolAction(AnalyzeMethod, SymbolKind.Method);
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context) {
+    private static void AnalyzeMethod(SymbolAnalysisContext context)
+    {
         var method = (IMethodSymbol)context.Symbol;
 
         var histogramType = context.Compilation.GetTypeByMetadataName(HistogramAttributeFullName);
-        if (histogramType is null) {
+        if (histogramType is null)
+        {
             return;
         }
 
-        foreach (var attribute in method.GetAttributes()) {
-            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramType)) {
+        foreach (var attribute in method.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramType))
+            {
                 continue;
             }
 
             // Get the metric name from constructor argument
             if (attribute.ConstructorArguments.Length == 0 ||
-                attribute.ConstructorArguments[0].Value is not string metricName) {
+                attribute.ConstructorArguments[0].Value is not string metricName)
+            {
                 continue;
             }
 
             // Check if this looks like a token usage metric but uses wrong name
             if (IsTokenRelatedMetric(metricName) &&
-                !metricName.Equals(CorrectMetricName, StringComparison.OrdinalIgnoreCase)) {
+                !metricName.Equals(CorrectMetricName, StringComparison.OrdinalIgnoreCase))
+            {
                 var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)
                     .GetLocation() ?? method.Locations.FirstOrDefault();
 
-                if (location is not null) {
+                if (location is not null)
+                {
                     context.ReportDiagnostic(Diagnostic.Create(
                         Rule,
                         location,
@@ -80,9 +89,12 @@ public sealed partial class Qyl005UseTokenUsageHistogramAnalyzer : QylAnalyzer {
         }
     }
 
-    private static bool IsTokenRelatedMetric(string metricName) {
-        foreach (var pattern in TokenRelatedPatterns) {
-            if (metricName.Contains(pattern, StringComparison.OrdinalIgnoreCase)) {
+    private static bool IsTokenRelatedMetric(string metricName)
+    {
+        foreach (var pattern in TokenRelatedPatterns)
+        {
+            if (metricName.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
                 return true;
             }
         }

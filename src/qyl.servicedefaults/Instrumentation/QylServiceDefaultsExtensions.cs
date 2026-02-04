@@ -9,6 +9,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -25,22 +26,24 @@ using Qyl.ServiceDefaults.Instrumentation;
 namespace Qyl.ServiceDefaults;
 
 /// <summary>
-/// Extension methods to configure qyl service defaults with zero-config observability.
+///     Extension methods to configure qyl service defaults with zero-config observability.
 /// </summary>
 /// <remarks>
-/// <para>Provides two instrumentation paths:</para>
-/// <list type="number">
-///   <item><term>Interceptors (compile-time)</term>
-///     <description>Automatic via source generator - no code changes needed</description>
-///   </item>
-///   <item><term>IChatClient decorator (runtime)</term>
-///     <description>Use <c>.UseQylInstrumentation()</c> in ChatClientBuilder</description>
-///   </item>
-/// </list>
+///     <para>Provides two instrumentation paths:</para>
+///     <list type="number">
+///         <item>
+///             <term>Interceptors (compile-time)</term>
+///             <description>Automatic via source generator - no code changes needed</description>
+///         </item>
+///         <item>
+///             <term>IChatClient decorator (runtime)</term>
+///             <description>Use <c>.UseQylInstrumentation()</c> in ChatClientBuilder</description>
+///         </item>
+///     </list>
 /// </remarks>
 public static class QylServiceDefaultsExtensions
 {
-    private static readonly string[] s_genAiActivitySources =
+    private static readonly string[] SGenAiActivitySources =
     [
         ActivitySources.GenAi,
         "OpenAI.*",
@@ -50,7 +53,7 @@ public static class QylServiceDefaultsExtensions
         "Microsoft.Agents.AI"
     ];
 
-    private static readonly string[] s_genAiMeterNames =
+    private static readonly string[] SGenAiMeterNames =
     [
         ActivitySources.GenAi,
         "Microsoft.Extensions.AI",
@@ -58,13 +61,13 @@ public static class QylServiceDefaultsExtensions
     ];
 
     /// <summary>
-    /// Adds qyl service defaults with OpenTelemetry, health checks, and resilience.
+    ///     Adds qyl service defaults with OpenTelemetry, health checks, and resilience.
     /// </summary>
     /// <param name="builder">The host application builder.</param>
     /// <param name="configure">Optional configuration callback.</param>
     /// <returns>The builder for chaining.</returns>
     /// <example>
-    /// <code>
+    ///     <code>
     /// var builder = WebApplication.CreateBuilder(args);
     /// builder.UseQyl();
     /// </code>
@@ -114,7 +117,7 @@ public static class QylServiceDefaultsExtensions
     }
 
     /// <summary>
-    /// Maps qyl default endpoints (health, OpenAPI).
+    ///     Maps qyl default endpoints (health, OpenAPI).
     /// </summary>
     public static void MapQylEndpoints(this WebApplication app)
     {
@@ -123,15 +126,11 @@ public static class QylServiceDefaultsExtensions
         var options = app.Services.GetService<QylOptions>() ?? new QylOptions();
 
         // Health endpoints (Aspire-compatible)
-        app.MapHealthChecks("/health", new HealthCheckOptions
-        {
-            Predicate = static check => check.Tags.Contains("ready")
-        });
+        app.MapHealthChecks("/health",
+            new HealthCheckOptions { Predicate = static check => check.Tags.Contains("ready") });
 
-        app.MapHealthChecks("/alive", new HealthCheckOptions
-        {
-            Predicate = static check => check.Tags.Contains("live")
-        });
+        app.MapHealthChecks("/alive",
+            new HealthCheckOptions { Predicate = static check => check.Tags.Contains("live") });
 
         // OpenAPI
         if (options.EnableOpenApi)
@@ -151,18 +150,15 @@ public static class QylServiceDefaultsExtensions
 
         builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
         {
-            ValidateOnBuild = true,
-            ValidateScopes = true
+            ValidateOnBuild = true, ValidateScopes = true
         }));
     }
 
-    private static void ConfigureKestrel(IServiceCollection services)
-    {
+    private static void ConfigureKestrel(IServiceCollection services) =>
         services.Configure<KestrelServerOptions>(static options =>
         {
             options.AddServerHeader = false;
         });
-    }
 
     private static void ConfigureJson(IServiceCollection services, QylOptions options)
     {
@@ -179,7 +175,7 @@ public static class QylServiceDefaultsExtensions
             options.ConfigureJson?.Invoke(json);
         };
 
-        services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(opt => configureJson(opt.JsonSerializerOptions));
+        services.Configure<JsonOptions>(opt => configureJson(opt.JsonSerializerOptions));
         services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => configureJson(opt.SerializerOptions));
     }
 
@@ -212,7 +208,7 @@ public static class QylServiceDefaultsExtensions
                     .AddRuntimeInstrumentation();
 
                 // GenAI meters (qyl + SDK providers)
-                foreach (var meter in s_genAiMeterNames)
+                foreach (var meter in SGenAiMeterNames)
                     metrics.AddMeter(meter);
 
                 // Custom meters from options
@@ -234,7 +230,7 @@ public static class QylServiceDefaultsExtensions
                     .AddHttpClientInstrumentation();
 
                 // GenAI activity sources (qyl + SDK providers)
-                foreach (var source in s_genAiActivitySources)
+                foreach (var source in SGenAiActivitySources)
                     tracing.AddSource(source);
 
                 // Db instrumentation
@@ -256,12 +252,10 @@ public static class QylServiceDefaultsExtensions
     }
 
     private static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
-        where TBuilder : IHostApplicationBuilder
-    {
+        where TBuilder : IHostApplicationBuilder =>
         builder.Services.AddHealthChecks()
             .AddCheck("self", static () => HealthCheckResult.Healthy(), ["live"])
             .AddCheck("ready", static () => HealthCheckResult.Healthy(), ["ready"]);
-    }
 
     private static void ConfigureHttpClients<TBuilder>(TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -283,62 +277,62 @@ public static class QylServiceDefaultsExtensions
 }
 
 /// <summary>
-/// Configuration options for qyl service defaults.
+///     Configuration options for qyl service defaults.
 /// </summary>
 public sealed class QylOptions
 {
     /// <summary>
-    /// Validate DI container on build. Default: true in Development.
+    ///     Validate DI container on build. Default: true in Development.
     /// </summary>
     public bool ValidateOnBuild { get; set; } = true;
 
     /// <summary>
-    /// Enable OpenAPI endpoint. Default: true.
+    ///     Enable OpenAPI endpoint. Default: true.
     /// </summary>
     public bool EnableOpenApi { get; set; } = true;
 
     /// <summary>
-    /// Enable antiforgery protection. Default: false.
+    ///     Enable antiforgery protection. Default: false.
     /// </summary>
     public bool EnableAntiforgery { get; set; }
 
     /// <summary>
-    /// Enable .NET 10 validation. Default: true.
+    ///     Enable .NET 10 validation. Default: true.
     /// </summary>
     public bool EnableValidation { get; set; } = true;
 
     /// <summary>
-    /// Additional activity sources to register for tracing.
+    ///     Additional activity sources to register for tracing.
     /// </summary>
     public List<string> AdditionalActivitySources { get; } = [];
 
     /// <summary>
-    /// Additional meter names to register for metrics.
+    ///     Additional meter names to register for metrics.
     /// </summary>
     public List<string> AdditionalMeterNames { get; } = [];
 
     /// <summary>
-    /// Custom JSON serializer configuration.
+    ///     Custom JSON serializer configuration.
     /// </summary>
     public Action<JsonSerializerOptions>? ConfigureJson { get; set; }
 
     /// <summary>
-    /// Custom OpenTelemetry logging configuration.
+    ///     Custom OpenTelemetry logging configuration.
     /// </summary>
     public Action<OpenTelemetryLoggerOptions>? ConfigureLogging { get; set; }
 
     /// <summary>
-    /// Custom OpenTelemetry resource configuration.
+    ///     Custom OpenTelemetry resource configuration.
     /// </summary>
     public Action<ResourceBuilder>? ConfigureResource { get; set; }
 
     /// <summary>
-    /// Custom OpenTelemetry metrics configuration.
+    ///     Custom OpenTelemetry metrics configuration.
     /// </summary>
     public Action<MeterProviderBuilder>? ConfigureMetrics { get; set; }
 
     /// <summary>
-    /// Custom OpenTelemetry tracing configuration.
+    ///     Custom OpenTelemetry tracing configuration.
     /// </summary>
     public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
 }

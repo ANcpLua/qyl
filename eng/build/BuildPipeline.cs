@@ -101,7 +101,9 @@ interface IPipeline : IHasSolution
                 Log.Information("OpenAPI generated: {Output} ({Size:N0} bytes)", OpenApiOutput, size);
             }
             else
+            {
                 Log.Warning("OpenAPI output not found at {Output}", OpenApiOutput);
+            }
         });
 
     Target TypeSpecInfo => d => d

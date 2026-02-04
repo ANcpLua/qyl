@@ -5,8 +5,8 @@
 // =============================================================================
 
 using Microsoft.Extensions.DependencyInjection;
-using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using qyl.copilot.Adapters;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
@@ -90,10 +90,10 @@ public static class CopilotServiceExtensions
     ///     this ensures qyl.copilot sources are registered for capture.
     /// </summary>
     /// <example>
-    /// <code>
+    ///     <code>
     /// // Simple registration:
     /// builder.Services.AddQylCopilotTelemetry();
-    ///
+    /// 
     /// // Or with explicit builder configuration:
     /// builder.Services.AddOpenTelemetry()
     ///     .WithTracing(t => t.AddQylCopilotInstrumentation())
@@ -145,17 +145,28 @@ public sealed class CopilotOptions
 /// </summary>
 public sealed class CopilotAdapterFactory : IAsyncDisposable
 {
-    private readonly CopilotOptions _options;
     private readonly SemaphoreSlim _lock = new(1, 1);
+    private readonly CopilotOptions _options;
     private QylCopilotAdapter? _adapter;
     private bool _disposed;
 
     /// <summary>
     ///     Creates a new adapter factory.
     /// </summary>
-    public CopilotAdapterFactory(CopilotOptions options)
+    public CopilotAdapterFactory(CopilotOptions options) => _options = Throw.IfNull(options);
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
     {
-        _options = Throw.IfNull(options);
+        if (_disposed) return;
+        _disposed = true;
+
+        _lock.Dispose();
+
+        if (_adapter is not null)
+        {
+            await _adapter.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -206,20 +217,6 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
             TimeProvider.System,
             ct);
     }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-        _disposed = true;
-
-        _lock.Dispose();
-
-        if (_adapter is not null)
-        {
-            await _adapter.DisposeAsync().ConfigureAwait(false);
-        }
-    }
 }
 
 /// <summary>
@@ -230,11 +227,11 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
 /// </summary>
 public sealed class WorkflowEngineFactory : IAsyncDisposable
 {
-    private readonly CopilotOptions _options;
     private readonly Func<CancellationToken, ValueTask<QylCopilotAdapter>> _getAdapterAsync;
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private WorkflowEngine? _engine;
+    private readonly CopilotOptions _options;
     private bool _disposed;
+    private WorkflowEngine? _engine;
 
     /// <summary>
     ///     Creates a new workflow engine factory.
@@ -247,6 +244,20 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
     {
         _options = Throw.IfNull(options);
         _getAdapterAsync = Throw.IfNull(getAdapterAsync);
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _lock.Dispose();
+
+        if (_engine is not null)
+        {
+            await _engine.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -298,20 +309,6 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
         {
             await engine.DisposeAsync().ConfigureAwait(false);
             throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-        _disposed = true;
-
-        _lock.Dispose();
-
-        if (_engine is not null)
-        {
-            await _engine.DisposeAsync().ConfigureAwait(false);
         }
     }
 }

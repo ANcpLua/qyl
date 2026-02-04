@@ -5,6 +5,9 @@ import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {ThemeToggle} from '@/components/ui/theme-toggle';
+import {HealthIndicator} from '@/components/health';
+import {ClearTelemetryDialog} from '@/components/ClearTelemetryDialog';
 
 interface TopBarProps {
     isLive: boolean;
@@ -37,13 +40,13 @@ const timeRanges = [
 ];
 
 export function TopBar({
-    isLive,
-    onLiveToggle,
-    onRefresh,
-    timeRange,
-    onTimeRangeChange,
-    onSearch,
-}: TopBarProps) {
+                           isLive,
+                           onLiveToggle,
+                           onRefresh,
+                           timeRange,
+                           onTimeRangeChange,
+                           onSearch,
+                       }: TopBarProps) {
     const location = useLocation();
     const [searchValue, setSearchValue] = useState('');
     const [currentTime, setCurrentTime] = useState(new Date());
@@ -113,7 +116,8 @@ export function TopBar({
 
             {/* Time range selector - BRUTALIST */}
             <Select value={timeRange} onValueChange={onTimeRangeChange}>
-                <SelectTrigger className="w-32 bg-brutal-dark border-2 border-brutal-zinc text-xs font-bold tracking-wider text-brutal-white hover:border-signal-orange">
+                <SelectTrigger
+                    className="w-32 bg-brutal-dark border-2 border-brutal-zinc text-xs font-bold tracking-wider text-brutal-white hover:border-signal-orange">
                     <SelectValue/>
                 </SelectTrigger>
                 <SelectContent className="bg-brutal-carbon border-2 border-brutal-zinc">
@@ -153,6 +157,15 @@ export function TopBar({
                     </>
                 )}
             </Button>
+
+            {/* Health indicator */}
+            <HealthIndicator/>
+
+            {/* Theme toggle */}
+            <ThemeToggle/>
+
+            {/* Clear telemetry */}
+            <ClearTelemetryDialog onCleared={onRefresh}/>
 
             {/* Refresh - BRUTALIST */}
             <Button

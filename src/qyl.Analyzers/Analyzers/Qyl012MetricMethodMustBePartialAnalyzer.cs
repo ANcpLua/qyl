@@ -19,14 +19,15 @@ namespace qyl.Analyzers.Analyzers;
 ///         <code>
 ///         [Counter("orders.created")]
 ///         public static partial void RecordOrderCreated([Tag("status")] string status);
-///
+/// 
 ///         [Histogram("order.processing.duration", Unit = "ms")]
 ///         public static partial void RecordProcessingDuration(double duration, [Tag("type")] string orderType);
 ///         </code>
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl012MetricMethodMustBePartialAnalyzer : QylAnalyzer {
+public sealed partial class Qyl012MetricMethodMustBePartialAnalyzer : QylAnalyzer
+{
     private const string CounterAttributeFullName = "qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
 
@@ -52,22 +53,26 @@ public sealed partial class Qyl012MetricMethodMustBePartialAnalyzer : QylAnalyze
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSyntaxNodeAction(AnalyzeMethodDeclaration, SyntaxKind.MethodDeclaration);
 
-    private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context) {
+    private static void AnalyzeMethodDeclaration(SyntaxNodeAnalysisContext context)
+    {
         var methodDeclaration = (MethodDeclarationSyntax)context.Node;
 
         // Quick check: skip if no attributes
-        if (methodDeclaration.AttributeLists.Count == 0) {
+        if (methodDeclaration.AttributeLists.Count == 0)
+        {
             return;
         }
 
         // Check if method has [Counter] or [Histogram] attribute
         var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration, context.CancellationToken);
-        if (methodSymbol is null) {
+        if (methodSymbol is null)
+        {
             return;
         }
 
         var metricAttributeName = GetMetricAttributeName(methodSymbol, context.SemanticModel.Compilation);
-        if (metricAttributeName is null) {
+        if (metricAttributeName is null)
+        {
             return;
         }
 
@@ -75,7 +80,8 @@ public sealed partial class Qyl012MetricMethodMustBePartialAnalyzer : QylAnalyze
         var hasPartial = methodDeclaration.Modifiers.Any(SyntaxKind.PartialKeyword);
 
         // Report if missing partial modifier
-        if (!hasPartial) {
+        if (!hasPartial)
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 methodDeclaration.Identifier.GetLocation(),
@@ -84,18 +90,22 @@ public sealed partial class Qyl012MetricMethodMustBePartialAnalyzer : QylAnalyze
         }
     }
 
-    private static string? GetMetricAttributeName(IMethodSymbol methodSymbol, Compilation compilation) {
+    private static string? GetMetricAttributeName(IMethodSymbol methodSymbol, Compilation compilation)
+    {
         var counterAttributeType = compilation.GetTypeByMetadataName(CounterAttributeFullName);
         var histogramAttributeType = compilation.GetTypeByMetadataName(HistogramAttributeFullName);
 
-        foreach (var attribute in methodSymbol.GetAttributes()) {
+        foreach (var attribute in methodSymbol.GetAttributes())
+        {
             if (counterAttributeType is not null &&
-                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, counterAttributeType)) {
+                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, counterAttributeType))
+            {
                 return "Counter";
             }
 
             if (histogramAttributeType is not null &&
-                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramAttributeType)) {
+                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramAttributeType))
+            {
                 return "Histogram";
             }
         }

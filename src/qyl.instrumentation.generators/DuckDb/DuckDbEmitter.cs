@@ -7,7 +7,7 @@
 namespace qyl.instrumentation.generators.DuckDb;
 
 /// <summary>
-/// Emits DuckDB helper code for a table type.
+///     Emits DuckDB helper code for a table type.
 /// </summary>
 internal static class DuckDbEmitter
 {
@@ -79,13 +79,21 @@ internal static class DuckDbEmitter
                 }
             }
 
-            sb.Append(columns[i].ColumnName);
+            // Quote column names to handle reserved keywords and special characters
+            sb.Append('"').Append(EscapeIdentifier(columns[i].ColumnName)).Append('"');
         }
 
         sb.AppendLine();
         sb.AppendLine("        \"\"\";");
         sb.AppendLine();
     }
+
+    /// <summary>
+    ///     Escapes a SQL identifier for use in double-quoted identifiers.
+    ///     Doubles any existing double quotes per SQL standard.
+    /// </summary>
+    private static string EscapeIdentifier(string identifier) =>
+        identifier.Contains('"') ? identifier.Replace("\"", "\"\"") : identifier;
 
     private static void EmitAddParameters(StringBuilder sb, string typeName, IEnumerable<DuckDbColumnInfo> columns)
     {
@@ -116,7 +124,8 @@ internal static class DuckDbEmitter
             if (col.IsNullable)
             {
                 // ulong? -> decimal or DBNull
-                sb.Append(valueExpr).Append(".HasValue ? (object)(decimal)").Append(valueExpr).Append(".Value : DBNull.Value");
+                sb.Append(valueExpr).Append(".HasValue ? (object)(decimal)").Append(valueExpr)
+                    .Append(".Value : DBNull.Value");
             }
             else
             {
@@ -205,7 +214,8 @@ internal static class DuckDbEmitter
                     break;
                 default:
                     // Fallback - might need manual handling
-                    sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(").Append(ordinal).Append(')');
+                    sb.Append("reader.IsDBNull(").Append(ordinal).Append(") ? default : reader.GetValue(")
+                        .Append(ordinal).Append(')');
                     break;
             }
         }
@@ -253,7 +263,8 @@ internal static class DuckDbEmitter
         sb.AppendLine("    public static string BuildMultiRowInsertSql(int rowCount)");
         sb.AppendLine("    {");
         sb.AppendLine("        var sb = new StringBuilder(1024);");
-        sb.Append("        sb.Append(\"INSERT INTO \").Append(TableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
+        sb.Append(
+            "        sb.Append(\"INSERT INTO \").Append(TableName).Append(\" (\").Append(ColumnList).Append(\") VALUES \");");
         sb.AppendLine();
         sb.AppendLine();
         sb.AppendLine("        for (var i = 0; i < rowCount; i++)");

@@ -54,20 +54,20 @@ dotnet test
 
 ## Project Structure
 
-| Directory | Purpose |
-|-----------|---------|
-| `core/` | TypeSpec schemas (source of truth) |
-| `eng/` | NUKE build system |
-| `src/qyl.collector/` | Backend API service |
-| `src/qyl.dashboard/` | React frontend |
-| `src/qyl.mcp/` | MCP server for AI agents |
-| `src/qyl.protocol/` | Shared types (BCL-only) |
-| `src/qyl.servicedefaults/` | Aspire-style defaults |
-| `src/qyl.servicedefaults.generator/` | GenAI interceptor generator |
-| `src/qyl.Analyzers/` | Roslyn analyzers (QYL001-015) |
-| `src/qyl.Analyzers.CodeFixes/` | Code fix providers |
-| `src/qyl.copilot/` | GitHub Copilot integration |
-| `tests/` | Test projects |
+| Directory                            | Purpose                            |
+|--------------------------------------|------------------------------------|
+| `core/`                              | TypeSpec schemas (source of truth) |
+| `eng/`                               | NUKE build system                  |
+| `src/qyl.collector/`                 | Backend API service                |
+| `src/qyl.dashboard/`                 | React frontend                     |
+| `src/qyl.mcp/`                       | MCP server for AI agents           |
+| `src/qyl.protocol/`                  | Shared types (BCL-only)            |
+| `src/qyl.servicedefaults/`           | Aspire-style defaults              |
+| `src/qyl.servicedefaults.generator/` | GenAI interceptor generator        |
+| `src/qyl.Analyzers/`                 | Roslyn analyzers (QYL001-015)      |
+| `src/qyl.Analyzers.CodeFixes/`       | Code fix providers                 |
+| `src/qyl.copilot/`                   | GitHub Copilot integration         |
+| `tests/`                             | Test projects                      |
 
 ## TypeSpec-First Design
 
@@ -104,13 +104,13 @@ forbidden:
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | .NET 10.0 LTS, C# 14 |
-| Frontend | React 19, Vite 7, Tailwind CSS 4 |
-| Storage | DuckDB (columnar, glibc required) |
+| Layer    | Technology                              |
+|----------|-----------------------------------------|
+| Runtime  | .NET 10.0 LTS, C# 14                    |
+| Frontend | React 19, Vite 7, Tailwind CSS 4        |
+| Storage  | DuckDB (columnar, glibc required)       |
 | Protocol | OpenTelemetry Semantic Conventions 1.39 |
-| Testing | xUnit v3, Microsoft Testing Platform |
+| Testing  | xUnit v3, Microsoft Testing Platform    |
 
 ## Key Patterns
 
@@ -148,28 +148,34 @@ private static readonly JsonSerializerOptions s_options = new()
 
 ## Ports
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | REST API, SSE, Dashboard |
-| 4317 | gRPC | OTLP traces/logs/metrics |
-| 5173 | HTTP | Dashboard dev server |
+| Port | Protocol | Purpose                  |
+|------|----------|--------------------------|
+| 5100 | HTTP     | REST API, SSE, Dashboard |
+| 4317 | gRPC     | OTLP traces/logs/metrics |
+| 5173 | HTTP     | Dashboard dev server     |
 
 ## Environment Variables
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `QYL_PORT` | 5100 | HTTP API port |
-| `QYL_GRPC_PORT` | 4317 | gRPC OTLP port (0 to disable) |
-| `QYL_DATA_PATH` | ./qyl.duckdb | DuckDB file location |
+| Variable                       | Default      | Purpose                           |
+|--------------------------------|--------------|-----------------------------------|
+| `QYL_PORT`                     | 5100         | HTTP API port                     |
+| `QYL_GRPC_PORT`                | 4317         | gRPC OTLP port (0 to disable)     |
+| `QYL_DATA_PATH`                | ./qyl.duckdb | DuckDB file location              |
+| `QYL_TOKEN`                    | (none)       | Auth token (disabled if unset)    |
+| `QYL_MAX_RETENTION_DAYS`       | 30           | Days to retain telemetry data     |
+| `QYL_MAX_SPAN_COUNT`           | 1000000      | Max spans before cleanup          |
+| `QYL_MAX_LOG_COUNT`            | 500000       | Max logs before cleanup           |
+| `QYL_CLEANUP_INTERVAL_SECONDS` | 300          | Cleanup service interval          |
+| `QYL_OTLP_CORS_ALLOWED_ORIGINS`| *            | CORS allowed origins (CSV)        |
 
 ## Documentation Map
 
-| File | Purpose |
-|------|---------|
-| `.claude/rules/architecture-rules.md` | Type ownership, dependencies |
-| `.claude/rules/coding-patterns.md` | .NET 10 patterns, banned APIs |
-| `.claude/rules/genai-semconv.md` | OTel 1.39 GenAI conventions |
-| `.claude/rules/build-workflow.md` | NUKE targets, Docker build |
-| `core/CLAUDE.md` | TypeSpec schema details |
-| `eng/CLAUDE.md` | Build system |
-| `src/*/CLAUDE.md` | Component-specific docs |
+| File                                  | Purpose                       |
+|---------------------------------------|-------------------------------|
+| `.claude/rules/architecture-rules.md` | Type ownership, dependencies  |
+| `.claude/rules/coding-patterns.md`    | .NET 10 patterns, banned APIs |
+| `.claude/rules/genai-semconv.md`      | OTel 1.39 GenAI conventions   |
+| `.claude/rules/build-workflow.md`     | NUKE targets, Docker build    |
+| `core/CLAUDE.md`                      | TypeSpec schema details       |
+| `eng/CLAUDE.md`                       | Build system                  |
+| `src/*/CLAUDE.md`                     | Component-specific docs       |

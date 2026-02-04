@@ -4,12 +4,12 @@ Roslyn source generator for automatic OTel instrumentation using interceptors.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | netstandard2.0 |
-| Role | compile-time-only |
-| Pattern | C# 12 interceptors |
+| Property  | Value              |
+|-----------|--------------------|
+| SDK       | ANcpLua.NET.Sdk    |
+| Framework | netstandard2.0     |
+| Role      | compile-time-only  |
+| Pattern   | C# 12 interceptors |
 
 ## Purpose
 
@@ -22,22 +22,22 @@ Provides zero-configuration telemetry instrumentation at compile time:
 
 ## Analyzers
 
-| Analyzer | Purpose |
-|----------|---------|
-| `GenAiCallSiteAnalyzer` | Detects GenAI SDK method calls |
-| `DbCallSiteAnalyzer` | Detects database calls |
-| `OTelTagAnalyzer` | Extracts OTel tag definitions |
-| `MeterAnalyzer` | Processes meter class definitions |
+| Analyzer                 | Purpose                             |
+|--------------------------|-------------------------------------|
+| `GenAiCallSiteAnalyzer`  | Detects GenAI SDK method calls      |
+| `DbCallSiteAnalyzer`     | Detects database calls              |
+| `OTelTagAnalyzer`        | Extracts OTel tag definitions       |
+| `MeterAnalyzer`          | Processes meter class definitions   |
 | `TracedCallSiteAnalyzer` | Detects [Traced] attributed methods |
 
 ## Emitters
 
-| Emitter | Output |
-|---------|--------|
-| `GenAiInterceptorEmitter` | GenAI span interceptors |
-| `DbInterceptorEmitter` | Database span interceptors |
-| `OTelTagEmitter` | Tag extension methods |
-| `MeterEmitter` | Meter implementations |
+| Emitter                    | Output                      |
+|----------------------------|-----------------------------|
+| `GenAiInterceptorEmitter`  | GenAI span interceptors     |
+| `DbInterceptorEmitter`     | Database span interceptors  |
+| `OTelTagEmitter`           | Tag extension methods       |
+| `MeterEmitter`             | Meter implementations       |
 | `TracedInterceptorEmitter` | Method tracing interceptors |
 
 ## Provider Registry
@@ -63,13 +63,13 @@ GenAI providers are detected by type name patterns:
 
 Follows OTel 1.39 GenAI semantic conventions:
 
-| Attribute | Source |
-|-----------|--------|
-| `gen_ai.system` | Provider registry |
-| `gen_ai.operation.name` | Method name mapping |
-| `gen_ai.request.model` | Parameter extraction |
-| `gen_ai.usage.input_tokens` | Response extraction |
-| `gen_ai.usage.output_tokens` | Response extraction |
+| Attribute                    | Source               |
+|------------------------------|----------------------|
+| `gen_ai.system`              | Provider registry    |
+| `gen_ai.operation.name`      | Method name mapping  |
+| `gen_ai.request.model`       | Parameter extraction |
+| `gen_ai.usage.input_tokens`  | Response extraction  |
+| `gen_ai.usage.output_tokens` | Response extraction  |
 
 ## Interceptor Pattern
 
@@ -96,10 +96,10 @@ public static async Task<Response> Intercept_CreateMessageAsync(
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs |
-| `ANcpLua.Roslyn.Utilities` | Generator utilities |
+| Package                         | Purpose             |
+|---------------------------------|---------------------|
+| `Microsoft.CodeAnalysis.CSharp` | Roslyn APIs         |
+| `ANcpLua.Roslyn.Utilities`      | Generator utilities |
 
 ## Rules
 

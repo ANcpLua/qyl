@@ -3,12 +3,14 @@ namespace qyl.Analyzers.Core;
 /// <summary>
 ///     Base class for all qyl analyzers.
 /// </summary>
-public abstract partial class QylAnalyzer : DiagnosticAnalyzer {
+public abstract partial class QylAnalyzer : DiagnosticAnalyzer
+{
     /// <summary>Base URL for diagnostic help links.</summary>
     public const string HelpLinkBase = "https://github.com/ANcpLua/qyl#analyzers";
 
     /// <summary>Initializes the analyzer and configures execution options.</summary>
-    public sealed override void Initialize(AnalysisContext context) {
+    public sealed override void Initialize(AnalysisContext context)
+    {
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
         RegisterActions(context);
@@ -24,17 +26,18 @@ public abstract partial class QylAnalyzer : DiagnosticAnalyzer {
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>IMPORTANT:</b> Avoid using <see cref="DiagnosticSeverity.Info"/> for analyzers
+///         <b>IMPORTANT:</b> Avoid using <see cref="DiagnosticSeverity.Info" /> for analyzers
 ///         that should appear in normal build output. Info-level diagnostics are filtered
 ///         out by MSBuild by default and won't appear in build output or IDE error lists
 ///         unless explicitly configured.
 ///     </para>
 ///     <para>
-///         Use <see cref="DiagnosticSeverity.Warning"/> for suggestions and code improvements.
-///         Use <see cref="DiagnosticSeverity.Error"/> only for definite bugs or violations.
+///         Use <see cref="DiagnosticSeverity.Warning" /> for suggestions and code improvements.
+///         Use <see cref="DiagnosticSeverity.Error" /> only for definite bugs or violations.
 ///     </para>
 /// </remarks>
-public static partial class DiagnosticSeverities {
+public static partial class DiagnosticSeverities
+{
     /// <summary>
     ///     Use for suggestions and code style improvements.
     ///     This appears in normal build output and IDE error lists.
@@ -57,7 +60,8 @@ public static partial class DiagnosticSeverities {
 /// <summary>
 ///     Diagnostic categories for grouping related qyl analyzers.
 /// </summary>
-public static partial class DiagnosticCategories {
+public static partial class DiagnosticCategories
+{
     /// <summary>Category for OpenTelemetry instrumentation diagnostics.</summary>
     public const string OpenTelemetry = "OpenTelemetry";
 
@@ -80,7 +84,8 @@ public static partial class DiagnosticCategories {
 /// <summary>
 ///     Central registry of all qyl diagnostic IDs following Roslyn naming conventions.
 /// </summary>
-public static partial class DiagnosticIds {
+public static partial class DiagnosticIds
+{
     // ═══════════════════════════════════════════════════════════════════════════
     // OPENTELEMETRY SEMANTIC CONVENTIONS (QYL001-QYL006)
     // These analyzers enforce OpenTelemetry semantic convention compliance.

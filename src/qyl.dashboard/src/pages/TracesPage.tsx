@@ -8,7 +8,7 @@ import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
-import {CopyableText} from '@/components/ui';
+import {CopyableText, DownloadButton, TextVisualizer, isStructuredContent} from '@/components/ui';
 import {
     formatDuration,
     formatTimestamp,
@@ -265,13 +265,33 @@ function SpanDetails({span}: { span: SpanRecord }) {
             {/* Attributes */}
             <div>
                 <h4 className="text-sm font-medium mb-2">Attributes</h4>
-                <div className="space-y-1 text-sm">
-                    {Object.entries(attributes).map(([key, value]) => (
-                        <div key={key} className="flex">
-                            <span className="text-muted-foreground min-w-32">{key}:</span>
-                            <span className="font-mono break-all">{String(value)}</span>
-                        </div>
-                    ))}
+                <div className="space-y-2 text-sm">
+                    {Object.entries(attributes).map(([key, value]) => {
+                        const stringValue = String(value);
+                        const isStructured = isStructuredContent(stringValue);
+
+                        if (isStructured) {
+                            return (
+                                <div key={key}>
+                                    <span className="text-muted-foreground block mb-1">{key}:</span>
+                                    <TextVisualizer
+                                        content={stringValue}
+                                        label={key}
+                                        defaultExpanded={false}
+                                        maxCollapsedHeight={100}
+                                        showTreeView={true}
+                                    />
+                                </div>
+                            );
+                        }
+
+                        return (
+                            <div key={key} className="flex">
+                                <span className="text-muted-foreground min-w-32">{key}:</span>
+                                <span className="font-mono break-all">{stringValue}</span>
+                            </div>
+                        );
+                    })}
                     {Object.keys(attributes).length === 0 && (
                         <p className="text-muted-foreground">No attributes</p>
                     )}
@@ -478,6 +498,29 @@ export function TracesPage() {
                     <Button variant="outline" size="sm" onClick={() => setExpandedSpans(new Set())}>
                         Collapse All
                     </Button>
+
+                    {/* Download button */}
+                    <DownloadButton
+                        getData={() => spans.map(span => {
+                            const attrs = getAttributesRecord(span);
+                            return {
+                                traceId: span.trace_id,
+                                spanId: span.span_id,
+                                parentSpanId: span.parent_span_id ?? '',
+                                name: span.name,
+                                kind: span.kind,
+                                serviceName: getServiceName(span),
+                                startTimeUnixNano: span.start_time_unix_nano,
+                                endTimeUnixNano: span.end_time_unix_nano,
+                                durationMs: nsToMs(getDurationNs(span)),
+                                statusCode: span.status.code,
+                                statusMessage: span.status.message ?? '',
+                                ...attrs,
+                            };
+                        })}
+                        filenamePrefix="traces"
+                        disabled={spans.length === 0}
+                    />
                 </div>
 
                 {/* Virtualized trace waterfall */}

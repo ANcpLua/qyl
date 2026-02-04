@@ -4,14 +4,14 @@ This demo shows how qyl makes observability **just work** with zero configuratio
 
 ## What You Get
 
-| Feature | How | Code Required |
-|---------|-----|---------------|
-| OpenTelemetry (traces, metrics, logs) | `UseQylConventions()` | 1 line |
-| Health checks (`/health`, `/alive`) | `MapQylDefaultEndpoints()` | 1 line |
-| OpenAPI documentation | `UseQylConventions()` | 0 lines |
-| HTTP client resilience | `UseQylConventions()` | 0 lines |
-| GenAI instrumentation (OTel 1.39) | Compile-time generator | 0 lines |
-| GitHub Copilot integration | `AddQylCopilot()` | 1 line |
+| Feature                               | How                        | Code Required |
+|---------------------------------------|----------------------------|---------------|
+| OpenTelemetry (traces, metrics, logs) | `UseQylConventions()`      | 1 line        |
+| Health checks (`/health`, `/alive`)   | `MapQylDefaultEndpoints()` | 1 line        |
+| OpenAPI documentation                 | `UseQylConventions()`      | 0 lines       |
+| HTTP client resilience                | `UseQylConventions()`      | 0 lines       |
+| GenAI instrumentation (OTel 1.39)     | Compile-time generator     | 0 lines       |
+| GitHub Copilot integration            | `AddQylCopilot()`          | 1 line        |
 
 ## Running the Demo
 
@@ -53,6 +53,7 @@ curl http://localhost:5000/openapi/v1.json
 ### Compile Time (Zero Runtime Cost)
 
 The `qyl.servicedefaults.generator` scans your code and finds:
+
 - `AIAgent.RunAsync()` calls
 - `AIAgent.RunStreamingAsync()` calls
 
@@ -79,13 +80,13 @@ activity?.SetTag("gen_ai.usage.output_tokens", response.Usage.OutputTokens);
 
 ## What's NOT Done Yet
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Generator interception for Copilot | Investigate | Type pattern matching may need adjustment |
-| Workflow execution | TODO | Need `.qyl/workflows/*.md` files |
-| Token counting | Partial | Depends on SDK response format |
-| Cost tracking | TODO | Needs pricing data integration |
-| Transitive generator flow | TODO | Generator should flow through qyl.servicedefaults |
+| Feature                            | Status      | Notes                                             |
+|------------------------------------|-------------|---------------------------------------------------|
+| Generator interception for Copilot | Investigate | Type pattern matching may need adjustment         |
+| Workflow execution                 | TODO        | Need `.qyl/workflows/*.md` files                  |
+| Token counting                     | Partial     | Depends on SDK response format                    |
+| Cost tracking                      | TODO        | Needs pricing data integration                    |
+| Transitive generator flow          | TODO        | Generator should flow through qyl.servicedefaults |
 
 ## Architecture
 

@@ -64,7 +64,10 @@ internal readonly struct Index : IEquatable<Index>
         _value = fromEnd ? ~value : value;
     }
 
-    private Index(int value) => _value = value;
+    private Index(int value)
+    {
+        _value = value;
+    }
 
     /// <summary>
     ///     Gets an <c>Index</c> pointing to the first element (index 0).
@@ -159,20 +162,32 @@ internal readonly struct Index : IEquatable<Index>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => obj is Index other && _value == other._value;
+    public override bool Equals(object? obj)
+    {
+        return obj is Index other && _value == other._value;
+    }
 
     /// <inheritdoc />
-    public bool Equals(Index other) => _value == other._value;
+    public bool Equals(Index other)
+    {
+        return _value == other._value;
+    }
 
     /// <inheritdoc />
-    public override int GetHashCode() => _value;
+    public override int GetHashCode()
+    {
+        return _value;
+    }
 
     /// <summary>
     ///     Implicitly converts an <see cref="int" /> to an <c>Index</c> from the start.
     /// </summary>
     /// <param name="value">The integer index value.</param>
     /// <returns>An <c>Index</c> equivalent to <c>Index.FromStart(value)</c>.</returns>
-    public static implicit operator Index(int value) => FromStart(value);
+    public static implicit operator Index(int value)
+    {
+        return FromStart(value);
+    }
 
     /// <summary>
     ///     Returns a string representation of this index.
@@ -181,6 +196,9 @@ internal readonly struct Index : IEquatable<Index>
     ///     For "from end" indices, returns <c>^N</c> (e.g., "^1").
     ///     For "from start" indices, returns the numeric value (e.g., "0").
     /// </returns>
-    public override string ToString() => IsFromEnd ? "^" + Value : ((uint)Value).ToString(CultureInfo.InvariantCulture);
+    public override string ToString()
+    {
+        return IsFromEnd ? "^" + Value : ((uint)Value).ToString(CultureInfo.InvariantCulture);
+    }
 }
 #endif

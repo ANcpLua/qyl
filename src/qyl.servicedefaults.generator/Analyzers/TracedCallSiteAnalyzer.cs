@@ -1,9 +1,9 @@
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
 
@@ -20,8 +20,10 @@ internal static class TracedCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken _) =>
-        node.IsKind(SyntaxKind.InvocationExpression);
+    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken _)
+    {
+        return node.IsKind(SyntaxKind.InvocationExpression);
+    }
 
     /// <summary>
     ///     Extracts a traced call site from a syntax context if the target has [Traced] attribute.
@@ -91,7 +93,8 @@ internal static class TracedCallSiteAnalyzer
         // Check if method has [NoTrace] - opt-out from class-level tracing
         var noTraceAttributeType = compilation.GetTypeByMetadataName(NoTraceAttributeFullName);
         if (noTraceAttributeType is not null &&
-            method.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, noTraceAttributeType)))
+            method.GetAttributes()
+                .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, noTraceAttributeType)))
             return false;
 
         // 1. Check method-level [Traced] first (takes priority)
@@ -128,6 +131,7 @@ internal static class TracedCallSiteAnalyzer
                 return attr;
             type = type.BaseType;
         }
+
         return null;
     }
 
@@ -136,10 +140,8 @@ internal static class TracedCallSiteAnalyzer
         ISymbol tracedAttributeType)
     {
         foreach (var attribute in attributes)
-        {
             if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedAttributeType))
                 return attribute;
-        }
         return null;
     }
 
@@ -156,7 +158,6 @@ internal static class TracedCallSiteAnalyzer
 
         // Get named arguments
         foreach (var namedArg in attribute.NamedArguments)
-        {
             switch (namedArg.Key)
             {
                 case "SpanName":
@@ -165,7 +166,6 @@ internal static class TracedCallSiteAnalyzer
                 case "Kind":
                     // ActivityKind enum value
                     if (namedArg.Value.Value is int kindValue)
-                    {
                         spanKind = kindValue switch
                         {
                             0 => "Internal",
@@ -175,10 +175,8 @@ internal static class TracedCallSiteAnalyzer
                             4 => "Consumer",
                             _ => "Internal"
                         };
-                    }
                     break;
             }
-        }
 
         return (activitySourceName, spanName, spanKind);
     }
@@ -194,39 +192,35 @@ internal static class TracedCallSiteAnalyzer
         var tags = new List<TracedTagParameter>();
 
         foreach (var parameter in method.Parameters)
+        foreach (var attribute in parameter.GetAttributes())
         {
-            foreach (var attribute in parameter.GetAttributes())
-            {
-                if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedTagAttributeType))
-                    continue;
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedTagAttributeType))
+                continue;
 
-                // Get tag name from constructor argument, fallback to parameter name
-                string? tagName = null;
-                if (attribute.ConstructorArguments.Length > 0)
-                    tagName = attribute.ConstructorArguments[0].Value as string;
+            // Get tag name from constructor argument, fallback to parameter name
+            string? tagName = null;
+            if (attribute.ConstructorArguments.Length > 0)
+                tagName = attribute.ConstructorArguments[0].Value as string;
 
-                // Use parameter name if no explicit name provided
-                tagName ??= parameter.Name;
+            // Use parameter name if no explicit name provided
+            tagName ??= parameter.Name;
 
-                if (string.IsNullOrEmpty(tagName))
-                    continue;
+            if (string.IsNullOrEmpty(tagName))
+                continue;
 
-                var skipIfNull = true; // Default
-                foreach (var namedArg in attribute.NamedArguments)
-                {
-                    if (namedArg is { Key: "SkipIfNull", Value.Value: bool skipValue })
-                        skipIfNull = skipValue;
-                }
+            var skipIfNull = true; // Default
+            foreach (var namedArg in attribute.NamedArguments)
+                if (namedArg is { Key: "SkipIfNull", Value.Value: bool skipValue })
+                    skipIfNull = skipValue;
 
-                var isNullable = parameter.Type.NullableAnnotation == NullableAnnotation.Annotated ||
-                                 parameter.Type.IsReferenceType;
+            var isNullable = parameter.Type.NullableAnnotation == NullableAnnotation.Annotated ||
+                             parameter.Type.IsReferenceType;
 
-                tags.Add(new TracedTagParameter(
-                    parameter.Name,
-                    tagName,
-                    skipIfNull,
-                    isNullable));
-            }
+            tags.Add(new TracedTagParameter(
+                parameter.Name,
+                tagName,
+                skipIfNull,
+                isNullable));
         }
 
         return tags;

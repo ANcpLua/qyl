@@ -4,19 +4,19 @@ Primary runtime service. This IS qyl from the user's perspective.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk.Web |
-| Framework | net10.0 |
-| Role | primary-runtime |
-| AOT | **No** (DuckDB native libs) |
+| Property  | Value                       |
+|-----------|-----------------------------|
+| SDK       | ANcpLua.NET.Sdk.Web         |
+| Framework | net10.0                     |
+| Role      | primary-runtime             |
+| AOT       | **No** (DuckDB native libs) |
 
 ## Ports
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | REST API, SSE streaming, Dashboard |
-| 4317 | gRPC | OTLP traces/logs/metrics |
+| Port | Protocol | Purpose                            |
+|------|----------|------------------------------------|
+| 5100 | HTTP     | REST API, SSE streaming, Dashboard |
+| 4317 | gRPC     | OTLP traces/logs/metrics           |
 
 ## API Endpoints
 
@@ -43,13 +43,14 @@ GET  /api/v1/logs                      # Query logs
 POST /api/v1/logs/search               # Search logs
 GET  /api/v1/logs/stats                # Log statistics
 
-GET  /api/v1/errors                    # List errors
-GET  /api/v1/errors/{id}               # Get error
-GET  /api/v1/errors/stats              # Error statistics
+GET  /api/v1/genai/stats               # GenAI analytics summary
+GET  /api/v1/genai/spans               # GenAI spans with filters
+GET  /api/v1/genai/models              # Model usage breakdown
+GET  /api/v1/genai/usage/timeseries    # Token usage over time
 
-GET  /health                           # Health check
-GET  /health/live                      # Liveness probe
-GET  /health/ready                     # Readiness probe
+GET  /health                           # Health check (no auth)
+GET  /health/live                      # Liveness probe (no auth)
+GET  /health/ready                     # Readiness probe (no auth)
 ```
 
 ### SSE Streaming
@@ -66,20 +67,20 @@ GET /api/v1/live                       # Real-time span updates
 
 ## Storage
 
-| Property | Value |
-|----------|-------|
-| Engine | DuckDB |
-| Package | DuckDB.NET.Data.Full |
+| Property | Value                              |
+|----------|------------------------------------|
+| Engine   | DuckDB                             |
+| Package  | DuckDB.NET.Data.Full               |
 | Location | `$QYL_DATA_PATH` or `./qyl.duckdb` |
 
 ### Tables
 
-| Table | Purpose |
-|-------|---------|
-| `spans` | Primary telemetry data |
-| `logs` | Log records |
+| Table              | Purpose                  |
+|--------------------|--------------------------|
+| `spans`            | Primary telemetry data   |
+| `logs`             | Log records              |
 | `session_entities` | Aggregated session stats |
-| `errors` | Error entities |
+| `errors`           | Error entities           |
 
 ## Key Patterns
 
@@ -147,21 +148,33 @@ finally { _asyncLock.Release(); }
 
 ## Environment Variables
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `QYL_PORT` | 5100 | HTTP port |
-| `QYL_GRPC_PORT` | 4317 | gRPC port (0 to disable) |
-| `QYL_DATA_PATH` | ./qyl.duckdb | Database file path |
+| Variable                        | Default      | Purpose                          |
+|---------------------------------|--------------|----------------------------------|
+| `QYL_PORT`                      | 5100         | HTTP port                        |
+| `QYL_GRPC_PORT`                 | 4317         | gRPC port (0 to disable)         |
+| `QYL_DATA_PATH`                 | ./qyl.duckdb | Database file path               |
+| `QYL_TOKEN`                     | (none)       | Auth token (disabled if unset)   |
+| `QYL_MAX_RETENTION_DAYS`        | 30           | Days to retain telemetry         |
+| `QYL_MAX_SPAN_COUNT`            | 1000000      | Max spans before cleanup         |
+| `QYL_MAX_LOG_COUNT`             | 500000       | Max logs before cleanup          |
+| `QYL_CLEANUP_INTERVAL_SECONDS`  | 300          | Cleanup service interval (5 min) |
+| `QYL_OTLP_CORS_ALLOWED_ORIGINS` | *            | CORS allowed origins (CSV)       |
 
 ## Directory Structure
 
 ```
-Api/                    # REST API endpoints
+Auth/                   # Authentication middleware
+  TokenAuth.cs          # Token + cookie auth handler
 Grpc/                   # gRPC service implementations
 Ingestion/              # OTLP parsing and buffering
+  OtlpCorsMiddleware.cs # CORS handling for OTLP endpoints
 Query/                  # Query services
 Storage/                # DuckDB access layer
   DuckDbSchema.g.cs     # Generated schema - DO NOT EDIT
+  DuckDbStore.cs        # Data access with cleanup methods
+  TelemetryLimitsOptions.cs    # Retention config
+  TelemetryCleanupService.cs   # Background cleanup job
+Realtime/               # SSE streaming
 wwwroot/                # Embedded dashboard (copied at build)
 Program.cs              # Application entry point
 ```

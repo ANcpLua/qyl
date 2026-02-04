@@ -67,6 +67,12 @@ public sealed class OtlpCorsMiddleware
     {
         response.Headers["Access-Control-Allow-Origin"] = _allowAll ? "*" : origin;
         response.Headers["Access-Control-Allow-Headers"] = _allowedHeadersHeader;
-        response.Headers["Access-Control-Allow-Credentials"] = "true";
+
+        // RFC 6454: Access-Control-Allow-Credentials cannot be "true" when origin is "*"
+        // Browsers will reject the response if both are set
+        if (!_allowAll)
+        {
+            response.Headers["Access-Control-Allow-Credentials"] = "true";
+        }
     }
 }

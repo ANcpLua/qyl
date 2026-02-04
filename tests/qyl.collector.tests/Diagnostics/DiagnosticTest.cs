@@ -9,15 +9,18 @@ public class DiagnosticTest : IAsyncLifetime
 {
     private DuckDbStore? _store;
 
+    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
+
     public async ValueTask InitializeAsync()
     {
         _store = DuckDbTestHelpers.CreateInMemoryStore();
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
-
-    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
+    public ValueTask DisposeAsync()
+    {
+        return _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 
     [Fact]
     public async Task Debug_TestErrorSummaryQuery()
@@ -43,7 +46,9 @@ public class DiagnosticTest : IAsyncLifetime
             var statusCode = checkReader.IsDBNull(2)
                 ? "NULL"
                 : checkReader.GetInt32(2).ToString(CultureInfo.InvariantCulture);
-            var startTimeNs = checkReader.IsDBNull(3) ? "NULL" : checkReader.GetInt64(3).ToString(CultureInfo.InvariantCulture);
+            var startTimeNs = checkReader.IsDBNull(3)
+                ? "NULL"
+                : checkReader.GetInt64(3).ToString(CultureInfo.InvariantCulture);
             Console.WriteLine(
                 $"  trace={traceId}, session={sessionId}, status_code={statusCode}, start_time_unix_nano={startTimeNs}");
 

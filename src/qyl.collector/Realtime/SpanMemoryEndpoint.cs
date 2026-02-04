@@ -1,7 +1,7 @@
 namespace qyl.collector.Realtime;
 
 /// <summary>
-///     REST endpoints for querying spans from in-memory <see cref="SpanRingBuffer"/>.
+///     REST endpoints for querying spans from in-memory <see cref="SpanRingBuffer" />.
 ///     Provides sub-millisecond queries for recent telemetry data.
 /// </summary>
 public static class SpanMemoryEndpoints
@@ -102,16 +102,12 @@ public static class SpanMemoryEndpoints
 
         return Results.Ok(new SessionSpansFromMemoryResponse
         {
-            SessionId = sessionId,
-            Spans = dtos,
-            Generation = generation,
-            Source = "memory"
+            SessionId = sessionId, Spans = dtos, Generation = generation, Source = "memory"
         });
     }
 
-    private static IResult GetBufferStats(SpanRingBuffer buffer)
-    {
-        return Results.Ok(new BufferStatsResponse
+    private static IResult GetBufferStats(SpanRingBuffer buffer) =>
+        Results.Ok(new BufferStatsResponse
         {
             Count = buffer.Count,
             Capacity = buffer.Capacity,
@@ -120,7 +116,6 @@ public static class SpanMemoryEndpoints
                 ? Math.Round(100.0 * buffer.Count / buffer.Capacity, 2, MidpointRounding.ToEven)
                 : 0
         });
-    }
 }
 
 /// <summary>

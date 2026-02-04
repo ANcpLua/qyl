@@ -24,7 +24,7 @@
          We remove ALL analyzers from this package to prevent code generation. -->
     <Target Name="RemoveServiceDefaultsAnalyzer" BeforeTargets="CoreCompile">
         <ItemGroup>
-            <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::Copy('%(Analyzer.Identity)').Contains('ANcpSdk.AspNetCore.ServiceDefaults.AutoRegister'))" />
+            <Analyzer Remove="@(Analyzer)" Condition="$([System.String]::Copy('%(Analyzer.Identity)').Contains('ANcpSdk.AspNetCore.ServiceDefaults.AutoRegister'))"/>
         </ItemGroup>
     </Target>
 

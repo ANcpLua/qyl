@@ -37,10 +37,12 @@ ANcpLua.NET.Sdk/
 NPM package: `@opentelemetry/semantic-conventions@1.39.0`
 
 The package exports:
+
 - `ATTR_*` constants (attribute names)
 - `*_VALUE_*` constants (enum values)
 
 Example from `.d.ts`:
+
 ```typescript
 export declare const ATTR_GEN_AI_SYSTEM: "gen_ai.system";
 export declare const GEN_AI_SYSTEM_VALUE_OPENAI: "openai";
@@ -189,10 +191,12 @@ git commit -am "chore: update OTel semconv to 1.40.0"
 ## Scope
 
 **Include (GenAI focus for now):**
+
 - `gen_ai.*` attributes
 - `gen_ai.*` enum values
 
 **Exclude (add later if needed):**
+
 - `http.*`, `db.*`, `rpc.*` etc.
 - Can be extended by adding more patterns to parser
 

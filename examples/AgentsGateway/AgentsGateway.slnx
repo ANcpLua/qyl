@@ -1,18 +1,18 @@
 <Solution>
-  <Configurations>
-    <Platform Name="Any CPU" />
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
-  <Folder Name="/src/">
-    <Project Path="src/AgentGateway/AgentsGateway.csproj" />
-  </Folder>
-  <Folder Name="/test/">
-    <Project Path="test/AgentGateway.Tests/AgentGateway.Tests.csproj" />
-  </Folder>
-  <Folder Name="/Solution Items/">
-    <File Path="README.md" />
-    <File Path="appsettings.json" />
-    <File Path=".gitignore" />
-  </Folder>
+    <Configurations>
+        <Platform Name="Any CPU"/>
+        <Platform Name="x64"/>
+        <Platform Name="x86"/>
+    </Configurations>
+    <Folder Name="/src/">
+        <Project Path="src/AgentGateway/AgentsGateway.csproj"/>
+    </Folder>
+    <Folder Name="/test/">
+        <Project Path="test/AgentGateway.Tests/AgentGateway.Tests.csproj"/>
+    </Folder>
+    <Folder Name="/Solution Items/">
+        <File Path="README.md"/>
+        <File Path="appsettings.json"/>
+        <File Path=".gitignore"/>
+    </Folder>
 </Solution>

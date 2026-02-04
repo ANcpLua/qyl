@@ -1,24 +1,28 @@
 namespace qyl.Analyzers.CodeFixes.CodeFixes;
 
 /// <summary>
-/// Base class for all qyl code fix providers.
+///     Base class for all qyl code fix providers.
 /// </summary>
 /// <typeparam name="TNode">The syntax node type this code fix operates on.</typeparam>
-public abstract partial class QylCodeFixProvider<TNode> : CodeFixProvider where TNode : CSharpSyntaxNode {
+public abstract partial class QylCodeFixProvider<TNode> : CodeFixProvider where TNode : CSharpSyntaxNode
+{
     /// <summary>Gets the FixAll provider for batch fixing.</summary>
     public sealed override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
     /// <summary>Registers code fixes for the given context.</summary>
-    public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context) {
+    public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
         var diagnostic = context.Diagnostics.First(d => FixableDiagnosticIds.Contains(d.Id));
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
 
-        if (root?.FindNode(diagnostic.Location.SourceSpan) is not TNode declaration) {
+        if (root?.FindNode(diagnostic.Location.SourceSpan) is not TNode declaration)
+        {
             return;
         }
 
         var action = CreateCodeAction(context.Document, declaration, root, diagnostic);
-        if (action is not null) {
+        if (action is not null)
+        {
             context.RegisterCodeFix(action, diagnostic);
         }
     }

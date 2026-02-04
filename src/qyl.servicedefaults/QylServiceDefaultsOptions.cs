@@ -16,7 +16,7 @@ public sealed class QylServiceDefaultsOptions
 
     /// <summary>
     ///     Gets or sets a value indicating whether to validate dependency injection containers on startup.
-    ///     <value>The default value is <see langword="true"/>.</value>
+    ///     <value>The default value is <see langword="true" />.</value>
     /// </summary>
     public bool ValidateDependencyContainersOnStartup { get; set; } = true;
 
@@ -36,7 +36,7 @@ public sealed class QylServiceDefaultsOptions
     public OpenTelemetryConfiguration OpenTelemetry { get; } = new();
 
     /// <summary>
-    ///     Gets or sets a delegate to configure <see cref="JsonSerializerOptions"/>.
+    ///     Gets or sets a delegate to configure <see cref="JsonSerializerOptions" />.
     ///     <para>
     ///         These options are applied to both minimal APIs and controller-based APIs.
     ///     </para>
@@ -70,7 +70,7 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets a value indicating whether Anti-Forgery services and middleware are enabled.
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool Enabled { get; set; } = true;
     }
@@ -82,7 +82,7 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets a value indicating whether the developer logging endpoint is enabled.
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool Enabled { get; set; } = true;
 
@@ -94,7 +94,7 @@ public sealed class QylServiceDefaultsOptions
 
         /// <summary>
         ///     Gets or sets a value indicating whether the logging endpoint is enabled in production environments.
-        ///     <value>The default value is <see langword="false"/>.</value>
+        ///     <value>The default value is <see langword="false" />.</value>
         /// </summary>
         public bool EnableInProduction { get; set; }
     }
@@ -106,7 +106,11 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets the forwarded headers to process.
-        ///     <value>The default is <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor"/> | <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto"/> | <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost"/>.</value>
+        ///     <value>
+        ///         The default is <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor" /> |
+        ///         <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto" /> |
+        ///         <see cref="Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedHost" />.
+        ///     </value>
         /// </summary>
         public ForwardedHeaders ForwardedHeaders { get; set; } =
             ForwardedHeaders.XForwardedFor |
@@ -121,7 +125,7 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets a value indicating whether HTTPS redirection is enabled.
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool Enabled { get; set; } = true;
 
@@ -130,7 +134,7 @@ public sealed class QylServiceDefaultsOptions
         ///     <para>
         ///         HSTS is only enabled in non-development environments.
         ///     </para>
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool HstsEnabled { get; set; } = true;
     }
@@ -142,12 +146,12 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets a value indicating whether OpenAPI support is enabled.
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool Enabled { get; set; } = true;
 
         /// <summary>
-        ///     Gets or sets a delegate to configure <see cref="OpenApiOptions"/>.
+        ///     Gets or sets a delegate to configure <see cref="OpenApiOptions" />.
         /// </summary>
         public Action<OpenApiOptions>? ConfigureOpenApi { get; set; }
 
@@ -187,7 +191,7 @@ public sealed class QylServiceDefaultsOptions
     {
         /// <summary>
         ///     Gets or sets a value indicating whether static assets should be served.
-        ///     <value>The default value is <see langword="true"/>.</value>
+        ///     <value>The default value is <see langword="true" />.</value>
         /// </summary>
         public bool Enabled { get; set; } = true;
     }

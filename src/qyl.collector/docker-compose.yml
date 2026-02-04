@@ -1,10 +1,4 @@
-# qyl.collector - Standalone Docker Compose
-# For local development without full stack
-#
-# Usage:
-#   cd src/qyl.collector
-#   docker compose up -d
-
+# qyl.collector - Standalone Docker Compose (Optimized)
 services:
   qyl-collector:
     build:
@@ -14,22 +8,19 @@ services:
     ports:
       - "5100:5100"    # REST API + SSE + Dashboard
       - "4317:4317"    # OTLP gRPC
-      - "4318:4318"    # OTLP HTTP
     volumes:
       - qyl-data:/data
     environment:
       - QYL_PORT=5100
+      - QYL_GRPC_PORT=4317  # Enable gRPC locally
       - QYL_DATA_PATH=/data/qyl.duckdb
-      - ASPNETCORE_URLS=http://+:5100
-      # Uncomment for fixed auth token:
-      # - QYL_TOKEN=your-secret-token
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5100/health" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:5100/health" ]
+      interval: 5s       # Faster detection
+      timeout: 3s        # Quicker timeout
+      retries: 5
+      start_period: 5s   # Faster startup check
 
 volumes:
   qyl-data:

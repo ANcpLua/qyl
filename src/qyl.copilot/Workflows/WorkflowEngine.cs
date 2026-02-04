@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using qyl.copilot.Adapters;
 using qyl.copilot.Instrumentation;
@@ -19,12 +18,16 @@ namespace qyl.copilot.Workflows;
 public sealed class WorkflowEngine : IAsyncDisposable
 {
     private readonly QylCopilotAdapter _adapter;
-    private readonly string _workflowsDirectory;
+
+    private readonly SemaphoreSlim _discoverLock = new(1, 1);
+
+    private readonly ConcurrentDictionary<string, WorkflowExecution>
+        _executions = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly Lock _executionsLock = new();
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, CopilotWorkflow> _workflows = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ConcurrentDictionary<string, WorkflowExecution> _executions = new(StringComparer.OrdinalIgnoreCase);
-    private readonly SemaphoreSlim _discoverLock = new(1, 1);
-    private readonly Lock _executionsLock = new();
+    private readonly string _workflowsDirectory;
     private bool _disposed;
 
     /// <summary>
@@ -41,6 +44,16 @@ public sealed class WorkflowEngine : IAsyncDisposable
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
         _workflowsDirectory = workflowsDirectory ?? WorkflowParser.GetDefaultWorkflowsDirectory();
         _timeProvider = timeProvider ?? TimeProvider.System;
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _discoverLock.Dispose();
+        await _adapter.DisposeAsync().ConfigureAwait(false);
     }
 
     /// <summary>
@@ -120,7 +133,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         }
 
         await foreach (var update in ExecuteWorkflowAsync(workflow, parameters, additionalContext, ct)
-            .ConfigureAwait(false))
+                           .ConfigureAwait(false))
         {
             yield return update;
         }
@@ -145,6 +158,13 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         var executionId = Guid.NewGuid().ToString("N");
         var startTime = _timeProvider.GetUtcNow();
+        var triggerName = workflow.Trigger.ToString().ToLowerInvariant();
+
+        // Start OTel span for workflow execution
+        using var activity = CopilotInstrumentation.StartWorkflowSpan(
+            workflow.Name,
+            executionId,
+            triggerName);
 
         // Create and track execution
         var execution = new WorkflowExecution
@@ -153,31 +173,28 @@ public sealed class WorkflowEngine : IAsyncDisposable
             WorkflowName = workflow.Name,
             Status = WorkflowStatus.Running,
             StartedAt = startTime,
-            Parameters = parameters
+            Parameters = parameters,
+            TraceId = activity?.TraceId.ToString()
         };
 
         _executions[executionId] = execution;
 
-        var context = new CopilotContext
-        {
-            Parameters = parameters,
-            AdditionalContext = additionalContext
-        };
+        var context = new CopilotContext { Parameters = parameters, AdditionalContext = additionalContext };
 
         long totalInputTokens = 0;
         long totalOutputTokens = 0;
-        var resultBuilder = new System.Text.StringBuilder();
+        var resultBuilder = new StringBuilder();
         var success = false;
         string? error = null;
         var collectedUpdates = new List<StreamUpdate>();
 
         // Record qyl-specific workflow start metric
-        // SDK handles gen_ai.* metrics via UseOpenTelemetry()
-        CopilotInstrumentation.WorkflowExecutions.Add(1, new TagList
-        {
-            { "qyl.workflow.name", workflow.Name },
-            { "qyl.workflow.trigger", workflow.Trigger.ToString().ToLowerInvariant() }
-        });
+        CopilotInstrumentation.WorkflowExecutions.Add(1,
+            new TagList
+            {
+                { CopilotInstrumentation.AttrWorkflowName, workflow.Name },
+                { CopilotInstrumentation.AttrWorkflowTrigger, triggerName }
+            });
 
         // Collect updates from adapter
         var enumerator = _adapter.ExecuteWorkflowAsync(workflow, context, ct).GetAsyncEnumerator(ct);
@@ -221,19 +238,16 @@ public sealed class WorkflowEngine : IAsyncDisposable
             error = "Workflow cancelled";
             collectedUpdates.Add(new StreamUpdate
             {
-                Kind = StreamUpdateKind.Error,
-                Error = error,
-                Timestamp = _timeProvider.GetUtcNow()
+                Kind = StreamUpdateKind.Error, Error = error, Timestamp = _timeProvider.GetUtcNow()
             });
         }
         catch (Exception ex)
         {
             error = ex.Message;
+            CopilotSpanRecorder.RecordError(activity, ex);
             collectedUpdates.Add(new StreamUpdate
             {
-                Kind = StreamUpdateKind.Error,
-                Error = error,
-                Timestamp = _timeProvider.GetUtcNow()
+                Kind = StreamUpdateKind.Error, Error = error, Timestamp = _timeProvider.GetUtcNow()
             });
         }
         finally
@@ -245,11 +259,14 @@ public sealed class WorkflowEngine : IAsyncDisposable
         var endTime = _timeProvider.GetUtcNow();
         var duration = (endTime - startTime).TotalSeconds;
 
+        var statusName = error is not null ? "failed" :
+            ct.IsCancellationRequested ? "cancelled" : "completed";
+
         var finalExecution = execution with
         {
             Status = error is not null ? WorkflowStatus.Failed :
-                ct.IsCancellationRequested ? WorkflowStatus.Cancelled :
-                WorkflowStatus.Completed,
+            ct.IsCancellationRequested ? WorkflowStatus.Cancelled :
+            WorkflowStatus.Completed,
             CompletedAt = endTime,
             Result = success ? resultBuilder.ToString() : null,
             Error = error,
@@ -259,13 +276,34 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         _executions[executionId] = finalExecution;
 
-        // Record qyl-specific workflow duration metric
-        // SDK handles gen_ai.client.operation.duration and gen_ai.client.token.usage
-        CopilotInstrumentation.WorkflowDuration.Record(duration, new TagList
+        // Record span attributes
+        CopilotSpanRecorder.RecordTokenUsage(activity, totalInputTokens, totalOutputTokens);
+        CopilotSpanRecorder.RecordWorkflowStatus(activity, statusName);
+
+        if (success)
         {
-            { "qyl.workflow.name", workflow.Name },
-            { "qyl.workflow.status", success ? "completed" : "failed" }
-        });
+            CopilotSpanRecorder.RecordSuccess(activity);
+        }
+        else if (error is not null && activity?.Status != ActivityStatusCode.Error)
+        {
+            CopilotSpanRecorder.RecordError(activity, error);
+        }
+
+        // Record qyl-specific workflow duration metric
+        CopilotInstrumentation.WorkflowDuration.Record(duration,
+            new TagList
+            {
+                { CopilotInstrumentation.AttrWorkflowName, workflow.Name },
+                { CopilotInstrumentation.AttrWorkflowStatus, statusName }
+            });
+
+        // Record OTel gen_ai operation duration metric
+        CopilotInstrumentation.OperationDuration.Record(duration,
+            new TagList
+            {
+                { CopilotInstrumentation.AttrGenAiSystem, CopilotInstrumentation.GenAiSystem },
+                { CopilotInstrumentation.AttrGenAiOperationName, CopilotInstrumentation.OperationWorkflow }
+            });
 
         // Now yield all collected updates outside try-catch
         foreach (var update in collectedUpdates)
@@ -324,18 +362,5 @@ public sealed class WorkflowEngine : IAsyncDisposable
         }
     }
 
-    /// <inheritdoc />
-    public async ValueTask DisposeAsync()
-    {
-        if (_disposed) return;
-        _disposed = true;
-
-        _discoverLock.Dispose();
-        await _adapter.DisposeAsync().ConfigureAwait(false);
-    }
-
-    private void ThrowIfDisposed()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-    }
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 }

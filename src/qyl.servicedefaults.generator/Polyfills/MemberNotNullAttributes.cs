@@ -12,9 +12,15 @@ namespace ANcpLua.NET.Sdk.Shared.Polyfills.NullabilityAttributes;
 [ExcludeFromCodeCoverage]
 internal sealed class MemberNotNullAttribute : Attribute
 {
-    public MemberNotNullAttribute(string member) => Members = [member];
+    public MemberNotNullAttribute(string member)
+    {
+        Members = [member];
+    }
 
-    public MemberNotNullAttribute(params string[] members) => Members = members;
+    public MemberNotNullAttribute(params string[] members)
+    {
+        Members = members;
+    }
 
     public string[] Members { get; }
 }

@@ -268,12 +268,9 @@ public sealed partial record SpanStorageRow
     // Core span fields
     public required string Name { get; init; }
     public required byte Kind { get; init; } // TINYINT - SpanKind enum
-    [DuckDbColumn(IsUBigInt = true)]
-    public required ulong StartTimeUnixNano { get; init; } // UBIGINT
-    [DuckDbColumn(IsUBigInt = true)]
-    public required ulong EndTimeUnixNano { get; init; } // UBIGINT
-    [DuckDbColumn(IsUBigInt = true)]
-    public required ulong DurationNs { get; init; } // UBIGINT - computed
+    [DuckDbColumn(IsUBigInt = true)] public required ulong StartTimeUnixNano { get; init; } // UBIGINT
+    [DuckDbColumn(IsUBigInt = true)] public required ulong EndTimeUnixNano { get; init; } // UBIGINT
+    [DuckDbColumn(IsUBigInt = true)] public required ulong DurationNs { get; init; } // UBIGINT - computed
     public required byte StatusCode { get; init; } // TINYINT - StatusCode enum
     public string? StatusMessage { get; init; }
 

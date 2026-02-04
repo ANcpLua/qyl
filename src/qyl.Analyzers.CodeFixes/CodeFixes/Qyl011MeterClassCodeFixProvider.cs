@@ -1,13 +1,12 @@
-using qyl.Analyzers.Core;
-
 namespace qyl.Analyzers.CodeFixes.CodeFixes;
 
 /// <summary>
-/// Code fix provider for QYL011: Adds 'partial static' modifiers to [Meter] class.
+///     Code fix provider for QYL011: Adds 'partial static' modifiers to [Meter] class.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(Qyl011MeterClassCodeFixProvider))]
 [Shared]
-public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
+public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider
+{
     /// <summary>Gets the diagnostic IDs this provider can fix.</summary>
     public override ImmutableArray<string> FixableDiagnosticIds => [DiagnosticIds.MeterClassMustBePartialStatic];
 
@@ -15,9 +14,11 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
     /// <summary>Registers code fixes for the given context.</summary>
-    public override async Task RegisterCodeFixesAsync(CodeFixContext context) {
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-        if (root is null) {
+        if (root is null)
+        {
             return;
         }
 
@@ -28,15 +29,16 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
         var node = root.FindToken(diagnosticSpan.Start).Parent;
         var classDeclaration = node?.AncestorsAndSelf().OfType<ClassDeclarationSyntax>().FirstOrDefault();
 
-        if (classDeclaration is null) {
+        if (classDeclaration is null)
+        {
             return;
         }
 
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: CodeFixResources.QYL011CodeFixTitle,
-                createChangedDocument: c => MakePartialStaticAsync(context.Document, classDeclaration, root, c),
-                equivalenceKey: nameof(Qyl011MeterClassCodeFixProvider)),
+                CodeFixResources.QYL011CodeFixTitle,
+                c => MakePartialStaticAsync(context.Document, classDeclaration, root, c),
+                nameof(Qyl011MeterClassCodeFixProvider)),
             diagnostic);
     }
 
@@ -44,7 +46,8 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
         Document document,
         ClassDeclarationSyntax classDeclaration,
         SyntaxNode root,
-        CancellationToken _) {
+        CancellationToken _)
+    {
         var modifiers = classDeclaration.Modifiers;
 
         // Check what modifiers we need to add
@@ -54,7 +57,8 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
         var newModifiers = modifiers;
 
         // Add static modifier if missing (before partial if partial exists, or at end)
-        if (!hasStatic) {
+        if (!hasStatic)
+        {
             var staticToken = SyntaxFactory.Token(SyntaxKind.StaticKeyword).WithTrailingTrivia(SyntaxFactory.Space);
 
             // Find position to insert: after access modifiers, before 'partial' or 'class'
@@ -63,7 +67,8 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
         }
 
         // Add partial modifier if missing (should be right before 'class')
-        if (!hasPartial) {
+        if (!hasPartial)
+        {
             var partialToken = SyntaxFactory.Token(SyntaxKind.PartialKeyword).WithTrailingTrivia(SyntaxFactory.Space);
             newModifiers = newModifiers.Add(partialToken);
         }
@@ -74,12 +79,15 @@ public sealed partial class Qyl011MeterClassCodeFixProvider : CodeFixProvider {
         return Task.FromResult(document.WithSyntaxRoot(newRoot));
     }
 
-    private static int GetStaticInsertIndex(SyntaxTokenList modifiers) {
+    private static int GetStaticInsertIndex(SyntaxTokenList modifiers)
+    {
         // Insert static after access modifiers (public, private, protected, internal)
-        for (var i = 0; i < modifiers.Count; i++) {
+        for (var i = 0; i < modifiers.Count; i++)
+        {
             var kind = modifiers[i].Kind();
             if (kind is not (SyntaxKind.PublicKeyword or SyntaxKind.PrivateKeyword or
-                SyntaxKind.ProtectedKeyword or SyntaxKind.InternalKeyword)) {
+                SyntaxKind.ProtectedKeyword or SyntaxKind.InternalKeyword))
+            {
                 return i;
             }
         }

@@ -5401,8 +5401,32 @@ public static class FaasTriggerValues
 /// </summary>
 public static class FeatureFlagEvaluationReasonValues
 {
+    /// <summary>cached</summary>
+    public const string Cached = "cached";
+
+    /// <summary>default</summary>
+    public const string Default = "default";
+
+    /// <summary>disabled</summary>
+    public const string Disabled = "disabled";
+
     /// <summary>error</summary>
     public const string Error = "error";
+
+    /// <summary>split</summary>
+    public const string Split = "split";
+
+    /// <summary>stale</summary>
+    public const string Stale = "stale";
+
+    /// <summary>static</summary>
+    public const string Static = "static";
+
+    /// <summary>targeting_match</summary>
+    public const string TargetingMatch = "targeting_match";
+
+    /// <summary>unknown</summary>
+    public const string Unknown = "unknown";
 
 }
 
@@ -5411,8 +5435,108 @@ public static class FeatureFlagEvaluationReasonValues
 /// </summary>
 public static class FeatureFlagResultReasonValues
 {
+    /// <summary>cached</summary>
+    public const string Cached = "cached";
+
+    /// <summary>default</summary>
+    public const string Default = "default";
+
+    /// <summary>disabled</summary>
+    public const string Disabled = "disabled";
+
     /// <summary>error</summary>
     public const string Error = "error";
+
+    /// <summary>split</summary>
+    public const string Split = "split";
+
+    /// <summary>stale</summary>
+    public const string Stale = "stale";
+
+    /// <summary>static</summary>
+    public const string Static = "static";
+
+    /// <summary>targeting_match</summary>
+    public const string TargetingMatch = "targeting_match";
+
+    /// <summary>unknown</summary>
+    public const string Unknown = "unknown";
+
+}
+
+/// <summary>
+/// Enum values for gen.ai.openai.request.response.format
+/// </summary>
+public static class GenAiOpenaiRequestResponseFormatValues
+{
+    /// <summary>json_object</summary>
+    public const string JsonObject = "json_object";
+
+    /// <summary>json_schema</summary>
+    public const string JsonSchema = "json_schema";
+
+    /// <summary>text</summary>
+    public const string Text = "text";
+
+}
+
+/// <summary>
+/// Enum values for gen.ai.openai.request.service.tier
+/// </summary>
+public static class GenAiOpenaiRequestServiceTierValues
+{
+    /// <summary>auto</summary>
+    public const string Auto = "auto";
+
+    /// <summary>default</summary>
+    public const string Default = "default";
+
+}
+
+/// <summary>
+/// Enum values for gen.ai.operation.name
+/// </summary>
+public static class GenAiOperationNameValues
+{
+    /// <summary>chat</summary>
+    public const string Chat = "chat";
+
+    /// <summary>create_agent</summary>
+    public const string CreateAgent = "create_agent";
+
+    /// <summary>embeddings</summary>
+    public const string Embeddings = "embeddings";
+
+    /// <summary>execute_tool</summary>
+    public const string ExecuteTool = "execute_tool";
+
+    /// <summary>generate_content</summary>
+    public const string GenerateContent = "generate_content";
+
+    /// <summary>invoke_agent</summary>
+    public const string InvokeAgent = "invoke_agent";
+
+    /// <summary>text_completion</summary>
+    public const string TextCompletion = "text_completion";
+
+}
+
+/// <summary>
+/// Enum values for gen.ai.output.type
+/// </summary>
+public static class GenAiOutputTypeValues
+{
+    /// <summary>image</summary>
+    public const string Image = "image";
+
+    /// <summary>json</summary>
+    public const string Json = "json";
+
+    /// <summary>speech</summary>
+    public const string Speech = "speech";
+
+    /// <summary>text</summary>
+    public const string Text = "text";
 
 }
 
@@ -5421,14 +5545,50 @@ public static class FeatureFlagResultReasonValues
 /// </summary>
 public static class GenAiProviderNameValues
 {
+    /// <summary>anthropic</summary>
+    public const string Anthropic = "anthropic";
+
+    /// <summary>aws.bedrock</summary>
+    public const string AwsBedrock = "aws.bedrock";
+
     /// <summary>azure.ai.inference</summary>
     public const string AzureAiInference = "azure.ai.inference";
 
     /// <summary>azure.ai.openai</summary>
     public const string AzureAiOpenai = "azure.ai.openai";
 
+    /// <summary>cohere</summary>
+    public const string Cohere = "cohere";
+
+    /// <summary>deepseek</summary>
+    public const string Deepseek = "deepseek";
+
+    /// <summary>gcp.gemini</summary>
+    public const string GcpGemini = "gcp.gemini";
+
+    /// <summary>gcp.gen_ai</summary>
+    public const string GcpGenAi = "gcp.gen_ai";
+
+    /// <summary>gcp.vertex_ai</summary>
+    public const string GcpVertexAi = "gcp.vertex_ai";
+
+    /// <summary>groq</summary>
+    public const string Groq = "groq";
+
+    /// <summary>ibm.watsonx.ai</summary>
+    public const string IbmWatsonxAi = "ibm.watsonx.ai";
+
+    /// <summary>mistral_ai</summary>
+    public const string MistralAi = "mistral_ai";
+
     /// <summary>openai</summary>
     public const string Openai = "openai";
+
+    /// <summary>perplexity</summary>
+    public const string Perplexity = "perplexity";
+
+    /// <summary>x_ai</summary>
+    public const string XAi = "x_ai";
 
 }
 
@@ -5437,14 +5597,78 @@ public static class GenAiProviderNameValues
 /// </summary>
 public static class GenAiSystemValues
 {
+    /// <summary>anthropic</summary>
+    public const string Anthropic = "anthropic";
+
+    /// <summary>aws.bedrock</summary>
+    public const string AwsBedrock = "aws.bedrock";
+
+    /// <summary>az.ai.inference</summary>
+    public const string AzAiInference = "az.ai.inference";
+
+    /// <summary>az.ai.openai</summary>
+    public const string AzAiOpenai = "az.ai.openai";
+
     /// <summary>azure.ai.inference</summary>
     public const string AzureAiInference = "azure.ai.inference";
 
     /// <summary>azure.ai.openai</summary>
     public const string AzureAiOpenai = "azure.ai.openai";
 
+    /// <summary>cohere</summary>
+    public const string Cohere = "cohere";
+
+    /// <summary>deepseek</summary>
+    public const string Deepseek = "deepseek";
+
+    /// <summary>gcp.gemini</summary>
+    public const string GcpGemini = "gcp.gemini";
+
+    /// <summary>gcp.gen_ai</summary>
+    public const string GcpGenAi = "gcp.gen_ai";
+
+    /// <summary>gcp.vertex_ai</summary>
+    public const string GcpVertexAi = "gcp.vertex_ai";
+
+    /// <summary>gemini</summary>
+    public const string Gemini = "gemini";
+
+    /// <summary>groq</summary>
+    public const string Groq = "groq";
+
+    /// <summary>ibm.watsonx.ai</summary>
+    public const string IbmWatsonxAi = "ibm.watsonx.ai";
+
+    /// <summary>mistral_ai</summary>
+    public const string MistralAi = "mistral_ai";
+
     /// <summary>openai</summary>
     public const string Openai = "openai";
+
+    /// <summary>perplexity</summary>
+    public const string Perplexity = "perplexity";
+
+    /// <summary>vertex_ai</summary>
+    public const string VertexAi = "vertex_ai";
+
+    /// <summary>xai</summary>
+    public const string Xai = "xai";
+
+}
+
+/// <summary>
+/// Enum values for gen.ai.token.type
+/// </summary>
+public static class GenAiTokenTypeValues
+{
+    /// <summary>input</summary>
+    public const string Input = "input";
+
+    /// <summary>output</summary>
+    public const string Completion = "output";
+
+    /// <summary>output</summary>
+    public const string Output = "output";
 
 }
 

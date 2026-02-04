@@ -17,7 +17,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl008InvalidMetricNameAnalyzer : QylAnalyzer {
+public sealed partial class Qyl008InvalidMetricNameAnalyzer : QylAnalyzer
+{
     private const string CounterAttributeFullName = "qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
 
@@ -49,35 +50,42 @@ public sealed partial class Qyl008InvalidMetricNameAnalyzer : QylAnalyzer {
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSymbolAction(AnalyzeMethod, SymbolKind.Method);
 
-    private static void AnalyzeMethod(SymbolAnalysisContext context) {
+    private static void AnalyzeMethod(SymbolAnalysisContext context)
+    {
         var method = (IMethodSymbol)context.Symbol;
 
         var counterType = context.Compilation.GetTypeByMetadataName(CounterAttributeFullName);
         var histogramType = context.Compilation.GetTypeByMetadataName(HistogramAttributeFullName);
 
-        foreach (var attribute in method.GetAttributes()) {
+        foreach (var attribute in method.GetAttributes())
+        {
             var isCounter = SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, counterType);
             var isHistogram = SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramType);
 
-            if (!isCounter && !isHistogram) {
+            if (!isCounter && !isHistogram)
+            {
                 continue;
             }
 
             // Get the metric name from constructor argument
             if (attribute.ConstructorArguments.Length == 0 ||
-                attribute.ConstructorArguments[0].Value is not string metricName) {
+                attribute.ConstructorArguments[0].Value is not string metricName)
+            {
                 continue;
             }
 
-            if (string.IsNullOrWhiteSpace(metricName)) {
+            if (string.IsNullOrWhiteSpace(metricName))
+            {
                 continue; // Empty names are caught by other analyzers
             }
 
-            if (!ValidNamePattern.IsMatch(metricName)) {
+            if (!ValidNamePattern.IsMatch(metricName))
+            {
                 var location = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken)
                     .GetLocation() ?? method.Locations.FirstOrDefault();
 
-                if (location is not null) {
+                if (location is not null)
+                {
                     context.ReportDiagnostic(Diagnostic.Create(
                         Rule,
                         location,

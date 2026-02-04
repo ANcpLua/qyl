@@ -4,33 +4,33 @@
 
 ## What qyl Does
 
-| | |
-|---|---|
-| **Collects** | OTLP receiver with idempotent ingestion (retry-safe) |
+|                 |                                                          |
+|-----------------|----------------------------------------------------------|
+| **Collects**    | OTLP receiver with idempotent ingestion (retry-safe)     |
 | **Instruments** | Roslyn source generators for zero-config GenAI telemetry |
-| **Visualizes** | Real-time dashboard with SSE streaming |
-| **Integrates** | MCP server for AI agent observability queries |
+| **Visualizes**  | Real-time dashboard with SSE streaming                   |
+| **Integrates**  | MCP server for AI agent observability queries            |
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Runtime | .NET 10.0 LTS, C# 14 |
-| Frontend | React 19, Vite 7, Tailwind CSS 4 |
-| Storage | DuckDB (columnar, upsert-based) |
+| Layer    | Technology                                    |
+|----------|-----------------------------------------------|
+| Runtime  | .NET 10.0 LTS, C# 14                          |
+| Frontend | React 19, Vite 7, Tailwind CSS 4              |
+| Storage  | DuckDB (columnar, upsert-based)               |
 | Protocol | OpenTelemetry 1.39 GenAI Semantic Conventions |
-| Schema | TypeSpec → OpenAPI → C#/DuckDB/TypeScript |
+| Schema   | TypeSpec → OpenAPI → C#/DuckDB/TypeScript     |
 
 ## Components
 
-| Package | Purpose |
-|---------|---------|
-| `qyl.collector` | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
-| `qyl.servicedefaults` | .NET instrumentation library with OTel setup |
-| `qyl.servicedefaults.generator` | Roslyn source generator for GenAI/DB interceptors |
-| `qyl.Analyzers` | Roslyn analyzers for OTel/GenAI best practices (15 rules) |
-| `qyl.mcp` | MCP server for AI agent integration |
-| `qyl.protocol` | Shared types (BCL-only, no dependencies) |
+| Package                         | Purpose                                                     |
+|---------------------------------|-------------------------------------------------------------|
+| `qyl.collector`                 | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
+| `qyl.servicedefaults`           | .NET instrumentation library with OTel setup                |
+| `qyl.servicedefaults.generator` | Roslyn source generator for GenAI/DB interceptors           |
+| `qyl.Analyzers`                 | Roslyn analyzers for OTel/GenAI best practices (15 rules)   |
+| `qyl.mcp`                       | MCP server for AI agent integration                         |
+| `qyl.protocol`                  | Shared types (BCL-only, no dependencies)                    |
 
 ## Quick Start
 
@@ -63,6 +63,7 @@ builder.AddQylServiceDefaults();
 ```
 
 This auto-instruments:
+
 - `IChatClient` calls (Microsoft.Extensions.AI)
 - Token usage, latency, model info
 - Full OTel 1.39 GenAI semantic conventions
@@ -84,6 +85,7 @@ export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
 ```
 
 Supported protocols:
+
 - OTLP/HTTP (port 5100)
 - OTLP/gRPC (port 4317)
 
@@ -113,22 +115,22 @@ Supported protocols:
 
 ## Ports
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | REST API, Dashboard, OTLP/HTTP |
-| 4317 | gRPC | OTLP/gRPC ingestion |
+| Port | Protocol | Purpose                        |
+|------|----------|--------------------------------|
+| 5100 | HTTP     | REST API, Dashboard, OTLP/HTTP |
+| 4317 | gRPC     | OTLP/gRPC ingestion            |
 
 ## GenAI Telemetry
 
 qyl captures OpenTelemetry 1.39 GenAI semantic conventions:
 
-| Attribute | Description |
-|-----------|-------------|
-| `gen_ai.system` | Provider (openai, anthropic, etc) |
-| `gen_ai.request.model` | Model name |
-| `gen_ai.usage.input_tokens` | Prompt tokens |
-| `gen_ai.usage.output_tokens` | Completion tokens |
-| `gen_ai.response.finish_reasons` | Stop reason |
+| Attribute                        | Description                       |
+|----------------------------------|-----------------------------------|
+| `gen_ai.system`                  | Provider (openai, anthropic, etc) |
+| `gen_ai.request.model`           | Model name                        |
+| `gen_ai.usage.input_tokens`      | Prompt tokens                     |
+| `gen_ai.usage.output_tokens`     | Completion tokens                 |
+| `gen_ai.response.finish_reasons` | Stop reason                       |
 
 ## TypeSpec-First Design
 
@@ -148,7 +150,8 @@ Never edit `*.g.cs` or `api.ts` — edit TypeSpec and regenerate.
 
 ## Idempotent Ingestion
 
-Spans use `ON CONFLICT (span_id) DO UPDATE` — SDKs can safely retry on network errors without creating duplicates. Mutable fields (tokens, status, cost) are updated; immutable fields (trace_id, name, start_time) are preserved.
+Spans use `ON CONFLICT (span_id) DO UPDATE` — SDKs can safely retry on network errors without creating duplicates.
+Mutable fields (tokens, status, cost) are updated; immutable fields (trace_id, name, start_time) are preserved.
 
 ## Development
 
@@ -190,15 +193,15 @@ tests/          # Test projects
 
 qyl includes 15 Roslyn analyzers for OpenTelemetry and GenAI best practices:
 
-| ID | Rule | Category |
-|----|------|----------|
-| QYL001-003 | OTel semantic conventions | OpenTelemetry |
-| QYL004-006 | GenAI span requirements | GenAI |
-| QYL007-008 | Metric registration/naming | Metrics |
-| QYL009-010 | ServiceDefaults config | Configuration |
-| QYL011-012 | Source generator requirements | Metrics |
-| QYL013 | Traced attribute validation | OpenTelemetry |
-| QYL014-015 | GenAI semconv/cardinality | GenAI/Metrics |
+| ID         | Rule                          | Category      |
+|------------|-------------------------------|---------------|
+| QYL001-003 | OTel semantic conventions     | OpenTelemetry |
+| QYL004-006 | GenAI span requirements       | GenAI         |
+| QYL007-008 | Metric registration/naming    | Metrics       |
+| QYL009-010 | ServiceDefaults config        | Configuration |
+| QYL011-012 | Source generator requirements | Metrics       |
+| QYL013     | Traced attribute validation   | OpenTelemetry |
+| QYL014-015 | GenAI semconv/cardinality     | GenAI/Metrics |
 
 ## License
 

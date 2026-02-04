@@ -11,6 +11,8 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
 {
     private DuckDbStore? _store;
 
+    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
+
     public async ValueTask InitializeAsync()
     {
         _store = DuckDbTestHelpers.CreateInMemoryStore();
@@ -21,8 +23,6 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     {
         return _store?.DisposeAsync() ?? ValueTask.CompletedTask;
     }
-
-    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
 
     #region Helper Methods
 
@@ -238,7 +238,8 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task GetTrace_ReturnsAllSpansInTraceOrderedByTime()
     {
         // Arrange
-        var batch = SpanFactory.CreateHierarchy(TestConstants.TraceHierarchy, TimeProvider.System.GetUtcNow().UtcDateTime);
+        var batch = SpanFactory.CreateHierarchy(TestConstants.TraceHierarchy,
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         // Act
         await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
@@ -477,7 +478,8 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
     public async Task GetGenAiStats_AggregatesTokensAndCosts()
     {
         // Arrange
-        var batch = SpanFactory.CreateGenAiStats(TestConstants.SessionStats, TimeProvider.System.GetUtcNow().UtcDateTime);
+        var batch = SpanFactory.CreateGenAiStats(TestConstants.SessionStats,
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, batch, TestConstants.LargeBatchProcessingDelayMs);
 
@@ -885,6 +887,54 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
         var retrieved = results[0];
         Assert.NotNull(retrieved.AttributesJson);
         Assert.Equal(expectedLength, retrieved.AttributesJson.Length);
+    }
+
+    #endregion
+
+    #region Clear Operations
+
+    [Fact]
+    public async Task ClearAllSpansAsync_RemovesAllSpans()
+    {
+        // Arrange
+        var spans = new[]
+        {
+            SpanBuilder.Create("trace-1", "span-1").WithSessionId("session-1").Build(),
+            SpanBuilder.Create("trace-2", "span-2").WithSessionId("session-2").Build(),
+            SpanBuilder.Create("trace-3", "span-3").WithSessionId("session-3").Build()
+        };
+        await DuckDbTestHelpers.EnqueueAndWaitAsync(Store, new SpanBatch(spans));
+
+        // Act
+        var deleted = await Store.ClearAllSpansAsync();
+
+        // Assert
+        Assert.Equal(3, deleted);
+        var stats = await Store.GetStorageStatsAsync();
+        Assert.Equal(0, stats.SpanCount);
+    }
+
+    [Fact]
+    public async Task ClearAllSpansAsync_WhenEmpty_ReturnsZero()
+    {
+        // Act
+        var deleted = await Store.ClearAllSpansAsync();
+
+        // Assert
+        Assert.Equal(0, deleted);
+    }
+
+    [Fact]
+    public async Task ClearAllTelemetryAsync_WhenEmpty_ReturnsZeroCounts()
+    {
+        // Act
+        var result = await Store.ClearAllTelemetryAsync();
+
+        // Assert
+        Assert.Equal(0, result.SpansDeleted);
+        Assert.Equal(0, result.LogsDeleted);
+        Assert.Equal(0, result.SessionsDeleted);
+        Assert.Equal(0, result.TotalDeleted);
     }
 
     #endregion

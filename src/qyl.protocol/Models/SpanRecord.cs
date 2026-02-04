@@ -12,8 +12,8 @@ using Qyl.OTel.Enums;
 namespace Qyl.Models;
 
 /// <summary>
-/// Span record for storage and query operations.
-/// Contains flattened fields for efficient database storage.
+///     Span record for storage and query operations.
+///     Contains flattened fields for efficient database storage.
 /// </summary>
 public sealed record SpanRecord
 {
@@ -81,11 +81,11 @@ public sealed record SpanRecord
 
     /// <summary>Input token count</summary>
     [JsonPropertyName("gen_ai_input_tokens")]
-    public int? GenAiInputTokens { get; init; }
+    public long? GenAiInputTokens { get; init; }
 
     /// <summary>Output token count</summary>
     [JsonPropertyName("gen_ai_output_tokens")]
-    public int? GenAiOutputTokens { get; init; }
+    public long? GenAiOutputTokens { get; init; }
 
     /// <summary>Temperature setting</summary>
     [JsonPropertyName("gen_ai_temperature")]
@@ -105,7 +105,7 @@ public sealed record SpanRecord
 
     /// <summary>Cost in USD</summary>
     [JsonPropertyName("gen_ai_cost_usd")]
-    public decimal? GenAiCostUsd { get; init; }
+    public double? GenAiCostUsd { get; init; }
 
     // === JSON Blobs ===
 

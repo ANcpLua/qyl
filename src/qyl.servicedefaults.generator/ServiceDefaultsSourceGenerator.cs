@@ -1,14 +1,14 @@
 using System.Collections.Immutable;
 using System.Text;
 using ANcpLua.Roslyn.Utilities;
-using Qyl.ServiceDefaults.Generator.Analyzers;
-using Qyl.ServiceDefaults.Generator.Emitters;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
+using Qyl.ServiceDefaults.Generator.Analyzers;
+using Qyl.ServiceDefaults.Generator.Emitters;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator;
 
@@ -37,8 +37,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Step 2: Discover Build() call sites eligible for interception
         var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: CouldBeInvocation,           // Fast syntactic pre-filter
-                transform: ExtractBuilderCallSite)      // Semantic analysis
+                CouldBeInvocation, // Fast syntactic pre-filter
+                ExtractBuilderCallSite) // Semantic analysis
             .WhereNotNull()
             .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered)
             .CollectAsEquatableArray()
@@ -60,8 +60,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var genAiCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
-                transform: GenAiCallSiteAnalyzer.ExtractCallSite)
+                GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
+                GenAiCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered)
             .CollectAsEquatableArray()
@@ -78,8 +78,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var dbCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: DbCallSiteAnalyzer.CouldBeDbInvocation,
-                transform: DbCallSiteAnalyzer.ExtractCallSite)
+                DbCallSiteAnalyzer.CouldBeDbInvocation,
+                DbCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.DbCallSitesDiscovered)
             .CollectAsEquatableArray()
@@ -96,8 +96,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var otelTagBindings = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: OTelTagAnalyzer.CouldHaveOTelAttribute,
-                transform: OTelTagAnalyzer.ExtractTagBinding)
+                OTelTagAnalyzer.CouldHaveOTelAttribute,
+                OTelTagAnalyzer.ExtractTagBinding)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.OTelTagBindingsDiscovered)
             .CollectAsEquatableArray()
@@ -114,8 +114,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var meterDefinitions = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: MeterAnalyzer.CouldBeMeterClass,
-                transform: MeterAnalyzer.ExtractDefinition)
+                MeterAnalyzer.CouldBeMeterClass,
+                MeterAnalyzer.ExtractDefinition)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered)
             .CollectAsEquatableArray()
@@ -132,8 +132,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         var tracedCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                predicate: TracedCallSiteAnalyzer.CouldBeTracedInvocation,
-                transform: TracedCallSiteAnalyzer.ExtractCallSite)
+                TracedCallSiteAnalyzer.CouldBeTracedInvocation,
+                TracedCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.TracedCallSitesDiscovered)
             .CollectAsEquatableArray()
@@ -153,15 +153,19 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Checks if the Qyl.ServiceDefaults runtime is referenced.
     ///     This is the prerequisite for most codegen operations.
     /// </summary>
-    private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _) =>
-        compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
+    private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _)
+    {
+        return compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
+    }
 
     /// <summary>
     ///     Checks if the GenAI instrumentation runtime is referenced.
     ///     GenAI interception can work independently of full service defaults.
     /// </summary>
-    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _) =>
-        compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
+    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _)
+    {
+        return compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
+    }
 
     // =========================================================================
     // SYNTACTIC PRE-FILTER
@@ -172,8 +176,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Fast syntactic check: could this node be a method invocation?
     ///     This casts a wide net; semantic analysis narrows it down.
     /// </summary>
-    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _) =>
-        node.IsKind(SyntaxKind.InvocationExpression);
+    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _)
+    {
+        return node.IsKind(SyntaxKind.InvocationExpression);
+    }
 
     // =========================================================================
     // BUILDER CALL SITE EXTRACTION
@@ -225,10 +231,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     private static InterceptableLocation? ExtractInterceptableLocation(
         GeneratorSyntaxContext context,
-        CancellationToken cancellationToken) =>
-        context.SemanticModel.GetInterceptableLocation(
+        CancellationToken cancellationToken)
+    {
+        return context.SemanticModel.GetInterceptableLocation(
             (InvocationExpressionSyntax)context.Node,
             cancellationToken);
+    }
 
 
     // =========================================================================

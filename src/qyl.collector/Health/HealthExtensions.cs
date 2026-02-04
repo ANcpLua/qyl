@@ -20,7 +20,7 @@ public static class HealthExtensions
                 "duckdb",
                 MsHealthStatus.Unhealthy,
                 ["db", "storage", "ready"])
-            .AddApplicationLifecycleHealthCheck(["live"]);
+            .AddApplicationLifecycleHealthCheck("live");
 
         // Resource monitoring only available on Linux (cgroups) and Windows
         // macOS has no ISnapshotProvider implementation
@@ -37,7 +37,7 @@ public static class HealthExtensions
                 {
                     DegradedUtilizationPercentage = 85, UnhealthyUtilizationPercentage = 95
                 };
-            }, ["resources", "live"]);
+            }, "resources", "live");
 
             // Container-aware resource monitoring (CPU/memory metrics)
             services.AddResourceMonitoring();

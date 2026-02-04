@@ -76,13 +76,22 @@ internal readonly struct Range : IEquatable<Range>
     }
 
     /// <inheritdoc />
-    public override bool Equals(object? obj) => obj is Range other && other.Start.Equals(Start) && other.End.Equals(End);
+    public override bool Equals(object? obj)
+    {
+        return obj is Range other && other.Start.Equals(Start) && other.End.Equals(End);
+    }
 
     /// <inheritdoc />
-    public bool Equals(Range other) => other.Start.Equals(Start) && other.End.Equals(End);
+    public bool Equals(Range other)
+    {
+        return other.Start.Equals(Start) && other.End.Equals(End);
+    }
 
     /// <inheritdoc />
-    public override int GetHashCode() => Start.GetHashCode() * 31 + End.GetHashCode();
+    public override int GetHashCode()
+    {
+        return Start.GetHashCode() * 31 + End.GetHashCode();
+    }
 
     /// <summary>
     ///     Returns the string representation of this range in C# syntax.
@@ -90,21 +99,30 @@ internal readonly struct Range : IEquatable<Range>
     /// <returns>
     ///     A string in the format <c>start..end</c> (e.g., "0..5", "^3..^1").
     /// </returns>
-    public override string ToString() => Start + ".." + End;
+    public override string ToString()
+    {
+        return Start + ".." + End;
+    }
 
     /// <summary>
     ///     Creates a range starting at the specified index and ending at the end of the collection.
     /// </summary>
     /// <param name="start">The inclusive start index.</param>
     /// <returns>A <c>Range</c> equivalent to <c>start..</c> in C# syntax.</returns>
-    public static Range StartAt(Index start) => new(start, Index.End);
+    public static Range StartAt(Index start)
+    {
+        return new Range(start, Index.End);
+    }
 
     /// <summary>
     ///     Creates a range starting at the beginning and ending at the specified index.
     /// </summary>
     /// <param name="end">The exclusive end index.</param>
     /// <returns>A <c>Range</c> equivalent to <c>..end</c> in C# syntax.</returns>
-    public static Range EndAt(Index end) => new(Index.Start, end);
+    public static Range EndAt(Index end)
+    {
+        return new Range(Index.Start, end);
+    }
 
     /// <summary>
     ///     Gets a range representing the entire collection.

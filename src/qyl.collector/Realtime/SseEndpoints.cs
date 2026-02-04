@@ -49,10 +49,7 @@ public static class SseEndpoints
         [EnumeratorCancellation] CancellationToken ct)
     {
         yield return new SseItem<TelemetryEventDto>(
-            new TelemetryEventDto("connected", new
-                {
-                    connectionId = Guid.NewGuid().ToString("N")[..8]
-                },
+            new TelemetryEventDto("connected", new { connectionId = Guid.NewGuid().ToString("N")[..8] },
                 TimeProvider.System.GetUtcNow()),
             "connected"
         );
@@ -67,10 +64,7 @@ public static class SseEndpoints
                     .ToList();
 
                 if (filteredSpans.Count is 0) continue;
-                messageToSend = message with
-                {
-                    Data = new SpanBatch(filteredSpans)
-                };
+                messageToSend = message with { Data = new SpanBatch(filteredSpans) };
             }
 
             var eventType = messageToSend.Signal switch

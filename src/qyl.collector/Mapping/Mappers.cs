@@ -1,19 +1,27 @@
 using qyl.collector.Core;
+using SpanKind = Qyl.OTel.Enums.SpanKind;
 
 namespace qyl.collector.Mapping;
 
 public static class SpanMapper
 {
-    public static SpanRecord ToRecord(SpanStorageRow row)
+    private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        return new SpanRecord
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private static readonly string[] SpanKindNames =
+        ["unspecified", "internal", "server", "client", "producer", "consumer"];
+
+    public static SpanRecord ToRecord(SpanStorageRow row) =>
+        new()
         {
             SpanId = new SpanId(row.SpanId),
             TraceId = new TraceId(row.TraceId),
             ParentSpanId = row.ParentSpanId is { } parentId ? new SpanId(parentId) : default(SpanId?),
             SessionId = row.SessionId is { } sessId ? new SessionId(sessId) : default(SessionId?),
             Name = row.Name,
-            Kind = (Qyl.OTel.Enums.SpanKind)row.Kind,
+            Kind = (SpanKind)row.Kind,
             StartTimeUnixNano = (long)row.StartTimeUnixNano,
             EndTimeUnixNano = (long)row.EndTimeUnixNano,
             DurationNs = (long)row.DurationNs,
@@ -29,20 +37,11 @@ public static class SpanMapper
             GenAiStopReason = row.GenAiStopReason,
             GenAiToolName = row.GenAiToolName,
             GenAiToolCallId = row.GenAiToolCallId,
-            GenAiCostUsd = (decimal?)row.GenAiCostUsd,
+            GenAiCostUsd = row.GenAiCostUsd,
             AttributesJson = row.AttributesJson,
             ResourceJson = row.ResourceJson,
             CreatedAt = row.CreatedAt ?? TimeProvider.System.GetUtcNow()
         };
-    }
-
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-    };
-
-    private static readonly string[] SpanKindNames =
-        ["unspecified", "internal", "server", "client", "producer", "consumer"];
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
@@ -271,10 +270,7 @@ public static class SessionMapper
         IEnumerable<SessionQueryRow> summaries,
         int total,
         bool hasMore) =>
-        new()
-        {
-            Sessions = ToDtos(summaries), Total = total, HasMore = hasMore
-        };
+        new() { Sessions = ToDtos(summaries), Total = total, HasMore = hasMore };
 
     private static List<string> ExtractProviders(SessionQueryRow summary)
     {

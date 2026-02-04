@@ -4,7 +4,6 @@
 // Extracts workflow definitions for execution
 // =============================================================================
 
-using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using qyl.protocol.Copilot;
@@ -53,12 +52,7 @@ public static partial class WorkflowParser
                 ? Path.GetFileNameWithoutExtension(filePath)
                 : "unnamed-workflow";
 
-            return new CopilotWorkflow
-            {
-                Name = name,
-                Instructions = content.Trim(),
-                FilePath = filePath
-            };
+            return new CopilotWorkflow { Name = name, Instructions = content.Trim(), FilePath = filePath };
         }
 
         var frontmatter = match.Groups[1].Value;
@@ -95,7 +89,11 @@ public static partial class WorkflowParser
         // Build metadata from remaining YAML keys
         var knownKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "name", "description", "tools", "trigger", "schedule"
+            "name",
+            "description",
+            "tools",
+            "trigger",
+            "schedule"
         };
 
         var metadata = yaml
@@ -158,7 +156,7 @@ public static partial class WorkflowParser
             catch (Exception ex)
             {
                 // Log but continue with other files
-                System.Diagnostics.Debug.WriteLine($"Failed to parse workflow {file}: {ex.Message}");
+                Debug.WriteLine($"Failed to parse workflow {file}: {ex.Message}");
             }
         }
 
@@ -284,7 +282,7 @@ public static partial class WorkflowParser
         {
             try
             {
-                return JsonSerializer.Deserialize<string[]>(value) ?? [];
+                return JsonSerializer.Deserialize(value, CopilotJsonContext.Default.StringArray) ?? [];
             }
             catch
             {

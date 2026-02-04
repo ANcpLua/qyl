@@ -1,20 +1,23 @@
 import {useCallback, useState} from 'react';
 import {Outlet, useNavigate, useOutletContext} from 'react-router-dom';
+import {useQueryClient} from '@tanstack/react-query';
 import {TooltipProvider} from '@/components/ui/tooltip';
 import {Sidebar} from './Sidebar';
 import {TopBar} from './TopBar';
-import {useLiveStream} from '@/hooks/use-telemetry';
-import {useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
-import type {SpanRecord} from '@/types';
+import {useLiveStream, telemetryKeys} from '@/hooks/use-telemetry';
+import {useNavigationShortcuts, useKeyboardShortcuts} from '@/hooks/use-keyboard-shortcuts';
+import {KeyboardShortcutsModal} from '@/components/KeyboardShortcutsModal';
+import type {Span} from '@/types';
 
 export function DashboardLayout() {
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [isLive, setIsLive] = useState(true);
     const [timeRange, setTimeRange] = useState('15m');
 
     // Live stream
-    const {isConnected, recentSpans, reconnect} = useLiveStream({
+    const {isConnected, recentSpans, reconnect, clearSpans} = useLiveStream({
         enabled: isLive,
         onConnect: () => console.log('[QYL] SSE stream connected'),
         onDisconnect: () => console.log('[QYL] SSE stream disconnected'),
@@ -22,11 +25,14 @@ export function DashboardLayout() {
 
     // Keyboard shortcuts
     useNavigationShortcuts(navigate);
+    const {isModalOpen, setModalOpen} = useKeyboardShortcuts();
 
     const handleRefresh = useCallback(() => {
-        // Dispatch refresh event for pages to handle
+        // Invalidate all telemetry queries and dispatch refresh event
+        queryClient.invalidateQueries({queryKey: telemetryKeys.all});
+        clearSpans();
         window.dispatchEvent(new CustomEvent('qyl:refresh'));
-    }, []);
+    }, [queryClient, clearSpans]);
 
     const handleLiveToggle = useCallback(() => {
         setIsLive((prev) => !prev);
@@ -55,6 +61,12 @@ export function DashboardLayout() {
                     </main>
                 </div>
             </div>
+
+            {/* Keyboard Shortcuts Help Modal */}
+            <KeyboardShortcutsModal
+                open={isModalOpen}
+                onOpenChange={setModalOpen}
+            />
         </TooltipProvider>
     );
 }
@@ -63,7 +75,7 @@ export function DashboardLayout() {
 interface DashboardContext {
     isLive: boolean;
     timeRange: string;
-    recentSpans: SpanRecord[];
+    recentSpans: Span[];
     reconnect: () => void;
 }
 

@@ -19,10 +19,32 @@ function getShortcutKey(e: KeyboardEvent): string {
     return parts.join('+');
 }
 
+// Global state for modal - shared across hook instances
+let globalModalOpen = false;
+const modalListeners = new Set<(open: boolean) => void>();
+
+function setGlobalModalOpen(open: boolean) {
+    globalModalOpen = open;
+    modalListeners.forEach((listener) => listener(open));
+}
+
 export function useKeyboardShortcuts() {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(globalModalOpen);
     // Use ref instead of module-level Map to avoid memory leaks with HMR/StrictMode
     const shortcutsRef = useRef<Map<string, ShortcutHandler>>(new Map());
+
+    // Subscribe to global modal state
+    useEffect(() => {
+        const listener = (open: boolean) => setIsModalOpen(open);
+        modalListeners.add(listener);
+        return () => {
+            modalListeners.delete(listener);
+        };
+    }, []);
+
+    const setModalOpen = useCallback((open: boolean) => {
+        setGlobalModalOpen(open);
+    }, []);
 
     const registerShortcut = useCallback((shortcut: ShortcutHandler) => {
         const key = [
@@ -55,10 +77,10 @@ export function useKeyboardShortcuts() {
                 return;
             }
 
-            // Show shortcut help with ?
-            if (e.key === '?' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            // Show shortcut help with ? (Shift + /)
+            if (e.key === '?' || (e.key === '/' && e.shiftKey)) {
                 e.preventDefault();
-                setIsModalOpen((prev) => !prev);
+                setGlobalModalOpen(!globalModalOpen);
                 return;
             }
 
@@ -78,47 +100,56 @@ export function useKeyboardShortcuts() {
     return {
         registerShortcut,
         isModalOpen,
-        setIsModalOpen,
+        setModalOpen,
         shortcuts: Array.from(shortcutsRef.current.values()),
     };
 }
 
-// Common navigation shortcuts hook
+// Navigation shortcuts aligned with Aspire Dashboard pattern
+// R = Resources, C = Console/Logs, S = Structured logs (same as logs for now)
+// T = Traces, M = Metrics/GenAI
 export function useNavigationShortcuts(navigate: (path: string) => void) {
     const {registerShortcut} = useKeyboardShortcuts();
 
     useEffect(() => {
         const unsubscribes = [
+            // R = Resources (home page)
             registerShortcut({
-                key: 'g',
+                key: 'r',
                 description: 'Go to Resources',
                 handler: () => navigate('/'),
             }),
+            // T = Traces
             registerShortcut({
                 key: 't',
                 description: 'Go to Traces',
                 handler: () => navigate('/traces'),
             }),
+            // C = Console / Logs
             registerShortcut({
-                key: 'l',
-                description: 'Go to Logs',
+                key: 'c',
+                description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
+            // S = Structured logs (alias for logs)
+            registerShortcut({
+                key: 's',
+                description: 'Go to Structured logs',
+                handler: () => navigate('/logs'),
+            }),
+            // M = Metrics / GenAI
             registerShortcut({
                 key: 'm',
-                description: 'Go to Metrics',
-                handler: () => navigate('/metrics'),
-            }),
-            registerShortcut({
-                key: 'a',
-                description: 'Go to GenAI',
+                description: 'Go to Metrics / GenAI',
                 handler: () => navigate('/genai'),
             }),
+            // , = Settings (common convention)
             registerShortcut({
                 key: ',',
                 description: 'Open Settings',
                 handler: () => navigate('/settings'),
             }),
+            // Ctrl+/ = Focus search
             registerShortcut({
                 key: '/',
                 ctrl: true,
@@ -130,10 +161,16 @@ export function useNavigationShortcuts(navigate: (path: string) => void) {
                     searchInput?.focus();
                 },
             }),
+            // Escape = Close panel / Clear selection
             registerShortcut({
                 key: 'escape',
                 description: 'Close panel / Clear selection',
                 handler: () => {
+                    // Close modal if open
+                    if (globalModalOpen) {
+                        setGlobalModalOpen(false);
+                        return;
+                    }
                     // Dispatch custom event for panels to handle
                     window.dispatchEvent(new CustomEvent('qyl:escape'));
                 },

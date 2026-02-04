@@ -26,7 +26,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer {
+public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
+{
     private const string TagAttributeFullName = "qyl.ServiceDefaults.Instrumentation.TagAttribute";
     private const string CounterAttributeFullName = "qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
@@ -34,7 +35,8 @@ public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
     /// <summary>
     ///     Known high-cardinality tag patterns that should be avoided on metrics.
     /// </summary>
-    private static readonly string[] HighCardinalityPatterns = [
+    private static readonly string[] HighCardinalityPatterns =
+    [
         "user.id",
         "user_id",
         "userId",
@@ -103,37 +105,44 @@ public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSyntaxNodeAction(AnalyzeParameter, SyntaxKind.Parameter);
 
-    private static void AnalyzeParameter(SyntaxNodeAnalysisContext context) {
+    private static void AnalyzeParameter(SyntaxNodeAnalysisContext context)
+    {
         var parameter = (ParameterSyntax)context.Node;
 
         // Quick check: skip if no attributes
-        if (parameter.AttributeLists.Count == 0) {
+        if (parameter.AttributeLists.Count == 0)
+        {
             return;
         }
 
         // Get parameter symbol
         var parameterSymbol = context.SemanticModel.GetDeclaredSymbol(parameter, context.CancellationToken);
-        if (parameterSymbol is null) {
+        if (parameterSymbol is null)
+        {
             return;
         }
 
         // Check if this parameter is in a metric method
-        if (parameterSymbol.ContainingSymbol is not IMethodSymbol methodSymbol) {
+        if (parameterSymbol.ContainingSymbol is not IMethodSymbol methodSymbol)
+        {
             return;
         }
 
-        if (!IsMetricMethod(methodSymbol, context.SemanticModel.Compilation)) {
+        if (!IsMetricMethod(methodSymbol, context.SemanticModel.Compilation))
+        {
             return;
         }
 
         // Check if parameter has [Tag] attribute with high-cardinality name
         var tagName = GetTagName(parameterSymbol, context.SemanticModel.Compilation);
-        if (tagName is null) {
+        if (tagName is null)
+        {
             return;
         }
 
         // Check if tag name matches high-cardinality patterns
-        if (IsHighCardinalityTag(tagName)) {
+        if (IsHighCardinalityTag(tagName))
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 parameter.GetLocation(),
@@ -141,18 +150,22 @@ public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
         }
     }
 
-    private static bool IsMetricMethod(IMethodSymbol methodSymbol, Compilation compilation) {
+    private static bool IsMetricMethod(IMethodSymbol methodSymbol, Compilation compilation)
+    {
         var counterAttributeType = compilation.GetTypeByMetadataName(CounterAttributeFullName);
         var histogramAttributeType = compilation.GetTypeByMetadataName(HistogramAttributeFullName);
 
-        foreach (var attribute in methodSymbol.GetAttributes()) {
+        foreach (var attribute in methodSymbol.GetAttributes())
+        {
             if (counterAttributeType is not null &&
-                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, counterAttributeType)) {
+                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, counterAttributeType))
+            {
                 return true;
             }
 
             if (histogramAttributeType is not null &&
-                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramAttributeType)) {
+                SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, histogramAttributeType))
+            {
                 return true;
             }
         }
@@ -160,20 +173,25 @@ public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
         return false;
     }
 
-    private static string? GetTagName(IParameterSymbol parameterSymbol, Compilation compilation) {
+    private static string? GetTagName(IParameterSymbol parameterSymbol, Compilation compilation)
+    {
         var tagAttributeType = compilation.GetTypeByMetadataName(TagAttributeFullName);
-        if (tagAttributeType is null) {
+        if (tagAttributeType is null)
+        {
             return null;
         }
 
-        foreach (var attribute in parameterSymbol.GetAttributes()) {
-            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tagAttributeType)) {
+        foreach (var attribute in parameterSymbol.GetAttributes())
+        {
+            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tagAttributeType))
+            {
                 continue;
             }
 
             // Get tag name from constructor argument
             if (attribute.ConstructorArguments.Length > 0 &&
-                attribute.ConstructorArguments[0].Value is string tagName) {
+                attribute.ConstructorArguments[0].Value is string tagName)
+            {
                 return tagName;
             }
         }
@@ -181,22 +199,41 @@ public sealed partial class Qyl015HighCardinalityMetricTagAnalyzer : QylAnalyzer
         return null;
     }
 
-    private static bool IsHighCardinalityTag(string tagName) {
-        foreach (var pattern in HighCardinalityPatterns) {
-            // Exact match (case insensitive)
-            if (string.Equals(tagName, pattern, StringComparison.OrdinalIgnoreCase)) {
+    private static bool IsHighCardinalityTag(string tagName)
+    {
+        // Normalize tag name for comparison (uppercase for culture-safe comparison)
+        var normalizedTag = tagName.ToUpperInvariant();
+
+        foreach (var pattern in HighCardinalityPatterns)
+        {
+            var normalizedPattern = pattern.ToUpperInvariant();
+
+            // Exact match
+            if (normalizedTag == normalizedPattern)
+            {
                 return true;
             }
 
-            // Contains pattern (e.g., "my.user.id" contains "user.id")
-            if (tagName.Contains(pattern, StringComparison.OrdinalIgnoreCase)) {
+            // Check if tag ends with pattern (e.g., "my.user.id" ends with "user.id")
+            // This is more precise than Contains to avoid false positives like "user.type"
+            if (normalizedTag.EndsWith("." + normalizedPattern, StringComparison.Ordinal) ||
+                normalizedTag.EndsWith("_" + normalizedPattern.Replace(".", "_", StringComparison.Ordinal), StringComparison.Ordinal))
+            {
                 return true;
             }
 
-            // Ends with pattern (e.g., "custom_user_id" ends with "user_id")
-            var snakePattern = pattern.Replace(".", "_", StringComparison.Ordinal);
-            if (tagName.EndsWith(snakePattern, StringComparison.OrdinalIgnoreCase)) {
-                return true;
+            // For single-word patterns (email, ip, url, etc.), also check if it's a segment
+            // e.g., "client.email" should match "email" pattern
+            if (!normalizedPattern.Contains('.', StringComparison.Ordinal) &&
+                !normalizedPattern.Contains('_', StringComparison.Ordinal))
+            {
+                // Check if it's the last segment after a separator
+                if (normalizedTag.EndsWith("." + normalizedPattern, StringComparison.Ordinal) ||
+                    normalizedTag.EndsWith("_" + normalizedPattern, StringComparison.Ordinal) ||
+                    normalizedTag == normalizedPattern)
+                {
+                    return true;
+                }
             }
         }
 

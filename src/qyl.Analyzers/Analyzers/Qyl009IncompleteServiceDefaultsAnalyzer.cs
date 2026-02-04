@@ -16,7 +16,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyzer {
+public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyzer
+{
     private static readonly string[] TracingMethods = ["AddOpenTelemetry", "WithTracing", "AddTracing"];
     private static readonly string[] MetricsMethods = ["AddOpenTelemetry", "WithMetrics", "AddMetrics"];
     private static readonly string[] LoggingMethods = ["AddOpenTelemetry", "WithLogging", "AddLogging"];
@@ -43,26 +44,31 @@ public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyze
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
 
-    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context) {
+    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
+    {
         var invocation = (InvocationExpressionSyntax)context.Node;
 
         // Look for ConfigureOpenTelemetry or AddServiceDefaults calls
         var methodName = GetMethodName(invocation);
-        if (methodName is not ("ConfigureOpenTelemetry" or "AddServiceDefaults" or "AddOpenTelemetry")) {
+        if (methodName is not ("ConfigureOpenTelemetry" or "AddServiceDefaults" or "AddOpenTelemetry"))
+        {
             return;
         }
 
         // Check if this is in a method body (likely configuration code)
         var containingMethod = invocation.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-        if (containingMethod is null) {
+        if (containingMethod is null)
+        {
             return;
         }
 
         // Collect all method invocations in the same method
         var allInvocations = new HashSet<string>();
-        foreach (var inv in containingMethod.DescendantNodes().OfType<InvocationExpressionSyntax>()) {
+        foreach (var inv in containingMethod.DescendantNodes().OfType<InvocationExpressionSyntax>())
+        {
             var name = GetMethodName(inv);
-            if (name is not null) {
+            if (name is not null)
+            {
                 allInvocations.Add(name);
             }
         }
@@ -73,7 +79,8 @@ public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyze
         var hasLogging = LoggingMethods.Any(allInvocations.Contains);
 
         // Report missing components
-        if (!hasTracing) {
+        if (!hasTracing)
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 invocation.GetLocation(),
@@ -81,7 +88,8 @@ public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyze
                 "WithTracing() or AddTracing()"));
         }
 
-        if (!hasMetrics) {
+        if (!hasMetrics)
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 invocation.GetLocation(),
@@ -93,7 +101,8 @@ public sealed partial class Qyl009IncompleteServiceDefaultsAnalyzer : QylAnalyze
     }
 
     private static string? GetMethodName(InvocationExpressionSyntax invocation) =>
-        invocation.Expression switch {
+        invocation.Expression switch
+        {
             MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
             IdentifierNameSyntax identifier => identifier.Identifier.Text,
             _ => null

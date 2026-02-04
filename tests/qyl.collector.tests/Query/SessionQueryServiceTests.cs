@@ -12,6 +12,11 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
     private SessionQueryService? _queryService;
     private DuckDbStore? _store;
 
+    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
+
+    private SessionQueryService QueryService =>
+        _queryService ?? throw new InvalidOperationException("QueryService not initialized");
+
     public async ValueTask InitializeAsync()
     {
         _store = DuckDbTestHelpers.CreateInMemoryStore();
@@ -19,10 +24,10 @@ public sealed class SessionQueryServiceTests : IAsyncLifetime
         _queryService = new SessionQueryService(_store);
     }
 
-    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
-
-    private DuckDbStore Store => _store ?? throw new InvalidOperationException("Store not initialized");
-    private SessionQueryService QueryService => _queryService ?? throw new InvalidOperationException("QueryService not initialized");
+    public ValueTask DisposeAsync()
+    {
+        return _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 
     #region GetSessionsAsync Tests
 

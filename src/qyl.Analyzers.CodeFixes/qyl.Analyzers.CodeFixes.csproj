@@ -1,49 +1,50 @@
 <Project Sdk="ANcpLua.NET.Sdk">
-    <!-- =======================================================================
-         qyl.Analyzers.CodeFixes - Code Fix Providers
-         Target: netstandard2.0 (required for Roslyn code fixes)
-         ======================================================================= -->
+  <!-- =======================================================================
+       qyl.Analyzers.CodeFixes - Code Fix Providers
+       Target: netstandard2.0 (required for Roslyn code fixes)
+       ======================================================================= -->
 
-    <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
-        <RootNamespace>qyl.Analyzers.CodeFixes</RootNamespace>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>qyl.Analyzers.CodeFixes</RootNamespace>
 
-        <!-- Not packaged separately - bundled with qyl.Analyzers -->
-        <PackageId>Dummy.CodeFixes</PackageId>
-        <IsPackable>false</IsPackable>
+    <!-- Not packaged separately - bundled with qyl.Analyzers -->
+    <PackageId>Dummy.CodeFixes</PackageId>
+    <IsPackable>false</IsPackable>
 
-        <!-- Roslyn settings -->
-        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
-        <NeutralLanguage>en</NeutralLanguage>
+    <!-- Roslyn settings -->
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <NeutralLanguage>en</NeutralLanguage>
 
-        <!-- Suppress specific warnings -->
-        <NoWarn>$(NoWarn);RS0030;CA1849;CA2249;CS1591</NoWarn>
-    </PropertyGroup>
+    <!-- Suppress specific warnings -->
+    <NoWarn>$(NoWarn);RS0030;CA1849;CA2249;CS1591</NoWarn>
+  </PropertyGroup>
 
-    <!-- Global usings for code fixes -->
-    <ItemGroup>
-        <Using Include="Microsoft.CodeAnalysis"/>
-        <Using Include="Microsoft.CodeAnalysis.CSharp"/>
-        <Using Include="Microsoft.CodeAnalysis.CSharp.Syntax"/>
-        <Using Include="Microsoft.CodeAnalysis.CodeFixes"/>
-        <Using Include="Microsoft.CodeAnalysis.CodeActions"/>
-        <Using Include="System.Collections.Immutable"/>
-        <Using Include="System.Composition"/>
-    </ItemGroup>
+  <!-- Global usings for code fixes -->
+  <ItemGroup>
+    <Using Include="Microsoft.CodeAnalysis"/>
+    <Using Include="Microsoft.CodeAnalysis.CSharp"/>
+    <Using Include="Microsoft.CodeAnalysis.CSharp.Syntax"/>
+    <Using Include="Microsoft.CodeAnalysis.CodeFixes"/>
+    <Using Include="Microsoft.CodeAnalysis.CodeActions"/>
+    <Using Include="System.Collections.Immutable"/>
+    <Using Include="System.Composition"/>
+    <Using Include="qyl.Analyzers.Core"/>
+  </ItemGroup>
 
-    <!-- Dependencies -->
-    <ItemGroup>
-        <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
-    </ItemGroup>
+  <!-- Dependencies -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all"/>
+  </ItemGroup>
 
-    <!-- Project reference to analyzer project (must target netstandard2.0 for compatibility) -->
-    <ItemGroup>
-        <ProjectReference Include="..\qyl.Analyzers\qyl.Analyzers.csproj" SetTargetFramework="TargetFramework=netstandard2.0"/>
-    </ItemGroup>
+  <!-- Project reference to analyzer project (must target netstandard2.0 for compatibility) -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.Analyzers\qyl.Analyzers.csproj" SetTargetFramework="TargetFramework=netstandard2.0"/>
+  </ItemGroup>
 
-    <!-- Resources -->
-    <ItemGroup>
-        <Compile Update="CodeFixResources.Designer.cs" DesignTime="True" AutoGen="True" DependentUpon="CodeFixResources.resx"/>
-        <EmbeddedResource Update="CodeFixResources.resx" Generator="ResXFileCodeGenerator" LastGenOutput="CodeFixResources.Designer.cs"/>
-    </ItemGroup>
+  <!-- Resources -->
+  <ItemGroup>
+    <Compile Update="CodeFixResources.Designer.cs" DesignTime="True" AutoGen="True" DependentUpon="CodeFixResources.resx"/>
+    <EmbeddedResource Update="CodeFixResources.resx" Generator="ResXFileCodeGenerator" LastGenOutput="CodeFixResources.Designer.cs"/>
+  </ItemGroup>
 </Project>

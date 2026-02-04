@@ -4,58 +4,7 @@
  */
 
 export interface paths {
-    "/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Health check endpoint */
-        get: operations["HealthApi_check"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Liveness probe */
-        get: operations["HealthApi_live"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/health/ready": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Readiness probe */
-        get: operations["HealthApi_ready"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/deployments": {
+    "/api/v1/deployments": {
         parameters: {
             query?: never;
             header?: never;
@@ -73,7 +22,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/deployments/metrics/dora": {
+    "/api/v1/deployments/metrics/dora": {
         parameters: {
             query?: never;
             header?: never;
@@ -90,7 +39,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/deployments/{deploymentId}": {
+    "/api/v1/deployments/{deploymentId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -108,7 +57,7 @@ export interface paths {
         patch: operations["DeploymentsApi_update"];
         trace?: never;
     };
-    "/v1/errors": {
+    "/api/v1/errors": {
         parameters: {
             query?: never;
             header?: never;
@@ -125,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/errors/stats": {
+    "/api/v1/errors/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -142,7 +91,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/errors/{errorId}": {
+    "/api/v1/errors/{errorId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -160,7 +109,7 @@ export interface paths {
         patch: operations["ErrorsApi_update"];
         trace?: never;
     };
-    "/v1/errors/{errorId}/correlations": {
+    "/api/v1/errors/{errorId}/correlations": {
         parameters: {
             query?: never;
             header?: never;
@@ -177,7 +126,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/exceptions": {
+    "/api/v1/exceptions": {
         parameters: {
             query?: never;
             header?: never;
@@ -194,7 +143,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/exceptions/stats": {
+    "/api/v1/exceptions/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -211,7 +160,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/logs": {
+    "/api/v1/logs": {
         parameters: {
             query?: never;
             header?: never;
@@ -228,7 +177,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/logs/aggregate": {
+    "/api/v1/logs/aggregate": {
         parameters: {
             query?: never;
             header?: never;
@@ -245,7 +194,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/logs/patterns": {
+    "/api/v1/logs/patterns": {
         parameters: {
             query?: never;
             header?: never;
@@ -262,7 +211,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/logs/search": {
+    "/api/v1/logs/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -279,7 +228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/logs/stats": {
+    "/api/v1/logs/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -296,7 +245,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metrics": {
+    "/api/v1/metrics": {
         parameters: {
             query?: never;
             header?: never;
@@ -313,7 +262,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metrics/query": {
+    "/api/v1/metrics/query": {
         parameters: {
             query?: never;
             header?: never;
@@ -330,7 +279,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/metrics/{metricName}": {
+    "/api/v1/metrics/{metricName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -347,7 +296,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/pipelines": {
+    "/api/v1/pipelines": {
         parameters: {
             query?: never;
             header?: never;
@@ -364,7 +313,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/pipelines/stats": {
+    "/api/v1/pipelines/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -381,7 +330,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/services": {
+    "/api/v1/services": {
         parameters: {
             query?: never;
             header?: never;
@@ -398,7 +347,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/services/{serviceName}": {
+    "/api/v1/services/{serviceName}": {
         parameters: {
             query?: never;
             header?: never;
@@ -415,7 +364,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/services/{serviceName}/dependencies": {
+    "/api/v1/services/{serviceName}/dependencies": {
         parameters: {
             query?: never;
             header?: never;
@@ -432,7 +381,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/services/{serviceName}/operations": {
+    "/api/v1/services/{serviceName}/operations": {
         parameters: {
             query?: never;
             header?: never;
@@ -449,7 +398,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions": {
+    "/api/v1/sessions": {
         parameters: {
             query?: never;
             header?: never;
@@ -466,7 +415,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions/stats": {
+    "/api/v1/sessions/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -483,7 +432,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions/{sessionId}": {
+    "/api/v1/sessions/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -500,7 +449,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/sessions/{sessionId}/traces": {
+    "/api/v1/sessions/{sessionId}/traces": {
         parameters: {
             query?: never;
             header?: never;
@@ -517,7 +466,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/deployments": {
+    "/api/v1/stream/deployments": {
         parameters: {
             query?: never;
             header?: never;
@@ -534,7 +483,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/events": {
+    "/api/v1/stream/events": {
         parameters: {
             query?: never;
             header?: never;
@@ -551,7 +500,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/exceptions": {
+    "/api/v1/stream/exceptions": {
         parameters: {
             query?: never;
             header?: never;
@@ -568,7 +517,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/logs": {
+    "/api/v1/stream/logs": {
         parameters: {
             query?: never;
             header?: never;
@@ -585,7 +534,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/metrics": {
+    "/api/v1/stream/metrics": {
         parameters: {
             query?: never;
             header?: never;
@@ -602,7 +551,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/traces": {
+    "/api/v1/stream/traces": {
         parameters: {
             query?: never;
             header?: never;
@@ -619,7 +568,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/stream/traces/{traceId}/spans": {
+    "/api/v1/stream/traces/{traceId}/spans": {
         parameters: {
             query?: never;
             header?: never;
@@ -636,7 +585,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/traces": {
+    "/api/v1/traces": {
         parameters: {
             query?: never;
             header?: never;
@@ -653,7 +602,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/traces/search": {
+    "/api/v1/traces/search": {
         parameters: {
             query?: never;
             header?: never;
@@ -670,7 +619,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/traces/{traceId}": {
+    "/api/v1/traces/{traceId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -687,7 +636,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/traces/{traceId}/spans": {
+    "/api/v1/traces/{traceId}/spans": {
         parameters: {
             query?: never;
             header?: never;
@@ -704,12 +653,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Health check endpoint */
+        get: operations["health_check"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Liveness probe */
+        get: operations["health_liveness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/health/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Readiness probe */
+        get: operations["health_readiness"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @enum {string} */
-        ApiVersions: "2024-01-01" | "2024-06-01" | "2025-01-01";
+        ApiVersions: "2025-12-01" | "2026-01-15" | "2026-01-26";
         /** @description Deployment creation request */
         DeploymentCreate: {
             /** @description Service name */
@@ -2824,76 +2824,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    HealthApi_check: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HealthResponse"];
-                };
-            };
-        };
-    };
-    HealthApi_live: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    HealthApi_ready: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Service unavailable. */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     DeploymentsApi_list: {
         parameters: {
             query?: {
@@ -4926,6 +4856,76 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
                 };
+            };
+        };
+    };
+    health_check: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    health_liveness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    health_readiness: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service unavailable. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

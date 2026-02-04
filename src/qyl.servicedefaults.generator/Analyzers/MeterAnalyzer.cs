@@ -1,8 +1,7 @@
-using System.Collections.Immutable;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
 

@@ -1710,23 +1710,101 @@ export const FaasTriggerValues = {
 } as const;
 
 export const FeatureFlagEvaluationReasonValues = {
+  Cached: "cached",
+  Default: "default",
+  Disabled: "disabled",
   Error: "error",
+  Split: "split",
+  Stale: "stale",
+  Static: "static",
+  TargetingMatch: "targeting_match",
+  Unknown: "unknown",
 } as const;
 
 export const FeatureFlagResultReasonValues = {
+  Cached: "cached",
+  Default: "default",
+  Disabled: "disabled",
   Error: "error",
+  Split: "split",
+  Stale: "stale",
+  Static: "static",
+  TargetingMatch: "targeting_match",
+  Unknown: "unknown",
+} as const;
+
+export const GenAiOpenaiRequestResponseFormatValues = {
+  JsonObject: "json_object",
+  JsonSchema: "json_schema",
+  Text: "text",
+} as const;
+
+export const GenAiOpenaiRequestServiceTierValues = {
+  Auto: "auto",
+  Default: "default",
+} as const;
+
+export const GenAiOperationNameValues = {
+  Chat: "chat",
+  CreateAgent: "create_agent",
+  Embeddings: "embeddings",
+  ExecuteTool: "execute_tool",
+  GenerateContent: "generate_content",
+  InvokeAgent: "invoke_agent",
+  TextCompletion: "text_completion",
+} as const;
+
+export const GenAiOutputTypeValues = {
+  Image: "image",
+  Json: "json",
+  Speech: "speech",
+  Text: "text",
 } as const;
 
 export const GenAiProviderNameValues = {
+  Anthropic: "anthropic",
+  AwsBedrock: "aws.bedrock",
   AzureAiInference: "azure.ai.inference",
   AzureAiOpenai: "azure.ai.openai",
+  Cohere: "cohere",
+  Deepseek: "deepseek",
+  GcpGemini: "gcp.gemini",
+  GcpGenAi: "gcp.gen_ai",
+  GcpVertexAi: "gcp.vertex_ai",
+  Groq: "groq",
+  IbmWatsonxAi: "ibm.watsonx.ai",
+  MistralAi: "mistral_ai",
   Openai: "openai",
+  Perplexity: "perplexity",
+  XAi: "x_ai",
 } as const;
 
 export const GenAiSystemValues = {
+  Anthropic: "anthropic",
+  AwsBedrock: "aws.bedrock",
+  AzAiInference: "az.ai.inference",
+  AzAiOpenai: "az.ai.openai",
   AzureAiInference: "azure.ai.inference",
   AzureAiOpenai: "azure.ai.openai",
+  Cohere: "cohere",
+  Deepseek: "deepseek",
+  GcpGemini: "gcp.gemini",
+  GcpGenAi: "gcp.gen_ai",
+  GcpVertexAi: "gcp.vertex_ai",
+  Gemini: "gemini",
+  Groq: "groq",
+  IbmWatsonxAi: "ibm.watsonx.ai",
+  MistralAi: "mistral_ai",
   Openai: "openai",
+  Perplexity: "perplexity",
+  VertexAi: "vertex_ai",
+  Xai: "xai",
+} as const;
+
+export const GenAiTokenTypeValues = {
+  Input: "input",
+  Completion: "output",
+  Output: "output",
 } as const;
 
 export const GeoContinentCodeValues = {

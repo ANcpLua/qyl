@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using System.Text;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis.CSharp;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Emitters;
 
@@ -10,6 +10,9 @@ namespace Qyl.ServiceDefaults.Generator.Emitters;
 /// </summary>
 internal static class TracedInterceptorEmitter
 {
+    // Note: Field name mapping is now computed per-Emit call instead of using ThreadStatic,
+    // which avoids potential race conditions during parallel compilation.
+
     /// <summary>
     ///     Emits the interceptor source code for all traced invocations.
     /// </summary>
@@ -20,42 +23,34 @@ internal static class TracedInterceptorEmitter
 
         var sb = new StringBuilder();
 
-        EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
+        // Build ActivitySource name mapping for this emit operation
+        var activitySourceFieldNames = BuildActivitySourceFieldNameMapping(invocations);
+
+        EmitterHelpers.AppendFileHeader(sb, true);
         AppendUsings(sb);
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
-        AppendActivitySourcesClass(sb, invocations);
+        AppendActivitySourcesClass(sb, invocations, activitySourceFieldNames);
         AppendClassOpen(sb);
-        AppendInterceptorMethods(sb, invocations);
+        AppendInterceptorMethods(sb, invocations, activitySourceFieldNames);
         EmitterHelpers.AppendClassClose(sb);
 
         return sb.ToString();
     }
 
-
-    private static void AppendUsings(StringBuilder sb)
-    {
-        sb.AppendLine("using System.Diagnostics;");
-        sb.AppendLine();
-    }
-
-
     /// <summary>
-    ///     Maps original ActivitySource names to unique field names.
-    ///     Thread-local to avoid issues with parallel compilation.
+    ///     Builds a mapping from ActivitySource names to unique field names.
+    ///     This is computed per-Emit call to avoid thread-safety issues.
     /// </summary>
-    [ThreadStatic] private static Dictionary<string, string>? s_activitySourceFieldNames;
-
-    private static void AppendActivitySourcesClass(StringBuilder sb, ImmutableArray<TracedCallSite> invocations)
+    private static Dictionary<string, string> BuildActivitySourceFieldNameMapping(
+        ImmutableArray<TracedCallSite> invocations)
     {
-        // Collect unique ActivitySource names and create unique field names
         var activitySourceNames = invocations
             .Select(static i => i.ActivitySourceName)
             .Distinct(StringComparer.Ordinal)
             .OrderBy(static n => n, StringComparer.Ordinal)
             .ToList();
 
-        // Build a mapping from original name to unique field name
-        s_activitySourceFieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var fieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
         var usedFieldNames = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var name in activitySourceNames)
@@ -65,10 +60,30 @@ internal static class TracedInterceptorEmitter
             var counter = 1;
 
             // Ensure uniqueness
-            while (!usedFieldNames.Add(fieldName)) fieldName = $"{baseFieldName}_{counter++}";
+            while (!usedFieldNames.Add(fieldName))
+                fieldName = $"{baseFieldName}_{counter++}";
 
-            s_activitySourceFieldNames[name] = fieldName;
+            fieldNames[name] = fieldName;
         }
+
+        return fieldNames;
+    }
+
+
+    private static void AppendUsings(StringBuilder sb)
+    {
+        sb.AppendLine("using System.Diagnostics;");
+        sb.AppendLine();
+    }
+
+    private static void AppendActivitySourcesClass(
+        StringBuilder sb,
+        ImmutableArray<TracedCallSite> invocations,
+        Dictionary<string, string> activitySourceFieldNames)
+    {
+        var activitySourceNames = activitySourceFieldNames.Keys
+            .OrderBy(static n => n, StringComparer.Ordinal)
+            .ToList();
 
         sb.AppendLine("namespace Qyl.ServiceDefaults.Generator");
         sb.AppendLine("{");
@@ -77,7 +92,7 @@ internal static class TracedInterceptorEmitter
 
         foreach (var name in activitySourceNames)
         {
-            var fieldName = s_activitySourceFieldNames[name];
+            var fieldName = activitySourceFieldNames[name];
             sb.AppendLine(
                 $"        internal static readonly global::System.Diagnostics.ActivitySource {fieldName} = new(\"{name}\");");
         }
@@ -87,9 +102,11 @@ internal static class TracedInterceptorEmitter
         sb.AppendLine();
     }
 
-    private static string GetActivitySourceFieldName(string activitySourceName)
+    private static string GetActivitySourceFieldName(
+        string activitySourceName,
+        Dictionary<string, string> activitySourceFieldNames)
     {
-        return s_activitySourceFieldNames?.TryGetValue(activitySourceName, out var fieldName) == true
+        return activitySourceFieldNames.TryGetValue(activitySourceName, out var fieldName)
             ? fieldName
             : SanitizeFieldName(activitySourceName);
     }
@@ -114,7 +131,8 @@ internal static class TracedInterceptorEmitter
 
     private static void AppendInterceptorMethods(
         StringBuilder sb,
-        ImmutableArray<TracedCallSite> invocations)
+        ImmutableArray<TracedCallSite> invocations,
+        Dictionary<string, string> activitySourceFieldNames)
     {
         var orderedCallSites = invocations
             .OrderBy(static cs => cs.SortKey, StringComparer.Ordinal);
@@ -122,7 +140,7 @@ internal static class TracedInterceptorEmitter
         var index = 0;
         foreach (var callSite in orderedCallSites)
         {
-            AppendSingleInterceptor(sb, callSite, index);
+            AppendSingleInterceptor(sb, callSite, index, activitySourceFieldNames);
             index++;
         }
     }
@@ -130,7 +148,8 @@ internal static class TracedInterceptorEmitter
     private static void AppendSingleInterceptor(
         StringBuilder sb,
         TracedCallSite callSite,
-        int index)
+        int index,
+        Dictionary<string, string> activitySourceFieldNames)
     {
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
@@ -140,7 +159,7 @@ internal static class TracedInterceptorEmitter
         var returnType = ToGlobalTypeName(callSite.ReturnTypeName, typeParamNames);
         var containingType = callSite.ContainingTypeName;
         var originalMethod = callSite.MethodName;
-        var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName);
+        var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName, activitySourceFieldNames);
 
         var typeParams = BuildTypeParameterList(callSite);
         var constraints = BuildConstraintClauses(callSite);
@@ -454,5 +473,4 @@ internal static class TracedInterceptorEmitter
 
         return sb.ToString();
     }
-
 }

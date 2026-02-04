@@ -1,13 +1,12 @@
-using qyl.Analyzers.Core;
-
 namespace qyl.Analyzers.CodeFixes.CodeFixes;
 
 /// <summary>
-/// Code fix provider for QYL012: Adds 'partial' modifier to metric methods.
+///     Code fix provider for QYL012: Adds 'partial' modifier to metric methods.
 /// </summary>
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(Qyl012MetricMethodCodeFixProvider))]
 [Shared]
-public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider {
+public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider
+{
     /// <summary>Gets the diagnostic IDs this provider can fix.</summary>
     public override ImmutableArray<string> FixableDiagnosticIds => [DiagnosticIds.MetricMethodMustBePartial];
 
@@ -15,9 +14,11 @@ public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider 
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
 
     /// <summary>Registers code fixes for the given context.</summary>
-    public override async Task RegisterCodeFixesAsync(CodeFixContext context) {
+    public override async Task RegisterCodeFixesAsync(CodeFixContext context)
+    {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-        if (root is null) {
+        if (root is null)
+        {
             return;
         }
 
@@ -28,15 +29,16 @@ public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider 
         var node = root.FindToken(diagnosticSpan.Start).Parent;
         var methodDeclaration = node?.AncestorsAndSelf().OfType<MethodDeclarationSyntax>().FirstOrDefault();
 
-        if (methodDeclaration is null) {
+        if (methodDeclaration is null)
+        {
             return;
         }
 
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: CodeFixResources.QYL012CodeFixTitle,
-                createChangedDocument: c => MakePartialAsync(context.Document, methodDeclaration, root, c),
-                equivalenceKey: nameof(Qyl012MetricMethodCodeFixProvider)),
+                CodeFixResources.QYL012CodeFixTitle,
+                c => MakePartialAsync(context.Document, methodDeclaration, root, c),
+                nameof(Qyl012MetricMethodCodeFixProvider)),
             diagnostic);
     }
 
@@ -44,11 +46,13 @@ public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider 
         Document document,
         MethodDeclarationSyntax methodDeclaration,
         SyntaxNode root,
-        CancellationToken _) {
+        CancellationToken _)
+    {
         var modifiers = methodDeclaration.Modifiers;
 
         // Check if partial is already present
-        if (modifiers.Any(SyntaxKind.PartialKeyword)) {
+        if (modifiers.Any(SyntaxKind.PartialKeyword))
+        {
             return Task.FromResult(document);
         }
 

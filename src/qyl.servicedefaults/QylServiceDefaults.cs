@@ -51,8 +51,8 @@ public static partial class QylServiceDefaults
     /// </summary>
     /// <typeparam name="TBuilder">The type of the host application builder.</typeparam>
     /// <param name="builder">The host application builder.</param>
-    /// <param name="configure">A delegate to configure the <see cref="QylServiceDefaultsOptions"/>.</param>
-    /// <returns>The original <paramref name="builder"/> for chaining.</returns>
+    /// <param name="configure">A delegate to configure the <see cref="QylServiceDefaultsOptions" />.</param>
+    /// <returns>The original <paramref name="builder" /> for chaining.</returns>
     public static TBuilder TryUseQylConventions<TBuilder>(this TBuilder builder,
         Action<QylServiceDefaultsOptions>? configure = null)
         where TBuilder : IHostApplicationBuilder
@@ -72,8 +72,8 @@ public static partial class QylServiceDefaults
     /// </summary>
     /// <typeparam name="TBuilder">The type of the host application builder.</typeparam>
     /// <param name="builder">The host application builder.</param>
-    /// <param name="configure">A delegate to configure the <see cref="QylServiceDefaultsOptions"/>.</param>
-    /// <returns>The original <paramref name="builder"/> for chaining.</returns>
+    /// <param name="configure">A delegate to configure the <see cref="QylServiceDefaultsOptions" />.</param>
+    /// <returns>The original <paramref name="builder" /> for chaining.</returns>
     public static TBuilder UseQylConventions<TBuilder>(this TBuilder builder,
         Action<QylServiceDefaultsOptions>? configure = null)
         where TBuilder : IHostApplicationBuilder
@@ -84,11 +84,12 @@ public static partial class QylServiceDefaults
         configure?.Invoke(options);
 
         if (options.ValidateDependencyContainersOnStartup)
+        {
             builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
             {
-                ValidateOnBuild = true,
-                ValidateScopes = true
+                ValidateOnBuild = true, ValidateScopes = true
             }));
+        }
 
         builder.Services.Configure<KestrelServerOptions>(static serverOptions =>
         {
@@ -251,14 +252,8 @@ public static partial class QylServiceDefaults
         // Aspire standard health endpoints:
         // /health = Readiness (is service ready for traffic?)
         // /alive  = Liveness (is process running?)
-        app.MapHealthChecks("/health", new HealthCheckOptions
-        {
-            Predicate = static r => r.Tags.Contains("ready")
-        });
-        app.MapHealthChecks("/alive", new HealthCheckOptions
-        {
-            Predicate = static r => r.Tags.Contains("live")
-        });
+        app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = static r => r.Tags.Contains("ready") });
+        app.MapHealthChecks("/alive", new HealthCheckOptions { Predicate = static r => r.Tags.Contains("live") });
 
         if (options.StaticAssets.Enabled)
         {

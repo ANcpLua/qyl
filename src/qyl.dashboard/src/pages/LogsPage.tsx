@@ -18,7 +18,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
-import {CopyableText} from '@/components/ui';
+import {CopyableText, DownloadButton, TextVisualizer, isStructuredContent} from '@/components/ui';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
 import type {LogLevel, LogRecord} from '@/types';
@@ -106,9 +106,19 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                         {/* Full message */}
                         <div>
                             <h4 className="text-xs font-medium text-muted-foreground mb-1">Message</h4>
-                            <pre className="text-sm font-mono whitespace-pre-wrap bg-background p-2 rounded">
-                {log.body}
-              </pre>
+                            {isStructuredContent(log.body) ? (
+                                <TextVisualizer
+                                    content={log.body}
+                                    label="Message"
+                                    defaultExpanded={true}
+                                    maxCollapsedHeight={200}
+                                    showTreeView={true}
+                                />
+                            ) : (
+                                <pre className="text-sm font-mono whitespace-pre-wrap bg-background p-2 rounded">
+                                    {log.body}
+                                </pre>
+                            )}
                         </div>
 
                         {/* Trace context */}
@@ -175,7 +185,7 @@ interface UseLiveLogsOptions {
 }
 
 function useLiveLogs(
-    bufferRef: React.MutableRefObject<RingBuffer<LogRecord>>,
+    bufferRef: React.RefObject<RingBuffer<LogRecord>>,
     setVersion: React.Dispatch<React.SetStateAction<number>>,
     options: UseLiveLogsOptions = {}
 ) {
@@ -192,7 +202,7 @@ function useLiveLogs(
         pendingLogsRef.current = [];
         rafIdRef.current = null;
 
-        if (pending.length > 0) {
+        if (pending.length > 0 && bufferRef.current) {
             bufferRef.current.pushMany(pending);
             setVersion((v) => v + 1);
         }
@@ -560,6 +570,22 @@ export function LogsPage() {
                 <Button variant="outline" size="sm" onClick={clearLogs}>
                     Clear
                 </Button>
+
+                {/* Download button */}
+                <DownloadButton
+                    getData={() => filteredLogs.map(log => ({
+                        timestamp: log.timestamp,
+                        level: log.severityText,
+                        service: log.serviceName,
+                        message: log.body,
+                        traceId: log.traceId ?? '',
+                        spanId: log.spanId ?? '',
+                        attributes: log.attributes,
+                    }))}
+                    filenamePrefix="logs"
+                    columns={['timestamp', 'level', 'service', 'message', 'traceId', 'spanId', 'attributes']}
+                    disabled={filteredLogs.length === 0}
+                />
 
                 {/* Live toggle */}
                 <Button

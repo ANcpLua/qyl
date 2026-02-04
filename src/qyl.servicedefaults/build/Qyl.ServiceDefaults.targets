@@ -17,6 +17,6 @@
       For ProjectReference builds, this resolves to the generator output.
     -->
     <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll"
-              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll')" />
+              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll')"/>
   </ItemGroup>
 </Project>

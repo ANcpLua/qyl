@@ -7,22 +7,29 @@ namespace qyl.collector.Realtime;
 public sealed class SpanRingBuffer
 {
     private readonly SpanRecord?[] _buffer;
-    private readonly int _capacity;
     private readonly Lock _lock = new();
-
-    private int _head;
     private int _count;
     private ulong _generation;
+
+    private int _head;
 
     public SpanRingBuffer(int capacity = 10_000)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(capacity, 1);
-        _capacity = capacity;
+        Capacity = capacity;
         _buffer = new SpanRecord?[capacity];
     }
 
-    public int Capacity => _capacity;
-    public int Count { get { lock (_lock) return _count; } }
+    public int Capacity { get; }
+
+    public int Count
+    {
+        get
+        {
+            lock (_lock) return _count;
+        }
+    }
+
     public ulong Generation => Volatile.Read(ref _generation);
 
     public void Push(SpanRecord span)
@@ -31,8 +38,8 @@ public sealed class SpanRingBuffer
         lock (_lock)
         {
             _buffer[_head] = span;
-            _head = (_head + 1) % _capacity;
-            if (_count < _capacity) _count++;
+            _head = (_head + 1) % Capacity;
+            if (_count < Capacity) _count++;
             Volatile.Write(ref _generation, _generation + 1);
         }
     }
@@ -45,9 +52,10 @@ public sealed class SpanRingBuffer
             foreach (var span in spans)
             {
                 _buffer[_head] = span;
-                _head = (_head + 1) % _capacity;
-                if (_count < _capacity) _count++;
+                _head = (_head + 1) % Capacity;
+                if (_count < Capacity) _count++;
             }
+
             Volatile.Write(ref _generation, _generation + 1);
         }
     }
@@ -60,11 +68,13 @@ public sealed class SpanRingBuffer
             var take = Math.Min(count, _count);
             if (take is 0) return [];
             var result = new SpanRecord[take];
-            var idx = (_head - 1 + _capacity) % _capacity;
-            for (var i = 0; i < take; i++) {
+            var idx = (_head - 1 + Capacity) % Capacity;
+            for (var i = 0; i < take; i++)
+            {
                 result[i] = _buffer[idx]!;
-                idx = (idx - 1 + _capacity) % _capacity;
+                idx = (idx - 1 + Capacity) % Capacity;
             }
+
             return result;
         }
     }
@@ -76,34 +86,40 @@ public sealed class SpanRingBuffer
             generation = _generation;
             if (_count is 0) return [];
             var results = new List<SpanRecord>(Math.Min(maxCount, _count));
-            var idx = (_head - 1 + _capacity) % _capacity;
+            var idx = (_head - 1 + Capacity) % Capacity;
             var scanned = 0;
-            while (scanned < _count && results.Count < maxCount) {
+            while (scanned < _count && results.Count < maxCount)
+            {
                 var span = _buffer[idx];
                 if (span is not null && predicate(span)) results.Add(span);
-                idx = (idx - 1 + _capacity) % _capacity;
+                idx = (idx - 1 + Capacity) % Capacity;
                 scanned++;
             }
+
             return [.. results];
         }
     }
 
     public SpanRecord[] GetByTraceId(string traceId, out ulong generation)
     {
-        if (!TraceId.TryParse(traceId, null, out var tid)) {
+        if (!TraceId.TryParse(traceId, null, out var tid))
+        {
             generation = Generation;
             return [];
         }
-        return Query(s => s.TraceId == tid, _capacity, out generation);
+
+        return Query(s => s.TraceId == tid, Capacity, out generation);
     }
 
     public SpanRecord[] GetBySessionId(string sessionId, int maxCount, out ulong generation)
     {
         var sid = new SessionId(sessionId);
-        if (!sid.IsValid) {
+        if (!sid.IsValid)
+        {
             generation = Generation;
             return [];
         }
+
         return Query(s => s.SessionId == sid, maxCount, out generation);
     }
 
@@ -114,11 +130,13 @@ public sealed class SpanRingBuffer
             generation = _generation;
             if (_count is 0) return [];
             var result = new SpanRecord[_count];
-            var startIdx = _count < _capacity ? 0 : _head;
-            for (var i = 0; i < _count; i++) {
-                var idx = (startIdx + i) % _capacity;
+            var startIdx = _count < Capacity ? 0 : _head;
+            for (var i = 0; i < _count; i++)
+            {
+                var idx = (startIdx + i) % Capacity;
                 result[i] = _buffer[idx]!;
             }
+
             return result;
         }
     }

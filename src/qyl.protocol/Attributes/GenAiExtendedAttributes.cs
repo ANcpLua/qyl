@@ -7,8 +7,8 @@
 namespace qyl.protocol.Attributes;
 
 /// <summary>
-/// qyl-specific GenAI telemetry attribute keys.
-/// These extend OTel 1.39 semconv with additional observability data.
+///     qyl-specific GenAI telemetry attribute keys.
+///     These extend OTel 1.39 semconv with additional observability data.
 /// </summary>
 public static class GenAiExtendedAttributes
 {

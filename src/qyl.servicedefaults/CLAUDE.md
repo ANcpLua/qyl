@@ -4,11 +4,11 @@ Aspire-style service defaults for consistent telemetry configuration.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
-| Pattern | aspire-service-defaults |
+| Property  | Value                   |
+|-----------|-------------------------|
+| SDK       | ANcpLua.NET.Sdk         |
+| Framework | net10.0                 |
+| Pattern   | aspire-service-defaults |
 
 ## Purpose
 
@@ -49,10 +49,10 @@ app.Run();
 
 ### Health Checks
 
-| Endpoint | Purpose |
-|----------|---------|
-| `/health` | Full health check |
-| `/alive` | Liveness probe (Kubernetes) |
+| Endpoint  | Purpose                     |
+|-----------|-----------------------------|
+| `/health` | Full health check           |
+| `/alive`  | Liveness probe (Kubernetes) |
 
 ### Resilience
 
@@ -62,16 +62,16 @@ app.Run();
 
 ## Dependencies
 
-| Package | Purpose |
-|---------|---------|
-| `OpenTelemetry.Extensions.Hosting` | OTel host integration |
-| `Microsoft.Extensions.Http.Resilience` | HTTP resilience |
-| `Microsoft.Extensions.Diagnostics.HealthChecks` | Health checks |
+| Package                                         | Purpose               |
+|-------------------------------------------------|-----------------------|
+| `OpenTelemetry.Extensions.Hosting`              | OTel host integration |
+| `Microsoft.Extensions.Http.Resilience`          | HTTP resilience       |
+| `Microsoft.Extensions.Diagnostics.HealthChecks` | Health checks         |
 
 ## Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint |
-| `OTEL_SERVICE_NAME` | Override service name |
-| `ASPNETCORE_ENVIRONMENT` | Environment for enrichment |
+| Variable                      | Purpose                    |
+|-------------------------------|----------------------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint    |
+| `OTEL_SERVICE_NAME`           | Override service name      |
+| `ASPNETCORE_ENVIRONMENT`      | Environment for enrichment |

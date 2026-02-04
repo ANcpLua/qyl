@@ -15,7 +15,12 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
     private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
 
-    public SessionEndToEndTests(QylWebApplicationFactory factory) => _factory = factory;
+    public SessionEndToEndTests(QylWebApplicationFactory factory)
+    {
+        _factory = factory;
+    }
+
+    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
@@ -29,8 +34,6 @@ public sealed class SessionEndToEndTests : IClassFixture<QylWebApplicationFactor
         _client?.Dispose();
         return ValueTask.CompletedTask;
     }
-
-    private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     // =========================================================================
     // Full Flow Tests

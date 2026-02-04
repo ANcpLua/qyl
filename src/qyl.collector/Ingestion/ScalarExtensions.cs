@@ -131,5 +131,5 @@ public static class ScalarExtensions
     // ═══════════════════════════════════════════════════════════════════════
 
     private static bool IsHexChar(byte b) =>
-        b >= '0' && b <= '9' || b >= 'a' && b <= 'f' || b >= 'A' && b <= 'F';
+        (b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F');
 }

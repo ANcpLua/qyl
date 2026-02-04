@@ -43,6 +43,12 @@ public sealed class FrontendConsole
 
     public ConsoleLogEntry[] Errors(int limit = 20) => Query(ConsoleLevel.Warn, limit: limit);
 
+    public void Clear()
+    {
+        while (_ring.TryDequeue(out _))
+            Interlocked.Decrement(ref _count);
+    }
+
     public IDisposable Subscribe(string id, Channel<ConsoleLogEntry> ch)
     {
         _subs[id] = ch;

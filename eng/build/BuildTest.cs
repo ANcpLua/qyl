@@ -199,7 +199,9 @@ interface ITest : ICompile
                 Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
             }
             else
+            {
                 Log.Debug("Testcontainers: Using local Docker configuration");
+            }
         });
 
     Target Test => d => d
@@ -641,7 +643,8 @@ public static class CoverageSummaryConverter
 
             if (isBranch && conditionCoverage is { Length: > 0 })
             {
-                if (CreateBranchIssue(lineNumber, hits, conditionCoverage, ruleTag, stateMachineMethod) is { } branchIssue)
+                if (CreateBranchIssue(lineNumber, hits, conditionCoverage, ruleTag, stateMachineMethod) is
+                    { } branchIssue)
                     file.BranchDict.TryAdd(lineNumber, branchIssue);
             }
             else if (hits is 0)
@@ -691,7 +694,8 @@ public static class CoverageSummaryConverter
                     new XAttribute("line", branch.Line),
                     new XAttribute("coveredBranches", branch.CoveredBranches),
                     new XAttribute("totalBranches", branch.TotalBranches),
-                    new XAttribute("coveragePercent", branch.CoveragePercent.ToString("F1", CultureInfo.InvariantCulture)),
+                    new XAttribute("coveragePercent",
+                        branch.CoveragePercent.ToString("F1", CultureInfo.InvariantCulture)),
                     new XAttribute("hits", branch.Hits),
                     new XAttribute("reason", branch.Reason)));
 
@@ -762,7 +766,8 @@ public static class CoverageSummaryConverter
             info.CoveredBranches is 0 ? "BranchNotCovered" :
             "BranchPartiallyCovered";
 
-        return new CoverageBranch(lineNumber, hits, info.CoveredBranches, info.TotalBranches, info.Percent, branchReason);
+        return new CoverageBranch(lineNumber, hits, info.CoveredBranches, info.TotalBranches, info.Percent,
+            branchReason);
     }
 
     static BranchCoverageInfo? ParseConditionCoverage(ReadOnlySpan<char> input)
@@ -784,7 +789,8 @@ public static class CoverageSummaryConverter
         if (!int.TryParse(fraction[..slashIdx], NumberStyles.Integer, CultureInfo.InvariantCulture, out var covered))
             return null;
 
-        if (!int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture, out var total))
+        if (!int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture,
+                out var total))
             return null;
 
         return new BranchCoverageInfo(covered, total, percent);
@@ -814,8 +820,8 @@ public static class CoverageSummaryConverter
     // ─── DTOs ───────────────────────────────────────────────────────────────
     sealed class CoverageFile
     {
-        [JsonIgnore] public readonly Dictionary<int, CoverageLine> LineDict = [];
         [JsonIgnore] public readonly Dictionary<int, CoverageBranch> BranchDict = [];
+        [JsonIgnore] public readonly Dictionary<int, CoverageLine> LineDict = [];
 
         public IEnumerable<CoverageLine> Lines => LineDict.Values.OrderBy(static l => l.Line);
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(static b => b.Line);

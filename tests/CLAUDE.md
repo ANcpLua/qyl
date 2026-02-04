@@ -4,11 +4,11 @@ Test projects using xUnit v3 with Microsoft Testing Platform.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk.Test |
-| Framework | xUnit v3 (3.2.2) |
-| Runner | Microsoft Testing Platform v2 |
+| Property  | Value                         |
+|-----------|-------------------------------|
+| SDK       | ANcpLua.NET.Sdk.Test          |
+| Framework | xUnit v3 (3.2.2)              |
+| Runner    | Microsoft Testing Platform v2 |
 
 ## Test Projects
 
@@ -99,12 +99,12 @@ public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 
 ## Packages
 
-| Package | Purpose |
-|---------|---------|
-| `xunit.v3.mtp-v2` | xUnit v3 with MTP |
-| `Microsoft.Testing.Extensions.TrxReport` | TRX report generation |
-| `Microsoft.AspNetCore.Mvc.Testing` | Integration test factory |
-| `AwesomeAssertions` | Fluent assertions |
+| Package                                  | Purpose                  |
+|------------------------------------------|--------------------------|
+| `xunit.v3.mtp-v2`                        | xUnit v3 with MTP        |
+| `Microsoft.Testing.Extensions.TrxReport` | TRX report generation    |
+| `Microsoft.AspNetCore.Mvc.Testing`       | Integration test factory |
+| `AwesomeAssertions`                      | Fluent assertions        |
 
 ## Naming Conventions
 

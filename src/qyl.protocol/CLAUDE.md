@@ -4,10 +4,10 @@ BCL-only shared types. Leaf dependency with zero external packages.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
+| Property   | Value                              |
+|------------|------------------------------------|
+| SDK        | ANcpLua.NET.Sdk                    |
+| Framework  | net10.0                            |
 | Constraint | **BCL-only** (no PackageReference) |
 
 ## Why BCL-Only?
@@ -54,11 +54,11 @@ public readonly record struct SessionId : IParsable<SessionId>, ISpanFormattable
 
 ## Namespaces
 
-| Namespace | Content |
-|-----------|---------|
+| Namespace    | Content           |
+|--------------|-------------------|
 | `Qyl.Common` | Scalar primitives |
-| `Qyl.Enums` | OTel enums |
-| `Qyl.Models` | Record types |
+| `Qyl.Enums`  | OTel enums        |
+| `Qyl.Models` | Record types      |
 
 ## Time Handling
 

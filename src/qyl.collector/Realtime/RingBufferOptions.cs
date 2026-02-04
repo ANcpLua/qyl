@@ -1,7 +1,7 @@
 namespace qyl.collector.Realtime;
 
 /// <summary>
-///     Configuration for <see cref="SpanRingBuffer"/> and related services.
+///     Configuration for <see cref="SpanRingBuffer" /> and related services.
 /// </summary>
 public sealed class RingBufferOptions
 {

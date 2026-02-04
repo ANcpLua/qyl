@@ -1,8 +1,8 @@
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
 
@@ -19,22 +19,32 @@ internal static class DbCallSiteAnalyzer
     /// <summary>
     ///     Method patterns to intercept on DbCommand and derived types.
     /// </summary>
-    private static readonly Dictionary<string, (DbCommandMethod Method, bool IsAsync)> MethodPatterns = new(StringComparer.Ordinal)
-    {
-        ["ExecuteReader"] = (DbCommandMethod.ExecuteReader, false),
-        ["ExecuteReaderAsync"] = (DbCommandMethod.ExecuteReader, true),
-        ["ExecuteNonQuery"] = (DbCommandMethod.ExecuteNonQuery, false),
-        ["ExecuteNonQueryAsync"] = (DbCommandMethod.ExecuteNonQuery, true),
-        ["ExecuteScalar"] = (DbCommandMethod.ExecuteScalar, false),
-        ["ExecuteScalarAsync"] = (DbCommandMethod.ExecuteScalar, true)
-    };
+    /// <remarks>
+    ///     Note: ExecuteReaderAsync has an overload with CommandBehavior parameter,
+    ///     but we only intercept the parameterless version to avoid complexity.
+    ///     The CommandBehavior overload is typically used internally.
+    /// </remarks>
+    private static readonly Dictionary<string, (DbCommandMethod Method, bool IsAsync)> MethodPatterns =
+        new(StringComparer.Ordinal)
+        {
+            ["ExecuteReader"] = (DbCommandMethod.ExecuteReader, false),
+            ["ExecuteReaderAsync"] = (DbCommandMethod.ExecuteReader, true),
+            ["ExecuteNonQuery"] = (DbCommandMethod.ExecuteNonQuery, false),
+            ["ExecuteNonQueryAsync"] = (DbCommandMethod.ExecuteNonQuery, true),
+            ["ExecuteScalar"] = (DbCommandMethod.ExecuteScalar, false),
+            ["ExecuteScalarAsync"] = (DbCommandMethod.ExecuteScalar, true),
+            // Protected virtual method exposed by some providers
+            ["ExecuteDbDataReaderAsync"] = (DbCommandMethod.ExecuteReader, true)
+        };
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
-        node.IsKind(SyntaxKind.InvocationExpression);
+    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _)
+    {
+        return node.IsKind(SyntaxKind.InvocationExpression);
+    }
 
     /// <summary>
     ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.
@@ -50,7 +60,8 @@ internal static class DbCallSiteAnalyzer
         if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
-        if (!TryMatchDbCommandMethod(invocation, context.SemanticModel.Compilation, out var method, out var isAsync, out var concreteType))
+        if (!TryMatchDbCommandMethod(invocation, context.SemanticModel.Compilation, out var method, out var isAsync,
+                out var concreteType))
             return null;
 
         // Skip if already intercepted by another generator
@@ -107,5 +118,4 @@ internal static class DbCallSiteAnalyzer
 
         return true;
     }
-
 }

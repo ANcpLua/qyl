@@ -58,8 +58,8 @@ public sealed partial class HostClientAgent
 
             Agent = new ChatClientAgent(
                 chatClient,
-                instructions: "You specialize in handling queries for users and using your tools to provide answers.",
-                name: "HostClient",
+                "You specialize in handling queries for users and using your tools to provide answers.",
+                "HostClient",
                 tools: tools);
 
             LogInitialized(tools.Count);
@@ -80,10 +80,7 @@ public sealed partial class HostClientAgent
 
 public static class A2ACardResolver
 {
-    private static readonly HttpClient SSharedClient = new()
-    {
-        Timeout = TimeSpan.FromSeconds(60)
-    };
+    private static readonly HttpClient SSharedClient = new() { Timeout = TimeSpan.FromSeconds(60) };
 
     public static async Task<AgentCard> GetAgentCardAsync(
         Uri baseUrl,
@@ -138,7 +135,8 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackAgentInvocation(string agentName, string operation, TimeSpan duration)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.InvokeAgent} {agentName}") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.InvokeAgent} {agentName}") is
+            not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.InvokeAgent);
         activity.SetTag("duration_ms", duration.TotalMilliseconds);
@@ -146,7 +144,8 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
 
     public void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration)
     {
-        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.ExecuteTool} {toolName}") is not { } activity) return;
+        if (TelemetryConstants.ActivitySource.StartActivity($"{GenAiAttributes.Operations.ExecuteTool} {toolName}") is
+            not { } activity) return;
 
         activity.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
         activity.SetTag(GenAiAttributes.ToolName, toolName);

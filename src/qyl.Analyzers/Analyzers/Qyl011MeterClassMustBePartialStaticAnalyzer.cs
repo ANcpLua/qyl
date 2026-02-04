@@ -27,7 +27,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl011MeterClassMustBePartialStaticAnalyzer : QylAnalyzer {
+public sealed partial class Qyl011MeterClassMustBePartialStaticAnalyzer : QylAnalyzer
+{
     private const string MeterAttributeFullName = "qyl.ServiceDefaults.Instrumentation.MeterAttribute";
 
     private static readonly LocalizableResourceString Title = new(
@@ -52,21 +53,25 @@ public sealed partial class Qyl011MeterClassMustBePartialStaticAnalyzer : QylAna
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterSyntaxNodeAction(AnalyzeClassDeclaration, SyntaxKind.ClassDeclaration);
 
-    private static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context) {
+    private static void AnalyzeClassDeclaration(SyntaxNodeAnalysisContext context)
+    {
         var classDeclaration = (ClassDeclarationSyntax)context.Node;
 
         // Quick check: skip if no attributes
-        if (classDeclaration.AttributeLists.Count == 0) {
+        if (classDeclaration.AttributeLists.Count == 0)
+        {
             return;
         }
 
         // Check if class has [Meter] attribute
         var classSymbol = context.SemanticModel.GetDeclaredSymbol(classDeclaration, context.CancellationToken);
-        if (classSymbol is null) {
+        if (classSymbol is null)
+        {
             return;
         }
 
-        if (!HasMeterAttribute(classSymbol, context.SemanticModel.Compilation)) {
+        if (!HasMeterAttribute(classSymbol, context.SemanticModel.Compilation))
+        {
             return;
         }
 
@@ -77,7 +82,8 @@ public sealed partial class Qyl011MeterClassMustBePartialStaticAnalyzer : QylAna
         var hasStatic = classDeclaration.Modifiers.Any(SyntaxKind.StaticKeyword);
 
         // Report if missing either modifier
-        if (!hasPartial || !hasStatic) {
+        if (!hasPartial || !hasStatic)
+        {
             context.ReportDiagnostic(Diagnostic.Create(
                 Rule,
                 classDeclaration.Identifier.GetLocation(),
@@ -85,14 +91,18 @@ public sealed partial class Qyl011MeterClassMustBePartialStaticAnalyzer : QylAna
         }
     }
 
-    private static bool HasMeterAttribute(INamedTypeSymbol classSymbol, Compilation compilation) {
+    private static bool HasMeterAttribute(INamedTypeSymbol classSymbol, Compilation compilation)
+    {
         var meterAttributeType = compilation.GetTypeByMetadataName(MeterAttributeFullName);
-        if (meterAttributeType is null) {
+        if (meterAttributeType is null)
+        {
             return false;
         }
 
-        foreach (var attribute in classSymbol.GetAttributes()) {
-            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, meterAttributeType)) {
+        foreach (var attribute in classSymbol.GetAttributes())
+        {
+            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, meterAttributeType))
+            {
                 return true;
             }
         }

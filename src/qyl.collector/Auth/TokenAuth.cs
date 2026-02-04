@@ -18,7 +18,12 @@ public static class TokenGenerator
 public sealed class TokenAuthOptions
 {
     /// <summary>
-    /// Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
+    ///     HTTP header name for MCP API key authentication (Aspire pattern).
+    /// </summary>
+    public const string McpApiKeyHeader = "x-mcp-api-key";
+
+    /// <summary>
+    ///     Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
     /// </summary>
     public string Token
     {
@@ -27,12 +32,12 @@ public sealed class TokenAuthOptions
     }
 
     /// <summary>
-    /// Gets or sets the cookie name for auth token storage.
+    ///     Gets or sets the cookie name for auth token storage.
     /// </summary>
     public string CookieName { get; set; } = "qyl_options.Token";
 
     /// <summary>
-    /// Gets or sets cookie expiration in days. Must be positive.
+    ///     Gets or sets cookie expiration in days. Must be positive.
     /// </summary>
     public int CookieExpirationDays
     {
@@ -43,14 +48,16 @@ public sealed class TokenAuthOptions
     } = 3;
 
     /// <summary>
-    /// Gets or sets the query parameter name for token in URL.
+    ///     Gets or sets the query parameter name for token in URL.
     /// </summary>
     public string QueryParameterName { get; set; } = "t";
 
     /// <summary>
-    /// Gets or sets paths excluded from token authentication.
+    ///     Gets or sets paths excluded from token authentication.
+    ///     Only health probes and OTLP ingestion paths are excluded.
+    ///     All /api/* endpoints REQUIRE authentication.
     /// </summary>
-    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/v1/traces", "/api/"];
+    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
 }
 
 public sealed class TokenAuthMiddleware
@@ -110,6 +117,14 @@ public sealed class TokenAuthMiddleware
                 await _next(context).ConfigureAwait(false);
                 return;
             }
+        }
+
+        // Check x-mcp-api-key header (Aspire pattern for MCP server authentication)
+        var mcpApiKey = context.Request.Headers[TokenAuthOptions.McpApiKeyHeader].FirstOrDefault();
+        if (!string.IsNullOrEmpty(mcpApiKey) && ValidateToken(mcpApiKey))
+        {
+            await _next(context).ConfigureAwait(false);
+            return;
         }
 
         if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))

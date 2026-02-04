@@ -12,7 +12,8 @@ namespace qyl.Analyzers.Analyzers;
 ///     </para>
 /// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public sealed partial class Qyl003UnregisteredActivitySourceAnalyzer : QylAnalyzer {
+public sealed partial class Qyl003UnregisteredActivitySourceAnalyzer : QylAnalyzer
+{
     private const string ActivitySourceTypeName = "System.Diagnostics.ActivitySource";
 
     private static readonly LocalizableResourceString Title = new(
@@ -37,17 +38,20 @@ public sealed partial class Qyl003UnregisteredActivitySourceAnalyzer : QylAnalyz
     protected override void RegisterActions(AnalysisContext context) =>
         context.RegisterOperationAction(AnalyzeObjectCreation, OperationKind.ObjectCreation);
 
-    private static void AnalyzeObjectCreation(OperationAnalysisContext context) {
+    private static void AnalyzeObjectCreation(OperationAnalysisContext context)
+    {
         var objectCreation = (IObjectCreationOperation)context.Operation;
 
         // Check if this is ActivitySource creation
-        if (objectCreation.Type?.ToDisplayString() != ActivitySourceTypeName) {
+        if (objectCreation.Type?.ToDisplayString() != ActivitySourceTypeName)
+        {
             return;
         }
 
         // Get the source name from constructor argument
         if (objectCreation.Arguments.Length == 0 ||
-            objectCreation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string sourceName }) {
+            objectCreation.Arguments[0].Value.ConstantValue is not { HasValue: true, Value: string sourceName })
+        {
             return;
         }
 

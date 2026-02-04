@@ -6,20 +6,20 @@
 namespace Qyl.ServiceDefaults.Internal;
 
 /// <summary>
-/// Extension methods for exceptions in telemetry contexts.
+///     Extension methods for exceptions in telemetry contexts.
 /// </summary>
 internal static class ExceptionExtensions
 {
     /// <summary>
-    /// Returns a culture-independent string representation of the exception.
+    ///     Returns a culture-independent string representation of the exception.
     /// </summary>
     /// <remarks>
-    /// When recording exceptions in telemetry, culture-invariant output ensures
-    /// consistent logs across different server locales.
+    ///     When recording exceptions in telemetry, culture-invariant output ensures
+    ///     consistent logs across different server locales.
     /// </remarks>
     public static string ToInvariantString(this Exception exception)
     {
-        var originalUICulture = Thread.CurrentThread.CurrentUICulture;
+        var originalUiCulture = Thread.CurrentThread.CurrentUICulture;
         try
         {
             Thread.CurrentThread.CurrentUICulture = CultureInfo.InvariantCulture;
@@ -27,7 +27,7 @@ internal static class ExceptionExtensions
         }
         finally
         {
-            Thread.CurrentThread.CurrentUICulture = originalUICulture;
+            Thread.CurrentThread.CurrentUICulture = originalUiCulture;
         }
     }
 }

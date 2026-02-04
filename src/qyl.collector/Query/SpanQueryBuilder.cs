@@ -69,10 +69,7 @@ public sealed class SpanQueryBuilder
     /// <summary>Select raw expression.</summary>
     public SpanQueryBuilder Select(string expr)
     {
-        var cols = new List<string>(_selectCols)
-        {
-            expr
-        };
+        var cols = new List<string>(_selectCols) { expr };
         return new SpanQueryBuilder(cols, _whereClauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -126,15 +123,9 @@ public sealed class SpanQueryBuilder
     /// <summary>Add WHERE col = value (adds parameter automatically).</summary>
     public SpanQueryBuilder WhereEq(SpanColumn col, object? value)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var clause = new WhereClause(col.ToSql(), CompareOp.Eq, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -142,15 +133,9 @@ public sealed class SpanQueryBuilder
     /// <summary>Add WHERE col >= value.</summary>
     public SpanQueryBuilder WhereGte(SpanColumn col, object? value)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var clause = new WhereClause(col.ToSql(), CompareOp.Gte, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -158,15 +143,9 @@ public sealed class SpanQueryBuilder
     /// <summary>Add WHERE col > value.</summary>
     public SpanQueryBuilder WhereGt(SpanColumn col, object? value)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var clause = new WhereClause(col.ToSql(), CompareOp.Gt, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -174,15 +153,9 @@ public sealed class SpanQueryBuilder
     /// <summary>Add WHERE col &lt;= value.</summary>
     public SpanQueryBuilder WhereLte(SpanColumn col, object? value)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var clause = new WhereClause(col.ToSql(), CompareOp.Lte, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -190,15 +163,9 @@ public sealed class SpanQueryBuilder
     /// <summary>Add WHERE col &lt; value.</summary>
     public SpanQueryBuilder WhereLt(SpanColumn col, object? value)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var clause = new WhereClause(col.ToSql(), CompareOp.Lt, $"${NextParamIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -207,10 +174,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereNotNull(SpanColumn col)
     {
         var clause = new WhereClause(col.ToSql(), CompareOp.IsNotNull, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -219,10 +183,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereNull(SpanColumn col)
     {
         var clause = new WhereClause(col.ToSql(), CompareOp.IsNull, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -235,16 +196,10 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereOptional(SpanColumn col, object? value)
     {
         var idx = NextParamIndex;
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var sql = $"(${idx}::VARCHAR IS NULL OR {col.ToSql()} IS NOT DISTINCT FROM ${idx})";
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -253,10 +208,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereRaw(string sql)
     {
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -265,16 +217,10 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereRawWithParam(string sqlTemplate, object? value)
     {
         var idx = NextParamIndex;
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var sql = sqlTemplate.Replace("{p}", $"${idx}");
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -283,16 +229,10 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder WhereWithFallback(SpanColumn primary, SpanColumn fallback, object? value)
     {
         var idx = NextParamIndex;
-        var newParams = new List<object?>(_parameters)
-        {
-            value
-        };
+        var newParams = new List<object?>(_parameters) { value };
         var sql = $"({primary.ToSql()} = ${idx} OR ({primary.ToSql()} IS NULL AND {fallback.ToSql()} = ${idx}))";
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -305,10 +245,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder Where(SpanColumn col, CompareOp op, int paramIndex)
     {
         var clause = new WhereClause(col.ToSql(), op, $"${paramIndex}");
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -328,10 +265,7 @@ public sealed class SpanQueryBuilder
         // DuckDB.NET 1.4.3 BUG: = operator doesn't work for VARCHAR in WHERE
         var sql = $"(${paramIndex}::VARCHAR IS NULL OR {col.ToSql()} IS NOT DISTINCT FROM ${paramIndex})";
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -342,10 +276,7 @@ public sealed class SpanQueryBuilder
         var sql =
             $"({primary.ToSql()} = ${paramIndex} OR ({primary.ToSql()} IS NULL AND {fallback.ToSql()} = ${paramIndex}))";
         var clause = new WhereClause(sql, CompareOp.Raw, null);
-        var clauses = new List<WhereClause>(_whereClauses)
-        {
-            clause
-        };
+        var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -357,10 +288,7 @@ public sealed class SpanQueryBuilder
     /// <summary>Add GROUP BY col.</summary>
     public SpanQueryBuilder GroupBy(SpanColumn col)
     {
-        var cols = new List<string>(_groupByCols)
-        {
-            col.ToSql()
-        };
+        var cols = new List<string>(_groupByCols) { col.ToSql() };
         return new SpanQueryBuilder(_selectCols, _whereClauses, cols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -368,10 +296,7 @@ public sealed class SpanQueryBuilder
     /// <summary>Add GROUP BY expression.</summary>
     public SpanQueryBuilder GroupBy(string expr)
     {
-        var cols = new List<string>(_groupByCols)
-        {
-            expr
-        };
+        var cols = new List<string>(_groupByCols) { expr };
         return new SpanQueryBuilder(_selectCols, _whereClauses, cols, _orderByCols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -380,10 +305,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder OrderBy(SpanColumn col, bool descending = false)
     {
         var order = new OrderByClause(col.ToSql(), descending);
-        var cols = new List<OrderByClause>(_orderByCols)
-        {
-            order
-        };
+        var cols = new List<OrderByClause>(_orderByCols) { order };
         return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, cols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -392,10 +314,7 @@ public sealed class SpanQueryBuilder
     public SpanQueryBuilder OrderBy(string expr, bool descending = false)
     {
         var order = new OrderByClause(expr, descending);
-        var cols = new List<OrderByClause>(_orderByCols)
-        {
-            order
-        };
+        var cols = new List<OrderByClause>(_orderByCols) { order };
         return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, cols, _parameters, _limit, _offset,
             _distinct, _limitIsParam, _offsetIsParam);
     }
@@ -418,10 +337,7 @@ public sealed class SpanQueryBuilder
     /// <summary>Set LIMIT with value (adds parameter).</summary>
     public SpanQueryBuilder LimitValue(int limit)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            limit
-        };
+        var newParams = new List<object?>(_parameters) { limit };
         return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, _orderByCols, newParams, NextParamIndex,
             _offset, _distinct, true, _offsetIsParam);
     }
@@ -434,10 +350,7 @@ public sealed class SpanQueryBuilder
     /// <summary>Set OFFSET with value (adds parameter).</summary>
     public SpanQueryBuilder OffsetValue(int offset)
     {
-        var newParams = new List<object?>(_parameters)
-        {
-            offset
-        };
+        var newParams = new List<object?>(_parameters) { offset };
         return new SpanQueryBuilder(_selectCols, _whereClauses, _groupByCols, _orderByCols, newParams, _limit,
             NextParamIndex, _distinct, _limitIsParam, true);
     }
@@ -518,10 +431,7 @@ public sealed class SpanQueryBuilder
         cmd.CommandText = Build();
         foreach (var param in _parameters)
         {
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = param ?? DBNull.Value
-            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = param ?? DBNull.Value });
         }
     }
 
@@ -543,10 +453,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
         cmd.CommandText = Sql;
         foreach (var param in Parameters)
         {
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = param ?? DBNull.Value
-            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = param ?? DBNull.Value });
         }
     }
 
@@ -554,10 +461,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
     public IReadOnlyList<DuckDBParameter> ToDuckDbParameters()
         =>
         [
-            .. Parameters.Select(static p => new DuckDBParameter
-            {
-                Value = p ?? DBNull.Value
-            })
+            .. Parameters.Select(static p => new DuckDBParameter { Value = p ?? DBNull.Value })
         ];
 }
 

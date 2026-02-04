@@ -31,18 +31,18 @@ DashboardBuild -> DashboardEmbed -+-> Publish -> DockerBuild
 
 ### Target Reference
 
-| Target | Purpose | Command |
-|--------|---------|---------|
-| `TypeSpecCompile` | TypeSpec -> OpenAPI | `nuke TypeSpecCompile` |
-| `Generate` | OpenAPI -> C#/DuckDB/TS | `nuke Generate` |
-| `DashboardBuild` | Build React app | `nuke DashboardBuild` |
-| `Compile` | Build .NET projects | `nuke Compile` |
-| `DashboardEmbed` | Copy dist to wwwroot | `nuke DashboardEmbed` |
-| `Publish` | dotnet publish | `nuke Publish` |
-| `DockerBuild` | Build Docker image | `nuke DockerBuild` |
-| `Test` | Run tests | `nuke Test` |
-| `Coverage` | Run with coverage | `nuke Coverage` |
-| `Full` | Complete build | `nuke Full` |
+| Target            | Purpose                 | Command                |
+|-------------------|-------------------------|------------------------|
+| `TypeSpecCompile` | TypeSpec -> OpenAPI     | `nuke TypeSpecCompile` |
+| `Generate`        | OpenAPI -> C#/DuckDB/TS | `nuke Generate`        |
+| `DashboardBuild`  | Build React app         | `nuke DashboardBuild`  |
+| `Compile`         | Build .NET projects     | `nuke Compile`         |
+| `DashboardEmbed`  | Copy dist to wwwroot    | `nuke DashboardEmbed`  |
+| `Publish`         | dotnet publish          | `nuke Publish`         |
+| `DockerBuild`     | Build Docker image      | `nuke DockerBuild`     |
+| `Test`            | Run tests               | `nuke Test`            |
+| `Coverage`        | Run with coverage       | `nuke Coverage`        |
+| `Full`            | Complete build          | `nuke Full`            |
 
 ## Common Commands
 
@@ -71,21 +71,21 @@ nuke Coverage
 `SchemaGenerator.cs` reads `openapi.yaml` and generates:
 
 1. **C# Scalars** (`Primitives/Scalars.g.cs`)
-   - Strongly-typed wrappers: TraceId, SpanId, SessionId
-   - Implements IParsable, ISpanFormattable
+    - Strongly-typed wrappers: TraceId, SpanId, SessionId
+    - Implements IParsable, ISpanFormattable
 
 2. **C# Enums** (`Enums/Enums.g.cs`)
-   - SpanKind, StatusCode, SeverityNumber
+    - SpanKind, StatusCode, SeverityNumber
 
 3. **C# Models** (`Models/*.g.cs`)
-   - Record types with JSON serialization
+    - Record types with JSON serialization
 
 4. **DuckDB Schema** (`Storage/DuckDbSchema.g.cs`)
-   - CREATE TABLE statements
-   - Index definitions
+    - CREATE TABLE statements
+    - Index definitions
 
 5. **TypeScript Types** (`types/api.ts`)
-   - Interface definitions for React
+    - Interface definitions for React
 
 ## Docker Build
 
@@ -113,13 +113,14 @@ docker compose -f eng/compose.yaml down
 ```
 
 Services:
+
 - `qyl-collector`: Backend API (5100, 4317)
 - `qyl-dashboard`: React frontend (8080)
 - `qyl-mcp`: MCP server (5200)
 
 ## Environment Variables
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `Configuration` | Debug | Build configuration |
-| `FORCE_GENERATE` | false | Force regeneration |
+| Variable         | Default | Purpose             |
+|------------------|---------|---------------------|
+| `Configuration`  | Debug   | Build configuration |
+| `FORCE_GENERATE` | false   | Force regeneration  |

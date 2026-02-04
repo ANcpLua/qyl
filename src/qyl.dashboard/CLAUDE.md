@@ -4,12 +4,12 @@ React 19 SPA for telemetry visualization. Embedded in collector at build time.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| Runtime | Node 22 |
-| Framework | React 19 |
-| Build | Vite 7 |
-| Styling | Tailwind CSS 4 |
+| Property  | Value          |
+|-----------|----------------|
+| Runtime   | Node 22        |
+| Framework | React 19       |
+| Build     | Vite 7         |
+| Styling   | Tailwind CSS 4 |
 
 ## Commands
 
@@ -26,12 +26,12 @@ npm run generate:types
 
 ## Tech Stack
 
-| Library | Purpose |
-|---------|---------|
-| TanStack Query 5 | Data fetching, caching |
-| Radix UI | Accessible components |
-| Recharts | Charts and visualizations |
-| Lucide React | Icons |
+| Library          | Purpose                   |
+|------------------|---------------------------|
+| TanStack Query 5 | Data fetching, caching    |
+| Radix UI         | Accessible components     |
+| Recharts         | Charts and visualizations |
+| Lucide React     | Icons                     |
 
 ## Directory Structure
 
@@ -41,9 +41,17 @@ src/
     sessions/           # Session views
     traces/             # Trace views
     errors/             # Error views
-    layout/             # Layout components
+    layout/             # Layout, Sidebar, TopBar
+    ui/                 # shadcn/ui primitives
   hooks/                # Custom React hooks
   lib/                  # Utilities, API client
+  pages/                # Route components
+    GenAIPage.tsx       # GenAI analytics (real data)
+    LogsPage.tsx        # Structured logs
+    LoginPage.tsx       # Authentication
+    ResourcesPage.tsx   # Home/resources view
+    SettingsPage.tsx    # Settings
+    TracesPage.tsx      # Trace explorer
   types/
     api.ts              # Generated - DO NOT EDIT
   App.tsx               # Main app component

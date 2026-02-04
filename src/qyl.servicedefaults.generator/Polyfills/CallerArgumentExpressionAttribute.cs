@@ -13,7 +13,10 @@ internal sealed class CallerArgumentExpressionAttribute : Attribute
     ///     Initializes a new instance of the <see cref="CallerArgumentExpressionAttribute" /> class.
     /// </summary>
     /// <param name="parameterName">Function parameter to take the name from.</param>
-    public CallerArgumentExpressionAttribute(string parameterName) => ParameterName = parameterName;
+    public CallerArgumentExpressionAttribute(string parameterName)
+    {
+        ParameterName = parameterName;
+    }
 
     /// <summary>
     ///     Gets name of the function parameter that name should be taken from.

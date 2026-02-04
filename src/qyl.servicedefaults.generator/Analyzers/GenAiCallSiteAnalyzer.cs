@@ -1,9 +1,9 @@
 using System.Diagnostics.CodeAnalysis;
-using Qyl.ServiceDefaults.Generator.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
+using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Analyzers;
 
@@ -16,53 +16,95 @@ internal static class GenAiCallSiteAnalyzer
     ///     Known GenAI method patterns to intercept.
     ///     Key: containing type prefix, Value: (method name, operation name, is async).
     /// </summary>
-    private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> MethodPatterns = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["OpenAI.Chat.ChatClient"] =
-        [
-            ("CompleteChatAsync", "chat", true),
-            ("CompleteChat", "chat", false)
-        ],
-        ["OpenAI.Embeddings.EmbeddingClient"] =
-        [
-            ("GenerateEmbeddingsAsync", "embeddings", true),
-            ("GenerateEmbeddings", "embeddings", false)
-        ],
+    /// <remarks>
+    ///     Patterns cover OTel Semantic Conventions v1.39 operations:
+    ///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank
+    /// </remarks>
+    private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> MethodPatterns =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            // OpenAI SDK v2.x
+            ["OpenAI.Chat.ChatClient"] =
+            [
+                ("CompleteChatAsync", "chat", true),
+                ("CompleteChat", "chat", false)
+            ],
+            ["OpenAI.Embeddings.EmbeddingClient"] =
+            [
+                ("GenerateEmbeddingsAsync", "embeddings", true),
+                ("GenerateEmbeddings", "embeddings", false)
+            ],
+            ["OpenAI.Images.ImageClient"] =
+            [
+                ("GenerateImagesAsync", "image_generation", true),
+                ("GenerateImages", "image_generation", false)
+            ],
+            ["OpenAI.Audio.AudioClient"] =
+            [
+                ("GenerateSpeechAsync", "speech", true),
+                ("GenerateSpeech", "speech", false),
+                ("TranscribeAudioAsync", "transcription", true),
+                ("TranscribeAudio", "transcription", false)
+            ],
 
-        ["Anthropic.AnthropicClient"] =
-        [
-            ("CreateMessageAsync", "chat", true),
-            ("CreateMessage", "chat", false)
-        ],
+            // Anthropic SDK
+            ["Anthropic.AnthropicClient"] =
+            [
+                ("CreateMessageAsync", "chat", true),
+                ("CreateMessage", "chat", false)
+            ],
+            ["Anthropic.Messaging.MessageClient"] =
+            [
+                ("CreateMessageAsync", "chat", true),
+                ("CreateMessage", "chat", false)
+            ],
 
-        ["OllamaSharp.OllamaApiClient"] =
-        [
-            ("ChatAsync", "chat", true),
-            ("GenerateEmbeddingsAsync", "embeddings", true)
-        ],
+            // OllamaSharp
+            ["OllamaSharp.OllamaApiClient"] =
+            [
+                ("ChatAsync", "chat", true),
+                ("GenerateEmbeddingsAsync", "embeddings", true)
+            ],
 
-        ["Azure.AI.OpenAI.OpenAIClient"] =
-        [
-            ("GetChatCompletionsAsync", "chat", true),
-            ("GetChatCompletions", "chat", false),
-            ("GetEmbeddingsAsync", "embeddings", true),
-            ("GetEmbeddings", "embeddings", false)
-        ],
+            // Azure.AI.OpenAI (legacy pattern)
+            ["Azure.AI.OpenAI.OpenAIClient"] =
+            [
+                ("GetChatCompletionsAsync", "chat", true),
+                ("GetChatCompletions", "chat", false),
+                ("GetEmbeddingsAsync", "embeddings", true),
+                ("GetEmbeddings", "embeddings", false)
+            ],
 
-        // GitHub Copilot via Microsoft Agent Framework
-        ["Microsoft.Agents.AI.AIAgent"] =
-        [
-            ("RunAsync", "invoke_agent", true),
-            ("RunStreamingAsync", "invoke_agent", true)
-        ]
-    };
+            // Azure.AI.OpenAI (new pattern using OpenAI SDK)
+            ["Azure.AI.OpenAI.AzureOpenAIClient"] =
+            [
+                // Uses OpenAI.Chat.ChatClient pattern via GetChatClient()
+            ],
+
+            // GitHub Copilot via Microsoft Agent Framework
+            ["Microsoft.Agents.AI.AIAgent"] =
+            [
+                ("RunAsync", "invoke_agent", true),
+                ("RunStreamingAsync", "invoke_agent", true)
+            ],
+
+            // Cohere SDK
+            ["Cohere.CohereClient"] =
+            [
+                ("ChatAsync", "chat", true),
+                ("EmbedAsync", "embeddings", true),
+                ("RerankAsync", "rerank", true)
+            ]
+        };
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a GenAI invocation?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken _) =>
-        node.IsKind(SyntaxKind.InvocationExpression);
+    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken _)
+    {
+        return node.IsKind(SyntaxKind.InvocationExpression);
+    }
 
     /// <summary>
     ///     Extracts a GenAI call site from a syntax context if it matches known SDK patterns.

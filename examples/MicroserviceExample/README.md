@@ -46,12 +46,12 @@ With everything running:
 
 * [Invoke the Web API](http://localhost:5000/SendMessage) to send a message.
 * If you have run RabbitMQ and Zipkin with default settings:
-  * Manage RabbitMQ by accessing the local endpoint
-  [http://localhost:15672/](http://localhost:15672/)
-    * user = guest
-    * password = guest
-  * View your traces with Zipkin by accessing the local endpoint
-  [http://localhost:9411/zipkin](http://localhost:9411/zipkin).
+    * Manage RabbitMQ by accessing the local endpoint
+      [http://localhost:15672/](http://localhost:15672/)
+        * user = guest
+        * password = guest
+    * View your traces with Zipkin by accessing the local endpoint
+      [http://localhost:9411/zipkin](http://localhost:9411/zipkin).
 
 ## References
 

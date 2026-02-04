@@ -13,14 +13,13 @@ using Microsoft.CodeAnalysis.Text;
 namespace qyl.instrumentation.generators.DuckDb;
 
 /// <summary>
-/// Generates DuckDB helper methods for types decorated with [DuckDbTable].
-///
-/// For each marked type, generates:
-/// - ColumnList constant (comma-separated column names)
-/// - ColumnCount constant
-/// - AddParameters(DuckDBCommand, T) static method
-/// - MapFromReader(DbDataReader) static method
-/// - BuildMultiRowInsertSql(int) static method
+///     Generates DuckDB helper methods for types decorated with [DuckDbTable].
+///     For each marked type, generates:
+///     - ColumnList constant (comma-separated column names)
+///     - ColumnCount constant
+///     - AddParameters(DuckDBCommand, T) static method
+///     - MapFromReader(DbDataReader) static method
+///     - BuildMultiRowInsertSql(int) static method
 /// </summary>
 [Generator]
 public sealed class DuckDbInsertGenerator : IIncrementalGenerator
@@ -39,8 +38,8 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var tableTypes = context.SyntaxProvider
             .ForAttributeWithMetadataName(
                 DuckDbTableAttribute,
-                predicate: static (node, _) => node is TypeDeclarationSyntax,
-                transform: static (ctx, _) => ExtractTableInfo(ctx))
+                static (node, _) => node is TypeDeclarationSyntax,
+                static (ctx, _) => ExtractTableInfo(ctx))
             .Where(static info => info.HasValue)
             .Select(static (info, _) => info!.Value);
 
@@ -114,12 +113,12 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         }
 
         return new DuckDbTableInfo(
-            Namespace: typeSymbol.ContainingNamespace.ToDisplayString(),
-            TypeName: typeSymbol.Name,
-            TypeKind: typeDecl is RecordDeclarationSyntax ? "record" : "class",
-            TableName: tableName!, // Validated non-null above by string.IsNullOrEmpty check
-            OnConflict: onConflict,
-            Columns: [..columns]);
+            typeSymbol.ContainingNamespace.ToDisplayString(),
+            typeSymbol.Name,
+            typeDecl is RecordDeclarationSyntax ? "record" : "class",
+            tableName!, // Validated non-null above by string.IsNullOrEmpty check
+            onConflict,
+            [..columns]);
     }
 
     private static DuckDbColumnInfo? ExtractColumnInfo(IPropertySymbol prop, int defaultOrdinal)
@@ -160,20 +159,20 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         var propType = prop.Type.ToDisplayString();
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated ||
-                        propType.EndsWith("?", StringComparison.Ordinal);
+                         propType.EndsWith("?", StringComparison.Ordinal);
 
         // Detect UBIGINT by type if not explicitly marked
         if (!isUBigInt && propType is "ulong" or "System.UInt64")
             isUBigInt = true;
 
         return new DuckDbColumnInfo(
-            PropertyName: prop.Name,
-            ColumnName: columnName,
-            PropertyType: propType,
-            IsNullable: isNullable,
-            IsUBigInt: isUBigInt,
-            ExcludeFromInsert: excludeFromInsert,
-            Ordinal: ordinal);
+            prop.Name,
+            columnName,
+            propType,
+            isNullable,
+            isUBigInt,
+            excludeFromInsert,
+            ordinal);
     }
 
     private static string ToSnakeCase(string name)
@@ -193,6 +192,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 sb.Append(c);
             }
         }
+
         return sb.ToString();
     }
 }

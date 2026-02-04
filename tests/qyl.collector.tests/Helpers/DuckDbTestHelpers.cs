@@ -12,42 +12,64 @@ internal static class DuckDbTestHelpers
     public static DuckDbStore CreateInMemoryStore(
         int jobQueueCapacity = TestConstants.DefaultJobQueueCapacity,
         int maxConcurrentReads = TestConstants.DefaultMaxConcurrentReads,
-        int maxRetainedReadConnections = TestConstants.DefaultMaxRetainedReadConnections) =>
-        new(
+        int maxRetainedReadConnections = TestConstants.DefaultMaxRetainedReadConnections)
+    {
+        return new DuckDbStore(
             TestConstants.InMemoryDb,
             jobQueueCapacity,
             maxConcurrentReads,
             maxRetainedReadConnections);
+    }
 
     /// <summary>Waits for schema initialization.</summary>
-    public static Task WaitForSchemaInit() => Task.Delay(TestConstants.SchemaInitDelayMs);
+    public static Task WaitForSchemaInit()
+    {
+        return Task.Delay(TestConstants.SchemaInitDelayMs);
+    }
 
     /// <summary>Waits for single span processing.</summary>
-    public static Task WaitForSingleSpan() => Task.Delay(TestConstants.SingleSpanProcessingDelayMs);
+    public static Task WaitForSingleSpan()
+    {
+        return Task.Delay(TestConstants.SingleSpanProcessingDelayMs);
+    }
 
     /// <summary>Waits for batch processing.</summary>
-    public static Task WaitForBatch() => Task.Delay(TestConstants.BatchProcessingDelayMs);
+    public static Task WaitForBatch()
+    {
+        return Task.Delay(TestConstants.BatchProcessingDelayMs);
+    }
 
     /// <summary>Waits for large batch processing.</summary>
-    public static Task WaitForLargeBatch() => Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
+    public static Task WaitForLargeBatch()
+    {
+        return Task.Delay(TestConstants.LargeBatchProcessingDelayMs);
+    }
 
     /// <summary>Waits for archive processing.</summary>
-    public static Task WaitForArchive() => Task.Delay(TestConstants.ArchiveProcessingDelayMs);
+    public static Task WaitForArchive()
+    {
+        return Task.Delay(TestConstants.ArchiveProcessingDelayMs);
+    }
 
     /// <summary>Waits for concurrent read operations.</summary>
-    public static Task WaitForConcurrentReads() => Task.Delay(TestConstants.ConcurrentReadDelayMs);
+    public static Task WaitForConcurrentReads()
+    {
+        return Task.Delay(TestConstants.ConcurrentReadDelayMs);
+    }
 
     /// <summary>Writes a batch synchronously (waits for completion).</summary>
     public static Task EnqueueAndWaitAsync(DuckDbStore store, SpanBatch batch,
         int delayMs = 0) // delayMs kept for API compatibility but no longer needed
-        =>
-            store.WriteBatchAsync(batch);
+    {
+        return store.WriteBatchAsync(batch);
+    }
 
     /// <summary>Writes a single span synchronously (waits for completion).</summary>
     public static Task EnqueueAndWaitAsync(DuckDbStore store, SpanStorageRow span,
         int delayMs = 0) // delayMs kept for API compatibility but no longer needed
-        =>
-            store.WriteBatchAsync(new SpanBatch([span]));
+    {
+        return store.WriteBatchAsync(new SpanBatch([span]));
+    }
 
     /// <summary>Creates a temporary directory for parquet tests.</summary>
     public static string CreateTempDirectory()
@@ -71,7 +93,10 @@ internal static class DuckDbTestHelpers
     }
 
     /// <summary>Gets parquet files from a directory.</summary>
-    public static string[] GetParquetFiles(string directory) => Directory.GetFiles(directory, "*.parquet");
+    public static string[] GetParquetFiles(string directory)
+    {
+        return Directory.GetFiles(directory, "*.parquet");
+    }
 }
 
 /// <summary>
@@ -182,11 +207,20 @@ internal static class DuckDbQueryExtensions
 /// </summary>
 internal sealed class TempDirectory : IDisposable
 {
-    public TempDirectory() => Path = DuckDbTestHelpers.CreateTempDirectory();
+    public TempDirectory()
+    {
+        Path = DuckDbTestHelpers.CreateTempDirectory();
+    }
 
     public string Path { get; }
 
-    public void Dispose() => DuckDbTestHelpers.CleanupTempDirectory(Path);
+    public void Dispose()
+    {
+        DuckDbTestHelpers.CleanupTempDirectory(Path);
+    }
 
-    public string[] GetParquetFiles() => DuckDbTestHelpers.GetParquetFiles(Path);
+    public string[] GetParquetFiles()
+    {
+        return DuckDbTestHelpers.GetParquetFiles(Path);
+    }
 }
