@@ -72,7 +72,7 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0"/>
     <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.28.0"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.20.0"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.28.0"/>
     <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260128.1"/>

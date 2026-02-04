@@ -8,13 +8,7 @@ namespace qyl.Analyzers.CodeFixes.CodeFixes;
 public sealed partial class Qyl012MetricMethodCodeFixProvider : CodeFixProvider
 {
     /// <summary>Gets the diagnostic IDs this provider can fix.</summary>
-    public override ImmutableArray<string> FixableDiagnosticIds => [ancplua@Alexanders-MacBook-Air ANcpLua.Roslyn.Utilities % pwd
-        /Users/ancplua/ANcpLua.Roslyn.Utilities
-        ancplua@Alexanders-MacBook-Air ANcpLua.Roslyn.Utilities % ls
-         ANcpLua.Roslyn.Utilities   ANcpLua.Roslyn.Utilities.sln.DotSettings.user   CLAUDE.md                  global.json   󰂺 README.md
-         artifacts                  ANcpLua.Roslyn.Utilities.slnx                   Directory.Build.props      LICENSE        Version.props
-         nupkgs                     CHANGELOG.md                                    Directory.Packages.props  󱁻 nuget.config
-        ancplua@Alexanders-MacBook-Air ANcpLua.Roslyn.Utilities % DiagnosticIds.MetricMethodMustBePartial];
+    public override ImmutableArray<string> FixableDiagnosticIds => [DiagnosticIds.MetricMethodMustBePartial];
 
     /// <summary>Gets the FixAll provider for batch fixing.</summary>
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
