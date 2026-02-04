@@ -82,7 +82,6 @@ src/qyl.Analyzers.CodeFixes/
 | Package                       | Purpose               |
 |-------------------------------|-----------------------|
 | Microsoft.CodeAnalysis.CSharp | Roslyn APIs           |
-| ANcpLua.Roslyn.Utilities      | Shared Roslyn helpers |
 
 ## Targets
 

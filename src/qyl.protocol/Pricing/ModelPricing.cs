@@ -27,10 +27,12 @@ public static class ModelPricingTable
 {
     private static readonly FrozenDictionary<(string Provider, string Model), ModelPricing> s_all =
         CreatePricingTable();
+    private static readonly ProviderModelComparer s_providerModelComparer = new();
+    private static readonly StringComparer s_providerComparer = StringComparer.OrdinalIgnoreCase;
 
     private static FrozenDictionary<(string Provider, string Model), ModelPricing> CreatePricingTable()
     {
-        var entries = new Dictionary<(string Provider, string Model), ModelPricing>();
+        var entries = new Dictionary<(string Provider, string Model), ModelPricing>(s_providerModelComparer);
 
         // OpenAI
         AddModel(entries, "openai", "gpt-4o", new(2.50m, 10.00m, 128_000));
@@ -127,26 +129,37 @@ public static class ModelPricingTable
         AddModel(entries, "ollama", "phi3", new(0m, 0m, 128_000));
         AddModel(entries, "ollama", "qwen2.5", new(0m, 0m, 128_000));
 
-        return entries.ToFrozenDictionary();
+        return entries.ToFrozenDictionary(s_providerModelComparer);
 
         static void AddModel(
             Dictionary<(string Provider, string Model), ModelPricing> dict,
             string provider,
             string model,
             ModelPricing pricing) =>
-            dict[(provider, model.ToLowerInvariant())] = pricing;
+            dict[(provider, model)] = pricing;
     }
 
     /// <summary>
     ///     Normalizes provider name to canonical form for lookup.
     /// </summary>
-    private static string NormalizeProvider(string provider) => provider.ToLowerInvariant() switch
+    private static string NormalizeProvider(string provider)
     {
-        "azure" or "azure_openai" or "azure.ai.openai" => "openai",
-        "gemini" or "gcp.gemini" or "gcp.vertex_ai" => "google",
-        "mistral_ai" or "mistralai" => "mistral",
-        _ => provider.ToLowerInvariant()
-    };
+        if (s_providerComparer.Equals(provider, "azure") ||
+            s_providerComparer.Equals(provider, "azure_openai") ||
+            s_providerComparer.Equals(provider, "azure.ai.openai"))
+            return "openai";
+
+        if (s_providerComparer.Equals(provider, "gemini") ||
+            s_providerComparer.Equals(provider, "gcp.gemini") ||
+            s_providerComparer.Equals(provider, "gcp.vertex_ai"))
+            return "google";
+
+        if (s_providerComparer.Equals(provider, "mistral_ai") ||
+            s_providerComparer.Equals(provider, "mistralai"))
+            return "mistral";
+
+        return provider;
+    }
 
     /// <summary>
     ///     Gets pricing for a model by provider name.
@@ -159,7 +172,7 @@ public static class ModelPricingTable
         if (string.IsNullOrEmpty(provider) || string.IsNullOrEmpty(model))
             return null;
 
-        return s_all.GetValueOrDefault((NormalizeProvider(provider), model.ToLowerInvariant()));
+        return s_all.GetValueOrDefault((NormalizeProvider(provider), model));
     }
 
     /// <summary>
@@ -170,7 +183,25 @@ public static class ModelPricingTable
     public static IEnumerable<string> GetModelsForProvider(string provider)
     {
         var normalized = NormalizeProvider(provider);
-        return s_all.Keys.Where(k => k.Provider == normalized).Select(k => k.Model);
+        return s_all.Keys
+            .Where(k => s_providerComparer.Equals(k.Provider, normalized))
+            .Select(k => k.Model);
+    }
+
+    private sealed class ProviderModelComparer : IEqualityComparer<(string Provider, string Model)>
+    {
+        public bool Equals((string Provider, string Model) x, (string Provider, string Model) y)
+        {
+            return s_providerComparer.Equals(x.Provider, y.Provider) &&
+                s_providerComparer.Equals(x.Model, y.Model);
+        }
+
+        public int GetHashCode((string Provider, string Model) obj)
+        {
+            var providerHash = s_providerComparer.GetHashCode(obj.Provider ?? string.Empty);
+            var modelHash = s_providerComparer.GetHashCode(obj.Model ?? string.Empty);
+            return unchecked((providerHash * 397) ^ modelHash);
+        }
     }
 
     /// <summary>

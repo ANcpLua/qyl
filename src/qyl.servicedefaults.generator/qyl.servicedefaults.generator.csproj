@@ -25,6 +25,5 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ANcpLua.Roslyn.Utilities" PrivateAssets="all"/>
   </ItemGroup>
 </Project>

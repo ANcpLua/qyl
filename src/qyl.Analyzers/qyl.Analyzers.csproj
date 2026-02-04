@@ -27,6 +27,9 @@
     <!-- Analyzers don't have debug symbols - disable snupkg generation -->
     <IncludeSymbols>false</IncludeSymbols>
 
+    <!-- Pin Roslyn for analyzer compatibility -->
+    <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
+
     <!-- Suppress analyzer rules:
          RS1025/RS1026/RS1041: Analyzer registration patterns - intentional design
          RS0030: Banned APIs - analyzer needs access to banned patterns to detect them
@@ -44,12 +47,9 @@
     <Using Include="Microsoft.CodeAnalysis.Diagnostics"/>
     <Using Include="Microsoft.CodeAnalysis.Operations"/>
     <Using Include="System.Collections.Immutable"/>
-    <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Runtime package - bundled into analyzer package via _AddAnalyzersToPackage target -->
-    <PackageReference Include="ANcpLua.Roslyn.Utilities" PrivateAssets="all"/>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -83,8 +83,6 @@
       <TfmSpecificPackageFile Include="$(OutputPath)qyl.Analyzers.dll" PackagePath="analyzers/dotnet/cs"/>
       <!-- CodeFixes assembly (IDE integration) -->
       <TfmSpecificPackageFile Include="$(MSBuildThisFileDirectory)..\qyl.Analyzers.CodeFixes\bin\$(Configuration)\netstandard2.0\qyl.Analyzers.CodeFixes.dll" PackagePath="analyzers/dotnet/cs"/>
-      <!-- Bundle Roslyn.Utilities dependency (required for analyzer runtime) -->
-      <TfmSpecificPackageFile Include="$(OutputPath)ANcpLua.Roslyn.Utilities.dll" PackagePath="analyzers/dotnet/cs"/>
     </ItemGroup>
   </Target>
 </Project>
