@@ -159,6 +159,20 @@ model SpanRecord {
   @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
   resourceJson?: string;
 
+  // === W3C Baggage (JSON) ===
+
+  @doc("W3C Baggage key-value pairs as JSON for cross-cutting concern propagation")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "baggage_json")
+  @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
+  baggageJson?: string;
+
+  // === Schema URL Tracking ===
+
+  @doc("OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "schema_url")
+  @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR(256)")
+  schemaUrl?: string;
+
   // === Internal Storage Fields ===
 
   @doc("Row creation timestamp")

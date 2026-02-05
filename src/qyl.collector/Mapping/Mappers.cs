@@ -40,6 +40,8 @@ public static class SpanMapper
             GenAiCostUsd = row.GenAiCostUsd,
             AttributesJson = row.AttributesJson,
             ResourceJson = row.ResourceJson,
+            BaggageJson = row.BaggageJson,
+            SchemaUrl = row.SchemaUrl,
             CreatedAt = row.CreatedAt ?? TimeProvider.System.GetUtcNow()
         };
 
@@ -70,7 +72,9 @@ public static class SpanMapper
             Attributes = ParseAttributes(record.AttributesJson),
             Events = [],
             Links = [],
-            GenAi = ExtractGenAiData(record)
+            GenAi = ExtractGenAiData(record),
+            Baggage = ParseBaggage(record.BaggageJson),
+            SchemaUrl = record.SchemaUrl
         };
     }
 
@@ -101,7 +105,9 @@ public static class SpanMapper
             Attributes = ParseAttributes(record.AttributesJson),
             Events = [],
             Links = [],
-            GenAi = ExtractGenAiData(record)
+            GenAi = ExtractGenAiData(record),
+            Baggage = ParseBaggage(record.BaggageJson),
+            SchemaUrl = record.SchemaUrl
         };
     }
 
@@ -157,6 +163,23 @@ public static class SpanMapper
         catch
         {
             return [];
+        }
+    }
+
+    [RequiresUnreferencedCode("Deserializes W3C baggage JSON")]
+    [RequiresDynamicCode("Deserializes W3C baggage JSON")]
+    private static Dictionary<string, string>? ParseBaggage(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json, JsonOptions);
+        }
+        catch
+        {
+            return null;
         }
     }
 

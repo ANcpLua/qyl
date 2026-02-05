@@ -122,6 +122,8 @@ public static partial class DuckDbSchema
             gen_ai_cost_usd DOUBLE,
             attributes_json VARCHAR,
             resource_json VARCHAR,
+            baggage_json VARCHAR,
+            schema_url VARCHAR(256),
             created_at TIMESTAMP DEFAULT now(),
             PRIMARY KEY (span_id)
         );

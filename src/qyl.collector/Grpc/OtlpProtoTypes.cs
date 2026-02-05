@@ -105,6 +105,8 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
 {
     public OtlpResourceProto? Resource { get; set; }
     public List<OtlpScopeSpansProto> ScopeSpans { get; } = [];
+    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.39.0).</summary>
+    public string? SchemaUrl { get; set; }
 
     public void MergeFrom(ProtobufReader reader, int length)
     {
@@ -121,6 +123,9 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
                     var scopeSpan = new OtlpScopeSpansProto();
                     reader.ReadMessage(scopeSpan);
                     ScopeSpans.Add(scopeSpan);
+                    break;
+                case 3: // schema_url
+                    SchemaUrl = reader.ReadString();
                     break;
                 default:
                     reader.SkipField(tag.WireType);
@@ -163,6 +168,8 @@ public sealed class OtlpResourceProto : IProtobufParseable
 public sealed class OtlpScopeSpansProto : IProtobufParseable
 {
     public List<OtlpSpanProto> Spans { get; } = [];
+    /// <summary>OTel schema URL for this instrumentation scope (overrides resource-level if set).</summary>
+    public string? SchemaUrl { get; set; }
 
     public void MergeFrom(ProtobufReader reader, int length)
     {
@@ -175,6 +182,9 @@ public sealed class OtlpScopeSpansProto : IProtobufParseable
                     var span = new OtlpSpanProto();
                     reader.ReadMessage(span);
                     Spans.Add(span);
+                    break;
+                case 3: // schema_url
+                    SchemaUrl = reader.ReadString();
                     break;
                 default:
                     reader.SkipField(tag.WireType);

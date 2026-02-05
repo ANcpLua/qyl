@@ -289,7 +289,8 @@ app.MapPost("/v1/traces", async (
 
         if (spans.Count is 0) return Results.Accepted();
 
-        var batch = new SpanBatch(spans);
+        // Apply Codex telemetry transformations (codex.* -> gen_ai.*)
+        var batch = new SpanBatch(spans).WithCodexTransformations();
 
         // Push to ring buffer for real-time queries
         ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
