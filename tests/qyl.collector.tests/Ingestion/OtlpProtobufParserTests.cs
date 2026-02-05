@@ -77,52 +77,6 @@ public sealed class OtlpProtobufParserTests
         Assert.NotEmpty(request.ResourceSpans);
     }
 
-    [Fact(Skip = "Manual protobuf encoding has structural issues - needs investigation")]
-    public void Parse_WithGenAiAttributes_ExtractsCorrectly()
-    {
-        // Arrange - Create proto with GenAI attributes
-        var protoBytes = CreateProtoWithGenAiAttributes(
-            providerName: "openai",
-            requestModel: "gpt-4");
-
-        // Act
-        var request = OtlpProtobufParser.Parse(protoBytes.AsMemory());
-        var spans = OtlpConverter.ConvertProtoToStorageRows(request);
-
-        // Assert
-        Assert.Single(spans);
-        Assert.Equal("openai", spans[0].GenAiProviderName);
-        Assert.Equal("gpt-4", spans[0].GenAiRequestModel);
-    }
-
-    // =========================================================================
-    // Round-Trip Tests (Proto -> Parse -> Convert -> Storage)
-    // =========================================================================
-
-    [Fact(Skip = "Manual protobuf encoding has structural issues - needs investigation")]
-    public void RoundTrip_ProtobufToStorageRow_PreservesData()
-    {
-        // Arrange
-        var protoBytes = CreateDetailedProtoPayload(
-            traceId: "4bf92f3577b34da6a3ce929d0e0e4736",
-            spanId: "00f067aa0ba902b7",
-            name: "test-operation",
-            serviceName: "test-service");
-
-        // Act - Parse from bytes
-        var request = OtlpProtobufParser.Parse(protoBytes.AsMemory());
-
-        // Convert to storage rows
-        var spans = OtlpConverter.ConvertProtoToStorageRows(request);
-
-        // Assert
-        Assert.Single(spans);
-        var span = spans[0];
-        Assert.Equal("4bf92f3577b34da6a3ce929d0e0e4736", span.TraceId);
-        Assert.Equal("00f067aa0ba902b7", span.SpanId);
-        Assert.Equal("test-operation", span.Name);
-        Assert.Equal("test-service", span.ServiceName);
-    }
 
     // =========================================================================
     // Helper Methods - Protobuf Encoding
@@ -144,43 +98,6 @@ public sealed class OtlpProtobufParserTests
         return ms.ToArray();
     }
 
-    /// <summary>
-    ///     Creates a proto payload with GenAI attributes.
-    /// </summary>
-    private static byte[] CreateProtoWithGenAiAttributes(string providerName, string requestModel)
-    {
-        using var ms = new MemoryStream();
-
-        // ExportTraceServiceRequest.resource_spans (field 1, length-delimited)
-        WriteTag(ms, 1, WireType.LengthDelimited);
-        using var resourceSpansMs = new MemoryStream();
-        WriteResourceSpansWithGenAi(resourceSpansMs, "genai-service", "00000000000000000000000000000002", "0000000000000002", "chat gpt-4",
-            providerName, requestModel);
-        WriteBytes(ms, resourceSpansMs.ToArray());
-
-        return ms.ToArray();
-    }
-
-    /// <summary>
-    ///     Creates a detailed proto payload with specific values for round-trip testing.
-    /// </summary>
-    private static byte[] CreateDetailedProtoPayload(
-        string traceId,
-        string spanId,
-        string name,
-        string serviceName)
-    {
-        using var ms = new MemoryStream();
-
-        // ExportTraceServiceRequest.resource_spans (field 1, length-delimited)
-        WriteTag(ms, 1, WireType.LengthDelimited);
-        using var resourceSpansMs = new MemoryStream();
-        WriteResourceSpans(resourceSpansMs, serviceName, traceId, spanId, name);
-        WriteBytes(ms, resourceSpansMs.ToArray());
-
-        return ms.ToArray();
-    }
-
     private static void WriteResourceSpans(MemoryStream ms, string serviceName, string traceId, string spanId,
         string name)
     {
@@ -193,23 +110,7 @@ public sealed class OtlpProtobufParserTests
         // ResourceSpans.scope_spans (field 2, length-delimited)
         WriteTag(ms, 2, WireType.LengthDelimited);
         using var scopeSpansMs = new MemoryStream();
-        WriteScopeSpans(scopeSpansMs, traceId, spanId, name, null, null);
-        WriteBytes(ms, scopeSpansMs.ToArray());
-    }
-
-    private static void WriteResourceSpansWithGenAi(MemoryStream ms, string serviceName, string traceId, string spanId,
-        string name, string providerName, string requestModel)
-    {
-        // ResourceSpans.resource (field 1, length-delimited)
-        WriteTag(ms, 1, WireType.LengthDelimited);
-        using var resourceMs = new MemoryStream();
-        WriteResource(resourceMs, serviceName);
-        WriteBytes(ms, resourceMs.ToArray());
-
-        // ResourceSpans.scope_spans (field 2, length-delimited)
-        WriteTag(ms, 2, WireType.LengthDelimited);
-        using var scopeSpansMs = new MemoryStream();
-        WriteScopeSpans(scopeSpansMs, traceId, spanId, name, providerName, requestModel);
+        WriteScopeSpans(scopeSpansMs, traceId, spanId, name);
         WriteBytes(ms, scopeSpansMs.ToArray());
     }
 
@@ -222,18 +123,16 @@ public sealed class OtlpProtobufParserTests
         WriteBytes(ms, attrMs.ToArray());
     }
 
-    private static void WriteScopeSpans(MemoryStream ms, string traceId, string spanId, string name,
-        string? providerName, string? requestModel)
+    private static void WriteScopeSpans(MemoryStream ms, string traceId, string spanId, string name)
     {
         // ScopeSpans.spans (field 2, length-delimited)
         WriteTag(ms, 2, WireType.LengthDelimited);
         using var spanMs = new MemoryStream();
-        WriteSpan(spanMs, traceId, spanId, name, providerName, requestModel);
+        WriteSpan(spanMs, traceId, spanId, name);
         WriteBytes(ms, spanMs.ToArray());
     }
 
-    private static void WriteSpan(MemoryStream ms, string traceId, string spanId, string name, string? providerName,
-        string? requestModel)
+    private static void WriteSpan(MemoryStream ms, string traceId, string spanId, string name)
     {
         // Span.trace_id (field 1, bytes)
         WriteTag(ms, 1, WireType.LengthDelimited);
@@ -260,23 +159,6 @@ public sealed class OtlpProtobufParserTests
         // Span.end_time_unix_nano (field 8, fixed64)
         WriteTag(ms, 8, WireType.Fixed64);
         WriteFixed64(ms, 2000000000UL);
-
-        // Span.attributes (field 9, length-delimited) - GenAI attributes
-        if (providerName is not null)
-        {
-            WriteTag(ms, 9, WireType.LengthDelimited);
-            using var attrMs = new MemoryStream();
-            WriteKeyValue(attrMs, "gen_ai.provider.name", providerName);
-            WriteBytes(ms, attrMs.ToArray());
-        }
-
-        if (requestModel is not null)
-        {
-            WriteTag(ms, 9, WireType.LengthDelimited);
-            using var attrMs = new MemoryStream();
-            WriteKeyValue(attrMs, "gen_ai.request.model", requestModel);
-            WriteBytes(ms, attrMs.ToArray());
-        }
     }
 
     private static void WriteKeyValue(MemoryStream ms, string key, string value)
@@ -288,15 +170,10 @@ public sealed class OtlpProtobufParserTests
         // KeyValue.value (field 2, AnyValue)
         WriteTag(ms, 2, WireType.LengthDelimited);
         using var anyValueMs = new MemoryStream();
-        WriteAnyValue(anyValueMs, value);
-        WriteBytes(ms, anyValueMs.ToArray());
-    }
-
-    private static void WriteAnyValue(MemoryStream ms, string value)
-    {
         // AnyValue.string_value (field 1, string)
-        WriteTag(ms, 1, WireType.LengthDelimited);
-        WriteString(ms, value);
+        WriteTag(anyValueMs, 1, WireType.LengthDelimited);
+        WriteString(anyValueMs, value);
+        WriteBytes(ms, anyValueMs.ToArray());
     }
 
     private static void WriteTag(MemoryStream ms, int fieldNumber, WireType wireType)

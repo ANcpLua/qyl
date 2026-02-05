@@ -54,4 +54,5 @@
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
         <File Path="tests/CLAUDE.md" />
     </Folder>
+    <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
 </Solution>

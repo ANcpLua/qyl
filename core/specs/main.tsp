@@ -52,8 +52,7 @@ import "./otel/storage.tsp";
 // =============================================================================
 // Type-safe attribute keys from @opentelemetry/semantic-conventions NPM package.
 // Contains Keys.GenAi, Keys.Db, Keys.Http, etc. for all OTel semconv attributes.
-// TODO: Fix generator to escape reserved words (namespace, unknown) before enabling
-// import "./generated/semconv.g.tsp";
+import "./generated/semconv.g.tsp";
 // =============================================================================
 
 // =============================================================================

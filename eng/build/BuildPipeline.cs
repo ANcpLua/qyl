@@ -49,7 +49,7 @@ interface IPipeline : IHasSolution
     // Semconv Generator Paths (OTel Semantic Conventions)
     // ════════════════════════════════════════════════════════════════════════
 
-    AbsolutePath SemconvDirectory => RootDirectory / "tools" / "semconv-generator";
+    AbsolutePath SemconvDirectory => RootDirectory / "eng" / "semconv";
 
     // ════════════════════════════════════════════════════════════════════════
     // Frontend Paths
@@ -168,7 +168,7 @@ interface IPipeline : IHasSolution
         });
 
     Target GenerateSemconv => d => d
-        .Description("Generate OTel Semantic Conventions (C# + TypeScript)")
+        .Description("Generate OTel Semantic Conventions (C#, TypeScript, TypeSpec, DuckDB)")
         .DependsOn(SemconvInstall)
         .OnlyWhenStatic(() => SemconvDirectory.DirectoryExists())
         .Executes(() =>
@@ -179,13 +179,12 @@ interface IPipeline : IHasSolution
                 .SetProcessWorkingDirectory<NpmRunSettings>(SemconvDirectory)
                 .SetCommand("generate"));
 
-            NpmTasks.NpmRun(s => s
-                .SetProcessWorkingDirectory<NpmRunSettings>(SemconvDirectory)
-                .SetCommand("deploy:all"));
-
-            Log.Information("Semconv generated and deployed:");
-            Log.Information("  C#: qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs");
-            Log.Information("  TS: qyl.dashboard/src/lib/semconv.ts");
+            Log.Information("Semconv generated to final destinations:");
+            Log.Information("  TypeSpec: core/specs/generated/semconv.g.tsp");
+            Log.Information("  C#: src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs");
+            Log.Information("  C# UTF-8: src/qyl.servicedefaults/Instrumentation/SemanticConventions.Utf8.g.cs");
+            Log.Information("  TypeScript: src/qyl.dashboard/src/lib/semconv.ts");
+            Log.Information("  DuckDB: src/qyl.collector/Storage/promoted-columns.g.sql");
         });
 
     // ════════════════════════════════════════════════════════════════════════

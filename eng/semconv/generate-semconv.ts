@@ -73,22 +73,24 @@ const CONFIG = {
         "openai", "azure",
     ],
 
-    // Output paths (relative to this script)
+    // Output paths (relative to this script) - Direct to final destinations
     outputs: {
-        typescript: "output/semconv.ts",
-        csharp: "output/SemanticConventions.g.cs",
-        csharpUtf8: "output/SemanticConventions.Utf8.g.cs",
-        typespec: "output/semconv.g.tsp",
-        duckdb: "output/promoted-columns.sql",
-        // NuGet Package
-        packageDir: "output/OTelConventions",
+        typescript: "../../src/qyl.dashboard/src/lib/semconv.ts",
+        csharp: "../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs",
+        csharpUtf8: "../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.Utf8.g.cs",
+        typespec: "../../core/specs/generated/semconv.g.tsp",
+        duckdb: "../../src/qyl.collector/Storage/promoted-columns.g.sql",
     },
+
+    // TypeSpec reserved keywords that need escaping
+    typespecReservedKeywords: new Set([
+        "namespace", "model", "interface", "enum", "union", "alias",
+        "scalar", "op", "using", "import", "is", "extends", "unknown",
+        "void", "never", "null", "true", "false", "if", "else", "return",
+    ]),
 
     // C# namespace
     csharpNamespace: "Qyl.ServiceDefaults.Instrumentation",
-
-    // Package namespace for qyl.protocol integration
-    packageNamespace: "qyl.protocol.Attributes.Generated",
 
     // TypeSpec namespace
     typespecNamespace: "OTel.SemConv",
@@ -516,6 +518,7 @@ function generateTypeSpec(data: ParsedData): string {
             if (found) {
                 const propName = attrToTypeSpecPropName(found.value, domain);
                 lines.push(`    /** "${found.value}" */`);
+                // propName is already escaped by attrToTypeSpecPropName
                 lines.push(`    alias ${propName} = "${found.value}";`);
             }
         }
@@ -528,34 +531,40 @@ function generateTypeSpec(data: ParsedData): string {
     lines.push(``);
 
     // ========================================================================
-    // Generate enum union types
+    // Generate enum union types (deduplicated)
     // ========================================================================
     lines.push(`// ============================================================================`);
     lines.push(`// Enum Value Types (union types for known values)`);
     lines.push(`// ============================================================================`);
     lines.push(``);
 
-    for (const [domain] of domainGroups) {
-        const domainEnums = getEnumsForDomain(domain, data.enums);
+    // Track emitted enums to avoid duplicates
+    const emittedEnums = new Set<string>();
 
-        for (const [enumPrefix, values] of domainEnums) {
-            const enumName = prefixToClassName(enumPrefix.toLowerCase().replace(/_/g, ".")) + "Value";
-            const attrKey = enumPrefix.toLowerCase().replace(/_/g, ".");
+    for (const [enumPrefix, values] of data.enums) {
+        const enumName = prefixToClassName(enumPrefix.toLowerCase().replace(/_/g, ".")) + "Value";
 
-            lines.push(`/** Known values for ${attrKey} */`);
-            lines.push(`union ${enumName} {`);
-
-            for (const v of values) {
-                const memberName = snakeToCamel(v.memberName);
-                lines.push(`  /** "${v.value}" */`);
-                lines.push(`  ${memberName}: "${v.value}",`);
-            }
-
-            lines.push(`  /** Allow unknown/custom values */`);
-            lines.push(`  string,`);
-            lines.push(`}`);
-            lines.push(``);
+        // Skip if already emitted
+        if (emittedEnums.has(enumName)) {
+            continue;
         }
+        emittedEnums.add(enumName);
+
+        const attrKey = enumPrefix.toLowerCase().replace(/_/g, ".");
+
+        lines.push(`/** Known values for ${attrKey} */`);
+        lines.push(`union ${enumName} {`);
+
+        for (const v of values) {
+            const memberName = escapeTypeSpecKeyword(snakeToCamel(v.memberName));
+            lines.push(`  /** "${v.value}" */`);
+            lines.push(`  ${memberName}: "${v.value}",`);
+        }
+
+        lines.push(`  /** Allow unknown/custom values */`);
+        lines.push(`  string,`);
+        lines.push(`}`);
+        lines.push(``);
     }
 
     // ========================================================================
@@ -588,37 +597,9 @@ function generateTypeSpec(data: ParsedData): string {
         lines.push(``);
     }
 
-    // ========================================================================
-    // Generate combined model
-    // ========================================================================
-    lines.push(`// ============================================================================`);
-    lines.push(`// Combined Model (spread into your models)`);
-    lines.push(`// ============================================================================`);
-    lines.push(``);
-    lines.push(`/** All OTel semantic convention attributes combined */`);
-    lines.push(`model AllOTelAttributes {`);
-    for (const [domain] of domainGroups) {
-        const modelName = prefixToClassName(domain) + "Attributes";
-        lines.push(`  /** Spread ${domain}.* attributes */`);
-        lines.push(`  ...${modelName};`);
-    }
-    lines.push(`}`);
-    lines.push(``);
-
-    // ========================================================================
-    // Generate helper decorators
-    // ========================================================================
-    lines.push(`// ============================================================================`);
-    lines.push(`// Helper Decorators`);
-    lines.push(`// ============================================================================`);
-    lines.push(``);
-    lines.push(`/**`);
-    lines.push(` * Marks a property as an OTel semantic convention attribute.`);
-    lines.push(` * Shorthand for @encodedName("application/json", key)`);
-    lines.push(` * @param key The OTel attribute key (e.g., "gen_ai.request.model")`);
-    lines.push(` */`);
-    lines.push(`extern dec otelAttr(target: ModelProperty, key: valueof string);`);
-    lines.push(``);
+    // Note: Combined model (AllOTelAttributes) intentionally omitted due to
+    // property name collisions across domains (name, id, version, etc.)
+    // Use individual domain models instead: GenAiAttributes, DbAttributes, etc.
 
     return lines.join("\n");
 }
@@ -638,20 +619,6 @@ function buildEnumLookup(enums: Map<string, EnumValue[]>): Map<string, string> {
     return lookup;
 }
 
-function getEnumsForDomain(domain: string, enums: Map<string, EnumValue[]>): Map<string, EnumValue[]> {
-    const result = new Map<string, EnumValue[]>();
-    // Convert domain to dot notation for comparison (gen_ai -> gen.ai)
-    const domainDotted = domain.replace(/_/g, ".");
-
-    for (const [prefix, values] of enums) {
-        const attrKey = prefix.toLowerCase().replace(/_/g, ".");
-        if (attrKey.startsWith(domainDotted)) {
-            result.set(prefix, values);
-        }
-    }
-
-    return result;
-}
 
 function inferTypeSpecType(attrName: string, enumLookup: Map<string, string>): string {
     // Check if this attribute has known enum values
@@ -680,9 +647,12 @@ function attrToTypeSpecPropName(attr: string, domain: string): string {
 
     // Convert dots and underscores to camelCase
     const parts = withoutDomain.split(/[._]/);
-    return parts
+    const identifier = parts
         .map((p, i) => i === 0 ? p.toLowerCase() : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
         .join("");
+
+    // Escape TypeSpec reserved keywords with backticks
+    return escapeTypeSpecKeyword(identifier);
 }
 
 function snakeToCamel(snake: string): string {
@@ -690,6 +660,17 @@ function snakeToCamel(snake: string): string {
     return parts
         .map((p, i) => i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1))
         .join("");
+}
+
+/**
+ * Escapes TypeSpec reserved keywords with backticks.
+ * e.g., "namespace" -> "`namespace`", "unknown" -> "`unknown`"
+ */
+function escapeTypeSpecKeyword(identifier: string): string {
+    if (CONFIG.typespecReservedKeywords.has(identifier)) {
+        return `\`${identifier}\``;
+    }
+    return identifier;
 }
 
 // ============================================================================
@@ -807,204 +788,6 @@ function snakeToPascal(snake: string): string {
         .join("");
 }
 
-// ============================================================================
-// Package Generator (split files per domain)
-// ============================================================================
-
-function generatePackage(data: ParsedData): void {
-    const packageDir = path.join(__dirname, CONFIG.outputs.packageDir);
-
-    // Ensure package directory exists
-    if (!fs.existsSync(packageDir)) {
-        fs.mkdirSync(packageDir, {recursive: true});
-    }
-
-    // Group attributes by top-level prefix
-    const domainGroups = groupByTopLevelPrefix(data.attributes.map(a => a.value));
-
-    // Generate one file per domain (attributes only, no enums)
-    for (const [domain, attrs] of domainGroups) {
-        const fileName = `${prefixToClassName(domain)}.g.cs`;
-        const filePath = path.join(packageDir, fileName);
-
-        const content = generateCSharpForDomain(data, domain, attrs, new Map());
-        fs.writeFileSync(filePath, content);
-        console.log(`  ✓ ${fileName}`);
-    }
-
-    // Generate single Enums file with ALL enum values (no duplicates)
-    const enumsContent = generateCSharpEnumsFile(data);
-    fs.writeFileSync(path.join(packageDir, "Enums.g.cs"), enumsContent);
-    console.log(`  ✓ Enums.g.cs`);
-
-    // Generate UTF-8 file (net8.0+ only, uses ReadOnlySpan<byte>)
-    const utf8Content = generateCSharpUtf8ForPackage(data);
-    fs.writeFileSync(path.join(packageDir, "Utf8.g.cs"), utf8Content);
-    console.log(`  ✓ Utf8.g.cs`);
-
-    console.log(`✓ Generated OTelConventions package (${domainGroups.size + 2} files)`);
-}
-
-function generateCSharpEnumsFile(data: ParsedData): string {
-    const lines: string[] = [
-        `// <auto-generated/>`,
-        `// Generated from @opentelemetry/semantic-conventions v${data.version}`,
-        `// Do not edit manually - run 'npm run generate:package' in SemconvGenerator`,
-        ``,
-        `namespace ${CONFIG.packageNamespace};`,
-        ``,
-    ];
-
-    // Generate all enum value classes
-    for (const [prefix, values] of data.enums) {
-        const className = prefixToClassName(prefix.toLowerCase().replace(/_/g, ".")) + "Values";
-        lines.push(`/// <summary>`);
-        lines.push(`/// Enum values for ${prefix.toLowerCase().replace(/_/g, ".")}`);
-        lines.push(`/// </summary>`);
-        lines.push(`public static class ${className}`);
-        lines.push(`{`);
-
-        for (const v of values) {
-            const propName = snakeToPascal(v.memberName);
-            lines.push(`    /// <summary>${v.value}</summary>`);
-            lines.push(`    public const string ${propName} = "${v.value}";`);
-            lines.push(``);
-        }
-
-        lines.push(`}`);
-        lines.push(``);
-    }
-
-    return lines.join("\n");
-}
-
-function generateCSharpForDomain(
-    data: ParsedData,
-    _domain: string,
-    attrs: string[],
-    _domainEnums: Map<string, EnumValue[]>
-): string {
-    const lines: string[] = [
-        `// <auto-generated/>`,
-        `// Generated from @opentelemetry/semantic-conventions v${data.version}`,
-        `// Do not edit manually - run 'npm run generate:package' in SemconvGenerator`,
-        ``,
-        `namespace ${CONFIG.packageNamespace};`,
-        ``,
-    ];
-
-    // Sub-group by second-level prefix (gen_ai.request, gen_ai.response, etc.)
-    const subGroups = new Map<string, string[]>();
-    for (const attr of attrs) {
-        const parts = attr.split(".");
-        const subPrefix = parts.length > 1 ? parts.slice(0, 2).join(".") : parts[0];
-        const group = subGroups.get(subPrefix) || [];
-        group.push(attr);
-        subGroups.set(subPrefix, group);
-    }
-
-    for (const [subPrefix, subAttrs] of subGroups) {
-        const className = prefixToClassName(subPrefix) + "Attributes";
-        lines.push(`/// <summary>`);
-        lines.push(`/// Semantic convention attributes for ${subPrefix}.*`);
-        lines.push(`/// </summary>`);
-        lines.push(`public static class ${className}`);
-        lines.push(`{`);
-
-        for (const attr of subAttrs) {
-            const found = data.attributes.find((a) => a.value === attr);
-            if (found) {
-                const propName = attrToCSharpPropName(found.value, subPrefix);
-                lines.push(`    /// <summary>${found.value}</summary>`);
-                lines.push(`    public const string ${propName} = "${found.value}";`);
-                lines.push(``);
-            }
-        }
-
-        lines.push(`}`);
-        lines.push(``);
-    }
-
-    return lines.join("\n");
-}
-
-function generateCSharpUtf8ForPackage(data: ParsedData): string {
-    const lines: string[] = [
-        `// <auto-generated/>`,
-        `// Generated from @opentelemetry/semantic-conventions v${data.version}`,
-        `// Do not edit manually - run 'npm run generate:package' in SemconvGenerator`,
-        `//`,
-        `// UTF-8 ReadOnlySpan<byte> for zero-allocation OTLP parsing hot paths`,
-        `// Only available on .NET 8.0+`,
-        ``,
-        `#if NET8_0_OR_GREATER`,
-        ``,
-        `namespace ${CONFIG.packageNamespace};`,
-        ``,
-    ];
-
-    // Group by top-level domain
-    const domainGroups = groupByTopLevelPrefix(data.attributes.map(a => a.value));
-
-    for (const [, attrs] of domainGroups) {
-        // Sub-group by second-level prefix
-        const subGroups = new Map<string, string[]>();
-        for (const attr of attrs) {
-            const parts = attr.split(".");
-            const subPrefix = parts.length > 1 ? parts.slice(0, 2).join(".") : parts[0];
-            const group = subGroups.get(subPrefix) || [];
-            group.push(attr);
-            subGroups.set(subPrefix, group);
-        }
-
-        for (const [subPrefix, subAttrs] of subGroups) {
-            const className = prefixToClassName(subPrefix) + "Utf8";
-            lines.push(`/// <summary>`);
-            lines.push(`/// UTF-8 attribute keys for ${subPrefix}.* (zero-allocation parsing)`);
-            lines.push(`/// </summary>`);
-            lines.push(`public static class ${className}`);
-            lines.push(`{`);
-
-            for (const attr of subAttrs) {
-                const found = data.attributes.find((a) => a.value === attr);
-                if (found) {
-                    const propName = attrToCSharpPropName(found.value, subPrefix);
-                    lines.push(`    /// <summary>${found.value}</summary>`);
-                    lines.push(`    public static ReadOnlySpan<byte> ${propName} => "${found.value}"u8;`);
-                    lines.push(``);
-                }
-            }
-
-            lines.push(`}`);
-            lines.push(``);
-        }
-    }
-
-    // Enum values as UTF-8
-    for (const [prefix, values] of data.enums) {
-        const className = prefixToClassName(prefix.toLowerCase().replace(/_/g, ".")) + "Utf8Values";
-        lines.push(`/// <summary>`);
-        lines.push(`/// UTF-8 enum values for ${prefix.toLowerCase().replace(/_/g, ".")}`);
-        lines.push(`/// </summary>`);
-        lines.push(`public static class ${className}`);
-        lines.push(`{`);
-
-        for (const v of values) {
-            const propName = snakeToPascal(v.memberName);
-            lines.push(`    /// <summary>${v.value}</summary>`);
-            lines.push(`    public static ReadOnlySpan<byte> ${propName} => "${v.value}"u8;`);
-            lines.push(``);
-        }
-
-        lines.push(`}`);
-        lines.push(``);
-    }
-
-    // Close #if NET8_0_OR_GREATER
-    lines.push(`#endif`);
-
-    return lines.join("\n");
-}
 
 // ============================================================================
 // Main
@@ -1023,8 +806,7 @@ async function main() {
     const utf8Only = args.includes("--utf8-only");
     const tspOnly = args.includes("--tsp-only");
     const sqlOnly = args.includes("--sql-only");
-    const packageOnly = args.includes("--package");
-    const generateAll = !tsOnly && !csOnly && !utf8Only && !tspOnly && !sqlOnly && !packageOnly;
+    const generateAll = !tsOnly && !csOnly && !utf8Only && !tspOnly && !sqlOnly;
 
     // Optional overrides
     const namespaceOverride = parseArg(args, "namespace");
@@ -1032,12 +814,6 @@ async function main() {
 
     console.log("Parsing @opentelemetry/semantic-conventions...");
     const data = parse();
-
-    // Ensure output directory exists
-    const outputDir = path.join(__dirname, "output");
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, {recursive: true});
-    }
 
     if (generateAll || tsOnly) {
         const ts = generateTypeScript(data);
@@ -1110,11 +886,6 @@ async function main() {
         fs.mkdirSync(path.dirname(sqlPath), {recursive: true});
         fs.writeFileSync(sqlPath, sql);
         console.log(`✓ Generated ${CONFIG.outputs.duckdb}`);
-    }
-
-    if (packageOnly) {
-        console.log("Generating OTelConventions package...");
-        generatePackage(data);
     }
 
     console.log("Done!");

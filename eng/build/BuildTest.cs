@@ -180,7 +180,7 @@ interface ITest : ICompile
 
     [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
-    Project[] TestProjects =>
+    IEnumerable<Project> TestProjects =>
     [
         .. Solution.AllProjects.Where(static p =>
             p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
@@ -194,6 +194,7 @@ interface ITest : ICompile
             if (IsServerBuild)
             {
                 Environment.SetEnvironmentVariable("DOCKER_HOST", "unix:///var/run/docker.sock");
+                // Ryuk is Testcontainers' resource reaper container (named after Death Note character)
                 Environment.SetEnvironmentVariable("TESTCONTAINERS_RYUK_DISABLED", "false");
                 Log.Information("Testcontainers: Configured for CI");
                 Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
@@ -628,7 +629,7 @@ public static class CoverageSummaryConverter
     static void ProcessClassIssues(
         XContainer classElement,
         string normalizedPath,
-        Dictionary<string, CoverageFile> result,
+        IDictionary<string, CoverageFile> result,
         string? ruleTag,
         string? stateMachineMethod)
     {
@@ -662,12 +663,7 @@ public static class CoverageSummaryConverter
         DateTime generatedAtUtc,
         string sourceName)
     {
-        var jsonSummary = new CoverageSummary
-        {
-            Project = projectName,
-            Source = sourceName,
-            GeneratedAtUtc = generatedAtUtc
-        };
+        var jsonSummary = new CoverageSummary(projectName, sourceName, generatedAtUtc);
 
         XElement xmlSummary = new("coverage-summary",
             new XAttribute("project", projectName),
@@ -680,12 +676,7 @@ public static class CoverageSummaryConverter
         {
             if (file.LineDict.Count is 0 && file.BranchDict.Count is 0) continue;
 
-            jsonSummary.Files.Add(new CoverageFileDto
-            {
-                Path = filePath,
-                Lines = [.. file.Lines],
-                Branches = [.. file.Branches]
-            });
+            jsonSummary.Files.Add(new CoverageFileDto(filePath, [.. file.Lines], [.. file.Branches]));
 
             XElement xmlFile = new("file", new XAttribute("path", filePath));
 
@@ -796,7 +787,7 @@ public static class CoverageSummaryConverter
         return new BranchCoverageInfo(covered, total, percent);
     }
 
-    static CoverageFile GetOrCreateFileIssues(Dictionary<string, CoverageFile> dict, string path) =>
+    static CoverageFile GetOrCreateFileIssues(IDictionary<string, CoverageFile> dict, string path) =>
         dict.TryGetValue(path, out var issues) ? issues : dict[path] = new CoverageFile();
 
     static void EnsureDirectoryExists(string path)
@@ -817,7 +808,7 @@ public static class CoverageSummaryConverter
 
     sealed record BranchCoverageInfo(int CoveredBranches, int TotalBranches, double Percent);
 
-    // ─── DTOs ───────────────────────────────────────────────────────────────
+    // ─── DTOs (properties accessed by JsonSerializer via reflection) ─────────
     sealed class CoverageFile
     {
         [JsonIgnore] public readonly Dictionary<int, CoverageBranch> BranchDict = [];
@@ -827,18 +818,10 @@ public static class CoverageSummaryConverter
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(static b => b.Line);
     }
 
-    sealed class CoverageSummary
+    sealed record CoverageSummary(string Project, string Source, DateTime GeneratedAtUtc)
     {
-        public string Project { get; init; } = "";
-        public string Source { get; init; } = "";
-        public DateTime GeneratedAtUtc { get; init; }
         public List<CoverageFileDto> Files { get; } = [];
     }
 
-    sealed class CoverageFileDto
-    {
-        public string Path { get; init; } = "";
-        public List<CoverageLine> Lines { get; init; } = [];
-        public List<CoverageBranch> Branches { get; init; } = [];
-    }
+    sealed record CoverageFileDto(string Path, List<CoverageLine> Lines, List<CoverageBranch> Branches);
 }

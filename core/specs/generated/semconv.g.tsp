@@ -276,7 +276,7 @@ namespace Keys {
     /** "code.lineno" */
     alias lineno = "code.lineno";
     /** "code.namespace" */
-    alias namespace = "code.namespace";
+    alias `namespace` = "code.namespace";
     /** "code.stacktrace" */
     alias stacktrace = "code.stacktrace";
   }
@@ -380,7 +380,7 @@ namespace Keys {
     /** "db.name" */
     alias name = "db.name";
     /** "db.namespace" */
-    alias namespace = "db.namespace";
+    alias `namespace` = "db.namespace";
     /** "db.operation" */
     alias operation = "db.operation";
     /** "db.operation.batch.size" */
@@ -1218,7 +1218,7 @@ namespace Keys {
     /** "service.name" */
     alias name = "service.name";
     /** "service.namespace" */
-    alias namespace = "service.namespace";
+    alias `namespace` = "service.namespace";
     /** "service.peer.name" */
     alias peerName = "service.peer.name";
     /** "service.peer.namespace" */
@@ -1681,44 +1681,6 @@ union AspnetcoreIdentityUserUpdateTypeValue {
   string,
 }
 
-/** Known values for aspnetcore.diagnostics.exception.result */
-union AspnetcoreDiagnosticsExceptionResultValue {
-  /** "aborted" */
-  aborted: "aborted",
-  /** "handled" */
-  handled: "handled",
-  /** "skipped" */
-  skipped: "skipped",
-  /** "unhandled" */
-  unhandled: "unhandled",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for aspnetcore.rate.limiting.result */
-union AspnetcoreRateLimitingResultValue {
-  /** "acquired" */
-  acquired: "acquired",
-  /** "endpoint_limiter" */
-  endpointLimiter: "endpoint_limiter",
-  /** "global_limiter" */
-  globalLimiter: "global_limiter",
-  /** "request_canceled" */
-  requestCanceled: "request_canceled",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for aspnetcore.routing.match.status */
-union AspnetcoreRoutingMatchStatusValue {
-  /** "failure" */
-  failure: "failure",
-  /** "success" */
-  success: "success",
-  /** Allow unknown/custom values */
-  string,
-}
-
 /** Known values for azure.cosmosdb.connection.mode */
 union AzureCosmosdbConnectionModeValue {
   /** "direct" */
@@ -1935,6 +1897,16 @@ union CloudProviderValue {
 union ContainerCpuStateValue {
   /** "kernel" */
   kernel: "kernel",
+  /** "system" */
+  system: "system",
+  /** "user" */
+  user: "user",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for cpu.mode */
+union CpuModeValue {
   /** "system" */
   system: "system",
   /** "user" */
@@ -2265,30 +2237,6 @@ union DeploymentStatusValue {
   string,
 }
 
-/** Known values for dotnet.gc.heap.generation */
-union DotnetGcHeapGenerationValue {
-  /** "gen0" */
-  gen0: "gen0",
-  /** "gen1" */
-  gen1: "gen1",
-  /** "gen2" */
-  gen2: "gen2",
-  /** "loh" */
-  loh: "loh",
-  /** "poh" */
-  poh: "poh",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for error.type */
-union ErrorTypeValue {
-  /** "_OTHER" */
-  other: "_OTHER",
-  /** Allow unknown/custom values */
-  string,
-}
-
 /** Known values for faas.document.operation */
 union FaasDocumentOperationValue {
   /** "delete" */
@@ -2352,7 +2300,7 @@ union FeatureFlagEvaluationReasonValue {
   /** "targeting_match" */
   targetingMatch: "targeting_match",
   /** "unknown" */
-  unknown: "unknown",
+  `unknown`: "unknown",
   /** Allow unknown/custom values */
   string,
 }
@@ -2376,7 +2324,7 @@ union FeatureFlagResultReasonValue {
   /** "targeting_match" */
   targetingMatch: "targeting_match",
   /** "unknown" */
-  unknown: "unknown",
+  `unknown`: "unknown",
   /** Allow unknown/custom values */
   string,
 }
@@ -2627,6 +2575,16 @@ union HttpRequestMethodValue {
   string,
 }
 
+/** Known values for hw.type */
+union HwTypeValue {
+  /** "logical_disk" */
+  logicalDisk: "logical_disk",
+  /** "network" */
+  network: "network",
+  /** Allow unknown/custom values */
+  string,
+}
+
 /** Known values for k8s.container.status.reason */
 union K8sContainerStatusReasonValue {
   /** "Completed" */
@@ -2712,7 +2670,7 @@ union K8sPodStatusPhaseValue {
   /** "Succeeded" */
   succeeded: "Succeeded",
   /** "Unknown" */
-  unknown: "Unknown",
+  `unknown`: "Unknown",
   /** Allow unknown/custom values */
   string,
 }
@@ -2757,6 +2715,14 @@ union LogIostreamValue {
   stderr: "stderr",
   /** "stdout" */
   stdout: "stdout",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for mcp.method.name */
+union McpMethodNameValue {
+  /** "logging/setLevel" */
+  loggingSetLevel: "logging/setLevel",
   /** Allow unknown/custom values */
   string,
 }
@@ -2932,7 +2898,7 @@ union NetworkConnectionTypeValue {
   /** "unavailable" */
   unavailable: "unavailable",
   /** "unknown" */
-  unknown: "unknown",
+  `unknown`: "unknown",
   /** "wifi" */
   wifi: "wifi",
   /** "wired" */
@@ -2947,32 +2913,6 @@ union NetworkIoDirectionValue {
   receive: "receive",
   /** "transmit" */
   transmit: "transmit",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for network.transport */
-union NetworkTransportValue {
-  /** "pipe" */
-  pipe: "pipe",
-  /** "quic" */
-  quic: "quic",
-  /** "tcp" */
-  tcp: "tcp",
-  /** "udp" */
-  udp: "udp",
-  /** "unix" */
-  unix: "unix",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for network.type */
-union NetworkTypeValue {
-  /** "ipv4" */
-  ipv4: "ipv4",
-  /** "ipv6" */
-  ipv6: "ipv6",
   /** Allow unknown/custom values */
   string,
 }
@@ -3079,16 +3019,6 @@ union OtelSpanSamplingResultValue {
   string,
 }
 
-/** Known values for otel.status.code */
-union OtelStatusCodeValue {
-  /** "ERROR" */
-  error: "ERROR",
-  /** "OK" */
-  ok: "OK",
-  /** Allow unknown/custom values */
-  string,
-}
-
 /** Known values for process.context.switch.type */
 union ProcessContextSwitchTypeValue {
   /** "involuntary" */
@@ -3135,6 +3065,14 @@ union ProcessStateValue {
   string,
 }
 
+/** Known values for profile.frame.type */
+union ProfileFrameTypeValue {
+  /** "dotnet" */
+  dotnet: "dotnet",
+  /** Allow unknown/custom values */
+  string,
+}
+
 /** Known values for rpc.connect.rpc.error.code */
 union RpcConnectRpcErrorCodeValue {
   /** "aborted" */
@@ -3168,7 +3106,7 @@ union RpcConnectRpcErrorCodeValue {
   /** "unimplemented" */
   unimplemented: "unimplemented",
   /** "unknown" */
-  unknown: "unknown",
+  `unknown`: "unknown",
   /** Allow unknown/custom values */
   string,
 }
@@ -3213,30 +3151,6 @@ union RpcSystemNameValue {
   grpc: "grpc",
   /** "jsonrpc" */
   jsonrpc: "jsonrpc",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for signalr.connection.status */
-union SignalrConnectionStatusValue {
-  /** "app_shutdown" */
-  appShutdown: "app_shutdown",
-  /** "normal_closure" */
-  normalClosure: "normal_closure",
-  /** "timeout" */
-  timeout: "timeout",
-  /** Allow unknown/custom values */
-  string,
-}
-
-/** Known values for signalr.transport */
-union SignalrTransportValue {
-  /** "long_polling" */
-  longPolling: "long_polling",
-  /** "server_sent_events" */
-  serverSentEvents: "server_sent_events",
-  /** "web_sockets" */
-  webSockets: "web_sockets",
   /** Allow unknown/custom values */
   string,
 }
@@ -3415,36 +3329,6 @@ union SystemProcessesStatusValue {
   string,
 }
 
-/** Known values for telemetry.sdk.language */
-union TelemetrySdkLanguageValue {
-  /** "cpp" */
-  cpp: "cpp",
-  /** "dotnet" */
-  dotnet: "dotnet",
-  /** "erlang" */
-  erlang: "erlang",
-  /** "go" */
-  go: "go",
-  /** "java" */
-  java: "java",
-  /** "nodejs" */
-  nodejs: "nodejs",
-  /** "php" */
-  php: "php",
-  /** "python" */
-  python: "python",
-  /** "ruby" */
-  ruby: "ruby",
-  /** "rust" */
-  rust: "rust",
-  /** "swift" */
-  swift: "swift",
-  /** "webjs" */
-  webjs: "webjs",
-  /** Allow unknown/custom values */
-  string,
-}
-
 /** Known values for test.case.result.status */
 union TestCaseResultStatusValue {
   /** "fail" */
@@ -3493,12 +3377,10 @@ union UserAgentSyntheticTypeValue {
   string,
 }
 
-/** Known values for user.agent.synthetic.type */
-union UserAgentSyntheticTypeValue {
-  /** "bot" */
-  bot: "bot",
-  /** "test" */
-  test: "test",
+/** Known values for v8js.heap.space.name */
+union V8jsHeapSpaceNameValue {
+  /** "code_space" */
+  codeSpace: "code_space",
   /** Allow unknown/custom values */
   string,
 }
@@ -3589,6 +3471,158 @@ union VcsRevisionDeltaDirectionValue {
   ahead: "ahead",
   /** "behind" */
   behind: "behind",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for aspnetcore.diagnostics.exception.result */
+union AspnetcoreDiagnosticsExceptionResultValue {
+  /** "aborted" */
+  aborted: "aborted",
+  /** "handled" */
+  handled: "handled",
+  /** "skipped" */
+  skipped: "skipped",
+  /** "unhandled" */
+  unhandled: "unhandled",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for aspnetcore.rate.limiting.result */
+union AspnetcoreRateLimitingResultValue {
+  /** "acquired" */
+  acquired: "acquired",
+  /** "endpoint_limiter" */
+  endpointLimiter: "endpoint_limiter",
+  /** "global_limiter" */
+  globalLimiter: "global_limiter",
+  /** "request_canceled" */
+  requestCanceled: "request_canceled",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for aspnetcore.routing.match.status */
+union AspnetcoreRoutingMatchStatusValue {
+  /** "failure" */
+  failure: "failure",
+  /** "success" */
+  success: "success",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for dotnet.gc.heap.generation */
+union DotnetGcHeapGenerationValue {
+  /** "gen0" */
+  gen0: "gen0",
+  /** "gen1" */
+  gen1: "gen1",
+  /** "gen2" */
+  gen2: "gen2",
+  /** "loh" */
+  loh: "loh",
+  /** "poh" */
+  poh: "poh",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for error.type */
+union ErrorTypeValue {
+  /** "_OTHER" */
+  other: "_OTHER",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for network.transport */
+union NetworkTransportValue {
+  /** "pipe" */
+  pipe: "pipe",
+  /** "quic" */
+  quic: "quic",
+  /** "tcp" */
+  tcp: "tcp",
+  /** "udp" */
+  udp: "udp",
+  /** "unix" */
+  unix: "unix",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for network.type */
+union NetworkTypeValue {
+  /** "ipv4" */
+  ipv4: "ipv4",
+  /** "ipv6" */
+  ipv6: "ipv6",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for otel.status.code */
+union OtelStatusCodeValue {
+  /** "ERROR" */
+  error: "ERROR",
+  /** "OK" */
+  ok: "OK",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for signalr.connection.status */
+union SignalrConnectionStatusValue {
+  /** "app_shutdown" */
+  appShutdown: "app_shutdown",
+  /** "normal_closure" */
+  normalClosure: "normal_closure",
+  /** "timeout" */
+  timeout: "timeout",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for signalr.transport */
+union SignalrTransportValue {
+  /** "long_polling" */
+  longPolling: "long_polling",
+  /** "server_sent_events" */
+  serverSentEvents: "server_sent_events",
+  /** "web_sockets" */
+  webSockets: "web_sockets",
+  /** Allow unknown/custom values */
+  string,
+}
+
+/** Known values for telemetry.sdk.language */
+union TelemetrySdkLanguageValue {
+  /** "cpp" */
+  cpp: "cpp",
+  /** "dotnet" */
+  dotnet: "dotnet",
+  /** "erlang" */
+  erlang: "erlang",
+  /** "go" */
+  go: "go",
+  /** "java" */
+  java: "java",
+  /** "nodejs" */
+  nodejs: "nodejs",
+  /** "php" */
+  php: "php",
+  /** "python" */
+  python: "python",
+  /** "ruby" */
+  ruby: "ruby",
+  /** "rust" */
+  rust: "rust",
+  /** "swift" */
+  swift: "swift",
+  /** "webjs" */
+  webjs: "webjs",
   /** Allow unknown/custom values */
   string,
 }
@@ -4037,7 +4071,7 @@ model CodeAttributes {
 
   /** code.namespace */
   @encodedName("application/json", "code.namespace")
-  namespace?: string;
+  `namespace`?: string;
 
   /** code.stacktrace */
   @encodedName("application/json", "code.stacktrace")
@@ -4245,7 +4279,7 @@ model DbAttributes {
 
   /** db.namespace */
   @encodedName("application/json", "db.namespace")
-  namespace?: string;
+  `namespace`?: string;
 
   /** db.operation */
   @encodedName("application/json", "db.operation")
@@ -5921,7 +5955,7 @@ model ServiceAttributes {
 
   /** service.namespace */
   @encodedName("application/json", "service.namespace")
-  namespace?: string;
+  `namespace`?: string;
 
   /** service.peer.name */
   @encodedName("application/json", "service.peer.name")
@@ -6468,120 +6502,3 @@ model WebengineAttributes {
   version?: string;
 
 }
-
-// ============================================================================
-// Combined Model (spread into your models)
-// ============================================================================
-
-/** All OTel semantic convention attributes combined */
-model AllOTelAttributes {
-  /** Spread artifact.* attributes */
-  ...ArtifactAttributes;
-  /** Spread aspnetcore.* attributes */
-  ...AspnetcoreAttributes;
-  /** Spread azure.* attributes */
-  ...AzureAttributes;
-  /** Spread browser.* attributes */
-  ...BrowserAttributes;
-  /** Spread cicd.* attributes */
-  ...CicdAttributes;
-  /** Spread client.* attributes */
-  ...ClientAttributes;
-  /** Spread cloud.* attributes */
-  ...CloudAttributes;
-  /** Spread cloudevents.* attributes */
-  ...CloudeventsAttributes;
-  /** Spread cloudfoundry.* attributes */
-  ...CloudfoundryAttributes;
-  /** Spread code.* attributes */
-  ...CodeAttributes;
-  /** Spread container.* attributes */
-  ...ContainerAttributes;
-  /** Spread db.* attributes */
-  ...DbAttributes;
-  /** Spread deployment.* attributes */
-  ...DeploymentAttributes;
-  /** Spread dns.* attributes */
-  ...DnsAttributes;
-  /** Spread dotnet.* attributes */
-  ...DotnetAttributes;
-  /** Spread elasticsearch.* attributes */
-  ...ElasticsearchAttributes;
-  /** Spread enduser.* attributes */
-  ...EnduserAttributes;
-  /** Spread error.* attributes */
-  ...ErrorAttributes;
-  /** Spread exception.* attributes */
-  ...ExceptionAttributes;
-  /** Spread faas.* attributes */
-  ...FaasAttributes;
-  /** Spread feature_flag.* attributes */
-  ...FeatureFlagAttributes;
-  /** Spread file.* attributes */
-  ...FileAttributes;
-  /** Spread gen_ai.* attributes */
-  ...GenAiAttributes;
-  /** Spread geo.* attributes */
-  ...GeoAttributes;
-  /** Spread host.* attributes */
-  ...HostAttributes;
-  /** Spread http.* attributes */
-  ...HttpAttributes;
-  /** Spread k8s.* attributes */
-  ...K8sAttributes;
-  /** Spread log.* attributes */
-  ...LogAttributes;
-  /** Spread messaging.* attributes */
-  ...MessagingAttributes;
-  /** Spread network.* attributes */
-  ...NetworkAttributes;
-  /** Spread openai.* attributes */
-  ...OpenaiAttributes;
-  /** Spread os.* attributes */
-  ...OsAttributes;
-  /** Spread otel.* attributes */
-  ...OtelAttributes;
-  /** Spread process.* attributes */
-  ...ProcessAttributes;
-  /** Spread rpc.* attributes */
-  ...RpcAttributes;
-  /** Spread server.* attributes */
-  ...ServerAttributes;
-  /** Spread service.* attributes */
-  ...ServiceAttributes;
-  /** Spread session.* attributes */
-  ...SessionAttributes;
-  /** Spread signalr.* attributes */
-  ...SignalrAttributes;
-  /** Spread system.* attributes */
-  ...SystemAttributes;
-  /** Spread telemetry.* attributes */
-  ...TelemetryAttributes;
-  /** Spread test.* attributes */
-  ...TestAttributes;
-  /** Spread thread.* attributes */
-  ...ThreadAttributes;
-  /** Spread tls.* attributes */
-  ...TlsAttributes;
-  /** Spread url.* attributes */
-  ...UrlAttributes;
-  /** Spread user_agent.* attributes */
-  ...UserAgentAttributes;
-  /** Spread user.* attributes */
-  ...UserAttributes;
-  /** Spread vcs.* attributes */
-  ...VcsAttributes;
-  /** Spread webengine.* attributes */
-  ...WebengineAttributes;
-}
-
-// ============================================================================
-// Helper Decorators
-// ============================================================================
-
-/**
- * Marks a property as an OTel semantic convention attribute.
- * Shorthand for @encodedName("application/json", key)
- * @param key The OTel attribute key (e.g., "gen_ai.request.model")
- */
-extern dec otelAttr(target: ModelProperty, key: valueof string);
