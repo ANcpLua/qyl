@@ -37,6 +37,12 @@ public sealed record SpanDto
     public IReadOnlyList<SpanLinkDto> Links { get; init; } = [];
 
     [JsonPropertyName("genai")] public GenAiSpanDataDto? GenAi { get; init; }
+
+    /// <summary>W3C Baggage key-value pairs for cross-cutting concern propagation</summary>
+    public IReadOnlyDictionary<string, string>? Baggage { get; init; }
+
+    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)</summary>
+    public string? SchemaUrl { get; init; }
 }
 
 public sealed record SpanEventDto

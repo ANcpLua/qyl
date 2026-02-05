@@ -14,7 +14,6 @@ import "../common/pagination.tsp";
 import "../otel/span.tsp";
 import "../otel/logs.tsp";
 import "../otel/metrics.tsp";
-import "../domains/observe/exceptions.tsp";
 import "../domains/ops/deployment.tsp";
 
 using TypeSpec.Http;
@@ -27,7 +26,6 @@ using Qyl.OTel.Traces;
 using Qyl.OTel.Logs;
 using Qyl.OTel.Metrics;
 using Qyl.OTel.Enums;
-using Qyl.Domains.Observe.Exceptions;
 using Qyl.Domains.Ops.Deployment;
 
 namespace Qyl.Api.Streaming;
@@ -84,18 +82,6 @@ model MetricStreamEvent {
   timestamp: utcDateTime;
 }
 
-@doc("Exception stream event")
-model ExceptionStreamEvent {
-  @doc("Event type")
-  type: "exception";
-
-  @doc("Exception data")
-  data: ExceptionEvent;
-
-  @doc("Event timestamp")
-  timestamp: utcDateTime;
-}
-
 @doc("Deployment stream event")
 model DeploymentStreamEvent {
   @doc("Event type")
@@ -128,7 +114,6 @@ union TelemetryStreamEvent {
   span: SpanStreamEvent,
   log: LogStreamEvent,
   metric: MetricStreamEvent,
-  exception: ExceptionStreamEvent,
   deployment: DeploymentStreamEvent,
   heartbeat: HeartbeatEvent,
 }
@@ -158,13 +143,6 @@ union LogEvents {
 @events
 union MetricEvents {
   metric: MetricStreamEvent,
-  heartbeat: HeartbeatEvent,
-}
-
-@doc("Exception stream events")
-@events
-union ExceptionEvents {
-  exception: ExceptionStreamEvent,
   heartbeat: HeartbeatEvent,
 }
 
@@ -223,9 +201,6 @@ enum StreamEventType {
   @doc("Metric events")
   metrics: "metrics",
 
-  @doc("Exception events")
-  exceptions: "exceptions",
-
   @doc("Deployment events")
   deployments: "deployments",
 
@@ -278,14 +253,6 @@ interface StreamingApi {
     @query @doc("Metric name filter") metricName?: string,
     @query @doc("Service name filter") serviceName?: string,
   ): SSEStream<MetricEvents>;
-
-  @doc("Stream exceptions in real-time")
-  @get
-  @route("/exceptions")
-  streamExceptions(
-    @query @doc("Service name filter") serviceName?: string,
-    @query @doc("Exception type filter") exceptionType?: string,
-  ): SSEStream<ExceptionEvents>;
 
   @doc("Stream deployment events")
   @get

@@ -117,6 +117,14 @@ public sealed record SpanRecord
     [JsonPropertyName("resource_json")]
     public string? ResourceJson { get; init; }
 
+    /// <summary>W3C Baggage key-value pairs as JSON</summary>
+    [JsonPropertyName("baggage_json")]
+    public string? BaggageJson { get; init; }
+
+    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)</summary>
+    [JsonPropertyName("schema_url")]
+    public string? SchemaUrl { get; init; }
+
     /// <summary>Record creation timestamp</summary>
     [JsonPropertyName("created_at")]
     public DateTimeOffset CreatedAt { get; init; }

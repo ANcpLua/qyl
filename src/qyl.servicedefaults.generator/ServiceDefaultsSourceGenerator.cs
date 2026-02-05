@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

@@ -31,7 +31,9 @@ public sealed class TraceServiceImpl : TraceServiceBase
             var spans = OtlpConverter.ConvertProtoToStorageRows(request);
 
             if (spans.Count <= 0) return new ExportTraceServiceResponse();
-            var batch = new SpanBatch(spans);
+
+            // Apply Codex telemetry transformations (codex.* -> gen_ai.*)
+            var batch = new SpanBatch(spans).WithCodexTransformations();
 
             // Push to ring buffer for real-time queries
             _ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord).ToList());

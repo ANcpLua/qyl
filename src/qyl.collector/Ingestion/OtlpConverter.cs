@@ -26,13 +26,22 @@ public static class OtlpConverter
         foreach (var resourceSpan in request.ResourceSpans)
         {
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
+            var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
-            foreach (var span in scopeSpan.Spans)
             {
-                var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
-                var spanRecord = CreateStorageRowFromProto(span, serviceName, attributes);
-                spans.Add(spanRecord);
+                // Use scope schema URL if available, otherwise resource-level
+                var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
+                    ? scopeSpan.SchemaUrl
+                    : schemaUrl;
+
+                foreach (var span in scopeSpan.Spans)
+                {
+                    var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
+                    var baggageJson = ExtractBaggageJson(attributes);
+                    var spanRecord = CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl);
+                    spans.Add(spanRecord);
+                }
             }
         }
 
@@ -97,7 +106,9 @@ public static class OtlpConverter
     private static SpanStorageRow CreateStorageRowFromProto(
         OtlpSpanProto span,
         string serviceName,
-        Dictionary<string, string> attributes)
+        Dictionary<string, string> attributes,
+        string? baggageJson,
+        string? schemaUrl)
     {
         // Store nanoseconds directly as UBIGINT (ulong)
         var startNano = span.StartTimeUnixNano;
@@ -133,7 +144,9 @@ public static class OtlpConverter
             GenAiCostUsd = genAi.CostUsd,
             AttributesJson =
                 JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            ResourceJson = null
+            ResourceJson = null,
+            BaggageJson = baggageJson,
+            SchemaUrl = schemaUrl
         };
     }
 
@@ -154,12 +167,21 @@ public static class OtlpConverter
             var serviceName = resourceSpan.Resource?.Attributes?
                                   .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
                               ?? "unknown";
+            var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
-            foreach (var span in scopeSpan.Spans ?? [])
             {
-                var attributes = ExtractAttributesFromJson(span.Attributes, serviceName);
-                spans.Add(CreateStorageRowFromJson(span, serviceName, attributes));
+                // Use scope schema URL if available, otherwise resource-level
+                var effectiveSchemaUrl = !string.IsNullOrEmpty(scopeSpan.SchemaUrl)
+                    ? scopeSpan.SchemaUrl
+                    : schemaUrl;
+
+                foreach (var span in scopeSpan.Spans ?? [])
+                {
+                    var attributes = ExtractAttributesFromJson(span.Attributes, serviceName);
+                    var baggageJson = ExtractBaggageJson(attributes);
+                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl));
+                }
             }
         }
 
@@ -192,7 +214,9 @@ public static class OtlpConverter
     private static SpanStorageRow CreateStorageRowFromJson(
         OtlpSpan span,
         string serviceName,
-        Dictionary<string, string> attributes)
+        Dictionary<string, string> attributes,
+        string? baggageJson,
+        string? schemaUrl)
     {
         // Store nanoseconds directly as UBIGINT (ulong)
         var startNano = span.StartTimeUnixNano;
@@ -228,13 +252,43 @@ public static class OtlpConverter
             GenAiCostUsd = genAi.CostUsd,
             AttributesJson =
                 JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            ResourceJson = null
+            ResourceJson = null,
+            BaggageJson = baggageJson,
+            SchemaUrl = schemaUrl
         };
     }
 
     #endregion
 
     #region Shared Helpers
+
+    /// <summary>
+    ///     Extracts baggage from attributes prefixed with "baggage." and serializes to JSON.
+    ///     OTLP doesn't have a dedicated baggage field, so some instrumentations
+    ///     store baggage in span attributes with "baggage." prefix.
+    /// </summary>
+    private static string? ExtractBaggageJson(Dictionary<string, string> attributes)
+    {
+        Dictionary<string, string>? baggage = null;
+
+        foreach (var kvp in attributes)
+        {
+            if (!kvp.Key.StartsWith("baggage.", StringComparison.Ordinal))
+                continue;
+
+            var baggageKey = kvp.Key[8..]; // Remove "baggage." prefix
+            if (string.IsNullOrEmpty(baggageKey))
+                continue;
+
+            baggage ??= new Dictionary<string, string>(StringComparer.Ordinal);
+            baggage[baggageKey] = kvp.Value;
+        }
+
+        if (baggage is null || baggage.Count is 0)
+            return null;
+
+        return JsonSerializer.Serialize(baggage, QylSerializerContext.Default.DictionaryStringString);
+    }
 
     /// <summary>
     ///     GenAI attribute extraction result.

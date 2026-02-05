@@ -49,6 +49,8 @@ public static class SpanRowMapper
             GenAiToolCallId = reader.Col("gen_ai_tool_call_id").AsString,
             GenAiCostUsd = reader.Col("gen_ai_cost_usd").AsDouble,
             AttributesJson = reader.Col("attributes_json").AsString,
-            ResourceJson = reader.Col("resource_json").AsString
+            ResourceJson = reader.Col("resource_json").AsString,
+            BaggageJson = reader.Col("baggage_json").AsString,
+            SchemaUrl = reader.Col("schema_url").AsString
         };
 }

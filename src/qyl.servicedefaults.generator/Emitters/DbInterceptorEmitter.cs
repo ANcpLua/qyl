@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.ServiceDefaults.Generator.Models;
 

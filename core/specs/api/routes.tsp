@@ -18,9 +18,7 @@ import "../otel/metrics.tsp";
 import "../domains/observe/session.tsp";
 import "../domains/observe/log.tsp";
 import "../domains/observe/error.tsp";
-import "../domains/observe/exceptions.tsp";
 import "../domains/ops/deployment.tsp";
-import "../domains/ops/cicd.tsp";
 import "../domains/identity/user.tsp";
 import "../otel/storage.tsp";
 
@@ -38,9 +36,7 @@ using Qyl.Storage;
 using Qyl.Domains.Observe.Session;
 using Qyl.Domains.Observe.Log;
 using Qyl.Domains.Observe.Error;
-using Qyl.Domains.Observe.Exceptions;
 using Qyl.Domains.Ops.Deployment;
-using Qyl.Domains.Ops.Cicd;
 using Qyl.Domains.Identity;
 
 // =============================================================================
@@ -470,35 +466,6 @@ model ErrorUpdate {
 }
 
 // =============================================================================
-// Exceptions API
-// =============================================================================
-
-@route("/api/v1/exceptions")
-@tag("Exceptions")
-interface ExceptionsApi {
-  @doc("List exceptions")
-  @get
-  list(
-    @query @doc("Service name filter") serviceName?: string,
-    @query @doc("Exception type filter") exceptionType?: string,
-    @query @doc("Status filter") status?: ExceptionStatus,
-    @query @doc("Start time") startTime?: utcDateTime,
-    @query @doc("End time") endTime?: utcDateTime,
-    @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
-    @query @doc("Cursor") cursor?: string,
-  ): CursorPage<EnrichedException> | ValidationError | InternalServerError;
-
-  @doc("Get exception statistics")
-  @get
-  @route("/stats")
-  getStats(
-    @query @doc("Service name filter") serviceName?: string,
-    @query @doc("Start time") startTime?: utcDateTime,
-    @query @doc("End time") endTime?: utcDateTime,
-  ): ExceptionStats | InternalServerError;
-}
-
-// =============================================================================
 // Deployments API
 // =============================================================================
 
@@ -624,70 +591,6 @@ enum DoraPerformanceLevel {
 
   @doc("Low performer")
   low: "low",
-}
-
-// =============================================================================
-// CI/CD API
-// =============================================================================
-
-@route("/api/v1/pipelines")
-@tag("CI/CD")
-interface PipelinesApi {
-  @doc("List pipeline runs")
-  @get
-  list(
-    @query @doc("Pipeline name filter") pipelineName?: string,
-    @query @doc("Status filter") status?: CicdPipelineStatus,
-    @query @doc("CI/CD system filter") system?: CicdSystem,
-    @query @doc("Start time") startTime?: utcDateTime,
-    @query @doc("End time") endTime?: utcDateTime,
-    @query @doc("Page size") @minValue(1) @maxValue(1000) limit?: int32 = 100,
-    @query @doc("Cursor") cursor?: string,
-  ): CursorPage<PipelineRunEvent> | ValidationError | InternalServerError;
-
-  @doc("Get pipeline statistics")
-  @get
-  @route("/stats")
-  getStats(
-    @query @doc("Pipeline name filter") pipelineName?: string,
-    @query @doc("Start time") startTime?: utcDateTime,
-    @query @doc("End time") endTime?: utcDateTime,
-  ): PipelineStats | InternalServerError;
-}
-
-@doc("Pipeline statistics")
-model PipelineStats {
-  @doc("Total runs")
-  @encodedName("application/json", "total_runs")
-  totalRuns: Count;
-
-  @doc("Success rate")
-  @encodedName("application/json", "success_rate")
-  successRate: Ratio;
-
-  @doc("Average duration in seconds")
-  @encodedName("application/json", "avg_duration_seconds")
-  avgDurationSeconds: float64;
-
-  @doc("P95 duration in seconds")
-  @encodedName("application/json", "p95_duration_seconds")
-  p95DurationSeconds: float64;
-
-  @doc("Runs by status")
-  @encodedName("application/json", "by_status")
-  byStatus: PipelineStatusStats[];
-}
-
-@doc("Pipeline status statistics")
-model PipelineStatusStats {
-  @doc("Status")
-  status: CicdPipelineStatus;
-
-  @doc("Count")
-  count: Count;
-
-  @doc("Percentage")
-  percentage: Percentage;
 }
 
 // =============================================================================

@@ -409,6 +409,14 @@
                             "type": "string",
                             "description": "Resource attributes as JSON"
                         },
+                        "baggageJson": {
+                            "type": "string",
+                            "description": "W3C Baggage key-value pairs as JSON for cross-cutting concern propagation"
+                        },
+                        "schemaUrl": {
+                            "type": "string",
+                            "description": "OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)"
+                        },
                         "createdAt": {
                             "type": "string",
                             "format": "date-time",

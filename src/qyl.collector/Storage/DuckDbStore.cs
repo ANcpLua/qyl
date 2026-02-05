@@ -1,4 +1,3 @@
-using qyl.collector.Ingestion;
 using static System.Threading.Volatile;
 
 namespace qyl.collector.Storage;
@@ -28,7 +27,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     /// </summary>
     private const int MaxLogsPerBatch = 200;
 
-    private const int SpanColumnCount = 24;
+    private const int SpanColumnCount = 26;
     private const int LogColumnCount = 12;
 
     private const string SpanColumnList = """
@@ -38,7 +37,8 @@ public sealed class DuckDbStore : IAsyncDisposable
                                           gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                           gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                           gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
-                                          gen_ai_cost_usd, attributes_json, resource_json
+                                          gen_ai_cost_usd, attributes_json, resource_json,
+                                          baggage_json, schema_url
                                           """;
 
     private const string SpanOnConflictClause = """
@@ -51,7 +51,9 @@ public sealed class DuckDbStore : IAsyncDisposable
                                                     gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
                                                     gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
                                                     attributes_json = EXCLUDED.attributes_json,
-                                                    resource_json = EXCLUDED.resource_json
+                                                    resource_json = EXCLUDED.resource_json,
+                                                    baggage_json = EXCLUDED.baggage_json,
+                                                    schema_url = EXCLUDED.schema_url
                                                 """;
 
     private const string LogColumnList = """
@@ -68,7 +70,8 @@ public sealed class DuckDbStore : IAsyncDisposable
                                              gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
                                              gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
                                              gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
-                                             gen_ai_cost_usd, attributes_json, resource_json, created_at
+                                             gen_ai_cost_usd, attributes_json, resource_json,
+                                             baggage_json, schema_url, created_at
                                              """;
 
     // ==========================================================================
@@ -1041,6 +1044,10 @@ public sealed class DuckDbStore : IAsyncDisposable
         // JSON storage (2 columns)
         cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
+
+        // W3C Baggage and OTel Schema URL (2 columns)
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.BaggageJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SchemaUrl ?? (object)DBNull.Value });
     }
 
     /// <summary>
