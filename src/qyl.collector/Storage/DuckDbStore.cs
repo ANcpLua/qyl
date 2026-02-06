@@ -869,6 +869,96 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     // ==========================================================================
+    // Insight Materialization Operations
+    // ==========================================================================
+
+    /// <summary>
+    ///     Gets the content hash for a specific insight tier. Returns null if not yet materialized.
+    /// </summary>
+    public async Task<string?> GetInsightHashAsync(string tier, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = "SELECT content_hash FROM materialized_insights WHERE tier = $1";
+        cmd.Parameters.Add(new DuckDBParameter { Value = tier });
+
+        var result = await cmd.ExecuteScalarAsync(ct).ConfigureAwait(false);
+        return result as string;
+    }
+
+    /// <summary>
+    ///     Gets all materialized insight rows.
+    /// </summary>
+    public async Task<IReadOnlyList<InsightRow>> GetAllInsightsAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var rows = new List<InsightRow>();
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT tier, content_markdown, content_hash, materialized_at,
+                   span_count_at_materialization, duration_ms
+            FROM materialized_insights
+            ORDER BY tier
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            rows.Add(new InsightRow(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                new DateTimeOffset(reader.GetDateTime(3), TimeSpan.Zero),
+                reader.Col(4).GetInt64(0),
+                reader.Col(5).GetDouble(0)));
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    ///     Upserts a materialized insight tier via the write queue.
+    /// </summary>
+    public async Task UpsertInsightAsync(
+        string tier,
+        string markdown,
+        string hash,
+        long spanCount,
+        double durationMs,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO materialized_insights
+                    (tier, content_markdown, content_hash, materialized_at, span_count_at_materialization, duration_ms)
+                VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)
+                ON CONFLICT (tier) DO UPDATE SET
+                    content_markdown = EXCLUDED.content_markdown,
+                    content_hash = EXCLUDED.content_hash,
+                    materialized_at = EXCLUDED.materialized_at,
+                    span_count_at_materialization = EXCLUDED.span_count_at_materialization,
+                    duration_ms = EXCLUDED.duration_ms
+                """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = tier });
+            cmd.Parameters.Add(new DuckDBParameter { Value = markdown });
+            cmd.Parameters.Add(new DuckDBParameter { Value = hash });
+            cmd.Parameters.Add(new DuckDBParameter { Value = spanCount });
+            cmd.Parameters.Add(new DuckDBParameter { Value = durationMs });
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    // ==========================================================================
     // Log Operations
     // ==========================================================================
 
@@ -1336,6 +1426,10 @@ public sealed class DuckDbStore : IAsyncDisposable
         using var extCmd = con.CreateCommand();
         extCmd.CommandText = DuckDbSchema.WorkflowExecutionsDdl;
         extCmd.ExecuteNonQuery();
+
+        using var insightsCmd = con.CreateCommand();
+        insightsCmd.CommandText = DuckDbSchema.MaterializedInsightsDdl;
+        insightsCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1559,6 +1653,21 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
     }
 }
+
+// ==========================================================================
+// Insight Materialization Operations
+// ==========================================================================
+
+/// <summary>
+///     Row from the materialized_insights table.
+/// </summary>
+public sealed record InsightRow(
+    string Tier,
+    string ContentMarkdown,
+    string ContentHash,
+    DateTimeOffset MaterializedAt,
+    long SpanCountAtMaterialization,
+    double DurationMs);
 
 /// <summary>
 ///     Result of clearing all telemetry data from the database.

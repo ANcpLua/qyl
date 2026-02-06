@@ -5,6 +5,7 @@ using qyl.collector.Auth;
 using qyl.collector.Copilot;
 using qyl.collector.Grpc;
 using qyl.collector.Health;
+using qyl.collector.Insights;
 using qyl.collector.Telemetry;
 using qyl.copilot;
 using Qyl.ServiceDefaults;
@@ -32,12 +33,13 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // QYL_PORT takes precedence, but fallback to PORT (Railway standard) for PaaS compatibility
 var port = builder.Configuration.GetValue<int?>("QYL_PORT")
-    ?? builder.Configuration.GetValue<int?>("PORT")
-    ?? 5100;
+           ?? builder.Configuration.GetValue<int?>("PORT")
+           ?? 5100;
 var grpcPort = builder.Configuration.GetValue("QYL_GRPC_PORT", 4317);
 
 // Startup diagnostics for Railway debugging
-Console.WriteLine($"[qyl] Starting on port {port} (QYL_PORT={Environment.GetEnvironmentVariable("QYL_PORT")}, PORT={Environment.GetEnvironmentVariable("PORT")})");
+Console.WriteLine(
+    $"[qyl] Starting on port {port} (QYL_PORT={Environment.GetEnvironmentVariable("QYL_PORT")}, PORT={Environment.GetEnvironmentVariable("PORT")})");
 Console.WriteLine($"[qyl] gRPC port: {grpcPort} (0=disabled)");
 var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
 var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
@@ -74,11 +76,11 @@ builder.Services.AddSingleton(new TokenAuthOptions
     Token = token,
     ExcludedPaths =
     [
-        "/health", "/ready", "/alive",      // Health checks
-        "/v1/traces",                        // OTLP ingestion
-        "/api/",                             // Dashboard API (public)
-        "/assets/",                          // Dashboard static assets
-        "/favicon.ico",                      // Favicon
+        "/health", "/ready", "/alive", // Health checks
+        "/v1/traces", // OTLP ingestion
+        "/api/", // Dashboard API (public)
+        "/assets/", // Dashboard static assets
+        "/favicon.ico", // Favicon
     ]
 });
 builder.Services.AddSingleton<FrontendConsole>();
@@ -87,13 +89,16 @@ builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
 {
-    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"], AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
+    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
+    AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
 };
 
 // OTLP API key configuration
 var otlpApiKeyOptions = new OtlpApiKeyOptions
 {
-    AuthMode = builder.Configuration["QYL_OTLP_AUTH_MODE"] ?? "Unsecured", PrimaryApiKey = builder.Configuration["QYL_OTLP_PRIMARY_API_KEY"], SecondaryApiKey = builder.Configuration["QYL_OTLP_SECONDARY_API_KEY"]
+    AuthMode = builder.Configuration["QYL_OTLP_AUTH_MODE"] ?? "Unsecured",
+    PrimaryApiKey = builder.Configuration["QYL_OTLP_PRIMARY_API_KEY"],
+    SecondaryApiKey = builder.Configuration["QYL_OTLP_SECONDARY_API_KEY"]
 };
 
 builder.Services.AddSingleton(otlpCorsOptions);
@@ -117,6 +122,9 @@ builder.Services.AddSingleton<IReadOnlyList<Microsoft.Extensions.AI.AITool>>(sta
 // GitHub Copilot integration (auto-detect auth, zero config)
 builder.Services.AddQylCopilot(o => { o.AuthOptions = new() { AutoDetect = true }; });
 builder.Services.AddQylCopilotTelemetry();
+
+// Insights materializer: auto-generates system context from telemetry every 5 minutes
+builder.Services.AddHostedService<qyl.collector.Insights.InsightsMaterializerService>();
 
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();
@@ -193,10 +201,7 @@ app.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
 app.MapPost("/api/logout", (HttpContext context) =>
 {
     context.Response.Cookies.Delete("qyl_token");
-    return Results.Ok(new
-    {
-        success = true
-    });
+    return Results.Ok(new { success = true });
 });
 
 app.MapGet("/api/auth/check", (HttpContext context) =>
@@ -220,23 +225,19 @@ app.MapGet("/api/v1/sessions",
 
 app.MapGet("/api/v1/sessions/{sessionId}",
     async (string sessionId, SessionQueryService queryService, CancellationToken ct) =>
-    {
-        var session = await queryService.GetSessionAsync(sessionId, ct).ConfigureAwait(false);
-        if (session is null) return Results.NotFound();
+        await queryService.GetSessionAsync(sessionId, ct).ConfigureAwait(false) is not { } session
+            ? Results.NotFound()
+            : Results.Ok(SessionMapper.ToDto(session)));
 
-        return Results.Ok(SessionMapper.ToDto(session));
-    });
+app.MapGet("/api/v1/sessions/{sessionId}/spans", SpanEndpoints.GetSessionSpansAsync);
 
-app.MapGet("/api/v1/sessions/{sessionId}/spans", (string sessionId, DuckDbStore store, CancellationToken ct) =>
-    SpanEndpoints.GetSessionSpansAsync(sessionId, store, ct));
-
-app.MapGet("/api/v1/traces/{traceId}", (string traceId, DuckDbStore store) =>
-    SpanEndpoints.GetTraceAsync(traceId, store));
+app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
 app.MapCopilotEndpoints();
 app.MapSseEndpoints();
 app.MapSpanMemoryEndpoints();
+app.MapInsightsEndpoints();
 
 app.MapPost("/api/v1/ingest", async (
     HttpContext context,
@@ -348,11 +349,7 @@ app.MapPost("/v1/logs", async (
 
 app.MapPost("/api/v1/feedback", () => Results.Accepted());
 app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
-    Results.Ok(new
-    {
-        sessionId,
-        feedback = Array.Empty<object>()
-    }));
+    Results.Ok(new { sessionId, feedback = Array.Empty<object>() }));
 
 app.MapPost("/api/v1/console", (ConsoleIngestBatch batch, FrontendConsole console) =>
 {
@@ -381,10 +378,7 @@ app.MapGet("/api/v1/logs", async (
         limit: limit ?? 500,
         ct: ct);
 
-    return Results.Ok(new
-    {
-        logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500)
-    });
+    return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
 });
 
 app.MapGet("/api/v1/console", (FrontendConsole console, string? session, string? level, int? limit) =>
@@ -581,7 +575,8 @@ app.MapPost("/api/v1/deployments", () =>
     Results.Created("/api/v1/deployments/1", new { id = "1" }));
 
 app.MapGet("/api/v1/deployments/metrics/dora", () =>
-    Results.Ok(new {
+    Results.Ok(new
+    {
         deployment_frequency = 0,
         lead_time_hours = 0,
         change_failure_rate = 0,
@@ -602,7 +597,7 @@ app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
     Results.Ok(new { name = serviceName, instance_count = 1 }));
 
 
-app.MapFallback(async context =>
+app.MapFallback(context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
@@ -613,21 +608,19 @@ app.MapFallback(async context =>
         path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 404;
-        return;
+        return Task.CompletedTask;
     }
 
     // Serve index.html for SPA client-side routing
-    var indexPath = Path.Combine(app.Environment.WebRootPath ?? "wwwroot", "index.html");
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";
-        await context.Response.SendFileAsync(indexPath);
+        return context.Response.SendFileAsync(indexPath);
     }
-    else
-    {
-        context.Response.StatusCode = 404;
-        await context.Response.WriteAsync("Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
-    }
+
+    context.Response.StatusCode = 404;
+    return context.Response.WriteAsync("Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
 });
 
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
@@ -640,20 +633,3 @@ app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"[qyl] Application started and listening on port {port}"));
 
 app.Run();
-
-namespace qyl.collector
-{
-    // =============================================================================
-    // GenAI Provider Detection - OTel 1.39 gen_ai.provider.name values
-    // =============================================================================
-
-    // =============================================================================
-// qyl GenAI Attribute Extractor - SINGLE SOURCE OF TRUTH
-// Extracts GenAI semantic convention attributes from span attributes
-// Supports both dictionary and JSON-based attribute access
-// =============================================================================
-}
-
-namespace qyl.collector
-{
-}

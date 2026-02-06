@@ -206,7 +206,37 @@ internal static class ObservabilityTools
                     return sb.ToString();
                 },
                 name: "list_sessions",
-                description: "List spans for a session by session ID")
+                description: "List spans for a session by session ID"),
+
+            AIFunctionFactory.Create(
+                [Description("Get pre-computed system context: topology, performance profile, and alerts. Returns materialized insights that are refreshed every 5 minutes with zero query cost.")]
+                async (CancellationToken ct) =>
+                {
+                    using var activity = CopilotInstrumentation.StartToolSpan("get_system_context");
+                    CopilotMetrics.RecordToolCall("get_system_context", CopilotInstrumentation.GenAiSystem);
+                    var startTime = timeProvider.GetUtcNow();
+
+                    var rows = await store.GetAllInsightsAsync(ct).ConfigureAwait(false);
+
+                    var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
+                    CopilotMetrics.RecordToolDuration(duration, "get_system_context", CopilotInstrumentation.GenAiSystem);
+
+                    if (rows.Count is 0)
+                        return "No insights materialized yet. The system context is generated every 5 minutes after ingestion starts.";
+
+                    var sb = new StringBuilder();
+                    sb.AppendLine("# System Context (auto-generated from telemetry)");
+                    sb.AppendLine();
+                    foreach (var row in rows)
+                    {
+                        sb.AppendLine(row.ContentMarkdown);
+                        sb.AppendLine();
+                    }
+
+                    return sb.ToString();
+                },
+                name: "get_system_context",
+                description: "Get pre-computed system context (topology, performance, alerts)")
         ];
     }
 }

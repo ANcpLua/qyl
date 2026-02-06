@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
@@ -115,6 +116,43 @@ public sealed class StorageTools
         catch (HttpRequestException ex)
         {
             return $"Health check failed - qyl collector may be down: {ex.Message}";
+        }
+    }
+
+    [McpServerTool(Name = "qyl.get_system_context")]
+    [Description("""
+                 Get pre-computed system context from qyl's insights materializer.
+
+                 Returns a markdown document with three sections:
+                 - **Topology**: Discovered services, AI models, and top errors
+                 - **Performance Profile**: Latency percentiles, token spend, cost trends (7d rolling)
+                 - **Known Issues**: Error spikes, cost drift, slow operations (last hour)
+
+                 This data is refreshed every 5 minutes with zero query cost on read.
+                 Use this as the first tool call to understand the system before drilling into details.
+
+                 Returns: Markdown system context with topology, performance, and alerts
+                 """)]
+    public async Task<string> GetSystemContextAsync()
+    {
+        try
+        {
+            var response = await _client.GetAsync("/api/v1/insights").ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+                return $"Insights not available (HTTP {(int)response.StatusCode}). The materializer may not have run yet.";
+
+            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+            var doc = JsonDocument.Parse(json);
+
+            if (doc.RootElement.TryGetProperty("markdown", out var markdownProp))
+                return markdownProp.GetString() ?? "No insights available.";
+
+            return "Insights response did not contain expected 'markdown' field.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error connecting to qyl collector: {ex.Message}";
         }
     }
 
