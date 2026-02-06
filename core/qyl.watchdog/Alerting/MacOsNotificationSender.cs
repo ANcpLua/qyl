@@ -25,6 +25,6 @@ public sealed class MacOsNotificationSender : INotificationSender
     }
 
     private static string Sanitize(string input) =>
-        input.Replace("\\", "\\\\", StringComparison.Ordinal)
+        input.Replace("\\", @"\\", StringComparison.Ordinal)
              .Replace("\"", "\\\"", StringComparison.Ordinal);
 }

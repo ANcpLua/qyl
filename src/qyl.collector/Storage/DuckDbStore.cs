@@ -1222,8 +1222,8 @@ public sealed class DuckDbStore : IAsyncDisposable
     // ==========================================================================
 
     // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
-    private static readonly ConcurrentDictionary<int, string> s_spanInsertSqlCache = new();
-    private static readonly ConcurrentDictionary<int, string> s_logInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
 
     /// <summary>
     ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
@@ -1233,7 +1233,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
 
-        return s_spanInsertSqlCache.GetOrAdd(spanCount, static count =>
+        return SSpanInsertSqlCache.GetOrAdd(spanCount, static count =>
         {
             var sb = new StringBuilder(2048);
             sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
@@ -1268,7 +1268,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     {
         Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
 
-        return s_logInsertSqlCache.GetOrAdd(logCount, static count =>
+        return SLogInsertSqlCache.GetOrAdd(logCount, static count =>
         {
             var sb = new StringBuilder(1024);
             sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
@@ -1550,35 +1550,22 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
     }
 
-    private sealed class FireAndForgetJob : WriteJob
+    private sealed class FireAndForgetJob(
+        int spanCount,
+        Func<DuckDBConnection, CancellationToken, ValueTask> action,
+        Action<int>? onDropped = null)
+        : WriteJob
     {
-        private readonly Func<DuckDBConnection, CancellationToken, ValueTask> _action;
-        private readonly Action<int>? _onDropped;
-        private readonly int _spanCount;
+        public override ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct) => action(con, ct);
 
-        public FireAndForgetJob(
-            int spanCount,
-            Func<DuckDBConnection, CancellationToken, ValueTask> action,
-            Action<int>? onDropped = null)
-        {
-            _spanCount = spanCount;
-            _action = action;
-            _onDropped = onDropped;
-        }
-
-        public override ValueTask ExecuteAsync(DuckDBConnection con, CancellationToken ct) => _action(con, ct);
-
-        public override void OnAborted(Exception error) => _onDropped?.Invoke(_spanCount);
+        public override void OnAborted(Exception error) => onDropped?.Invoke(spanCount);
     }
 
-    private sealed class WriteJob<TResult> : WriteJob
+    private sealed class WriteJob<TResult>(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action)
+        : WriteJob
     {
-        private readonly Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> _action;
-
         private readonly TaskCompletionSource<TResult> _tcs =
             new(TaskCreationOptions.RunContinuationsAsynchronously);
-
-        public WriteJob(Func<DuckDBConnection, CancellationToken, ValueTask<TResult>> action) => _action = action;
 
         public Task<TResult> Task => _tcs.Task;
 
@@ -1586,7 +1573,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         {
             try
             {
-                var result = await _action(con, ct).ConfigureAwait(false);
+                var result = await action(con, ct).ConfigureAwait(false);
                 _tcs.TrySetResult(result);
             }
             catch (OperationCanceledException oce)
@@ -1608,27 +1595,20 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
     }
 
-    private sealed class ReadConnectionPolicy : PooledObjectPolicy<DuckDBConnection>
+    private sealed class ReadConnectionPolicy(string path, DuckDBConnection? sharedConnection = null)
+        : PooledObjectPolicy<DuckDBConnection>
     {
-        private readonly ConcurrentBag<DuckDBConnection> _created = new();
-        private readonly string _path;
-        private readonly DuckDBConnection? _sharedConnection;
-
-        public ReadConnectionPolicy(string path, DuckDBConnection? sharedConnection = null)
-        {
-            _path = path;
-            _sharedConnection = sharedConnection;
-        }
+        private readonly ConcurrentBag<DuckDBConnection> _created = [];
 
         public override DuckDBConnection Create()
         {
             // For in-memory databases, reuse the shared (write) connection
             // Each :memory: connection creates a separate isolated database instance
-            if (_sharedConnection is not null)
-                return _sharedConnection;
+            if (sharedConnection is not null)
+                return sharedConnection;
 
             // For file-based databases, create read-only connections
-            var connString = $"DataSource={_path};ACCESS_MODE=READ_ONLY";
+            var connString = $"DataSource={path};ACCESS_MODE=READ_ONLY";
             var con = new DuckDBConnection(connString);
             con.Open();
             _created.Add(con);

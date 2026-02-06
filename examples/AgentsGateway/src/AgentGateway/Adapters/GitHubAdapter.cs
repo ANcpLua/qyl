@@ -44,11 +44,10 @@ public sealed class GitHubAdapter : IChatClient, IModelCatalog
 
     public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
     {
-        return Task.FromResult<IReadOnlyList<ModelInfo>>(new[]
-        {
+        return Task.FromResult<IReadOnlyList<ModelInfo>>([
             new ModelInfo(_defaultModel,
                 ProviderCapabilities.Chat | ProviderCapabilities.Tools | ProviderCapabilities.Streaming,
                 new Dictionary<string, string>())
-        });
+        ]);
     }
 }

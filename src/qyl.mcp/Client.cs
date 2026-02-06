@@ -18,16 +18,9 @@ internal static class TelemetryConstants
     });
 }
 
-public sealed partial class HostClientAgent
+public sealed partial class HostClientAgent(ILoggerFactory? loggerFactory = null)
 {
-    private readonly ILogger _logger;
-    private readonly ILoggerFactory? _loggerFactory;
-
-    public HostClientAgent(ILoggerFactory? loggerFactory = null)
-    {
-        _loggerFactory = loggerFactory;
-        _logger = loggerFactory?.CreateLogger<HostClientAgent>() ?? NullLogger<HostClientAgent>.Instance;
-    }
+    private readonly ILogger _logger = loggerFactory?.CreateLogger<HostClientAgent>() ?? NullLogger<HostClientAgent>.Instance;
 
     public AIAgent? Agent { get; private set; }
 
@@ -74,7 +67,7 @@ public sealed partial class HostClientAgent
     private async Task<AIAgent> GetRemoteAgentAsync(Uri baseUrl)
     {
         var agentCard = await A2ACardResolver.GetAgentCardAsync(baseUrl).ConfigureAwait(false);
-        return agentCard.AsAIAgent(loggerFactory: _loggerFactory);
+        return agentCard.AsAIAgent(loggerFactory: loggerFactory);
     }
 }
 
@@ -175,17 +168,11 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     }
 }
 
-public sealed class TelemetryAgent : DelegatingAIAgent
+public sealed class TelemetryAgent(AIAgent innerAgent, ITelemetryCollector? collector = null, string? agentName = null)
+    : DelegatingAIAgent(innerAgent)
 {
-    private readonly string _agentName;
-    private readonly ITelemetryCollector _collector;
-
-    public TelemetryAgent(AIAgent innerAgent, ITelemetryCollector? collector = null, string? agentName = null)
-        : base(innerAgent)
-    {
-        _collector = collector ?? OpenTelemetryCollector.Instance;
-        _agentName = agentName ?? GetAgentName(innerAgent);
-    }
+    private readonly string _agentName = agentName ?? GetAgentName(innerAgent);
+    private readonly ITelemetryCollector _collector = collector ?? OpenTelemetryCollector.Instance;
 
     private static string GetAgentName(AIAgent agent)
     {

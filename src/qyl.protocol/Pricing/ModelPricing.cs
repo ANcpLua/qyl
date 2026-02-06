@@ -25,114 +25,114 @@ public readonly record struct ModelPricing(
 /// </summary>
 public static class ModelPricingTable
 {
-    private static readonly FrozenDictionary<(string Provider, string Model), ModelPricing> s_all =
+    private static readonly FrozenDictionary<(string Provider, string Model), ModelPricing> SAll =
         CreatePricingTable();
-    private static readonly ProviderModelComparer s_providerModelComparer = new();
-    private static readonly StringComparer s_providerComparer = StringComparer.OrdinalIgnoreCase;
+    private static readonly ProviderModelComparer SProviderModelComparer = new();
+    private static readonly StringComparer SProviderComparer = StringComparer.OrdinalIgnoreCase;
 
     private static FrozenDictionary<(string Provider, string Model), ModelPricing> CreatePricingTable()
     {
-        var entries = new Dictionary<(string Provider, string Model), ModelPricing>(s_providerModelComparer);
+        var entries = new Dictionary<(string Provider, string Model), ModelPricing>(SProviderModelComparer);
 
         // OpenAI
-        AddModel(entries, "openai", "gpt-4o", new(2.50m, 10.00m, 128_000));
-        AddModel(entries, "openai", "gpt-4o-2024-11-20", new(2.50m, 10.00m, 128_000));
-        AddModel(entries, "openai", "gpt-4o-mini", new(0.15m, 0.60m, 128_000));
-        AddModel(entries, "openai", "gpt-4o-mini-2024-07-18", new(0.15m, 0.60m, 128_000));
-        AddModel(entries, "openai", "gpt-4.1", new(2.00m, 8.00m, 1_000_000));
-        AddModel(entries, "openai", "gpt-4.1-2025-04-14", new(2.00m, 8.00m, 1_000_000));
-        AddModel(entries, "openai", "gpt-4.1-mini", new(0.40m, 1.60m, 1_000_000));
-        AddModel(entries, "openai", "gpt-4.1-nano", new(0.10m, 0.40m, 1_000_000));
-        AddModel(entries, "openai", "gpt-4-turbo", new(10.00m, 30.00m, 128_000));
-        AddModel(entries, "openai", "gpt-4-turbo-2024-04-09", new(10.00m, 30.00m, 128_000));
-        AddModel(entries, "openai", "gpt-4-turbo-preview", new(10.00m, 30.00m, 128_000));
-        AddModel(entries, "openai", "gpt-4", new(30.00m, 60.00m, 8_192));
-        AddModel(entries, "openai", "gpt-4-32k", new(60.00m, 120.00m, 32_768));
-        AddModel(entries, "openai", "gpt-3.5-turbo", new(0.50m, 1.50m, 16_385));
-        AddModel(entries, "openai", "gpt-3.5-turbo-0125", new(0.50m, 1.50m, 16_385));
-        AddModel(entries, "openai", "gpt-3.5-turbo-instruct", new(1.50m, 2.00m, 4_096));
-        AddModel(entries, "openai", "o1", new(15.00m, 60.00m, 200_000));
-        AddModel(entries, "openai", "o1-2024-12-17", new(15.00m, 60.00m, 200_000));
-        AddModel(entries, "openai", "o1-mini", new(1.10m, 4.40m, 128_000));
-        AddModel(entries, "openai", "o1-preview", new(15.00m, 60.00m, 128_000));
-        AddModel(entries, "openai", "o3", new(2.00m, 8.00m, 200_000));
-        AddModel(entries, "openai", "o3-mini", new(1.10m, 4.40m, 200_000));
-        AddModel(entries, "openai", "o4-mini", new(1.10m, 4.40m, 200_000));
+        AddModel(entries, "openai", "gpt-4o", new ModelPricing(2.50m, 10.00m, 128_000));
+        AddModel(entries, "openai", "gpt-4o-2024-11-20", new ModelPricing(2.50m, 10.00m, 128_000));
+        AddModel(entries, "openai", "gpt-4o-mini", new ModelPricing(0.15m, 0.60m, 128_000));
+        AddModel(entries, "openai", "gpt-4o-mini-2024-07-18", new ModelPricing(0.15m, 0.60m, 128_000));
+        AddModel(entries, "openai", "gpt-4.1", new ModelPricing(2.00m, 8.00m, 1_000_000));
+        AddModel(entries, "openai", "gpt-4.1-2025-04-14", new ModelPricing(2.00m, 8.00m, 1_000_000));
+        AddModel(entries, "openai", "gpt-4.1-mini", new ModelPricing(0.40m, 1.60m, 1_000_000));
+        AddModel(entries, "openai", "gpt-4.1-nano", new ModelPricing(0.10m, 0.40m, 1_000_000));
+        AddModel(entries, "openai", "gpt-4-turbo", new ModelPricing(10.00m, 30.00m, 128_000));
+        AddModel(entries, "openai", "gpt-4-turbo-2024-04-09", new ModelPricing(10.00m, 30.00m, 128_000));
+        AddModel(entries, "openai", "gpt-4-turbo-preview", new ModelPricing(10.00m, 30.00m, 128_000));
+        AddModel(entries, "openai", "gpt-4", new ModelPricing(30.00m, 60.00m, 8_192));
+        AddModel(entries, "openai", "gpt-4-32k", new ModelPricing(60.00m, 120.00m, 32_768));
+        AddModel(entries, "openai", "gpt-3.5-turbo", new ModelPricing(0.50m, 1.50m, 16_385));
+        AddModel(entries, "openai", "gpt-3.5-turbo-0125", new ModelPricing(0.50m, 1.50m, 16_385));
+        AddModel(entries, "openai", "gpt-3.5-turbo-instruct", new ModelPricing(1.50m, 2.00m, 4_096));
+        AddModel(entries, "openai", "o1", new ModelPricing(15.00m, 60.00m, 200_000));
+        AddModel(entries, "openai", "o1-2024-12-17", new ModelPricing(15.00m, 60.00m, 200_000));
+        AddModel(entries, "openai", "o1-mini", new ModelPricing(1.10m, 4.40m, 128_000));
+        AddModel(entries, "openai", "o1-preview", new ModelPricing(15.00m, 60.00m, 128_000));
+        AddModel(entries, "openai", "o3", new ModelPricing(2.00m, 8.00m, 200_000));
+        AddModel(entries, "openai", "o3-mini", new ModelPricing(1.10m, 4.40m, 200_000));
+        AddModel(entries, "openai", "o4-mini", new ModelPricing(1.10m, 4.40m, 200_000));
 
         // Anthropic
-        AddModel(entries, "anthropic", "claude-opus-4-5-20251101", new(5.00m, 25.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-opus-4.5", new(5.00m, 25.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-sonnet-4-5-20251101", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-sonnet-4.5", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-haiku-4-5-20251101", new(1.00m, 5.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-haiku-4.5", new(1.00m, 5.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-opus-4-1-20250501", new(15.00m, 75.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-opus-4.1", new(15.00m, 75.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-opus-4-20250514", new(15.00m, 75.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-opus-4", new(15.00m, 75.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-sonnet-4-20250514", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-sonnet-4", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-5-sonnet-20241022", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3.5-sonnet", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-5-haiku-20241022", new(0.80m, 4.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-haiku-3.5", new(0.80m, 4.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-opus-20240229", new(15.00m, 75.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-sonnet-20240229", new(3.00m, 15.00m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-haiku-20240307", new(0.25m, 1.25m, 200_000));
-        AddModel(entries, "anthropic", "claude-3-haiku", new(0.25m, 1.25m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4-5-20251101", new ModelPricing(5.00m, 25.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4.5", new ModelPricing(5.00m, 25.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-sonnet-4-5-20251101", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-sonnet-4.5", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-haiku-4-5-20251101", new ModelPricing(1.00m, 5.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-haiku-4.5", new ModelPricing(1.00m, 5.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4-1-20250501", new ModelPricing(15.00m, 75.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4.1", new ModelPricing(15.00m, 75.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4-20250514", new ModelPricing(15.00m, 75.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-opus-4", new ModelPricing(15.00m, 75.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-sonnet-4-20250514", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-sonnet-4", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-5-sonnet-20241022", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3.5-sonnet", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-5-haiku-20241022", new ModelPricing(0.80m, 4.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-haiku-3.5", new ModelPricing(0.80m, 4.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-opus-20240229", new ModelPricing(15.00m, 75.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-sonnet-20240229", new ModelPricing(3.00m, 15.00m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-haiku-20240307", new ModelPricing(0.25m, 1.25m, 200_000));
+        AddModel(entries, "anthropic", "claude-3-haiku", new ModelPricing(0.25m, 1.25m, 200_000));
 
         // Google
-        AddModel(entries, "google", "gemini-3-pro-preview", new(2.00m, 12.00m, 1_000_000));
-        AddModel(entries, "google", "gemini-3-flash-preview", new(0.50m, 3.00m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.5-pro", new(1.25m, 10.00m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.5-pro-preview-0514", new(1.25m, 10.00m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.5-flash", new(0.30m, 2.50m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.5-flash-preview-0514", new(0.30m, 2.50m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.5-flash-lite", new(0.10m, 0.40m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.0-flash", new(0.10m, 0.40m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.0-flash-exp", new(0.10m, 0.40m, 1_000_000));
-        AddModel(entries, "google", "gemini-2.0-flash-lite", new(0.075m, 0.30m, 1_000_000));
-        AddModel(entries, "google", "gemini-1.5-pro", new(1.25m, 5.00m, 1_000_000));
-        AddModel(entries, "google", "gemini-1.5-flash", new(0.075m, 0.30m, 1_000_000));
+        AddModel(entries, "google", "gemini-3-pro-preview", new ModelPricing(2.00m, 12.00m, 1_000_000));
+        AddModel(entries, "google", "gemini-3-flash-preview", new ModelPricing(0.50m, 3.00m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.5-pro", new ModelPricing(1.25m, 10.00m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.5-pro-preview-0514", new ModelPricing(1.25m, 10.00m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.5-flash", new ModelPricing(0.30m, 2.50m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.5-flash-preview-0514", new ModelPricing(0.30m, 2.50m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.5-flash-lite", new ModelPricing(0.10m, 0.40m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.0-flash", new ModelPricing(0.10m, 0.40m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.0-flash-exp", new ModelPricing(0.10m, 0.40m, 1_000_000));
+        AddModel(entries, "google", "gemini-2.0-flash-lite", new ModelPricing(0.075m, 0.30m, 1_000_000));
+        AddModel(entries, "google", "gemini-1.5-pro", new ModelPricing(1.25m, 5.00m, 1_000_000));
+        AddModel(entries, "google", "gemini-1.5-flash", new ModelPricing(0.075m, 0.30m, 1_000_000));
 
         // Mistral
-        AddModel(entries, "mistral", "mistral-large-3", new(0.50m, 1.50m, 131_072));
-        AddModel(entries, "mistral", "mistral-large-2512", new(0.50m, 1.50m, 131_072));
-        AddModel(entries, "mistral", "mistral-large-2411", new(2.00m, 6.00m, 131_072));
-        AddModel(entries, "mistral", "mistral-large-latest", new(0.50m, 1.50m, 131_072));
-        AddModel(entries, "mistral", "mistral-medium-3", new(0.40m, 2.00m, 131_072));
-        AddModel(entries, "mistral", "mistral-medium-3.1", new(0.40m, 2.00m, 131_072));
-        AddModel(entries, "mistral", "mistral-medium-latest", new(0.40m, 2.00m, 131_072));
-        AddModel(entries, "mistral", "mistral-small-3.1", new(0.03m, 0.11m, 32_768));
-        AddModel(entries, "mistral", "mistral-small-3.2", new(0.06m, 0.18m, 32_768));
-        AddModel(entries, "mistral", "mistral-small-latest", new(0.06m, 0.18m, 32_768));
-        AddModel(entries, "mistral", "codestral", new(0.30m, 0.90m, 256_000));
-        AddModel(entries, "mistral", "codestral-2508", new(0.30m, 0.90m, 256_000));
-        AddModel(entries, "mistral", "codestral-latest", new(0.30m, 0.90m, 256_000));
-        AddModel(entries, "mistral", "devstral-small", new(0.06m, 0.12m, 128_000));
-        AddModel(entries, "mistral", "devstral-small-2505", new(0.06m, 0.12m, 128_000));
-        AddModel(entries, "mistral", "devstral-medium", new(0.40m, 2.00m, 128_000));
-        AddModel(entries, "mistral", "mistral-nemo", new(0.02m, 0.07m, 128_000));
-        AddModel(entries, "mistral", "open-mistral-nemo", new(0.02m, 0.07m, 128_000));
-        AddModel(entries, "mistral", "pixtral-large", new(2.00m, 6.00m, 128_000));
-        AddModel(entries, "mistral", "pixtral-12b", new(0.15m, 0.15m, 128_000));
+        AddModel(entries, "mistral", "mistral-large-3", new ModelPricing(0.50m, 1.50m, 131_072));
+        AddModel(entries, "mistral", "mistral-large-2512", new ModelPricing(0.50m, 1.50m, 131_072));
+        AddModel(entries, "mistral", "mistral-large-2411", new ModelPricing(2.00m, 6.00m, 131_072));
+        AddModel(entries, "mistral", "mistral-large-latest", new ModelPricing(0.50m, 1.50m, 131_072));
+        AddModel(entries, "mistral", "mistral-medium-3", new ModelPricing(0.40m, 2.00m, 131_072));
+        AddModel(entries, "mistral", "mistral-medium-3.1", new ModelPricing(0.40m, 2.00m, 131_072));
+        AddModel(entries, "mistral", "mistral-medium-latest", new ModelPricing(0.40m, 2.00m, 131_072));
+        AddModel(entries, "mistral", "mistral-small-3.1", new ModelPricing(0.03m, 0.11m, 32_768));
+        AddModel(entries, "mistral", "mistral-small-3.2", new ModelPricing(0.06m, 0.18m, 32_768));
+        AddModel(entries, "mistral", "mistral-small-latest", new ModelPricing(0.06m, 0.18m, 32_768));
+        AddModel(entries, "mistral", "codestral", new ModelPricing(0.30m, 0.90m, 256_000));
+        AddModel(entries, "mistral", "codestral-2508", new ModelPricing(0.30m, 0.90m, 256_000));
+        AddModel(entries, "mistral", "codestral-latest", new ModelPricing(0.30m, 0.90m, 256_000));
+        AddModel(entries, "mistral", "devstral-small", new ModelPricing(0.06m, 0.12m, 128_000));
+        AddModel(entries, "mistral", "devstral-small-2505", new ModelPricing(0.06m, 0.12m, 128_000));
+        AddModel(entries, "mistral", "devstral-medium", new ModelPricing(0.40m, 2.00m, 128_000));
+        AddModel(entries, "mistral", "mistral-nemo", new ModelPricing(0.02m, 0.07m, 128_000));
+        AddModel(entries, "mistral", "open-mistral-nemo", new ModelPricing(0.02m, 0.07m, 128_000));
+        AddModel(entries, "mistral", "pixtral-large", new ModelPricing(2.00m, 6.00m, 128_000));
+        AddModel(entries, "mistral", "pixtral-12b", new ModelPricing(0.15m, 0.15m, 128_000));
 
         // Ollama (local - free)
-        AddModel(entries, "ollama", "llama3.3", new(0m, 0m, 128_000));
-        AddModel(entries, "ollama", "llama3.2", new(0m, 0m, 128_000));
-        AddModel(entries, "ollama", "llama3.1", new(0m, 0m, 128_000));
-        AddModel(entries, "ollama", "llama3", new(0m, 0m, 8_192));
-        AddModel(entries, "ollama", "mistral", new(0m, 0m, 32_768));
-        AddModel(entries, "ollama", "mixtral", new(0m, 0m, 32_768));
-        AddModel(entries, "ollama", "codellama", new(0m, 0m, 16_384));
-        AddModel(entries, "ollama", "deepseek-coder", new(0m, 0m, 16_384));
-        AddModel(entries, "ollama", "phi3", new(0m, 0m, 128_000));
-        AddModel(entries, "ollama", "qwen2.5", new(0m, 0m, 128_000));
+        AddModel(entries, "ollama", "llama3.3", new ModelPricing(0m, 0m, 128_000));
+        AddModel(entries, "ollama", "llama3.2", new ModelPricing(0m, 0m, 128_000));
+        AddModel(entries, "ollama", "llama3.1", new ModelPricing(0m, 0m, 128_000));
+        AddModel(entries, "ollama", "llama3", new ModelPricing(0m, 0m, 8_192));
+        AddModel(entries, "ollama", "mistral", new ModelPricing(0m, 0m, 32_768));
+        AddModel(entries, "ollama", "mixtral", new ModelPricing(0m, 0m, 32_768));
+        AddModel(entries, "ollama", "codellama", new ModelPricing(0m, 0m, 16_384));
+        AddModel(entries, "ollama", "deepseek-coder", new ModelPricing(0m, 0m, 16_384));
+        AddModel(entries, "ollama", "phi3", new ModelPricing(0m, 0m, 128_000));
+        AddModel(entries, "ollama", "qwen2.5", new ModelPricing(0m, 0m, 128_000));
 
-        return entries.ToFrozenDictionary(s_providerModelComparer);
+        return entries.ToFrozenDictionary(SProviderModelComparer);
 
         static void AddModel(
-            Dictionary<(string Provider, string Model), ModelPricing> dict,
+            IDictionary<(string Provider, string Model), ModelPricing> dict,
             string provider,
             string model,
             ModelPricing pricing) =>
@@ -144,18 +144,18 @@ public static class ModelPricingTable
     /// </summary>
     private static string NormalizeProvider(string provider)
     {
-        if (s_providerComparer.Equals(provider, "azure") ||
-            s_providerComparer.Equals(provider, "azure_openai") ||
-            s_providerComparer.Equals(provider, "azure.ai.openai"))
+        if (SProviderComparer.Equals(provider, "azure") ||
+            SProviderComparer.Equals(provider, "azure_openai") ||
+            SProviderComparer.Equals(provider, "azure.ai.openai"))
             return "openai";
 
-        if (s_providerComparer.Equals(provider, "gemini") ||
-            s_providerComparer.Equals(provider, "gcp.gemini") ||
-            s_providerComparer.Equals(provider, "gcp.vertex_ai"))
+        if (SProviderComparer.Equals(provider, "gemini") ||
+            SProviderComparer.Equals(provider, "gcp.gemini") ||
+            SProviderComparer.Equals(provider, "gcp.vertex_ai"))
             return "google";
 
-        if (s_providerComparer.Equals(provider, "mistral_ai") ||
-            s_providerComparer.Equals(provider, "mistralai"))
+        if (SProviderComparer.Equals(provider, "mistral_ai") ||
+            SProviderComparer.Equals(provider, "mistralai"))
             return "mistral";
 
         return provider;
@@ -172,7 +172,7 @@ public static class ModelPricingTable
         if (string.IsNullOrEmpty(provider) || string.IsNullOrEmpty(model))
             return null;
 
-        return s_all.GetValueOrDefault((NormalizeProvider(provider), model));
+        return SAll.GetValueOrDefault((NormalizeProvider(provider), model));
     }
 
     /// <summary>
@@ -183,8 +183,8 @@ public static class ModelPricingTable
     public static IEnumerable<string> GetModelsForProvider(string provider)
     {
         var normalized = NormalizeProvider(provider);
-        return s_all.Keys
-            .Where(k => s_providerComparer.Equals(k.Provider, normalized))
+        return SAll.Keys
+            .Where(k => SProviderComparer.Equals(k.Provider, normalized))
             .Select(k => k.Model);
     }
 
@@ -192,14 +192,14 @@ public static class ModelPricingTable
     {
         public bool Equals((string Provider, string Model) x, (string Provider, string Model) y)
         {
-            return s_providerComparer.Equals(x.Provider, y.Provider) &&
-                s_providerComparer.Equals(x.Model, y.Model);
+            return SProviderComparer.Equals(x.Provider, y.Provider) &&
+                SProviderComparer.Equals(x.Model, y.Model);
         }
 
         public int GetHashCode((string Provider, string Model) obj)
         {
-            var providerHash = s_providerComparer.GetHashCode(obj.Provider ?? string.Empty);
-            var modelHash = s_providerComparer.GetHashCode(obj.Model ?? string.Empty);
+            var providerHash = SProviderComparer.GetHashCode(obj.Provider);
+            var modelHash = SProviderComparer.GetHashCode(obj.Model);
             return unchecked((providerHash * 397) ^ modelHash);
         }
     }

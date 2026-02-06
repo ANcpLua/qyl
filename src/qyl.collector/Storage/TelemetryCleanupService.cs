@@ -4,30 +4,20 @@ namespace qyl.collector.Storage;
 ///     Background service that enforces telemetry data retention limits.
 ///     Runs periodically to delete old data and keep storage bounded.
 /// </summary>
-public sealed partial class TelemetryCleanupService : BackgroundService
+public sealed partial class TelemetryCleanupService(
+    DuckDbStore store,
+    TelemetryLimitsOptions options,
+    ILogger<TelemetryCleanupService> logger,
+    TimeProvider? timeProvider = null)
+    : BackgroundService
 {
-    private readonly DuckDbStore _store;
-    private readonly TelemetryLimitsOptions _options;
-    private readonly ILogger<TelemetryCleanupService> _logger;
-    private readonly TimeProvider _timeProvider;
-
-    public TelemetryCleanupService(
-        DuckDbStore store,
-        TelemetryLimitsOptions options,
-        ILogger<TelemetryCleanupService> logger,
-        TimeProvider? timeProvider = null)
-    {
-        _store = store;
-        _options = options;
-        _logger = logger;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        LogServiceStarted(_logger, _options.CleanupInterval, _options.MaxRetentionDays);
+        LogServiceStarted(logger, options.CleanupInterval, options.MaxRetentionDays);
 
-        using var timer = new PeriodicTimer(_options.CleanupInterval, _timeProvider);
+        using var timer = new PeriodicTimer(options.CleanupInterval, _timeProvider);
 
         while (await timer.WaitForNextTickAsync(stoppingToken).ConfigureAwait(false))
         {
@@ -37,39 +27,39 @@ public sealed partial class TelemetryCleanupService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                LogCleanupError(_logger, ex);
+                LogCleanupError(logger, ex);
             }
         }
     }
 
     private async Task RunCleanupAsync(CancellationToken ct)
     {
-        var cutoffTime = _timeProvider.GetUtcNow().AddDays(-_options.MaxRetentionDays);
+        var cutoffTime = _timeProvider.GetUtcNow().AddDays(-options.MaxRetentionDays);
         var cutoffNanos = (ulong)(cutoffTime.ToUnixTimeMilliseconds() * 1_000_000);
 
         // Age-based cleanup
-        var deletedByAge = await _store.DeleteSpansBeforeAsync(cutoffNanos, ct).ConfigureAwait(false);
+        var deletedByAge = await store.DeleteSpansBeforeAsync(cutoffNanos, ct).ConfigureAwait(false);
         if (deletedByAge > 0)
         {
-            LogSpansDeletedByAge(_logger, deletedByAge, _options.MaxRetentionDays);
+            LogSpansDeletedByAge(logger, deletedByAge, options.MaxRetentionDays);
         }
 
         // Count-based cleanup for spans
-        var spanCount = await _store.GetSpanCountAsync(ct).ConfigureAwait(false);
-        if (spanCount > _options.MaxSpanCount)
+        var spanCount = await store.GetSpanCountAsync(ct).ConfigureAwait(false);
+        if (spanCount > options.MaxSpanCount)
         {
-            var toDelete = spanCount - _options.TargetSpanCount;
-            var deleted = await _store.DeleteOldestSpansAsync(toDelete, ct).ConfigureAwait(false);
-            LogSpansDeletedByCount(_logger, spanCount, _options.MaxSpanCount, deleted);
+            var toDelete = spanCount - options.TargetSpanCount;
+            var deleted = await store.DeleteOldestSpansAsync(toDelete, ct).ConfigureAwait(false);
+            LogSpansDeletedByCount(logger, spanCount, options.MaxSpanCount, deleted);
         }
 
         // Count-based cleanup for logs
-        var logCount = await _store.GetLogCountAsync(ct).ConfigureAwait(false);
-        if (logCount > _options.MaxLogCount)
+        var logCount = await store.GetLogCountAsync(ct).ConfigureAwait(false);
+        if (logCount > options.MaxLogCount)
         {
-            var toDelete = logCount - _options.TargetLogCount;
-            var deleted = await _store.DeleteOldestLogsAsync(toDelete, ct).ConfigureAwait(false);
-            LogLogsDeletedByCount(_logger, logCount, _options.MaxLogCount, deleted);
+            var toDelete = logCount - options.TargetLogCount;
+            var deleted = await store.DeleteOldestLogsAsync(toDelete, ct).ConfigureAwait(false);
+            LogLogsDeletedByCount(logger, logCount, options.MaxLogCount, deleted);
         }
     }
 

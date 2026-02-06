@@ -21,16 +21,12 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
     }
 }
 
-public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
+public class InfrastructureTests(TestWebApplicationFactory factory) : IClassFixture<TestWebApplicationFactory>
 {
-    private readonly TestWebApplicationFactory _factory;
-
-    public InfrastructureTests(TestWebApplicationFactory factory) => _factory = factory;
-
     [Fact]
     public void ChatClientIsRegisteredAsProviderRouter()
     {
-        using var scope = _factory.Services.CreateScope();
+        using var scope = factory.Services.CreateScope();
         var client = scope.ServiceProvider.GetRequiredService<IChatClient>();
 
         Assert.IsType<ProviderRouterChatClient>(client);
@@ -39,7 +35,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public void ProviderRegistryContainsOpenAiAndGitHub()
     {
-        using var scope = _factory.Services.CreateScope();
+        using var scope = factory.Services.CreateScope();
         var registry = scope.ServiceProvider.GetRequiredService<IProviderRegistry>();
 
         Assert.Contains(registry.All, p => p.Id == "openai");
@@ -50,7 +46,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task HealthEndpointReturnsHealthy()
     {
-        var client = _factory.CreateClient();
+        var client = factory.CreateClient();
         var response = await client.GetAsync("/healthz", TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();
@@ -61,7 +57,7 @@ public class InfrastructureTests : IClassFixture<TestWebApplicationFactory>
     [Fact]
     public async Task CatalogEndpointReturnsProviders()
     {
-        var client = _factory.CreateClient();
+        var client = factory.CreateClient();
         var response = await client.GetAsync("/v1/catalog/providers", TestContext.Current.CancellationToken);
 
         response.EnsureSuccessStatusCode();

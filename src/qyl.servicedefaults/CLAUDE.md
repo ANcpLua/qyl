@@ -1,77 +1,27 @@
-# qyl.servicedefaults - Aspire Defaults
+# qyl.servicedefaults - Service Defaults
 
-Aspire-style service defaults for consistent telemetry configuration.
+Aspire-style service defaults for consistent OTel, health checks, and resilience.
 
 ## Identity
 
-| Property  | Value                   |
-|-----------|-------------------------|
-| SDK       | ANcpLua.NET.Sdk         |
-| Framework | net10.0                 |
-| Pattern   | aspire-service-defaults |
-
-## Purpose
-
-Provides opinionated defaults for:
-
-- OpenTelemetry configuration
-- Health checks (Aspire standard endpoints)
-- Resilience patterns
-- HTTP client configuration
+| Property | Value |
+|----------|-------|
+| SDK | ANcpLua.NET.Sdk |
+| Framework | net10.0 |
 
 ## Usage
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-// Apply all service defaults
-builder.AddServiceDefaults();
-
-var app = builder.Build();
-
-// Map health endpoints
-app.MapDefaultEndpoints();
-
-app.Run();
+builder.AddServiceDefaults();   // OTel + health + resilience
+app.MapDefaultEndpoints();      // /health, /alive
 ```
 
 ## What Gets Configured
 
-### OpenTelemetry
+- **OTel**: OTLP exporter, service name, HTTP/gRPC instrumentation
+- **Health**: `/health` (full), `/alive` (liveness)
+- **Resilience**: retry, circuit breaker, timeout
 
-```csharp
-// Automatic configuration:
-// - OTLP exporter (from OTEL_EXPORTER_OTLP_ENDPOINT)
-// - Service name from assembly
-// - Environment enrichment
-// - HTTP/gRPC instrumentation
-```
+## Key Packages
 
-### Health Checks
-
-| Endpoint  | Purpose                     |
-|-----------|-----------------------------|
-| `/health` | Full health check           |
-| `/alive`  | Liveness probe (Kubernetes) |
-
-### Resilience
-
-- Standard retry policies for transient failures
-- Circuit breaker defaults
-- Timeout policies
-
-## Dependencies
-
-| Package                                         | Purpose               |
-|-------------------------------------------------|-----------------------|
-| `OpenTelemetry.Extensions.Hosting`              | OTel host integration |
-| `Microsoft.Extensions.Http.Resilience`          | HTTP resilience       |
-| `Microsoft.Extensions.Diagnostics.HealthChecks` | Health checks         |
-
-## Environment Variables
-
-| Variable                      | Purpose                    |
-|-------------------------------|----------------------------|
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP collector endpoint    |
-| `OTEL_SERVICE_NAME`           | Override service name      |
-| `ASPNETCORE_ENVIRONMENT`      | Environment for enrichment |
+OpenTelemetry.Extensions.Hosting | Microsoft.Extensions.Http.Resilience | Microsoft.Extensions.Diagnostics.HealthChecks

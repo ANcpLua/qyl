@@ -18,9 +18,9 @@ public sealed class NodeResource : QylResourceBase<NodeResource>
         SetEnvironment("NODE_ENV", "development");
 
         // Enable GenAI by default if configured
-        if (builder.Options.GenAI)
+        if (builder.Options.GenAi)
         {
-            WithGenAI();
+            WithGenAi();
         }
     }
 

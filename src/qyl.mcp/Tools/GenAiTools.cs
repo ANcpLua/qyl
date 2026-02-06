@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     Provides AI-focused analytics beyond generic span queries.
 /// </summary>
 [McpServerToolType]
-public sealed class GenAiTools
+public sealed class GenAiTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public GenAiTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.get_genai_stats")]
     [Description("""
                  Get GenAI usage statistics: total requests, tokens, and costs.
@@ -42,7 +38,7 @@ public sealed class GenAiTools
             if (!string.IsNullOrEmpty(sessionId))
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
-            var stats = await _client.GetFromJsonAsync<GenAiStatsDto>(
+            var stats = await client.GetFromJsonAsync<GenAiStatsDto>(
                 url, GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false);
 
             if (stats is null)
@@ -114,7 +110,7 @@ public sealed class GenAiTools
             if (!string.IsNullOrEmpty(sessionId))
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
-            var response = await _client.GetFromJsonAsync<GenAiSpansResponse>(
+            var response = await client.GetFromJsonAsync<GenAiSpansResponse>(
                 url, GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);
 
             if (response?.Spans is null || response.Spans.Count is 0)
@@ -172,7 +168,7 @@ public sealed class GenAiTools
     {
         try
         {
-            var response = await _client.GetFromJsonAsync<ModelUsageResponse>(
+            var response = await client.GetFromJsonAsync<ModelUsageResponse>(
                 $"/api/v1/genai/models?hours={hours}",
                 GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
 
@@ -222,7 +218,7 @@ public sealed class GenAiTools
     {
         try
         {
-            var response = await _client.GetFromJsonAsync<TokenTimeseriesResponse>(
+            var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
                 $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
                 GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
 

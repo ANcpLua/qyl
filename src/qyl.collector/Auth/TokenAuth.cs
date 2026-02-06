@@ -60,17 +60,8 @@ public sealed class TokenAuthOptions
     public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
 }
 
-public sealed class TokenAuthMiddleware
+public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions options)
 {
-    private readonly RequestDelegate _next;
-    private readonly TokenAuthOptions _options;
-
-    public TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions options)
-    {
-        _next = next;
-        _options = options;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "/";
@@ -78,30 +69,30 @@ public sealed class TokenAuthMiddleware
         // Allow dashboard root and static files without auth
         if (path == "/" || IsStaticFile(path))
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
-        if (_options.ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+        if (options.ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
-        var queryToken = context.Request.Query[_options.QueryParameterName].FirstOrDefault();
+        var queryToken = context.Request.Query[options.QueryParameterName].FirstOrDefault();
         if (!string.IsNullOrEmpty(queryToken) && ValidateToken(queryToken))
         {
             SetAuthCookie(context);
 
-            var cleanUrl = RemoveQueryParameter(context.Request, _options.QueryParameterName);
+            var cleanUrl = RemoveQueryParameter(context.Request, options.QueryParameterName);
             context.Response.Redirect(cleanUrl);
             return;
         }
 
-        var cookieToken = context.Request.Cookies[_options.CookieName];
+        var cookieToken = context.Request.Cookies[options.CookieName];
         if (!string.IsNullOrEmpty(cookieToken) && ValidateToken(cookieToken))
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
@@ -114,7 +105,7 @@ public sealed class TokenAuthMiddleware
 
             if (ValidateToken(bearerToken))
             {
-                await _next(context).ConfigureAwait(false);
+                await next(context).ConfigureAwait(false);
                 return;
             }
         }
@@ -123,7 +114,7 @@ public sealed class TokenAuthMiddleware
         var mcpApiKey = context.Request.Headers[TokenAuthOptions.McpApiKeyHeader].FirstOrDefault();
         if (!string.IsNullOrEmpty(mcpApiKey) && ValidateToken(mcpApiKey))
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
@@ -138,22 +129,22 @@ public sealed class TokenAuthMiddleware
             return;
         }
 
-        await _next(context).ConfigureAwait(false);
+        await next(context).ConfigureAwait(false);
     }
 
     private bool ValidateToken(string token) =>
         CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(token),
-            Encoding.UTF8.GetBytes(_options.Token));
+            Encoding.UTF8.GetBytes(options.Token));
 
     private void SetAuthCookie(HttpContext context) =>
-        context.Response.Cookies.Append(_options.CookieName, _options.Token,
+        context.Response.Cookies.Append(options.CookieName, options.Token,
             new CookieOptions
             {
                 HttpOnly = true,
                 Secure = context.Request.IsHttps,
                 SameSite = SameSiteMode.Strict,
-                Expires = TimeProvider.System.GetUtcNow().AddDays(_options.CookieExpirationDays),
+                Expires = TimeProvider.System.GetUtcNow().AddDays(options.CookieExpirationDays),
                 Path = "/"
             });
 
@@ -168,7 +159,7 @@ public sealed class TokenAuthMiddleware
         return newQuery;
     }
 
-    public string GetToken() => _options.Token;
+    public string GetToken() => options.Token;
 
     private static bool IsStaticFile(string path)
     {

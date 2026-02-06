@@ -4,5 +4,4 @@ public readonly record struct ProcessSnapshot(
     int Pid,
     string Name,
     double CpuPercent,
-    long MemoryBytes,
-    long TimestampMs);
+    long MemoryBytes);

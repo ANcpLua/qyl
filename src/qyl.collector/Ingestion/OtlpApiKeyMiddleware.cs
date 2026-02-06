@@ -3,36 +3,27 @@ namespace qyl.collector.Ingestion;
 /// <summary>
 ///     API key authentication for OTLP endpoints.
 /// </summary>
-public sealed class OtlpApiKeyMiddleware
+public sealed class OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
 {
-    private readonly RequestDelegate _next;
-    private readonly OtlpApiKeyOptions _options;
-
-    public OtlpApiKeyMiddleware(RequestDelegate next, OtlpApiKeyOptions options)
-    {
-        _next = next;
-        _options = options;
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var path = context.Request.Path.Value ?? "";
 
         // Only validate OTLP paths when API key mode is enabled
-        if (!_options.IsApiKeyMode || !OtlpConstants.IsOtlpPath(path))
+        if (!options.IsApiKeyMode || !OtlpConstants.IsOtlpPath(path))
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
         // Skip OPTIONS (preflight)
         if (context.Request.Method == "OPTIONS")
         {
-            await _next(context).ConfigureAwait(false);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
-        var apiKey = context.Request.Headers[_options.HeaderName].FirstOrDefault();
+        var apiKey = context.Request.Headers[options.HeaderName].FirstOrDefault();
 
         if (!ValidateApiKey(apiKey))
         {
@@ -44,7 +35,7 @@ public sealed class OtlpApiKeyMiddleware
             return;
         }
 
-        await _next(context).ConfigureAwait(false);
+        await next(context).ConfigureAwait(false);
     }
 
     private bool ValidateApiKey(string? key)
@@ -54,17 +45,17 @@ public sealed class OtlpApiKeyMiddleware
         var keyBytes = Encoding.UTF8.GetBytes(key);
 
         // Check primary key
-        if (!string.IsNullOrEmpty(_options.PrimaryApiKey))
+        if (!string.IsNullOrEmpty(options.PrimaryApiKey))
         {
-            var primaryBytes = Encoding.UTF8.GetBytes(_options.PrimaryApiKey);
+            var primaryBytes = Encoding.UTF8.GetBytes(options.PrimaryApiKey);
             if (CryptographicOperations.FixedTimeEquals(keyBytes, primaryBytes))
                 return true;
         }
 
         // Check secondary key
-        if (!string.IsNullOrEmpty(_options.SecondaryApiKey))
+        if (!string.IsNullOrEmpty(options.SecondaryApiKey))
         {
-            var secondaryBytes = Encoding.UTF8.GetBytes(_options.SecondaryApiKey);
+            var secondaryBytes = Encoding.UTF8.GetBytes(options.SecondaryApiKey);
             if (CryptographicOperations.FixedTimeEquals(keyBytes, secondaryBytes))
                 return true;
         }

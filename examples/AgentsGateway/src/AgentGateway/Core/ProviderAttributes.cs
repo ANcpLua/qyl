@@ -13,24 +13,17 @@ public enum ProviderCapabilities
 }
 
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class ModelProviderAttribute : Attribute
+public sealed class ModelProviderAttribute(
+    string providerId,
+    string displayName,
+    ProviderCapabilities capabilities,
+    params string[] authSchemes)
+    : Attribute
 {
-    public ModelProviderAttribute(
-        string providerId,
-        string displayName,
-        ProviderCapabilities capabilities,
-        params string[] authSchemes)
-    {
-        ProviderId = providerId;
-        DisplayName = displayName;
-        Capabilities = capabilities;
-        AuthSchemes = authSchemes;
-    }
-
-    public string ProviderId { get; }
-    public string DisplayName { get; }
-    public ProviderCapabilities Capabilities { get; }
-    public string[] AuthSchemes { get; }
+    public string ProviderId { get; } = providerId;
+    public string DisplayName { get; } = displayName;
+    public ProviderCapabilities Capabilities { get; } = capabilities;
+    public string[] AuthSchemes { get; } = authSchemes;
 }
 
 public sealed record ModelInfo(

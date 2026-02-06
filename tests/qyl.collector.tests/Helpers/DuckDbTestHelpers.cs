@@ -174,12 +174,7 @@ internal static class DuckDbQueryExtensions
 /// </summary>
 internal sealed class TempDirectory : IDisposable
 {
-    public TempDirectory()
-    {
-        Path = DuckDbTestHelpers.CreateTempDirectory();
-    }
-
-    public string Path { get; }
+    public string Path { get; } = DuckDbTestHelpers.CreateTempDirectory();
 
     public void Dispose()
     {

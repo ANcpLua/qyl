@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for interacting with GitHub Copilot via the qyl collector.
 /// </summary>
 [McpServerToolType]
-public sealed class CopilotTools
+public sealed class CopilotTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public CopilotTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.copilot_status")]
     [Description("""
                  Check if GitHub Copilot authentication is available.
@@ -34,7 +30,7 @@ public sealed class CopilotTools
     {
         try
         {
-            var status = await _client.GetFromJsonAsync<CopilotStatusDto>(
+            var status = await client.GetFromJsonAsync<CopilotStatusDto>(
                 "/api/v1/copilot/status",
                 CopilotJsonContext.Default.CopilotStatusDto).ConfigureAwait(false);
 
@@ -95,7 +91,7 @@ public sealed class CopilotTools
                 Context = context is not null ? new CopilotContextDto { AdditionalContext = context } : null
             };
 
-            using var response = await _client.PostAsJsonAsync(
+            using var response = await client.PostAsJsonAsync(
                 "/api/v1/copilot/chat",
                 request,
                 CopilotJsonContext.Default.CopilotChatRequestDto).ConfigureAwait(false);
@@ -185,7 +181,7 @@ public sealed class CopilotTools
                 Context = context is not null ? new CopilotContextDto { AdditionalContext = context } : null
             };
 
-            using var response = await _client.PostAsJsonAsync(
+            using var response = await client.PostAsJsonAsync(
                 $"/api/v1/copilot/workflows/{Uri.EscapeDataString(name)}/run",
                 request,
                 CopilotJsonContext.Default.CopilotWorkflowRunDto).ConfigureAwait(false);

@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     Fetches data from qyl.collector via HTTP.
 /// </summary>
 [McpServerToolType]
-public sealed class ReplayTools
+public sealed class ReplayTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public ReplayTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.list_sessions")]
     [Description("""
                  List AI sessions captured by qyl for replay or analysis.
@@ -43,7 +39,7 @@ public sealed class ReplayTools
             if (!string.IsNullOrEmpty(serviceName))
                 url += $"&serviceName={Uri.EscapeDataString(serviceName)}";
 
-            var response = await _client.GetFromJsonAsync<SessionListResponse>(
+            var response = await client.GetFromJsonAsync<SessionListResponse>(
                 url, ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
@@ -101,7 +97,7 @@ public sealed class ReplayTools
     {
         try
         {
-            var response = await _client.GetFromJsonAsync<SpanListResponse>(
+            var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
@@ -184,7 +180,7 @@ public sealed class ReplayTools
     {
         try
         {
-            if (await _client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
+            if (await client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
                     ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
                 return $"Trace '{traceId}' not found";
 
@@ -240,7 +236,7 @@ public sealed class ReplayTools
     {
         try
         {
-            var response = await _client.GetFromJsonAsync<SpanListResponse>(
+            var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
                 ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 

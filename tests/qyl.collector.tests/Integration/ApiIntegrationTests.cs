@@ -6,21 +6,16 @@ namespace qyl.collector.tests.Integration;
 ///     Integration tests for qyl.collector REST API endpoints.
 ///     Uses WebApplicationFactory with in-memory DuckDB.
 /// </summary>
-public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
+public sealed class ApiIntegrationTests(QylWebApplicationFactory factory)
+    : IClassFixture<QylWebApplicationFactory>, IAsyncLifetime
 {
-    private readonly QylWebApplicationFactory _factory;
     private HttpClient? _client;
-
-    public ApiIntegrationTests(QylWebApplicationFactory factory)
-    {
-        _factory = factory;
-    }
 
     private HttpClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ValueTask InitializeAsync()
     {
-        _client = _factory.CreateClient();
+        _client = factory.CreateClient();
         // Add auth header for authenticated endpoints
         _client.DefaultRequestHeaders.Add("Authorization", $"Bearer {QylWebApplicationFactory.TestToken}");
         return ValueTask.CompletedTask;

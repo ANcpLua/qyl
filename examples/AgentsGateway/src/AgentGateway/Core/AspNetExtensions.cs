@@ -33,8 +33,8 @@ public static class AspNetExtensions
         }
 
         var validTokenIssuers =
-            tokenValidationSection.GetSection("ValidIssuers").Get<List<string>>() ?? new List<string>();
-        var audiences = tokenValidationSection.GetSection("Audiences").Get<List<string>>() ?? new List<string>();
+            tokenValidationSection.GetSection("ValidIssuers").Get<List<string>>() ?? [];
+        var audiences = tokenValidationSection.GetSection("Audiences").Get<List<string>>() ?? [];
 
         // If ValidIssuers is empty, default for ABS Public Cloud
         if (validTokenIssuers.Count is 0)

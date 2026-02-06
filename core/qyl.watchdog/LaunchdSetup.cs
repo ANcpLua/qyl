@@ -8,11 +8,11 @@ public static class LaunchdSetup
 {
     private const string Label = "com.qyl.watchdog";
 
-    private static readonly string s_plistPath = Path.Combine(
+    private static readonly string SPlistPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         "Library", "LaunchAgents", $"{Label}.plist");
 
-    private static readonly string s_logDir = Path.Combine(
+    private static readonly string SLogDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         ".qyl", "logs");
 
@@ -33,21 +33,21 @@ public static class LaunchdSetup
             return;
         }
 
-        Directory.CreateDirectory(s_logDir);
-        Directory.CreateDirectory(Path.GetDirectoryName(s_plistPath)!);
+        Directory.CreateDirectory(SLogDir);
+        Directory.CreateDirectory(Path.GetDirectoryName(SPlistPath)!);
 
         var plist = GeneratePlist(toolPath);
-        await File.WriteAllTextAsync(s_plistPath, plist);
+        await File.WriteAllTextAsync(SPlistPath, plist);
 
         // Unload first if already loaded (idempotent)
-        await RunAsync("launchctl", $"bootout gui/{GetUid()} {s_plistPath}");
-        var result = await RunAsync("launchctl", $"bootstrap gui/{GetUid()} {s_plistPath}");
+        await RunAsync("launchctl", $"bootout gui/{GetUid()} {SPlistPath}");
+        var result = await RunAsync("launchctl", $"bootstrap gui/{GetUid()} {SPlistPath}");
 
         if (result == 0)
         {
             await Console.Out.WriteLineAsync($"Installed and started launchd agent: {Label}");
-            await Console.Out.WriteLineAsync($"  Plist: {s_plistPath}");
-            await Console.Out.WriteLineAsync($"  Logs:  {s_logDir}/");
+            await Console.Out.WriteLineAsync($"  Plist: {SPlistPath}");
+            await Console.Out.WriteLineAsync($"  Logs:  {SLogDir}/");
             await Console.Out.WriteLineAsync($"  Tool:  {toolPath}");
             await Console.Out.WriteLineAsync();
             await Console.Out.WriteLineAsync("qyl-watch will now start automatically on login.");
@@ -67,17 +67,17 @@ public static class LaunchdSetup
             return;
         }
 
-        if (!File.Exists(s_plistPath))
+        if (!File.Exists(SPlistPath))
         {
             await Console.Out.WriteLineAsync("No launchd agent installed.");
             return;
         }
 
-        await RunAsync("launchctl", $"bootout gui/{GetUid()} {s_plistPath}");
-        File.Delete(s_plistPath);
+        await RunAsync("launchctl", $"bootout gui/{GetUid()} {SPlistPath}");
+        File.Delete(SPlistPath);
 
         await Console.Out.WriteLineAsync($"Uninstalled launchd agent: {Label}");
-        await Console.Out.WriteLineAsync($"  Removed: {s_plistPath}");
+        await Console.Out.WriteLineAsync($"  Removed: {SPlistPath}");
     }
 
     public static async Task StatusAsync()
@@ -88,7 +88,7 @@ public static class LaunchdSetup
             return;
         }
 
-        if (!File.Exists(s_plistPath))
+        if (!File.Exists(SPlistPath))
         {
             await Console.Out.WriteLineAsync("Not installed as launchd agent.");
             return;
@@ -112,7 +112,7 @@ public static class LaunchdSetup
         if (process.ExitCode == 0)
         {
             await Console.Out.WriteLineAsync($"Agent: {Label}");
-            await Console.Out.WriteLineAsync($"Plist: {s_plistPath}");
+            await Console.Out.WriteLineAsync($"Plist: {SPlistPath}");
 
             foreach (var line in output.Split('\n'))
             {
@@ -152,9 +152,9 @@ public static class LaunchdSetup
             <key>ThrottleInterval</key>
             <integer>10</integer>
             <key>StandardOutPath</key>
-            <string>{s_logDir}/watchdog.log</string>
+            <string>{SLogDir}/watchdog.log</string>
             <key>StandardErrorPath</key>
-            <string>{s_logDir}/watchdog.err</string>
+            <string>{SLogDir}/watchdog.err</string>
             <key>ProcessType</key>
             <string>Background</string>
             <key>LowPriorityBackgroundIO</key>

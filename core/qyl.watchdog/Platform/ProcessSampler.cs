@@ -4,7 +4,7 @@ namespace Qyl.Watchdog.Platform;
 /// Polls system process stats by computing CPU% from consecutive TotalProcessorTime deltas.
 /// First sample for each process returns 0% CPU — baselines build from the second sample onward.
 /// </summary>
-public sealed class ProcessSampler(TimeProvider timeProvider, HashSet<string> ignoreProcesses)
+public sealed class ProcessSampler(TimeProvider timeProvider, IReadOnlySet<string> ignoreProcesses)
 {
     private readonly Dictionary<int, (TimeSpan CpuTime, long Tick)> _previous = [];
 
@@ -12,7 +12,6 @@ public sealed class ProcessSampler(TimeProvider timeProvider, HashSet<string> ig
     {
         var results = new List<ProcessSnapshot>();
         var now = timeProvider.GetTimestamp();
-        var nowMs = timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
         var cpuCount = Environment.ProcessorCount;
 
         foreach (var proc in Process.GetProcesses())
@@ -40,7 +39,7 @@ public sealed class ProcessSampler(TimeProvider timeProvider, HashSet<string> ig
                 }
 
                 _previous[pid] = (cpuTime, now);
-                results.Add(new ProcessSnapshot(pid, name, cpuPercent, memBytes, nowMs));
+                results.Add(new ProcessSnapshot(pid, name, cpuPercent, memBytes));
             }
             catch (InvalidOperationException) { }
             catch (System.ComponentModel.Win32Exception) { }

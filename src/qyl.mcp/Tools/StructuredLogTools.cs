@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     These are OpenTelemetry log records (not frontend console.log).
 /// </summary>
 [McpServerToolType]
-public sealed class StructuredLogTools
+public sealed class StructuredLogTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public StructuredLogTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.list_structured_logs")]
     [Description("""
                  List OTLP structured log records captured by qyl.
@@ -65,7 +61,7 @@ public sealed class StructuredLogTools
             if (!string.IsNullOrEmpty(search))
                 url += $"&search={Uri.EscapeDataString(search)}";
 
-            var response = await _client.GetFromJsonAsync<LogsResponse>(
+            var response = await client.GetFromJsonAsync<LogsResponse>(
                 url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)
@@ -127,7 +123,7 @@ public sealed class StructuredLogTools
         {
             var url = $"/api/v1/logs?trace={Uri.EscapeDataString(traceId)}&limit=500";
 
-            var response = await _client.GetFromJsonAsync<LogsResponse>(
+            var response = await client.GetFromJsonAsync<LogsResponse>(
                 url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)
@@ -197,7 +193,7 @@ public sealed class StructuredLogTools
             if (minSeverity.HasValue)
                 url += $"&minSeverity={minSeverity.Value}";
 
-            var response = await _client.GetFromJsonAsync<LogsResponse>(
+            var response = await client.GetFromJsonAsync<LogsResponse>(
                 url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)

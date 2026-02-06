@@ -4,178 +4,57 @@ Primary runtime service. This IS qyl from the user's perspective.
 
 ## Identity
 
-| Property  | Value                       |
-|-----------|-----------------------------|
-| SDK       | ANcpLua.NET.Sdk.Web         |
-| Framework | net10.0                     |
-| Role      | primary-runtime             |
-| AOT       | **No** (DuckDB native libs) |
+| Property | Value |
+|----------|-------|
+| SDK | ANcpLua.NET.Sdk.Web |
+| Framework | net10.0 |
+| AOT | No (DuckDB native libs) |
 
 ## Ports
 
-| Port | Protocol | Purpose                            |
-|------|----------|------------------------------------|
-| 5100 | HTTP     | REST API, SSE streaming, Dashboard |
-| 4317 | gRPC     | OTLP traces/logs/metrics           |
+| Port | Protocol | Purpose |
+|------|----------|---------|
+| 5100 | HTTP | REST API, SSE, Dashboard |
+| 4317 | gRPC | OTLP traces/logs/metrics |
 
 ## API Endpoints
 
-### OTLP Ingestion
+**OTLP**: `POST /v1/traces` (HTTP JSON), gRPC `:4317` (TraceService/Export)
 
-```
-POST /v1/traces           # OTLP HTTP JSON
-gRPC :4317                # TraceService/Export
-```
+**REST**: `/api/v1/traces`, `/api/v1/sessions`, `/api/v1/logs`, `/api/v1/genai/*`
 
-### REST API
+**SSE**: `GET /api/v1/live` (real-time span updates)
 
-```
-GET  /api/v1/traces                    # List traces
-GET  /api/v1/traces/{traceId}          # Get trace
-GET  /api/v1/traces/{traceId}/spans    # Get trace spans
-POST /api/v1/traces/search             # Search traces
+**Health**: `/health`, `/health/live`, `/health/ready` (no auth)
 
-GET  /api/v1/sessions                  # List sessions
-GET  /api/v1/sessions/{id}             # Get session
-GET  /api/v1/sessions/{id}/traces      # Get session traces
-
-GET  /api/v1/logs                      # Query logs
-POST /api/v1/logs/search               # Search logs
-GET  /api/v1/logs/stats                # Log statistics
-
-GET  /api/v1/genai/stats               # GenAI analytics summary
-GET  /api/v1/genai/spans               # GenAI spans with filters
-GET  /api/v1/genai/models              # Model usage breakdown
-GET  /api/v1/genai/usage/timeseries    # Token usage over time
-
-GET  /health                           # Health check (no auth)
-GET  /health/live                      # Liveness probe (no auth)
-GET  /health/ready                     # Readiness probe (no auth)
-
-```
-
-### SSE Streaming
-
-```
-GET /api/v1/live                       # Real-time span updates
-```
-
-### Static Files
-
-```
-/* -> wwwroot/                         # Embedded dashboard (SPA fallback)
-```
+**Static**: `/* -> wwwroot/` (embedded dashboard, SPA fallback)
 
 ## Storage
 
-| Property | Value                              |
-|----------|------------------------------------|
-| Engine   | DuckDB                             |
-| Package  | DuckDB.NET.Data.Full               |
-| Location | `$QYL_DATA_PATH` or `./qyl.duckdb` |
+DuckDB via `DuckDB.NET.Data.Full`. Tables: `spans`, `logs`, `session_entities`, `errors`.
 
-### Tables
+Write path: channel-buffered single writer, batched multi-row INSERT (100 spans/batch, 200 logs/batch).
+Read path: pooled connections with bounded concurrency.
 
-| Table              | Purpose                  |
-|--------------------|--------------------------|
-| `spans`            | Primary telemetry data   |
-| `logs`             | Log records              |
-| `session_entities` | Aggregated session stats |
-| `errors`           | Error entities           |
+## Structure
 
-## Key Patterns
-
-### Ingestion Pipeline
-
-```csharp
-// Channel-based buffered ingestion
-Channel<SpanRecord> _channel = Channel.CreateBounded<SpanRecord>(
-    new BoundedChannelOptions(10000) { FullMode = BoundedChannelFullMode.DropOldest });
-
-// Background writer
-await foreach (var batch in _channel.Reader.ReadAllAsync(ct).Chunk(100))
-{
-    await _duckDb.InsertBatchAsync(batch, ct);
-}
 ```
-
-### Time Handling
-
-```csharp
-// Use TimeProvider for testability
-private readonly TimeProvider _timeProvider = TimeProvider.System;
-var now = _timeProvider.GetUtcNow();
-
-// DuckDB uses ulong for timestamps
-ulong timestampNanos = (ulong)span.StartTimeUnixNano;
-```
-
-### JSON Serialization (CA1869)
-
-```csharp
-private static readonly JsonSerializerOptions s_otlpOptions = new()
-{
-    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-};
-```
-
-### Locking
-
-```csharp
-// Sync context
-private readonly Lock _lock = new();
-using (_lock.EnterScope()) { /* critical section */ }
-
-// Async context
-private readonly SemaphoreSlim _asyncLock = new(1, 1);
-await _asyncLock.WaitAsync(ct);
-try { /* async critical section */ }
-finally { _asyncLock.Release(); }
+Auth/           # Token + cookie auth
+Grpc/           # gRPC service implementations
+Ingestion/      # OTLP parsing, buffering, CORS
+Query/          # Query services
+Storage/        # DuckDB access (DuckDbStore.cs, DuckDbSchema.g.cs)
+Realtime/       # SSE streaming
+wwwroot/        # Embedded dashboard
 ```
 
 ## Dependencies
 
-### Project References
+- `qyl.protocol` (ProjectReference)
+- `DuckDB.NET.Data.Full`, `Grpc.AspNetCore`, `Google.Protobuf`, `OTelConventions`
 
-- `qyl.protocol` - Shared types
+## Rules
 
-### Packages
-
-- `DuckDB.NET.Data.Full` - Database
-- `Grpc.AspNetCore` - gRPC server
-- `Google.Protobuf` - Protobuf serialization
-- `OTelConventions` - OTel attribute constants
-
-## Environment Variables
-
-| Variable                        | Default      | Purpose                          |
-|---------------------------------|--------------|----------------------------------|
-| `QYL_PORT`                      | 5100         | HTTP port                        |
-| `QYL_GRPC_PORT`                 | 4317         | gRPC port (0 to disable)         |
-| `QYL_DATA_PATH`                 | ./qyl.duckdb | Database file path               |
-| `QYL_TOKEN`                     | (none)       | Auth token (disabled if unset)   |
-| `QYL_MAX_RETENTION_DAYS`        | 30           | Days to retain telemetry         |
-| `QYL_MAX_SPAN_COUNT`            | 1000000      | Max spans before cleanup         |
-| `QYL_MAX_LOG_COUNT`             | 500000       | Max logs before cleanup          |
-| `QYL_CLEANUP_INTERVAL_SECONDS`  | 300          | Cleanup service interval (5 min) |
-| `QYL_OTLP_CORS_ALLOWED_ORIGINS` | *            | CORS allowed origins (CSV)       |
-
-## Directory Structure
-
-```
-Auth/                   # Authentication middleware
-  TokenAuth.cs          # Token + cookie auth handler
-Grpc/                   # gRPC service implementations
-Ingestion/              # OTLP parsing and buffering
-  OtlpCorsMiddleware.cs # CORS handling for OTLP endpoints
-Query/                  # Query services
-Storage/                # DuckDB access layer
-  DuckDbSchema.g.cs     # Generated schema - DO NOT EDIT
-  DuckDbStore.cs        # Data access with cleanup methods
-  TelemetryLimitsOptions.cs    # Retention config
-  TelemetryCleanupService.cs   # Background cleanup job
-Realtime/               # SSE streaming
-wwwroot/                # Embedded dashboard (copied at build)
-Program.cs              # Application entry point
-```
+- DuckDbSchema.g.cs is generated — DO NOT EDIT
+- UBIGINT timestamps passed as `decimal` for DuckDB.NET compatibility
+- Single writer connection for all writes, pooled read connections

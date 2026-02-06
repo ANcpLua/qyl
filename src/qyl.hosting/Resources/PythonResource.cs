@@ -17,9 +17,9 @@ public sealed class PythonResource : QylResourceBase<PythonResource>
         SetEnvironment("PORT", port.ToString());
 
         // Enable GenAI by default if configured
-        if (builder.Options.GenAI)
+        if (builder.Options.GenAi)
         {
-            WithGenAI();
+            WithGenAi();
         }
     }
 
@@ -77,9 +77,9 @@ public sealed class UvicornResource : QylResourceBase<UvicornResource>
         SetEnvironment("HOST", "0.0.0.0");
 
         // Enable GenAI by default if configured
-        if (builder.Options.GenAI)
+        if (builder.Options.GenAi)
         {
-            WithGenAI();
+            WithGenAi();
         }
     }
 

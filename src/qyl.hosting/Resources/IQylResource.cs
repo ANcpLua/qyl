@@ -33,7 +33,7 @@ public interface IQylResource
     /// <summary>
     /// Whether GenAI instrumentation is enabled.
     /// </summary>
-    bool GenAIEnabled { get; }
+    bool GenAiEnabled { get; }
 
     /// <summary>
     /// Whether cost tracking is enabled.
@@ -54,29 +54,23 @@ public sealed record PortBinding(int HostPort, int ContainerPort, string? Name =
 /// <summary>
 /// Base class for qyl resources with fluent API.
 /// </summary>
-public abstract class QylResourceBase<TSelf> : IQylResource
+public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder) : IQylResource
     where TSelf : QylResourceBase<TSelf>
 {
     private readonly List<IQylResource> _dependencies = [];
     private readonly Dictionary<string, string> _environment = [];
     private readonly List<PortBinding> _ports = [];
 
-    protected QylResourceBase(string name, QylAppBuilder builder)
-    {
-        Name = name;
-        Builder = builder;
-    }
-
-    public string Name { get; }
+    public string Name { get; } = name;
     public abstract string Type { get; }
     public IEnumerable<IQylResource> Dependencies => _dependencies;
     public IReadOnlyDictionary<string, string> Environment => _environment;
     public IReadOnlyList<PortBinding> Ports => _ports;
-    public bool GenAIEnabled { get; private set; }
+    public bool GenAiEnabled { get; private set; }
     public bool CostTrackingEnabled { get; private set; }
     public string? HealthEndpoint { get; private set; }
 
-    protected QylAppBuilder Builder { get; }
+    protected QylAppBuilder Builder { get; } = builder;
 
     /// <summary>
     /// Declares a dependency - this resource waits for the other to be healthy.
@@ -118,9 +112,9 @@ public abstract class QylResourceBase<TSelf> : IQylResource
     /// <summary>
     /// Enables GenAI instrumentation (traces, metrics, cost tracking).
     /// </summary>
-    public TSelf WithGenAI()
+    public TSelf WithGenAi()
     {
-        GenAIEnabled = true;
+        GenAiEnabled = true;
         CostTrackingEnabled = true;
 
         // Inject OpenTelemetry configuration

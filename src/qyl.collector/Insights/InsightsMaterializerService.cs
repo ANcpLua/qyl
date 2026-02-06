@@ -8,21 +8,13 @@ namespace qyl.collector.Insights;
 ///     from DuckDB telemetry into the materialized_insights table.
 ///     Consumers (REST, MCP, Copilot) serve this instantly with zero query cost.
 /// </summary>
-public sealed partial class InsightsMaterializerService : BackgroundService
+public sealed partial class InsightsMaterializerService(
+    DuckDbStore store,
+    ILogger<InsightsMaterializerService> logger,
+    TimeProvider? timeProvider = null)
+    : BackgroundService
 {
-    private readonly DuckDbStore _store;
-    private readonly ILogger<InsightsMaterializerService> _logger;
-    private readonly TimeProvider _timeProvider;
-
-    public InsightsMaterializerService(
-        DuckDbStore store,
-        ILogger<InsightsMaterializerService> logger,
-        TimeProvider? timeProvider = null)
-    {
-        _store = store;
-        _logger = logger;
-        _timeProvider = timeProvider ?? TimeProvider.System;
-    }
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -39,7 +31,7 @@ public sealed partial class InsightsMaterializerService : BackgroundService
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                LogMaterializationError(_logger, ex);
+                LogMaterializationError(logger, ex);
             }
         }
     }
@@ -47,11 +39,11 @@ public sealed partial class InsightsMaterializerService : BackgroundService
     private async Task MaterializeAllAsync(CancellationToken ct)
     {
         await MaterializeTierAsync("topology",
-            () => TopologyMaterializer.MaterializeAsync(_store, _timeProvider, ct), ct).ConfigureAwait(false);
+            () => TopologyMaterializer.MaterializeAsync(store, _timeProvider, ct), ct).ConfigureAwait(false);
         await MaterializeTierAsync("profile",
-            () => ProfileMaterializer.MaterializeAsync(_store, _timeProvider, ct), ct).ConfigureAwait(false);
+            () => ProfileMaterializer.MaterializeAsync(store, _timeProvider, ct), ct).ConfigureAwait(false);
         await MaterializeTierAsync("alerts",
-            () => AlertsMaterializer.MaterializeAsync(_store, _timeProvider, ct), ct).ConfigureAwait(false);
+            () => AlertsMaterializer.MaterializeAsync(store, _timeProvider, ct), ct).ConfigureAwait(false);
     }
 
     private async Task MaterializeTierAsync(
@@ -62,18 +54,18 @@ public sealed partial class InsightsMaterializerService : BackgroundService
         sw.Stop();
 
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(content)));
-        var existing = await _store.GetInsightHashAsync(tier, ct).ConfigureAwait(false);
+        var existing = await store.GetInsightHashAsync(tier, ct).ConfigureAwait(false);
 
         if (hash == existing)
         {
-            LogTierUnchanged(_logger, tier);
+            LogTierUnchanged(logger, tier);
             return;
         }
 
-        var spanCount = await _store.GetSpanCountAsync(ct).ConfigureAwait(false);
-        await _store.UpsertInsightAsync(tier, content, hash, spanCount, sw.Elapsed.TotalMilliseconds, ct)
+        var spanCount = await store.GetSpanCountAsync(ct).ConfigureAwait(false);
+        await store.UpsertInsightAsync(tier, content, hash, spanCount, sw.Elapsed.TotalMilliseconds, ct)
             .ConfigureAwait(false);
-        LogTierMaterialized(_logger, tier, sw.Elapsed.TotalMilliseconds);
+        LogTierMaterialized(logger, tier, sw.Elapsed.TotalMilliseconds);
     }
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error during insights materialization")]

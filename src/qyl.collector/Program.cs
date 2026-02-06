@@ -8,6 +8,7 @@ using qyl.collector.Health;
 using qyl.collector.Insights;
 using qyl.collector.Telemetry;
 using qyl.copilot;
+using qyl.copilot.Auth;
 using Qyl.ServiceDefaults;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
@@ -120,7 +121,7 @@ builder.Services.AddSingleton<IReadOnlyList<Microsoft.Extensions.AI.AITool>>(sta
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
 // GitHub Copilot integration (auto-detect auth, zero config)
-builder.Services.AddQylCopilot(o => { o.AuthOptions = new() { AutoDetect = true }; });
+builder.Services.AddQylCopilot(o => { o.AuthOptions = new CopilotAuthOptions { AutoDetect = true }; });
 builder.Services.AddQylCopilotTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes

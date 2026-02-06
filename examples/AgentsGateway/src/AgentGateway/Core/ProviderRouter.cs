@@ -23,38 +23,23 @@ public sealed class HeaderSelectionPolicy : IProviderSelectionPolicy
     }
 }
 
-public sealed class ProviderRouterChatClient : IChatClient
+public sealed class ProviderRouterChatClient(
+    IProviderRegistry registry,
+    IProviderSelectionPolicy policy,
+    IServiceProvider serviceProvider,
+    IHttpContextAccessor http,
+    IConfiguration cfg)
+    : IChatClient
 {
-    private readonly IConfiguration _cfg;
-    private readonly IHttpContextAccessor _http;
-    private readonly ResiliencePipeline _pipeline;
-    private readonly IProviderSelectionPolicy _policy;
-    private readonly IProviderRegistry _registry;
-    private readonly IServiceProvider _serviceProvider;
-
-    public ProviderRouterChatClient(
-        IProviderRegistry registry,
-        IProviderSelectionPolicy policy,
-        IServiceProvider serviceProvider,
-        IHttpContextAccessor http,
-        IConfiguration cfg)
-    {
-        _registry = registry;
-        _policy = policy;
-        _serviceProvider = serviceProvider;
-        _http = http;
-        _cfg = cfg;
-
-        _pipeline = new ResiliencePipelineBuilder()
-            .AddRetry(new RetryStrategyOptions
-            {
-                MaxRetryAttempts = 3,
-                BackoffType = DelayBackoffType.Exponential,
-                UseJitter = true
-            })
-            .AddTimeout(TimeSpan.FromSeconds(60))
-            .Build();
-    }
+    private readonly ResiliencePipeline _pipeline = new ResiliencePipelineBuilder()
+        .AddRetry(new RetryStrategyOptions
+        {
+            MaxRetryAttempts = 3,
+            BackoffType = DelayBackoffType.Exponential,
+            UseJitter = true
+        })
+        .AddTimeout(TimeSpan.FromSeconds(60))
+        .Build();
 
     public void Dispose()
     {
@@ -65,14 +50,14 @@ public sealed class ProviderRouterChatClient : IChatClient
     {
         return _pipeline.ExecuteAsync(async ct =>
         {
-            var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
+            var (providerId, modelId) = policy.SelectProvider(options, http.HttpContext, cfg);
             if (modelId is not null)
             {
                 options ??= new ChatOptions();
                 options.ModelId = modelId;
             }
 
-            var client = _registry.Resolve(providerId, _serviceProvider);
+            var client = registry.Resolve(providerId, serviceProvider);
             return await client.GetResponseAsync(messages, options, ct);
         }, cancellationToken).AsTask();
     }
@@ -80,20 +65,20 @@ public sealed class ProviderRouterChatClient : IChatClient
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
         ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
-        var (providerId, modelId) = _policy.SelectProvider(options, _http.HttpContext, _cfg);
+        var (providerId, modelId) = policy.SelectProvider(options, http.HttpContext, cfg);
         if (modelId is not null)
         {
             options ??= new ChatOptions();
             options.ModelId = modelId;
         }
 
-        var client = _registry.Resolve(providerId, _serviceProvider);
+        var client = registry.Resolve(providerId, serviceProvider);
         return client.GetStreamingResponseAsync(messages, options, cancellationToken);
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null)
     {
-        if (serviceType == typeof(IProviderRegistry)) return _registry;
+        if (serviceType == typeof(IProviderRegistry)) return registry;
         if (serviceType == typeof(ResiliencePipeline)) return _pipeline;
         return null;
     }

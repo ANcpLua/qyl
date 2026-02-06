@@ -301,7 +301,7 @@ public static class CodexTelemetryMapper
         // OTel expects an array format for finish_reasons
         // Serialize as JSON array for consistency
         var reasonsArray = JsonSerializer.Serialize(
-            new[] { finishReason },
+            [finishReason],
             QylSerializerContext.Default.StringArray);
         attributes[GenAiAttributes.ResponseFinishReasons] = reasonsArray;
 

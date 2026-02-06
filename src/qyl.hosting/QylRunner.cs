@@ -8,18 +8,12 @@ namespace Qyl.Hosting;
 /// <summary>
 /// Orchestrates the startup and management of qyl resources.
 /// </summary>
-internal sealed class QylRunner : IDisposable
+internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 {
-    private readonly QylAppBuilder _builder;
     private readonly ConcurrentDictionary<string, Process> _processes = new();
     private readonly ConcurrentDictionary<string, ResourceState> _states = new();
     private readonly CancellationTokenSource _shutdownCts = new();
     private bool _disposed;
-
-    public QylRunner(QylAppBuilder builder)
-    {
-        _builder = builder;
-    }
 
     public async Task RunAsync(CancellationToken ct = default)
     {
@@ -29,7 +23,7 @@ internal sealed class QylRunner : IDisposable
             HostingActivityNames.Run);
 
         activity?.SetTag("qyl.hosting.resource.name", "qyl");
-        activity?.SetTag("qyl.hosting.resource.count", _builder.Resources.Count);
+        activity?.SetTag("qyl.hosting.resource.count", builder.Resources.Count);
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
         var token = linkedCts.Token;
@@ -41,13 +35,13 @@ internal sealed class QylRunner : IDisposable
             PrintBanner();
 
             // Start qyl collector first (if dashboard enabled)
-            if (_builder.Options.GenAI || _builder.Options.CostTracking)
+            if (builder.Options.GenAi || builder.Options.CostTracking)
             {
                 await StartCollectorAsync(token);
             }
 
             // Sort resources by dependencies (topological sort)
-            var orderedResources = TopologicalSort(_builder.Resources.Values);
+            var orderedResources = TopologicalSort(builder.Resources.Values);
 
             // Start resources
             foreach (var resource in orderedResources)
@@ -99,7 +93,7 @@ internal sealed class QylRunner : IDisposable
         activity?.SetTag("qyl.hosting.resource.name", "qyl");
         activity?.SetTag("qyl.hosting.resource.type", "collector");
         activity?.SetTag("qyl.hosting.collector.mode", mode);
-        activity?.SetTag("qyl.hosting.collector.port", _builder.Options.DashboardPort);
+        activity?.SetTag("qyl.hosting.collector.port", builder.Options.DashboardPort);
 
         try
         {
@@ -108,17 +102,17 @@ internal sealed class QylRunner : IDisposable
                 // Run locally
                 await StartProcessAsync("qyl", collectorPath, "", new Dictionary<string, string>
                 {
-                    ["QYL_PORT"] = _builder.Options.DashboardPort.ToString(),
-                    ["QYL_GRPC_PORT"] = _builder.Options.OtlpPort.ToString(),
-                    ["QYL_TOKEN"] = _builder.Options.Token ?? GenerateToken(),
-                    ["QYL_DATA_PATH"] = Path.Combine(_builder.Options.DataPath, "qyl.duckdb")
+                    ["QYL_PORT"] = builder.Options.DashboardPort.ToString(),
+                    ["QYL_GRPC_PORT"] = builder.Options.OtlpPort.ToString(),
+                    ["QYL_TOKEN"] = builder.Options.Token ?? GenerateToken(),
+                    ["QYL_DATA_PATH"] = Path.Combine(builder.Options.DataPath, "qyl.duckdb")
                 }, ct);
             }
             else
             {
                 // Use Docker
-                var args = $"run --rm -p {_builder.Options.DashboardPort}:5100 -p {_builder.Options.OtlpPort}:4317 " +
-                           $"-e QYL_TOKEN={_builder.Options.Token ?? GenerateToken()} " +
+                var args = $"run --rm -p {builder.Options.DashboardPort}:5100 -p {builder.Options.OtlpPort}:4317 " +
+                           $"-e QYL_TOKEN={builder.Options.Token ?? GenerateToken()} " +
                            $"-v qyl-data:/app/data ghcr.io/ancplua/qyl:latest";
 
                 await StartProcessAsync("qyl", "docker", args, new Dictionary<string, string>(), ct);
@@ -126,7 +120,7 @@ internal sealed class QylRunner : IDisposable
 
             _states["qyl"] = ResourceState.Running;
             QylHostingMetrics.UpdateActiveResources(1, "qyl");
-            PrintResourceReady("qyl", $"http://localhost:{_builder.Options.DashboardPort}");
+            PrintResourceReady("qyl", $"http://localhost:{builder.Options.DashboardPort}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -491,13 +485,13 @@ internal sealed class QylRunner : IDisposable
 
     private static string GenerateToken()
     {
-        const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+        const string Chars = "abcdefghijklmnopqrstuvwxyz0123456789";
         var randomBytes = new byte[32];
         RandomNumberGenerator.Fill(randomBytes);
         var result = new char[32];
         for (var i = 0; i < 32; i++)
         {
-            result[i] = chars[randomBytes[i] % chars.Length];
+            result[i] = Chars[randomBytes[i] % Chars.Length];
         }
         return new string(result);
     }
@@ -529,7 +523,7 @@ internal sealed class QylRunner : IDisposable
     private void PrintStatus()
     {
         Console.WriteLine();
-        Console.WriteLine($"  \u001b[38;5;141mDashboard:\u001b[0m  \u001b[4;36mhttp://localhost:{_builder.Options.DashboardPort}\u001b[0m");
+        Console.WriteLine($"  \u001b[38;5;141mDashboard:\u001b[0m  \u001b[4;36mhttp://localhost:{builder.Options.DashboardPort}\u001b[0m");
         Console.WriteLine();
         Console.WriteLine("  Press \u001b[1mCtrl+C\u001b[0m to stop");
         Console.WriteLine();

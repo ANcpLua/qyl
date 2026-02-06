@@ -420,26 +420,17 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     ///     Wraps an AIFunction to emit ToolCall/ToolResult StreamUpdate events
     ///     into the adapter's per-request channel when the function is invoked.
     /// </summary>
-    private sealed class ToolEventInterceptor : DelegatingAIFunction
+    private sealed class ToolEventInterceptor(
+        AIFunction inner,
+        Func<Channel<StreamUpdate>?> getChannel,
+        TimeProvider time)
+        : DelegatingAIFunction(inner)
     {
-        private readonly Func<Channel<StreamUpdate>?> _getChannel;
-        private readonly TimeProvider _time;
-
-        public ToolEventInterceptor(
-            AIFunction inner,
-            Func<Channel<StreamUpdate>?> getChannel,
-            TimeProvider time)
-            : base(inner)
-        {
-            _getChannel = getChannel;
-            _time = time;
-        }
-
         protected override async ValueTask<object?> InvokeCoreAsync(
             AIFunctionArguments arguments,
             CancellationToken cancellationToken)
         {
-            var channel = _getChannel();
+            var channel = getChannel();
             string? argsJson = null;
 
             if (arguments.Count > 0)
@@ -456,7 +447,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                 Kind = StreamUpdateKind.ToolCall,
                 ToolName = Name,
                 ToolArguments = argsJson,
-                Timestamp = _time.GetUtcNow()
+                Timestamp = time.GetUtcNow()
             });
 
             try
@@ -469,7 +460,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                     Kind = StreamUpdateKind.ToolResult,
                     ToolName = Name,
                     ToolResult = result?.ToString(),
-                    Timestamp = _time.GetUtcNow()
+                    Timestamp = time.GetUtcNow()
                 });
 
                 return result;
@@ -483,7 +474,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                     ToolName = Name,
                     ToolResult = $"Error: {ex.Message}",
                     Error = ex.Message,
-                    Timestamp = _time.GetUtcNow()
+                    Timestamp = time.GetUtcNow()
                 });
 
                 throw;

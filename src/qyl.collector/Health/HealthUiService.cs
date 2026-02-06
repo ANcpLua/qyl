@@ -5,45 +5,37 @@ namespace qyl.collector.Health;
 /// <summary>
 ///     Service for gathering detailed health information for the UI dashboard.
 /// </summary>
-public sealed class HealthUiService
+public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer, IConfiguration configuration)
 {
     private static readonly DateTimeOffset StartTime = TimeProvider.System.GetUtcNow();
     private static readonly string Version = GetVersion();
 
-    private readonly DuckDbStore _store;
-    private readonly SpanRingBuffer _ringBuffer;
-    private readonly string _dataPath;
-
-    public HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer, IConfiguration configuration)
-    {
-        _store = store;
-        _ringBuffer = ringBuffer;
-        _dataPath = configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
-    }
+    private readonly string _dataPath = configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
 
     public async Task<HealthUiResponse> GetHealthAsync(CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow();
-        var components = new List<ComponentHealth>();
+        var components = new List<ComponentHealth>
+        {
+            // DuckDB health
+            await GetDuckDbHealthAsync(ct).ConfigureAwait(false),
 
-        // DuckDB health
-        components.Add(await GetDuckDbHealthAsync(ct).ConfigureAwait(false));
+            // Disk space health
+            GetDiskHealth(),
 
-        // Disk space health
-        components.Add(GetDiskHealth());
+            // Memory health
+            GetMemoryHealth(),
 
-        // Memory health
-        components.Add(GetMemoryHealth());
-
-        // Ring buffer / ingestion health
-        components.Add(GetIngestionHealth());
+            // Ring buffer / ingestion health
+            GetIngestionHealth()
+        };
 
         // Determine overall status
         var overallStatus = DetermineOverallStatus(components);
 
         // Get last ingestion time from ring buffer
         string? lastIngestionTime = null;
-        var latest = _ringBuffer.GetLatest(1, out _);
+        var latest = ringBuffer.GetLatest(1, out _);
         if (latest.Length > 0)
         {
             var nanos = latest[0].StartTimeUnixNano;
@@ -66,8 +58,8 @@ public sealed class HealthUiService
     {
         try
         {
-            var stats = await _store.GetStorageStatsAsync(ct).ConfigureAwait(false);
-            var sizeBytes = _store.GetStorageSizeBytes();
+            var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
+            var sizeBytes = store.GetStorageSizeBytes();
 
             return new ComponentHealth
             {
@@ -213,12 +205,12 @@ public sealed class HealthUiService
 
     private ComponentHealth GetIngestionHealth()
     {
-        var bufferCount = _ringBuffer.Count;
-        var bufferCapacity = _ringBuffer.Capacity;
+        var bufferCount = ringBuffer.Count;
+        var bufferCapacity = ringBuffer.Capacity;
         var fillPercent = Math.Round((double)bufferCount / bufferCapacity * 100, 1);
 
         // Check if we have recent ingestion
-        var latest = _ringBuffer.GetLatest(1, out _);
+        var latest = ringBuffer.GetLatest(1, out _);
         var hasRecentData = false;
         var secondsSinceLastIngestion = -1L;
 
@@ -244,7 +236,7 @@ public sealed class HealthUiService
             ["bufferCount"] = bufferCount,
             ["bufferCapacity"] = bufferCapacity,
             ["bufferFillPercent"] = fillPercent,
-            ["generation"] = _ringBuffer.Generation
+            ["generation"] = ringBuffer.Generation
         };
 
         if (secondsSinceLastIngestion >= 0)

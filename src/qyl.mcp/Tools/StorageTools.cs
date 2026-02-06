@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     MCP tools for querying storage status and performing maintenance.
 /// </summary>
 [McpServerToolType]
-public sealed class StorageTools
+public sealed class StorageTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public StorageTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.get_storage_stats")]
     [Description("""
                  Get storage statistics for the qyl collector.
@@ -34,12 +30,12 @@ public sealed class StorageTools
     {
         try
         {
-            var stats = await _client.GetFromJsonAsync<StorageStatsDto>(
+            var stats = await client.GetFromJsonAsync<StorageStatsDto>(
                 "/mcp/tools/call",
                 StorageJsonContext.Default.StorageStatsDto).ConfigureAwait(false);
 
             // Try the direct health endpoint instead
-            var health = await _client.GetFromJsonAsync<HealthResponse>(
+            var health = await client.GetFromJsonAsync<HealthResponse>(
                 "/health",
                 StorageJsonContext.Default.HealthResponse).ConfigureAwait(false);
 
@@ -92,9 +88,9 @@ public sealed class StorageTools
         try
         {
             // Check multiple health endpoints concurrently
-            var aliveTask = _client.GetAsync("/alive");
-            var readyTask = _client.GetAsync("/ready");
-            var healthTask = _client.GetStringAsync("/health");
+            var aliveTask = client.GetAsync("/alive");
+            var readyTask = client.GetAsync("/ready");
+            var healthTask = client.GetStringAsync("/health");
 
             var alive = await aliveTask.ConfigureAwait(false);
             var ready = await readyTask.ConfigureAwait(false);
@@ -137,7 +133,7 @@ public sealed class StorageTools
     {
         try
         {
-            var response = await _client.GetAsync("/api/v1/insights").ConfigureAwait(false);
+            var response = await client.GetAsync("/api/v1/insights").ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
                 return $"Insights not available (HTTP {(int)response.StatusCode}). The materializer may not have run yet.";
@@ -205,7 +201,7 @@ public sealed class StorageTools
             if (queryParams.Count > 0)
                 url += "?" + string.Join("&", queryParams);
 
-            var response = await _client.GetFromJsonAsync<SpanSearchResponse>(
+            var response = await client.GetFromJsonAsync<SpanSearchResponse>(
                 url, StorageJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
 
             var spans = response?.Items ?? response?.Spans;

@@ -46,15 +46,11 @@ public sealed class QylLogEnricher : ILogEnricher
 /// <summary>
 ///     Enriches log entries with request context from HttpContext.
 /// </summary>
-public sealed class QylRequestEnricher : ILogEnricher
+public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor) : ILogEnricher
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public QylRequestEnricher(IHttpContextAccessor httpContextAccessor) => _httpContextAccessor = httpContextAccessor;
-
     public void Enrich(IEnrichmentTagCollector collector)
     {
-        if (_httpContextAccessor.HttpContext is not { } context) return;
+        if (httpContextAccessor.HttpContext is not { } context) return;
 
         // Request identification
         collector.Add("http.request.id", context.TraceIdentifier);

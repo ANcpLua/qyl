@@ -17,9 +17,9 @@ public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<
         SetEnvironment("ASPNETCORE_URLS", $"http://*:{port}");
 
         // Enable GenAI by default if configured
-        if (builder.Options.GenAI)
+        if (builder.Options.GenAi)
         {
-            WithGenAI();
+            WithGenAi();
         }
     }
 
@@ -54,14 +54,14 @@ public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<
 /// </summary>
 internal static class PortAllocator
 {
-    private static int _nextPort = 5000;
+    private static int s_nextPort = 5000;
     private static readonly Lock Lock = new();
 
     public static int Next()
     {
         lock (Lock)
         {
-            return _nextPort++;
+            return s_nextPort++;
         }
     }
 }

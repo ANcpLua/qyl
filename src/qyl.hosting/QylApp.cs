@@ -61,7 +61,7 @@ public sealed class QylOptions
     /// <summary>
     /// Enable GenAI instrumentation for all projects. Default: true
     /// </summary>
-    public bool GenAI { get; set; } = true;
+    public bool GenAi { get; set; } = true;
 
     /// <summary>
     /// Enable cost tracking. Default: true

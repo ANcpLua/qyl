@@ -25,7 +25,7 @@ public interface IProviderRegistry
 
 public sealed class ProviderRegistry : IProviderRegistry
 {
-    private readonly Dictionary<string, RegisteredProvider> _providers = new();
+    private readonly Dictionary<string, RegisteredProvider> _providers = [];
 
     public void Register(string providerId, string displayName, ProviderCapabilities caps,
         Func<IServiceProvider, IChatClient> factory, Func<IServiceProvider, IModelCatalog?> catalogFactory)
@@ -39,14 +39,12 @@ public sealed class ProviderRegistry : IProviderRegistry
 
     public IChatClient Resolve(string providerId, IServiceProvider serviceProvider)
     {
-        if (_providers.TryGetValue(providerId, out var registered)) return registered.Factory(serviceProvider);
-        throw new KeyNotFoundException($"Provider '{providerId}' not registered.");
+        return _providers.TryGetValue(providerId, out var registered) ? registered.Factory(serviceProvider) : throw new KeyNotFoundException($"Provider '{providerId}' not registered.");
     }
 
     public IModelCatalog? ResolveCatalog(string providerId, IServiceProvider serviceProvider)
     {
-        if (_providers.TryGetValue(providerId, out var registered)) return registered.CatalogFactory(serviceProvider);
-        return null;
+        return _providers.TryGetValue(providerId, out var registered) ? registered.CatalogFactory(serviceProvider) : null;
     }
 }
 
@@ -60,10 +58,10 @@ public static class ProviderDiscovery
 
         var assemblies = scan.Length > 0
             ? scan
-            : new[]
-            {
+            :
+            [
                 Assembly.GetExecutingAssembly()
-            };
+            ];
         foreach (var assembly in assemblies)
         foreach (var type in assembly.DefinedTypes)
             if (typeof(IChatClient).IsAssignableFrom(type) && type is

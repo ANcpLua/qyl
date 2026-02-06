@@ -6,18 +6,12 @@ namespace qyl.collector.Grpc;
 ///     gRPC implementation of the OTLP TraceService for span ingestion on port 4317.
 ///     Uses OtlpConverter for conversion (shared with HTTP endpoint).
 /// </summary>
-public sealed class TraceServiceImpl : TraceServiceBase
+public sealed class TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster broadcaster, SpanRingBuffer ringBuffer)
+    : TraceServiceBase
 {
-    private readonly ITelemetrySseBroadcaster _broadcaster;
-    private readonly SpanRingBuffer _ringBuffer;
-    private readonly DuckDbStore _store;
-
-    public TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster broadcaster, SpanRingBuffer ringBuffer)
-    {
-        _store = Throw.IfNull(store);
-        _broadcaster = Throw.IfNull(broadcaster);
-        _ringBuffer = Throw.IfNull(ringBuffer);
-    }
+    private readonly ITelemetrySseBroadcaster _broadcaster = Throw.IfNull(broadcaster);
+    private readonly SpanRingBuffer _ringBuffer = Throw.IfNull(ringBuffer);
+    private readonly DuckDbStore _store = Throw.IfNull(store);
 
     /// <summary>
     ///     Implements opentelemetry.proto.collector.trace.v1.TraceService.Export

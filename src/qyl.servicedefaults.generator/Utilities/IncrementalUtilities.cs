@@ -3,14 +3,9 @@ using Microsoft.CodeAnalysis;
 
 namespace ANcpLua.Roslyn.Utilities;
 
-internal readonly struct EquatableArray<T> : IEquatable<EquatableArray<T>>
+internal readonly struct EquatableArray<T>(ImmutableArray<T> items) : IEquatable<EquatableArray<T>>
 {
-    private readonly ImmutableArray<T> _items;
-
-    public EquatableArray(ImmutableArray<T> items)
-    {
-        _items = items.IsDefault ? ImmutableArray<T>.Empty : items;
-    }
+    private readonly ImmutableArray<T> _items = items.IsDefault ? ImmutableArray<T>.Empty : items;
 
     public static EquatableArray<T> Empty => new(ImmutableArray<T>.Empty);
 

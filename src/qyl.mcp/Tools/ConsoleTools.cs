@@ -10,12 +10,8 @@ namespace qyl.mcp.Tools;
 ///     These tools help AI agents debug client-side JavaScript issues without a browser.
 /// </summary>
 [McpServerToolType]
-public sealed class ConsoleTools
+public sealed class ConsoleTools(HttpClient client)
 {
-    private readonly HttpClient _client;
-
-    public ConsoleTools(HttpClient client) => _client = client;
-
     [McpServerTool(Name = "qyl.list_console_logs")]
     [Description("""
                  List frontend console.log messages captured by qyl.
@@ -49,7 +45,7 @@ public sealed class ConsoleTools
             if (!string.IsNullOrEmpty(level))
                 url += $"&level={Uri.EscapeDataString(level)}";
 
-            var logs = await _client.GetFromJsonAsync<ConsoleLogDto[]>(
+            var logs = await client.GetFromJsonAsync<ConsoleLogDto[]>(
                 url, ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
             if (logs is null || logs.Length is 0)
@@ -114,7 +110,7 @@ public sealed class ConsoleTools
     {
         try
         {
-            var errors = await _client.GetFromJsonAsync<ConsoleLogDto[]>(
+            var errors = await client.GetFromJsonAsync<ConsoleLogDto[]>(
                 $"/api/v1/console/errors?limit={limit}",
                 ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
