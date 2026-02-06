@@ -4,7 +4,7 @@
 // Message broker and queue telemetry attributes.
 // =============================================================================
 
-import "../../common/types.tsp";
+import "../common/types.tsp";
 
 using Qyl.Common;
 

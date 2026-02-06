@@ -4,8 +4,8 @@
 // Log record attributes and log-specific semantic conventions.
 // =============================================================================
 
-import "../../common/types.tsp";
-import "../../otel/enums.tsp";
+import "../common/types.tsp";
+import "../otel/enums.tsp";
 
 using Qyl.Common;
 using Qyl.OTel.Enums;

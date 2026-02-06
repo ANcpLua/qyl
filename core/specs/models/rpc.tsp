@@ -4,7 +4,7 @@
 // Remote Procedure Call telemetry attributes (gRPC, etc.).
 // =============================================================================
 
-import "../../common/types.tsp";
+import "../common/types.tsp";
 
 using Qyl.Common;
 

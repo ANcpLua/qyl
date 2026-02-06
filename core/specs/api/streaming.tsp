@@ -14,7 +14,7 @@ import "../common/pagination.tsp";
 import "../otel/span.tsp";
 import "../otel/logs.tsp";
 import "../otel/metrics.tsp";
-import "../domains/ops/deployment.tsp";
+import "../models/deployment.tsp";
 
 using TypeSpec.Http;
 using TypeSpec.SSE;

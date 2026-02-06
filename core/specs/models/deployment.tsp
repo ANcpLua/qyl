@@ -5,7 +5,7 @@
 // =============================================================================
 
 import "@typespec/openapi";
-import "../../common/types.tsp";
+import "../common/types.tsp";
 
 using TypeSpec.OpenAPI;
 using Qyl.Common;

@@ -4,7 +4,7 @@
 // User, client, service, and app identity attributes.
 // =============================================================================
 
-import "../../common/types.tsp";
+import "../common/types.tsp";
 
 using Qyl.Common;
 

@@ -13,11 +13,11 @@
 // Storage Tables (x-duckdb-table):
 //   - Span → spans (otel/span.tsp)
 //   - LogRecord → logs (otel/logs.tsp)
-//   - SessionEntity → session_entities (domains/observe/session.tsp)
-//   - ErrorEntity → errors (domains/observe/error.tsp)
-//   - TestRunEntity → test_runs (domains/observe/test.tsp)
-//   - TestCaseEntity → test_cases (domains/observe/test.tsp)
-//   - DeploymentEntity → deployments (domains/ops/deployment.tsp)
+//   - SessionEntity → session_entities (models/session.tsp)
+//   - ErrorEntity → errors (models/error.tsp)
+//   - TestRunEntity → test_runs (models/test.tsp)
+//   - TestCaseEntity → test_cases (models/test.tsp)
+//   - DeploymentEntity → deployments (models/deployment.tsp)
 // =============================================================================
 
 import "@typespec/http";
@@ -63,31 +63,31 @@ import "./generated/semconv.g.tsp";
 // =============================================================================
 
 // AI Domain - GenAI stats and cost models
-import "./domains/ai/genai.tsp";
+import "./models/genai.tsp";
 
 // Transport Domain - HTTP/RPC/Messaging stats
-import "./domains/transport/http.tsp";
-import "./domains/transport/rpc.tsp";
-import "./domains/transport/messaging.tsp";
+import "./models/http.tsp";
+import "./models/rpc.tsp";
+import "./models/messaging.tsp";
 
 // Data Domain - Database stats
-import "./domains/data/db.tsp";
+import "./models/db.tsp";
 
-// Observe Domain - Sessions, errors, logs, tests
-import "./domains/observe/session.tsp";
-import "./domains/observe/otel.tsp";
-import "./domains/observe/log.tsp";
-import "./domains/observe/error.tsp";
-import "./domains/observe/test.tsp";
+// Observe Domain - Sessions, errors, logs, tests, OTel config
+import "./models/session.tsp";
+import "./models/otel-config.tsp";
+import "./models/log.tsp";
+import "./models/error.tsp";
+import "./models/test.tsp";
 
 // Ops Domain - Deployments
-import "./domains/ops/deployment.tsp";
+import "./models/deployment.tsp";
 
 // Runtime Domain - System stats
-import "./domains/runtime/system.tsp";
+import "./models/system.tsp";
 
 // Identity Domain - User stats
-import "./domains/identity/user.tsp";
+import "./models/identity.tsp";
 
 // =============================================================================
 // API Routes

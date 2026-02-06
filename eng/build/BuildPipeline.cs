@@ -80,6 +80,7 @@ interface IPipeline : IHasSolution
     Target TypeSpecCompile => d => d
         .Description("Compile TypeSpec God Schema → OpenAPI 3.1 + JSON Schema")
         .DependsOn(TypeSpecInstall)
+        .DependsOn(GenerateSemconv)
         .OnlyWhenStatic(() => TypeSpecEntry.FileExists())
         .Produces(OpenApiOutput)
         .Produces(JsonSchemaOutput / "**/*.json")

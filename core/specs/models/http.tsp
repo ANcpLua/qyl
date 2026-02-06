@@ -5,7 +5,7 @@
 // =============================================================================
 
 import "@typespec/versioning";
-import "../../common/types.tsp";
+import "../common/types.tsp";
 
 using TypeSpec.Versioning;
 using Qyl.Common;

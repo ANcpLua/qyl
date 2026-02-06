@@ -15,11 +15,11 @@ import "../common/pagination.tsp";
 import "../otel/span.tsp";
 import "../otel/logs.tsp";
 import "../otel/metrics.tsp";
-import "../domains/observe/session.tsp";
-import "../domains/observe/log.tsp";
-import "../domains/observe/error.tsp";
-import "../domains/ops/deployment.tsp";
-import "../domains/identity/user.tsp";
+import "../models/session.tsp";
+import "../models/log.tsp";
+import "../models/error.tsp";
+import "../models/deployment.tsp";
+import "../models/identity.tsp";
 import "../otel/storage.tsp";
 
 using TypeSpec.Http;

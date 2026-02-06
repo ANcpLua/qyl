@@ -6,9 +6,9 @@
 // =============================================================================
 
 import "@typespec/versioning";
-import "../../common/types.tsp";
-import "../../otel/span.tsp";
-import "../../otel/metrics.tsp";
+import "../common/types.tsp";
+import "../otel/span.tsp";
+import "../otel/metrics.tsp";
 
 using TypeSpec.Versioning;
 using Qyl.Common;

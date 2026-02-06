@@ -4,8 +4,8 @@
 // Operating system telemetry attributes.
 // =============================================================================
 
-import "../../common/types.tsp";
-import "../../otel/resource.tsp";
+import "../common/types.tsp";
+import "../otel/resource.tsp";
 
 using Qyl.Common;
 using Qyl.OTel.Resource;
