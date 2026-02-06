@@ -6,6 +6,7 @@
         <File Path="AGENTS.md"/>
         <File Path="Directory.Build.props"/>
         <File Path="Directory.Build.targets"/>
+        <File Path="Directory.Packages.props"/>
         <File Path="global.json"/>
     </Folder>
 
@@ -26,16 +27,29 @@
         <File Path="eng/MSBuild/Shared.targets"/>
     </Folder>
 
-    <!-- Core schema (TypeSpec) -->
+    <!-- Core schema (TypeSpec) + tools -->
     <Folder Name="/core/">
         <File Path="core/CLAUDE.md"/>
-        <File Path="core\specs\generated\semconv.g.tsp"/>
+        <File Path="core/specs/generated/semconv.g.tsp"/>
+        <Project Path="core/qyl.watchdog/qyl.watchdog.csproj"/>
     </Folder>
 
+    <!-- Examples -->
     <Folder Name="/examples/">
         <File Path="examples/CLAUDE.md"/>
+        <Project Path="examples/qyl.demo/qyl.demo.csproj"/>
     </Folder>
 
+    <Folder Name="/examples/AgentsGateway/">
+        <Project Path="examples/AgentsGateway/src/AgentGateway/AgentsGateway.csproj"/>
+        <Project Path="examples/AgentsGateway/test/AgentGateway.Tests/AgentGateway.Tests.csproj"/>
+    </Folder>
+
+    <Folder Name="/examples/MicroserviceExample/">
+        <Project Path="examples/MicroserviceExample/Utils/Utils.csproj"/>
+        <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj"/>
+        <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj"/>
+    </Folder>
 
     <!-- Core libraries -->
     <Folder Name="/src/">
@@ -45,14 +59,14 @@
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
         <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
+        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
+        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
+        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
         <File Path="src/qyl.protocol/CLAUDE.md"/>
         <File Path="src/qyl.collector/CLAUDE.md"/>
         <File Path="src/qyl.copilot/CLAUDE.md"/>
         <File Path="src/qyl.dashboard/CLAUDE.md"/>
         <File Path="src/qyl.mcp/CLAUDE.md"/>
-        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
-        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
-        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
     </Folder>
 
     <!-- Tests -->
