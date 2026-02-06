@@ -562,6 +562,7 @@ public ref struct ProtobufReader(ReadOnlySequence<byte> sequence)
     {
         var length = (int)ReadVarint();
         message.MergeFrom(this, length);
+        Position += length;
     }
 
     public void SkipField(WireType wireType)
