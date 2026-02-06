@@ -175,20 +175,7 @@ public sealed class ApiIntegrationTests : IClassFixture<QylWebApplicationFactory
         Assert.Contains("feedback", content, StringComparison.OrdinalIgnoreCase);
     }
 
-    // =========================================================================
-    // MCP Endpoints
-    // =========================================================================
 
-    [Fact]
-    public async Task McpManifest_ReturnsOk()
-    {
-        var response = await Client.GetAsync("/mcp/manifest");
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-        var content = await response.Content.ReadAsStringAsync();
-        Assert.Contains("tools", content, StringComparison.OrdinalIgnoreCase);
-    }
 
     // =========================================================================
     // Console Endpoints

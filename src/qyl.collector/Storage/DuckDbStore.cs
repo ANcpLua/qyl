@@ -1,3 +1,4 @@
+using qyl.protocol.Copilot;
 using static System.Threading.Volatile;
 
 namespace qyl.collector.Storage;
@@ -137,6 +138,8 @@ public sealed class DuckDbStore : IAsyncDisposable
     ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
     /// </summary>
     public DuckDBConnection Connection { get; }
+
+    internal string DatabasePath => _databasePath;
 
     // ==========================================================================
     // Lifecycle
@@ -672,6 +675,200 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     // ==========================================================================
+    // Workflow Execution Operations
+    // ==========================================================================
+
+    /// <summary>
+    ///     Inserts a new workflow execution record.
+    /// </summary>
+    public async Task InsertExecutionAsync(WorkflowExecution execution, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO workflow_executions
+                    (execution_id, workflow_name, status, started_at, completed_at,
+                     result, error, parameters_json, input_tokens, output_tokens, trace_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                ON CONFLICT (execution_id) DO NOTHING
+                """;
+            AddExecutionInsertParameters(cmd, execution);
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Updates an existing workflow execution (status, result, tokens, etc.).
+    /// </summary>
+    public async Task UpdateExecutionAsync(WorkflowExecution execution, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                UPDATE workflow_executions SET
+                    status = $1,
+                    completed_at = $2,
+                    result = $3,
+                    error = $4,
+                    input_tokens = $5,
+                    output_tokens = $6,
+                    trace_id = $7
+                WHERE execution_id = $8
+                """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Status.ToString().ToLowerInvariant() });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = execution.CompletedAt.HasValue
+                    ? execution.CompletedAt.Value.UtcDateTime
+                    : DBNull.Value
+            });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Result ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Error ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.InputTokens ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.OutputTokens ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Id });
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Gets a single workflow execution by ID.
+    /// </summary>
+    public async Task<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT execution_id, workflow_name, status, started_at, completed_at,
+                   result, error, parameters_json, input_tokens, output_tokens, trace_id
+            FROM workflow_executions
+            WHERE execution_id = $1
+            """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (await reader.ReadAsync(ct).ConfigureAwait(false))
+            return MapExecution(reader);
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Gets workflow executions with optional filtering.
+    /// </summary>
+    public async Task<IReadOnlyList<WorkflowExecution>> GetExecutionsAsync(
+        string? workflowName = null,
+        string? status = null,
+        int limit = 50,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var conditions = new List<string>();
+        var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
+
+        if (!string.IsNullOrEmpty(workflowName))
+        {
+            conditions.Add($"workflow_name = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = workflowName });
+        }
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            conditions.Add($"status = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = status });
+        }
+
+        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"""
+            SELECT execution_id, workflow_name, status, started_at, completed_at,
+                   result, error, parameters_json, input_tokens, output_tokens, trace_id
+            FROM workflow_executions
+            {whereClause}
+            ORDER BY started_at DESC
+            LIMIT ${paramIndex}
+            """;
+
+        cmd.Parameters.AddRange(parameters);
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+        var executions = new List<WorkflowExecution>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            executions.Add(MapExecution(reader));
+
+        return executions;
+    }
+
+    private static void AddExecutionInsertParameters(DuckDBCommand cmd, WorkflowExecution execution)
+    {
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Id });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.WorkflowName });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Status.ToString().ToLowerInvariant() });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.StartedAt.UtcDateTime });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = execution.CompletedAt.HasValue
+                ? execution.CompletedAt.Value.UtcDateTime
+                : DBNull.Value
+        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Result ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Error ?? (object)DBNull.Value });
+        // Serialize parameters as JSON if present
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = execution.Parameters is not null
+                ? JsonSerializer.Serialize(execution.Parameters)
+                : DBNull.Value
+        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.InputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.OutputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
+    }
+
+    private static WorkflowExecution MapExecution(DbDataReader reader)
+    {
+        var parametersJson = reader.Col(7).AsString;
+        Dictionary<string, string>? parameters = null;
+        if (parametersJson is not null)
+        {
+            parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(parametersJson);
+        }
+
+        return new WorkflowExecution
+        {
+            Id = reader.GetString(0),
+            WorkflowName = reader.GetString(1),
+            Status = Enum.TryParse<WorkflowStatus>(reader.GetString(2), true, out var s) ? s : WorkflowStatus.Pending,
+            StartedAt = new DateTimeOffset(reader.GetDateTime(3), TimeSpan.Zero),
+            CompletedAt = reader.Col(4).AsDateTimeOffset,
+            Result = reader.Col(5).AsString,
+            Error = reader.Col(6).AsString,
+            Parameters = parameters,
+            InputTokens = reader.Col(8).AsInt64,
+            OutputTokens = reader.Col(9).AsInt64,
+            TraceId = reader.Col(10).AsString
+        };
+    }
+
+    // ==========================================================================
     // Log Operations
     // ==========================================================================
 
@@ -1134,6 +1331,11 @@ public sealed class DuckDbStore : IAsyncDisposable
         using var cmd = con.CreateCommand();
         cmd.CommandText = DuckDbSchema.GetSchemaDdl();
         cmd.ExecuteNonQuery();
+
+        // Manual schema extensions (not yet in TypeSpec)
+        using var extCmd = con.CreateCommand();
+        extCmd.CommandText = DuckDbSchema.WorkflowExecutionsDdl;
+        extCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

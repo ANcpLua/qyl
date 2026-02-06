@@ -18,7 +18,7 @@ public interface IQylResource
     /// <summary>
     /// Resources this depends on.
     /// </summary>
-    IReadOnlyList<IQylResource> Dependencies { get; }
+    IEnumerable<IQylResource> Dependencies { get; }
 
     /// <summary>
     /// Environment variables to inject.
@@ -69,7 +69,7 @@ public abstract class QylResourceBase<TSelf> : IQylResource
 
     public string Name { get; }
     public abstract string Type { get; }
-    public IReadOnlyList<IQylResource> Dependencies => _dependencies;
+    public IEnumerable<IQylResource> Dependencies => _dependencies;
     public IReadOnlyDictionary<string, string> Environment => _environment;
     public IReadOnlyList<PortBinding> Ports => _ports;
     public bool GenAIEnabled { get; private set; }

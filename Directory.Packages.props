@@ -25,8 +25,6 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.2"/>
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2"/>
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.2"/>
-    <!-- Process Management -->
-    <PackageVersion Include="CliWrap" Version="3.8.1"/>
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.2"/>
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.2.0"/>
     <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->
@@ -71,8 +69,8 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0"/>
     <!-- Roslyn Utilities -->
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.29.0"/>
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.29.0"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.30.2"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="1.30.2"/>
     <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260128.1"/>
@@ -89,7 +87,7 @@
     <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.4.60-beta"/>
     <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="1.4.60-beta"/>
     <!-- MCP & AI Clients -->
-    <PackageVersion Include="ModelContextProtocol" Version="0.6.0-preview.1"/>
+    <PackageVersion Include="ModelContextProtocol" Version="0.7.0-preview.1"/>
     <PackageVersion Include="System.ClientModel" Version="1.9.0"/>
     <PackageVersion Include="Mscc.GenerativeAI.Microsoft" Version="2.9.7"/>
     <PackageVersion Include="OllamaSharp" Version="5.4.12"/>

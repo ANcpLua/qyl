@@ -51,6 +51,7 @@ GET  /api/v1/genai/usage/timeseries    # Token usage over time
 GET  /health                           # Health check (no auth)
 GET  /health/live                      # Liveness probe (no auth)
 GET  /health/ready                     # Readiness probe (no auth)
+
 ```
 
 ### SSE Streaming

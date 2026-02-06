@@ -4,6 +4,7 @@
 // SDK's UseOpenTelemetry() handles gen_ai.* telemetry; these register qyl-specific sources
 // =============================================================================
 
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
@@ -45,8 +46,13 @@ public static class CopilotServiceExtensions
             return new CopilotAuthProvider(authOptions, TimeProvider.System);
         });
 
-        // Register adapter factory (lazy initialization)
-        services.AddSingleton<CopilotAdapterFactory>();
+        // Register adapter factory (lazy initialization, resolves tools from DI if available)
+        services.AddSingleton<CopilotAdapterFactory>(static sp =>
+        {
+            var opts = sp.GetRequiredService<CopilotOptions>();
+            var tools = sp.GetService<IReadOnlyList<AITool>>();
+            return new CopilotAdapterFactory(opts, tools);
+        });
 
         // Register workflow engine factory with adapter getter delegate
         // This avoids CA2213 - the delegate doesn't imply ownership
@@ -54,7 +60,8 @@ public static class CopilotServiceExtensions
         {
             var opts = sp.GetRequiredService<CopilotOptions>();
             var adapterFactory = sp.GetRequiredService<CopilotAdapterFactory>();
-            return new WorkflowEngineFactory(opts, adapterFactory.GetAdapterAsync);
+            var executionStore = sp.GetService<IExecutionStore>();
+            return new WorkflowEngineFactory(opts, adapterFactory.GetAdapterAsync, executionStore);
         });
 
         return services;
@@ -147,13 +154,18 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
 {
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly CopilotOptions _options;
+    private readonly IReadOnlyList<AITool>? _tools;
     private QylCopilotAdapter? _adapter;
     private bool _disposed;
 
     /// <summary>
     ///     Creates a new adapter factory.
     /// </summary>
-    public CopilotAdapterFactory(CopilotOptions options) => _options = Throw.IfNull(options);
+    public CopilotAdapterFactory(CopilotOptions options, IReadOnlyList<AITool>? tools = null)
+    {
+        _options = Throw.IfNull(options);
+        _tools = tools;
+    }
 
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
@@ -189,6 +201,7 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
             adapter = await QylCopilotAdapter.CreateAsync(
                 _options.AuthOptions,
                 _options.DefaultInstructions,
+                _tools,
                 TimeProvider.System,
                 ct).ConfigureAwait(false);
 
@@ -214,6 +227,7 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
         return QylCopilotAdapter.CreateAsync(
             authOptions ?? _options.AuthOptions,
             instructions ?? _options.DefaultInstructions,
+            _tools,
             TimeProvider.System,
             ct);
     }
@@ -227,6 +241,7 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
 /// </summary>
 public sealed class WorkflowEngineFactory : IAsyncDisposable
 {
+    private readonly IExecutionStore? _executionStore;
     private readonly Func<CancellationToken, ValueTask<QylCopilotAdapter>> _getAdapterAsync;
     private readonly SemaphoreSlim _lock = new(1, 1);
     private readonly CopilotOptions _options;
@@ -238,12 +253,15 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
     /// </summary>
     /// <param name="options">Copilot configuration options.</param>
     /// <param name="getAdapterAsync">Delegate to get the adapter (typically from CopilotAdapterFactory).</param>
+    /// <param name="executionStore">Optional persistent store for workflow executions.</param>
     public WorkflowEngineFactory(
         CopilotOptions options,
-        Func<CancellationToken, ValueTask<QylCopilotAdapter>> getAdapterAsync)
+        Func<CancellationToken, ValueTask<QylCopilotAdapter>> getAdapterAsync,
+        IExecutionStore? executionStore = null)
     {
         _options = Throw.IfNull(options);
         _getAdapterAsync = Throw.IfNull(getAdapterAsync);
+        _executionStore = executionStore;
     }
 
     /// <inheritdoc />
@@ -294,7 +312,8 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
         var engine = new WorkflowEngine(
             adapter,
             _options.WorkflowsDirectory,
-            TimeProvider.System);
+            TimeProvider.System,
+            _executionStore);
 
         try
         {

@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -84,8 +85,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
             .CreateSyntaxProvider(
                 static (node, _) => node is InvocationExpressionSyntax,
                 static (ctx, ct) => GetInterceptTarget(ctx, ct))
-            .Where(static target => target.HasValue)
-            .Select(static (target, _) => target.GetValueOrDefault());
+            .WhereNotNull();
 
         // Collect and emit
         context.RegisterSourceOutput(

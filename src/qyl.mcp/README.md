@@ -1,100 +1,176 @@
-# MCP Server
+/Users/ancplua/qyl/src/qyl.dashboard/qyl.dashboard.esproj
+/Users/ancplua/qyl/src/qyl.dashboard/public
+/Users/ancplua/qyl/src/qyl.dashboard/src
+/Users/ancplua/qyl/src/qyl.dashboard/src/__tests__
+/Users/ancplua/qyl/src/qyl.dashboard/src/__tests__/setup.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/copilot
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/copilot/CopilotButton.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/copilot/CopilotPanel.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/copilot/CopilotSuggestions.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/genai
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/genai/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/genai/ToolDefinitionsViewer.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/health
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/health/HealthIndicator.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/health/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/layout
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/layout/DashboardLayout.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/layout/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/layout/Sidebar.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/layout/TopBar.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/badge.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/button.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/card.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/collapsible.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/copy-button.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/copyable-text.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/dialog.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/download-button.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/dropdown-menu.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/input.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/scroll-area.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/select.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/separator.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/sonner.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/tabs.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/text-visualizer.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/theme-toggle.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ui/tooltip.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/ClearTelemetryDialog.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/DecryptedText.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/Dither.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/DotGrid.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/GlitchText.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/KeyboardShortcutsModal.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/components/Threads.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/use-auth.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/use-copilot.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/use-keyboard-shortcuts.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/use-telemetry.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/hooks/use-theme.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/lib
+/Users/ancplua/qyl/src/qyl.dashboard/src/lib/download.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/lib/RingBuffer.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/lib/semconv.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/lib/utils.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/GenAIPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/LoginPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/LogsPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/ResourcesPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/SettingsPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/pages/TracesPage.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/types
+/Users/ancplua/qyl/src/qyl.dashboard/src/types/api.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/types/index.ts
+/Users/ancplua/qyl/src/qyl.dashboard/src/App.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/index.css
+/Users/ancplua/qyl/src/qyl.dashboard/src/main.tsx
+/Users/ancplua/qyl/src/qyl.dashboard/src/vite-env.d.ts
+/Users/ancplua/qyl/src/qyl.dashboard/package.json
+/Users/ancplua/qyl/src/qyl.dashboard/tsconfig.json
+/Users/ancplua/qyl/src/qyl.dashboard/vite.config.ts
+/Users/ancplua/qyl/src/qyl.dashboard/vitest.config.ts
+/Users/ancplua/qyl/src/qyl.hosting/qyl.hosting.csproj
+/Users/ancplua/qyl/src/qyl.hosting/Resources
+/Users/ancplua/qyl/src/qyl.hosting/Resources/ContainerResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Resources/IQylResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Resources/NodeResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Resources/ProjectResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Resources/PythonResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Resources/ViteResource.cs
+/Users/ancplua/qyl/src/qyl.hosting/Telemetry
+/Users/ancplua/qyl/src/qyl.hosting/Telemetry/HostingActivityNames.cs
+/Users/ancplua/qyl/src/qyl.hosting/Telemetry/QylHostingMetrics.cs
+/Users/ancplua/qyl/src/qyl.hosting/Telemetry/QylHostingTelemetry.cs
+/Users/ancplua/qyl/src/qyl.hosting/CLAUDE.md
+/Users/ancplua/qyl/src/qyl.hosting/GlobalUsings.cs
+/Users/ancplua/qyl/src/qyl.hosting/QylApp.cs
+/Users/ancplua/qyl/src/qyl.hosting/QylAppBuilder.cs
+/Users/ancplua/qyl/src/qyl.hosting/QylHostingJsonContext.cs
+/Users/ancplua/qyl/src/qyl.hosting/QylRunner.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Diagnostics
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Diagnostics/DiagnosticDescriptors.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/DuckDb
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/DuckDb/DuckDbAttributes.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/DuckDb/DuckDbEmitter.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/DuckDb/DuckDbInsertGenerator.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Emitters
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Emitters/InterceptorEmitter.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Extractors
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Extractors/ResponseExtractor.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Interceptors
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/Interceptors/GenAiInterceptorGenerator.cs
+/Users/ancplua/qyl/src/qyl.instrumentation.generators/CLAUDE.md
+/Users/ancplua/qyl/src/qyl.mcp/qyl.mcp.csproj
+/Users/ancplua/qyl/src/qyl.mcp/.mcp
+/Users/ancplua/qyl/src/qyl.mcp/.mcp/server.json
+/Users/ancplua/qyl/src/qyl.mcp/Auth
+/Users/ancplua/qyl/src/qyl.mcp/Auth/McpAuthExtensions.cs
+/Users/ancplua/qyl/src/qyl.mcp/Auth/McpAuthHandler.cs
+/Users/ancplua/qyl/src/qyl.mcp/Auth/McpAuthOptions.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools
+/Users/ancplua/qyl/src/qyl.mcp/Tools/ConsoleTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/CopilotTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/GenAiTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/HttpTelemetryStore.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/ReplayTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/StorageTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/StructuredLogTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/TelemetryJsonContext.cs
+/Users/ancplua/qyl/src/qyl.mcp/Tools/TelemetryTools.cs
+/Users/ancplua/qyl/src/qyl.mcp/CLAUDE.md
+/Users/ancplua/qyl/src/qyl.mcp/Client.cs
+/Users/ancplua/qyl/src/qyl.mcp/Dockerfile
+/Users/ancplua/qyl/src/qyl.mcp/Program.cs
+/Users/ancplua/qyl/src/qyl.mcp/README.md
 
-This README was created using the C# MCP server project template.
-It demonstrates how you can easily create an MCP server using C# and publish it as a NuGet package.
 
-The MCP server is built as a framework-dependent application and requires the .NET runtime to be installed on the target
-machine.
-The application is configured to roll-forward to the next highest major version of the runtime if one is available on
-the target machine.
-If an applicable .NET runtime is not available, the MCP server will not start.
-Consider building the MCP server as a self-contained application if you want to avoid this dependency.
 
-See [aka.ms/nuget/mcp/guide](https://aka.ms/nuget/mcp/guide) for the full guide.
+Jetbrains MCP Server                                                                                                                               │
+│                                                                                                                                                    │
+│ Status: ✔ connected                                                                                                                                │
+│ Auth: ✔ authenticated                                                                                                                              │
+│ URL: http://localhost:64342/sse                                                                                                                    │
+│ Config location: /Users/ancplua/.claude.json                                                                                                       │
+│ Capabilities: tools                                                                                                                                │
+│ Tools: 25 tools                                                                                                                                    │
+│                                                                                                                                                    │
+│ ❯ 1. View tools                                                                                                                                    │
+│   2. Re-authenticate                                                                                                                               │
+│   3. Clear authentication                                                                                                                          │
+│   4. Reconnect                                                                                                                                     │
+│   5. Disable  
 
-Please note that this template is currently in an early preview stage. If you have feedback, please take
-a [brief survey](http://aka.ms/dotnet-mcp-template-survey).
+Tools for github                                                                                                                                     
+40 tools
 
-## Checklist before publishing to NuGet.org
+❯ 1.  Add review comment to the requester's latest pending pull request review
+2.  Add comment to issue
+3.  Assign Copilot to issue
+4.  Create branch                                                                                                                                  
+    ↓ 5.  Create or update file
 
-- Test the MCP server locally using the steps below.
-- Update the package metadata in the .csproj file, in particular the `<PackageId>`.
-- Update `.mcp/server.json` to declare your MCP server's inputs.
-    - See [configuring inputs](https://aka.ms/nuget/mcp/guide/configuring-inputs) for more details.
-- Pack the project using `dotnet pack`.
-
-The `bin/Release` directory will contain the package file (.nupkg), which can
-be [published to NuGet.org](https://learn.microsoft.com/nuget/nuget-org/publish-a-package).
-
-## Developing locally
-
-To test this MCP server from source code (locally) without using a built MCP server package, you can configure your IDE
-to run the project directly using `dotnet run`.
-
-```json
-{
-  "servers": {
-    "McpServer1": {
-      "type": "stdio",
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "<PATH TO PROJECT DIRECTORY>"
-      ]
-    }
-  }
-}
-```
-
-## Testing the MCP Server
-
-Once configured, you can ask Copilot Chat for a random number, for example, `Give me 3 random numbers`. It should prompt
-you to use the `get_random_number` tool on the `McpServer1` MCP server and show you the results.
-
-## Publishing to NuGet.org
-
-1. Run `dotnet pack -c Release` to create the NuGet package
-2. Publish to NuGet.org with
-   `dotnet nuget push bin/Release/*.nupkg --api-key <your-api-key> --source https://api.nuget.org/v3/index.json`
-
-## Using the MCP Server from NuGet.org
-
-Once the MCP server package is published to NuGet.org, you can configure it in your preferred IDE. Both VS Code and
-Visual Studio use the `dnx` command to download and install the MCP server package from NuGet.org.
-
-- **VS Code**: Create a `<WORKSPACE DIRECTORY>/.vscode/mcp.json` file
-- **Visual Studio**: Create a `<SOLUTION DIRECTORY>\.mcp.json` file
-
-For both VS Code and Visual Studio, the configuration file uses the following server definition:
-
-```json
-{
-  "servers": {
-    "McpServer1": {
-      "type": "stdio",
-      "command": "dnx",
-      "args": [
-        "<your package ID here>",
-        "--version",
-        "<your package version here>",
-        "--yes"
-      ]
-    }
-  }
-}
-```
-
-## More information
-
-.NET MCP servers use the [ModelContextProtocol](https://www.nuget.org/packages/ModelContextProtocol) C# SDK. For more
-information about MCP:
-
-- [Official Documentation](https://modelcontextprotocol.io/)
-- [Protocol Specification](https://spec.modelcontextprotocol.io/)
-- [GitHub Organization](https://github.com/modelcontextprotocol)
-
-Refer to the VS Code or Visual Studio documentation for more information on configuring and using MCP servers:
-
-- [Use MCP servers in VS Code (Preview)](https://code.visualstudio.com/docs/copilot/chat/mcp-servers)
-- [Use MCP servers in Visual Studio (Preview)](https://learn.microsoft.com/visualstudio/ide/mcp-servers)
+↑↓ to navigate · Enter to select · Esc to back    
+│ Github MCP Server                                                                                                                                  │
+│                                                                                                                                                    │
+│ Status: ✔ connected                                                                                                                                │
+│ Auth: ✔ authenticated                                                                                                                              │
+│ URL: https://api.githubcopilot.com/mcp                                                                                                             │
+│ Config location: /Users/ancplua/.claude.json                                                                                                       │
+│ Capabilities: tools · prompts                                                                                                                      │
+│ Tools: 40 tools                                                                                                                                    │
+│                                                                                                                                                    │
+│ ❯ 1. View tools                                                                                                                                    │
+│   2. Re-authenticate                                                                                                                               │
+│   3. Clear authentication                                                                                                                          │
+│   4. Reconnect                                                                                                                                     │
+│   5. Disable     

@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all"/>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities" />
   </ItemGroup>
 
   <!-- Analyzer release tracking (RS2008) -->

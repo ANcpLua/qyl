@@ -1,0 +1,14 @@
+<Project Sdk="ANcpLua.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>qyl-watch</ToolCommandName>
+    <PackageId>qyl.watchdog</PackageId>
+    <Description>Lightweight system resource watchdog. Catches zombie processes before they catch you.</Description>
+    <PackageTags>watchdog;monitoring;process;cpu;diagnostics;devtool</PackageTags>
+  </PropertyGroup>
+
+  <!-- No dependencies - BCL only for minimal footprint -->
+
+</Project>

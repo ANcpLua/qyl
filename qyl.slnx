@@ -1,58 +1,63 @@
 <Solution>
-    <!-- Root config files -->
     <Folder Name="/config/">
-        <File Path=".dockerignore" />
-        <File Path=".gitignore" />
-        <File Path="CLAUDE.md" />
-        <File Path="Directory.Build.props" />
-        <File Path="Directory.Build.targets" />
-        <File Path="global.json" />
+        <File Path=".dockerignore"/>
+        <File Path=".gitignore"/>
+        <File Path="CLAUDE.md"/>
+        <File Path="AGENTS.md"/>
+        <File Path="Directory.Build.props"/>
+        <File Path="Directory.Build.targets"/>
+        <File Path="global.json"/>
+    </Folder>
+
+    <Folder Name="/plugin/">
+        <File Path=".claude-plugin/marketplace.json"/>
+        <File Path=".claude-plugin/plugin.json"/>
     </Folder>
 
     <!-- Build infrastructure -->
     <Folder Name="/eng/">
-        <Project Path="eng/build/build.csproj" />
-        <File Path="eng/build.cmd" />
-        <File Path="eng/build.ps1" />
-        <File Path="eng/build.sh" />
-        <File Path="eng/compose.yaml" />
-        <File Path="eng/CLAUDE.md" />
-        <File Path="eng/MSBuild/Shared.props" />
-        <File Path="eng/MSBuild/Shared.targets" />
+        <Project Path="eng/build/build.csproj"/>
+        <File Path="eng/build.cmd"/>
+        <File Path="eng/build.ps1"/>
+        <File Path="eng/build.sh"/>
+        <File Path="eng/compose.yaml"/>
+        <File Path="eng/CLAUDE.md"/>
+        <File Path="eng/MSBuild/Shared.props"/>
+        <File Path="eng/MSBuild/Shared.targets"/>
     </Folder>
 
     <!-- Core schema (TypeSpec) -->
     <Folder Name="/core/">
-        <File Path="core/CLAUDE.md" />
-        <File Path="core\specs\generated\semconv.g.tsp" />
+        <File Path="core/CLAUDE.md"/>
+        <File Path="core\specs\generated\semconv.g.tsp"/>
     </Folder>
 
     <Folder Name="/examples/">
-        <File Path="examples/CLAUDE.md" />
+        <File Path="examples/CLAUDE.md"/>
     </Folder>
 
 
     <!-- Core libraries -->
     <Folder Name="/src/">
-        <Project Path="src/qyl.protocol/qyl.protocol.csproj" />
-        <Project Path="src/qyl.collector/qyl.collector.csproj" />
-        <Project Path="src/qyl.copilot/qyl.copilot.csproj" />
-        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
-        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
-        <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
-        <File Path="src/qyl.protocol/CLAUDE.md" />
-        <File Path="src/qyl.collector/CLAUDE.md" />
-        <File Path="src/qyl.copilot/CLAUDE.md" />
-        <File Path="src/qyl.dashboard/CLAUDE.md" />
-        <File Path="src/qyl.mcp/CLAUDE.md" />
-        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
-        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
+        <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>
+        <Project Path="src/qyl.collector/qyl.collector.csproj"/>
+        <Project Path="src/qyl.copilot/qyl.copilot.csproj"/>
+        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
+        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
+        <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
+        <File Path="src/qyl.protocol/CLAUDE.md"/>
+        <File Path="src/qyl.collector/CLAUDE.md"/>
+        <File Path="src/qyl.copilot/CLAUDE.md"/>
+        <File Path="src/qyl.dashboard/CLAUDE.md"/>
+        <File Path="src/qyl.mcp/CLAUDE.md"/>
+        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
+        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
+        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
     </Folder>
 
     <!-- Tests -->
     <Folder Name="/tests/">
-        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
-        <File Path="tests/CLAUDE.md" />
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
+        <File Path="tests/CLAUDE.md"/>
     </Folder>
-    <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
 </Solution>

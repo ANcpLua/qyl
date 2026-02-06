@@ -43,11 +43,8 @@ packages/
 .nuke/temp/
 .nuke/build.schema.json
 
-# Claude Code local files (keep agents/, rules/, blackboard/ for team sharing)
+# Claude Code local files
 .claude/*
-!.claude/agents/
-!.claude/rules/
-!.claude/blackboard/
 
 # Node.js / npm
 node_modules/
@@ -112,3 +109,4 @@ coverage/
 !eng/CLAUDE.md
 !tests/CLAUDE.md
 !src/qyl.*/CLAUDE.md
+!core/qyl.*/CLAUDE.md

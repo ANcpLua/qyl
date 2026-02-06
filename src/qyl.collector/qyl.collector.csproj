@@ -28,6 +28,11 @@
     <PackageReference Include="DuckDB.NET.Data.Full"/>
   </ItemGroup>
 
+  <!-- M.E.AI for AIFunctionFactory (Copilot tool definitions) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.AI"/>
+  </ItemGroup>
+
 
   <!-- OTLP protobuf ingestion -->
   <ItemGroup>
@@ -62,6 +67,7 @@
 
   <!-- Core dependencies -->
   <ItemGroup>
+    <ProjectReference Include="..\qyl.copilot\qyl.copilot.csproj"/>
     <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
     <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj"/>
   </ItemGroup>

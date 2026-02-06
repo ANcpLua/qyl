@@ -214,7 +214,8 @@ internal enum MetricKind
 {
     Counter,
     Histogram,
-    Gauge
+    Gauge,
+    UpDownCounter
 }
 
 /// <summary>

@@ -11,7 +11,7 @@ namespace AgentGateway.Adapters;
     ProviderCapabilities.Chat | ProviderCapabilities.Tools | ProviderCapabilities.Streaming, "githubToken")]
 public sealed class GitHubAdapter : IChatClient, IModelCatalog
 {
-    private readonly string _defaultModel;
+    private readonly string _defaultModel;a
     private readonly IChatClient _inner;
 
     public GitHubAdapter(IConfiguration cfg)

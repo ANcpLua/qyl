@@ -5,8 +5,11 @@
 // =============================================================================
 
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Threading.Channels;
 using GitHub.Copilot.SDK;
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
 using qyl.protocol.Copilot;
@@ -25,6 +28,12 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private readonly TimeProvider _timeProvider;
     private bool _disposed;
+
+    /// <summary>
+    ///     Per-request channel for tool call/result events. Set before each streaming call.
+    ///     Null when no tools are configured or no request is active.
+    /// </summary>
+    private volatile Channel<StreamUpdate>? _toolEventChannel;
 
     private QylCopilotAdapter(
         CopilotClient client,
@@ -64,12 +73,14 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     /// </summary>
     /// <param name="options">Authentication options (auto-detect if null).</param>
     /// <param name="instructions">System instructions for the agent.</param>
+    /// <param name="tools">Optional AI tools the agent can invoke during chat.</param>
     /// <param name="timeProvider">Time provider (defaults to System).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Configured adapter ready for use.</returns>
     public static async Task<QylCopilotAdapter> CreateAsync(
         CopilotAuthOptions? options = null,
         string? instructions = null,
+        IReadOnlyList<AITool>? tools = null,
         TimeProvider? timeProvider = null,
         CancellationToken ct = default)
     {
@@ -87,14 +98,28 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         var client = new CopilotClient();
         await client.StartAsync(ct).ConfigureAwait(false);
 
+        // Wrap tools with event interceptors that write to the adapter's per-request channel
+        QylCopilotAdapter adapter = null!;
+        List<AITool>? wrappedTools = null;
+
+        if (tools is { Count: > 0 })
+        {
+            wrappedTools = tools.Select(tool =>
+            {
+                if (tool is not AIFunction fn) return tool;
+
+                return (AITool)new ToolEventInterceptor(fn, () => adapter._toolEventChannel, time);
+            }).ToList();
+        }
+
         // Create the agent - OTel instrumentation is handled AUTOMATICALLY by
         // qyl.servicedefaults.generator which intercepts AIAgent.RunAsync() calls
         // at compile time. No manual UseOpenTelemetry() needed!
         var agent = client.AsAIAgent(
-            tools: null,
+            tools: wrappedTools,
             instructions: string.IsNullOrEmpty(instructions) ? null : instructions);
 
-        var adapter = new QylCopilotAdapter(client, agent, authProvider, time);
+        adapter = new QylCopilotAdapter(client, agent, authProvider, time);
 
         return adapter;
     }
@@ -111,6 +136,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     /// <summary>
     ///     Executes a chat interaction with streaming responses.
     ///     Creates OTel spans per 1.39 GenAI semantic conventions.
+    ///     Tool call/result events are interleaved with content updates.
     /// </summary>
     /// <param name="prompt">The user's prompt.</param>
     /// <param name="context">Optional execution context (reserved for future use).</param>
@@ -129,6 +155,11 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         using var activity = CopilotInstrumentation.StartChatSpan();
         var startTime = _timeProvider.GetUtcNow();
 
+        // Create per-request tool event channel
+        var toolChannel = Channel.CreateUnbounded<StreamUpdate>(
+            new UnboundedChannelOptions { SingleReader = true });
+        _toolEventChannel = toolChannel;
+
         long outputTokens = 0;
         var updates = new List<StreamUpdate>();
         Exception? caughtException = null;
@@ -140,6 +171,10 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
             {
+                // Drain any tool events that arrived while streaming
+                while (toolChannel.Reader.TryRead(out var toolEvent))
+                    updates.Add(toolEvent);
+
                 var update = enumerator.Current;
                 var content = update.ToString();
 
@@ -171,16 +206,17 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         finally
         {
             await enumerator.DisposeAsync().ConfigureAwait(false);
+            _toolEventChannel = null;
+            toolChannel.Writer.TryComplete();
         }
+
+        // Drain any remaining tool events
+        while (toolChannel.Reader.TryRead(out var remaining))
+            updates.Add(remaining);
 
         // Record operation duration metric
         var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-        CopilotInstrumentation.OperationDuration.Record(duration,
-            new TagList
-            {
-                { CopilotInstrumentation.AttrGenAiSystem, CopilotInstrumentation.GenAiSystem },
-                { CopilotInstrumentation.AttrGenAiOperationName, CopilotInstrumentation.OperationChat }
-            });
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationChat);
 
         // Now yield outside try-catch
         foreach (var update in updates)
@@ -240,12 +276,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
             // Record operation duration
             var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-            CopilotInstrumentation.OperationDuration.Record(duration,
-                new TagList
-                {
-                    { CopilotInstrumentation.AttrGenAiSystem, CopilotInstrumentation.GenAiSystem },
-                    { CopilotInstrumentation.AttrGenAiOperationName, CopilotInstrumentation.OperationChat }
-                });
+            CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationChat);
 
             CopilotSpanRecorder.RecordSuccess(activity);
             return response;
@@ -383,5 +414,80 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         }
 
         return result;
+    }
+
+    /// <summary>
+    ///     Wraps an AIFunction to emit ToolCall/ToolResult StreamUpdate events
+    ///     into the adapter's per-request channel when the function is invoked.
+    /// </summary>
+    private sealed class ToolEventInterceptor : DelegatingAIFunction
+    {
+        private readonly Func<Channel<StreamUpdate>?> _getChannel;
+        private readonly TimeProvider _time;
+
+        public ToolEventInterceptor(
+            AIFunction inner,
+            Func<Channel<StreamUpdate>?> getChannel,
+            TimeProvider time)
+            : base(inner)
+        {
+            _getChannel = getChannel;
+            _time = time;
+        }
+
+        protected override async ValueTask<object?> InvokeCoreAsync(
+            AIFunctionArguments arguments,
+            CancellationToken cancellationToken)
+        {
+            var channel = _getChannel();
+            string? argsJson = null;
+
+            if (arguments.Count > 0)
+            {
+                var dict = new Dictionary<string, object?>();
+                foreach (var kvp in arguments)
+                    dict[kvp.Key] = kvp.Value;
+                argsJson = JsonSerializer.Serialize(dict);
+            }
+
+            // Emit ToolCall event
+            channel?.Writer.TryWrite(new StreamUpdate
+            {
+                Kind = StreamUpdateKind.ToolCall,
+                ToolName = Name,
+                ToolArguments = argsJson,
+                Timestamp = _time.GetUtcNow()
+            });
+
+            try
+            {
+                var result = await base.InvokeCoreAsync(arguments, cancellationToken).ConfigureAwait(false);
+
+                // Emit ToolResult event
+                channel?.Writer.TryWrite(new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.ToolResult,
+                    ToolName = Name,
+                    ToolResult = result?.ToString(),
+                    Timestamp = _time.GetUtcNow()
+                });
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                // Emit ToolResult event with error
+                channel?.Writer.TryWrite(new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.ToolResult,
+                    ToolName = Name,
+                    ToolResult = $"Error: {ex.Message}",
+                    Error = ex.Message,
+                    Timestamp = _time.GetUtcNow()
+                });
+
+                throw;
+            }
+        }
     }
 }

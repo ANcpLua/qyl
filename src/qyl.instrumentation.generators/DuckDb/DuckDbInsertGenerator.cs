@@ -5,6 +5,7 @@
 // =============================================================================
 
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -40,8 +41,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 DuckDbTableAttribute,
                 static (node, _) => node is TypeDeclarationSyntax,
                 static (ctx, _) => ExtractTableInfo(ctx))
-            .Where(static info => info.HasValue)
-            .Select(static (info, _) => info!.Value);
+            .WhereNotNull();
 
         // Generate code
         context.RegisterSourceOutput(tableTypes, static (spc, tableInfo) =>

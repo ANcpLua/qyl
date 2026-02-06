@@ -14,6 +14,7 @@ internal static class MeterAnalyzer
     private const string CounterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
     private const string GaugeAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.GaugeAttribute";
+    private const string UpDownCounterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.UpDownCounterAttribute";
     private const string TagAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.TagAttribute";
 
     /// <summary>
@@ -101,8 +102,9 @@ internal static class MeterAnalyzer
             var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), CounterAttributeFullName);
             var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), HistogramAttributeFullName);
             var gaugeAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), GaugeAttributeFullName);
+            var upDownCounterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), UpDownCounterAttributeFullName);
 
-            if (counterAttr is null && histogramAttr is null && gaugeAttr is null)
+            if (counterAttr is null && histogramAttr is null && gaugeAttr is null && upDownCounterAttr is null)
                 continue;
 
             MetricKind kind;
@@ -135,6 +137,19 @@ internal static class MeterAnalyzer
                 (metricName, unit, description) = ExtractMetricAttributeValues(gaugeAttr);
 
                 // First non-tagged parameter is the value for gauge
+                foreach (var param in method.Parameters)
+                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
+                    {
+                        valueTypeName = param.Type.ToDisplayString();
+                        break;
+                    }
+            }
+            else if (upDownCounterAttr is not null)
+            {
+                kind = MetricKind.UpDownCounter;
+                (metricName, unit, description) = ExtractMetricAttributeValues(upDownCounterAttr);
+
+                // First non-tagged parameter is the delta value for up-down counter
                 foreach (var param in method.Parameters)
                     if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {

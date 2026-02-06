@@ -3,6 +3,8 @@
 // OTel 1.39 GenAI semantic convention attribute recording
 // =============================================================================
 
+using qyl.protocol.Attributes;
+
 namespace qyl.copilot.Instrumentation;
 
 /// <summary>
@@ -27,12 +29,12 @@ public static class CopilotSpanRecorder
 
         if (requestModel is not null)
         {
-            activity.SetTag(CopilotInstrumentation.AttrGenAiRequestModel, requestModel);
+            activity.SetTag(GenAiAttributes.RequestModel, requestModel);
         }
 
         if (responseModel is not null)
         {
-            activity.SetTag(CopilotInstrumentation.AttrGenAiResponseModel, responseModel);
+            activity.SetTag(GenAiAttributes.ResponseModel, responseModel);
         }
     }
 
@@ -46,8 +48,8 @@ public static class CopilotSpanRecorder
     {
         if (activity is null) return;
 
-        activity.SetTag(CopilotInstrumentation.AttrGenAiInputTokens, inputTokens);
-        activity.SetTag(CopilotInstrumentation.AttrGenAiOutputTokens, outputTokens);
+        activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+        activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
     }
 
     /// <summary>
@@ -59,7 +61,7 @@ public static class CopilotSpanRecorder
     {
         if (activity is null || finishReasons.Length == 0) return;
 
-        activity.SetTag(CopilotInstrumentation.AttrGenAiFinishReasons, finishReasons);
+        activity.SetTag(GenAiAttributes.ResponseFinishReasons, finishReasons);
     }
 
     /// <summary>
@@ -77,11 +79,7 @@ public static class CopilotSpanRecorder
         }));
 
         // Also record as metric
-        CopilotInstrumentation.TimeToFirstToken.Record(ttftSeconds,
-            new TagList
-            {
-                { CopilotInstrumentation.AttrGenAiSystem, CopilotInstrumentation.GenAiSystem }
-            });
+        CopilotMetrics.RecordTimeToFirstToken(ttftSeconds, CopilotInstrumentation.GenAiSystem);
     }
 
     // =========================================================================
@@ -146,13 +144,13 @@ public static class CopilotSpanRecorder
         // Record exception as an event per OTel semantic conventions
         var exceptionTags = new ActivityTagsCollection
         {
-            { "exception.type", exception.GetType().FullName },
-            { "exception.message", exception.Message }
+            { GenAiAttributes.ExceptionType, exception.GetType().FullName },
+            { GenAiAttributes.ExceptionMessage, exception.Message }
         };
 
         if (exception.StackTrace is not null)
         {
-            exceptionTags.Add("exception.stacktrace", exception.StackTrace);
+            exceptionTags.Add(GenAiAttributes.ExceptionStacktrace, exception.StackTrace);
         }
 
         activity.AddEvent(new ActivityEvent("exception", tags: exceptionTags));

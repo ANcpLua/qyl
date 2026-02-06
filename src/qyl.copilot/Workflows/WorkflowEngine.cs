@@ -24,6 +24,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
     private readonly ConcurrentDictionary<string, WorkflowExecution>
         _executions = new(StringComparer.OrdinalIgnoreCase);
 
+    private readonly IExecutionStore? _executionStore;
     private readonly Lock _executionsLock = new();
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, CopilotWorkflow> _workflows = new(StringComparer.OrdinalIgnoreCase);
@@ -36,14 +37,17 @@ public sealed class WorkflowEngine : IAsyncDisposable
     /// <param name="adapter">The Copilot adapter for execution.</param>
     /// <param name="workflowsDirectory">Directory containing workflow files.</param>
     /// <param name="timeProvider">Time provider (defaults to System).</param>
+    /// <param name="executionStore">Optional persistent store for executions.</param>
     public WorkflowEngine(
         QylCopilotAdapter adapter,
         string? workflowsDirectory = null,
-        TimeProvider? timeProvider = null)
+        TimeProvider? timeProvider = null,
+        IExecutionStore? executionStore = null)
     {
         _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
         _workflowsDirectory = workflowsDirectory ?? WorkflowParser.GetDefaultWorkflowsDirectory();
         _timeProvider = timeProvider ?? TimeProvider.System;
+        _executionStore = executionStore;
     }
 
     /// <inheritdoc />
@@ -179,6 +183,20 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         _executions[executionId] = execution;
 
+        // Persist initial execution state to durable store
+        if (_executionStore is not null)
+        {
+            try
+            {
+                await _executionStore.InsertExecutionAsync(execution, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail - in-memory cache is the primary path
+                System.Diagnostics.Debug.WriteLine($"Failed to persist execution start: {ex.Message}");
+            }
+        }
+
         var context = new CopilotContext { Parameters = parameters, AdditionalContext = additionalContext };
 
         long totalInputTokens = 0;
@@ -189,12 +207,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         var collectedUpdates = new List<StreamUpdate>();
 
         // Record qyl-specific workflow start metric
-        CopilotInstrumentation.WorkflowExecutions.Add(1,
-            new TagList
-            {
-                { CopilotInstrumentation.AttrWorkflowName, workflow.Name },
-                { CopilotInstrumentation.AttrWorkflowTrigger, triggerName }
-            });
+        CopilotMetrics.RecordWorkflowExecution(workflow.Name, triggerName);
 
         // Collect updates from adapter
         var enumerator = _adapter.ExecuteWorkflowAsync(workflow, context, ct).GetAsyncEnumerator(ct);
@@ -276,6 +289,19 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         _executions[executionId] = finalExecution;
 
+        // Persist final execution state to durable store
+        if (_executionStore is not null)
+        {
+            try
+            {
+                await _executionStore.UpdateExecutionAsync(finalExecution, ct).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to persist execution result: {ex.Message}");
+            }
+        }
+
         // Record span attributes
         CopilotSpanRecorder.RecordTokenUsage(activity, totalInputTokens, totalOutputTokens);
         CopilotSpanRecorder.RecordWorkflowStatus(activity, statusName);
@@ -290,20 +316,10 @@ public sealed class WorkflowEngine : IAsyncDisposable
         }
 
         // Record qyl-specific workflow duration metric
-        CopilotInstrumentation.WorkflowDuration.Record(duration,
-            new TagList
-            {
-                { CopilotInstrumentation.AttrWorkflowName, workflow.Name },
-                { CopilotInstrumentation.AttrWorkflowStatus, statusName }
-            });
+        CopilotMetrics.RecordWorkflowDuration(duration, workflow.Name, statusName);
 
         // Record OTel gen_ai operation duration metric
-        CopilotInstrumentation.OperationDuration.Record(duration,
-            new TagList
-            {
-                { CopilotInstrumentation.AttrGenAiSystem, CopilotInstrumentation.GenAiSystem },
-                { CopilotInstrumentation.AttrGenAiOperationName, CopilotInstrumentation.OperationWorkflow }
-            });
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationWorkflow);
 
         // Now yield all collected updates outside try-catch
         foreach (var update in collectedUpdates)
@@ -313,7 +329,35 @@ public sealed class WorkflowEngine : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Gets all workflow executions.
+    ///     Gets all workflow executions. When a persistent store is available,
+    ///     queries it for full history; otherwise returns in-memory cache.
+    /// </summary>
+    public async Task<IReadOnlyList<WorkflowExecution>> GetExecutionsAsync(
+        string? workflowName = null,
+        WorkflowStatus? status = null,
+        int limit = 50,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+
+        if (_executionStore is not null)
+        {
+            return await _executionStore.GetExecutionsAsync(workflowName, status, limit, ct)
+                .ConfigureAwait(false);
+        }
+
+        // Fallback to in-memory cache
+        var query = _executions.Values.AsEnumerable();
+        if (workflowName is not null)
+            query = query.Where(e => string.Equals(e.WorkflowName, workflowName, StringComparison.OrdinalIgnoreCase));
+        if (status.HasValue)
+            query = query.Where(e => e.Status == status.Value);
+
+        return query.OrderByDescending(static e => e.StartedAt).Take(limit).ToList();
+    }
+
+    /// <summary>
+    ///     Gets all workflow executions (sync convenience for backward compat).
     /// </summary>
     public IReadOnlyList<WorkflowExecution> GetExecutions()
     {
@@ -322,7 +366,24 @@ public sealed class WorkflowEngine : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Gets a specific execution by ID.
+    ///     Gets a specific execution by ID. Falls back to persistent store if not in cache.
+    /// </summary>
+    public async Task<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        ArgumentException.ThrowIfNullOrWhiteSpace(executionId);
+
+        if (_executions.TryGetValue(executionId, out var execution))
+            return execution;
+
+        if (_executionStore is not null)
+            return await _executionStore.GetExecutionAsync(executionId, ct).ConfigureAwait(false);
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Gets a specific execution by ID (sync, in-memory only).
     /// </summary>
     public WorkflowExecution? GetExecution(string executionId)
     {

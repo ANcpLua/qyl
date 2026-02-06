@@ -24,8 +24,6 @@
 // - gen_ai.tool.name / gen_ai.tool.call.id
 // =============================================================================
 
-using qyl.protocol.Attributes;
-
 namespace qyl.collector.Ingestion;
 
 /// <summary>

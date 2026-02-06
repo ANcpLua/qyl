@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Security.Cryptography;
 using Qyl.Hosting.Resources;
+using Qyl.Hosting.Telemetry;
 
 namespace Qyl.Hosting;
 
@@ -24,6 +24,12 @@ internal sealed class QylRunner : IDisposable
     public async Task RunAsync(CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+
+        using var activity = QylHostingTelemetry.Source.StartActivity(
+            HostingActivityNames.Run);
+
+        activity?.SetTag("qyl.hosting.resource.name", "qyl");
+        activity?.SetTag("qyl.hosting.resource.count", _builder.Resources.Count);
 
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, _shutdownCts.Token);
         var token = linkedCts.Token;
@@ -51,8 +57,20 @@ internal sealed class QylRunner : IDisposable
 
             PrintStatus();
 
+            activity?.AddEvent(new ActivityEvent("all_resources_started"));
+
             // Wait for shutdown
             await WaitForShutdownAsync(token);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                ["exception.type"] = ex.GetType().FullName,
+                ["exception.message"] = ex.Message
+            }));
+            throw;
         }
         finally
         {
@@ -69,81 +87,139 @@ internal sealed class QylRunner : IDisposable
 
     private async Task StartCollectorAsync(CancellationToken ct)
     {
+        using var activity = QylHostingTelemetry.Source.StartActivity(
+            HostingActivityNames.CollectorStart);
+
         PrintResourceStart("qyl", "collector");
 
         // Check if qyl.collector is available locally, otherwise use Docker
         var collectorPath = FindCollectorExecutable();
+        var mode = collectorPath is not null ? "local" : "docker";
 
-        if (collectorPath is not null)
+        activity?.SetTag("qyl.hosting.resource.name", "qyl");
+        activity?.SetTag("qyl.hosting.resource.type", "collector");
+        activity?.SetTag("qyl.hosting.collector.mode", mode);
+        activity?.SetTag("qyl.hosting.collector.port", _builder.Options.DashboardPort);
+
+        try
         {
-            // Run locally
-            await StartProcessAsync("qyl", collectorPath, "", new Dictionary<string, string>
+            if (collectorPath is not null)
             {
-                ["QYL_PORT"] = _builder.Options.DashboardPort.ToString(),
-                ["QYL_GRPC_PORT"] = _builder.Options.OtlpPort.ToString(),
-                ["QYL_TOKEN"] = _builder.Options.Token ?? GenerateToken(),
-                ["QYL_DATA_PATH"] = Path.Combine(_builder.Options.DataPath, "qyl.duckdb")
-            }, ct);
+                // Run locally
+                await StartProcessAsync("qyl", collectorPath, "", new Dictionary<string, string>
+                {
+                    ["QYL_PORT"] = _builder.Options.DashboardPort.ToString(),
+                    ["QYL_GRPC_PORT"] = _builder.Options.OtlpPort.ToString(),
+                    ["QYL_TOKEN"] = _builder.Options.Token ?? GenerateToken(),
+                    ["QYL_DATA_PATH"] = Path.Combine(_builder.Options.DataPath, "qyl.duckdb")
+                }, ct);
+            }
+            else
+            {
+                // Use Docker
+                var args = $"run --rm -p {_builder.Options.DashboardPort}:5100 -p {_builder.Options.OtlpPort}:4317 " +
+                           $"-e QYL_TOKEN={_builder.Options.Token ?? GenerateToken()} " +
+                           $"-v qyl-data:/app/data ghcr.io/ancplua/qyl:latest";
+
+                await StartProcessAsync("qyl", "docker", args, new Dictionary<string, string>(), ct);
+            }
+
+            _states["qyl"] = ResourceState.Running;
+            QylHostingMetrics.UpdateActiveResources(1, "qyl");
+            PrintResourceReady("qyl", $"http://localhost:{_builder.Options.DashboardPort}");
         }
-        else
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Use Docker
-            var args = $"run --rm -p {_builder.Options.DashboardPort}:5100 -p {_builder.Options.OtlpPort}:4317 " +
-                       $"-e QYL_TOKEN={_builder.Options.Token ?? GenerateToken()} " +
-                       $"-v qyl-data:/app/data ghcr.io/ancplua/qyl:latest";
-
-            await StartProcessAsync("qyl", "docker", args, new Dictionary<string, string>(), ct);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                ["exception.type"] = ex.GetType().FullName,
+                ["exception.message"] = ex.Message
+            }));
+            throw;
         }
-
-        _states["qyl"] = ResourceState.Running;
-        PrintResourceReady("qyl", $"http://localhost:{_builder.Options.DashboardPort}");
     }
 
     private async Task StartResourceAsync(IQylResource resource, CancellationToken ct)
     {
-        // Wait for dependencies
-        foreach (var dep in resource.Dependencies)
+        var startTimestamp = Stopwatch.GetTimestamp();
+
+        using var activity = QylHostingTelemetry.Source.StartActivity(
+            HostingActivityNames.ResourceStart);
+
+        activity?.SetTag("qyl.hosting.resource.name", resource.Name);
+        activity?.SetTag("qyl.hosting.resource.type", resource.Type);
+
+        try
         {
-            while (_states.GetValueOrDefault(dep.Name) != ResourceState.Running)
+            // Wait for dependencies
+            foreach (var dep in resource.Dependencies)
             {
-                if (ct.IsCancellationRequested) return;
-                await Task.Delay(100, ct);
+                while (_states.GetValueOrDefault(dep.Name) != ResourceState.Running)
+                {
+                    if (ct.IsCancellationRequested) return;
+                    await Task.Delay(100, ct);
+                }
             }
-        }
 
-        PrintResourceStart(resource.Name, resource.Type);
+            PrintResourceStart(resource.Name, resource.Type);
 
-        var (command, args, workingDir) = GetStartCommand(resource);
+            var (command, args, workingDir) = GetStartCommand(resource);
 
-        await StartProcessAsync(resource.Name, command, args, resource.Environment, ct, workingDir);
+            await StartProcessAsync(resource.Name, command, args, resource.Environment, ct, workingDir);
 
-        // Wait for health check if configured
-        if (resource.HealthEndpoint is not null)
-        {
-            var port = resource.Ports.Count > 0 ? resource.Ports[0].HostPort : 5000;
-            await WaitForHealthAsync(resource.Name, port, resource.HealthEndpoint, ct);
-        }
-        else
-        {
-            // Give it a moment to start
-            await Task.Delay(500, ct);
-        }
-
-        _states[resource.Name] = ResourceState.Running;
-
-        // Find external port without FirstOrDefault
-        PortBinding? externalPort = null;
-        foreach (var port in resource.Ports)
-        {
-            if (port.External)
+            // Wait for health check if configured
+            if (resource.HealthEndpoint is not null)
             {
-                externalPort = port;
-                break;
+                var port = resource.Ports.Count > 0 ? resource.Ports[0].HostPort : 5000;
+                await WaitForHealthAsync(resource.Name, port, resource.HealthEndpoint, ct);
             }
-        }
+            else
+            {
+                // Give it a moment to start
+                await Task.Delay(500, ct);
+            }
 
-        var url = externalPort is not null ? $"http://localhost:{externalPort.HostPort}" : null;
-        PrintResourceReady(resource.Name, url);
+            _states[resource.Name] = ResourceState.Running;
+
+            var elapsedSeconds = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+            QylHostingMetrics.RecordStartDuration(elapsedSeconds, resource.Name, resource.Type);
+            QylHostingMetrics.RecordResourceStarted(resource.Name, resource.Type);
+            QylHostingMetrics.UpdateActiveResources(1, resource.Name);
+
+            activity?.AddEvent(new ActivityEvent(HostingEventNames.ResourceReady,
+                tags: new ActivityTagsCollection { ["qyl.hosting.resource.name"] = resource.Name }));
+
+            // Find external port without FirstOrDefault
+            PortBinding? externalPort = null;
+            foreach (var port in resource.Ports)
+            {
+                if (port.External)
+                {
+                    externalPort = port;
+                    break;
+                }
+            }
+
+            var url = externalPort is not null ? $"http://localhost:{externalPort.HostPort}" : null;
+            PrintResourceReady(resource.Name, url);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            {
+                ["exception.type"] = ex.GetType().FullName,
+                ["exception.message"] = ex.Message
+            }));
+            activity?.AddEvent(new ActivityEvent(HostingEventNames.ResourceFailed,
+                tags: new ActivityTagsCollection
+                {
+                    ["qyl.hosting.resource.name"] = resource.Name,
+                    ["error.type"] = ex.GetType().FullName
+                }));
+            throw;
+        }
     }
 
     private static (string command, string args, string? workingDir) GetStartCommand(IQylResource resource)
@@ -282,18 +358,34 @@ internal sealed class QylRunner : IDisposable
 
     private static async Task WaitForHealthAsync(string name, int port, string endpoint, CancellationToken ct)
     {
+        var startTimestamp = Stopwatch.GetTimestamp();
+
+        using var activity = QylHostingTelemetry.Source.StartActivity(
+            HostingActivityNames.HealthCheck);
+
+        activity?.SetTag("qyl.hosting.resource.name", name);
+        activity?.SetTag("qyl.hosting.health_check.endpoint", endpoint);
+        activity?.SetTag("qyl.hosting.health_check.port", port);
+
         using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
         var url = $"http://localhost:{port}{endpoint}";
+        var attempts = 0;
 
         for (var i = 0; i < 60; i++)
         {
             if (ct.IsCancellationRequested) return;
+            attempts++;
 
             try
             {
                 var response = await client.GetAsync(url, ct);
                 if (response.IsSuccessStatusCode)
+                {
+                    var elapsedSeconds = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;
+                    activity?.SetTag("qyl.hosting.health_check.attempts", attempts);
+                    QylHostingMetrics.RecordHealthCheckDuration(elapsedSeconds, name);
                     return;
+                }
             }
             catch
             {
@@ -302,6 +394,9 @@ internal sealed class QylRunner : IDisposable
 
             await Task.Delay(500, ct);
         }
+
+        activity?.SetTag("qyl.hosting.health_check.attempts", attempts);
+        activity?.SetStatus(ActivityStatusCode.Error, "Health check timed out");
 
         PrintLog(name, $"Warning: Health check at {endpoint} did not respond", isError: true);
     }
@@ -320,10 +415,15 @@ internal sealed class QylRunner : IDisposable
 
     private async Task ShutdownAsync()
     {
+        using var activity = QylHostingTelemetry.Source.StartActivity(
+            HostingActivityNames.Shutdown);
+
+        activity?.AddEvent(new ActivityEvent(HostingEventNames.ShutdownStarted));
+
         Console.WriteLine();
         Console.WriteLine("  Shutting down...");
 
-        foreach (var (_, process) in _processes)
+        foreach (var (name, process) in _processes)
         {
             try
             {
@@ -334,6 +434,8 @@ internal sealed class QylRunner : IDisposable
                 }
 
                 process.Dispose();
+
+                QylHostingMetrics.UpdateActiveResources(-1, name);
             }
             catch
             {
@@ -341,6 +443,7 @@ internal sealed class QylRunner : IDisposable
             }
         }
 
+        activity?.AddEvent(new ActivityEvent(HostingEventNames.ShutdownCompleted));
         Console.WriteLine("  Goodbye!");
     }
 

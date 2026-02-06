@@ -107,6 +107,14 @@ internal static class MeterEmitter
                 sb.AppendLine($"            _meter.CreateObservableGauge({args}, () => {storageFieldName});");
                 break;
             }
+
+            case MetricKind.UpDownCounter:
+            {
+                var valueType = method.ValueTypeName ?? "long";
+                sb.AppendLine($"        private static readonly UpDownCounter<{valueType}> {fieldName} =");
+                sb.AppendLine($"            _meter.CreateUpDownCounter<{valueType}>({args});");
+                break;
+            }
         }
     }
 
@@ -117,8 +125,8 @@ internal static class MeterEmitter
         // Build parameter list
         var paramParts = new List<string>();
 
-        // Histogram and Gauge both take a value parameter
-        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge && method.ValueTypeName is not null)
+        // Histogram, Gauge, and UpDownCounter all take a value parameter
+        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge or MetricKind.UpDownCounter && method.ValueTypeName is not null)
             paramParts.Add($"{method.ValueTypeName} value");
 
         foreach (var tag in method.Tags) paramParts.Add($"{tag.TypeName} {tag.ParameterName}");
@@ -140,18 +148,24 @@ internal static class MeterEmitter
 
         if (method.Tags.Count is 0)
         {
-            sb.AppendLine(method.Kind == MetricKind.Counter
-                ? $"            {fieldName}.Add(1);"
-                : $"            {fieldName}.Record(value);");
+            sb.AppendLine(method.Kind switch
+            {
+                MetricKind.Counter => $"            {fieldName}.Add(1);",
+                MetricKind.UpDownCounter => $"            {fieldName}.Add(value);",
+                _ => $"            {fieldName}.Record(value);"
+            });
         }
         else if (method.Tags.Count == 1)
         {
             var tag = method.Tags[0];
             var kvp = $"new KeyValuePair<string, object?>(\"{tag.TagName}\", {tag.ParameterName})";
 
-            sb.AppendLine(method.Kind == MetricKind.Counter
-                ? $"            {fieldName}.Add(1, {kvp});"
-                : $"            {fieldName}.Record(value, {kvp});");
+            sb.AppendLine(method.Kind switch
+            {
+                MetricKind.Counter => $"            {fieldName}.Add(1, {kvp});",
+                MetricKind.UpDownCounter => $"            {fieldName}.Add(value, {kvp});",
+                _ => $"            {fieldName}.Record(value, {kvp});"
+            });
         }
         else
         {
@@ -165,9 +179,12 @@ internal static class MeterEmitter
             sb.Append(string.Join(", ", tagList));
             sb.AppendLine(" };");
 
-            sb.AppendLine(method.Kind == MetricKind.Counter
-                ? $"            {fieldName}.Add(1, tags);"
-                : $"            {fieldName}.Record(value, tags);");
+            sb.AppendLine(method.Kind switch
+            {
+                MetricKind.Counter => $"            {fieldName}.Add(1, tags);",
+                MetricKind.UpDownCounter => $"            {fieldName}.Add(value, tags);",
+                _ => $"            {fieldName}.Record(value, tags);"
+            });
         }
 
         sb.AppendLine("        }");

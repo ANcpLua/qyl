@@ -72,6 +72,15 @@ builder.Services.AddHttpClient<StorageTools>(client =>
     .AddExtendedHttpClientLogging()
     .AddStandardResilienceHandler();
 
+builder.Services.AddHttpClient<CopilotTools>(client =>
+    {
+        client.BaseAddress = new Uri(collectorUrl);
+        client.Timeout = TimeSpan.FromSeconds(60); // Copilot chat can take longer
+    })
+    .AddMcpAuthHandler()
+    .AddExtendedHttpClientLogging()
+    .AddStandardResilienceHandler();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITelemetryStore>(static sp =>
     new HttpTelemetryStore(
@@ -86,6 +95,7 @@ jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(StorageJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
 
 builder.Services
     .AddMcpServer()
@@ -95,6 +105,7 @@ builder.Services
     .WithTools<ConsoleTools>(jsonOptions)
     .WithTools<StructuredLogTools>(jsonOptions)
     .WithTools<GenAiTools>(jsonOptions)
-    .WithTools<StorageTools>(jsonOptions);
+    .WithTools<StorageTools>(jsonOptions)
+    .WithTools<CopilotTools>(jsonOptions);
 
 await builder.Build().RunAsync().ConfigureAwait(false);

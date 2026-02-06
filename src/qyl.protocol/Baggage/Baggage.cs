@@ -5,7 +5,6 @@
 // =============================================================================
 
 using System.Collections.Immutable;
-using System.Text;
 
 namespace qyl.protocol.Baggage;
 

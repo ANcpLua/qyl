@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>qyl - AI Observability</title>
+  <meta name="description" content="AI observability in one Docker command. Observe everything, judge nothing, document perfectly.">
+  <meta name="theme-color" content="#1a1a1a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; border-radius: 0 !important; }
+
+    :root {
+      --black: #1a1a1a;
+      --carbon: #222222;
+      --dark: #2a2a2a;
+      --zinc: #4a4a4a;
+      --slate: #7a7a7a;
+      --white: #f5f5f5;
+      --orange: #e87830;
+      --green: #50d880;
+      --cyan: #60c8d8;
+      --violet: #9060e8;
+      --red: #d84040;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+      background: var(--black);
+      color: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: var(--orange); color: var(--black); }
+
+    a { color: var(--orange); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+    /* SECTIONS */
+    .section { padding: 64px 0; border-bottom: 3px solid var(--zinc); }
+    .section-label {
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--slate); border-bottom: 3px solid var(--zinc);
+      padding-bottom: 8px; margin-bottom: 40px;
+    }
+
+    /* HERO */
+    .hero { padding: 80px 0; border-bottom: 3px solid var(--zinc); }
+    .hero-badge { font-size: 11px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--slate); margin-bottom: 16px; }
+    .hero-title { font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 24px; color: var(--white); }
+    .hero-title .dot { color: var(--orange); }
+    .hero-tagline { font-size: clamp(1rem, 2.5vw, 1.35rem); color: var(--slate); margin-bottom: 8px; max-width: 600px; }
+    .hero-sub { font-size: 13px; color: var(--zinc); margin-bottom: 40px; }
+
+    /* CODE BLOCK */
+    .code-block {
+      background: var(--carbon); border: 3px solid var(--zinc);
+      padding: 16px 20px; font-size: clamp(11px, 1.8vw, 14px);
+      color: var(--green); overflow-x: auto; white-space: nowrap;
+      position: relative;
+    }
+    .code-block code { display: block; padding-right: 80px; }
+    .copy-btn {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--orange); color: var(--black);
+      padding: 4px 12px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      border: 3px solid var(--black); cursor: pointer;
+      font-family: inherit;
+      box-shadow: 2px 2px 0 var(--black);
+    }
+    .copy-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+
+    .hero-hint { font-size: 12px; color: var(--zinc); margin-top: 16px; }
+
+    /* FEATURE GRID */
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .feature-card {
+      background: var(--dark); border: 3px solid var(--zinc);
+      padding: 24px; box-shadow: 4px 4px 0 var(--black);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .feature-card:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--black); }
+    .feature-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
+    .feature-desc { font-size: 13px; color: var(--slate); line-height: 1.7; }
+    .feature-meta { font-size: 11px; color: var(--zinc); margin-top: 16px; }
+
+    /* STEPS */
+    .step { display: flex; gap: 24px; margin-bottom: 32px; }
+    .step-num { font-size: 1.8rem; font-weight: 700; color: var(--orange); min-width: 48px; }
+    .step-content { flex: 1; min-width: 0; }
+    .step-label { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--white); }
+    .step-lang { font-size: 11px; color: var(--zinc); letter-spacing: 0.1em; margin-bottom: 4px; }
+
+    /* METRICS GRID */
+    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: var(--dark); border: 3px solid var(--zinc); }
+    .metric {
+      padding: 20px; text-align: center;
+      border-right: 1px solid var(--zinc); border-bottom: 1px solid var(--zinc);
+    }
+    .metric:last-child { border-right: none; }
+    .metric-title { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+    .metric-sub { font-size: 11px; color: var(--slate); }
+    .metric-footer { font-size: 11px; color: var(--zinc); text-align: center; padding: 12px; }
+
+    /* MCP TOOLS */
+    .tool-list { background: var(--carbon); border: 3px solid var(--zinc); padding: 24px; }
+    .tool-line { display: flex; align-items: baseline; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+    .tool-line:last-child { margin-bottom: 0; }
+    .tool-prompt { color: var(--orange); font-weight: 700; flex-shrink: 0; }
+    .tool-name { color: var(--green); }
+    .tool-desc { color: var(--slate); font-size: 12px; }
+
+    /* TABLE */
+    .compare-table { width: 100%; border: 3px solid var(--zinc); border-collapse: collapse; font-size: 13px; }
+    .compare-table th, .compare-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--zinc); }
+    .compare-table thead { background: var(--dark); }
+    .compare-table th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); font-weight: 400; }
+    .compare-table th.highlight { color: var(--orange); font-weight: 700; }
+    .compare-table .yes { color: var(--green); font-weight: 600; }
+    .compare-table .no { color: var(--red); }
+    .compare-table .meh { color: var(--slate); }
+
+    .config-table { width: 100%; border: 3px solid var(--zinc); border-collapse: collapse; font-size: 13px; }
+    .config-table th, .config-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--zinc); }
+    .config-table thead { background: var(--dark); }
+    .config-table th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); font-weight: 400; }
+    .config-table .var { color: var(--green); font-weight: 600; }
+    .config-table .val { color: var(--slate); }
+
+    /* FOOTER */
+    .footer { padding: 48px 0; }
+    .footer-grid { display: flex; justify-content: space-between; align-items: flex-start; gap: 32px; flex-wrap: wrap; }
+    .footer-brand { font-size: 1.5rem; font-weight: 700; }
+    .footer-brand .dot { color: var(--orange); }
+    .footer-sub { font-size: 11px; color: var(--zinc); margin-top: 4px; }
+    .footer-links { display: flex; gap: 24px; font-size: 13px; }
+    .footer-links a { color: var(--slate); }
+    .footer-links a:hover { color: var(--orange); }
+    .footer-bottom { margin-top: 32px; padding-top: 24px; border-top: 3px solid var(--zinc); font-size: 11px; color: var(--zinc); }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .hero { padding: 48px 0; }
+      .section { padding: 48px 0; }
+      .features { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: 1fr 1fr; }
+      .metric { border-right: none; }
+      .metric:nth-child(odd) { border-right: 1px solid var(--zinc); }
+      .step { flex-direction: column; gap: 8px; }
+      .step-num { font-size: 1.3rem; }
+      .compare-table { font-size: 11px; }
+      .compare-table th, .compare-table td { padding: 8px; }
+      .tool-line { flex-wrap: wrap; }
+      .footer-grid { flex-direction: column; }
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 0 16px; }
+      .metrics { grid-template-columns: 1fr; }
+      .metric { border-right: none; }
+      .compare-table { display: block; overflow-x: auto; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="container">
+      <div class="hero-badge">AI OBSERVABILITY</div>
+      <h1 class="hero-title">QYL<span class="dot">.</span></h1>
+      <p class="hero-tagline">Observe everything. Judge nothing. Document perfectly.</p>
+      <p class="hero-sub">GenAI-native telemetry. One Docker command. Your data stays yours.</p>
+      <div class="code-block">
+        <code id="docker-cmd">docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest</code>
+        <button onclick="copyCmd()" class="copy-btn" id="copy-btn">COPY</button>
+      </div>
+      <p class="hero-hint">Then visit <a href="http://localhost:5100">localhost:5100</a></p>
+    </div>
+  </header>
+
+  <!-- WHAT YOU GET -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">WHAT YOU GET</h2>
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-title" style="color: var(--orange)">OTLP</div>
+          <p class="feature-desc">HTTP + gRPC ingestion on standard ports. Any language, any SDK. Point your existing OpenTelemetry setup at qyl and it works.</p>
+          <div class="feature-meta">:5100/v1/traces &middot; :4317 gRPC</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-title" style="color: var(--green)">GENAI</div>
+          <p class="feature-desc">Token costs, model usage, latency percentiles. Native GenAI analytics, not bolted on. OTel Semantic Conventions v1.39.</p>
+          <div class="feature-meta">OpenAI &middot; Anthropic &middot; Google &middot; Azure &middot; Bedrock &middot; Cohere &middot; Mistral</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-title" style="color: var(--cyan)">DASHBOARD</div>
+          <p class="feature-desc">Embedded React UI with real-time SSE streaming. Sessions, traces, logs, GenAI analytics. Dark mode. Zero polling.</p>
+          <div class="feature-meta">React 19 &middot; Tailwind 4 &middot; SSE live updates</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-title" style="color: var(--violet)">MCP</div>
+          <p class="feature-desc">30+ tools for Claude, GPT, and any AI agent. Your agents query their own telemetry. Sessions, errors, costs, traces.</p>
+          <div class="feature-meta">qyl.list_sessions &middot; qyl.get_genai_stats &middot; qyl.analyze_session_errors</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK START -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">QUICK START</h2>
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <p class="step-label">Run the container</p>
+          <div class="code-block"><code>docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <p class="step-label">Point your OTLP SDK at qyl</p>
+          <div class="step-lang">PYTHON</div>
+          <div class="code-block" style="margin-bottom: 8px"><code>export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100</code></div>
+          <div class="step-lang">.NET</div>
+          <div class="code-block" style="margin-bottom: 8px"><code>builder.Services.AddOpenTelemetry()
+    .WithTracing(t =&gt; t.AddOtlpExporter(o =&gt;
+        o.Endpoint = new Uri("http://localhost:5100/v1/traces")));</code></div>
+          <div class="step-lang">NODE.JS</div>
+          <div class="code-block"><code>OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100 node app.js</code></div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <p class="step-label">Open the dashboard</p>
+          <div class="code-block"><code>open http://localhost:5100</code></div>
+          <p class="hero-hint">Your telemetry is there. Real-time. No setup.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- GENAI NATIVE -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">GENAI-NATIVE</h2>
+      <p style="font-size: 13px; color: var(--slate); margin-bottom: 32px; max-width: 600px;">
+        Other tools bolt GenAI on. qyl was built for it. Every LLM call is captured with full semantic context.
+      </p>
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-title" style="color: var(--orange)">TOKENS</div>
+          <div class="metric-sub">input &middot; output &middot; total</div>
+        </div>
+        <div class="metric">
+          <div class="metric-title" style="color: var(--green)">COST</div>
+          <div class="metric-sub">USD per call &middot; per session</div>
+        </div>
+        <div class="metric">
+          <div class="metric-title" style="color: var(--cyan)">LATENCY</div>
+          <div class="metric-sub">P50 &middot; P95 &middot; P99</div>
+        </div>
+        <div class="metric">
+          <div class="metric-title" style="color: var(--violet)">MODELS</div>
+          <div class="metric-sub">usage &middot; provider &middot; tools</div>
+        </div>
+      </div>
+      <div class="metric-footer">OpenTelemetry Semantic Conventions v1.39 &middot; gen_ai.* attributes</div>
+    </div>
+  </section>
+
+  <!-- MCP FOR AGENTS -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">MCP FOR AI AGENTS</h2>
+      <p style="font-size: 13px; color: var(--slate); margin-bottom: 32px; max-width: 600px;">
+        Your agents observe themselves. qyl exposes 30+ MCP tools so Claude, GPT, or any agent can query sessions, analyze errors, and track costs directly.
+      </p>
+      <div class="tool-list">
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.get_genai_stats</span> <span class="tool-desc">// token usage, costs, latency summary</span></div>
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.list_sessions</span> <span class="tool-desc">// all AI sessions with error counts</span></div>
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.analyze_session_errors</span> <span class="tool-desc">// every error in a session</span></div>
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.get_session_transcript</span> <span class="tool-desc">// human-readable timeline</span></div>
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.search_spans</span> <span class="tool-desc">// find anything in your telemetry</span></div>
+      </div>
+      <div class="code-block" style="margin-top: 24px"><code>{
+  "mcpServers": {
+    "qyl": {
+      "command": "dotnet",
+      "args": ["run", "--project", "src/qyl.mcp"],
+      "env": { "QYL_COLLECTOR_URL": "http://localhost:5100" }
+    }
+  }
+}</code></div>
+    </div>
+  </section>
+
+  <!-- VS EVERYTHING ELSE -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">VS. EVERYTHING ELSE</h2>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th class="highlight">QYL</th>
+            <th>JAEGER</th>
+            <th>GRAFANA</th>
+            <th>DATADOG</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--slate)">Setup</td><td class="yes">1 command</td><td class="meh">Cassandra/ES</td><td class="meh">Prometheus stack</td><td class="meh">SaaS account</td></tr>
+          <tr><td style="color:var(--slate)">Storage</td><td class="yes">DuckDB (1 file)</td><td class="meh">External DB</td><td class="meh">External DB</td><td class="meh">Cloud only</td></tr>
+          <tr><td style="color:var(--slate)">GenAI native</td><td class="yes">Yes</td><td class="no">No</td><td class="meh">Add-on</td><td class="meh">Add-on</td></tr>
+          <tr><td style="color:var(--slate)">MCP tools</td><td class="yes">30+</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+          <tr><td style="color:var(--slate)">Real-time</td><td class="yes">SSE streaming</td><td class="meh">Limited</td><td class="meh">Grafana Live</td><td class="meh">Yes</td></tr>
+          <tr><td style="color:var(--slate)">Cost</td><td class="yes">Free</td><td class="meh">Free</td><td class="meh">Free</td><td class="no">$$$</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CONFIGURATION -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">CONFIGURATION</h2>
+      <table class="config-table">
+        <thead>
+          <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="var">QYL_PORT</td><td class="val">5100</td><td class="val">HTTP API + Dashboard</td></tr>
+          <tr><td class="var">QYL_GRPC_PORT</td><td class="val">4317</td><td class="val">gRPC OTLP ingestion</td></tr>
+          <tr><td class="var">QYL_DATA_PATH</td><td class="val">./qyl.duckdb</td><td class="val">DuckDB file location</td></tr>
+          <tr><td class="var">QYL_TOKEN</td><td class="val">(none)</td><td class="val">Auth token (disabled if unset)</td></tr>
+          <tr><td class="var">QYL_MAX_RETENTION_DAYS</td><td class="val">30</td><td class="val">Days to retain telemetry</td></tr>
+          <tr><td class="var">QYL_MAX_SPAN_COUNT</td><td class="val">1,000,000</td><td class="val">Max spans before cleanup</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="footer-brand">QYL<span class="dot">.</span></div>
+          <div class="footer-sub">Question Your Logs</div>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/ANcpLua/qyl" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/ANcpLua/qyl/pkgs/container/qyl" target="_blank" rel="noopener">Docker</a>
+          <a href="https://github.com/ANcpLua/qyl/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        </div>
+      </div>
+      <div class="footer-bottom">.NET 10 &middot; DuckDB &middot; React 19 &middot; OpenTelemetry &middot; TypeSpec</div>
+    </div>
+  </footer>
+
+  <script>
+    function copyCmd() {
+      const cmd = document.getElementById('docker-cmd').textContent;
+      navigator.clipboard.writeText(cmd).then(() => {
+        const btn = document.getElementById('copy-btn');
+        btn.textContent = 'COPIED';
+        setTimeout(() => { btn.textContent = 'COPY'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>

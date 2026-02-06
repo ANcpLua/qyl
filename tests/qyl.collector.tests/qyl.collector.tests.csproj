@@ -4,9 +4,6 @@
 
     <PropertyGroup>
         <RootNamespace>qyl.collector.tests</RootNamespace>
-        <!-- Not needed in .NET 10 with global.json "test": { "runner": "Microsoft.Testing.Platform" }
-             but kept for explicit documentation -->
-        <TestingPlatformDotnetTestSupport>true</TestingPlatformDotnetTestSupport>
     </PropertyGroup>
 
     <!-- Integration testing - WebApplicationFactory requires Microsoft.NET.Sdk.Web -->
