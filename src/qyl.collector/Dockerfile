@@ -38,6 +38,7 @@ COPY src/qyl.collector/*.csproj src/qyl.collector/
 COPY src/qyl.servicedefaults/*.csproj src/qyl.servicedefaults/
 COPY src/qyl.servicedefaults.generator/*.csproj src/qyl.servicedefaults.generator/
 COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
+COPY src/qyl.copilot/*.csproj src/qyl.copilot/
 
 # Restore dependencies with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector
@@ -51,6 +52,7 @@ COPY src/qyl.collector/ src/qyl.collector/
 COPY src/qyl.servicedefaults/ src/qyl.servicedefaults/
 COPY src/qyl.servicedefaults.generator/ src/qyl.servicedefaults.generator/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
+COPY src/qyl.copilot/ src/qyl.copilot/
 
 # Publish with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector
