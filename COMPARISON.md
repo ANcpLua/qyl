@@ -72,7 +72,7 @@ SDKs can retry on network errors without creating duplicates. Mutable fields upd
 builder.AddQylServiceDefaults();
 
 // That's it. IChatClient calls are now traced with:
-// - gen_ai.system
+// - gen_ai.provider.name
 // - gen_ai.request.model
 // - gen_ai.usage.input_tokens
 // - gen_ai.usage.output_tokens

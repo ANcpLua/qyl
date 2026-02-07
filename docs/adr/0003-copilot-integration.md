@@ -39,20 +39,17 @@ OAuth Device Flow (interactive)
 
 ### 2. Composition Over Inheritance for Instrumentation
 
-**Decision**: Use composition pattern for `InstrumentedCopilotAgent` instead of inheriting from `AIAgent`.
+**Decision**: Use composition pattern for instrumented agent wrapper instead of inheriting from `AIAgent`.
 
 ```csharp
-// Composition (chosen)
-public sealed class InstrumentedCopilotAgent
-{
-    private readonly AIAgent _inner;
-    public async Task<AgentResponse> RunAsync(...) { /* wrap with spans */ }
-}
+// Composition (chosen) — wraps QylCopilotAdapter with OTel spans
+// See src/qyl.copilot/Adapters/QylCopilotAdapter.cs
+// Instrumentation: src/qyl.copilot/Instrumentation/CopilotInstrumentation.cs
 
 // NOT inheritance (rejected)
-public class InstrumentedCopilotAgent : AIAgent
+public class InstrumentedAgent : AIAgent
 {
-    protected override Task<AgentResponse> RunCoreAsync(...) { }
+    protected override Task<...> RunCoreAsync(...) { }
 }
 ```
 
@@ -66,7 +63,7 @@ public class InstrumentedCopilotAgent : AIAgent
 **Decision**: All Copilot interactions emit OTel traces and metrics following GenAI semconv 1.39.
 
 **Span Attributes**:
-- `gen_ai.system`: `github_copilot`
+- `gen_ai.provider.name`: `github_copilot`
 - `gen_ai.operation.name`: `chat`, `invoke_agent`, `execute_tool`, `workflow`
 - `gen_ai.request.model`: `github-copilot`
 - `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`

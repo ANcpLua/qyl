@@ -127,14 +127,14 @@ Quick prefix check (`codex.`) before full attribute scanning:
 ### HTTP OTLP (`/v1/traces`)
 
 ```csharp
-// Program.cs line 292
+// Program.cs — POST /v1/traces handler
 var batch = new SpanBatch(spans).WithCodexTransformations();
 ```
 
 ### gRPC OTLP (TraceService)
 
 ```csharp
-// TraceServiceImpl.cs line 34
+// TraceServiceImpl.cs — Export method
 var batch = new SpanBatch(spans).WithCodexTransformations();
 ```
 

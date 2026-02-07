@@ -108,11 +108,4 @@ forbidden:
 
 ## Documentation Map
 
-Each component has its own `CLAUDE.md`. Cross-cutting rules:
-
-| File | Purpose |
-|------|---------|
-| `.claude/rules/architecture-rules.md` | Type ownership, dependencies |
-| `.claude/rules/coding-patterns.md` | .NET 10 patterns, banned APIs |
-| `.claude/rules/genai-semconv.md` | OTel 1.39 GenAI conventions |
-| `.claude/rules/build-workflow.md` | NUKE targets, Docker build |
+Each component has its own `CLAUDE.md` with component-specific patterns.

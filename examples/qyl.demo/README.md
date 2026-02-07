@@ -65,7 +65,7 @@ var response = await adapter.ChatCompleteAsync("Hello", ct: ct);
 
 // What actually runs (generated at compile time):
 using var activity = ActivitySource.StartActivity("gen_ai.chat");
-activity?.SetTag("gen_ai.system", "github_copilot");
+activity?.SetTag("gen_ai.provider.name", "github_copilot");
 activity?.SetTag("gen_ai.request.model", "copilot");
 // ... your actual call ...
 activity?.SetTag("gen_ai.usage.input_tokens", response.Usage.InputTokens);

@@ -16,7 +16,7 @@ Three things are stuck behind access modifiers that shouldn't be:
 
 Meanwhile, the analyzer diagnostics (QYL0001-1001) are all `Info` severity with no canonical suppression path. Users can't opt out of interceptor guidance cleanly.
 
-And qyl has no serverless story. Workflows exist but require Copilot. There's no way to say: "when a span with `status_code=500` and `gen_ai.system=openai` arrives, run this code."
+And qyl has no serverless story. Workflows exist but require Copilot. There's no way to say: "when a span with `status_code=500` and `gen_ai.provider.name=openai` arrives, run this code."
 
 **This spec proposes one change that solves all three.**
 
@@ -217,7 +217,7 @@ app.MapQylFunction("alert-high-latency", fn =>
     fn.Description = "Alert when GenAI calls exceed 5s";
     fn.Trigger = span =>
         span.DurationNs > 5_000_000_000 &&
-        span.Attributes.ContainsKey("gen_ai.system");
+        span.Attributes.ContainsKey("gen_ai.provider.name");
     fn.Handler = async (span, runtime, ct) =>
     {
         var trace = await runtime.Store.GetTraceAsync(span.TraceId, ct);

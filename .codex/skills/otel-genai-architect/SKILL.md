@@ -28,7 +28,7 @@ Specialist for OpenTelemetry instrumentation of AI/LLM applications.
 
 ### Span Attributes
 ```
-gen_ai.system = "openai" | "anthropic" | "azure"
+gen_ai.provider.name = "openai" | "anthropic" | "azure"
 gen_ai.request.model = "claude-3-opus"
 gen_ai.request.max_tokens = 4096
 gen_ai.response.model = "claude-3-opus-20240229"
@@ -52,7 +52,7 @@ private static readonly ActivitySource Source = new("myapp.gen_ai");
 
 ```csharp
 using var activity = Source.StartActivity("chat", ActivityKind.Client);
-activity?.SetTag("gen_ai.system", "anthropic");
+activity?.SetTag("gen_ai.provider.name", "anthropic");
 activity?.SetTag("gen_ai.request.model", "claude-3-opus");
 
 var response = await client.SendAsync(request);

@@ -126,7 +126,7 @@ qyl captures OpenTelemetry 1.39 GenAI semantic conventions:
 
 | Attribute                        | Description                       |
 |----------------------------------|-----------------------------------|
-| `gen_ai.system`                  | Provider (openai, anthropic, etc) |
+| `gen_ai.provider.name`           | Provider (openai, anthropic, etc) |
 | `gen_ai.request.model`           | Model name                        |
 | `gen_ai.usage.input_tokens`      | Prompt tokens                     |
 | `gen_ai.usage.output_tokens`     | Completion tokens                 |
