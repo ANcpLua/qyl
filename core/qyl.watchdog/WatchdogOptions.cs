@@ -99,9 +99,9 @@ public sealed record WatchdogOptions
 
     private static string? Env(string name) => Environment.GetEnvironmentVariable(name);
 
-    private static bool TryNext(IReadOnlyList<string> args, ref int i, out string value)
+    private static bool TryNext(string[] args, ref int i, out string value)
     {
-        if (i + 1 < args.Count)
+        if (i + 1 < args.Length)
         {
             value = args[++i];
             return true;

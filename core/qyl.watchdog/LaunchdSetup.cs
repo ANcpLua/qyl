@@ -34,7 +34,9 @@ public static class LaunchdSetup
         }
 
         Directory.CreateDirectory(SLogDir);
-        Directory.CreateDirectory(Path.GetDirectoryName(SPlistPath)!);
+        var plistDir = Path.GetDirectoryName(SPlistPath);
+        if (plistDir is not null)
+            Directory.CreateDirectory(plistDir);
 
         var plist = GeneratePlist(toolPath);
         await File.WriteAllTextAsync(SPlistPath, plist);
@@ -196,7 +198,7 @@ public static class LaunchdSetup
             ArgumentList = { "-u" },
             RedirectStandardOutput = true,
             UseShellExecute = false
-        })!;
+        }) ?? throw new InvalidOperationException("Failed to start 'id' process");
 
         var uid = process.StandardOutput.ReadToEnd().Trim();
         process.WaitForExit();

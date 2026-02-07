@@ -45,12 +45,13 @@ if (options.Once)
     return;
 }
 
-using var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
+var cts = new CancellationTokenSource();
+ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
     cts.Cancel();
 };
+Console.CancelKeyPress += cancelHandler;
 
 using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(options.IntervalMs));
 
@@ -64,6 +65,11 @@ try
 catch (OperationCanceledException)
 {
     Console.WriteLine("\nqyl-watch stopped");
+}
+finally
+{
+    Console.CancelKeyPress -= cancelHandler;
+    cts.Dispose();
 }
 
 async Task ScanAsync(CancellationToken ct)
