@@ -329,7 +329,7 @@ builder.Services.AddGrpc(options =>
 - AOT-friendly by design, no IL warnings
 - Source generator–powered serializers/parsers at compile time
 - 20-50% schneller als protobuf-net
-- `netstandard2.0`, `net8.0`, `net9.0`, `net10.0` Support
+- `netstandard2.0`, `net8.0`, `net10.0` Support
 - Zero third-party dependencies
 
 **Migration von qyl's Custom Implementation:**

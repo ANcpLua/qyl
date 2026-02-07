@@ -12,7 +12,7 @@ Task received
   |     +-- .NET 10.0 LTS, C# 14, net10.0 TFM
   |     +-- Source generators: qyl.servicedefaults.generator (GenAI/Db/Traced interceptors)
   |     +-- OTel: semconv 1.39 (gen_ai.*, db.*, http.*)
-  |     +-- Time: TimeProvider.System.GetUtcNow() — never DateTime.Now/UtcNow
+  |     +-- Time: TimeProvider.System.GetUtcNow() — never use current-time via DateTime
   |     +-- Locking: Lock (sync), SemaphoreSlim (async) — never object _lock
   |     +-- JSON: System.Text.Json — never Newtonsoft
   |     +-- Protocol: BCL-only. Zero packages in qyl.protocol.
