@@ -4,10 +4,16 @@
         <File Path=".gitignore"/>
         <File Path="CLAUDE.md"/>
         <File Path="AGENTS.md"/>
+        <File Path="CHANGELOG.md"/>
+        <File Path="COMPARISON.md"/>
         <File Path="Directory.Build.props"/>
         <File Path="Directory.Build.targets"/>
         <File Path="Directory.Packages.props"/>
         <File Path="global.json"/>
+        <File Path="nuget.config"/>
+        <File Path="railway.toml"/>
+        <File Path="README.md"/>
+        <File Path="ROADMAP.md"/>
     </Folder>
 
     <Folder Name="/plugin/">
@@ -25,6 +31,9 @@
         <File Path="eng/CLAUDE.md"/>
         <File Path="eng/MSBuild/Shared.props"/>
         <File Path="eng/MSBuild/Shared.targets"/>
+        <File Path="eng/MSBuild/Shared.Claude.props"/>
+        <File Path="eng/MSBuild/Shared.Claude.Rules.targets"/>
+        <File Path="eng/MSBuild/Shared.Claude.targets"/>
     </Folder>
 
     <!-- Core schema (TypeSpec) + tools -->
@@ -37,6 +46,8 @@
     <!-- Examples -->
     <Folder Name="/examples/">
         <File Path="examples/CLAUDE.md"/>
+        <File Path="examples/Directory.Build.props"/>
+        <File Path="examples/Directory.Build.targets"/>
         <Project Path="examples/qyl.demo/qyl.demo.csproj"/>
     </Folder>
 
