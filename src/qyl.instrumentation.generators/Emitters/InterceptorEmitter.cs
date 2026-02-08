@@ -84,7 +84,7 @@ internal static class InterceptorEmitter
                 EmitAsyncInterceptor(sb, target, methodId);
                 break;
             case true:
-                EmitAsyncVoidInterceptor(sb, target, methodId);
+                EmitAsyncTaskInterceptor(sb, target, methodId);
                 break;
             default:
                 EmitSyncInterceptor(sb, target, methodId);
@@ -123,7 +123,7 @@ internal static class InterceptorEmitter
 
                         """);
 
-    private static void EmitAsyncVoidInterceptor(StringBuilder sb, InterceptorTarget target, string methodId) =>
+    private static void EmitAsyncTaskInterceptor(StringBuilder sb, InterceptorTarget target, string methodId) =>
         sb.AppendLine($$"""
                             internal static async Task {{methodId}}(
                                 this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
