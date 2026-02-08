@@ -84,7 +84,8 @@ public static class CopilotInstrumentation
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartChatSpan()
     {
-        var activity = ActivitySource.StartActivity("gen_ai.chat", ActivityKind.Client);
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional OTel GenAI operation name
+        var activity = ActivitySource.StartActivity(name: "gen_ai.chat", kind: ActivityKind.Client);
         if (activity is null) return null;
 
         activity.SetTag(GenAiAttributes.Deprecated.System, GenAiSystem);

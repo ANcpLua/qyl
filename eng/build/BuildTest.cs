@@ -818,10 +818,19 @@ public static class CoverageSummaryConverter
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(static b => b.Line);
     }
 
-    sealed record CoverageSummary(string Project, string Source, DateTime GeneratedAtUtc)
+    sealed class CoverageSummary(string project, string source, DateTime generatedAtUtc)
     {
+        public string Project { get; } = project;
+        public string Source { get; } = source;
+        public DateTime GeneratedAtUtc { get; } = generatedAtUtc;
         public List<CoverageFileDto> Files { get; } = [];
+        public int FileCount => Files.Count; // Used for serialization
     }
 
-    sealed record CoverageFileDto(string Path, List<CoverageLine> Lines, List<CoverageBranch> Branches);
+    sealed class CoverageFileDto(string path, List<CoverageLine> lines, List<CoverageBranch> branches)
+    {
+        public string Path { get; } = path;
+        public List<CoverageLine> Lines { get; } = lines;
+        public List<CoverageBranch> Branches { get; } = branches;
+    }
 }

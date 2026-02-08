@@ -1,6 +1,8 @@
 # qyl
 
-**Question Your Logs** — OpenTelemetry collector and auto-instrumentation for AI workloads.
+**Question Your Logs** — observe everything, judge nothing, document perfectly.
+
+Landing page: https://ancplua.github.io/qyl/
 
 ## What qyl Does
 
@@ -9,7 +11,7 @@
 | **Collects**    | OTLP receiver with idempotent ingestion (retry-safe)     |
 | **Instruments** | Roslyn source generators for zero-config GenAI telemetry |
 | **Visualizes**  | Real-time dashboard with SSE streaming                   |
-| **Integrates**  | MCP server for AI agent observability queries            |
+| **Integrates**  | MCP server and GitHub Copilot for AI agent observability |
 
 ## Tech Stack
 
@@ -23,14 +25,17 @@
 
 ## Components
 
-| Package                         | Purpose                                                     |
-|---------------------------------|-------------------------------------------------------------|
-| `qyl.collector`                 | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
-| `qyl.servicedefaults`           | .NET instrumentation library with OTel setup                |
-| `qyl.servicedefaults.generator` | Roslyn source generator for GenAI/DB interceptors           |
-| `qyl.Analyzers`                 | Roslyn analyzers for OTel/GenAI best practices (15 rules)   |
-| `qyl.mcp`                       | MCP server for AI agent integration                         |
-| `qyl.protocol`                  | Shared types (BCL-only, no dependencies)                    |
+| Package                            | Purpose                                                     |
+|------------------------------------|-------------------------------------------------------------|
+| `qyl.collector`                    | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
+| `qyl.copilot`                      | GitHub Copilot integration with AG-UI tool rendering        |
+| `qyl.hosting`                      | App orchestration framework (QylRunner)                     |
+| `qyl.servicedefaults`              | .NET instrumentation library with OTel setup                |
+| `qyl.servicedefaults.generator`    | Roslyn source generator for GenAI/DB interceptors           |
+| `qyl.instrumentation.generators`   | DuckDB insert + interceptor source generators               |
+| `qyl.Analyzers`                    | Roslyn analyzers for OTel/GenAI best practices (15 rules)   |
+| `qyl.mcp`                          | MCP server for AI agent integration                         |
+| `qyl.protocol`                     | Shared types (BCL-only, no dependencies)                    |
 
 ## Quick Start
 
@@ -92,26 +97,80 @@ Supported protocols:
 ## Architecture
 
 ```
-┌─────────────────┐                    ┌─────────────────┐
-│  Your .NET App  │                    │  Any OTel App   │
-│  (servicedefaults)                   │  (Python, Go..) │
-└────────┬────────┘                    └────────┬────────┘
-         │                                      │
-         │              OTLP                    │
-         └──────────────┬───────────────────────┘
-                        ▼
-              ┌─────────────────┐
-              │  qyl.collector  │
-              │   (ASP.NET)     │
-              └────────┬────────┘
-                       │
-         ┌─────────────┼─────────────┐
-         ▼             ▼             ▼
-   ┌──────────┐  ┌──────────┐  ┌──────────┐
-   │  DuckDB  │  │ Dashboard│  │   MCP    │
-   │ (storage)│  │ (React)  │  │ (agents) │
-   └──────────┘  └──────────┘  └──────────┘
++------------------+                     +------------------+
+|  Your .NET App   |                     |  Any OTel App    |
+| (servicedefaults)|                     |  (Python, Go..)  |
++--------+---------+                     +--------+---------+
+         |                                        |
+         |               OTLP                     |
+         +----------------+-----------------------+
+                          v
+            +----------------------------+
+            |       qyl.hosting          |
+            |      (QylRunner)           |
+            +-------------+--------------+
+                          | orchestrates
+                          v
+            +----------------------------+
+            |       qyl.collector        |
+            |        (ASP.NET)           |
+            +---+------+------+-----+---+
+                |      |      |     |
+      +---------+  +---+---+  |  +--+--------+
+      v            v       v  |  v            v
++----------+ +----------+ |  | +----------+ +----------------+
+|  DuckDB  | | Dashboard| |  | |   MCP    | |  qyl.copilot   |
+| (storage)| | (React)  | |  | | (agents) | | (GitHub Copilot)|
++----------+ +----------+ |  | +----------+ +-------+--------+
+                           |  |                      |
+                     +-----+--+-----+          SSE / AG-UI
+                     | Insights     |                |
+                     | Materializer |                v
+                     +--------------+        GitHub Copilot
 ```
+
+## AG-UI Tool Rendering
+
+qyl.copilot exposes observability tools to GitHub Copilot via SSE streaming with AG-UI event conventions.
+
+**Tools** (via `ObservabilityTools`):
+
+| Tool                 | Description                                         |
+|----------------------|-----------------------------------------------------|
+| `search_spans`       | Search spans by service name, status, time range    |
+| `get_trace`          | Get all spans for a trace ID                        |
+| `get_genai_stats`    | GenAI usage statistics (requests, tokens, costs)    |
+| `search_logs`        | Search logs by severity, body text, time range      |
+| `get_storage_stats`  | Storage statistics (span/log/session counts, size)  |
+| `list_sessions`      | List spans belonging to a session                   |
+| `get_system_context` | Pre-computed system context (zero query cost)       |
+
+Each tool is wrapped by `DelegatingAIFunction` which applies `CopilotMetrics` (counters, histograms) and `CopilotInstrumentation` (OTel spans).
+
+**Endpoints**:
+
+| Method | Path                                    | Purpose                |
+|--------|-----------------------------------------|------------------------|
+| POST   | `/api/v1/copilot/chat`                  | Chat (SSE streaming)   |
+| GET    | `/api/v1/copilot/workflows`             | List workflows         |
+| POST   | `/api/v1/copilot/workflows/{name}/run`  | Execute workflow (SSE) |
+| GET    | `/api/v1/copilot/status`                | Auth status            |
+| GET    | `/api/v1/copilot/executions`            | Execution history      |
+| GET    | `/api/v1/copilot/executions/{id}`       | Execution details      |
+
+SSE events use AG-UI convention: `tool_call` and `tool_result` event names.
+
+## Insights Materializer
+
+Background service that pre-computes system context every 5 minutes (10-second warmup delay).
+
+| Materializer            | Computes                                              |
+|-------------------------|-------------------------------------------------------|
+| `TopologyMaterializer`  | Service discovery, AI model usage                     |
+| `ProfileMaterializer`   | Latency percentiles (P50/P95/P99), token costs, trends |
+| `AlertsMaterializer`    | Error spikes, cost drift, slow operations             |
+
+Results are stored in the `materialized_insights` table and served via `get_system_context` with zero query cost at read time.
 
 ## Ports
 
@@ -119,6 +178,20 @@ Supported protocols:
 |------|----------|--------------------------------|
 | 5100 | HTTP     | REST API, Dashboard, OTLP/HTTP |
 | 4317 | gRPC     | OTLP/gRPC ingestion            |
+
+## Environment Variables
+
+| Variable                         | Default     | Purpose                   |
+|----------------------------------|-------------|---------------------------|
+| `QYL_PORT`                       | 5100        | HTTP API port             |
+| `QYL_GRPC_PORT`                  | 4317        | gRPC OTLP port (0=disable)|
+| `QYL_DATA_PATH`                  | ./qyl.duckdb| DuckDB file location      |
+| `QYL_TOKEN`                      | (none)      | Auth token                |
+| `QYL_MAX_RETENTION_DAYS`         | 30          | Telemetry retention       |
+| `QYL_MAX_SPAN_COUNT`             | 1000000     | Max spans before cleanup  |
+| `QYL_MAX_LOG_COUNT`              | 500000      | Max logs before cleanup   |
+| `QYL_CLEANUP_INTERVAL_SECONDS`   | 300         | Cleanup interval          |
+| `QYL_OTLP_CORS_ALLOWED_ORIGINS`  | *           | CORS origins (CSV)        |
 
 ## GenAI Telemetry
 
@@ -175,18 +248,26 @@ dotnet run --project src/qyl.collector
 ## Project Structure
 
 ```
-core/           # TypeSpec schemas (source of truth)
-eng/            # NUKE build system
+core/                                   # TypeSpec schemas (source of truth)
+  qyl.watchdog/                         # Process anomaly detection daemon
+eng/                                    # NUKE build system
+examples/
+  AgentsGateway/                        # Agent-based gateway example
+  MicroserviceExample/                  # Multi-service example
+  qyl.demo/                            # Minimal example with Copilot
 src/
-  qyl.collector/              # Backend API service
-  qyl.dashboard/              # React frontend
-  qyl.mcp/                    # MCP server
-  qyl.protocol/               # Shared types (BCL-only)
-  qyl.servicedefaults/        # OTel instrumentation library
-  qyl.servicedefaults.generator/  # Roslyn source generator
-  qyl.Analyzers/              # Roslyn analyzers (QYL001-QYL015)
-  qyl.Analyzers.CodeFixes/    # Code fix providers
-tests/          # Test projects
+  qyl.collector/                        # Backend API service
+  qyl.copilot/                          # GitHub Copilot integration (AG-UI)
+  qyl.dashboard/                        # React frontend
+  qyl.hosting/                          # App orchestration (QylRunner)
+  qyl.mcp/                             # MCP server
+  qyl.protocol/                         # Shared types (BCL-only)
+  qyl.servicedefaults/                  # OTel instrumentation library
+  qyl.servicedefaults.generator/        # Roslyn source generator
+  qyl.instrumentation.generators/       # DuckDB insert + interceptor generators
+  qyl.Analyzers/                        # Roslyn analyzers (QYL001-QYL015)
+  qyl.Analyzers.CodeFixes/             # Code fix providers
+tests/                                  # Test projects
 ```
 
 ## Analyzers

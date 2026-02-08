@@ -19,8 +19,9 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            HostingActivityNames.Run);
+            name: HostingActivityNames.Run);
 
         activity?.SetTag("qyl.hosting.resource.name", "qyl");
         activity?.SetTag("qyl.hosting.resource.count", builder.Resources.Count);
@@ -59,7 +60,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
             {
                 ["exception.type"] = ex.GetType().FullName,
                 ["exception.message"] = ex.Message
@@ -81,6 +82,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
     private async Task StartCollectorAsync(CancellationToken ct)
     {
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.CollectorStart);
 
@@ -125,7 +127,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
             {
                 ["exception.type"] = ex.GetType().FullName,
                 ["exception.message"] = ex.Message
@@ -138,6 +140,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         var startTimestamp = Stopwatch.GetTimestamp();
 
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.ResourceStart);
 
@@ -182,7 +185,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
             QylHostingMetrics.UpdateActiveResources(1, resource.Name);
 
             activity?.AddEvent(new ActivityEvent(HostingEventNames.ResourceReady,
-                tags: new ActivityTagsCollection { ["qyl.hosting.resource.name"] = resource.Name }));
+                default, new ActivityTagsCollection { ["qyl.hosting.resource.name"] = resource.Name }));
 
             // Find external port without FirstOrDefault
             PortBinding? externalPort = null;
@@ -201,13 +204,14 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
+            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
             {
                 ["exception.type"] = ex.GetType().FullName,
                 ["exception.message"] = ex.Message
             }));
             activity?.AddEvent(new ActivityEvent(HostingEventNames.ResourceFailed,
-                tags: new ActivityTagsCollection
+                default,
+                new ActivityTagsCollection
                 {
                     ["qyl.hosting.resource.name"] = resource.Name,
                     ["error.type"] = ex.GetType().FullName
@@ -298,11 +302,9 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = workingDir ?? ""
         };
-
-        if (workingDir is not null)
-            psi.WorkingDirectory = workingDir;
 
         foreach (var (key, value) in env)
             psi.Environment[key] = value;
@@ -354,8 +356,9 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         var startTimestamp = Stopwatch.GetTimestamp();
 
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            HostingActivityNames.HealthCheck);
+            name: HostingActivityNames.HealthCheck);
 
         activity?.SetTag("qyl.hosting.resource.name", name);
         activity?.SetTag("qyl.hosting.health_check.endpoint", endpoint);
@@ -409,8 +412,9 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
     private async Task ShutdownAsync()
     {
+        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            HostingActivityNames.Shutdown);
+            name: HostingActivityNames.Shutdown);
 
         activity?.AddEvent(new ActivityEvent(HostingEventNames.ShutdownStarted));
 
@@ -532,7 +536,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     private static void PrintLog(string name, string message, bool isError = false)
     {
         var color = isError ? "\u001b[31m" : "\u001b[38;5;245m";
-        var reset = "\u001b[0m";
+        const string reset = "\u001b[0m";
         var nameColor = GetResourceColor(name);
 
         Console.WriteLine($"  {nameColor}[{name}]{reset} {color}{message}{reset}");

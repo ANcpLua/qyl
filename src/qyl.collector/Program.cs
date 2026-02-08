@@ -125,7 +125,7 @@ builder.Services.AddQylCopilot(o => { o.AuthOptions = new CopilotAuthOptions { A
 builder.Services.AddQylCopilotTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
-builder.Services.AddHostedService<qyl.collector.Insights.InsightsMaterializerService>();
+builder.Services.AddHostedService<InsightsMaterializerService>();
 
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();
@@ -598,6 +598,7 @@ app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
     Results.Ok(new { name = serviceName, instance_count = 1 }));
 
 
+var webRootPath = app.Environment.WebRootPath;
 app.MapFallback(context =>
 {
     var path = context.Request.Path.Value ?? "/";
@@ -613,7 +614,7 @@ app.MapFallback(context =>
     }
 
     // Serve index.html for SPA client-side routing
-    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
+    var indexPath = Path.Combine(webRootPath, "index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";

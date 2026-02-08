@@ -95,7 +95,7 @@ internal static class DuckDbEmitter
     private static string EscapeIdentifier(string identifier) =>
         identifier.Contains('"') ? identifier.Replace("\"", "\"\"") : identifier;
 
-    private static void EmitAddParameters(StringBuilder sb, string typeName, IEnumerable<DuckDbColumnInfo> columns)
+    private static void EmitAddParameters(StringBuilder sb, string typeName, DuckDbColumnInfo[] columns)
     {
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Adds parameters for INSERT in column order.");

@@ -69,12 +69,12 @@ public static partial class WorkflowParser
         var trigger = WorkflowTrigger.Manual;
         if (yaml.TryGetValue("trigger", out var triggerStr))
         {
-            trigger = triggerStr.ToLowerInvariant() switch
+            trigger = triggerStr.ToUpperInvariant() switch
             {
-                "manual" => WorkflowTrigger.Manual,
-                "scheduled" or "cron" => WorkflowTrigger.Scheduled,
-                "event" => WorkflowTrigger.Event,
-                "webhook" => WorkflowTrigger.Webhook,
+                "MANUAL" => WorkflowTrigger.Manual,
+                "SCHEDULED" or "CRON" => WorkflowTrigger.Scheduled,
+                "EVENT" => WorkflowTrigger.Event,
+                "WEBHOOK" => WorkflowTrigger.Webhook,
                 _ => WorkflowTrigger.Manual
             };
         }

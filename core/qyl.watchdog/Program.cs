@@ -45,7 +45,7 @@ if (options.Once)
     return;
 }
 
-var cts = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
 ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
@@ -69,7 +69,6 @@ catch (OperationCanceledException)
 finally
 {
     Console.CancelKeyPress -= cancelHandler;
-    cts.Dispose();
 }
 
 async Task ScanAsync(CancellationToken ct)

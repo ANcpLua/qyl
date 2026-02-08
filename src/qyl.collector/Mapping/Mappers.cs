@@ -205,7 +205,7 @@ public static class SpanMapper
             record.Name,
             record.GenAiRequestModel,
             record.GenAiResponseModel,
-            (double?)record.GenAiCostUsd,
+            record.GenAiCostUsd,
             record.GenAiTemperature,
             record.GenAiStopReason,
             record.GenAiToolName,

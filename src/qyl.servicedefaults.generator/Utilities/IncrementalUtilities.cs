@@ -51,6 +51,7 @@ internal static class IncrementalValuesProviderExtensions
     {
         return provider
             .Where(static value => value is not null)
+            // ReSharper disable once NullableWarningSuppressionIsUsed — null filtered by Where above
             .Select(static (value, _) => value!);
     }
 
@@ -60,6 +61,7 @@ internal static class IncrementalValuesProviderExtensions
     {
         return provider
             .Where(static value => value.HasValue)
+            // ReSharper disable once NullableWarningSuppressionIsUsed — HasValue checked by Where above
             .Select(static (value, _) => value!.Value);
     }
 

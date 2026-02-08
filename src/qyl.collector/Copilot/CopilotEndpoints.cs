@@ -61,7 +61,7 @@ internal static class CopilotEndpoints
         {
             // Client disconnected - expected for SSE streams
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
             var error = new StreamUpdate
             {
@@ -88,13 +88,13 @@ internal static class CopilotEndpoints
             {
                 Name = w.Name,
                 Description = w.Description,
-                Trigger = w.Trigger.ToString().ToLowerInvariant(),
+                Trigger = w.Trigger.ToString().ToUpperInvariant(),
                 Tools = w.Tools
             }).ToList();
 
             return Results.Ok(new WorkflowListResponse { Workflows = dtos });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
             return Results.Ok(new WorkflowListResponse { Workflows = [] });
         }
@@ -128,7 +128,7 @@ internal static class CopilotEndpoints
         {
             // Client disconnected
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
             var error = new StreamUpdate
             {
@@ -148,7 +148,7 @@ internal static class CopilotEndpoints
     {
         StreamUpdateKind.ToolCall => "tool_call",
         StreamUpdateKind.ToolResult => "tool_result",
-        _ => kind.ToString().ToLowerInvariant()
+        _ => kind.ToString().ToUpperInvariant()
     };
 
     private static async Task<IResult> GetExecutionsAsync(
@@ -173,7 +173,7 @@ internal static class CopilotEndpoints
             {
                 Id = e.Id,
                 WorkflowName = e.WorkflowName,
-                Status = e.Status.ToString().ToLowerInvariant(),
+                Status = e.Status.ToString().ToUpperInvariant(),
                 StartedAt = e.StartedAt,
                 CompletedAt = e.CompletedAt,
                 Error = e.Error,
@@ -184,7 +184,7 @@ internal static class CopilotEndpoints
 
             return Results.Ok(new ExecutionListResponse { Executions = dtos, Total = dtos.Count });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
             return Results.Ok(new ExecutionListResponse { Executions = [], Total = 0 });
         }
@@ -207,7 +207,7 @@ internal static class CopilotEndpoints
             {
                 Id = execution.Id,
                 WorkflowName = execution.WorkflowName,
-                Status = execution.Status.ToString().ToLowerInvariant(),
+                Status = execution.Status.ToString().ToUpperInvariant(),
                 StartedAt = execution.StartedAt,
                 CompletedAt = execution.CompletedAt,
                 Result = execution.Result,
@@ -217,7 +217,7 @@ internal static class CopilotEndpoints
                 TraceId = execution.TraceId
             });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed"))
+        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
             return Results.NotFound();
         }

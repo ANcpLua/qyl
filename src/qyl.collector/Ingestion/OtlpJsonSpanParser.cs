@@ -77,7 +77,7 @@ public ref struct OtlpJsonSpanParser
         return results;
     }
 
-    private void ParseResourceSpans(List<ParsedSpan> results)
+    private void ParseResourceSpans(ICollection<ParsedSpan> results)
     {
         if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
@@ -88,7 +88,7 @@ public ref struct OtlpJsonSpanParser
         }
     }
 
-    private void ParseResourceSpan(List<ParsedSpan> results)
+    private void ParseResourceSpan(ICollection<ParsedSpan> results)
     {
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
@@ -163,7 +163,7 @@ public ref struct OtlpJsonSpanParser
         return serviceName;
     }
 
-    private void ParseScopeSpans(List<ParsedSpan> results)
+    private void ParseScopeSpans(ICollection<ParsedSpan> results)
     {
         if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
@@ -174,7 +174,7 @@ public ref struct OtlpJsonSpanParser
         }
     }
 
-    private void ParseScopeSpan(List<ParsedSpan> results)
+    private void ParseScopeSpan(ICollection<ParsedSpan> results)
     {
         while (_reader.Read() && _reader.TokenType != JsonTokenType.EndObject)
         {
@@ -188,7 +188,7 @@ public ref struct OtlpJsonSpanParser
         }
     }
 
-    private void ParseSpanArray(List<ParsedSpan> results)
+    private void ParseSpanArray(ICollection<ParsedSpan> results)
     {
         if (!_reader.Read() || _reader.TokenType != JsonTokenType.StartArray) return;
 
@@ -369,7 +369,7 @@ public ref struct OtlpJsonSpanParser
                 else if (keySpan.SequenceEqual("session.id"u8))
                 {
                     var value = ParseAnyValue();
-                    if (value is string s && Guid.TryParse(s, out var guid))
+                    if (value is not null && Guid.TryParse(value, out var guid))
                         span.SessionId = new SessionId(guid.ToString("N"));
                 }
                 else

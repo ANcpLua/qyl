@@ -64,9 +64,9 @@ namespace qyl.collector;
 // Telemetry management types
 [JsonSerializable(typeof(ClearTelemetryResponse))]
 // Insights materializer types
-[JsonSerializable(typeof(qyl.collector.Insights.InsightsResponse))]
-[JsonSerializable(typeof(qyl.collector.Insights.InsightTierStatus))]
-[JsonSerializable(typeof(IReadOnlyList<qyl.collector.Insights.InsightTierStatus>))]
+[JsonSerializable(typeof(Insights.InsightsResponse))]
+[JsonSerializable(typeof(Insights.InsightTierStatus))]
+[JsonSerializable(typeof(IReadOnlyList<Insights.InsightTierStatus>))]
 // Copilot types (for request body deserialization)
 [JsonSerializable(typeof(qyl.protocol.Copilot.ChatRequest))]
 [JsonSerializable(typeof(qyl.protocol.Copilot.WorkflowRunRequest))]

@@ -193,7 +193,7 @@ public sealed class DuckDbStoreTests : IAsyncLifetime
 
         var retrieved = results[0];
         // DurationNs should match the second span's duration (100ms = 100_000_000 ns)
-        var expectedDurationNs = (ulong)(TestConstants.DurationDefaultMs * 1_000_000);
+        const ulong expectedDurationNs = (ulong)(TestConstants.DurationDefaultMs * 1_000_000);
         Assert.Equal(expectedDurationNs, retrieved.DurationNs);
         Assert.Equal(15, retrieved.GenAiInputTokens);
         Assert.Equal(25, retrieved.GenAiOutputTokens);

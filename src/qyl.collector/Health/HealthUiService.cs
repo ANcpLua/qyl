@@ -39,7 +39,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         if (latest.Length > 0)
         {
             var nanos = latest[0].StartTimeUnixNano;
-            var ms = (long)(nanos / 1_000_000);
+            var ms = nanos / 1_000_000;
             lastIngestionTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("o");
         }
 
@@ -217,7 +217,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         if (latest.Length > 0)
         {
             var nanos = latest[0].StartTimeUnixNano;
-            var ms = (long)(nanos / 1_000_000);
+            var ms = nanos / 1_000_000;
             var lastTime = DateTimeOffset.FromUnixTimeMilliseconds(ms);
             var now = TimeProvider.System.GetUtcNow();
             secondsSinceLastIngestion = (long)(now - lastTime).TotalSeconds;

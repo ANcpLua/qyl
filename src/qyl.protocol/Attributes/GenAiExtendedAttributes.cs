@@ -91,7 +91,7 @@ public static class GenAiExtendedAttributes
         public const string ToolCalls = "qyl.gen_ai.tool_calls";
 
         /// <summary>qyl.gen_ai.context_utilization - Context window utilization ratio.</summary>
-        public const string ContextUtilization = "qyl.gen_ai.context_utilization";
+        public const string ContextUtilizationRatio = "qyl.gen_ai.context_utilization";
 
         /// <summary>qyl.gen_ai.schema_validation_failures - Count of schema validation failures.</summary>
         public const string SchemaValidationFailures = "qyl.gen_ai.schema_validation_failures";

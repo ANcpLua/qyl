@@ -39,7 +39,7 @@ public static class SseEndpoints
 
         return TypedResults.ServerSentEvents(
             StreamFilteredEventsAsync(reader, filter, sessionFilter, context.RequestAborted),
-            filter.ToString().ToLowerInvariant()
+            filter.ToString().ToUpperInvariant()
         );
     }
 
@@ -100,10 +100,10 @@ public static class SseEndpoints
 
                 if (filteredSpans.Count is 0) continue;
 
-                yield return new SseItem<object?>(new SpanBatch(filteredSpans), filter.ToString().ToLowerInvariant());
+                yield return new SseItem<object?>(new SpanBatch(filteredSpans), filter.ToString().ToUpperInvariant());
             }
             else
-                yield return new SseItem<object?>(message.Data, filter.ToString().ToLowerInvariant());
+                yield return new SseItem<object?>(message.Data, filter.ToString().ToUpperInvariant());
         }
     }
 }

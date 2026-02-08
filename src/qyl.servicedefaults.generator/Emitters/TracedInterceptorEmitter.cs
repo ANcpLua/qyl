@@ -77,7 +77,7 @@ internal static class TracedInterceptorEmitter
 
     private static void AppendActivitySourcesClass(
         StringBuilder sb,
-        Dictionary<string, string> activitySourceFieldNames)
+        IReadOnlyDictionary<string, string> activitySourceFieldNames)
     {
         var activitySourceNames = activitySourceFieldNames.Keys
             .OrderBy(static n => n, StringComparer.Ordinal)
@@ -102,7 +102,7 @@ internal static class TracedInterceptorEmitter
 
     private static string GetActivitySourceFieldName(
         string activitySourceName,
-        Dictionary<string, string> activitySourceFieldNames)
+        IReadOnlyDictionary<string, string> activitySourceFieldNames)
     {
         return activitySourceFieldNames.TryGetValue(activitySourceName, out var fieldName)
             ? fieldName
@@ -130,7 +130,7 @@ internal static class TracedInterceptorEmitter
     private static void AppendInterceptorMethods(
         StringBuilder sb,
         ImmutableArray<TracedCallSite> invocations,
-        Dictionary<string, string> activitySourceFieldNames)
+        IReadOnlyDictionary<string, string> activitySourceFieldNames)
     {
         var orderedCallSites = invocations
             .OrderBy(static cs => cs.SortKey, StringComparer.Ordinal);
@@ -147,7 +147,7 @@ internal static class TracedInterceptorEmitter
         StringBuilder sb,
         TracedCallSite callSite,
         int index,
-        Dictionary<string, string> activitySourceFieldNames)
+        IReadOnlyDictionary<string, string> activitySourceFieldNames)
     {
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();

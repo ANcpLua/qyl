@@ -51,13 +51,13 @@ public sealed class WorkflowEngine : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (_disposed) return default;
         _disposed = true;
 
         _discoverLock.Dispose();
-        await _adapter.DisposeAsync().ConfigureAwait(false);
+        return _adapter.DisposeAsync();
     }
 
     /// <summary>
@@ -162,7 +162,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         var executionId = Guid.NewGuid().ToString("N");
         var startTime = _timeProvider.GetUtcNow();
-        var triggerName = workflow.Trigger.ToString().ToLowerInvariant();
+        var triggerName = workflow.Trigger.ToString().ToUpperInvariant();
 
         // Start OTel span for workflow execution
         using var activity = CopilotInstrumentation.StartWorkflowSpan(
@@ -193,7 +193,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
             catch (Exception ex)
             {
                 // Log but don't fail - in-memory cache is the primary path
-                System.Diagnostics.Debug.WriteLine($"Failed to persist execution start: {ex.Message}");
+                Debug.WriteLine($"Failed to persist execution start: {ex.Message}");
             }
         }
 
@@ -298,7 +298,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to persist execution result: {ex.Message}");
+                Debug.WriteLine($"Failed to persist execution result: {ex.Message}");
             }
         }
 

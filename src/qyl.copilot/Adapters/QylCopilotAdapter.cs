@@ -6,7 +6,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Text.Json;
-using System.Threading.Channels;
 using GitHub.Copilot.SDK;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -98,8 +97,9 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         var client = new CopilotClient();
         await client.StartAsync(ct).ConfigureAwait(false);
 
-        // Wrap tools with event interceptors that write to the adapter's per-request channel
-        QylCopilotAdapter adapter = null!;
+        // Wrap tools with event interceptors that write to the adapter's per-request channel.
+        // Use a holder so the lambda captures a stable reference (not a reassigned local).
+        var adapterHolder = new StrongBox<QylCopilotAdapter?>(null);
         List<AITool>? wrappedTools = null;
 
         if (tools is { Count: > 0 })
@@ -108,7 +108,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             {
                 if (tool is not AIFunction fn) return tool;
 
-                return (AITool)new ToolEventInterceptor(fn, () => adapter._toolEventChannel, time);
+                return new ToolEventInterceptor(fn, () => adapterHolder.Value?._toolEventChannel, time);
             }).ToList();
         }
 
@@ -119,7 +119,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             tools: wrappedTools,
             instructions: string.IsNullOrEmpty(instructions) ? null : instructions);
 
-        adapter = new QylCopilotAdapter(client, agent, authProvider, time);
+        var adapter = new QylCopilotAdapter(client, agent, authProvider, time);
+        adapterHolder.Value = adapter;
 
         return adapter;
     }

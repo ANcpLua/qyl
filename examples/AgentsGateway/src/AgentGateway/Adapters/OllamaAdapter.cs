@@ -35,7 +35,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
 
         var result =
             await response.Content.ReadFromJsonAsync(OllamaJsonContext.Default.OllamaChatResponse, cancellationToken);
-        return new ChatResponse(new ChatMessage(ChatRole.Assistant, result?.Message?.Content ?? string.Empty));
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant, result?.Message?.Content is { } content ? content : string.Empty));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -78,7 +78,10 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         try
         {
             var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
-            return response?.Models?
+            if (response?.Models is not { } models)
+                return [];
+
+            return models
                 .Select(m => new ModelInfo(
                     m.Name ?? "unknown",
                     ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
@@ -87,7 +90,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
                         ["size"] = m.Size.ToString(CultureInfo.InvariantCulture),
                         ["modified_at"] = m.ModifiedAt ?? string.Empty
                     }))
-                .ToArray() ?? [];
+                .ToArray();
         }
         catch (HttpRequestException)
         {
@@ -106,7 +109,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
                 .. messages.Select(m => new OllamaMessage
                 {
                     Role = m.Role.Value,
-                    Content = m.Text ?? string.Empty
+                    Content = m.Text
                 })
             ],
             Stream = stream,

@@ -209,7 +209,7 @@ public sealed class OtlpProtobufParserTests
     // Each Build* method returns raw sub-message content bytes.
     // =========================================================================
 
-    private static void WriteVarint(MemoryStream ms, ulong value)
+    private static void WriteVarint(Stream ms, ulong value)
     {
         while (value >= 0x80)
         {
@@ -219,25 +219,25 @@ public sealed class OtlpProtobufParserTests
         ms.WriteByte((byte)value);
     }
 
-    private static void WriteTag(MemoryStream ms, int fieldNumber, WireType wireType)
+    private static void WriteTag(Stream ms, int fieldNumber, WireType wireType)
     {
         WriteVarint(ms, (ulong)((fieldNumber << 3) | (int)wireType));
     }
 
-    private static void WriteBytes(MemoryStream ms, byte[] bytes)
+    private static void WriteBytes(Stream ms, byte[] bytes)
     {
         WriteVarint(ms, (ulong)bytes.Length);
         ms.Write(bytes, 0, bytes.Length);
     }
 
-    private static void WriteString(MemoryStream ms, string value)
+    private static void WriteString(Stream ms, string value)
     {
         var bytes = Encoding.UTF8.GetBytes(value);
         WriteVarint(ms, (ulong)bytes.Length);
         ms.Write(bytes, 0, bytes.Length);
     }
 
-    private static void WriteFixed64(MemoryStream ms, ulong value)
+    private static void WriteFixed64(Stream ms, ulong value)
     {
         var bytes = BitConverter.GetBytes(value);
         ms.Write(bytes, 0, 8);
