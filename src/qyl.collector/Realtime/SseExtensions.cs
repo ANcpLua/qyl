@@ -28,7 +28,7 @@ public static partial class SseExtensions
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         var enumerator = source.GetAsyncEnumerator(ct);
-        Exception? caughtException = null;
+        Exception? caughtException;
         try
         {
             while (true)

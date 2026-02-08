@@ -56,10 +56,10 @@ public sealed class FrontendConsole
     }
 
     private static ConsoleLevel ParseLevel(string? s) =>
-        s?.ToLowerInvariant() switch
+        s?.ToUpperInvariant() switch
         {
-            "debug" => ConsoleLevel.Debug, "info" => ConsoleLevel.Info,
-            "warn" or "warning" => ConsoleLevel.Warn, "error" => ConsoleLevel.Error,
+            "DEBUG" => ConsoleLevel.Debug, "INFO" => ConsoleLevel.Info,
+            "WARN" or "WARNING" => ConsoleLevel.Warn, "ERROR" => ConsoleLevel.Error,
             _ => ConsoleLevel.Log
         };
 

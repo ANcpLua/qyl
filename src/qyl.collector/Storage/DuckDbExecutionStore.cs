@@ -18,13 +18,13 @@ internal sealed class DuckDbExecutionStore(DuckDbStore store) : IExecutionStore
     public Task<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken ct = default)
         => store.GetExecutionAsync(executionId, ct);
 
-    public async Task<IReadOnlyList<WorkflowExecution>> GetExecutionsAsync(
+    public Task<IReadOnlyList<WorkflowExecution>> GetExecutionsAsync(
         string? workflowName = null,
         WorkflowStatus? status = null,
         int limit = 50,
         CancellationToken ct = default)
     {
-        var statusStr = status?.ToString().ToLowerInvariant();
-        return await store.GetExecutionsAsync(workflowName, statusStr, limit, ct).ConfigureAwait(false);
+        var statusStr = status?.ToString().ToUpperInvariant();
+        return store.GetExecutionsAsync(workflowName, statusStr, limit, ct);
     }
 }

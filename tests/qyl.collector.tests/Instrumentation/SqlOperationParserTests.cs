@@ -101,12 +101,12 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_WithClauseSelect_IdentifiesAsSelect()
     {
-        var sql = """
-                  WITH temp_data AS (
-                      SELECT id, name FROM source
-                  )
-                  SELECT * FROM temp_data
-                  """;
+        const string sql = """
+                           WITH temp_data AS (
+                               SELECT id, name FROM source
+                           )
+                           SELECT * FROM temp_data
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("SELECT", result);
@@ -115,13 +115,13 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_WithClauseInsert_IdentifiesAsInsert()
     {
-        var sql = """
-                  WITH source_data AS (
-                      SELECT id FROM input_table
-                  )
-                  INSERT INTO output_table
-                  SELECT * FROM source_data
-                  """;
+        const string sql = """
+                           WITH source_data AS (
+                               SELECT id FROM input_table
+                           )
+                           INSERT INTO output_table
+                           SELECT * FROM source_data
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("INSERT", result);
@@ -130,13 +130,13 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_WithClauseUpdate_IdentifiesAsUpdate()
     {
-        var sql = """
-                  WITH new_values AS (
-                      SELECT id, new_value FROM staging
-                  )
-                  UPDATE target SET value = new_values.new_value
-                  FROM new_values WHERE target.id = new_values.id
-                  """;
+        const string sql = """
+                           WITH new_values AS (
+                               SELECT id, new_value FROM staging
+                           )
+                           UPDATE target SET value = new_values.new_value
+                           FROM new_values WHERE target.id = new_values.id
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("UPDATE", result);
@@ -145,12 +145,12 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_WithClauseDelete_IdentifiesAsDelete()
     {
-        var sql = """
-                  WITH ids_to_delete AS (
-                      SELECT id FROM old_records WHERE date < '2020-01-01'
-                  )
-                  DELETE FROM archive WHERE id IN (SELECT id FROM ids_to_delete)
-                  """;
+        const string sql = """
+                           WITH ids_to_delete AS (
+                               SELECT id FROM old_records WHERE date < '2020-01-01'
+                           )
+                           DELETE FROM archive WHERE id IN (SELECT id FROM ids_to_delete)
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("DELETE", result);
@@ -159,15 +159,15 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_RecursiveWithClause_IdentifiesMainOperation()
     {
-        var sql = """
-                  WITH RECURSIVE hierarchy AS (
-                      SELECT id, parent_id FROM tree WHERE parent_id IS NULL
-                      UNION ALL
-                      SELECT t.id, t.parent_id FROM tree t
-                      JOIN hierarchy h ON t.parent_id = h.id
-                  )
-                  SELECT * FROM hierarchy
-                  """;
+        const string sql = """
+                           WITH RECURSIVE hierarchy AS (
+                               SELECT id, parent_id FROM tree WHERE parent_id IS NULL
+                               UNION ALL
+                               SELECT t.id, t.parent_id FROM tree t
+                               JOIN hierarchy h ON t.parent_id = h.id
+                           )
+                           SELECT * FROM hierarchy
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("SELECT", result);
@@ -176,12 +176,12 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_MultipleWithClauses_IdentifiesMainOperation()
     {
-        var sql = """
-                  WITH
-                    cte1 AS (SELECT id FROM table1),
-                    cte2 AS (SELECT id FROM table2)
-                  SELECT * FROM cte1 UNION ALL SELECT * FROM cte2
-                  """;
+        const string sql = """
+                           WITH
+                             cte1 AS (SELECT id FROM table1),
+                             cte2 AS (SELECT id FROM table2)
+                           SELECT * FROM cte1 UNION ALL SELECT * FROM cte2
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("SELECT", result);
@@ -234,11 +234,11 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_OnlyComments_ReturnsNull()
     {
-        var sql = """
-                  -- Just comments
-                  /* And block comments */
-                  -- No actual SQL
-                  """;
+        const string sql = """
+                           -- Just comments
+                           /* And block comments */
+                           -- No actual SQL
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Null(result);
@@ -251,7 +251,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_CreateTableStatement_ReturnsCreate()
     {
-        var sql = "CREATE TABLE users (id INT, name VARCHAR(255))";
+        const string sql = "CREATE TABLE users (id INT, name VARCHAR(255))";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("CREATE", result);
     }
@@ -259,7 +259,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_DropTableStatement_ReturnsDrop()
     {
-        var sql = "DROP TABLE IF EXISTS archive";
+        const string sql = "DROP TABLE IF EXISTS archive";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("DROP", result);
     }
@@ -267,7 +267,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_AlterTableStatement_ReturnsAlter()
     {
-        var sql = "ALTER TABLE users ADD COLUMN email VARCHAR(255)";
+        const string sql = "ALTER TABLE users ADD COLUMN email VARCHAR(255)";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("ALTER", result);
     }
@@ -275,7 +275,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_TruncateStatement_ReturnsTruncate()
     {
-        var sql = "TRUNCATE TABLE logs";
+        const string sql = "TRUNCATE TABLE logs";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("TRUNCATE", result);
     }
@@ -287,7 +287,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_BeginTransaction_ReturnsBegin()
     {
-        var sql = "BEGIN TRANSACTION";
+        const string sql = "BEGIN TRANSACTION";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("BEGIN", result);
     }
@@ -295,7 +295,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_CommitTransaction_ReturnsCommit()
     {
-        var sql = "COMMIT";
+        const string sql = "COMMIT";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("COMMIT", result);
     }
@@ -303,7 +303,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_RollbackTransaction_ReturnsRollback()
     {
-        var sql = "ROLLBACK";
+        const string sql = "ROLLBACK";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("ROLLBACK", result);
     }
@@ -315,7 +315,7 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_UnknownOperationKeyword_ReturnsNull()
     {
-        var sql = "PRAGMA table_info(users)";
+        const string sql = "PRAGMA table_info(users)";
         var result = SqlOperationParser.TryParse(sql);
         Assert.Null(result);
     }
@@ -323,11 +323,11 @@ public sealed class SqlOperationParserTests
     [Fact]
     public void Parse_MultipleStatementsBatch_IdentifiesFirstOperation()
     {
-        var sql = """
-                  SELECT id FROM users;
-                  INSERT INTO log VALUES ('processed');
-                  UPDATE stats SET count = count + 1;
-                  """;
+        const string sql = """
+                           SELECT id FROM users;
+                           INSERT INTO log VALUES ('processed');
+                           UPDATE stats SET count = count + 1;
+                           """;
 
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal("SELECT", result);

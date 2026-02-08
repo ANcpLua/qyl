@@ -89,7 +89,7 @@ public static class CodexTelemetryMapper
     ///     Determines if attributes contain Codex telemetry.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasCodexAttributes(Dictionary<string, string> attributes)
+    public static bool HasCodexAttributes(IDictionary<string, string> attributes)
     {
         return attributes.ContainsKey(CodexModel) ||
                attributes.ContainsKey(CodexConversationId) ||
@@ -101,7 +101,7 @@ public static class CodexTelemetryMapper
     ///     Mutates the attributes dictionary in-place for efficiency.
     /// </summary>
     /// <returns>True if transformation was applied, false otherwise.</returns>
-    public static bool TransformAttributes(string? spanName, Dictionary<string, string> attributes)
+    public static bool TransformAttributes(string? spanName, IDictionary<string, string> attributes)
     {
         if (!IsCodexSpan(spanName) && !HasCodexAttributes(attributes))
             return false;
@@ -203,7 +203,7 @@ public static class CodexTelemetryMapper
     // Mapping Helpers
     // =========================================================================
 
-    private static bool MapOperationName(string? spanName, Dictionary<string, string> attributes)
+    private static bool MapOperationName(string? spanName, IDictionary<string, string> attributes)
     {
         if (spanName is null || attributes.ContainsKey(GenAiAttributes.OperationName))
             return false;
@@ -216,7 +216,7 @@ public static class CodexTelemetryMapper
             UserPrompt => GenAiAttributes.Operations.Chat,
             ToolDecision => GenAiAttributes.Operations.ExecuteTool,
             ToolResult => GenAiAttributes.Operations.ExecuteTool,
-            _ when spanName.StartsWith(CodexPrefix) => GenAiAttributes.Operations.Chat,
+            _ when spanName.StartsWith(CodexPrefix, StringComparison.Ordinal) => GenAiAttributes.Operations.Chat,
             _ => null
         };
 
@@ -229,7 +229,7 @@ public static class CodexTelemetryMapper
         return false;
     }
 
-    private static bool MapModel(Dictionary<string, string> attributes)
+    private static bool MapModel(IDictionary<string, string> attributes)
     {
         if (!attributes.TryGetValue(CodexModel, out var model))
             return false;
@@ -254,11 +254,11 @@ public static class CodexTelemetryMapper
         return transformed;
     }
 
-    private static bool MapConversationId(Dictionary<string, string> attributes)
+    private static bool MapConversationId(IDictionary<string, string> attributes)
     {
         // Try conversation_id first, then thread_id
-        var conversationId = attributes.GetValueOrDefault(CodexConversationId)
-                             ?? attributes.GetValueOrDefault(CodexThreadId);
+        _ = attributes.TryGetValue(CodexConversationId, out var conversationId);
+        conversationId ??= attributes.TryGetValue(CodexThreadId, out var threadId) ? threadId : null;
 
         if (conversationId is null || attributes.ContainsKey(GenAiAttributes.ConversationId))
             return false;
@@ -267,7 +267,7 @@ public static class CodexTelemetryMapper
         return true;
     }
 
-    private static bool MapTokenUsage(Dictionary<string, string> attributes)
+    private static bool MapTokenUsage(IDictionary<string, string> attributes)
     {
         var transformed = false;
 
@@ -290,7 +290,7 @@ public static class CodexTelemetryMapper
         return transformed;
     }
 
-    private static bool MapFinishReasons(Dictionary<string, string> attributes)
+    private static bool MapFinishReasons(IDictionary<string, string> attributes)
     {
         if (!attributes.TryGetValue(CodexFinishReason, out var finishReason))
             return false;
@@ -308,7 +308,7 @@ public static class CodexTelemetryMapper
         return true;
     }
 
-    private static bool MapToolAttributes(Dictionary<string, string> attributes)
+    private static bool MapToolAttributes(IDictionary<string, string> attributes)
     {
         var transformed = false;
 
@@ -338,7 +338,7 @@ public static class CodexTelemetryMapper
         return transformed;
     }
 
-    private static bool MapErrorAttributes(Dictionary<string, string> attributes)
+    private static bool MapErrorAttributes(IDictionary<string, string> attributes)
     {
         var transformed = false;
 
@@ -401,7 +401,7 @@ public static class CodexTelemetryMapper
         string? ToolName,
         string? ToolCallId);
 
-    private static GenAiFields ExtractGenAiFields(Dictionary<string, string> attributes)
+    private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes)
     {
         return new GenAiFields(
             ProviderName: attributes.GetValueOrDefault(GenAiAttributes.ProviderName),

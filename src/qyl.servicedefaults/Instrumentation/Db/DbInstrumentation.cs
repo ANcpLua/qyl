@@ -137,7 +137,7 @@ public static class DbInstrumentation
 
     private static Activity? StartDbActivity(DbCommand command, string fallbackOperationName)
     {
-        var activity = ActivitySources.DbSource.StartActivity("db.query", ActivityKind.Client);
+        var activity = ActivitySources.DbSource.StartActivity("db.query", ActivityKind.Client, default(ActivityContext));
 
         if (activity is null)
             return null;

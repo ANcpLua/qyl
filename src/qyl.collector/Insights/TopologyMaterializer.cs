@@ -1,5 +1,3 @@
-using System.Text;
-
 namespace qyl.collector.Insights;
 
 /// <summary>

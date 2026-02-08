@@ -218,7 +218,7 @@ public sealed class SpanQueryBuilder
     {
         var idx = NextParamIndex;
         var newParams = new List<object?>(_parameters) { value };
-        var sql = sqlTemplate.Replace("{p}", $"${idx}");
+        var sql = sqlTemplate.Replace("{p}", $"${idx}", StringComparison.Ordinal);
         var clause = new WhereClause(sql, CompareOp.Raw, null);
         var clauses = new List<WhereClause>(_whereClauses) { clause };
         return new SpanQueryBuilder(_selectCols, clauses, _groupByCols, _orderByCols, newParams, _limit, _offset,

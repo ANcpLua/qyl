@@ -174,25 +174,25 @@ public sealed partial class EmbeddedDashboardMiddleware
         return resources.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
 
-    private static string GetContentType(string path) => Path.GetExtension(path).ToLowerInvariant() switch
+    private static string GetContentType(string path) => Path.GetExtension(path).ToUpperInvariant() switch
     {
-        ".html" => "text/html; charset=utf-8",
-        ".css" => "text/css; charset=utf-8",
-        ".js" => "application/javascript; charset=utf-8",
-        ".json" => "application/json; charset=utf-8",
-        ".svg" => "image/svg+xml",
-        ".png" => "image/png",
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".gif" => "image/gif",
-        ".ico" => "image/x-icon",
-        ".woff" => "font/woff",
-        ".woff2" => "font/woff2",
-        ".ttf" => "font/ttf",
-        ".eot" => "application/vnd.ms-fontobject",
-        ".webp" => "image/webp",
-        ".webm" => "video/webm",
-        ".mp4" => "video/mp4",
-        ".wasm" => "application/wasm",
+        ".HTML" => "text/html; charset=utf-8",
+        ".CSS" => "text/css; charset=utf-8",
+        ".JS" => "application/javascript; charset=utf-8",
+        ".JSON" => "application/json; charset=utf-8",
+        ".SVG" => "image/svg+xml",
+        ".PNG" => "image/png",
+        ".JPG" or ".JPEG" => "image/jpeg",
+        ".GIF" => "image/gif",
+        ".ICO" => "image/x-icon",
+        ".WOFF" => "font/woff",
+        ".WOFF2" => "font/woff2",
+        ".TTF" => "font/ttf",
+        ".EOT" => "application/vnd.ms-fontobject",
+        ".WEBP" => "image/webp",
+        ".WEBM" => "video/webm",
+        ".MP4" => "video/mp4",
+        ".WASM" => "application/wasm",
         _ => "application/octet-stream"
     };
 
@@ -200,7 +200,7 @@ public sealed partial class EmbeddedDashboardMiddleware
     {
         // Assets with hash in filename are immutable
         var name = Path.GetFileNameWithoutExtension(path);
-        return name.Contains('-') || name.Contains('.') ||
+        return name.Contains('-', StringComparison.Ordinal) || name.Contains('.', StringComparison.Ordinal) ||
                path.StartsWith("assets/", StringComparison.OrdinalIgnoreCase);
     }
 }

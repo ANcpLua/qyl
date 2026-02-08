@@ -46,10 +46,12 @@ public sealed class SpanRingBuffer
 
     public void PushRange(IEnumerable<SpanRecord> spans)
     {
-        Throw.IfNull(spans);
+        ArgumentNullException.ThrowIfNull(spans);
+        // Materialize once to avoid multiple enumeration of IEnumerable
+        var materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
         lock (_lock)
         {
-            foreach (var span in spans)
+            foreach (var span in materialized)
             {
                 _buffer[_head] = span;
                 _head = (_head + 1) % Capacity;
@@ -71,7 +73,8 @@ public sealed class SpanRingBuffer
             var idx = (_head - 1 + Capacity) % Capacity;
             for (var i = 0; i < take; i++)
             {
-                result[i] = _buffer[idx]!;
+                if (_buffer[idx] is { } span)
+                    result[i] = span;
                 idx = (idx - 1 + Capacity) % Capacity;
             }
 
@@ -134,7 +137,8 @@ public sealed class SpanRingBuffer
             for (var i = 0; i < _count; i++)
             {
                 var idx = (startIdx + i) % Capacity;
-                result[i] = _buffer[idx]!;
+                if (_buffer[idx] is { } span)
+                    result[i] = span;
             }
 
             return result;

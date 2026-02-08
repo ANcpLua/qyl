@@ -69,10 +69,10 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
 
             if (response?.Items is not { Count: > 0 }) return [];
 
-            Func<StoreSession, string> keySelector = groupBy.ToLowerInvariant() switch
+            Func<StoreSession, string> keySelector = groupBy.ToUpperInvariant() switch
             {
-                "model" => s => s.Models?.FirstOrDefault() ?? "unknown",
-                "hour" => s => ParseTime(s.StartTime)?.ToString("yyyy-MM-dd HH:00") ?? "unknown",
+                "MODEL" => s => s.Models?.FirstOrDefault() ?? "unknown",
+                "HOUR" => s => ParseTime(s.StartTime)?.ToString("yyyy-MM-dd HH:00") ?? "unknown",
                 _ => s => s.ServiceName ?? "unknown"
             };
 

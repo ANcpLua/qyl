@@ -17,7 +17,6 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
             Version = "1.0.0"
         });
     private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
-    private readonly ILogger<MessageSender> _logger = logger;
     private IChannel? _channel;
 
     private IConnection? _connection;
@@ -70,13 +69,13 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
                 props,
                 Encoding.UTF8.GetBytes(body)).ConfigureAwait(false);
 
-            _logger.MessageSent(body);
+            logger.MessageSent(body);
 
             return body;
         }
         catch (Exception ex)
         {
-            _logger.MessagePublishingFailed(ex);
+            logger.MessagePublishingFailed(ex);
             throw;
         }
     }
@@ -91,7 +90,7 @@ public sealed class MessageSender(ILogger<MessageSender> logger) : IDisposable
         }
         catch (Exception ex)
         {
-            _logger.FailedToInjectTraceContext(ex);
+            logger.FailedToInjectTraceContext(ex);
         }
     }
 }

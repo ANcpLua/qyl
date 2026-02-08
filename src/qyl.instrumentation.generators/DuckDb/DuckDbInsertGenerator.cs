@@ -81,7 +81,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             }
         }
 
-        if (string.IsNullOrEmpty(tableName))
+        if (tableName is not { Length: > 0 })
             return null;
 
         // Collect properties
@@ -116,7 +116,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
             typeSymbol.ContainingNamespace.ToDisplayString(),
             typeSymbol.Name,
             typeDecl is RecordDeclarationSyntax ? "record" : "class",
-            tableName!, // Validated non-null above by string.IsNullOrEmpty check
+            tableName,
             onConflict,
             [..columns]);
     }

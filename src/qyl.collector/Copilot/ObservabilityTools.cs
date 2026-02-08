@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Text;
 using Microsoft.Extensions.AI;
-using qyl.collector.Storage;
 using qyl.copilot.Instrumentation;
 
 namespace qyl.collector.Copilot;

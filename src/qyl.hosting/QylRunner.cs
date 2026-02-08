@@ -298,11 +298,9 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
-            CreateNoWindow = true
+            CreateNoWindow = true,
+            WorkingDirectory = workingDir ?? ""
         };
-
-        if (workingDir is not null)
-            psi.WorkingDirectory = workingDir;
 
         foreach (var (key, value) in env)
             psi.Environment[key] = value;
@@ -532,7 +530,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     private static void PrintLog(string name, string message, bool isError = false)
     {
         var color = isError ? "\u001b[31m" : "\u001b[38;5;245m";
-        var reset = "\u001b[0m";
+        const string reset = "\u001b[0m";
         var nameColor = GetResourceColor(name);
 
         Console.WriteLine($"  {nameColor}[{name}]{reset} {color}{message}{reset}");

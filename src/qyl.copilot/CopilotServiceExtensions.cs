@@ -168,17 +168,19 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (_disposed) return default;
         _disposed = true;
 
         _lock.Dispose();
 
         if (_adapter is not null)
         {
-            await _adapter.DisposeAsync().ConfigureAwait(false);
+            return _adapter.DisposeAsync();
         }
+
+        return default;
     }
 
     /// <summary>
@@ -265,17 +267,19 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (_disposed) return default;
         _disposed = true;
 
         _lock.Dispose();
 
         if (_engine is not null)
         {
-            await _engine.DisposeAsync().ConfigureAwait(false);
+            return _engine.DisposeAsync();
         }
+
+        return default;
     }
 
     /// <summary>

@@ -19,7 +19,6 @@ public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposab
             Version = "1.0.0"
         });
     private static readonly TextMapPropagator Propagator = Propagators.DefaultTextMapPropagator;
-    private readonly ILogger<MessageReceiver> _logger = logger;
     private IChannel? _channel;
 
     private IConnection? _connection;
@@ -57,7 +56,7 @@ public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposab
         {
             var message = Encoding.UTF8.GetString(ea.Body.Span.ToArray());
 
-            _logger.MessageReceived(message);
+            logger.MessageReceived(message);
 
             activity?.SetTag("message", message);
 
@@ -69,7 +68,7 @@ public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposab
         }
         catch (Exception ex)
         {
-            _logger.MessageProcessingFailed(ex);
+            logger.MessageProcessingFailed(ex);
         }
     }
 
@@ -84,7 +83,7 @@ public sealed class MessageReceiver(ILogger<MessageReceiver> logger) : IDisposab
         }
         catch (Exception ex)
         {
-            _logger.FailedToExtractTraceContext(ex);
+            logger.FailedToExtractTraceContext(ex);
         }
 
         return [];

@@ -87,19 +87,19 @@ public static class OtlpConverter
         // Priority order matches protobuf oneof semantics
         if (value.StringValue is not null) return value.StringValue;
         if (value.IntValue.HasValue) return value.IntValue.Value.ToString();
-        if (value.DoubleValue.HasValue) return value.DoubleValue.Value.ToString();
+        if (value.DoubleValue.HasValue) return value.DoubleValue.Value.ToString(CultureInfo.InvariantCulture);
         if (value.BoolValue.HasValue) return value.BoolValue.Value.ToString().ToLowerInvariant();
         if (value.BytesValue is not null) return Convert.ToBase64String(value.BytesValue);
         if (value.ArrayValue is not null)
         {
-            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static v => v is not null).ToArray()!;
+            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static v => v is not null).ToArray();
             return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
         }
 
         if (value.KvlistValue is null) return null;
         var dict = value.KvlistValue
             .Where(static kv => ConvertAnyValueToString(kv.Value) is not null)
-            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertAnyValueToString(kv.Value)!);
+            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertAnyValueToString(kv.Value));
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
 
@@ -202,8 +202,8 @@ public static class OtlpConverter
 
             var value = attr.Value?.StringValue
                         ?? attr.Value?.IntValue?.ToString()
-                        ?? attr.Value?.DoubleValue?.ToString()
-                        ?? attr.Value?.BoolValue?.ToString()?.ToLowerInvariant();
+                        ?? attr.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
+                        ?? attr.Value?.BoolValue?.ToString().ToLowerInvariant();
 
             if (value is not null) attributes[attr.Key] = value;
         }
@@ -267,7 +267,7 @@ public static class OtlpConverter
     ///     OTLP doesn't have a dedicated baggage field, so some instrumentations
     ///     store baggage in span attributes with "baggage." prefix.
     /// </summary>
-    private static string? ExtractBaggageJson(Dictionary<string, string> attributes)
+    private static string? ExtractBaggageJson(IReadOnlyDictionary<string, string> attributes)
     {
         Dictionary<string, string>? baggage = null;
 
@@ -309,7 +309,7 @@ public static class OtlpConverter
     ///     Extracts GenAI attributes with fallback to deprecated OTel 1.38 names.
     /// </summary>
 #pragma warning disable QYL0002 // Fallback to deprecated attributes for backward compatibility
-    private static GenAiData ExtractGenAiAttributes(Dictionary<string, string> attributes)
+    private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
         var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
                            ?? attributes.GetValueOrDefault("gen_ai.system");

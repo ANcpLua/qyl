@@ -78,7 +78,10 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         try
         {
             var response = await _http.GetFromJsonAsync("/api/tags", OllamaJsonContext.Default.OllamaTagsResponse, ct);
-            return response?.Models?
+            if (response?.Models is not { } models)
+                return [];
+
+            return models
                 .Select(m => new ModelInfo(
                     m.Name ?? "unknown",
                     ProviderCapabilities.Chat | ProviderCapabilities.Streaming,
@@ -87,7 +90,7 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
                         ["size"] = m.Size.ToString(CultureInfo.InvariantCulture),
                         ["modified_at"] = m.ModifiedAt ?? string.Empty
                     }))
-                .ToArray() ?? [];
+                .ToArray();
         }
         catch (HttpRequestException)
         {

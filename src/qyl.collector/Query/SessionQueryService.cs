@@ -351,7 +351,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         cmd.Parameters.Add(new DuckDBParameter { Value = offset });
     }
 
-    private static async Task<List<SessionQueryRow>> ExecuteSessionQueryAsync(DuckDBCommand cmd, CancellationToken ct)
+    private static async Task<List<SessionQueryRow>> ExecuteSessionQueryAsync(DbCommand cmd, CancellationToken ct)
     {
         var sessions = new List<SessionQueryRow>();
         await using var reader = await cmd.ExecuteReaderAsync(ct);
@@ -401,7 +401,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         return value switch
         {
             IReadOnlyList<string> list => list, // Covers string[], List<string>, etc.
-            object[] arr => arr.Select(static x => x?.ToString() ?? "").Where(static s => s.Length > 0).ToArray(),
+            object[] arr => arr.Select(static x => x.ToString() ?? "").Where(static s => s.Length > 0).ToArray(),
             _ => []
         };
     }
