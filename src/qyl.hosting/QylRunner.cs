@@ -364,7 +364,8 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         activity?.SetTag("qyl.hosting.health_check.endpoint", endpoint);
         activity?.SetTag("qyl.hosting.health_check.port", port);
 
-        using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
+        using var client = new HttpClient();
+        client.Timeout = TimeSpan.FromSeconds(2);
         var url = $"http://localhost:{port}{endpoint}";
         var attempts = 0;
 

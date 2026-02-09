@@ -78,6 +78,7 @@
         <File Path="src/qyl.copilot/CLAUDE.md"/>
         <File Path="src/qyl.dashboard/CLAUDE.md"/>
         <File Path="src/qyl.mcp/CLAUDE.md"/>
+        <File Path="src/qyl.hosting/CLAUDE.md"/>
     </Folder>
 
     <!-- Tests -->
