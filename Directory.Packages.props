@@ -81,7 +81,7 @@
     <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260128.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260209.1"/>
     <!-- GitHub Copilot SDK -->
     <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.4.60-beta"/>
