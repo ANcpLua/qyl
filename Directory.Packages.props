@@ -77,7 +77,7 @@
     <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260128.1"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260128.1"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260209.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260128.1"/>
     <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260128.1"/>
