@@ -49,7 +49,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.2"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.2.0"/>
     <!-- System -->
-    <PackageVersion Include="System.IO.Hashing" Version="10.0.2"/>
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.3"/>
     <!-- DuckDB -->
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.4.4"/>
     <!-- gRPC & Protobuf -->
