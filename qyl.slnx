@@ -14,6 +14,8 @@
         <File Path="railway.toml"/>
         <File Path="README.md"/>
         <File Path="ROADMAP.md"/>
+        <File Path="SemanticKernelToAgentFramework.md"/>
+
     </Folder>
 
     <Folder Name="/plugin/">
@@ -81,6 +83,9 @@
         <File Path="src/qyl.dashboard/CLAUDE.md"/>
         <File Path="src/qyl.mcp/CLAUDE.md"/>
         <File Path="src/qyl.hosting/CLAUDE.md"/>
+        <File Path="src/qyl.browser/CLAUDE.md"/>
+        <File Path="src/qyl.watch/CLAUDE.md"/>
+        <File Path="src/qyl.cli/CLAUDE.md"/>
     </Folder>
 
     <!-- Tests -->

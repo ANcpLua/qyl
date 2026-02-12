@@ -49,6 +49,9 @@ dotnet test                                      # Run tests
 | `src/qyl.servicedefaults/` | OTel + health + resilience defaults |
 | `src/qyl.servicedefaults.generator/` | Roslyn auto-instrumentation |
 | `src/qyl.instrumentation.generators/` | Telemetry source generators |
+| `src/qyl.browser/` | Browser OTLP SDK (TypeScript, ESM + IIFE) |
+| `src/qyl.watch/` | Live terminal span viewer (dotnet tool) |
+| `src/qyl.cli/` | One-command instrumentation CLI (dotnet tool) |
 | `src/qyl.Analyzers/` | Roslyn analyzers (QYL001-015) |
 | `src/qyl.Analyzers.CodeFixes/` | Code fix providers |
 | `tests/` | xUnit v3 + MTP tests |
