@@ -84,7 +84,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     /// <summary>
     /// Adds a reference to another resource - injects connection info as environment variables.
     /// </summary>
-    public TSelf WithReference(IQylResource reference)
+    protected TSelf WithReference(IQylResource reference)
     {
         _dependencies.Add(reference);
 
@@ -158,6 +158,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
             var port = _ports[0];
             _ports[0] = port with { External = true };
         }
+
         return (TSelf)this;
     }
 

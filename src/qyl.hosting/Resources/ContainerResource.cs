@@ -22,12 +22,12 @@ public sealed class ContainerResource : QylResourceBase<ContainerResource>
     /// <summary>
     /// Volume mounts.
     /// </summary>
-    public IReadOnlyList<string> Volumes => _volumes;
+    public IEnumerable<string> Volumes => _volumes;
 
     /// <summary>
     /// Additional container arguments.
     /// </summary>
-    public IReadOnlyList<string> Args => _args;
+    public IEnumerable<string> Args => _args;
 
     public override string Type => "container";
 
