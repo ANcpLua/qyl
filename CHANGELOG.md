@@ -2,6 +2,15 @@
 
 ## 2026-02
 
+- feat: @qyl/browser — TypeScript OTLP SDK with Web Vitals, error tracking, SPA navigation (#45)
+- feat: qyl-watch — live terminal observability TUI with Spectre.Console (#50)
+- feat: qyl init — one-command instrumentation CLI for .NET and Docker (#49)
+- feat: service discovery with heartbeat monitoring and health checks (#48)
+- feat: SQL-based alerting engine with threshold/anomaly/composite rules (#47)
+- feat: auto-generated dashboards from telemetry patterns (#46)
+- refactor(build): adopt Nuke.Components 10.1.0, delete hand-rolled BuildCore
+- refactor(build): split BuildTest into BuildTest + BuildCoverage (SRP)
+- chore: update all NuGet packages to latest
 - fix: resolve CI build failures
 - refactor: migrate domains/ to models/, wire GenerateSemconv
 
