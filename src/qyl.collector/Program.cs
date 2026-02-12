@@ -253,6 +253,10 @@ app.MapInsightsEndpoints();
 app.MapAlertEndpoints();
 app.MapDashboardEndpoints();
 
+// Browser SDK script tag endpoint — serves the pre-built IIFE bundle
+app.MapGet("/qyl.js", () =>
+    Results.File(Path.Combine(app.Environment.WebRootPath, "qyl.js"), "application/javascript"));
+
 app.MapPost("/api/v1/ingest", async (
     HttpContext context,
     DuckDbStore store,
