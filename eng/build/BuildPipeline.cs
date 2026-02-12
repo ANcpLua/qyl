@@ -22,7 +22,7 @@ using Serilog;
 ///     Single entry point: <c>nuke Generate</c>
 /// </summary>
 [ParameterPrefix(nameof(IPipeline))]
-interface IPipeline : IHasSolution
+interface IPipeline : IHazSourcePaths
 {
     // ════════════════════════════════════════════════════════════════════════
     // Parameters
@@ -357,7 +357,7 @@ interface IPipeline : IHasSolution
                     ? new GenerationGuard(dryRun: true)
                     : GenerationGuard.ForLocal(force);
 
-            var paths = BuildPaths.From(this);
+            var paths = CodegenPaths.From(this);
             var openApiPath = paths.OpenApi / "openapi.yaml";
 
             if (!openApiPath.FileExists())

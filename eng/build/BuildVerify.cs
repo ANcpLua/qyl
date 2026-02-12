@@ -26,7 +26,7 @@ using Serilog;
 ///     TODO: Use ProjectBuilder for isolated MSBuild execution with binlog introspection.
 /// </summary>
 [ParameterPrefix(nameof(IVerify))]
-interface IVerify : IHasSolution
+interface IVerify : IHazSourcePaths
 {
     [Parameter("Skip verification after generation")]
     bool? SkipVerify => TryGetValue<bool?>(() => SkipVerify);
@@ -44,7 +44,7 @@ interface IVerify : IHasSolution
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var paths = BuildPaths.From(this);
+            var paths = CodegenPaths.From(this);
             var generatedFiles = paths.Protocol.GlobFiles("**/*.g.cs")
                 .Concat(paths.CollectorStorage.GlobFiles("*.g.cs"))
                 .ToList();
@@ -71,7 +71,7 @@ interface IVerify : IHasSolution
         .OnlyWhenDynamic(() => SkipVerify != true)
         .Executes(() =>
         {
-            var paths = BuildPaths.From(this);
+            var paths = CodegenPaths.From(this);
             var schemaFile = paths.CollectorStorage / "DuckDbSchema.g.cs";
 
             if (!schemaFile.FileExists())

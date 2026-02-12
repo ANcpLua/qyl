@@ -23,8 +23,10 @@ using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Tools.ReportGenerator;
 using Nuke.Common.Utilities;
+using Nuke.Components;
 using Serilog;
 
 public static class MtpExtensions
@@ -166,11 +168,11 @@ public sealed class MtpArgumentsBuilder
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// ITest - Test Execution
+// IQylTest - Test Execution via Nuke.Components.ITest + MTP
 // ════════════════════════════════════════════════════════════════════════════════
 
-[ParameterPrefix(nameof(ITest))]
-interface ITest : ICompile
+[ParameterPrefix(nameof(IQylTest))]
+interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
 {
     [Parameter("Test filter expression (xUnit v3 query syntax)")]
     string? TestFilter => TryGetValue(() => TestFilter);
@@ -178,130 +180,105 @@ interface ITest : ICompile
     [Parameter("Stop on first test failure")]
     bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
 
-    [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
+    [Parameter("Show live test output")]
+    bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
-    IEnumerable<Project> TestProjects =>
-    [
-        .. Solution.AllProjects.Where(static p =>
-            p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true)
-    ];
+    // Override test project discovery (tests/ dir, not *.Tests naming)
+    IEnumerable<Project> Nuke.Components.ITest.TestProjects =>
+        Solution.AllProjects.Where(static p =>
+            p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true);
 
-    Target SetupTestcontainers => d => d
-        .Description("Configure Testcontainers for CI")
-        .Unlisted()
-        .Executes(() =>
+    // Override results directory
+    Configure<DotNetTestSettings> Nuke.Components.ITest.TestSettings => s =>
+    {
+        EnsureTestcontainersConfigured();
+        return s.SetResultsDirectory(TestResultsDirectory);
+    };
+
+    // MTP arguments per project (replaces ExecuteMtpTestInternal)
+    // .NET 10 SDK: dotnet test requires --project flag (positional arg removed)
+    Configure<DotNetTestSettings, Project> Nuke.Components.ITest.TestProjectSettings => (s, project) =>
+    {
+        var mtp = MtpExtensions.Mtp()
+            .ReportTrx($"{project.Name}.trx")
+            .IgnoreExitCode(8);
+
+        if (TestFilter is { Length: > 0 } f) mtp.FilterQuery(f);
+        if (StopOnFail == true) mtp.StopOnFail();
+        if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+        // NUKE 10.1.0 uses positional arg for project, but .NET 10 requires --project flag.
+        // Clear --logger (conflicts with MTP's --report-trx), reset positional arg,
+        // pass --project + MTP args via additional arguments.
+        string[] additionalArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+        return s.ClearLoggers().ResetProjectFile().SetProcessAdditionalArguments(additionalArgs);
+    };
+
+    sealed void EnsureTestcontainersConfigured()
+    {
+        if (IsServerBuild)
         {
-            if (IsServerBuild)
-            {
-                Environment.SetEnvironmentVariable("DOCKER_HOST", "unix:///var/run/docker.sock");
-                // Ryuk is Testcontainers' resource reaper container (named after Death Note character)
-                Environment.SetEnvironmentVariable("TESTCONTAINERS_RYUK_DISABLED", "false");
-                Log.Information("Testcontainers: Configured for CI");
-                Log.Debug("  DOCKER_HOST = unix:///var/run/docker.sock");
-            }
-            else
-            {
-                Log.Debug("Testcontainers: Using local Docker configuration");
-            }
-        });
-
-    Target Test => d => d
-        .Description("Run all tests")
-        .DependsOn(Compile)
-        .DependsOn(SetupTestcontainers)
-        .Executes(() => RunTests(new TestOptions(TestFilter)));
+            Environment.SetEnvironmentVariable("DOCKER_HOST", "unix:///var/run/docker.sock");
+            Environment.SetEnvironmentVariable("TESTCONTAINERS_RYUK_DISABLED", "false");
+            Log.Information("Testcontainers: Configured for CI");
+        }
+    }
 
     Target UnitTests => d => d
         .Description("Run unit tests only")
-        .DependsOn(Compile)
-        .Executes(() => RunTests(new TestOptions(
-            NamespaceFilter: "*.Unit.*",
-            ReportPrefix: "Unit")));
+        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetTest(s => s
+                .SetNoBuild(true)
+                .SetNoRestore(true)
+                .SetResultsDirectory(TestResultsDirectory)
+                .CombineWith(TestProjects, (ss, project) =>
+                {
+                    var mtp = MtpExtensions.Mtp()
+                        .ReportTrx($"{project.Name}.Unit.trx")
+                        .IgnoreExitCode(8)
+                        .FilterNamespace("*.Unit.*");
+
+                    if (StopOnFail == true) mtp.StopOnFail();
+                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                    string[] unitArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    return ss.SetProcessAdditionalArguments(unitArgs);
+                }), completeOnFailure: true);
+        });
 
     Target IntegrationTests => d => d
         .Description("Run integration tests only")
-        .DependsOn(Compile)
-        .DependsOn(SetupTestcontainers)
-        .Executes(() => RunTests(new TestOptions(
-            NamespaceFilter: "*.Integration.*",
-            ReportPrefix: "Integration")));
+        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .Executes(() =>
+        {
+            EnsureTestcontainersConfigured();
+            DotNetTasks.DotNetTest(s => s
+                .SetNoBuild(true)
+                .SetNoRestore(true)
+                .SetResultsDirectory(TestResultsDirectory)
+                .CombineWith(TestProjects, (ss, project) =>
+                {
+                    var mtp = MtpExtensions.Mtp()
+                        .ReportTrx($"{project.Name}.Integration.trx")
+                        .IgnoreExitCode(8)
+                        .FilterNamespace("*.Integration.*");
 
-    private void RunTests(TestOptions options)
-    {
-        foreach (var project in TestProjects)
-            RunTestProject(project, options);
-    }
+                    if (StopOnFail == true) mtp.StopOnFail();
+                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-    void RunTestProject(Project project, TestOptions options)
-    {
-        var reportName = options.ReportPrefix is { Length: > 0 } prefix
-            ? $"{project.Name}.{prefix}.trx"
-            : $"{project.Name}.trx";
-
-        Log.Information("Running tests: {Project}", project.Name);
-
-        var mtp = MtpExtensions.Mtp()
-            .ReportTrx(reportName)
-            .IgnoreExitCode(8);
-
-        if (options.Filter is { Length: > 0 } filter)
-            mtp.FilterQuery(filter);
-
-        if (options.NamespaceFilter is { Length: > 0 } ns)
-            mtp.FilterNamespace(ns);
-
-        if (options is { WithCoverage: true, CoverageOutput: { } coverageFile })
-            mtp.CoverageCobertura(coverageFile);
-
-        if (StopOnFail == true)
-            mtp.StopOnFail();
-
-        if (LiveOutput == true || IsLocalBuild)
-            mtp.ShowLiveOutput();
-
-        ExecuteMtpTestInternal(project, mtp);
-    }
-
-    void ExecuteMtpTestInternal(Project project, MtpArgumentsBuilder mtp)
-    {
-        var projectPath = project.Path ??
-                          throw new InvalidOperationException($"Project '{project.Name}' has no path");
-
-        var mtpArgs = mtp.BuildProcessArgs();
-
-        // .NET 10 MTP requires explicit --project flag
-        var arguments =
-            $"test --project {projectPath} --configuration {Configuration} " +
-            $"--no-build --no-restore --results-directory {TestResultsDirectory} {mtpArgs}";
-
-        var process = ProcessTasks.StartProcess(
-            ToolPathResolver.GetPathExecutable("dotnet"),
-            arguments,
-            RootDirectory,
-            logOutput: true);
-
-        process.AssertWaitForExit();
-
-        if (process.ExitCode is not (0 or 8))
-            throw new InvalidOperationException($"dotnet test failed with exit code {process.ExitCode}");
-
-        if (process.ExitCode is 8)
-            Log.Warning("Zero tests matched filter (exit code 8)");
-    }
-
-    public readonly record struct TestOptions(
-        string? Filter = null,
-        string? NamespaceFilter = null,
-        string ReportPrefix = "",
-        bool WithCoverage = false,
-        AbsolutePath? CoverageOutput = null);
+                    string[] integrationArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    return ss.SetProcessAdditionalArguments(integrationArgs);
+                }), completeOnFailure: true);
+        });
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
 // ICoverage - Code Coverage
 // ════════════════════════════════════════════════════════════════════════════════
 
-interface ICoverage : ITest
+interface ICoverage : IQylTest
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -311,21 +288,33 @@ interface ICoverage : ITest
 
     Target Coverage => d => d
         .Description("Run tests with code coverage")
-        .DependsOn(Compile)
-        .DependsOn(SetupTestcontainers)
+        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
         .Produces(CoverageDirectory / "**")
         .Executes(() =>
         {
+            EnsureTestcontainersConfigured();
             CoverageDirectory.CreateOrCleanDirectory();
             TestResultsDirectory.CreateOrCleanDirectory();
 
             foreach (var project in TestProjects)
             {
                 var coverageFile = CoverageDirectory / $"{project.Name}.cobertura.xml";
-                RunTestProject(project, new TestOptions(
-                    TestFilter,
-                    WithCoverage: true,
-                    CoverageOutput: coverageFile));
+                var mtp = MtpExtensions.Mtp()
+                    .ReportTrx($"{project.Name}.trx")
+                    .IgnoreExitCode(8)
+                    .CoverageCobertura(coverageFile);
+
+                if (TestFilter is { Length: > 0 } f) mtp.FilterQuery(f);
+                if (StopOnFail == true) mtp.StopOnFail();
+                if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                string[] coverageArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                DotNetTasks.DotNetTest(s => s
+                    .SetConfiguration(((IHazConfiguration)this).Configuration)
+                    .SetNoBuild(true)
+                    .SetNoRestore(true)
+                    .SetResultsDirectory(TestResultsDirectory)
+                    .SetProcessAdditionalArguments(coverageArgs));
             }
 
             GenerateCoverageReports();
@@ -356,8 +345,8 @@ interface ICoverage : ITest
             .SetAssemblyFilters("-Microsoft.*", "-System.*", "-xunit.*", "-*.tests")
             .SetClassFilters("-*.Migrations.*", "-*.Generated.*", "-*+<*>d__*");
 
-        if (IsServerBuild && GitVersion is not null)
-            settings = settings.SetTag(GitVersion.FullSemVer);
+        if (IsServerBuild && this is Build { Versioning: { } version })
+            settings = settings.SetTag(version.FullSemVer);
 
         ReportGeneratorTasks.ReportGenerator(settings);
 

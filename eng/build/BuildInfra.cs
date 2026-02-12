@@ -18,7 +18,7 @@ using Serilog;
 using static Nuke.Common.Tools.Docker.DockerTasks;
 
 [ParameterPrefix(nameof(IDocker))]
-interface IDocker : IHasSolution
+interface IDocker : IHazSourcePaths
 {
     // ─── Image Build Parameters ─────────────────────────────────────────────
     [Parameter("Docker image tag")] string ImageTag => "latest";
