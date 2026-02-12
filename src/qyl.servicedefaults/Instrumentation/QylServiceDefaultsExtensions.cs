@@ -21,6 +21,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Qyl.ServiceDefaults.Discovery;
 using Qyl.ServiceDefaults.Instrumentation;
 
 namespace Qyl.ServiceDefaults;
@@ -90,9 +91,15 @@ public static class QylServiceDefaultsExtensions
         ConfigureKestrel(builder.Services);
         ConfigureJson(builder.Services, options);
 
-        // Observability
+        // Observability (includes auto-discovery)
         ConfigureOpenTelemetry(builder, options);
         ConfigureHealthChecks(builder);
+
+        // Log discovery result once at startup
+        if (options.EnableAutoDiscovery)
+        {
+            builder.Services.AddHostedService<CollectorDiscoveryLogger>();
+        }
 
         // Resilience & Discovery
         ConfigureHttpClients(builder);
@@ -243,11 +250,22 @@ public static class QylServiceDefaultsExtensions
                 options.ConfigureTracing?.Invoke(tracing);
             });
 
-        // OTLP exporter (auto-enabled if endpoint configured)
+        // OTLP exporter: auto-discover collector if no explicit endpoint
         var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
         if (!string.IsNullOrWhiteSpace(otlpEndpoint))
         {
+            // Explicit env var — use directly, skip discovery
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+        else if (options.EnableAutoDiscovery)
+        {
+            var discovered = CollectorDiscovery.DiscoverEndpoint();
+            if (discovered is not null)
+            {
+                // Set env var so UseOtlpExporter() picks it up
+                Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", discovered.ToString());
+                builder.Services.AddOpenTelemetry().UseOtlpExporter();
+            }
         }
     }
 
@@ -300,6 +318,12 @@ public sealed class QylOptions
     ///     Enable .NET 10 validation. Default: true.
     /// </summary>
     public bool EnableValidation { get; set; } = true;
+
+    /// <summary>
+    ///     Enable automatic collector discovery via network probes when no
+    ///     explicit OTEL_EXPORTER_OTLP_ENDPOINT is configured. Default: true.
+    /// </summary>
+    public bool EnableAutoDiscovery { get; set; } = true;
 
     /// <summary>
     ///     Additional activity sources to register for tracing.

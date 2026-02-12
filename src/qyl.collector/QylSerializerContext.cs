@@ -67,6 +67,17 @@ namespace qyl.collector;
 [JsonSerializable(typeof(Insights.InsightsResponse))]
 [JsonSerializable(typeof(Insights.InsightTierStatus))]
 [JsonSerializable(typeof(IReadOnlyList<Insights.InsightTierStatus>))]
+// Dashboard types
+[JsonSerializable(typeof(Dashboards.DashboardDefinition))]
+[JsonSerializable(typeof(Dashboards.DashboardData))]
+[JsonSerializable(typeof(Dashboards.DashboardWidget))]
+[JsonSerializable(typeof(Dashboards.StatCardData))]
+[JsonSerializable(typeof(Dashboards.TimeSeriesPoint))]
+[JsonSerializable(typeof(Dashboards.TopNRow))]
+[JsonSerializable(typeof(IReadOnlyList<Dashboards.DashboardDefinition>))]
+[JsonSerializable(typeof(IReadOnlyList<Dashboards.DashboardWidget>))]
+[JsonSerializable(typeof(IReadOnlyList<Dashboards.TopNRow>))]
+[JsonSerializable(typeof(IReadOnlyList<Dashboards.TimeSeriesPoint>))]
 // Copilot types (for request body deserialization)
 [JsonSerializable(typeof(qyl.protocol.Copilot.ChatRequest))]
 [JsonSerializable(typeof(qyl.protocol.Copilot.WorkflowRunRequest))]

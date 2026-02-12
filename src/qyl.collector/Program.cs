@@ -6,6 +6,8 @@ using qyl.collector.Copilot;
 using qyl.collector.Grpc;
 using qyl.collector.Health;
 using qyl.collector.Insights;
+using qyl.collector.Alerting;
+using qyl.collector.Dashboards;
 using qyl.collector.Telemetry;
 using qyl.copilot;
 using qyl.copilot.Auth;
@@ -127,6 +129,12 @@ builder.Services.AddQylCopilotTelemetry();
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
 
+// SQL alerting: YAML-defined rules, periodic evaluation, webhook/console/SSE notifications
+builder.Services.AddAlertingServices();
+
+// Auto-generated dashboards: telemetry detection, dynamic widgets
+builder.Services.AddDashboardServices();
+
 // .NET 10 telemetry: enrichment, redaction, buffering
 builder.Services.AddQylTelemetry();
 
@@ -150,6 +158,9 @@ var app = builder.Build();
 // Register storage size callback for metrics (bridges DI-managed store with static metrics)
 var duckDbStore = app.Services.GetRequiredService<DuckDbStore>();
 QylMetrics.RegisterStorageSizeCallback(duckDbStore.GetStorageSizeBytes);
+
+// Initialize alert history schema (must happen after DuckDbStore is resolved)
+duckDbStore.InitializeAlertSchema();
 
 // OTLP middleware (before token auth - OTLP has its own auth)
 if (otlpCorsOptions.IsEnabled)
@@ -239,6 +250,8 @@ app.MapCopilotEndpoints();
 app.MapSseEndpoints();
 app.MapSpanMemoryEndpoints();
 app.MapInsightsEndpoints();
+app.MapAlertEndpoints();
+app.MapDashboardEndpoints();
 
 app.MapPost("/api/v1/ingest", async (
     HttpContext context,

@@ -1,18 +1,25 @@
 import {NavLink, useLocation} from 'react-router-dom';
 import {
     Activity,
+    AlertTriangle,
+    Brain,
     ChevronLeft,
     ChevronRight,
+    Database,
     FileText,
+    Globe,
+    MessageSquare,
     Network,
     Radio,
     Settings,
     Sparkles,
     Terminal,
 } from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
+import {useDashboards} from '@/hooks/use-dashboards';
 
 interface NavItem {
     to: string;
@@ -28,6 +35,15 @@ const navItems: NavItem[] = [
     {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
 ];
 
+const dashboardIconMap: Record<string, LucideIcon> = {
+    'activity': Activity,
+    'globe': Globe,
+    'brain': Brain,
+    'database': Database,
+    'alert-triangle': AlertTriangle,
+    'message-square': MessageSquare,
+};
+
 interface SidebarProps {
     collapsed: boolean;
     onCollapsedChange: (collapsed: boolean) => void;
@@ -36,6 +52,7 @@ interface SidebarProps {
 
 export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     const location = useLocation();
+    const {data: dashboards} = useDashboards();
 
     return (
         <aside
@@ -117,6 +134,54 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     return linkContent;
                 })}
             </nav>
+
+            {/* Auto-detected dashboards */}
+            {dashboards && dashboards.length > 0 && (
+                <div className="px-2 space-y-1">
+                    {!collapsed && (
+                        <div className="px-3 pt-2 pb-1 text-[8px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                            DASHBOARDS
+                        </div>
+                    )}
+                    {dashboards.map((db) => {
+                        const Icon = dashboardIconMap[db.icon] ?? Activity;
+                        const to = `/dashboards/${db.id}`;
+                        const isActive = location.pathname === to;
+
+                        const dbLinkContent = (
+                            <NavLink
+                                key={db.id}
+                                to={to}
+                                className={cn(
+                                    'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                    isActive
+                                        ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
+                                        : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
+                                )}
+                            >
+                                <Icon className="w-5 h-5 flex-shrink-0"/>
+                                {!collapsed && (
+                                    <span className="flex-1 truncate">{db.title.toUpperCase()}</span>
+                                )}
+                            </NavLink>
+                        );
+
+                        if (collapsed) {
+                            return (
+                                <Tooltip key={db.id} delayDuration={0}>
+                                    <TooltipTrigger asChild>{dbLinkContent}</TooltipTrigger>
+                                    <TooltipContent side="right"
+                                                    className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
+                                        {db.title.toUpperCase()}
+                                    </TooltipContent>
+                                </Tooltip>
+                            );
+                        }
+
+                        return dbLinkContent;
+                    })}
+                </div>
+            )}
 
             {/* Separator line */}
             <div className="border-t-3 border-brutal-zinc"/>
