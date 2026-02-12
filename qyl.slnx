@@ -75,6 +75,7 @@
         <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
         <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
         <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
+        <Project Path="src/qyl.browser/qyl.browser.esproj"/>
         <Project Path="src/qyl.watch/qyl.watch.csproj"/>
         <Project Path="src/qyl.cli/qyl.cli.csproj"/>
         <File Path="src/qyl.protocol/CLAUDE.md"/>

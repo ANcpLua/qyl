@@ -1,0 +1,39 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+
+    <PropertyGroup>
+        <FrontendRoot>$(MSBuildThisFileDirectory)</FrontendRoot>
+
+        <NpmExe Condition="'$(NpmExe)' == ''">npm</NpmExe>
+
+        <DistDir>$(FrontendRoot)dist</DistDir>
+        <NodeModulesDir>$(FrontendRoot)node_modules</NodeModulesDir>
+    </PropertyGroup>
+
+    <Target Name="Restore">
+        <Message Text="[Browser SDK] Restoring dependencies (npm)..." Importance="high"/>
+        <Exec Command="$(NpmExe) install" WorkingDirectory="$(FrontendRoot)"/>
+    </Target>
+
+    <Target Name="Build" DependsOnTargets="Restore">
+        <Message Text="[Browser SDK] Building ESM + IIFE bundles..." Importance="high"/>
+        <Exec Command="$(NpmExe) run build" WorkingDirectory="$(FrontendRoot)"/>
+    </Target>
+
+    <Target Name="Clean">
+        <Message Text="[Browser SDK] Cleaning artifacts..." Importance="high"/>
+        <RemoveDir Directories="$(DistDir)"/>
+    </Target>
+
+    <ItemGroup>
+        <None Include="package.json"/>
+        <None Include="vite.config.ts"/>
+        <None Include="vite.iife.config.ts"/>
+        <None Include="tsconfig.json"/>
+        <None Include="src\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Remove="node_modules\**"/>
+    </ItemGroup>
+
+</Project>
