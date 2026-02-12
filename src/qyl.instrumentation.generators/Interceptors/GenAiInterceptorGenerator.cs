@@ -59,7 +59,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 
     // Target methods we know how to instrument
     // Provider values: OTel semconv 1.39 (see qyl.protocol.Attributes.GenAiAttributes.Providers)
-    // QYL extensions: "ollama", "semantic_kernel" (not in OTel semconv)
+    // QYL extensions: "ollama" (not in OTel semconv)
     private static readonly Dictionary<string, GenAiTarget> KnownTargets = new()
     {
         // OTel semconv 1.39 providers
@@ -73,9 +73,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
             new GenAiTarget("azure.ai.inference", "chat", "chat {gen_ai.request.model}"),
 
         // QYL extension providers (not in OTel semconv)
-        ["OllamaSharp.OllamaApiClient.ChatAsync"] = new GenAiTarget("ollama", "chat", "chat {gen_ai.request.model}"),
-        ["Microsoft.SemanticKernel.ChatCompletion.IChatCompletionService.GetChatMessageContentsAsync"] =
-            new GenAiTarget("semantic_kernel", "chat", "chat {gen_ai.request.model}")
+        ["OllamaSharp.OllamaApiClient.ChatAsync"] = new GenAiTarget("ollama", "chat", "chat {gen_ai.request.model}")
     };
 
     public void Initialize(IncrementalGeneratorInitializationContext context)

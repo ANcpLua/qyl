@@ -303,7 +303,6 @@ internal static class GenAiInterceptorEmitter
             "deepseek" => "GenAiAttributes.Providers.DeepSeek",
             "perplexity" => "GenAiAttributes.Providers.Perplexity",
             "x_ai" => "GenAiAttributes.Providers.XAi",
-            "github_copilot" => "GenAiAttributes.Providers.GitHubCopilot",
             "microsoft_agents" => "GenAiAttributes.Providers.MicrosoftAgents",
             _ => $"\"{providerId}\"" // Fallback for custom providers
         };

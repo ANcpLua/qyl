@@ -19,6 +19,16 @@ internal static class GenAiCallSiteAnalyzer
     ///     Patterns cover OTel Semantic Conventions v1.39 operations:
     ///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank
     /// </remarks>
+    /// <summary>
+    ///     Shared method patterns for Microsoft Agent Framework types.
+    ///     AIAgent, ChatClientAgent, and DelegatingAIAgent all expose the same RunAsync/RunStreamingAsync API.
+    /// </summary>
+    private static readonly (string MethodName, string Operation, bool IsAsync)[] AgentFrameworkMethods =
+    [
+        ("RunAsync", "invoke_agent", true),
+        ("RunStreamingAsync", "invoke_agent", true)
+    ];
+
     private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> MethodPatterns =
         new(StringComparer.OrdinalIgnoreCase)
         {
@@ -80,28 +90,10 @@ internal static class GenAiCallSiteAnalyzer
                 // Uses OpenAI.Chat.ChatClient pattern via GetChatClient()
             ],
 
-            // Microsoft Agent Framework - base agent type
-            ["Microsoft.Agents.AI.AIAgent"] =
-            [
-                ("RunAsync", "invoke_agent", true),
-                ("RunStreamingAsync", "invoke_agent", true)
-            ],
-
-            // Microsoft Agent Framework - IChatClient wrapper (primary agent type)
-            ["Microsoft.Agents.AI.ChatClientAgent"] =
-            [
-                ("RunAsync", "invoke_agent", true),
-                ("RunStreamingAsync", "invoke_agent", true)
-            ],
-
-            // Microsoft Agent Framework - agent decorator/middleware
-            ["Microsoft.Agents.AI.DelegatingAIAgent"] =
-            [
-                ("RunAsync", "invoke_agent", true),
-                ("RunStreamingAsync", "invoke_agent", true)
-            ],
-
-            // Note: OpenTelemetryAgent intentionally excluded — it already emits OTel spans
+            // Microsoft Agent Framework (OpenTelemetryAgent excluded — already emits OTel spans)
+            ["Microsoft.Agents.AI.AIAgent"] = AgentFrameworkMethods,
+            ["Microsoft.Agents.AI.ChatClientAgent"] = AgentFrameworkMethods,
+            ["Microsoft.Agents.AI.DelegatingAIAgent"] = AgentFrameworkMethods,
 
             // Cohere SDK
             ["Cohere.CohereClient"] =

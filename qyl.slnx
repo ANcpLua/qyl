@@ -14,8 +14,6 @@
         <File Path="railway.toml"/>
         <File Path="README.md"/>
         <File Path="ROADMAP.md"/>
-        <File Path="SemanticKernelToAgentFramework.md"/>
-
     </Folder>
 
     <Folder Name="/plugin/">
