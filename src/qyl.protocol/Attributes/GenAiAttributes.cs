@@ -286,6 +286,9 @@ public static class GenAiAttributes
         /// <summary>ibm.watsonx.ai - IBM Watsonx AI.</summary>
         public const string IbmWatsonxAi = "ibm.watsonx.ai";
 
+        /// <summary>microsoft_agents - Microsoft Agent Framework.</summary>
+        public const string MicrosoftAgents = "microsoft_agents";
+
         /// <summary>mistral_ai - Mistral AI.</summary>
         public const string MistralAi = "mistral_ai";
 

@@ -10,7 +10,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing"/>
         <!-- Required for AddLatencyContext() extension in test factory -->
-        <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+        <PackageReference Include="Microsoft.Extensions.Telemetry"/>(4)
         <!-- DuckDB types for test assertions (not transitive from collector) -->
         <PackageReference Include="DuckDB.NET.Data.Full"/>
     </ItemGroup>

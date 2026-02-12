@@ -80,12 +80,28 @@ internal static class GenAiCallSiteAnalyzer
                 // Uses OpenAI.Chat.ChatClient pattern via GetChatClient()
             ],
 
-            // GitHub Copilot via Microsoft Agent Framework
+            // Microsoft Agent Framework - base agent type
             ["Microsoft.Agents.AI.AIAgent"] =
             [
                 ("RunAsync", "invoke_agent", true),
                 ("RunStreamingAsync", "invoke_agent", true)
             ],
+
+            // Microsoft Agent Framework - IChatClient wrapper (primary agent type)
+            ["Microsoft.Agents.AI.ChatClientAgent"] =
+            [
+                ("RunAsync", "invoke_agent", true),
+                ("RunStreamingAsync", "invoke_agent", true)
+            ],
+
+            // Microsoft Agent Framework - agent decorator/middleware
+            ["Microsoft.Agents.AI.DelegatingAIAgent"] =
+            [
+                ("RunAsync", "invoke_agent", true),
+                ("RunStreamingAsync", "invoke_agent", true)
+            ],
+
+            // Note: OpenTelemetryAgent intentionally excluded — it already emits OTel spans
 
             // Cohere SDK
             ["Cohere.CohereClient"] =

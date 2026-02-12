@@ -44,7 +44,7 @@ internal static class ProviderRegistry
     private const string Deepseek = "deepseek";
     private const string Perplexity = "perplexity";
     private const string XAi = "x_ai";
-    private const string GithubCopilot = "github_copilot";
+    private const string MicrosoftAgents = "microsoft_agents";
 
     /// <summary>
     ///     All GenAI providers with known SDK type patterns.
@@ -80,9 +80,9 @@ internal static class ProviderRegistry
         new(Perplexity, "Perplexity", null),
         new(XAi, "xAI", null),
 
-        // GitHub Copilot via Microsoft Agent Framework
-        // AgentResponse.Usage is Microsoft.Extensions.AI.UsageDetails
-        new(GithubCopilot, "Agents.AI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
+        // Microsoft Agent Framework (AgentResponse.Usage is M.E.AI.UsageDetails)
+        // Matches all Microsoft.Agents.AI.* types (AIAgent, ChatClientAgent, DelegatingAIAgent)
+        new(MicrosoftAgents, "Agents.AI", new TokenUsageDefinition("Usage.InputTokenCount", "Usage.OutputTokenCount")),
 
         // Custom providers (not in OTel semconv)
         new("ollama", "Ollama", null),
