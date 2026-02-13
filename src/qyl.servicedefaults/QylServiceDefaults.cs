@@ -18,6 +18,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Qyl.ServiceDefaults.Instrumentation;
 
 namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
 
@@ -171,7 +172,8 @@ public static partial class QylServiceDefaults
                     .AddHttpClientInstrumentation()
                     .AddRuntimeInstrumentation()
                     .AddMeter("ANcpSdk.*")
-                    .AddMeter("qyl.gen_ai"); // qyl instrumented chat client metrics
+                    .AddMeter(ActivitySources.GenAi)
+                    .AddMeter(ActivitySources.Db);
 
                 options.OpenTelemetry.ConfigureMetrics?.Invoke(metrics);
             })
@@ -187,7 +189,9 @@ public static partial class QylServiceDefaults
                     })
                     .AddHttpClientInstrumentation()
                     .AddSource("ANcpSdk.*")
-                    .AddSource("qyl.gen_ai"); // qyl instrumented chat client traces
+                    .AddSource(ActivitySources.GenAi)
+                    .AddSource(ActivitySources.Db)
+                    .AddSource(ActivitySources.Traced);
 
                 options.OpenTelemetry.ConfigureTracing?.Invoke(tracing);
             });

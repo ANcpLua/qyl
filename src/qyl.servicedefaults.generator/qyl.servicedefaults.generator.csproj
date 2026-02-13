@@ -22,8 +22,13 @@
     <SourceGeneratorRoslynVersion>5.0.0</SourceGeneratorRoslynVersion>
     <!-- Enable C# 12 interceptors (auto-suppresses RSEXPERIMENTAL002) -->
     <UseInterceptors>true</UseInterceptors>
+    <!-- RS1038: Transitive Workspaces reference via ANcpLua.Roslyn.Utilities - unavoidable for shared utilities -->
+    <NoWarn>$(NoWarn);RS1038</NoWarn>
+    <!-- Copy NuGet dependencies to output so transitive .targets can include them -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities" />
   </ItemGroup>
 </Project>

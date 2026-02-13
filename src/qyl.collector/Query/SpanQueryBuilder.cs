@@ -424,8 +424,6 @@ public sealed class SpanQueryBuilder
     }
 
     /// <summary>Apply parameters to a DuckDB command.</summary>
-    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities",
-        Justification = "Parameterized queries - verified safe")]
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Build();
@@ -446,8 +444,6 @@ public sealed class SpanQueryBuilder
 public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Parameters)
 {
     /// <summary>Apply to a DuckDB command.</summary>
-    [SuppressMessage("Security", "CA2100:Review SQL queries for security vulnerabilities",
-        Justification = "Parameterized queries - verified safe")]
     public void ApplyTo(DuckDBCommand cmd)
     {
         cmd.CommandText = Sql;

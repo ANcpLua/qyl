@@ -132,12 +132,12 @@ public sealed class CopilotOptions
     /// <summary>
     ///     Directory containing workflow definitions.
     /// </summary>
-    public string? WorkflowsDirectory { get; set; }
+    public string? WorkflowsDirectory { get; init; }
 
     /// <summary>
     ///     Default system instructions for the Copilot agent.
     /// </summary>
-    public string? DefaultInstructions { get; set; }
+    public string? DefaultInstructions { get; init; }
 
     /// <summary>
     ///     Whether to auto-discover workflows on startup.

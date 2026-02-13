@@ -141,7 +141,7 @@ public sealed partial class AlertConfigLoader : IDisposable
             }
             else if (File.Exists(fullPath))
             {
-                watchDir = Path.GetDirectoryName(fullPath)!;
+                watchDir = Path.GetDirectoryName(fullPath) ?? throw new InvalidOperationException($"Cannot determine directory for '{fullPath}'");
                 watchFilter = Path.GetFileName(fullPath);
             }
             else
@@ -193,29 +193,29 @@ public sealed partial class AlertConfigLoader : IDisposable
 
     private sealed class AlertConfigYaml
     {
-        public List<AlertRuleYaml>? Alerts { get; set; }
+        public IReadOnlyList<AlertRuleYaml>? Alerts { get; init; }
     }
 
     private sealed class AlertRuleYaml
     {
-        public string Name { get; set; } = "";
-        public string? Description { get; set; }
-        public string Query { get; set; } = "";
-        public string? Condition { get; set; }
+        public string Name { get; init; } = "";
+        public string? Description { get; init; }
+        public string Query { get; init; } = "";
+        public string? Condition { get; init; }
 
         [YamlMember(Alias = "interval_seconds")]
-        public int IntervalSeconds { get; set; }
+        public int IntervalSeconds { get; init; }
 
         [YamlMember(Alias = "cooldown_seconds")]
-        public int CooldownSeconds { get; set; }
+        public int CooldownSeconds { get; init; }
 
-        public List<ChannelYaml>? Channels { get; set; }
+        public IReadOnlyList<ChannelYaml>? Channels { get; init; }
     }
 
     private sealed class ChannelYaml
     {
-        public string? Type { get; set; }
-        public string? Url { get; set; }
+        public string? Type { get; init; }
+        public string? Url { get; init; }
     }
 
     // ==========================================================================

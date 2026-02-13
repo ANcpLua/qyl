@@ -18,5 +18,8 @@
     -->
     <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll"
               Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/qyl.servicedefaults.generator.dll')"/>
+    <!-- Generator dependency: ANcpLua.Roslyn.Utilities (pipeline helpers) -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.servicedefaults.generator/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll')"/>
   </ItemGroup>
 </Project>

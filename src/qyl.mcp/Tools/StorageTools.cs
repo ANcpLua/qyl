@@ -211,12 +211,12 @@ public sealed class StorageTools(HttpClient client)
 
             // Apply client-side filters
             if (!string.IsNullOrEmpty(serviceName))
-                spans = spans.Where(s =>
-                    s.ServiceName?.Contains(serviceName, StringComparison.OrdinalIgnoreCase) is true).ToList();
+                spans = [.. spans.Where(s =>
+                    s.ServiceName?.Contains(serviceName, StringComparison.OrdinalIgnoreCase) is true)];
 
             if (!string.IsNullOrEmpty(operation))
-                spans = spans.Where(s =>
-                    s.Name?.Contains(operation, StringComparison.OrdinalIgnoreCase) is true).ToList();
+                spans = [.. spans.Where(s =>
+                    s.Name?.Contains(operation, StringComparison.OrdinalIgnoreCase) is true)];
 
             if (spans.Count is 0)
                 return "No spans found matching the criteria after filtering.";

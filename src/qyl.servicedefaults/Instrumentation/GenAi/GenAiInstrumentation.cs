@@ -371,7 +371,7 @@ public static class GenAiInstrumentation
 
         if (activity is not null && outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
@@ -393,7 +393,7 @@ public static class GenAiInstrumentation
     {
         if (inputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+            activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
             TokenUsageHistogram.Record(inputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
@@ -402,7 +402,7 @@ public static class GenAiInstrumentation
 
         if (outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),

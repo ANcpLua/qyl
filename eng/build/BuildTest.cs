@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl Build System - Test Execution
 // =============================================================================
-// MTP argument builder + IQylTest (Nuke.Components.ITest + xUnit v3 + MTP)
+// MTP argument builder + IQylTest (ITest + xUnit v3 + MTP)
 // =============================================================================
 
 
@@ -162,11 +162,11 @@ public sealed class MtpArgumentsBuilder
 }
 
 // ════════════════════════════════════════════════════════════════════════════════
-// IQylTest - Test Execution via Nuke.Components.ITest + MTP
+// IQylTest - Test Execution via ITest + MTP
 // ════════════════════════════════════════════════════════════════════════════════
 
 [ParameterPrefix(nameof(IQylTest))]
-interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
+interface IQylTest : ITest, IHazSourcePaths
 {
     [Parameter("Test filter expression (xUnit v3 query syntax)")]
     string? TestFilter => TryGetValue(() => TestFilter);
@@ -178,12 +178,12 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
     bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
 
     // Override test project discovery (tests/ dir, not *.Tests naming)
-    IEnumerable<Project> Nuke.Components.ITest.TestProjects =>
+    IEnumerable<Project> ITest.TestProjects =>
         Solution.AllProjects.Where(static p =>
             p.Path?.ToString().Contains("/tests/", StringComparison.Ordinal) == true);
 
     // Override results directory
-    Configure<DotNetTestSettings> Nuke.Components.ITest.TestSettings => s =>
+    Configure<DotNetTestSettings> ITest.TestSettings => s =>
     {
         EnsureTestcontainersConfigured();
         return s.SetResultsDirectory(TestResultsDirectory);
@@ -191,7 +191,7 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
 
     // MTP arguments per project (replaces ExecuteMtpTestInternal)
     // .NET 10 SDK: dotnet test requires --project flag (positional arg removed)
-    Configure<DotNetTestSettings, Project> Nuke.Components.ITest.TestProjectSettings => (s, project) =>
+    Configure<DotNetTestSettings, Project> ITest.TestProjectSettings => (s, project) =>
     {
         var mtp = MtpExtensions.Mtp()
             .ReportTrx($"{project.Name}.trx")
@@ -204,7 +204,8 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
         // NUKE 10.1.0 uses positional arg for project, but .NET 10 requires --project flag.
         // Clear --logger (conflicts with MTP's --report-trx), reset positional arg,
         // pass --project + MTP args via additional arguments.
-        string[] additionalArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+        var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
+        string[] additionalArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
         return s.ClearLoggers().ResetProjectFile().SetProcessAdditionalArguments(additionalArgs);
     };
 
@@ -220,7 +221,7 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
 
     Target UnitTests => d => d
         .Description("Run unit tests only")
-        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() =>
         {
             DotNetTasks.DotNetTest(s => s
@@ -237,14 +238,15 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
                     if (StopOnFail == true) mtp.StopOnFail();
                     if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-                    string[] unitArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                    string[] unitArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
                     return ss.SetProcessAdditionalArguments(unitArgs);
                 }), completeOnFailure: true);
         });
 
     Target IntegrationTests => d => d
         .Description("Run integration tests only")
-        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() =>
         {
             EnsureTestcontainersConfigured();
@@ -262,7 +264,8 @@ interface IQylTest : Nuke.Components.ITest, IHazSourcePaths
                     if (StopOnFail == true) mtp.StopOnFail();
                     if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-                    string[] integrationArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                    string[] integrationArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
                     return ss.SetProcessAdditionalArguments(integrationArgs);
                 }), completeOnFailure: true);
         });

@@ -15,7 +15,7 @@ namespace Qyl.ServiceDefaults.Instrumentation;
 internal static class GenAiConstants
 {
     /// <summary>Default activity source name for qyl GenAI instrumentation.</summary>
-    public const string SourceName = "qyl.gen_ai";
+    public const string SourceName = "qyl.genai";
 
     /// <summary>
     ///     Environment variable to enable sensitive data capture.

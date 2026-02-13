@@ -1,3 +1,5 @@
+using ANcpLua.Roslyn.Utilities;
+
 namespace Qyl.ServiceDefaults.Generator.Emitters;
 
 /// <summary>
@@ -19,7 +21,7 @@ internal static class EmitterHelpers
             sb.AppendLine("#pragma warning disable");
 
         if (nullableEnable)
-            sb.AppendLine("#nullable enable");
+            sb.AppendLine(GeneratedCodeHelpers.NullableEnable);
 
         sb.AppendLine();
     }

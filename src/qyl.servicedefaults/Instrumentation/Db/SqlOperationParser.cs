@@ -42,6 +42,20 @@ internal static class SqlOperationParser
     }
 
     /// <summary>
+    ///     Attempts to extract the primary table/collection name from a SQL statement.
+    /// </summary>
+    /// <param name="sql">The SQL statement to parse.</param>
+    /// <returns>The collection (table) name or null if unparseable.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static string? TryParseCollectionName(string? sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            return null;
+
+        return TryParseCollectionNameCore(sql.AsSpan());
+    }
+
+    /// <summary>
     ///     Core parsing logic using ReadOnlySpan for zero-allocation.
     /// </summary>
     private static string? TryParseCore(ReadOnlySpan<char> sql)
@@ -287,6 +301,142 @@ internal static class SqlOperationParser
         }
 
         return true;
+    }
+
+    /// <summary>
+    ///     Extracts the primary table name from a SQL statement.
+    ///     Handles SELECT...FROM, INSERT INTO, UPDATE, DELETE FROM patterns.
+    /// </summary>
+    private static string? TryParseCollectionNameCore(ReadOnlySpan<char> sql)
+    {
+        sql = SkipWhitespaceAndComments(sql);
+
+        if (sql.IsEmpty)
+            return null;
+
+        // Handle CTE
+        if (StartsWithKeyword(sql, "WITH"))
+        {
+            var afterCte = SkipCte(sql);
+            if (!afterCte.IsEmpty)
+                sql = afterCte;
+        }
+
+        // SELECT ... FROM <table>
+        if (StartsWithKeyword(sql, "SELECT"))
+        {
+            var fromIdx = FindKeyword(sql, "FROM");
+            if (fromIdx < 0)
+                return null;
+
+            var afterFrom = SkipWhitespaceAndComments(sql[(fromIdx + 4)..]);
+            return ExtractIdentifier(afterFrom);
+        }
+
+        // INSERT INTO <table>
+        if (StartsWithKeyword(sql, "INSERT"))
+        {
+            sql = sql[6..];
+            sql = SkipWhitespaceAndComments(sql);
+            if (StartsWithKeyword(sql, "INTO"))
+            {
+                sql = sql[4..];
+                sql = SkipWhitespaceAndComments(sql);
+            }
+
+            return ExtractIdentifier(sql);
+        }
+
+        // UPDATE <table>
+        if (StartsWithKeyword(sql, "UPDATE"))
+        {
+            sql = sql[6..];
+            sql = SkipWhitespaceAndComments(sql);
+            return ExtractIdentifier(sql);
+        }
+
+        // DELETE FROM <table>
+        if (StartsWithKeyword(sql, "DELETE"))
+        {
+            sql = sql[6..];
+            sql = SkipWhitespaceAndComments(sql);
+            if (StartsWithKeyword(sql, "FROM"))
+            {
+                sql = sql[4..];
+                sql = SkipWhitespaceAndComments(sql);
+            }
+
+            return ExtractIdentifier(sql);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    ///     Finds a keyword in SQL (case-insensitive, at word boundary), skipping parenthesized subqueries.
+    /// </summary>
+    private static int FindKeyword(ReadOnlySpan<char> sql, ReadOnlySpan<char> keyword)
+    {
+        var depth = 0;
+        for (var i = 0; i <= sql.Length - keyword.Length; i++)
+        {
+            switch (sql[i])
+            {
+                case '(':
+                    depth++;
+                    continue;
+                case ')':
+                    depth--;
+                    continue;
+                case '\'':
+                    i = SkipStringLiteral(sql, i);
+                    continue;
+            }
+
+            if (depth > 0)
+                continue;
+
+            if (StartsWithKeyword(sql[i..], keyword))
+            {
+                // Ensure word boundary before keyword
+                if (i > 0 && (char.IsLetterOrDigit(sql[i - 1]) || sql[i - 1] == '_'))
+                    continue;
+
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    ///     Extracts an identifier (table name) from the current position.
+    /// </summary>
+    private static string? ExtractIdentifier(ReadOnlySpan<char> sql)
+    {
+        if (sql.IsEmpty)
+            return null;
+
+        // Handle quoted identifiers
+        if (sql[0] is '"' or '[' or '`')
+        {
+            var closeChar = sql[0] switch
+            {
+                '"' => '"',
+                '[' => ']',
+                _ => '`'
+            };
+
+            var endIndex = sql[1..].IndexOf(closeChar);
+            return endIndex > 0 ? sql[1..(endIndex + 1)].ToString() : null;
+        }
+
+        // Unquoted: letters, digits, underscores, dots (for schema.table)
+        var i = 0;
+        while (i < sql.Length && (char.IsLetterOrDigit(sql[i]) || sql[i] is '_' or '.'))
+            i++;
+
+        return i > 0 ? sql[..i].ToString() : null;
     }
 
     /// <summary>

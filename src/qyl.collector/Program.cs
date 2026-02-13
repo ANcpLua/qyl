@@ -11,6 +11,9 @@ using qyl.collector.Dashboards;
 using qyl.collector.Telemetry;
 using qyl.copilot;
 using qyl.copilot.Auth;
+using System.Reflection;
+using qyl.collector.Dashboard;
+using qyl.collector.Meta;
 using Qyl.ServiceDefaults;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
@@ -180,8 +183,14 @@ app.UseRequestDecompression();
 // .NET 10 telemetry middleware: request latency telemetry
 app.UseQylTelemetry();
 
-app.UseDefaultFiles();
-app.UseStaticFiles();
+var hasEmbeddedDashboard = EmbeddedDashboardExtensions.HasEmbeddedDashboard();
+if (hasEmbeddedDashboard)
+    app.UseEmbeddedDashboard();
+else
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
+}
 
 // Map gRPC TraceService for OTLP ingestion on port 4317
 app.MapGrpcService<TraceServiceImpl>();
@@ -252,6 +261,45 @@ app.MapSpanMemoryEndpoints();
 app.MapInsightsEndpoints();
 app.MapAlertEndpoints();
 app.MapDashboardEndpoints();
+
+app.MapGet("/api/v1/meta", () =>
+{
+    var version = typeof(Program).Assembly
+        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+        ?.InformationalVersion ?? "0.0.0";
+
+    return Results.Ok(new MetaResponse
+    {
+        Version = version,
+        Runtime = $"dotnet/{Environment.Version}",
+        Build = new MetaBuild
+        {
+            InformationalVersion = version,
+            Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null,
+        },
+        Capabilities = new MetaCapabilities
+        {
+            Tracing = true,
+            Grpc = true,
+            Alerting = true,
+            GenAi = true,
+            Copilot = true,
+            EmbeddedDashboard = hasEmbeddedDashboard,
+        },
+        Status = new MetaStatus
+        {
+            GrpcEnabled = grpcPort > 0,
+            AuthMode = otlpApiKeyOptions.IsApiKeyMode ? "api-key" : "unsecured",
+        },
+        Links = new MetaLinks
+        {
+            Dashboard = hasEmbeddedDashboard ? $"http://localhost:{port}" : null,
+            OtlpHttp = $"http://localhost:{port}/v1/traces",
+            OtlpGrpc = grpcPort > 0 ? $"http://localhost:{grpcPort}" : null,
+        },
+        Ports = new MetaPorts { Http = port, Grpc = grpcPort },
+    });
+});
 
 // Browser SDK script tag endpoint — serves the pre-built IIFE bundle
 app.MapGet("/qyl.js", () =>
@@ -615,13 +663,11 @@ app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
     Results.Ok(new { name = serviceName, instance_count = 1 }));
 
 
-var webRootPath = app.Environment.WebRootPath;
 app.MapFallback(context =>
 {
     var path = context.Request.Path.Value ?? "/";
 
-    // Return 404 for API routes and static asset paths that don't exist
-    // /assets/ is where Vite outputs JS/CSS - let UseStaticFiles handle it
+    // Return 404 for API routes and static asset paths
     if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase) ||
         path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
@@ -630,8 +676,15 @@ app.MapFallback(context =>
         return Task.CompletedTask;
     }
 
-    // Serve index.html for SPA client-side routing
-    var indexPath = Path.Combine(webRootPath, "index.html");
+    // Embedded mode: middleware handles SPA routing, fallback is API-only 404
+    if (hasEmbeddedDashboard)
+    {
+        context.Response.StatusCode = 404;
+        return Task.CompletedTask;
+    }
+
+    // Physical files mode: serve index.html for SPA client-side routing
+    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";

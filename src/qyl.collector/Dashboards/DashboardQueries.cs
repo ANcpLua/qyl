@@ -1,5 +1,3 @@
-using DuckDB.NET.Data;
-
 namespace qyl.collector.Dashboards;
 
 /// <summary>
@@ -416,7 +414,7 @@ public static class DashboardQueries
 
             while (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
-                var name = reader[nameCol]?.ToString() ?? "unknown";
+                var name = reader[nameCol].ToString() ?? "unknown";
                 var value = Convert.ToDouble(reader[valueCol]);
                 var count = countCol is not null ? Convert.ToInt32(reader[countCol]) : (int?)null;
                 var errorRate = errorRateCol is not null ? Convert.ToDouble(reader[errorRateCol]) : (double?)null;
@@ -444,7 +442,7 @@ public static class DashboardQueries
 
             while (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
-                var time = reader[timeCol]?.ToString() ?? "";
+                var time = reader[timeCol].ToString() ?? "";
                 var value = Convert.ToDouble(reader[valueCol]);
                 points.Add(new TimeSeriesPoint(time, value));
             }

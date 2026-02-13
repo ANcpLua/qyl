@@ -15,11 +15,11 @@ public sealed record WatchdogOptions
     public bool Uninstall { get; init; }
     public bool Status { get; init; }
 
-    public static WatchdogOptions Parse(string[] args)
+    public static WatchdogOptions Parse(IReadOnlyList<string> args)
     {
         var options = FromEnvironment();
 
-        for (var i = 0; i < args.Length; i++)
+        for (var i = 0; i < args.Count; i++)
         {
             switch (args[i])
             {
@@ -99,9 +99,9 @@ public sealed record WatchdogOptions
 
     private static string? Env(string name) => Environment.GetEnvironmentVariable(name);
 
-    private static bool TryNext(string[] args, ref int i, out string value)
+    private static bool TryNext(IReadOnlyList<string> args, ref int i, out string value)
     {
-        if (i + 1 < args.Length)
+        if (i + 1 < args.Count)
         {
             value = args[++i];
             return true;
@@ -114,9 +114,9 @@ public sealed record WatchdogOptions
     private static void PrintUsage()
     {
         Console.WriteLine("""
-            qyl-watch — system resource watchdog
+            qyl-watchdog — system resource watchdog
 
-            Usage: qyl-watch [options]
+            Usage: qyl-watchdog [options]
 
             Options:
               --interval <ms>     Poll interval (default: 5000)

@@ -66,6 +66,6 @@ interface IVersionize : IHazSourcePaths
 
     Target Release => d => d
         .Description("Bump version, update CHANGELOG, create tag")
-        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .DependsOn<ICompile>(static x => x.Compile)
         .Executes(() => Versionize(null, RootDirectory));
 }

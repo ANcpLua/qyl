@@ -4,7 +4,7 @@ using Spectre.Console;
 
 AnsiConsole.Write(new FigletText("qyl").Color(Color.Orange1));
 
-var cliArgs = CliArgs.Parse(Environment.GetCommandLineArgs().Skip(1).ToArray());
+var cliArgs = CliArgs.Parse([.. Environment.GetCommandLineArgs().Skip(1)]);
 
 return await (cliArgs.Command switch
 {

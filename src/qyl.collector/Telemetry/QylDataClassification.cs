@@ -93,18 +93,6 @@ public sealed class HashingRedactor : Redactor
 }
 
 /// <summary>
-///     Attributes for marking properties with data classifications.
-/// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class PiiDataAttribute() : DataClassificationAttribute(QylDataClassification.Pii);
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class SecretDataAttribute() : DataClassificationAttribute(QylDataClassification.Secret);
-
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
-public sealed class PromptContentAttribute() : DataClassificationAttribute(QylDataClassification.PromptContent);
-
-/// <summary>
 ///     Extension methods for configuring qyl redaction.
 /// </summary>
 public static class QylRedactionExtensions

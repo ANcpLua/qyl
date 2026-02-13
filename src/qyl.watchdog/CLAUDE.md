@@ -8,7 +8,7 @@ Lightweight process anomaly detection daemon for developer workstations.
 |----------|-------|
 | SDK | ANcpLua.NET.Sdk |
 | Type | console-daemon / dotnet global tool |
-| Command | `qyl-watch` |
+| Command | `qyl-watchdog` |
 
 ## Purpose
 

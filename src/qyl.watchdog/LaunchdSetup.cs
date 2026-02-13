@@ -27,8 +27,8 @@ public static class LaunchdSetup
         var toolPath = FindToolPath();
         if (toolPath is null)
         {
-            await Console.Error.WriteLineAsync("qyl-watch not found in PATH. Install it first:");
-            await Console.Error.WriteLineAsync("  dotnet pack core/qyl.watchdog -c Release");
+            await Console.Error.WriteLineAsync("qyl-watchdog not found in PATH. Install it first:");
+            await Console.Error.WriteLineAsync("  dotnet pack src/qyl.watchdog -c Release");
             await Console.Error.WriteLineAsync("  dotnet tool install --global --add-source ./artifacts qyl.watchdog");
             return;
         }
@@ -52,8 +52,8 @@ public static class LaunchdSetup
             await Console.Out.WriteLineAsync($"  Logs:  {SLogDir}/");
             await Console.Out.WriteLineAsync($"  Tool:  {toolPath}");
             await Console.Out.WriteLineAsync();
-            await Console.Out.WriteLineAsync("qyl-watch will now start automatically on login.");
-            await Console.Out.WriteLineAsync("Use 'qyl-watch --uninstall' to remove.");
+            await Console.Out.WriteLineAsync("qyl-watchdog will now start automatically on login.");
+            await Console.Out.WriteLineAsync("Use 'qyl-watchdog --uninstall' to remove.");
         }
         else
         {
@@ -169,7 +169,7 @@ public static class LaunchdSetup
     {
         var dotnetToolsPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-            ".dotnet", "tools", "qyl-watch");
+            ".dotnet", "tools", "qyl-watchdog");
 
         if (File.Exists(dotnetToolsPath))
             return dotnetToolsPath;
@@ -182,7 +182,7 @@ public static class LaunchdSetup
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        process.StartInfo.ArgumentList.Add("qyl-watch");
+        process.StartInfo.ArgumentList.Add("qyl-watchdog");
         process.Start();
         var path = process.StandardOutput.ReadToEnd().Trim();
         process.WaitForExit();

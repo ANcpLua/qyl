@@ -26,6 +26,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     private readonly CopilotClient _client;
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private readonly TimeProvider _timeProvider;
+    private readonly CopilotSessionStore _sessionStore;
     private bool _disposed;
 
     /// <summary>
@@ -38,12 +39,14 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         CopilotClient client,
         AIAgent agent,
         CopilotAuthProvider authProvider,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        CopilotSessionStore sessionStore)
     {
         _client = client;
         _agent = agent;
         _authProvider = authProvider;
         _timeProvider = timeProvider;
+        _sessionStore = sessionStore;
     }
 
     /// <inheritdoc />
@@ -104,12 +107,12 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         if (tools is { Count: > 0 })
         {
-            wrappedTools = tools.Select(tool =>
+            wrappedTools = [.. tools.Select(tool =>
             {
                 if (tool is not AIFunction fn) return tool;
 
                 return new ToolEventInterceptor(fn, () => adapterHolder.Value?._toolEventChannel, time);
-            }).ToList();
+            })];
         }
 
         // Create the agent - OTel instrumentation is handled AUTOMATICALLY by
@@ -119,7 +122,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             tools: wrappedTools,
             instructions: string.IsNullOrEmpty(instructions) ? null : instructions);
 
-        var adapter = new QylCopilotAdapter(client, agent, authProvider, time);
+        var sessionStore = new CopilotSessionStore(time);
+        var adapter = new QylCopilotAdapter(client, agent, authProvider, time, sessionStore);
         adapterHolder.Value = adapter;
 
         return adapter;
@@ -148,9 +152,21 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         CopilotContext? context = null, // Reserved for future SDK integration
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        _ = context; // Reserved for future SDK integration
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
+
+        // Session tracking: maintain conversation context for multi-turn
+        List<(string Role, string Content)>? sessionHistory = null;
+        if (!string.IsNullOrEmpty(context?.SessionId))
+            sessionHistory = _sessionStore.GetOrCreate(context.SessionId);
+
+        // Build context-enriched prompt for multi-turn conversations
+        var effectivePrompt = prompt;
+        if (sessionHistory is { Count: > 0 })
+        {
+            var history = string.Join('\n', sessionHistory.Select(static m => $"<{m.Role}>{m.Content}</{m.Role}>"));
+            effectivePrompt = $"{history}\n{prompt}";
+        }
 
         // Start OTel span for chat operation
         using var activity = CopilotInstrumentation.StartChatSpan();
@@ -161,13 +177,12 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             new UnboundedChannelOptions { SingleReader = true });
         _toolEventChannel = toolChannel;
 
-        long outputTokens = 0;
         var updates = new List<StreamUpdate>();
         Exception? caughtException = null;
         bool firstTokenReceived = false;
 
         // Collect updates without yielding in try block
-        var enumerator = _agent.RunStreamingAsync(prompt, cancellationToken: ct).GetAsyncEnumerator(ct);
+        var enumerator = _agent.RunStreamingAsync(effectivePrompt, cancellationToken: ct).GetAsyncEnumerator(ct);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
@@ -186,10 +201,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                     var ttft = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
                     CopilotSpanRecorder.RecordTimeToFirstToken(activity, ttft);
                 }
-
-                // Note: Actual token count should come from SDK response metadata
-                // This is a placeholder until SDK provides proper token usage
-                outputTokens++;
 
                 updates.Add(new StreamUpdate
                 {
@@ -214,6 +225,17 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         // Drain any remaining tool events
         while (toolChannel.Reader.TryRead(out var remaining))
             updates.Add(remaining);
+
+        // Store in session for multi-turn context
+        if (sessionHistory is not null && caughtException is null)
+        {
+            var responseText = string.Concat(updates.Where(static u => u.Kind is StreamUpdateKind.Content).Select(static u => u.Content));
+            if (responseText.Length > 0)
+            {
+                sessionHistory.Add(("user", prompt));
+                sessionHistory.Add(("assistant", responseText));
+            }
+        }
 
         // Record operation duration metric
         var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
@@ -242,7 +264,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             yield return new StreamUpdate
             {
                 Kind = StreamUpdateKind.Completed,
-                OutputTokens = outputTokens,
                 Timestamp = _timeProvider.GetUtcNow()
             };
         }
@@ -333,7 +354,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         };
 
         var updates = new List<StreamUpdate>();
-        long outputTokens = 0;
         Exception? caughtException = null;
         bool firstTokenReceived = false;
 
@@ -353,8 +373,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                     var currentActivity = Activity.Current;
                     CopilotSpanRecorder.RecordTimeToFirstToken(currentActivity, ttft);
                 }
-
-                outputTokens++;
 
                 updates.Add(new StreamUpdate
                 {
@@ -393,7 +411,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             yield return new StreamUpdate
             {
                 Kind = StreamUpdateKind.Completed,
-                OutputTokens = outputTokens,
                 Timestamp = _timeProvider.GetUtcNow()
             };
         }

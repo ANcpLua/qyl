@@ -21,7 +21,7 @@ public static class ActivitySources
     /// <summary>Database operations source name.</summary>
     public const string Db = "qyl.db";
 
-    /// <summary>General traced operations source name.</summary>
+    /// <summary>Traced method operations source name.</summary>
     public const string Traced = "qyl.traced";
 
     /// <summary>Assembly containing the instrumentation.</summary>
@@ -33,24 +33,15 @@ public static class ActivitySources
     // Lazy-initialized ActivitySource instances
     private static ActivitySource? s_genAi;
     private static ActivitySource? s_db;
-    private static ActivitySource? s_traced;
-
     // Lazy-initialized Meter instances
     private static Meter? s_genAiMeter;
-    private static Meter? s_dbMeter;
 
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
-    public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(GenAi, Version);
+    public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(name: GenAi, Version);
 
     /// <summary>ActivitySource for database instrumentation.</summary>
     public static ActivitySource DbSource => s_db ??= new ActivitySource(Db, Version);
 
-    /// <summary>ActivitySource for general traced operations.</summary>
-    public static ActivitySource TracedSource => s_traced ??= new ActivitySource(Traced, Version);
-
     /// <summary>Meter for GenAI metrics.</summary>
     public static Meter GenAiMeter => s_genAiMeter ??= new Meter(GenAi, Version);
-
-    /// <summary>Meter for database metrics.</summary>
-    public static Meter DbMeter => s_dbMeter ??= new Meter(Db, Version);
 }

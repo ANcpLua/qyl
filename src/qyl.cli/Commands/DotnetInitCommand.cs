@@ -9,6 +9,8 @@ namespace qyl.cli.Commands;
 /// </summary>
 public static class DotnetInitCommand
 {
+    private static readonly HttpClient HealthClient = new() { Timeout = TimeSpan.FromSeconds(5) };
+
     public static async Task<int> ExecuteAsync(CliArgs args)
     {
         var workingDir = args.ProjectPath ?? Directory.GetCurrentDirectory();
@@ -33,7 +35,8 @@ public static class DotnetInitCommand
         var changes = new List<string>();
         changes.Add("Add PackageReference: qyl.servicedefaults");
 
-        var programCsPath = Path.Combine(Path.GetDirectoryName(csprojPath)!, "Program.cs");
+        var projectDir = Path.GetDirectoryName(csprojPath) ?? throw new InvalidOperationException($"Cannot determine directory for '{csprojPath}'");
+        var programCsPath = Path.Combine(projectDir, "Program.cs");
         var programCsPatched = false;
 
         if (File.Exists(programCsPath))
@@ -55,10 +58,7 @@ public static class DotnetInitCommand
         editor.AddPackageReference("qyl.servicedefaults");
 
         if (programCsPatched)
-        {
-            var patcher = new ProgramCsEditor(programCsPath);
-            patcher.InjectServiceDefaults();
-        }
+            new ProgramCsEditor(programCsPath).InjectServiceDefaults();
 
         if (args.CollectorUrl is not null)
         {
@@ -111,8 +111,7 @@ public static class DotnetInitCommand
     {
         try
         {
-            using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            var response = await client.GetAsync(new Uri(new Uri(collectorUrl), "/health"));
+            var response = await HealthClient.GetAsync(new Uri(new Uri(collectorUrl), "/health"));
             if (response.IsSuccessStatusCode)
             {
                 AnsiConsole.MarkupLine($"[green]Collector at {collectorUrl} is healthy[/]");

@@ -38,7 +38,6 @@ public sealed partial class AlertNotifier
                         SendSse(alertEvent);
                         break;
 
-                    case "console":
                     default:
                         SendConsole(rule, alertEvent);
                         break;

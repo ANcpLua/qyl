@@ -6,7 +6,7 @@
  * Regenerate with: npm run generate:ts
  */
 
-import type {components, operations, paths} from './api';
+import type {components, operations} from './api';
 
 // =============================================================================
 // Schemas (Canonical Names from God Schema)
@@ -57,30 +57,6 @@ export type NotFoundError = components['schemas']['Qyl.Common.Errors.NotFoundErr
 export type HealthResponse = components['schemas']['HealthResponse'];
 export type HealthStatus = components['schemas']['HealthStatus'];
 
-// =============================================================================
-// Legacy Aliases for Backward Compatibility
-// =============================================================================
-
-/** @deprecated Use Span instead */
-export type SpanRecord = Span;
-
-/** @deprecated Use SessionEntity instead */
-export type SessionSummary = SessionEntity;
-
-/** @deprecated Use SessionEntity instead */
-export type Session = SessionEntity;
-
-/** @deprecated Use Trace instead */
-export type TraceNode = Trace;
-
-/** @deprecated Use SpanStatusCode instead */
-export type StatusCode = SpanStatusCode;
-
-// =============================================================================
-// Operations (from api.ts)
-// =============================================================================
-export type ApiOperations = operations;
-export type ApiPaths = paths;
 
 // Sessions
 export type ListSessionsQuery = operations['SessionsApi_list']['parameters']['query'];
@@ -112,9 +88,6 @@ export type GetTraceSpansResponse =
 export type StreamTracesQuery = operations['StreamingApi_streamTraces']['parameters']['query'];
 export type StreamTraceSpansPath = operations['StreamingApi_streamTraceSpans']['parameters']['path'];
 
-// Health - uses schema directly since health check is not in operations
-export type HealthCheckResponse = HealthResponse;
-
 // =============================================================================
 // Utility Functions for Working with Span
 // =============================================================================
@@ -129,16 +102,6 @@ export function nanoToIso(nanos: number): string {
     return new Date(nanos / 1_000_000).toISOString();
 }
 
-/** Parse JSON safely, returning empty object on failure */
-export function parseJson<T>(json: string | undefined | null, fallback: T): T {
-    if (!json) return fallback;
-    try {
-        return JSON.parse(json) as T;
-    } catch {
-        return fallback;
-    }
-}
-
 /** Get attributes from Span as a record */
 export function getAttributesRecord(span: Span): Record<string, unknown> {
     if (!span.attributes) return {};
@@ -147,21 +110,6 @@ export function getAttributesRecord(span: Span): Record<string, unknown> {
         result[attr.key] = attr.value;
     }
     return result;
-}
-
-/** Get resource attributes from Span as a record */
-export function getResourceRecord(span: Span): Record<string, unknown> {
-    if (!span.resource?.attributes) return {};
-    const result: Record<string, unknown> = {};
-    for (const attr of span.resource.attributes) {
-        result[attr.key] = attr.value;
-    }
-    return result;
-}
-
-/** Calculate duration in milliseconds from Span */
-export function getSpanDurationMs(span: Span): number {
-    return nsToMs(span.end_time_unix_nano - span.start_time_unix_nano);
 }
 
 /** Flatten trace to array of spans */
@@ -180,8 +128,6 @@ export function getPrimaryService(_session: SessionEntity): string {
 // =============================================================================
 
 /** StatusCode enum values (OTel uses integers: 0=UNSET, 1=OK, 2=ERROR) */
-export const STATUS_UNSET: SpanStatusCode = 0;
-export const STATUS_OK: SpanStatusCode = 1;
 export const STATUS_ERROR: SpanStatusCode = 2;
 
 /** Check if span has error status */

@@ -10,6 +10,7 @@ namespace Qyl.Hosting;
 /// </summary>
 internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 {
+    private static readonly HttpClient HealthCheckClient = new() { Timeout = TimeSpan.FromSeconds(2) };
     private readonly ConcurrentDictionary<string, Process> _processes = new();
     private readonly ConcurrentDictionary<string, ResourceState> _states = new();
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -364,8 +365,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         activity?.SetTag("qyl.hosting.health_check.endpoint", endpoint);
         activity?.SetTag("qyl.hosting.health_check.port", port);
 
-        using var client = new HttpClient();
-        client.Timeout = TimeSpan.FromSeconds(2);
         var url = $"http://localhost:{port}{endpoint}";
         var attempts = 0;
 
@@ -376,7 +375,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
             try
             {
-                var response = await client.GetAsync(url, ct);
+                var response = await HealthCheckClient.GetAsync(url, ct);
                 if (response.IsSuccessStatusCode)
                 {
                     var elapsedSeconds = Stopwatch.GetElapsedTime(startTimestamp).TotalSeconds;

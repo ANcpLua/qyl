@@ -13,31 +13,6 @@ namespace qyl.copilot.Instrumentation;
 /// </summary>
 public static class CopilotSpanRecorder
 {
-    // =========================================================================
-    // OTel 1.39 GenAI Attribute Recording
-    // =========================================================================
-
-    /// <summary>
-    ///     Sets core GenAI attributes on a span.
-    /// </summary>
-    /// <param name="activity">The activity to record on.</param>
-    /// <param name="requestModel">The model requested.</param>
-    /// <param name="responseModel">The model used (may differ from request).</param>
-    public static void SetGenAiModel(Activity? activity, string? requestModel, string? responseModel = null)
-    {
-        if (activity is null) return;
-
-        if (requestModel is not null)
-        {
-            activity.SetTag(GenAiAttributes.RequestModel, requestModel);
-        }
-
-        if (responseModel is not null)
-        {
-            activity.SetTag(GenAiAttributes.ResponseModel, responseModel);
-        }
-    }
-
     /// <summary>
     ///     Records token usage on a span per OTel 1.39.
     /// </summary>
@@ -50,18 +25,6 @@ public static class CopilotSpanRecorder
 
         activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
         activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
-    }
-
-    /// <summary>
-    ///     Records finish reasons on a span per OTel 1.39.
-    /// </summary>
-    /// <param name="activity">The activity to record on.</param>
-    /// <param name="finishReasons">The stop/finish reasons.</param>
-    public static void RecordFinishReasons(Activity? activity, params string[] finishReasons)
-    {
-        if (activity is null || finishReasons.Length == 0) return;
-
-        activity.SetTag(GenAiAttributes.ResponseFinishReasons, finishReasons);
     }
 
     /// <summary>
@@ -80,38 +43,6 @@ public static class CopilotSpanRecorder
 
         // Also record as metric
         CopilotMetrics.RecordTimeToFirstToken(ttftSeconds, CopilotInstrumentation.GenAiSystem);
-    }
-
-    // =========================================================================
-    // qyl Workflow Attribute Recording
-    // =========================================================================
-
-    /// <summary>
-    ///     Sets qyl workflow metadata on a span.
-    /// </summary>
-    /// <param name="activity">The activity to record on.</param>
-    /// <param name="workflowName">The workflow name.</param>
-    /// <param name="executionId">The unique execution ID.</param>
-    /// <param name="trigger">The trigger type.</param>
-    public static void SetWorkflowContext(
-        Activity? activity,
-        string workflowName,
-        string? executionId = null,
-        string? trigger = null)
-    {
-        if (activity is null) return;
-
-        activity.SetTag(CopilotInstrumentation.AttrWorkflowName, workflowName);
-
-        if (executionId is not null)
-        {
-            activity.SetTag(CopilotInstrumentation.AttrWorkflowExecutionId, executionId);
-        }
-
-        if (trigger is not null)
-        {
-            activity.SetTag(CopilotInstrumentation.AttrWorkflowTrigger, trigger);
-        }
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {CopyableText} from '@/components/ui';
 import {useSessions} from '@/hooks/use-telemetry';
-import type {Session} from '@/types';
+import type {SessionEntity} from '@/types';
 import {getPrimaryService} from '@/types';
 
 type ViewMode = 'grid' | 'list' | 'graph';
@@ -56,7 +56,7 @@ function MetricCard({label, value, icon, variant = 'default'}: MetricCardProps) 
 // BRUTALIST ResourceCard - Grid view
 // =============================================================================
 
-function ResourceCard({session}: { session: Session }) {
+function ResourceCard({session}: { session: SessionEntity }) {
     const hasErrors = session.error_count > 0;
     const errorRate =
         session.span_count > 0 ? ((session.error_count / session.span_count) * 100).toFixed(1) : '0';
@@ -170,7 +170,7 @@ function ResourceCard({session}: { session: Session }) {
 
 const ROW_HEIGHT = 64;
 
-const ResourceRow = memo(function ResourceRow({session}: { session: Session }) {
+const ResourceRow = memo(function ResourceRow({session}: { session: SessionEntity }) {
     const hasErrors = session.error_count > 0;
     const sessionId = session['session.id'];
 
@@ -219,7 +219,7 @@ const ResourceRow = memo(function ResourceRow({session}: { session: Session }) {
 // BRUTALIST VirtualizedListView
 // =============================================================================
 
-function VirtualizedListView({sessions}: { sessions: Session[] }) {
+function VirtualizedListView({sessions}: { sessions: SessionEntity[] }) {
     const parentRef = useRef<HTMLDivElement>(null);
 
     const rowVirtualizer = useVirtualizer({
@@ -278,7 +278,7 @@ function VirtualizedListView({sessions}: { sessions: Session[] }) {
 // BRUTALIST GraphView
 // =============================================================================
 
-function GraphView({sessions}: { sessions: Session[] }) {
+function GraphView({sessions}: { sessions: SessionEntity[] }) {
     const nodes = useMemo(() => {
         const serviceMap = new Map<string, { name: string; spans: number; errors: number }>();
 

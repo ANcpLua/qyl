@@ -137,7 +137,16 @@ public static class DbInstrumentation
 
     private static Activity? StartDbActivity(DbCommand command, string fallbackOperationName)
     {
-        var activity = ActivitySources.DbSource.StartActivity("db.query", ActivityKind.Client, default(ActivityContext));
+        // Parse SQL to extract operation type per OTel semconv, fallback to ADO.NET method name
+        var operationName = SqlOperationParser.TryParse(command.CommandText) ?? fallbackOperationName;
+        var collectionName = SqlOperationParser.TryParseCollectionName(command.CommandText);
+
+        // OTel semconv: span name = "{db.operation.name} {db.collection.name}" or just "{db.operation.name}"
+        var spanName = collectionName is not null
+            ? $"{operationName} {collectionName}"
+            : operationName;
+
+        var activity = ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext));
 
         if (activity is null)
             return null;
@@ -145,10 +154,10 @@ public static class DbInstrumentation
         var dbSystem = GetDbSystem(command.Connection);
 
         activity.SetTag(DbAttributes.SystemName, dbSystem);
-
-        // Parse SQL to extract operation type per OTel semconv, fallback to ADO.NET method name
-        var operationName = SqlOperationParser.TryParse(command.CommandText) ?? fallbackOperationName;
         activity.SetTag(DbAttributes.OperationName, operationName);
+
+        if (collectionName is not null)
+            activity.SetTag(DbAttributes.CollectionName, collectionName);
 
         if (command.CommandText is { Length: > 0 } sql)
             activity.SetTag(DbAttributes.QueryText, sql);

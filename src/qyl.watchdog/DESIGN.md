@@ -13,7 +13,7 @@ sdk: ANcpLua.NET.Sdk
 role: local-dev-tool
 distribution: dotnet-global-tool
 install: dotnet tool install -g qyl.watchdog
-run: qyl-watch
+run: qyl-watchdogdog
 ```
 
 ## Problem Statement
@@ -263,22 +263,22 @@ QYL_WATCH_IGNORE: "kernel_task,WindowServer"  # Comma-separated ignore list
 
 ```bash
 # Start watching (foreground)
-qyl-watch
+qyl-watchdog
 
 # Start as background daemon
-qyl-watch --daemon
+qyl-watchdog --daemon
 
 # One-shot check (exit after first scan)
-qyl-watch --once
+qyl-watchdog --once
 
 # Verbose output
-qyl-watch --verbose
+qyl-watchdog --verbose
 
 # Custom config
-qyl-watch --interval 3000 --threshold 2.5
+qyl-watchdog --interval 3000 --threshold 2.5
 
 # Kill a runaway process (interactive)
-qyl-watch --kill 46616
+qyl-watchdog --kill 46616
 ```
 
 ## Project Structure

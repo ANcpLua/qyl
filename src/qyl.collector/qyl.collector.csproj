@@ -7,6 +7,14 @@
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <QylEmbedDashboard Condition="'$(QylEmbedDashboard)' == ''">false</QylEmbedDashboard>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
+    <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot" />
+  </ItemGroup>
+
   <!-- Expose internals to test project -->
   <ItemGroup>
     <InternalsVisibleTo Include="qyl.collector.tests" />
@@ -63,7 +71,6 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation" />
     <PackageReference Include="Microsoft.Extensions.AsyncState" />
-    <PackageReference Include="Microsoft.Extensions.ObjectPool.DependencyInjection" />
   </ItemGroup>
 
   <!-- Core dependencies -->

@@ -44,7 +44,8 @@ public sealed class CsprojEditor
         if (itemGroup is null)
         {
             itemGroup = new XElement("ItemGroup");
-            _doc.Root!.Add(itemGroup);
+            var root = _doc.Root ?? throw new InvalidOperationException("csproj has no root element");
+            root.Add(itemGroup);
         }
 
         itemGroup.Add(new XElement("PackageReference",

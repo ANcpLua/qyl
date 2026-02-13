@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using System.Net.Http.Headers;
 using System.Threading.Channels;
 
 namespace qyl.watch;
@@ -73,7 +73,7 @@ internal sealed class SseClient(string baseUrl) : IDisposable
     private async Task ProduceEventsAsync(string url, ChannelWriter<SseEvent> writer, CancellationToken ct)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
-        request.Headers.Accept.Add(new("text/event-stream"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("text/event-stream"));
 
         using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
             .ConfigureAwait(false);

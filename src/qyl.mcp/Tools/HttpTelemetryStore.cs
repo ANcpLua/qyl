@@ -76,7 +76,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 _ => s => s.ServiceName ?? "unknown"
             };
 
-            return response.Items
+            return [.. response.Items
                 .Where(s => InRange(ParseTime(s.StartTime), since, until))
                 .GroupBy(keySelector)
                 .Select(g => new TokenUsageSummary(
@@ -85,8 +85,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                     (int)g.Sum(s => s.TotalOutputTokens),
                     g.Count(),
                     g.Min(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime),
-                    g.Max(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime)))
-                .ToArray();
+                    g.Max(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime)))];
         }
         catch (HttpRequestException ex)
         {

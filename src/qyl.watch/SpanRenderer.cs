@@ -36,16 +36,16 @@ internal static class SpanRenderer
 
             foreach (var s in traceSpans)
             {
-                if (s.ParentSpanId is null || !traceSpans.Exists(p => p.SpanId == s.ParentSpanId))
+                if (s.ParentSpanId is not { } parentId || !traceSpans.Exists(p => p.SpanId == parentId))
                 {
                     roots.Add(s);
                 }
                 else
                 {
-                    if (!childMap.TryGetValue(s.ParentSpanId!, out var children))
+                    if (!childMap.TryGetValue(parentId, out var children))
                     {
                         children = [];
-                        childMap[s.ParentSpanId!] = children;
+                        childMap[parentId] = children;
                     }
                     children.Add(s);
                 }
@@ -62,7 +62,7 @@ internal static class SpanRenderer
         SpanDto span,
         string prefix,
         bool isLast,
-        Dictionary<string, List<SpanDto>> childMap)
+        IReadOnlyDictionary<string, List<SpanDto>> childMap)
     {
         var connector = prefix.Length == 0 ? "" : isLast ? " [grey]\\-[/] " : " [grey]|-[/] ";
         var line = FormatSpanLine(span);

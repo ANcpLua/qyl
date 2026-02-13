@@ -104,7 +104,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
 
-        return _workflows.TryGetValue(name, out var workflow) ? workflow : null;
+        return _workflows.GetValueOrDefault(name);
     }
 
     /// <summary>
@@ -218,7 +218,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
                 var update = enumerator.Current;
 
                 // Accumulate results
-                if (update.Kind == StreamUpdateKind.Content && update.Content is not null)
+                if (update is { Kind: StreamUpdateKind.Content, Content: not null })
                 {
                     resultBuilder.Append(update.Content);
                 }
@@ -233,14 +233,14 @@ public sealed class WorkflowEngine : IAsyncDisposable
                     totalOutputTokens = update.OutputTokens.Value;
                 }
 
-                if (update.Kind == StreamUpdateKind.Error)
+                switch (update.Kind)
                 {
-                    error = update.Error;
-                }
-
-                if (update.Kind == StreamUpdateKind.Completed)
-                {
-                    success = true;
+                    case StreamUpdateKind.Error:
+                        error = update.Error;
+                        break;
+                    case StreamUpdateKind.Completed:
+                        success = true;
+                        break;
                 }
 
                 collectedUpdates.Add(update);
@@ -390,7 +390,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(executionId);
 
-        return _executions.TryGetValue(executionId, out var execution) ? execution : null;
+        return _executions.GetValueOrDefault(executionId);
     }
 
     /// <summary>

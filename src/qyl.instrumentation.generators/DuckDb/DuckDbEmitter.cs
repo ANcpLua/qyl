@@ -50,7 +50,7 @@ internal static class DuckDbEmitter
         EmitAddParameters(sb, table.TypeName, insertColumns);
 
         // MapFromReader method
-        EmitMapFromReader(sb, table, table.Columns.ToArray());
+        EmitMapFromReader(sb, table, [.. table.Columns]);
 
         // BuildMultiRowInsertSql method
         EmitBuildMultiRowInsertSql(sb, table);

@@ -23,7 +23,6 @@ using Serilog;
     InvokedTargets = ["Test"],
     FetchDepth = 0)]
 sealed class Build : NukeBuild,
-    IQylTest,
     ICoverage,
     IVersionize,
     IDocker,
@@ -61,7 +60,7 @@ sealed class Build : NukeBuild,
 
     Target Print => d => d
         .Unlisted()
-        .Before<Nuke.Components.ICompile>(static x => x.Compile)
+        .Before<ICompile>(static x => x.Compile)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");
@@ -94,7 +93,7 @@ sealed class Build : NukeBuild,
     Target Dev => d => d
         .Description("Start development environment (Docker + compile)")
         .DependsOn<IDocker>(static x => x.DockerUp)
-        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .DependsOn<ICompile>(static x => x.Compile)
         .Executes(static () =>
         {
             Log.Information("Development environment ready");

@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>qyl-watch</ToolCommandName>
+    <ToolCommandName>qyl-watchdog</ToolCommandName>
     <PackageId>qyl.watchdog</PackageId>
     <Description>Lightweight system resource watchdog. Catches zombie processes before they catch you.</Description>
     <PackageTags>watchdog;monitoring;process;cpu;diagnostics;devtool</PackageTags>

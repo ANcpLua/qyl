@@ -35,7 +35,7 @@ interface ICoverage : IQylTest
 
     Target Coverage => d => d
         .Description("Run tests with code coverage")
-        .DependsOn<Nuke.Components.ICompile>(static x => x.Compile)
+        .DependsOn<ICompile>(static x => x.Compile)
         .Produces(CoverageDirectory / "**")
         .Executes(() =>
         {
@@ -55,9 +55,10 @@ interface ICoverage : IQylTest
                 if (StopOnFail == true) mtp.StopOnFail();
                 if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-                string[] coverageArgs = ["--project", project.Path!.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                string[] coverageArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
                 DotNetTasks.DotNetTest(s => s
-                    .SetConfiguration(((IHazConfiguration)this).Configuration)
+                    .SetConfiguration(Configuration)
                     .SetNoBuild(true)
                     .SetNoRestore(true)
                     .SetResultsDirectory(TestResultsDirectory)

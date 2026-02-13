@@ -62,8 +62,8 @@ public static partial class WorkflowParser
 
         // Extract workflow properties
         var workflowName = yaml.TryGetValue("name", out var n) ? n : GetDefaultName(filePath);
-        var description = yaml.TryGetValue("description", out var d) ? d : null;
-        var schedule = yaml.TryGetValue("schedule", out var s) ? s : null;
+        var description = yaml.GetValueOrDefault("description");
+        var schedule = yaml.GetValueOrDefault("schedule");
 
         // Parse trigger
         var trigger = WorkflowTrigger.Manual;

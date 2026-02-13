@@ -37,7 +37,6 @@ dotnet test                                      # Run tests
 | Directory | Purpose |
 |-----------|---------|
 | `core/` | TypeSpec schemas (source of truth) |
-| `core/qyl.watchdog/` | Process anomaly detection daemon |
 | `eng/` | NUKE build system |
 | `examples/` | Demo apps (AgentsGateway) |
 | `src/qyl.collector/` | Backend API + gRPC + storage |
@@ -51,6 +50,7 @@ dotnet test                                      # Run tests
 | `src/qyl.instrumentation.generators/` | Telemetry source generators |
 | `src/qyl.browser/` | Browser OTLP SDK (TypeScript, ESM + IIFE) |
 | `src/qyl.watch/` | Live terminal span viewer (dotnet tool) |
+| `src/qyl.watchdog/` | Process anomaly detection daemon (dotnet tool) |
 | `src/qyl.cli/` | One-command instrumentation CLI (dotnet tool) |
 | `src/qyl.Analyzers/` | Roslyn analyzers (QYL001-015) |
 | `src/qyl.Analyzers.CodeFixes/` | Code fix providers |

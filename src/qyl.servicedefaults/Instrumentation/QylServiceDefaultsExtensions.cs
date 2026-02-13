@@ -218,6 +218,9 @@ public static class QylServiceDefaultsExtensions
                 foreach (var meter in SGenAiMeterNames)
                     metrics.AddMeter(meter);
 
+                // Db meter
+                metrics.AddMeter(ActivitySources.Db);
+
                 // Custom meters from options
                 foreach (var meter in options.AdditionalMeterNames)
                     metrics.AddMeter(meter);
@@ -240,8 +243,9 @@ public static class QylServiceDefaultsExtensions
                 foreach (var source in SGenAiActivitySources)
                     tracing.AddSource(source);
 
-                // Db instrumentation
+                // Db + traced instrumentation
                 tracing.AddSource(ActivitySources.Db);
+                tracing.AddSource(ActivitySources.Traced);
 
                 // Custom sources from options
                 foreach (var source in options.AdditionalActivitySources)

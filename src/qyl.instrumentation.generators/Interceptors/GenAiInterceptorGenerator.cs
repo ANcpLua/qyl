@@ -87,7 +87,7 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 
         // Collect and emit
         context.RegisterSourceOutput(
-            invocations.Collect(),
+            invocations.CollectAsEquatableArray(),
             static (spc, targets) => Execute(spc, targets));
 
         // Always emit the configuration source
@@ -134,12 +134,12 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 
     private static void Execute(
         SourceProductionContext context,
-        ImmutableArray<InterceptorTarget> targets)
+        EquatableArray<InterceptorTarget> targets)
     {
-        if (targets.IsDefaultOrEmpty)
+        if (targets.IsEmpty)
             return;
 
-        var source = InterceptorEmitter.Emit([.. targets]);
+        var source = InterceptorEmitter.Emit(targets.AsImmutableArray());
         context.AddSource("GenAiInterceptors.g.cs", SourceText.From(source, Encoding.UTF8));
     }
 }

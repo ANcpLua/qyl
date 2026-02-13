@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Session, Span, Trace} from '@/types';
+import type {SessionEntity, Span, Trace} from '@/types';
 import {flattenTrace, getAttributesRecord, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 
 // Alias for backward compatibility
@@ -21,7 +21,7 @@ export const telemetryKeys = {
 
 // API response types (actual API shape)
 interface ApiSessionsResponse {
-    items: Session[];
+    items: SessionEntity[];
     total?: number;
 }
 
@@ -46,7 +46,7 @@ export function useSessions() {
     return useQuery({
         queryKey: telemetryKeys.sessions(),
         queryFn: () => fetchJson<ApiSessionsResponse>('/api/v1/sessions'),
-        select: (data): Session[] => data.items,
+        select: (data): SessionEntity[] => data.items,
         refetchInterval: 10000,
     });
 }
@@ -54,7 +54,7 @@ export function useSessions() {
 export function useSession(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.session(sessionId),
-        queryFn: () => fetchJson<Session>(`/api/v1/sessions/${sessionId}`),
+        queryFn: () => fetchJson<SessionEntity>(`/api/v1/sessions/${sessionId}`),
         enabled: !!sessionId,
     });
 }

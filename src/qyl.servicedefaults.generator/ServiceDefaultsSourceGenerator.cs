@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using ANcpLua.Roslyn.Utilities;
+using ANcpLua.Roslyn.Utilities.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -39,13 +40,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                 CouldBeInvocation, // Fast syntactic pre-filter
                 ExtractBuilderCallSite) // Semantic analysis
             .WhereNotNull()
-            .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.BuilderCallSitesCollected);
+            .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered);
 
         // Step 3: Emit interceptor code when prerequisites are met
         context.RegisterSourceOutput(
-            builderCallSites.CombineWith(qylRuntimeAvailable),
+            builderCallSites.CombineWithCollected(qylRuntimeAvailable),
             EmitBuilderInterceptors);
 
         // =====================================================================
@@ -57,90 +56,100 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .Select(IsGenAiRuntimeReferenced)
             .WithTrackingName(PipelineStage.GenAiRuntimeCheck);
 
-        var genAiCallSites = context.SyntaxProvider
+        context.SyntaxProvider
             .CreateSyntaxProvider(
                 GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
                 GenAiCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.GenAiCallSitesCollected);
-
-        context.RegisterSourceOutput(
-            genAiCallSites.CombineWith(genAiRuntimeAvailable),
-            EmitGenAiInterceptors);
+            .CombineWithCollected(genAiRuntimeAvailable)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = GenAiInterceptorEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.GenAiInterceptors, sourceCode);
+            }, context, id: "QSG001")
+            .AddSource(context);
 
         // =====================================================================
         // DATABASE INTERCEPTION PIPELINE
         // Discovers DbCommand calls and wraps them with database telemetry.
         // =====================================================================
 
-        var dbCallSites = context.SyntaxProvider
+        context.SyntaxProvider
             .CreateSyntaxProvider(
                 DbCallSiteAnalyzer.CouldBeDbInvocation,
                 DbCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.DbCallSitesDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.DbCallSitesCollected);
-
-        context.RegisterSourceOutput(
-            dbCallSites.CombineWith(qylRuntimeAvailable),
-            EmitDbInterceptors);
+            .CombineWithCollected(qylRuntimeAvailable)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = DbInterceptorEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.DbInterceptors, sourceCode);
+            }, context, id: "QSG002")
+            .AddSource(context);
 
         // =====================================================================
         // OTEL TAG BINDING PIPELINE
         // Discovers [OTel] attributes and generates tag extraction helpers.
         // =====================================================================
 
-        var otelTagBindings = context.SyntaxProvider
+        context.SyntaxProvider
             .CreateSyntaxProvider(
                 OTelTagAnalyzer.CouldHaveOTelAttribute,
                 OTelTagAnalyzer.ExtractTagBinding)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.OTelTagBindingsDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.OTelTagBindingsCollected);
-
-        context.RegisterSourceOutput(
-            otelTagBindings.CombineWith(qylRuntimeAvailable),
-            EmitOTelTagExtensions);
+            .CombineWithCollected(qylRuntimeAvailable)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = OTelTagsEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.OTelTagExtensions, sourceCode);
+            }, context, id: "QSG003")
+            .AddSource(context);
 
         // =====================================================================
         // METER DEFINITION PIPELINE
         // Discovers [Meter] classes and generates metric implementations.
         // =====================================================================
 
-        var meterDefinitions = context.SyntaxProvider
+        context.SyntaxProvider
             .CreateSyntaxProvider(
                 MeterAnalyzer.CouldBeMeterClass,
                 MeterAnalyzer.ExtractDefinition)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.MeterDefinitionsCollected);
-
-        context.RegisterSourceOutput(
-            meterDefinitions.CombineWith(qylRuntimeAvailable),
-            EmitMeterImplementations);
+            .CombineWithCollected(qylRuntimeAvailable)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = MeterEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.MeterImplementations, sourceCode);
+            }, context, id: "QSG004")
+            .AddSource(context);
 
         // =====================================================================
         // TRACED METHOD PIPELINE
         // Discovers [Traced] methods and generates span interceptors.
         // =====================================================================
 
-        var tracedCallSites = context.SyntaxProvider
+        context.SyntaxProvider
             .CreateSyntaxProvider(
                 TracedCallSiteAnalyzer.CouldBeTracedInvocation,
                 TracedCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.TracedCallSitesDiscovered)
-            .CollectAsEquatableArray()
-            .WithTrackingName(PipelineStage.TracedCallSitesCollected);
-
-        context.RegisterSourceOutput(
-            tracedCallSites.CombineWith(qylRuntimeAvailable),
-            EmitTracedInterceptors);
+            .CombineWithCollected(qylRuntimeAvailable)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = TracedInterceptorEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.TracedInterceptors, sourceCode);
+            }, context, id: "QSG005")
+            .AddSource(context);
     }
 
     // =========================================================================
@@ -254,66 +263,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         context.AddSource(GeneratedFile.BuilderInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
-    private static void EmitGenAiInterceptors(
-        SourceProductionContext context,
-        (EquatableArray<GenAiCallSite> CallSites, bool GenAiRuntimeAvailable) input)
-    {
-        if (!input.GenAiRuntimeAvailable || input.CallSites.IsEmpty)
-            return;
-
-        var sourceCode = GenAiInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
-        if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(GeneratedFile.GenAiInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
-    }
-
-    private static void EmitDbInterceptors(
-        SourceProductionContext context,
-        (EquatableArray<DbCallSite> CallSites, bool QylRuntimeAvailable) input)
-    {
-        if (!input.QylRuntimeAvailable || input.CallSites.IsEmpty)
-            return;
-
-        var sourceCode = DbInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
-        if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(GeneratedFile.DbInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
-    }
-
-    private static void EmitOTelTagExtensions(
-        SourceProductionContext context,
-        (EquatableArray<OTelTagBinding> Bindings, bool QylRuntimeAvailable) input)
-    {
-        if (!input.QylRuntimeAvailable || input.Bindings.IsEmpty)
-            return;
-
-        var sourceCode = OTelTagsEmitter.Emit(input.Bindings.AsImmutableArray());
-        if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(GeneratedFile.OTelTagExtensions, SourceText.From(sourceCode, Encoding.UTF8));
-    }
-
-    private static void EmitMeterImplementations(
-        SourceProductionContext context,
-        (EquatableArray<MeterDefinition> Definitions, bool QylRuntimeAvailable) input)
-    {
-        if (!input.QylRuntimeAvailable || input.Definitions.IsEmpty)
-            return;
-
-        var sourceCode = MeterEmitter.Emit(input.Definitions.AsImmutableArray());
-        if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(GeneratedFile.MeterImplementations, SourceText.From(sourceCode, Encoding.UTF8));
-    }
-
-    private static void EmitTracedInterceptors(
-        SourceProductionContext context,
-        (EquatableArray<TracedCallSite> CallSites, bool QylRuntimeAvailable) input)
-    {
-        if (!input.QylRuntimeAvailable || input.CallSites.IsEmpty)
-            return;
-
-        var sourceCode = TracedInterceptorEmitter.Emit(input.CallSites.AsImmutableArray());
-        if (!string.IsNullOrEmpty(sourceCode))
-            context.AddSource(GeneratedFile.TracedInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
-    }
-
     // =========================================================================
     // SOURCE CODE GENERATION
     // =========================================================================
@@ -407,27 +356,21 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Builder interception pipeline
         public const string BuilderCallSitesDiscovered = nameof(BuilderCallSitesDiscovered);
-        public const string BuilderCallSitesCollected = nameof(BuilderCallSitesCollected);
 
         // GenAI interception pipeline
         public const string GenAiCallSitesDiscovered = nameof(GenAiCallSitesDiscovered);
-        public const string GenAiCallSitesCollected = nameof(GenAiCallSitesCollected);
 
         // Database interception pipeline
         public const string DbCallSitesDiscovered = nameof(DbCallSitesDiscovered);
-        public const string DbCallSitesCollected = nameof(DbCallSitesCollected);
 
         // OTel tag binding pipeline
         public const string OTelTagBindingsDiscovered = nameof(OTelTagBindingsDiscovered);
-        public const string OTelTagBindingsCollected = nameof(OTelTagBindingsCollected);
 
         // Meter definition pipeline
         public const string MeterDefinitionsDiscovered = nameof(MeterDefinitionsDiscovered);
-        public const string MeterDefinitionsCollected = nameof(MeterDefinitionsCollected);
 
         // Traced method pipeline
         public const string TracedCallSitesDiscovered = nameof(TracedCallSitesDiscovered);
-        public const string TracedCallSitesCollected = nameof(TracedCallSitesCollected);
     }
 
     /// <summary>

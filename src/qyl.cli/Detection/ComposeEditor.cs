@@ -8,16 +8,15 @@ namespace qyl.cli.Detection;
 public sealed class ComposeEditor
 {
     private readonly string _path;
-    private readonly string _content;
     private readonly YamlStream _yaml;
     private readonly YamlMappingNode _root;
 
     public ComposeEditor(string path)
     {
         _path = path;
-        _content = File.ReadAllText(path);
+        var content = File.ReadAllText(path);
         _yaml = new YamlStream();
-        _yaml.Load(new StringReader(_content));
+        _yaml.Load(new StringReader(content));
         _root = (YamlMappingNode)_yaml.Documents[0].RootNode;
     }
 
@@ -51,14 +50,14 @@ public sealed class ComposeEditor
         {
             foreach (var (key, _) in services.Children)
             {
-                if (key is YamlScalarNode { Value: not "qyl" } name)
+                if (key is YamlScalarNode { Value: { } nameValue } && nameValue is not "qyl")
                 {
-                    if (!ServiceHasOtelEndpoint(services, name.Value!))
+                    if (!ServiceHasOtelEndpoint(services, nameValue))
                     {
-                        changes.Add($"Add OTEL env vars to service '{name.Value}'");
+                        changes.Add($"Add OTEL env vars to service '{nameValue}'");
                     }
-                }
             }
+        }
         }
 
         if (!HasVolume("qyl-data"))
@@ -102,7 +101,7 @@ public sealed class ComposeEditor
         // Add OTEL env vars to other services
         foreach (var (key, value) in services.Children)
         {
-            if (key is not YamlScalarNode { Value: not "qyl" } name)
+            if (key is not YamlScalarNode { Value: { } nameValue } || nameValue is "qyl")
             {
                 continue;
             }
@@ -112,14 +111,14 @@ public sealed class ComposeEditor
                 continue;
             }
 
-            if (ServiceHasOtelEndpoint(services, name.Value!))
+            if (ServiceHasOtelEndpoint(services, nameValue))
             {
                 continue;
             }
 
             var envNode = GetOrCreateEnvironment(serviceNode);
             envNode.Children[new YamlScalarNode("OTEL_EXPORTER_OTLP_ENDPOINT")] = new YamlScalarNode("http://qyl:4317");
-            envNode.Children[new YamlScalarNode("OTEL_SERVICE_NAME")] = new YamlScalarNode(name.Value!);
+            envNode.Children[new YamlScalarNode("OTEL_SERVICE_NAME")] = new YamlScalarNode(nameValue);
         }
 
         // Add volume

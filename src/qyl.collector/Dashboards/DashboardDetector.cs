@@ -1,5 +1,3 @@
-using DuckDB.NET.Data;
-
 namespace qyl.collector.Dashboards;
 
 /// <summary>

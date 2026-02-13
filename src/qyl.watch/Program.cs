@@ -6,7 +6,7 @@ var config = CliConfig.Parse(args);
 if (config is null)
     return;
 
-using var cts = new CancellationTokenSource();
+var cts = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
     e.Cancel = true;
@@ -59,6 +59,10 @@ try
 catch (OperationCanceledException)
 {
     // Normal shutdown
+}
+finally
+{
+    cts.Dispose();
 }
 
 AnsiConsole.WriteLine();

@@ -228,4 +228,13 @@ public static class EmbeddedDashboardExtensions
         this IApplicationBuilder app,
         string basePath = "") =>
         app.UseMiddleware<EmbeddedDashboardMiddleware>(basePath);
+
+    /// <summary>
+    ///     Checks if the assembly contains embedded dashboard resources.
+    ///     Used to decide between embedded and physical file serving at startup.
+    /// </summary>
+    public static bool HasEmbeddedDashboard() =>
+        typeof(EmbeddedDashboardMiddleware).Assembly
+            .GetManifestResourceNames()
+            .Any(static n => n.StartsWith("qyl.collector.wwwroot.", StringComparison.Ordinal));
 }

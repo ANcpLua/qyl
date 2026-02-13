@@ -18,7 +18,6 @@ namespace qyl.collector;
 [JsonSerializable(typeof(ConsoleIngestBatch))]
 [JsonSerializable(typeof(TelemetryEventDto))]
 [JsonSerializable(typeof(TelemetryMessage))]
-[JsonSerializable(typeof(SseConnectedEvent))]
 [JsonSerializable(typeof(SpanDto))]
 [JsonSerializable(typeof(SpanDto[]))]
 [JsonSerializable(typeof(List<SpanDto>))]
@@ -35,7 +34,6 @@ namespace qyl.collector;
 [JsonSerializable(typeof(SpanBatchDto))]
 [JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(ErrorResponse))]
-[JsonSerializable(typeof(FeedbackResponse))]
 [JsonSerializable(typeof(SpanBatch))]
 [JsonSerializable(typeof(SpanStorageRow))]
 [JsonSerializable(typeof(List<SpanStorageRow>))]
@@ -55,7 +53,6 @@ namespace qyl.collector;
 [JsonSerializable(typeof(LogStorageRow))]
 [JsonSerializable(typeof(List<LogStorageRow>))]
 [JsonSerializable(typeof(string[]))]
-[JsonSerializable(typeof(OtlpEventJson[]))]
 // Ring buffer response types
 [JsonSerializable(typeof(RecentSpansResponse))]
 [JsonSerializable(typeof(TraceFromMemoryResponse))]
@@ -83,4 +80,11 @@ namespace qyl.collector;
 [JsonSerializable(typeof(qyl.protocol.Copilot.WorkflowRunRequest))]
 [JsonSerializable(typeof(qyl.protocol.Copilot.CopilotAuthStatus))]
 [JsonSerializable(typeof(qyl.protocol.Copilot.StreamUpdate))]
+// Meta endpoint types
+[JsonSerializable(typeof(Meta.MetaResponse))]
+[JsonSerializable(typeof(Meta.MetaBuild))]
+[JsonSerializable(typeof(Meta.MetaCapabilities))]
+[JsonSerializable(typeof(Meta.MetaStatus))]
+[JsonSerializable(typeof(Meta.MetaLinks))]
+[JsonSerializable(typeof(Meta.MetaPorts))]
 public partial class QylSerializerContext : JsonSerializerContext;

@@ -35,7 +35,7 @@ INotificationSender sender = OperatingSystem.IsMacOS()
 
 var alerter = new Alerter(sender, timeProvider, options.CooldownMs);
 
-Console.WriteLine($"qyl-watch started (interval: {options.IntervalMs}ms, threshold: {options.SpikeThreshold}x, sustained: {options.SustainedCount} samples)");
+Console.WriteLine($"qyl-watchdog started (interval: {options.IntervalMs}ms, threshold: {options.SpikeThreshold}x, sustained: {options.SustainedCount} samples)");
 if (options.IgnoreProcesses.Count > 0)
     Console.WriteLine($"  ignoring: {string.Join(", ", options.IgnoreProcesses)}");
 
@@ -45,7 +45,7 @@ if (options.Once)
     return;
 }
 
-using var cts = new CancellationTokenSource();
+var cts = new CancellationTokenSource();
 ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
@@ -53,7 +53,7 @@ ConsoleCancelEventHandler cancelHandler = (_, e) =>
 };
 Console.CancelKeyPress += cancelHandler;
 
-using var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(options.IntervalMs));
+var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(options.IntervalMs));
 
 try
 {
@@ -64,11 +64,13 @@ try
 }
 catch (OperationCanceledException)
 {
-    Console.WriteLine("\nqyl-watch stopped");
+    Console.WriteLine("\nqyl-watchdog stopped");
 }
 finally
 {
     Console.CancelKeyPress -= cancelHandler;
+    timer.Dispose();
+    cts.Dispose();
 }
 
 async Task ScanAsync(CancellationToken ct)
