@@ -35,7 +35,9 @@ internal static class InterceptorEmitter
                       #nullable enable
 
                       using System;
+                      using System.Collections.Generic;
                       using System.Diagnostics;
+                      using System.Linq;
                       using System.Runtime.CompilerServices;
                       using System.Threading.Tasks;
                       using qyl.protocol.Attributes;
@@ -92,16 +94,18 @@ internal static class InterceptorEmitter
         }
     }
 
-    private static void EmitAsyncInterceptor(StringBuilder sb, InterceptorTarget target, string methodId) =>
-        sb.AppendLine($$"""
+    private static void EmitAsyncInterceptor(StringBuilder sb, InterceptorTarget target, string methodId)
+    {
+        var commonTagLines = BuildCommonTagLines(target);
+
+        var source = $$"""
                             internal static async {{target.ReturnType}} {{methodId}}(
                                 this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
                             {
                                 using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
 
                                 // OTel GenAI semantic conventions (gen_ai.*)
-                                activity?.SetTag(GenAiAttributes.ProviderName, "{{target.Provider}}");
-                                activity?.SetTag(GenAiAttributes.OperationName, "{{target.Operation}}");
+                                __COMMON_TAGS__
 
                                 try
                                 {
@@ -121,17 +125,22 @@ internal static class InterceptorEmitter
                                 }
                             }
 
-                        """);
+                        """;
 
-    private static void EmitAsyncTaskInterceptor(StringBuilder sb, InterceptorTarget target, string methodId) =>
-        sb.AppendLine($$"""
+        sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
+    }
+
+    private static void EmitAsyncTaskInterceptor(StringBuilder sb, InterceptorTarget target, string methodId)
+    {
+        var commonTagLines = BuildCommonTagLines(target);
+
+        var source = $$"""
                             internal static async Task {{methodId}}(
                                 this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
                             {
                                 using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
 
-                                activity?.SetTag(GenAiAttributes.ProviderName, "{{target.Provider}}");
-                                activity?.SetTag(GenAiAttributes.OperationName, "{{target.Operation}}");
+                                __COMMON_TAGS__
 
                                 try
                                 {
@@ -146,24 +155,28 @@ internal static class InterceptorEmitter
                                 }
                             }
 
-                        """);
+                        """;
+
+        sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
+    }
 
     private static void EmitSyncInterceptor(StringBuilder sb, InterceptorTarget target, string methodId)
     {
         var isVoid = target.ReturnType is "void" or "System.Void";
+        var commonTagLines = BuildCommonTagLines(target);
 
-        sb.AppendLine($$"""
+        var source = $$"""
                             internal static {{target.ReturnType}} {{methodId}}(
                                 this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
                             {
                                 using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
-
-                                activity?.SetTag(GenAiAttributes.ProviderName, "{{target.Provider}}");
-                                activity?.SetTag(GenAiAttributes.OperationName, "{{target.Operation}}");
+                                __COMMON_TAGS__
 
                                 try
                                 {
-                        """);
+                        """;
+
+        sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
 
         sb.AppendLine(isVoid
             ? $"""
@@ -198,6 +211,52 @@ internal static class InterceptorEmitter
 
     private static string EscapePath(string path)
         => path.Replace("\\", @"\\");
+
+    private static string BuildCommonTagLines(InterceptorTarget target)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.ProviderName, \"{target.Provider}\");");
+        sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.OperationName, \"{target.Operation}\");");
+
+        var outputType = GetDefaultOutputType(target.Operation);
+        if (outputType is not null)
+        {
+            sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.OutputType, \"{outputType}\");");
+        }
+
+        var requestChoiceCountArgs = FormatChoiceCountArguments(target.Parameters);
+        if (requestChoiceCountArgs.Length > 0)
+        {
+            sb.AppendLine($"                                TrySetRequestChoiceCount(activity, {requestChoiceCountArgs});");
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static string? GetDefaultOutputType(string operation)
+    {
+        return operation switch
+        {
+            "chat" => "text",
+            "generate_content" => "text",
+            "invoke_agent" => "text",
+            "text_completion" => "text",
+            "embeddings" => "json",
+            "image_generation" => "image",
+            "speech" => "speech",
+            _ => null
+        };
+    }
+
+    private static string FormatChoiceCountArguments(IReadOnlyCollection<ParameterInfo> parameters)
+    {
+        if (parameters.Count is 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(", ", parameters.Select(static p => $"(\"{p.Name}\", (object?)@{p.Name})"));
+    }
 
     private static string FormatParameters(IReadOnlyCollection<ParameterInfo> parameters)
     {

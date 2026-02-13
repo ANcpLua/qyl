@@ -4,6 +4,7 @@
 // =============================================================================
 
 using qyl.protocol.Attributes;
+using Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 namespace qyl.copilot.Instrumentation;
 
@@ -68,23 +69,7 @@ public static class CopilotSpanRecorder
     /// <param name="exception">The exception that occurred.</param>
     public static void RecordError(Activity? activity, Exception exception)
     {
-        if (activity is null) return;
-
-        activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-
-        // Record exception as an event per OTel semantic conventions
-        var exceptionTags = new ActivityTagsCollection
-        {
-            { GenAiAttributes.ExceptionType, exception.GetType().FullName },
-            { GenAiAttributes.ExceptionMessage, exception.Message }
-        };
-
-        if (exception.StackTrace is not null)
-        {
-            exceptionTags.Add(GenAiAttributes.ExceptionStacktrace, exception.StackTrace);
-        }
-
-        activity.AddEvent(new ActivityEvent("exception", tags: exceptionTags));
+        GenAiInstrumentation.RecordException(activity, exception);
     }
 
     /// <summary>

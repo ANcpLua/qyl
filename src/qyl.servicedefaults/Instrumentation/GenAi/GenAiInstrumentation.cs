@@ -178,6 +178,7 @@ public static class GenAiInstrumentation
             activity.SetTag(GenAiAttributes.ProviderName, provider);
             if (model is not null)
                 activity.SetTag(GenAiAttributes.RequestModel, model);
+            ApplyDefaultOutputType(activity, operation);
         }
 
         try
@@ -249,6 +250,7 @@ public static class GenAiInstrumentation
             activity.SetTag(GenAiAttributes.ProviderName, provider);
             if (model is not null)
                 activity.SetTag(GenAiAttributes.RequestModel, model);
+            ApplyDefaultOutputType(activity, operation);
         }
 
         try
@@ -322,6 +324,7 @@ public static class GenAiInstrumentation
             activity.SetTag(GenAiAttributes.ProviderName, provider);
             if (model is not null)
                 activity.SetTag(GenAiAttributes.RequestModel, model);
+            ApplyDefaultOutputType(activity, operation);
         }
 
         IAsyncEnumerable<T> stream;
@@ -418,6 +421,15 @@ public static class GenAiInstrumentation
         OperationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
             new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider));
+
+    private static void ApplyDefaultOutputType(Activity activity, string operation)
+    {
+        var outputType = GenAiConstants.TryGetDefaultOutputType(operation);
+        if (outputType is not null)
+        {
+            activity.SetTag(GenAiAttributes.OutputType, outputType);
+        }
+    }
 
     private static void RecordError(
         Activity activity,

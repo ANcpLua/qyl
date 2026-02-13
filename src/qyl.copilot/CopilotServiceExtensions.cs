@@ -8,6 +8,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using Qyl.ServiceDefaults.Instrumentation;
 using qyl.copilot.Adapters;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
@@ -76,7 +77,9 @@ public static class CopilotServiceExtensions
     {
         Throw.IfNull(builder);
 
-        return builder.AddSource(CopilotInstrumentation.SourceName);
+        return builder
+            .AddSource(CopilotInstrumentation.SourceName)
+            .AddSource(ActivitySources.GenAi);
     }
 
     /// <summary>
@@ -112,7 +115,9 @@ public static class CopilotServiceExtensions
         Throw.IfNull(services);
 
         services.AddOpenTelemetry()
-            .WithTracing(static builder => builder.AddSource(CopilotInstrumentation.SourceName))
+            .WithTracing(static builder => builder
+                .AddSource(CopilotInstrumentation.SourceName)
+                .AddSource(ActivitySources.GenAi))
             .WithMetrics(static builder => builder.AddMeter(CopilotInstrumentation.MeterName));
 
         return services;

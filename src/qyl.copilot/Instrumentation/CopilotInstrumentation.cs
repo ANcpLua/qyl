@@ -5,6 +5,7 @@
 // =============================================================================
 
 using qyl.protocol.Attributes;
+using Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 namespace qyl.copilot.Instrumentation;
 
@@ -88,8 +89,9 @@ public static class CopilotInstrumentation
         var activity = ActivitySource.StartActivity(name: "gen_ai.chat", kind: ActivityKind.Client);
         if (activity is null) return null;
 
-        activity.SetTag(GenAiAttributes.Deprecated.System, GenAiSystem);
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
         activity.SetTag(GenAiAttributes.OperationName, OperationChat);
+        activity.SetTag(GenAiAttributes.OutputType, GenAiAttributes.OutputTypes.Text);
 
         return activity;
     }
@@ -106,8 +108,9 @@ public static class CopilotInstrumentation
         var activity = ActivitySource.StartActivity($"gen_ai.workflow {workflowName}", ActivityKind.Client);
         if (activity is null) return null;
 
-        activity.SetTag(GenAiAttributes.Deprecated.System, GenAiSystem);
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
         activity.SetTag(GenAiAttributes.OperationName, OperationWorkflow);
+        activity.SetTag(GenAiAttributes.OutputType, GenAiAttributes.OutputTypes.Text);
         activity.SetTag(AttrWorkflowName, workflowName);
 
         if (executionId is not null)
@@ -131,17 +134,10 @@ public static class CopilotInstrumentation
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartToolSpan(string toolName, string? toolCallId = null)
     {
-        var activity = ActivitySource.StartActivity($"gen_ai.execute_tool {toolName}", ActivityKind.Client);
+        var activity = GenAiInstrumentation.StartToolExecutionSpan(toolName, toolCallId);
         if (activity is null) return null;
 
-        activity.SetTag(GenAiAttributes.Deprecated.System, GenAiSystem);
-        activity.SetTag(GenAiAttributes.OperationName, OperationExecuteTool);
-        activity.SetTag(GenAiAttributes.ToolName, toolName);
-
-        if (toolCallId is not null)
-        {
-            activity.SetTag(GenAiAttributes.ToolCallId, toolCallId);
-        }
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
 
         return activity;
     }

@@ -2,12 +2,13 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using qyl.mcp;
 using qyl.mcp.Auth;
 using qyl.mcp.Tools;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
+builder.Logging.AddConsole(static o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
 // Add MCP authentication support (reads QYL_MCP_TOKEN env var)
 // If no token configured, auth is disabled (dev mode)
@@ -17,69 +18,13 @@ builder.Services.AddMcpAuth(builder.Configuration);
 // Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY
 var collectorUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
 
-// Configure HttpClient for each tool class that needs collector access
-builder.Services.AddHttpClient<ReplayTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<HttpTelemetryStore>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<ConsoleTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<StructuredLogTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<GenAiTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<StorageTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(30);
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
-
-builder.Services.AddHttpClient<CopilotTools>(client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(60); // Copilot chat can take longer
-    })
-    .AddMcpAuthHandler()
-    .AddExtendedHttpClientLogging()
-    .AddStandardResilienceHandler();
+builder.Services.AddCollectorToolClient<ReplayTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
+builder.Services.AddCollectorToolClient<ConsoleTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<StorageTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITelemetryStore>(static sp =>

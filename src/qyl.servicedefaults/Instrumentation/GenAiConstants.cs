@@ -3,6 +3,8 @@
 // QYL-specific constants only - OTel semconv attributes are in qyl.protocol
 // =============================================================================
 
+using qyl.protocol.Attributes;
+
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
@@ -22,4 +24,26 @@ internal static class GenAiConstants
     ///     Standard OTel GenAI env var respected by M.E.AI.
     /// </summary>
     public const string CaptureMessageContentEnvVar = "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT";
+
+    /// <summary>Canonical provider name for Azure AI Inference.</summary>
+    public const string AzureAiInferenceProvider = GenAiAttributes.Providers.AzureAiInference;
+
+    /// <summary>
+    ///     Returns the default <c>gen_ai.output.type</c> for a known operation.
+    ///     Returns <c>null</c> when output modality is not known at compile time.
+    /// </summary>
+    public static string? TryGetDefaultOutputType(string operation)
+    {
+        return operation switch
+        {
+            GenAiAttributes.Operations.Chat => GenAiAttributes.OutputTypes.Text,
+            GenAiAttributes.Operations.GenerateContent => GenAiAttributes.OutputTypes.Text,
+            GenAiAttributes.Operations.InvokeAgent => GenAiAttributes.OutputTypes.Text,
+            GenAiAttributes.Operations.TextCompletion => GenAiAttributes.OutputTypes.Text,
+            GenAiAttributes.Operations.Embeddings => GenAiAttributes.OutputTypes.Json,
+            "image_generation" => GenAiAttributes.OutputTypes.Image,
+            "speech" => GenAiAttributes.OutputTypes.Speech,
+            _ => null
+        };
+    }
 }

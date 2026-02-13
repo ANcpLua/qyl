@@ -69,8 +69,14 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
             new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
         ["Anthropic.Messages.MessageClient.CreateAsync"] =
             new GenAiTarget("anthropic", "chat", "chat {gen_ai.request.model}"),
+        ["Azure.AI.Inference.ChatCompletionsClient.Complete"] =
+            new GenAiTarget("azure.ai.inference", "chat", "chat {gen_ai.request.model}"),
         ["Azure.AI.Inference.ChatCompletionsClient.CompleteAsync"] =
             new GenAiTarget("azure.ai.inference", "chat", "chat {gen_ai.request.model}"),
+        ["Azure.AI.Inference.EmbeddingsClient.Embed"] =
+            new GenAiTarget("azure.ai.inference", "embeddings", "embeddings {gen_ai.request.model}"),
+        ["Azure.AI.Inference.EmbeddingsClient.EmbedAsync"] =
+            new GenAiTarget("azure.ai.inference", "embeddings", "embeddings {gen_ai.request.model}"),
 
         // QYL extension providers (not in OTel semconv)
         ["OllamaSharp.OllamaApiClient.ChatAsync"] = new GenAiTarget("ollama", "chat", "chat {gen_ai.request.model}")
