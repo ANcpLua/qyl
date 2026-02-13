@@ -165,7 +165,7 @@ export function SettingsPage() {
                         </CardHeader>
                         <CardContent>
                             <Select defaultValue="comfortable">
-                                <SelectTrigger className="w-48">
+                                <SelectTrigger className="w-48" aria-label="Display density">
                                     <SelectValue/>
                                 </SelectTrigger>
                                 <SelectContent>
@@ -216,7 +216,7 @@ export function SettingsPage() {
                         <CardContent>
                             <div className="flex items-center gap-4">
                                 <Select value={refreshInterval} onValueChange={setRefreshInterval}>
-                                    <SelectTrigger className="w-48">
+                                    <SelectTrigger className="w-48" aria-label="Auto-refresh interval">
                                         <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
@@ -246,6 +246,7 @@ export function SettingsPage() {
                                     value={maxLogLines}
                                     onChange={(e) => setMaxLogLines(e.target.value)}
                                     className="w-32"
+                                    aria-label="Maximum log lines"
                                 />
                                 <span className="text-sm text-muted-foreground">lines</span>
                             </div>

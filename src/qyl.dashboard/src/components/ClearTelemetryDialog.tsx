@@ -65,7 +65,7 @@ export function ClearTelemetryDialog({onCleared}: ClearTelemetryDialogProps) {
                     variant="outline"
                     size="icon"
                     className="border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-red hover:text-signal-red hover:bg-signal-red/10"
-                    title="Clear all telemetry data"
+                    aria-label="Clear all telemetry data"
                 >
                     <Trash2 className="w-4 h-4"/>
                 </Button>
