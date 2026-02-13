@@ -1,3 +1,4 @@
+using qyl.collector.Errors;
 using qyl.protocol.Copilot;
 using static System.Threading.Volatile;
 
@@ -1080,6 +1081,235 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     // ==========================================================================
+    // Error Operations
+    // ==========================================================================
+
+    /// <summary>
+    ///     Upserts an error event. On fingerprint conflict, increments occurrence_count,
+    ///     updates last_seen, merges affected_services, and appends to sample_traces (max 10).
+    /// </summary>
+    public async Task UpsertErrorAsync(ErrorEvent error, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+            var errorId = Guid.NewGuid().ToString("N");
+
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                INSERT INTO errors
+                    (error_id, error_type, message, category, fingerprint,
+                     first_seen, last_seen, occurrence_count,
+                     affected_users, affected_services, status,
+                     assigned_to, issue_url, sample_traces)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                ON CONFLICT (fingerprint) DO UPDATE SET
+                    last_seen = EXCLUDED.last_seen,
+                    occurrence_count = errors.occurrence_count + 1,
+                    affected_services = CASE
+                        WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
+                        WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
+                        WHEN errors.affected_services LIKE '%' || EXCLUDED.affected_services || '%'
+                            THEN errors.affected_services
+                        ELSE errors.affected_services || ',' || EXCLUDED.affected_services
+                    END,
+                    sample_traces = CASE
+                        WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
+                        WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
+                            THEN errors.sample_traces
+                        ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
+                    END
+                """;
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
+            cmd.Parameters.Add(new DuckDBParameter { Value = now });
+            cmd.Parameters.Add(new DuckDBParameter { Value = now });
+            cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId is not null ? 1L : (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
+            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId ?? (object)DBNull.Value });
+
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Gets errors with optional filtering by category, status, and service name.
+    /// </summary>
+    public async Task<IReadOnlyList<ErrorRow>> GetErrorsAsync(
+        string? category = null,
+        string? status = null,
+        string? serviceName = null,
+        int limit = 100,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var rows = new List<ErrorRow>();
+        var conditions = new List<string>();
+        var parameters = new List<DuckDBParameter>();
+        var paramIndex = 1;
+
+        if (!string.IsNullOrEmpty(category))
+        {
+            conditions.Add($"category = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = category });
+        }
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            conditions.Add($"status = ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = status });
+        }
+
+        if (!string.IsNullOrEmpty(serviceName))
+        {
+            conditions.Add($"affected_services LIKE ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = $"%{serviceName}%" });
+        }
+
+        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = $"""
+                           SELECT error_id, error_type, message, category, fingerprint,
+                                  first_seen, last_seen, occurrence_count,
+                                  affected_users, affected_services, status,
+                                  assigned_to, issue_url, sample_traces
+                           FROM errors
+                           {whereClause}
+                           ORDER BY last_seen DESC
+                           LIMIT ${paramIndex}
+                           """;
+
+        cmd.Parameters.AddRange(parameters);
+        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            rows.Add(MapErrorRow(reader));
+
+        return rows;
+    }
+
+    /// <summary>
+    ///     Gets aggregated error statistics grouped by category.
+    /// </summary>
+    public async Task<ErrorStats> GetErrorStatsAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        var byCategory = new List<ErrorCategoryStat>();
+        long totalCount = 0;
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT category, SUM(occurrence_count) as total
+            FROM errors
+            GROUP BY category
+            ORDER BY total DESC
+            """;
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            var count = reader.GetInt64(1);
+            totalCount += count;
+            byCategory.Add(new ErrorCategoryStat
+            {
+                Category = reader.GetString(0),
+                Count = count
+            });
+        }
+
+        return new ErrorStats
+        {
+            TotalCount = totalCount,
+            ByCategory = byCategory
+        };
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static ErrorRow MapErrorRow(DbDataReader reader) =>
+        new()
+        {
+            ErrorId = reader.GetString(0),
+            ErrorType = reader.GetString(1),
+            Message = reader.GetString(2),
+            Category = reader.GetString(3),
+            Fingerprint = reader.GetString(4),
+            FirstSeen = new DateTimeOffset(reader.GetDateTime(5), TimeSpan.Zero),
+            LastSeen = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero),
+            OccurrenceCount = reader.GetInt64(7),
+            AffectedUsers = reader.Col(8).AsInt64,
+            AffectedServices = reader.Col(9).AsString,
+            Status = reader.GetString(10),
+            AssignedTo = reader.Col(11).AsString,
+            IssueUrl = reader.Col(12).AsString,
+            SampleTraces = reader.Col(13).AsString
+        };
+
+    /// <summary>
+    ///     Updates the status (and optionally assigned_to) for a specific error.
+    /// </summary>
+    public async Task UpdateErrorStatusAsync(string errorId, string status, string? assignedTo = null,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = assignedTo is not null
+                ? "UPDATE errors SET status = $1, assigned_to = $2 WHERE error_id = $3"
+                : "UPDATE errors SET status = $1 WHERE error_id = $2";
+
+            cmd.Parameters.Add(new DuckDBParameter { Value = status });
+            if (assignedTo is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = assignedTo });
+            cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
+
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Gets a single error by its ID. Returns null if not found.
+    /// </summary>
+    public async Task<ErrorRow?> GetErrorByIdAsync(string errorId, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = """
+            SELECT error_id, error_type, message, category, fingerprint,
+                   first_seen, last_seen, occurrence_count, affected_users,
+                   affected_services, status, assigned_to, issue_url, sample_traces
+            FROM errors WHERE error_id = $1
+            """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await reader.ReadAsync(ct).ConfigureAwait(false) ? MapErrorRow(reader) : null;
+    }
+
+    // ==========================================================================
     // Archiving
     // ==========================================================================
 
@@ -1430,6 +1660,15 @@ public sealed class DuckDbStore : IAsyncDisposable
         using var insightsCmd = con.CreateCommand();
         insightsCmd.CommandText = DuckDbSchema.MaterializedInsightsDdl;
         insightsCmd.ExecuteNonQuery();
+
+        using var errorsCmd = con.CreateCommand();
+        errorsCmd.CommandText = """
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
+            CREATE INDEX IF NOT EXISTS idx_errors_category ON errors(category);
+            CREATE INDEX IF NOT EXISTS idx_errors_status ON errors(status);
+            CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
+            """;
+        errorsCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
