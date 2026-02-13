@@ -49,7 +49,7 @@ public static partial class ErrorFingerprinter
     [GeneratedRegex(@"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}")]
     private static partial Regex GuidRegex();
 
-    [GeneratedRegex(@"(?<![a-zA-Z])\d+(?![a-zA-Z])")]
+    [GeneratedRegex(@"(?<![a-zA-Z])\d{5,}(?![a-zA-Z])")]
     private static partial Regex StandaloneNumberRegex();
 
     [GeneratedRegex(@"https?://[^\s]+")]

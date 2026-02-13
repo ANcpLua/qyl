@@ -13,7 +13,7 @@ public static class ErrorExtractor
 
         var exceptionType = attrs.GetValueOrDefault("exception.type")
                            ?? attrs.GetValueOrDefault("error.type")
-                           ?? "Unknown";
+                           ?? span.Name;
         var exceptionMessage = attrs.GetValueOrDefault("exception.message")
                               ?? span.StatusMessage
                               ?? "Unknown error";

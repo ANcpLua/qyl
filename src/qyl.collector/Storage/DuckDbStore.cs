@@ -1084,6 +1084,52 @@ public sealed class DuckDbStore : IAsyncDisposable
     // Error Operations
     // ==========================================================================
 
+    private const string ErrorUpsertSql = """
+        INSERT INTO errors
+            (error_id, error_type, message, category, fingerprint,
+             first_seen, last_seen, occurrence_count,
+             affected_users, affected_services, status,
+             assigned_to, issue_url, sample_traces)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        ON CONFLICT (fingerprint) DO UPDATE SET
+            last_seen = EXCLUDED.last_seen,
+            occurrence_count = errors.occurrence_count + 1,
+            affected_services = CASE
+                WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
+                WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
+                WHEN ',' || errors.affected_services || ',' LIKE '%,' || EXCLUDED.affected_services || ',%'
+                    THEN errors.affected_services
+                ELSE errors.affected_services || ',' || EXCLUDED.affected_services
+            END,
+            sample_traces = CASE
+                WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
+                WHEN EXCLUDED.sample_traces IS NULL THEN errors.sample_traces
+                WHEN ',' || errors.sample_traces || ',' LIKE '%,' || EXCLUDED.sample_traces || ',%'
+                    THEN errors.sample_traces
+                WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
+                    THEN errors.sample_traces
+                ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
+            END
+        """;
+
+    private static void AddErrorUpsertParameters(DuckDBCommand cmd, ErrorEvent error, string errorId, DateTime now)
+    {
+        cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
+        cmd.Parameters.Add(new DuckDBParameter { Value = now });
+        cmd.Parameters.Add(new DuckDBParameter { Value = now });
+        cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId is not null ? 1L : (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
+        cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId ?? (object)DBNull.Value });
+    }
+
     /// <summary>
     ///     Upserts an error event. On fingerprint conflict, increments occurrence_count,
     ///     updates last_seen, merges affected_services, and appends to sample_traces (max 10).
@@ -1094,49 +1140,9 @@ public sealed class DuckDbStore : IAsyncDisposable
         var job = new WriteJob<int>(async (con, token) =>
         {
             var now = TimeProvider.System.GetUtcNow().UtcDateTime;
-            var errorId = Guid.NewGuid().ToString("N");
-
             await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                INSERT INTO errors
-                    (error_id, error_type, message, category, fingerprint,
-                     first_seen, last_seen, occurrence_count,
-                     affected_users, affected_services, status,
-                     assigned_to, issue_url, sample_traces)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                ON CONFLICT (fingerprint) DO UPDATE SET
-                    last_seen = EXCLUDED.last_seen,
-                    occurrence_count = errors.occurrence_count + 1,
-                    affected_services = CASE
-                        WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
-                        WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
-                        WHEN errors.affected_services LIKE '%' || EXCLUDED.affected_services || '%'
-                            THEN errors.affected_services
-                        ELSE errors.affected_services || ',' || EXCLUDED.affected_services
-                    END,
-                    sample_traces = CASE
-                        WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
-                        WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
-                            THEN errors.sample_traces
-                        ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
-                    END
-                """;
-
-            cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
-            cmd.Parameters.Add(new DuckDBParameter { Value = now });
-            cmd.Parameters.Add(new DuckDBParameter { Value = now });
-            cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId is not null ? 1L : (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
-            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId ?? (object)DBNull.Value });
-
+            cmd.CommandText = ErrorUpsertSql;
+            AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
 
@@ -1391,6 +1397,41 @@ public sealed class DuckDbStore : IAsyncDisposable
 
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
             offset += chunkSize;
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
+
+        // Writer-side error extraction: runs on the single writer thread after span commit.
+        // Zero additional channel pressure — errors are extracted inline within the existing job.
+        await ExtractAndUpsertErrorsAsync(con, batch.Spans, ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask ExtractAndUpsertErrorsAsync(
+        DuckDBConnection con,
+        IReadOnlyList<SpanStorageRow> spans,
+        CancellationToken ct)
+    {
+        List<ErrorEvent>? errors = null;
+        foreach (var span in spans)
+        {
+            if (ErrorExtractor.Extract(span) is { } errorEvent)
+            {
+                errors ??= [];
+                errors.Add(errorEvent);
+            }
+        }
+
+        if (errors is null) return;
+
+        var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
+        foreach (var error in errors)
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = ErrorUpsertSql;
+            AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
         }
 
         await tx.CommitAsync(ct).ConfigureAwait(false);

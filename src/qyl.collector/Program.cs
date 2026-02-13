@@ -333,12 +333,6 @@ app.MapPost("/api/v1/ingest", async (
 
     broadcaster.PublishSpans(batch);
 
-    foreach (var span in batch.Spans)
-    {
-        if (ErrorExtractor.Extract(span) is { } errorEvent)
-            await store.UpsertErrorAsync(errorEvent);
-    }
-
     return Results.Accepted();
 });
 
@@ -386,12 +380,6 @@ app.MapPost("/v1/traces", async (
         await store.EnqueueAsync(batch, ct);
 
         broadcaster.PublishSpans(batch);
-
-        foreach (var span in batch.Spans)
-        {
-            if (ErrorExtractor.Extract(span) is { } errorEvent)
-                await store.UpsertErrorAsync(errorEvent, ct);
-        }
 
         return Results.Accepted();
     }
