@@ -50,7 +50,7 @@ public static partial class DuckDbSchema
             first_seen TIMESTAMP NOT NULL,
             last_seen TIMESTAMP NOT NULL,
             occurrence_count BIGINT NOT NULL,
-            affected_users BIGINT,
+            affected_user_ids VARCHAR,
             affected_services VARCHAR,
             status VARCHAR NOT NULL,
             assigned_to VARCHAR,

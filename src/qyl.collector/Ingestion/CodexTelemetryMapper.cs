@@ -370,16 +370,8 @@ public static class CodexTelemetryMapper
         if (string.IsNullOrEmpty(attributesJson))
             return null;
 
-        try
-        {
-            return JsonSerializer.Deserialize(
-                attributesJson,
-                QylSerializerContext.Default.DictionaryStringString);
-        }
-        catch
-        {
-            return null;
-        }
+        var result = ErrorExtractor.ParseAttributesJson(attributesJson);
+        return result.Count > 0 ? result : null;
     }
 
     private static bool HasCodexAttributesFromJson(string? attributesJson)

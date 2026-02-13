@@ -87,4 +87,11 @@ namespace qyl.collector;
 [JsonSerializable(typeof(Meta.MetaStatus))]
 [JsonSerializable(typeof(Meta.MetaLinks))]
 [JsonSerializable(typeof(Meta.MetaPorts))]
+// Error engine types
+[JsonSerializable(typeof(ErrorStatusUpdate))]
+[JsonSerializable(typeof(ErrorRow))]
+[JsonSerializable(typeof(IReadOnlyList<ErrorRow>))]
+[JsonSerializable(typeof(ErrorStats))]
+[JsonSerializable(typeof(ErrorCategoryStat))]
+[JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))]
 public partial class QylSerializerContext : JsonSerializerContext;

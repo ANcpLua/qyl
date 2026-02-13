@@ -80,9 +80,21 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
+    public static List<SpanDto> ToDtos(
+        IEnumerable<SpanStorageRow> records,
+        Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
+    [
+        .. records.Select(r =>
+        {
+            var (serviceName, serviceVersion) = serviceResolver(r);
+            return ToDto(r, serviceName, serviceVersion);
+        })
+    ];
+
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
     public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
     {
-        // Convert protocol UnixNano (long) to DateTime
         var startTime = TimeConversions.UnixNanoToDateTime((ulong)record.StartTimeUnixNano);
         var endTime = TimeConversions.UnixNanoToDateTime((ulong)record.EndTimeUnixNano);
         var durationMs = record.DurationNs / 1_000_000.0;
@@ -110,19 +122,6 @@ public static class SpanMapper
             SchemaUrl = record.SchemaUrl
         };
     }
-
-    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
-    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static List<SpanDto> ToDtos(
-        IEnumerable<SpanStorageRow> records,
-        Func<SpanStorageRow, (string ServiceName, string? ServiceVersion)> serviceResolver) =>
-    [
-        .. records.Select(r =>
-        {
-            var (serviceName, serviceVersion) = serviceResolver(r);
-            return ToDto(r, serviceName, serviceVersion);
-        })
-    ];
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]

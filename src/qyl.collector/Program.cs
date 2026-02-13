@@ -334,12 +334,6 @@ app.MapPost("/api/v1/ingest", async (
 
     broadcaster.PublishSpans(batch);
 
-    foreach (var span in batch.Spans)
-    {
-        if (ErrorExtractor.Extract(span) is { } errorEvent)
-            await store.UpsertErrorAsync(errorEvent, ct);
-    }
-
     return Results.Accepted();
 });
 
@@ -387,12 +381,6 @@ app.MapPost("/v1/traces", async (
         await store.EnqueueAsync(batch, ct);
 
         broadcaster.PublishSpans(batch);
-
-        foreach (var span in batch.Spans)
-        {
-            if (ErrorExtractor.Extract(span) is { } errorEvent)
-                await store.UpsertErrorAsync(errorEvent, ct);
-        }
 
         return Results.Accepted();
     }
@@ -571,48 +559,23 @@ app.MapGet("/api/v1/telemetry/stats", async (DuckDbStore store, CancellationToke
 // Health check endpoints (Aspire standard)
 // /alive = Liveness (is the process running?) - only "live" tagged checks
 // /health = Readiness (is the service ready for traffic?) - only "ready" tagged checks
-app.MapGet("/alive", async (IServiceProvider sp, CancellationToken ct) =>
-{
-    var healthService = sp.GetService<HealthCheckService>();
-    if (healthService is null)
-        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
+app.MapGet("/alive", RunHealthCheck("healthy", "live")).WithName("LivenessCheck");
+app.MapGet("/health", RunHealthCheck("healthy", "ready")).WithName("HealthCheck");
+app.MapGet("/ready", RunHealthCheck("ready", "ready")).WithName("ReadyCheck");
 
-    // Only check "live" tagged health checks - NOT DuckDB (which is "ready" only)
-    var result = await healthService.CheckHealthAsync(
-        c => c.Tags.Contains("live"), ct).ConfigureAwait(false);
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
-        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
+static Func<IServiceProvider, CancellationToken, Task<IResult>> RunHealthCheck(string label, string tag) =>
+    async (sp, ct) =>
+    {
+        var healthService = sp.GetService<HealthCheckService>();
+        if (healthService is null)
+            return Results.Ok(new qyl.collector.HealthResponse(label));
 
-    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-}).WithName("LivenessCheck");
-
-app.MapGet("/health", async (IServiceProvider sp, CancellationToken ct) =>
-{
-    var healthService = sp.GetService<HealthCheckService>();
-    if (healthService is null)
-        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
-
-    var result = await healthService.CheckHealthAsync(
-        c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
-        return Results.Ok(new qyl.collector.HealthResponse("healthy"));
-
-    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-}).WithName("HealthCheck");
-
-app.MapGet("/ready", async (IServiceProvider sp, CancellationToken ct) =>
-{
-    var healthService = sp.GetService<HealthCheckService>();
-    if (healthService is null)
-        return Results.Ok(new qyl.collector.HealthResponse("ready"));
-
-    var result = await healthService.CheckHealthAsync(
-        c => c.Tags.Contains("ready"), ct).ConfigureAwait(false);
-    if (result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy)
-        return Results.Ok(new qyl.collector.HealthResponse("ready"));
-
-    return Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-}).WithName("ReadyCheck");
+        var result = await healthService.CheckHealthAsync(
+            c => c.Tags.Contains(tag), ct).ConfigureAwait(false);
+        return result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
+            ? Results.Ok(new qyl.collector.HealthResponse(label))
+            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    };
 
 // =============================================================================
 // API Stubs for OpenAPI Compliance

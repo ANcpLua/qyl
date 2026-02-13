@@ -108,47 +108,12 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes,
         string? baggageJson,
-        string? schemaUrl)
-    {
-        // Store nanoseconds directly as UBIGINT (ulong)
-        var startNano = span.StartTimeUnixNano;
-        var endNano = span.EndTimeUnixNano;
-        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
-
-        // Extract gen_ai attributes with schema normalization (fallback to deprecated names)
-        var genAi = ExtractGenAiAttributes(attributes);
-
-        return new SpanStorageRow
-        {
-            SpanId = span.SpanId ?? "",
-            TraceId = span.TraceId ?? "",
-            ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
-            SessionId = attributes.GetValueOrDefault("session.id"),
-            Name = span.Name ?? "unknown",
-            Kind = ConvertSpanKindToByte(span.Kind),
-            StartTimeUnixNano = startNano,
-            EndTimeUnixNano = endNano,
-            DurationNs = durationNs,
-            StatusCode = ConvertStatusCodeToByte(span.Status?.Code),
-            StatusMessage = string.IsNullOrEmpty(span.Status?.Message) ? null : span.Status.Message,
-            ServiceName = serviceName,
-            GenAiProviderName = genAi.ProviderName,
-            GenAiRequestModel = genAi.RequestModel,
-            GenAiResponseModel = genAi.ResponseModel,
-            GenAiInputTokens = genAi.TokensIn,
-            GenAiOutputTokens = genAi.TokensOut,
-            GenAiTemperature = genAi.Temperature,
-            GenAiStopReason = genAi.StopReason,
-            GenAiToolName = genAi.ToolName,
-            GenAiToolCallId = genAi.ToolCallId,
-            GenAiCostUsd = genAi.CostUsd,
-            AttributesJson =
-                JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            ResourceJson = null,
-            BaggageJson = baggageJson,
-            SchemaUrl = schemaUrl
-        };
-    }
+        string? schemaUrl) =>
+        CreateStorageRow(
+            span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
+            span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
+            span.Status?.Code, span.Status?.Message,
+            serviceName, attributes, baggageJson, schemaUrl);
 
     #endregion
 
@@ -200,11 +165,7 @@ public static class OtlpConverter
         {
             if (attr.Key is null) continue;
 
-            var value = attr.Value?.StringValue
-                        ?? attr.Value?.IntValue?.ToString()
-                        ?? attr.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-                        ?? attr.Value?.BoolValue?.ToString().ToLowerInvariant();
-
+            var value = ConvertJsonValueToString(attr.Value);
             if (value is not null) attributes[attr.Key] = value;
         }
 
@@ -216,29 +177,40 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes,
         string? baggageJson,
-        string? schemaUrl)
-    {
-        // Store nanoseconds directly as UBIGINT (ulong)
-        var startNano = span.StartTimeUnixNano;
-        var endNano = span.EndTimeUnixNano;
-        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
+        string? schemaUrl) =>
+        CreateStorageRow(
+            span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
+            span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
+            span.Status?.Code, span.Status?.Message,
+            serviceName, attributes, baggageJson, schemaUrl);
 
-        // Extract gen_ai attributes with schema normalization (fallback to deprecated names)
+    #endregion
+
+    #region Shared Helpers
+
+    private static SpanStorageRow CreateStorageRow(
+        string? spanId, string? traceId, string? parentSpanId, string? name,
+        int? kind, ulong startNano, ulong endNano,
+        int? statusCode, string? statusMessage,
+        string serviceName, Dictionary<string, string> attributes,
+        string? baggageJson, string? schemaUrl)
+    {
+        var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
         var genAi = ExtractGenAiAttributes(attributes);
 
         return new SpanStorageRow
         {
-            SpanId = span.SpanId ?? "",
-            TraceId = span.TraceId ?? "",
-            ParentSpanId = string.IsNullOrEmpty(span.ParentSpanId) ? null : span.ParentSpanId,
+            SpanId = spanId ?? "",
+            TraceId = traceId ?? "",
+            ParentSpanId = string.IsNullOrEmpty(parentSpanId) ? null : parentSpanId,
             SessionId = attributes.GetValueOrDefault("session.id"),
-            Name = span.Name ?? "unknown",
-            Kind = ConvertSpanKindToByte(span.Kind),
+            Name = name ?? "unknown",
+            Kind = ConvertSpanKindToByte(kind),
             StartTimeUnixNano = startNano,
             EndTimeUnixNano = endNano,
             DurationNs = durationNs,
-            StatusCode = ConvertStatusCodeToByte(span.Status?.Code),
-            StatusMessage = span.Status?.Message,
+            StatusCode = ConvertStatusCodeToByte(statusCode),
+            StatusMessage = string.IsNullOrEmpty(statusMessage) ? null : statusMessage,
             ServiceName = serviceName,
             GenAiProviderName = genAi.ProviderName,
             GenAiRequestModel = genAi.RequestModel,
@@ -258,9 +230,11 @@ public static class OtlpConverter
         };
     }
 
-    #endregion
-
-    #region Shared Helpers
+    private static string? ConvertJsonValueToString(OtlpAnyValue? value) =>
+        value?.StringValue
+        ?? value?.IntValue?.ToString()
+        ?? value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
+        ?? value?.BoolValue?.ToString().ToLowerInvariant();
 
     /// <summary>
     ///     Extracts baggage from attributes prefixed with "baggage." and serializes to JSON.
@@ -445,12 +419,7 @@ public static class OtlpConverter
         foreach (var attr in attributes)
         {
             if (attr.Key is null) continue;
-            var value = attr.Value?.StringValue
-                        ?? attr.Value?.IntValue?.ToString()
-                        ?? attr.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-                        ?? attr.Value?.BoolValue?.ToString()
-                        ?? "";
-            dict[attr.Key] = value;
+            dict[attr.Key] = ConvertJsonValueToString(attr.Value) ?? "";
         }
 
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);

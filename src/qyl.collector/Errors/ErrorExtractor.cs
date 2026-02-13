@@ -1,6 +1,3 @@
-using System.Text.Json;
-using qyl.collector.Storage;
-
 namespace qyl.collector.Errors;
 
 public static class ErrorExtractor
@@ -9,7 +6,7 @@ public static class ErrorExtractor
     {
         if (span.StatusCode != 2) return null;
 
-        var attrs = ParseAttributes(span.AttributesJson);
+        var attrs = ParseAttributesJson(span.AttributesJson);
 
         var exceptionType = attrs.GetValueOrDefault("exception.type")
                            ?? attrs.GetValueOrDefault("error.type")
@@ -39,16 +36,20 @@ public static class ErrorExtractor
         };
     }
 
-    private static Dictionary<string, string> ParseAttributes(string? json)
+    /// <summary>
+    ///     Parses a JSON attributes string to a string dictionary.
+    ///     Shared utility for attribute deserialization across the collector.
+    /// </summary>
+    internal static Dictionary<string, string> ParseAttributesJson(string? json)
     {
-        if (string.IsNullOrEmpty(json)) return new Dictionary<string, string>();
+        if (string.IsNullOrEmpty(json)) return [];
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? [];
+            return JsonSerializer.Deserialize(json, QylSerializerContext.Default.DictionaryStringString) ?? [];
         }
-        catch
+        catch (JsonException)
         {
-            return new Dictionary<string, string>();
+            return [];
         }
     }
 }

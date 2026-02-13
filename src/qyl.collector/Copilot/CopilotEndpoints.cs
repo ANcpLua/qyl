@@ -40,39 +40,8 @@ internal static class CopilotEndpoints
         HttpContext ctx,
         CancellationToken ct)
     {
-        ctx.Response.ContentType = "text/event-stream";
-        ctx.Response.Headers.CacheControl = "no-cache";
-        ctx.Response.Headers.Connection = "keep-alive";
-
-        try
-        {
-            var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
-
-            await foreach (var update in adapter.ChatAsync(request.Prompt, request.Context, ct)
-                               .ConfigureAwait(false))
-            {
-                var json = JsonSerializer.Serialize(update, CopilotSerializerContext.Default.StreamUpdate);
-                var eventName = MapEventName(update.Kind);
-                await ctx.Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", ct).ConfigureAwait(false);
-                await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
-            }
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            // Client disconnected - expected for SSE streams
-        }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
-        {
-            var error = new StreamUpdate
-            {
-                Kind = StreamUpdateKind.Error,
-                Error = "Copilot authentication not available",
-                Timestamp = TimeProvider.System.GetUtcNow()
-            };
-            var json = JsonSerializer.Serialize(error, CopilotSerializerContext.Default.StreamUpdate);
-            await ctx.Response.WriteAsync($"event: error\ndata: {json}\n\n", ct).ConfigureAwait(false);
-            await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
-        }
+        var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
+        await StreamSseAsync(ctx, adapter.ChatAsync(request.Prompt, request.Context, ct), ct);
     }
 
     private static async Task<IResult> GetWorkflowsAsync(
@@ -107,16 +76,22 @@ internal static class CopilotEndpoints
         HttpContext ctx,
         CancellationToken ct)
     {
+        var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
+        await StreamSseAsync(ctx, engine.ExecuteAsync(name, request?.Parameters, request?.Context?.AdditionalContext, ct), ct);
+    }
+
+    private static async Task StreamSseAsync(
+        HttpContext ctx,
+        IAsyncEnumerable<StreamUpdate> updates,
+        CancellationToken ct)
+    {
         ctx.Response.ContentType = "text/event-stream";
         ctx.Response.Headers.CacheControl = "no-cache";
         ctx.Response.Headers.Connection = "keep-alive";
 
         try
         {
-            var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
-
-            await foreach (var update in engine.ExecuteAsync(name, request?.Parameters, request?.Context?.AdditionalContext, ct)
-                               .ConfigureAwait(false))
+            await foreach (var update in updates.ConfigureAwait(false))
             {
                 var json = JsonSerializer.Serialize(update, CopilotSerializerContext.Default.StreamUpdate);
                 var eventName = MapEventName(update.Kind);
@@ -126,7 +101,7 @@ internal static class CopilotEndpoints
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Client disconnected
+            // Client disconnected - expected for SSE streams
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
         {
@@ -203,7 +178,7 @@ internal static class CopilotEndpoints
             if (execution is null)
                 return Results.NotFound();
 
-            return Results.Ok(new ExecutionDetailDto
+            return Results.Ok(new ExecutionDto
             {
                 Id = execution.Id,
                 WorkflowName = execution.WorkflowName,
@@ -225,25 +200,10 @@ internal static class CopilotEndpoints
 }
 
 /// <summary>
-///     Workflow execution summary for list responses.
+///     Workflow execution DTO for list and detail responses.
+///     Result is populated only in detail responses (null-ignored in list via JsonIgnoreCondition).
 /// </summary>
 internal sealed record ExecutionDto
-{
-    public required string Id { get; init; }
-    public required string WorkflowName { get; init; }
-    public required string Status { get; init; }
-    public DateTimeOffset StartedAt { get; init; }
-    public DateTimeOffset? CompletedAt { get; init; }
-    public string? Error { get; init; }
-    public long? InputTokens { get; init; }
-    public long? OutputTokens { get; init; }
-    public string? TraceId { get; init; }
-}
-
-/// <summary>
-///     Workflow execution detail with result content.
-/// </summary>
-internal sealed record ExecutionDetailDto
 {
     public required string Id { get; init; }
     public required string WorkflowName { get; init; }
@@ -295,6 +255,5 @@ internal sealed record WorkflowListResponse
 [JsonSerializable(typeof(WorkflowDto))]
 [JsonSerializable(typeof(WorkflowListResponse))]
 [JsonSerializable(typeof(ExecutionDto))]
-[JsonSerializable(typeof(ExecutionDetailDto))]
 [JsonSerializable(typeof(ExecutionListResponse))]
 internal sealed partial class CopilotSerializerContext : JsonSerializerContext;

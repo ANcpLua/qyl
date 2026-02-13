@@ -93,7 +93,6 @@ public static class TelemetryExtensions
 
         // AsyncState for request-scoped context across async boundaries
         services.AddAsyncState();
-        services.AddLogEnricher<SpanContextEnricher>();
     }
 
     /// <summary>

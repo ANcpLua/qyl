@@ -211,7 +211,19 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var job = new FireAndForgetJob(
             batch.Spans.Count,
-            (con, token) => WriteBatchInternalAsync(con, batch, token),
+            async (con, token) =>
+            {
+                await WriteBatchInternalAsync(con, batch, token).ConfigureAwait(false);
+
+                try
+                {
+                    await ExtractAndUpsertErrorsAsync(con, batch.Spans, token).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    // Error extraction is best-effort. Span data is already committed.
+                }
+            },
             spanCount =>
             {
                 _droppedJobs.Add(1);
@@ -295,61 +307,31 @@ public sealed class DuckDbStore : IAsyncDisposable
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
         var spans = new List<SpanStorageRow>();
-        var conditions = new List<string>();
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
+        var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(sessionId))
-        {
-            conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = sessionId });
-        }
-
+            qb.Add("session_id = $N", sessionId);
         if (!string.IsNullOrEmpty(providerName))
-        {
-            conditions.Add($"gen_ai_provider_name = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = providerName });
-        }
-
+            qb.Add("gen_ai_provider_name = $N", providerName);
         if (startAfter.HasValue)
-        {
-            conditions.Add($"start_time_unix_nano >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
-        }
-
+            qb.Add("start_time_unix_nano >= $N", (decimal)startAfter.Value);
         if (startBefore.HasValue)
-        {
-            conditions.Add($"start_time_unix_nano <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = (decimal)startBefore.Value });
-        }
-
+            qb.Add("start_time_unix_nano <= $N", (decimal)startBefore.Value);
         if (statusCode.HasValue)
-        {
-            conditions.Add($"status_code = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = statusCode.Value });
-        }
-
+            qb.Add("status_code = $N", statusCode.Value);
         if (!string.IsNullOrEmpty(searchText))
-        {
-            // Search in status_message, name, and attributes_json
-            conditions.Add(
-                $"(status_message ILIKE ${paramIndex} OR name ILIKE ${paramIndex} OR attributes_json ILIKE ${paramIndex})");
-            parameters.Add(new DuckDBParameter { Value = $"%{searchText}%" });
-            paramIndex++;
-        }
-
-        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+            qb.Add("(status_message ILIKE $N OR name ILIKE $N OR attributes_json ILIKE $N)", $"%{searchText}%");
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT {SelectSpanColumns}
                            FROM spans
-                           {whereClause}
+                           {qb.WhereClause}
                            ORDER BY start_time_unix_nano DESC
-                           LIMIT ${paramIndex}
+                           LIMIT {qb.NextParam}
                            """;
 
-        cmd.Parameters.AddRange(parameters);
+        qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -402,23 +384,13 @@ public sealed class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        var conditions = new List<string> { "gen_ai_provider_name IS NOT NULL" };
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
+        var qb = new QueryBuilder();
+        qb.AddCondition("gen_ai_provider_name IS NOT NULL");
 
         if (!string.IsNullOrEmpty(sessionId))
-        {
-            conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = sessionId });
-        }
-
+            qb.Add("session_id = $N", sessionId);
         if (startAfter.HasValue)
-        {
-            conditions.Add($"start_time_unix_nano >= ${paramIndex}");
-            parameters.Add(new DuckDBParameter { Value = (decimal)startAfter.Value });
-        }
-
-        var whereClause = string.Join(" AND ", conditions);
+            qb.Add("start_time_unix_nano >= $N", (decimal)startAfter.Value);
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
@@ -429,10 +401,10 @@ public sealed class DuckDbStore : IAsyncDisposable
                                COALESCE(SUM(gen_ai_cost_usd), 0) as total_cost_usd,
                                AVG(gen_ai_cost_usd) as avg_cost
                            FROM spans
-                           WHERE {whereClause}
+                           {qb.WhereClause}
                            """;
 
-        cmd.Parameters.AddRange(parameters);
+        qb.ApplyTo(cmd);
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -581,50 +553,19 @@ public sealed class DuckDbStore : IAsyncDisposable
     // Clear All Operations (for dashboard controls)
     // ==========================================================================
 
-    /// <summary>
-    ///     Clears all spans from the database.
-    /// </summary>
-    public async Task<int> ClearAllSpansAsync(CancellationToken ct = default)
+    public Task<int> ClearAllSpansAsync(CancellationToken ct = default) => ClearTableAsync("spans", ct);
+
+    public Task<int> ClearAllLogsAsync(CancellationToken ct = default) => ClearTableAsync("logs", ct);
+
+    public Task<int> ClearAllSessionsAsync(CancellationToken ct = default) => ClearTableAsync("session_entities", ct);
+
+    private async Task<int> ClearTableAsync(string tableName, CancellationToken ct)
     {
         ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, token) =>
+        var job = new WriteJob<int>(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM spans";
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     Clears all logs from the database.
-    /// </summary>
-    public async Task<int> ClearAllLogsAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM logs";
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     Clears all sessions from the database.
-    /// </summary>
-    public async Task<int> ClearAllSessionsAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = "DELETE FROM session_entities";
+            cmd.CommandText = $"DELETE FROM {tableName}";
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
 
@@ -779,35 +720,24 @@ public sealed class DuckDbStore : IAsyncDisposable
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
-        var conditions = new List<string>();
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
+        var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(workflowName))
-        {
-            conditions.Add($"workflow_name = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = workflowName });
-        }
-
+            qb.Add("workflow_name = $N", workflowName);
         if (!string.IsNullOrEmpty(status))
-        {
-            conditions.Add($"status = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = status });
-        }
-
-        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+            qb.Add("status = $N", status);
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
             SELECT execution_id, workflow_name, status, started_at, completed_at,
                    result, error, parameters_json, input_tokens, output_tokens, trace_id
             FROM workflow_executions
-            {whereClause}
+            {qb.WhereClause}
             ORDER BY started_at DESC
-            LIMIT ${paramIndex}
+            LIMIT {qb.NextParam}
             """;
 
-        cmd.Parameters.AddRange(parameters);
+        qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var executions = new List<WorkflowExecution>();
@@ -1010,53 +940,22 @@ public sealed class DuckDbStore : IAsyncDisposable
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
         var logs = new List<LogStorageRow>();
-        var conditions = new List<string>();
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
+        var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(sessionId))
-        {
-            conditions.Add($"session_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = sessionId });
-        }
-
+            qb.Add("session_id = $N", sessionId);
         if (!string.IsNullOrEmpty(traceId))
-        {
-            conditions.Add($"trace_id = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = traceId });
-        }
-
+            qb.Add("trace_id = $N", traceId);
         if (!string.IsNullOrEmpty(severityText))
-        {
-            conditions.Add($"severity_text = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = severityText });
-        }
-
+            qb.Add("severity_text = $N", severityText);
         if (minSeverity.HasValue)
-        {
-            conditions.Add($"severity_number >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = minSeverity.Value });
-        }
-
+            qb.Add("severity_number >= $N", minSeverity.Value);
         if (!string.IsNullOrEmpty(search))
-        {
-            conditions.Add($"body LIKE ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = $"%{search}%" });
-        }
-
+            qb.Add("body LIKE $N", $"%{search}%");
         if (after.HasValue)
-        {
-            conditions.Add($"time_unix_nano >= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = (decimal)after.Value });
-        }
-
+            qb.Add("time_unix_nano >= $N", (decimal)after.Value);
         if (before.HasValue)
-        {
-            conditions.Add($"time_unix_nano <= ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = (decimal)before.Value });
-        }
-
-        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
+            qb.Add("time_unix_nano <= $N", (decimal)before.Value);
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
@@ -1065,12 +964,12 @@ public sealed class DuckDbStore : IAsyncDisposable
                                   severity_number, severity_text, body,
                                   service_name, attributes_json, resource_json, created_at
                            FROM logs
-                           {whereClause}
+                           {qb.WhereClause}
                            ORDER BY time_unix_nano DESC
-                           LIMIT ${paramIndex}
+                           LIMIT {qb.NextParam}
                            """;
 
-        cmd.Parameters.AddRange(parameters);
+        qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -1088,16 +987,18 @@ public sealed class DuckDbStore : IAsyncDisposable
         INSERT INTO errors
             (error_id, error_type, message, category, fingerprint,
              first_seen, last_seen, occurrence_count,
-             affected_users, affected_services, status,
+             affected_user_ids, affected_services, status,
              assigned_to, issue_url, sample_traces)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
         ON CONFLICT (fingerprint) DO UPDATE SET
             last_seen = EXCLUDED.last_seen,
             occurrence_count = errors.occurrence_count + 1,
-            affected_users = CASE
-                WHEN EXCLUDED.affected_users IS NULL THEN errors.affected_users
-                WHEN errors.affected_users IS NULL THEN EXCLUDED.affected_users
-                ELSE errors.affected_users + EXCLUDED.affected_users
+            affected_user_ids = CASE
+                WHEN EXCLUDED.affected_user_ids IS NULL THEN errors.affected_user_ids
+                WHEN errors.affected_user_ids IS NULL THEN EXCLUDED.affected_user_ids
+                WHEN ',' || errors.affected_user_ids || ',' LIKE '%,' || EXCLUDED.affected_user_ids || ',%'
+                    THEN errors.affected_user_ids
+                ELSE errors.affected_user_ids || ',' || EXCLUDED.affected_user_ids
             END,
             affected_services = CASE
                 WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
@@ -1127,7 +1028,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId is not null ? 1L : (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
         cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
@@ -1169,43 +1070,31 @@ public sealed class DuckDbStore : IAsyncDisposable
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
         var rows = new List<ErrorRow>();
-        var conditions = new List<string>();
-        var parameters = new List<DuckDBParameter>();
-        var paramIndex = 1;
+        var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(category))
-        {
-            conditions.Add($"category = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = category });
-        }
-
+            qb.Add("category = $N", category);
         if (!string.IsNullOrEmpty(status))
-        {
-            conditions.Add($"status = ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = status });
-        }
-
+            qb.Add("status = $N", status);
         if (!string.IsNullOrEmpty(serviceName))
         {
-            conditions.Add($"',' || affected_services || ',' LIKE ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = $"%,{serviceName},%" });
+            var escaped = serviceName.Replace("%", "\\%").Replace("_", "\\_");
+            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\\'", $"%,{escaped},%");
         }
-
-        var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT error_id, error_type, message, category, fingerprint,
                                   first_seen, last_seen, occurrence_count,
-                                  affected_users, affected_services, status,
+                                  affected_user_ids, affected_services, status,
                                   assigned_to, issue_url, sample_traces
                            FROM errors
-                           {whereClause}
+                           {qb.WhereClause}
                            ORDER BY last_seen DESC
-                           LIMIT ${paramIndex}
+                           LIMIT {qb.NextParam}
                            """;
 
-        cmd.Parameters.AddRange(parameters);
+        qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -1265,7 +1154,7 @@ public sealed class DuckDbStore : IAsyncDisposable
             FirstSeen = new DateTimeOffset(reader.GetDateTime(5), TimeSpan.Zero),
             LastSeen = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero),
             OccurrenceCount = reader.GetInt64(7),
-            AffectedUsers = reader.Col(8).AsInt64,
+            AffectedUserIds = reader.Col(8).AsString,
             AffectedServices = reader.Col(9).AsString,
             Status = reader.GetString(10),
             AssignedTo = reader.Col(11).AsString,
@@ -1310,7 +1199,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
             SELECT error_id, error_type, message, category, fingerprint,
-                   first_seen, last_seen, occurrence_count, affected_users,
+                   first_seen, last_seen, occurrence_count, affected_user_ids,
                    affected_services, status, assigned_to, issue_url, sample_traces
             FROM errors WHERE error_id = $1
             """;
@@ -1453,7 +1342,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var now = TimeProvider.System.GetUtcNow();
         var cutoffMs = (now - olderThan).ToUnixTimeMilliseconds();
-        var cutoffNano = (ulong)cutoffMs * 1_000_000UL; // UL suffix forces unsigned arithmetic
+        var cutoffNano = (ulong)cutoffMs * 1_000_000UL;
         var timestamp = now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
 
         await using var countCmd = con.CreateCommand();
@@ -1878,6 +1767,33 @@ public sealed class DuckDbStore : IAsyncDisposable
             else
                 _tcs.TrySetException(error);
         }
+    }
+
+    /// <summary>
+    ///     Lightweight query builder for dynamic DuckDB WHERE clauses with positional parameters.
+    /// </summary>
+    private struct QueryBuilder()
+    {
+        private readonly List<string> _conditions = [];
+        private readonly List<DuckDBParameter> _parameters = [];
+        private int _paramIndex = 1;
+
+        /// <summary>Adds a condition with a single positional parameter. $N is replaced with the next index.</summary>
+        public void Add(string condition, object value)
+        {
+            _conditions.Add(condition.Replace("$N", $"${_paramIndex++}"));
+            _parameters.Add(new DuckDBParameter { Value = value });
+        }
+
+        /// <summary>Adds a condition with no parameters (e.g. IS NOT NULL checks).</summary>
+        public void AddCondition(string condition) => _conditions.Add(condition);
+
+        public readonly string WhereClause =>
+            _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";
+
+        public readonly string NextParam => $"${_paramIndex}";
+
+        public readonly void ApplyTo(DuckDBCommand cmd) => cmd.Parameters.AddRange(_parameters);
     }
 
     private sealed class ReadConnectionPolicy(string path, DuckDBConnection? sharedConnection = null)

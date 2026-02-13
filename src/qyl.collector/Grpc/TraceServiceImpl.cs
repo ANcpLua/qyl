@@ -35,12 +35,6 @@ public sealed class TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
             _broadcaster.PublishSpans(batch);
 
-            foreach (var span in batch.Spans)
-            {
-                if (ErrorExtractor.Extract(span) is { } errorEvent)
-                    await _store.UpsertErrorAsync(errorEvent, context.CancellationToken).ConfigureAwait(false);
-            }
-
             return new ExportTraceServiceResponse();
         }
         catch (OperationCanceledException)

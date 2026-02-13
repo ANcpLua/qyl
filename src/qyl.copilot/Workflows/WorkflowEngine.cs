@@ -312,7 +312,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         }
         else if (error is not null && activity?.Status != ActivityStatusCode.Error)
         {
-            CopilotSpanRecorder.RecordError(activity, error);
+            activity?.SetStatus(ActivityStatusCode.Error, error);
         }
 
         // Record qyl-specific workflow duration metric

@@ -235,16 +235,6 @@ internal static class OtlpGenAiAttributes
         return key[..7].SequenceEqual("gen_ai."u8);
     }
 
-    /// <summary>
-    ///     Checks if the key starts with "gen_ai.agent." or "gen_ai.tool." prefix.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsAgentOrToolAttribute(ReadOnlySpan<byte> key)
-    {
-        if (key.Length < 13) return false; // "gen_ai.agent." = 13 chars
-        return key.StartsWith("gen_ai.agent."u8) || key.StartsWith("gen_ai.tool."u8);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey) =>
         SchemaNormalizer.TryGetCurrentName(deprecatedKey, out currentKey);

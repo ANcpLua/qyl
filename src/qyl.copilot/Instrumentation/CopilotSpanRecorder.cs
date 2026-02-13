@@ -73,18 +73,6 @@ public static class CopilotSpanRecorder
     }
 
     /// <summary>
-    ///     Records an error message on a span.
-    /// </summary>
-    /// <param name="activity">The activity to record on.</param>
-    /// <param name="errorMessage">The error message.</param>
-    public static void RecordError(Activity? activity, string errorMessage)
-    {
-        if (activity is null) return;
-
-        activity.SetStatus(ActivityStatusCode.Error, errorMessage);
-    }
-
-    /// <summary>
     ///     Marks a span as successful.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>

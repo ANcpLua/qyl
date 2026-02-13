@@ -221,23 +221,6 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    ///     Creates a new adapter with custom options.
-    /// </summary>
-    public Task<QylCopilotAdapter> CreateAdapterAsync(
-        CopilotAuthOptions? authOptions = null,
-        string? instructions = null,
-        CancellationToken ct = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        return QylCopilotAdapter.CreateAsync(
-            authOptions ?? _options.AuthOptions,
-            instructions ?? _options.DefaultInstructions,
-            _tools,
-            TimeProvider.System,
-            ct);
-    }
 }
 
 /// <summary>

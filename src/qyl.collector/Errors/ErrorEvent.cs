@@ -24,7 +24,7 @@ public sealed record ErrorRow
     public required DateTimeOffset FirstSeen { get; init; }
     public required DateTimeOffset LastSeen { get; init; }
     public required long OccurrenceCount { get; init; }
-    public long? AffectedUsers { get; init; }
+    public string? AffectedUserIds { get; init; }
     public string? AffectedServices { get; init; }
     public required string Status { get; init; }
     public string? AssignedTo { get; init; }

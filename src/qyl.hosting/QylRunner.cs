@@ -575,9 +575,5 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
 internal enum ResourceState
 {
-    Pending,
-    Starting,
-    Running,
-    Failed,
-    Stopped
+    Running
 }

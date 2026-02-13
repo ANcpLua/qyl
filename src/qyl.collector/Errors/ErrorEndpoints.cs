@@ -32,7 +32,8 @@ public static class ErrorEndpoints
         app.MapPatch("/api/v1/errors/{errorId}", static async (
             string errorId, ErrorStatusUpdate update, DuckDbStore store, CancellationToken ct) =>
         {
-            if (!AllowedStatuses.Contains(update.Status))
+            var status = update.Status?.Trim().ToLowerInvariant();
+            if (string.IsNullOrEmpty(status) || !AllowedStatuses.Contains(status))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["status"] = [$"Must be one of: {string.Join(", ", AllowedStatuses)}"]
@@ -42,10 +43,10 @@ public static class ErrorEndpoints
             if (existing is null)
                 return Results.NotFound();
 
-            await store.UpdateErrorStatusAsync(errorId, update.Status, update.AssignedTo, ct);
+            await store.UpdateErrorStatusAsync(errorId, status, update.AssignedTo?.Trim(), ct);
             return Results.Ok();
         });
     }
 }
 
-public sealed record ErrorStatusUpdate(string Status, string? AssignedTo = null);
+public sealed record ErrorStatusUpdate(string? Status, string? AssignedTo = null);
