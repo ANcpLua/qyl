@@ -12,7 +12,7 @@ public static class ErrorEndpoints
             DuckDbStore store, string? category, string? status, string? serviceName,
             int? limit, CancellationToken ct) =>
         {
-            var errors = await store.GetErrorsAsync(category, status, serviceName, limit ?? 50, ct);
+            var errors = await store.GetErrorsAsync(category, status, serviceName, Math.Clamp(limit ?? 50, 1, 1000), ct);
             return Results.Ok(new { items = errors, total = errors.Count });
         });
 
