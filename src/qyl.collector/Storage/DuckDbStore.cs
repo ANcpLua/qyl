@@ -1107,10 +1107,15 @@ public sealed class DuckDbStore : IAsyncDisposable
                 ON CONFLICT (fingerprint) DO UPDATE SET
                     last_seen = EXCLUDED.last_seen,
                     occurrence_count = errors.occurrence_count + 1,
+                    affected_users = CASE
+                        WHEN EXCLUDED.affected_users IS NULL THEN errors.affected_users
+                        WHEN errors.affected_users IS NULL THEN EXCLUDED.affected_users
+                        ELSE errors.affected_users + EXCLUDED.affected_users
+                    END,
                     affected_services = CASE
                         WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
                         WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
-                        WHEN errors.affected_services LIKE '%' || EXCLUDED.affected_services || '%'
+                        WHEN ',' || errors.affected_services || ',' LIKE '%,' || EXCLUDED.affected_services || ',%'
                             THEN errors.affected_services
                         ELSE errors.affected_services || ',' || EXCLUDED.affected_services
                     END,
@@ -1176,8 +1181,8 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         if (!string.IsNullOrEmpty(serviceName))
         {
-            conditions.Add($"affected_services LIKE ${paramIndex++}");
-            parameters.Add(new DuckDBParameter { Value = $"%{serviceName}%" });
+            conditions.Add($"',' || affected_services || ',' LIKE ${paramIndex++}");
+            parameters.Add(new DuckDBParameter { Value = $"%,{serviceName},%" });
         }
 
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";

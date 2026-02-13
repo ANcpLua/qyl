@@ -4,6 +4,8 @@ namespace qyl.collector.Errors;
 
 public static class ErrorEndpoints
 {
+    private static readonly HashSet<string> AllowedStatuses = ["new", "acknowledged", "resolved", "ignored"];
+
     public static void MapErrorEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/errors", static async (
@@ -30,6 +32,16 @@ public static class ErrorEndpoints
         app.MapPatch("/api/v1/errors/{errorId}", static async (
             string errorId, ErrorStatusUpdate update, DuckDbStore store, CancellationToken ct) =>
         {
+            if (!AllowedStatuses.Contains(update.Status))
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["status"] = [$"Must be one of: {string.Join(", ", AllowedStatuses)}"]
+                });
+
+            var existing = await store.GetErrorByIdAsync(errorId, ct);
+            if (existing is null)
+                return Results.NotFound();
+
             await store.UpdateErrorStatusAsync(errorId, update.Status, update.AssignedTo, ct);
             return Results.Ok();
         });

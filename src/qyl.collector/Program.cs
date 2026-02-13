@@ -310,13 +310,14 @@ app.MapPost("/api/v1/ingest", async (
     HttpContext context,
     DuckDbStore store,
     ITelemetrySseBroadcaster broadcaster,
-    SpanRingBuffer ringBuffer) =>
+    SpanRingBuffer ringBuffer,
+    CancellationToken ct) =>
 {
     SpanBatch? batch;
     try
     {
         batch = await context.Request.ReadFromJsonAsync<SpanBatch>(
-            QylSerializerContext.Default.SpanBatch);
+            QylSerializerContext.Default.SpanBatch, ct);
 
         if (batch is null || batch.Spans.Count is 0)
             return Results.BadRequest(new ErrorResponse("Empty or invalid batch"));
@@ -329,14 +330,14 @@ app.MapPost("/api/v1/ingest", async (
     // Push to ring buffer for real-time queries
     ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
 
-    await store.EnqueueAsync(batch);
+    await store.EnqueueAsync(batch, ct);
 
     broadcaster.PublishSpans(batch);
 
     foreach (var span in batch.Spans)
     {
         if (ErrorExtractor.Extract(span) is { } errorEvent)
-            await store.UpsertErrorAsync(errorEvent);
+            await store.UpsertErrorAsync(errorEvent, ct);
     }
 
     return Results.Accepted();

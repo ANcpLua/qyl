@@ -64,11 +64,24 @@ public static class GlobalExceptionHooks
         };
     }
 
+    private static readonly ActivitySource Source = new("Qyl.ServiceDefaults.ErrorCapture");
+
     private static void RecordGlobalException(Exception ex, string source)
     {
         var activity = Activity.Current;
-        if (activity is null) return;
+        if (activity is null)
+        {
+            using var fallback = Source.StartActivity("UnhandledException");
+            if (fallback is null) return;
+            TagActivity(fallback, ex, source);
+            return;
+        }
 
+        TagActivity(activity, ex, source);
+    }
+
+    private static void TagActivity(Activity activity, Exception ex, string source)
+    {
         activity.SetStatus(ActivityStatusCode.Error, ex.Message);
         activity.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
         {

@@ -129,6 +129,11 @@ public static partial class QylServiceDefaults
             ConfigureJsonOptions(jsonOptions.SerializerOptions, options));
 
         builder.Services.AddProblemDetails();
+
+#if NET10_0_OR_GREATER
+        builder.Services.AddValidation();
+#endif
+
         builder.Services.AddHostedService<ExceptionHookRegistrar>();
 
         return builder;
