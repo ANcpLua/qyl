@@ -30,8 +30,8 @@
     <GenerateClaudeMd>false</GenerateClaudeMd>
     <!-- Throw.IfNull() etc. from SDK -->
     <InjectSharedThrow>true</InjectSharedThrow>
-    <!-- Override SDK-injected analyzer version (ahead of SDK 2.0.5 which ships 1.13.0) -->
-    <ANcpLuaAnalyzersVersion>1.14.0</ANcpLuaAnalyzersVersion>
+    <!-- Override SDK-injected analyzer version (ahead of SDK 2.0.6 which ships 1.14.0) -->
+    <ANcpLuaAnalyzersVersion>1.15.0</ANcpLuaAnalyzersVersion>
   </PropertyGroup>
 
   <!-- Quality -->
