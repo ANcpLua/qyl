@@ -1,6 +1,6 @@
 # qyl.protocol - Shared Types
 
-BCL-only shared types. Zero external packages. Leaf dependency.
+Kernel API contract. BCL-only shared types — zero external packages, leaf dependency. Every component that talks to the kernel speaks this language.
 
 ## Identity
 

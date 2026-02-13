@@ -1,6 +1,13 @@
 # qyl.copilot - GitHub Copilot Integration
 
-GitHub Copilot wrapper with auto-instrumentation and declarative workflows.
+IDE surface of qyl. First contact after `docker compose up` — Copilot activates, asks for GitHub OAuth (one click), then guides the developer through setup from inside their editor.
+
+## Role in Architecture
+
+One of three shells (browser, terminal, IDE). Copilot is the onboarding guide and ongoing AI assistant:
+- **Onboarding**: `docker compose up` → Copilot activates → GitHub OAuth (proves you're a dev) → guided setup
+- **Runtime**: Query observability data, explain traces, suggest fixes — all from the IDE
+- GitHub OAuth doubles as identity (no user table needed) and abuse protection for the remote instance
 
 ## Identity
 

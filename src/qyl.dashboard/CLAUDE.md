@@ -1,6 +1,16 @@
 # qyl.dashboard - React Frontend
 
-React 19 SPA for telemetry visualization. Embedded in collector via Docker multi-stage build.
+Browser surface of qyl. React 19 SPA embedded in the collector — no separate deployment, no login, no account creation.
+
+## Role in Architecture
+
+One of three shells (browser, terminal, IDE). The dashboard is two things:
+1. **Viewer** — telemetry visualization (traces, spans, metrics, errors, GenAI sessions)
+2. **Configurator** — select what to observe, the source generator in the customer's local project generates only what's selected (incremental, strictly typed, OTel 1.39)
+
+No login wall. Server auto-detects the token handshake from the browser. Customer sees value before they know they have an account.
+
+**Upcoming**: Error pages (fingerprinted + grouped errors), deploy correlation views, SLO burn rate dashboard.
 
 ## Identity
 

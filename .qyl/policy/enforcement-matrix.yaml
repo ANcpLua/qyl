@@ -1,0 +1,86 @@
+version: 1
+status: active
+
+policy_axes:
+  scope:
+    - local
+    - shared_remote
+  actor:
+    - human
+    - agent
+
+rules:
+  - action: deploy_to_shared_remote
+    scope: shared_remote
+    actor: [human, agent]
+    enforcement: fail_closed
+    reason: mutates_shared_state
+
+  - action: token_issuance
+    scope: shared_remote
+    actor: [human, agent]
+    enforcement: fail_closed
+    reason: identity_security_boundary
+
+  - action: cross_workspace_secret_access
+    scope: local
+    actor: [human, agent]
+    enforcement: fail_closed
+    reason: secret_isolation_boundary
+
+  - action: outbound_webhook_registration
+    scope: shared_remote
+    actor: [human, agent]
+    enforcement: fail_closed
+    reason: external_side_effect
+
+  - action: local_docker_deploy
+    scope: local
+    actor: [human, agent]
+    enforcement: warn_only
+    reason: local_reversible
+
+  - action: read_only_cross_workspace_spans
+    scope: local
+    actor: [human, agent]
+    enforcement: warn_only
+    reason: read_only_observability
+
+  - action: token_refresh
+    scope: shared_remote
+    actor: [human, agent]
+    enforcement: warn_only
+    reason: degrade_gracefully_do_not_block
+
+  - action: generator_output_overwrite
+    scope: local
+    actor: [human, agent]
+    enforcement: warn_only
+    reason: local_file_reversible
+
+defaults:
+  unknown_action:
+    local: warn_only
+    shared_remote: fail_closed
+
+runtime_behavior:
+  on_fail_closed:
+    - block_execution
+    - emit_policy_violation_event
+    - show_actionable_fix_hint
+  on_warn_only:
+    - allow_execution
+    - emit_policy_warning_event
+
+telemetry:
+  required_dimensions:
+    - workspace_id
+    - action
+    - enforcement
+    - scope
+    - actor
+    - result
+  events:
+    - policy_violation_event
+    - policy_warning_event
+    - policy_bypass_attempt

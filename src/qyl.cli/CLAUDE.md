@@ -1,6 +1,10 @@
 # qyl.cli - Instrumentation CLI
 
-One-command instrumentation tool. Detects stack, modifies project files, adds qyl observability.
+Zero-config entry point. One command detects stack, modifies project files, adds qyl observability. Embodies the philosophy: eliminate every decision that isn't "what do I want to observe?"
+
+## Role in Architecture
+
+Terminal surface for onboarding. `qyl init` is the fastest path from "nothing" to "fully instrumented." Auto-detection means no configuration — the CLI figures out .NET, Docker, or Node and wires everything up. Pairs with Copilot (IDE surface) for guided setup.
 
 ## Identity
 

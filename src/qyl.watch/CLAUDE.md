@@ -1,6 +1,10 @@
 # qyl.watch - Live Terminal Observability
 
-Real-time span viewer for qyl collector's SSE stream. Spectre.Console TUI with tree rendering.
+Terminal surface of qyl. Real-time span viewer — same kernel data as dashboard and MCP, rendered as a live TUI.
+
+## Role in Architecture
+
+One of three shells (browser, terminal, IDE). `qyl-watch` is the `htop` of observability — always-on, zero-config, streams from the collector's SSE endpoint. Developers who live in the terminal never need to open a browser.
 
 ## Identity
 

@@ -1,6 +1,10 @@
 # qyl.browser - Browser SDK
 
-Lightweight OTLP browser SDK for qyl observability. Zero-dependency core, optional React integration.
+Browser surface of qyl. Lightweight OTLP SDK — captures web vitals, errors, interactions and sends to the kernel (collector).
+
+## Role in Architecture
+
+One of three shells (browser, terminal, IDE) on the qyl kernel. The browser SDK instruments the customer's frontend — their users' browsers send telemetry directly to the collector. The dashboard (qyl.dashboard) is a separate surface for *viewing* data; this SDK *generates* data from end-user browsers.
 
 ## Identity
 

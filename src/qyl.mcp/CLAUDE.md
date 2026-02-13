@@ -1,6 +1,12 @@
 # qyl.mcp - MCP Server
 
-Model Context Protocol server for AI assistant integration. AOT-compatible, stdio transport.
+AI shell for qyl. Model Context Protocol server — AI agents query the same kernel data as browser and terminal.
+
+## Role in Architecture
+
+qyl is an OS. MCP is the AI-native shell. While the browser and terminal are human-facing, MCP makes AI agents first-class citizens. This is qyl's moat — Sentry's MCP is bolted-on, qyl's is native.
+
+**Upcoming: AI auto-triage** — agents query grouped errors, correlate with GenAI sessions, suggest root cause, auto-assign. The error engine (in collector) provides fingerprinting + GenAI-aware grouping; MCP exposes it for autonomous triage.
 
 ## Identity
 

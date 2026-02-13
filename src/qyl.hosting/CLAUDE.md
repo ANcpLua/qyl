@@ -1,6 +1,6 @@
 # qyl.hosting - App Orchestration
 
-GenAI-native application orchestration framework. No Aspire dependency.
+Process manager for the qyl OS. GenAI-native application orchestration — no Aspire dependency. Manages the lifecycle of all resources (projects, containers, frontends) and wires them to the kernel (collector) automatically.
 
 ## Key Types
 

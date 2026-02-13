@@ -1,6 +1,29 @@
 # qyl.collector - Backend Service
 
-Primary runtime service. This IS qyl from the user's perspective.
+The kernel of qyl. This IS qyl from the user's perspective — the single binary/Docker image that just works.
+
+## Role in Architecture
+
+qyl is an OS in the cloud. The collector is its kernel. Three shells surface the same data:
+- **Browser** — dashboard at `:5100` (embedded, no login)
+- **Terminal** — `qyl-watch`, Docker logs, CLI
+- **IDE** — Copilot + source generator
+
+All three read from the same DuckDB. The collector owns ingest, storage, query, and real-time streaming.
+
+## Upcoming: Error Engine
+
+Priority build to surpass Sentry. Backend engine first, shells light up automatically.
+
+| Feature | Status | Purpose |
+|---------|--------|---------|
+| Auto crash capture | Planned | AppDomain.UnhandledException + TaskScheduler hooks + ASP.NET middleware |
+| Error fingerprinting | Planned | Stack trace normalization + message pattern extraction |
+| GenAI-aware grouping | Planned | Group by `gen_ai.operation.name`, finish_reason, token limits — not just stack traces |
+| Breadcrumbs | Planned | Passive event trail per scope (ambient HTTP/DB/log activity before crash) |
+| Deploy correlation | Planned | Tag spans with release version, auto-resolve on deploy, regression detection |
+| AI auto-triage | Planned | MCP tools query grouped errors, correlate with GenAI sessions, suggest root cause |
+| SLO burn rate | Planned | Real-time error budget tracking per service/deploy |
 
 ## Identity
 
