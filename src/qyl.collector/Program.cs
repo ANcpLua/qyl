@@ -13,6 +13,7 @@ using qyl.copilot;
 using qyl.copilot.Auth;
 using System.Reflection;
 using qyl.collector.Dashboard;
+using qyl.collector.Errors;
 using qyl.collector.Meta;
 using Qyl.ServiceDefaults;
 
@@ -309,13 +310,14 @@ app.MapPost("/api/v1/ingest", async (
     HttpContext context,
     DuckDbStore store,
     ITelemetrySseBroadcaster broadcaster,
-    SpanRingBuffer ringBuffer) =>
+    SpanRingBuffer ringBuffer,
+    CancellationToken ct) =>
 {
     SpanBatch? batch;
     try
     {
         batch = await context.Request.ReadFromJsonAsync<SpanBatch>(
-            QylSerializerContext.Default.SpanBatch);
+            QylSerializerContext.Default.SpanBatch, ct);
 
         if (batch is null || batch.Spans.Count is 0)
             return Results.BadRequest(new ErrorResponse("Empty or invalid batch"));
@@ -328,9 +330,15 @@ app.MapPost("/api/v1/ingest", async (
     // Push to ring buffer for real-time queries
     ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
 
-    await store.EnqueueAsync(batch);
+    await store.EnqueueAsync(batch, ct);
 
     broadcaster.PublishSpans(batch);
+
+    foreach (var span in batch.Spans)
+    {
+        if (ErrorExtractor.Extract(span) is { } errorEvent)
+            await store.UpsertErrorAsync(errorEvent, ct);
+    }
 
     return Results.Accepted();
 });
@@ -379,6 +387,12 @@ app.MapPost("/v1/traces", async (
         await store.EnqueueAsync(batch, ct);
 
         broadcaster.PublishSpans(batch);
+
+        foreach (var span in batch.Spans)
+        {
+            if (ErrorExtractor.Extract(span) is { } errorEvent)
+                await store.UpsertErrorAsync(errorEvent, ct);
+        }
 
         return Results.Accepted();
     }
@@ -619,14 +633,7 @@ app.MapPost("/api/v1/metrics/query", () =>
 app.MapGet("/api/v1/metrics/{metricName}", (string metricName) =>
     Results.NotFound());
 
-app.MapGet("/api/v1/errors", (string? serviceName) =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapGet("/api/v1/errors/stats", () =>
-    Results.Ok(new { total_count = 0 }));
-
-app.MapGet("/api/v1/errors/{errorId}", (string errorId) =>
-    Results.NotFound());
+app.MapErrorEndpoints();
 
 app.MapGet("/api/v1/exceptions", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
