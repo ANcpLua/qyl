@@ -43,6 +43,7 @@ export function CopyButton({
                         className
                     )}
                     onClick={handleCopy}
+                    aria-label={copied ? "Copied!" : `Copy ${label.toLowerCase()}`}
                 >
                     {copied ? (
                         <Check className="h-3 w-3 text-green-500"/>

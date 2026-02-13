@@ -65,7 +65,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         size="icon"
                         onClick={clear}
                         className="h-6 w-6 text-brutal-slate hover:text-signal-orange"
-                        title="New conversation"
+                        aria-label="Clear conversation"
                     >
                         <Trash2 className="w-3.5 h-3.5"/>
                     </Button>
@@ -74,6 +74,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         size="icon"
                         onClick={onClose}
                         className="h-6 w-6 text-brutal-slate hover:text-brutal-white"
+                        aria-label="Close Copilot panel"
                     >
                         <X className="w-3.5 h-3.5"/>
                     </Button>
@@ -140,6 +141,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         placeholder="Ask Copilot..."
                         disabled={isStreaming}
                         className="flex-1 bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs font-bold tracking-wider focus:border-signal-purple"
+                        aria-label="Message to Copilot"
                     />
                     {isStreaming ? (
                         <Button
@@ -147,6 +149,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                             size="icon"
                             onClick={stop}
                             className="border-2 border-signal-red text-signal-red hover:bg-signal-red/10"
+                            aria-label="Stop streaming"
                         >
                             <Square className="w-3.5 h-3.5"/>
                         </Button>
@@ -157,6 +160,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                             onClick={handleSend}
                             disabled={!input.trim()}
                             className="border-2 border-signal-purple text-signal-purple hover:bg-signal-purple/10 disabled:opacity-30"
+                            aria-label="Send message"
                         >
                             <Send className="w-3.5 h-3.5"/>
                         </Button>

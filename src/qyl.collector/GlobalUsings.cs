@@ -28,4 +28,5 @@ global using Qyl.Common;
 global using Qyl.OTel.Enums;
 global using qyl.protocol.Attributes;
 global using Qyl.Models;
+global using qyl.collector.Errors;
 global using qyl.collector.Mapping;

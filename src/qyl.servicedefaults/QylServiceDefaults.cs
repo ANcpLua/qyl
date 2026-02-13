@@ -131,6 +131,8 @@ public static partial class QylServiceDefaults
         builder.Services.AddProblemDetails();
         builder.Services.AddHostedService<ExceptionHookRegistrar>();
 
+        builder.Services.AddHostedService<ExceptionHookRegistrar>();
+
         return builder;
     }
 
