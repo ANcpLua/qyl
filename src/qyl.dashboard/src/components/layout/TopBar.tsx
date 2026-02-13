@@ -101,6 +101,7 @@ export function TopBar({
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
                         className="pl-9 bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-wider font-bold focus:border-signal-orange"
+                        aria-label="Search"
                     />
                 </div>
             </form>
@@ -173,6 +174,7 @@ export function TopBar({
                 size="icon"
                 onClick={onRefresh}
                 className="border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
+                aria-label="Refresh data"
             >
                 <RefreshCw className="w-4 h-4"/>
             </Button>

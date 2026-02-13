@@ -71,7 +71,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     {!collapsed && (
                         <div className="flex flex-col">
                             <span className="font-bold text-lg text-signal-orange tracking-wider">QYL.</span>
-                            <span className="text-[8px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
+                            <span className="text-[10px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
                         </div>
                     )}
                 </NavLink>
@@ -92,7 +92,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             )}
 
             {/* Navigation */}
-            <nav className="flex-1 p-2 space-y-1">
+            <nav className="flex-1 p-2 space-y-1" aria-label="Main navigation">
                 {navItems.map((item) => {
                     const isActive = location.pathname === item.to;
                     const Icon = item.icon;
@@ -139,7 +139,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {dashboards && dashboards.length > 0 && (
                 <div className="px-2 space-y-1">
                     {!collapsed && (
-                        <div className="px-3 pt-2 pb-1 text-[8px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                        <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
                             DASHBOARDS
                         </div>
                     )}
@@ -248,7 +248,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {/* Footer */}
             {!collapsed && (
                 <div className="px-4 py-2 border-t-3 border-brutal-zinc bg-brutal-dark">
-                    <div className="text-[8px] text-brutal-slate tracking-[0.15em] leading-relaxed">
+                    <div className="text-[10px] text-brutal-slate tracking-[0.15em] leading-relaxed">
                         <div>OBSERVE EVERYTHING</div>
                         <div>JUDGE NOTHING</div>
                         <div>DOCUMENT PERFECTLY</div>

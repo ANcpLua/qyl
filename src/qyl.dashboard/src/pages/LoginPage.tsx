@@ -46,13 +46,17 @@ export function LoginPage() {
                 {/* Login Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="relative">
+                        <label htmlFor="token" className="sr-only">Authentication token</label>
                         <Input
+                            id="token"
                             type={showToken ? 'text' : 'password'}
                             placeholder="Paste token here..."
                             value={token}
                             onChange={(e) => setToken(e.target.value)}
                             className="pr-10 font-mono"
                             autoFocus
+                            autoComplete="off"
+                            spellCheck={false}
                         />
                         <Button
                             type="button"
@@ -60,6 +64,7 @@ export function LoginPage() {
                             size="icon"
                             className="absolute right-0 top-0 h-full px-3"
                             onClick={() => setShowToken(!showToken)}
+                            aria-label={showToken ? 'Hide token' : 'Show token'}
                         >
                             {showToken ? (
                                 <EyeOff className="h-4 w-4 text-muted-foreground"/>

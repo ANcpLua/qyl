@@ -519,6 +519,7 @@ export function LogsPage() {
                         value={filterText}
                         onChange={(e) => setFilterText(e.target.value)}
                         className="pl-9"
+                        aria-label="Search logs"
                     />
                 </div>
 
@@ -614,6 +615,7 @@ export function LogsPage() {
                             <button
                                 onClick={() => setFilterText('')}
                                 className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                aria-label="Clear search filter"
                             >
                                 <X className="h-3 w-3"/>
                             </button>
@@ -625,6 +627,7 @@ export function LogsPage() {
                             <button
                                 onClick={() => setMinLevel('trace')}
                                 className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                aria-label="Clear minimum level filter"
                             >
                                 <X className="h-3 w-3"/>
                             </button>
@@ -636,6 +639,7 @@ export function LogsPage() {
                             <button
                                 onClick={() => setSelectedService('all')}
                                 className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                aria-label="Clear service filter"
                             >
                                 <X className="h-3 w-3"/>
                             </button>
