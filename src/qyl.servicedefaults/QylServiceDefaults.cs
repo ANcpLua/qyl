@@ -18,6 +18,7 @@ using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Qyl.ServiceDefaults.ErrorCapture;
 using Qyl.ServiceDefaults.Instrumentation;
 
 namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
@@ -128,10 +129,7 @@ public static partial class QylServiceDefaults
             ConfigureJsonOptions(jsonOptions.SerializerOptions, options));
 
         builder.Services.AddProblemDetails();
-
-#if NET10_0_OR_GREATER
-        builder.Services.AddValidation();
-#endif
+        builder.Services.AddHostedService<ExceptionHookRegistrar>();
 
         return builder;
     }
@@ -230,6 +228,8 @@ public static partial class QylServiceDefaults
             return;
 
         options.MapCalled = true;
+
+        app.UseMiddleware<ExceptionCaptureMiddleware>();
 
         var forwardedHeadersOptions = new ForwardedHeadersOptions
         {
