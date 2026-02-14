@@ -122,7 +122,8 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
 
         var parameters = method.Parameters
             .Select(static p => new ParameterInfo(p.Type.ToDisplayString(), p.Name))
-            .ToArray();
+            .ToArray()
+            .ToEquatableArray();
 
         return new InterceptorTarget(
             lineSpan.Path,
@@ -166,4 +167,4 @@ internal readonly record struct InterceptorTarget(
     string Provider,
     string Operation,
     string SpanNameTemplate,
-    IReadOnlyList<ParameterInfo> Parameters);
+    EquatableArray<ParameterInfo> Parameters);

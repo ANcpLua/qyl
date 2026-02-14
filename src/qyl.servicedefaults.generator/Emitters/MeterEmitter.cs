@@ -146,7 +146,7 @@ internal static class MeterEmitter
 
         sb.AppendLine("        {");
 
-        if (method.Tags.Count is 0)
+        if (method.Tags.Length is 0)
         {
             sb.AppendLine(method.Kind switch
             {
@@ -155,7 +155,7 @@ internal static class MeterEmitter
                 _ => $"            {fieldName}.Record(value);"
             });
         }
-        else if (method.Tags.Count == 1)
+        else if (method.Tags.Length == 1)
         {
             var tag = method.Tags[0];
             var kvp = $"new KeyValuePair<string, object?>(\"{tag.TagName}\", {tag.ParameterName})";

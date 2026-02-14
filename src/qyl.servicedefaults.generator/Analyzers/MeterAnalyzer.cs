@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -59,7 +60,7 @@ internal static class MeterAnalyzer
             return null;
 
         var methods = ExtractMetricMethods(classSymbol);
-        if (methods.Count is 0)
+        if (methods.Length is 0)
             return null;
 
         return new MeterDefinition(
@@ -87,7 +88,7 @@ internal static class MeterAnalyzer
         return (name, version);
     }
 
-    private static List<MetricMethodDefinition> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
+    private static EquatableArray<MetricMethodDefinition> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
     {
         var methods = new List<MetricMethodDefinition>();
 
@@ -177,7 +178,7 @@ internal static class MeterAnalyzer
                 tags));
         }
 
-        return methods;
+        return methods.ToArray().ToEquatableArray();
     }
 
     private static (string? Name, string? Unit, string? Description) ExtractMetricAttributeValues(AttributeData attr)
@@ -203,7 +204,7 @@ internal static class MeterAnalyzer
         return (name, unit, description);
     }
 
-    private static List<MetricTagParameter> ExtractTags(IMethodSymbol method)
+    private static EquatableArray<MetricTagParameter> ExtractTags(IMethodSymbol method)
     {
         var tags = new List<MetricTagParameter>();
 
@@ -226,6 +227,6 @@ internal static class MeterAnalyzer
                 param.Type.ToDisplayString()));
         }
 
-        return tags;
+        return tags.ToArray().ToEquatableArray();
     }
 }

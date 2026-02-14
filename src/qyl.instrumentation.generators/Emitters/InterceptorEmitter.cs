@@ -4,6 +4,7 @@
 // Owner: qyl.instrumentation.generators
 // =============================================================================
 
+using ANcpLua.Roslyn.Utilities;
 using qyl.instrumentation.generators.Extractors;
 using qyl.instrumentation.generators.Interceptors;
 
@@ -248,9 +249,9 @@ internal static class InterceptorEmitter
         };
     }
 
-    private static string FormatChoiceCountArguments(IReadOnlyCollection<ParameterInfo> parameters)
+    private static string FormatChoiceCountArguments(EquatableArray<ParameterInfo> parameters)
     {
-        if (parameters.Count is 0)
+        if (parameters.Length is 0)
         {
             return string.Empty;
         }
@@ -258,12 +259,12 @@ internal static class InterceptorEmitter
         return string.Join(", ", parameters.Select(static p => $"(\"{p.Name}\", (object?)@{p.Name})"));
     }
 
-    private static string FormatParameters(IReadOnlyCollection<ParameterInfo> parameters)
+    private static string FormatParameters(EquatableArray<ParameterInfo> parameters)
     {
-        if (parameters.Count is 0) return "";
+        if (parameters.Length is 0) return "";
         return ", " + string.Join(", ", parameters.Select(static p => $"{p.Type} @{p.Name}"));
     }
 
-    private static string FormatArguments(IEnumerable<ParameterInfo> parameters)
+    private static string FormatArguments(EquatableArray<ParameterInfo> parameters)
         => string.Join(", ", parameters.Select(static p => $"@{p.Name}"));
 }

@@ -74,7 +74,7 @@ internal static class GenAiCallSiteAnalyzer
             method.Name,
             isAsync,
             method.ReturnType.ToDisplayString(),
-            method.Parameters.Select(static p => p.Type.ToDisplayString()).ToList(),
+            method.Parameters.Select(static p => p.Type.ToDisplayString()).ToArray().ToEquatableArray(),
             interceptLocation);
     }
 

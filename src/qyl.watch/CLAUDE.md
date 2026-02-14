@@ -91,6 +91,7 @@ Attributes are stored as JSON string (`AttributesJson`). Computed properties par
 
 ## Rules
 
+- Uses `TimeProvider.System.GetUtcNow()` (not `DateTime.Now`)
 - Uses `Lock` (not `object _lock`)
 - SSE reconnection is automatic — never crashes on connection loss
 - Keyboard runs on background thread, does not block SSE processing

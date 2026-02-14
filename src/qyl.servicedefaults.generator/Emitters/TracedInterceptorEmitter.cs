@@ -155,7 +155,7 @@ internal static class TracedInterceptorEmitter
 
         var methodName = $"Intercept_Traced_{index}";
         var typeParamNames = GetTypeParameterNames(callSite);
-        var returnType = callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames);
+        var returnType = callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
         var containingType = callSite.ContainingTypeName;
         var originalMethod = callSite.MethodName;
         var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName, activitySourceFieldNames);
@@ -324,7 +324,7 @@ internal static class TracedInterceptorEmitter
 
     private static string BuildTypeParameterList(TracedCallSite callSite)
     {
-        if (callSite.TypeParameters.Count is 0)
+        if (callSite.TypeParameters.Length is 0)
             return "";
 
         return "<" + string.Join(", ", callSite.TypeParameters.Select(static tp => tp.Name)) + ">";
@@ -332,23 +332,25 @@ internal static class TracedInterceptorEmitter
 
     private static string BuildConstraintClauses(TracedCallSite callSite)
     {
-        var constraints = callSite.TypeParameters
-            .Where(static tp => tp.Constraints is not null)
-            .Select(static tp => tp.Constraints);
+        var clauseList = new List<string>();
+        foreach (var tp in callSite.TypeParameters)
+        {
+            if (tp.Constraints is not null)
+                clauseList.Add(tp.Constraints);
+        }
 
-        var clauseList = constraints.ToList();
         return clauseList.Count > 0 ? " " + string.Join(" ", clauseList) : "";
     }
 
-    private static IReadOnlyList<string> GetTypeParameterNames(TracedCallSite callSite)
+    private static EquatableArray<string> GetTypeParameterNames(TracedCallSite callSite)
     {
-        return [.. callSite.TypeParameters.Select(static tp => tp.Name)];
+        return callSite.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
     }
 
 
     private static string BuildTagSetters(TracedCallSite callSite)
     {
-        if (callSite.TracedTags.Count is 0)
+        if (callSite.TracedTags.Length is 0)
             return string.Empty;
 
         var sb = new StringBuilder();

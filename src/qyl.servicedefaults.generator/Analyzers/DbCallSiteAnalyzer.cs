@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Matching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -131,7 +132,7 @@ internal static class DbCallSiteAnalyzer
         if (dbCommandType is null)
             return false;
 
-        if (!AnalyzerHelpers.IsOrDerivesFrom(containingType, dbCommandType))
+        if (!containingType.IsOrInheritsFrom(dbCommandType))
             return false;
 
         method = matched.Method;

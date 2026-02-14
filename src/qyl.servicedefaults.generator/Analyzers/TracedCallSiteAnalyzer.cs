@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -54,8 +55,8 @@ internal static class TracedCallSiteAnalyzer
 
         var method = invocation.TargetMethod;
         var tracedTags = ExtractTracedTags(method, context.SemanticModel.Compilation);
-        var parameterTypes = method.Parameters.Select(static p => p.Type.ToDisplayString()).ToList();
-        var parameterNames = method.Parameters.Select(static p => p.Name).ToList();
+        var parameterTypes = method.Parameters.Select(static p => p.Type.ToDisplayString()).ToArray().ToEquatableArray();
+        var parameterNames = method.Parameters.Select(static p => p.Name).ToArray().ToEquatableArray();
         var typeParameters = ExtractTypeParameters(method);
 
         var isStatic = method.IsStatic;
@@ -180,13 +181,13 @@ internal static class TracedCallSiteAnalyzer
         return (activitySourceName, spanName ?? defaultSpanName, spanKind);
     }
 
-    private static List<TracedTagParameter> ExtractTracedTags(
+    private static EquatableArray<TracedTagParameter> ExtractTracedTags(
         IMethodSymbol method,
         Compilation compilation)
     {
         var tracedTagAttributeType = compilation.GetTypeByMetadataName(TracedTagAttributeFullName);
         if (tracedTagAttributeType is null)
-            return [];
+            return default;
 
         var tags = new List<TracedTagParameter>();
 
@@ -222,14 +223,14 @@ internal static class TracedCallSiteAnalyzer
                 isNullable));
         }
 
-        return tags;
+        return tags.ToArray().ToEquatableArray();
     }
 
 
-    private static List<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method)
+    private static EquatableArray<TypeParameterConstraint> ExtractTypeParameters(IMethodSymbol method)
     {
         if (method.TypeParameters.IsEmpty)
-            return [];
+            return default;
 
         var result = new List<TypeParameterConstraint>();
 
@@ -239,7 +240,7 @@ internal static class TracedCallSiteAnalyzer
             result.Add(new TypeParameterConstraint(tp.Name, constraints));
         }
 
-        return result;
+        return result.ToArray().ToEquatableArray();
     }
 
     private static string? BuildConstraintClause(ITypeParameterSymbol tp)

@@ -84,7 +84,7 @@ internal static class GenAiInterceptorEmitter
         var containingType = invocation.ContainingTypeName;
         var originalMethod = invocation.MethodName;
 
-        var argNames = GetPositionalNames(invocation.ParameterTypes.Count);
+        var argNames = GetPositionalNames(invocation.ParameterTypes.Length);
         var parameters = EmitterHelpers.BuildParameterList(containingType, invocation.ParameterTypes, argNames);
         var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
@@ -171,7 +171,7 @@ internal static class GenAiInterceptorEmitter
         var containingType = invocation.ContainingTypeName;
         var originalMethod = invocation.MethodName;
 
-        var argNames = GetPositionalNames(invocation.ParameterTypes.Count);
+        var argNames = GetPositionalNames(invocation.ParameterTypes.Length);
         var parameters = EmitterHelpers.BuildParameterList(containingType, invocation.ParameterTypes, argNames);
         var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
@@ -263,12 +263,12 @@ internal static class GenAiInterceptorEmitter
     /// <summary>
     ///     Generates positional parameter names (arg0, arg1, ...) for GenAI interceptors.
     /// </summary>
-    private static IReadOnlyList<string> GetPositionalNames(int count)
+    private static EquatableArray<string> GetPositionalNames(int count)
     {
         var names = new string[count];
         for (var i = 0; i < count; i++)
             names[i] = $"arg{i}";
-        return names;
+        return names.ToEquatableArray();
     }
 
 

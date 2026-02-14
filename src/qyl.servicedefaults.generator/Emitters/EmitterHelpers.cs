@@ -63,21 +63,21 @@ internal static class EmitterHelpers
     /// <param name="typeParamNames">Optional type parameter names for global type name resolution.</param>
     public static string BuildParameterList(
         string containingType,
-        IReadOnlyList<string> parameterTypes,
-        IReadOnlyList<string> parameterNames,
+        EquatableArray<string> parameterTypes,
+        EquatableArray<string> parameterNames,
         bool isStatic = false,
-        IReadOnlyList<string>? typeParamNames = null)
+        EquatableArray<string> typeParamNames = default)
     {
         var sb = new StringBuilder();
 
         if (!isStatic)
             sb.Append($"this global::{containingType} @this");
 
-        for (var i = 0; i < parameterTypes.Count; i++)
+        for (var i = 0; i < parameterTypes.Length; i++)
         {
             if (sb.Length > 0)
                 sb.Append(", ");
-            var typeName = parameterTypes[i].ToGlobalTypeName(typeParamNames);
+            var typeName = parameterTypes[i].ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
             sb.Append($"{typeName} {parameterNames[i]}");
         }
 
@@ -87,9 +87,9 @@ internal static class EmitterHelpers
     /// <summary>
     ///     Builds the argument list for forwarding to the original method.
     /// </summary>
-    public static string BuildArgumentList(IReadOnlyList<string> parameterNames)
+    public static string BuildArgumentList(EquatableArray<string> parameterNames)
     {
-        return parameterNames.Count is 0 ? string.Empty : string.Join(", ", parameterNames);
+        return parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
     }
 
     /// <summary>

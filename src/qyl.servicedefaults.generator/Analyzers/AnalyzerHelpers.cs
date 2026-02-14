@@ -87,26 +87,6 @@ internal static class AnalyzerHelpers
     }
 
     /// <summary>
-    ///     Checks if a type is or derives from a base type.
-    /// </summary>
-    public static bool IsOrDerivesFrom(ITypeSymbol type, ISymbol baseType)
-    {
-        if (SymbolEqualityComparer.Default.Equals(type, baseType))
-            return true;
-
-        var current = type.BaseType;
-        while (current is not null)
-        {
-            if (SymbolEqualityComparer.Default.Equals(current, baseType))
-                return true;
-
-            current = current.BaseType;
-        }
-
-        return false;
-    }
-
-    /// <summary>
     ///     Checks if a method's return type indicates an async method (Task, ValueTask, or their generic variants).
     /// </summary>
     public static bool IsAsyncReturnType(IMethodSymbol method)

@@ -137,7 +137,7 @@ internal sealed record GenAiCallSite(
     string MethodName,
     bool IsAsync,
     string ReturnTypeName,
-    IReadOnlyList<string> ParameterTypes,
+    EquatableArray<string> ParameterTypes,
     InterceptableLocation Location)
 {
     /// <summary>
@@ -206,7 +206,7 @@ internal sealed record MeterDefinition(
     string ClassName,
     string MeterName,
     string? MeterVersion,
-    IReadOnlyList<MetricMethodDefinition> Methods);
+    EquatableArray<MetricMethodDefinition> Methods);
 
 /// <summary>
 ///     The kind of metric instrument.
@@ -229,7 +229,7 @@ internal sealed record MetricMethodDefinition(
     string? Unit,
     string? Description,
     string? ValueTypeName,
-    IReadOnlyList<MetricTagParameter> Tags);
+    EquatableArray<MetricTagParameter> Tags);
 
 /// <summary>
 ///     A [Tag]-decorated parameter that becomes a metric dimension.
@@ -256,10 +256,10 @@ internal sealed record TracedCallSite(
     bool IsStatic,
     bool IsAsync,
     string ReturnTypeName,
-    IReadOnlyList<string> ParameterTypes,
-    IReadOnlyList<string> ParameterNames,
-    IReadOnlyList<TracedTagParameter> TracedTags,
-    IReadOnlyList<TypeParameterConstraint> TypeParameters,
+    EquatableArray<string> ParameterTypes,
+    EquatableArray<string> ParameterNames,
+    EquatableArray<TracedTagParameter> TracedTags,
+    EquatableArray<TypeParameterConstraint> TypeParameters,
     InterceptableLocation Location);
 
 /// <summary>
