@@ -200,8 +200,8 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         var context = new CopilotContext { Parameters = parameters, AdditionalContext = additionalContext };
 
-        long totalInputTokens = 0;
-        long totalOutputTokens = 0;
+        int totalInputTokens = 0;
+        int totalOutputTokens = 0;
         var resultBuilder = new StringBuilder();
         var success = false;
         string? error = null;
@@ -226,12 +226,12 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
                 if (update.InputTokens.HasValue)
                 {
-                    totalInputTokens = update.InputTokens.Value;
+                    totalInputTokens = (int)update.InputTokens.Value;
                 }
 
                 if (update.OutputTokens.HasValue)
                 {
-                    totalOutputTokens = update.OutputTokens.Value;
+                    totalOutputTokens = (int)update.OutputTokens.Value;
                 }
 
                 switch (update.Kind)
@@ -320,7 +320,8 @@ public sealed class WorkflowEngine : IAsyncDisposable
         CopilotMetrics.RecordWorkflowDuration(duration, workflow.Name, statusName);
 
         // Record OTel gen_ai operation duration metric
-        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationWorkflow);
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
+            CopilotInstrumentation.OperationWorkflow);
 
         // Now yield all collected updates outside try-catch
         foreach (var update in collectedUpdates)

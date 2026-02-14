@@ -9,7 +9,8 @@
   <PropertyGroup>
     <!-- AL0018: Version.props not imported - we use CPM instead -->
     <!-- RS0030: Generated code from Microsoft.Extensions.Configuration.Binder uses banned API -->
-    <NoWarn>$(NoWarn);AL0018;RS0030</NoWarn>
+    <!-- AL0086: Activity.SetTag(string, object?) boxes int values - analyzer cannot see through boxing -->
+    <NoWarn>$(NoWarn);AL0018;RS0030;AL0086</NoWarn>
   </PropertyGroup>
 
   <!-- Central Package Management (native .NET 8+) -->

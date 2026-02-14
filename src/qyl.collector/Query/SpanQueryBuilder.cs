@@ -457,7 +457,7 @@ public readonly record struct SpanQuery(string Sql, IReadOnlyList<object?> Param
     public IReadOnlyList<DuckDBParameter> ToDuckDbParameters()
         =>
         [
-            .. Parameters.Select(static p => new DuckDBParameter { Value = p ?? DBNull.Value })
+            .. Parameters.Select(static (object? p) => new DuckDBParameter { Value = p ?? DBNull.Value })
         ];
 }
 

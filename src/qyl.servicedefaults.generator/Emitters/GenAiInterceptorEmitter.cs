@@ -251,8 +251,8 @@ internal static class GenAiInterceptorEmitter
             return null;
 
         var usage = definition.TokenUsage;
-        var outputTokens = InputOnlyOperations.Contains(operation) ? "0" : $"r.{usage.OutputProperty} ?? 0";
-        var inputTokens = $"r.{usage.InputProperty} ?? 0";
+        var outputTokens = InputOnlyOperations.Contains(operation) ? "0" : $"(int)(r.{usage.OutputProperty} ?? 0)";
+        var inputTokens = $"(int)(r.{usage.InputProperty} ?? 0)";
 
         return $"static r => new TokenUsage({inputTokens}, {outputTokens})";
     }

@@ -118,7 +118,7 @@ public interface ITelemetryCollector
 {
     void TrackAgentInvocation(string agentName, string operation, TimeSpan duration);
     void TrackToolCall(string toolName, string agentName, bool success, TimeSpan duration);
-    void TrackTokenUsage(string agentName, long inputTokens, long outputTokens);
+    void TrackTokenUsage(string agentName, int inputTokens, int outputTokens);
     void TrackError(string agentName, Exception exception);
 }
 
@@ -148,12 +148,12 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
         if (!success) activity.SetStatus(ActivityStatusCode.Error);
     }
 
-    public void TrackTokenUsage(string agentName, long inputTokens, long outputTokens)
+    public void TrackTokenUsage(string agentName, int inputTokens, int outputTokens)
     {
         if (TelemetryConstants.ActivitySource.StartActivity($"token_usage {agentName}") is not { } activity) return;
 
-        activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
-        activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
+        activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+        activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
     }
 
     public void TrackError(string agentName, Exception exception)
@@ -202,9 +202,11 @@ public sealed class TelemetryAgent(AIAgent innerAgent, ITelemetryCollector? coll
 
             if (response.Usage is { } usage)
             {
-                activity?.SetTag(GenAiAttributes.UsageInputTokens, (int)(usage.InputTokenCount ?? 0));
-                activity?.SetTag(GenAiAttributes.UsageOutputTokens, (int)(usage.OutputTokenCount ?? 0));
-                _collector.TrackTokenUsage(_agentName, usage.InputTokenCount ?? 0, usage.OutputTokenCount ?? 0);
+                var inputTokens = (int)(usage.InputTokenCount ?? 0);
+                var outputTokens = (int)(usage.OutputTokenCount ?? 0);
+                activity?.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
+                activity?.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+                _collector.TrackTokenUsage(_agentName, inputTokens, outputTokens);
             }
 
             return response;

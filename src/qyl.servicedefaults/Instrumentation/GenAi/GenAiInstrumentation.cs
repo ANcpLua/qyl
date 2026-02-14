@@ -15,7 +15,7 @@ namespace Qyl.ServiceDefaults.Instrumentation.GenAi;
 /// </summary>
 /// <param name="InputTokens">Number of input/prompt tokens.</param>
 /// <param name="OutputTokens">Number of output/completion tokens.</param>
-public readonly record struct TokenUsage(long InputTokens, long OutputTokens);
+public readonly record struct TokenUsage(int InputTokens, int OutputTokens);
 
 /// <summary>
 ///     GenAI instrumentation that leverages Microsoft.Extensions.AI.OpenTelemetryChatClient.
@@ -316,7 +316,7 @@ public static class GenAiInstrumentation
         using var activity = ActivitySources.GenAiSource.StartActivity(spanName, ActivityKind.Client);
 
         var sw = Stopwatch.StartNew();
-        long outputTokens = 0;
+        int outputTokens = 0;
 
         if (activity is not null)
         {
@@ -374,7 +374,7 @@ public static class GenAiInstrumentation
 
         if (activity is not null && outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
@@ -390,13 +390,13 @@ public static class GenAiInstrumentation
         Activity activity,
         string provider,
         string operation,
-        long inputTokens,
-        long outputTokens,
+        int inputTokens,
+        int outputTokens,
         double durationSeconds)
     {
         if (inputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
+            activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
             TokenUsageHistogram.Record(inputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),
@@ -405,7 +405,7 @@ public static class GenAiInstrumentation
 
         if (outputTokens > 0)
         {
-            activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
+            activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
             TokenUsageHistogram.Record(outputTokens,
                 new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),
                 new KeyValuePair<string, object?>(GenAiAttributes.ProviderName, provider),

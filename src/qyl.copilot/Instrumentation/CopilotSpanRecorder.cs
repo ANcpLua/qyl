@@ -20,7 +20,7 @@ public static class CopilotSpanRecorder
     /// <param name="activity">The activity to record on.</param>
     /// <param name="inputTokens">Input/prompt tokens.</param>
     /// <param name="outputTokens">Output/completion tokens.</param>
-    public static void RecordTokenUsage(Activity? activity, long inputTokens, long outputTokens)
+    public static void RecordTokenUsage(Activity? activity, int inputTokens, int outputTokens)
     {
         if (activity is null) return;
 
