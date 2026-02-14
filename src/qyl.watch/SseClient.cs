@@ -104,11 +104,11 @@ internal sealed class SseClient(string baseUrl) : IDisposable
                 continue;
             }
 
-            if (line.StartsWith("event:", StringComparison.Ordinal))
+            if (line.StartsWithOrdinal("event:"))
             {
                 eventType = line[6..].Trim();
             }
-            else if (line.StartsWith("data:", StringComparison.Ordinal))
+            else if (line.StartsWithOrdinal("data:"))
             {
                 dataLines.Add(line[5..].TrimStart());
             }

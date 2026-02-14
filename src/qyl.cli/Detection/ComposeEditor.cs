@@ -183,7 +183,7 @@ public sealed class ComposeEditor
         {
             return envSeq.Children.Any(static c =>
                 c is YamlScalarNode s && s.Value is not null
-                && s.Value.StartsWith("OTEL_EXPORTER_OTLP_ENDPOINT=", StringComparison.Ordinal));
+                && s.Value.StartsWithOrdinal("OTEL_EXPORTER_OTLP_ENDPOINT="));
         }
 
         return false;

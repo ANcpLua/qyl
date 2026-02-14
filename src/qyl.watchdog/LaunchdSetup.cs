@@ -119,9 +119,9 @@ public static class LaunchdSetup
             foreach (var line in output.Split('\n'))
             {
                 var trimmed = line.Trim();
-                if (trimmed.StartsWith("pid", StringComparison.Ordinal) ||
-                    trimmed.StartsWith("state", StringComparison.Ordinal) ||
-                    trimmed.StartsWith("last exit", StringComparison.Ordinal))
+                if (trimmed.StartsWithOrdinal("pid") ||
+                    trimmed.StartsWithOrdinal("state") ||
+                    trimmed.StartsWithOrdinal("last exit"))
                 {
                     await Console.Out.WriteLineAsync($"  {trimmed}");
                 }

@@ -44,7 +44,8 @@ public sealed class WorkflowEngine : IAsyncDisposable
         TimeProvider? timeProvider = null,
         IExecutionStore? executionStore = null)
     {
-        _adapter = adapter ?? throw new ArgumentNullException(nameof(adapter));
+        ArgumentNullException.ThrowIfNull(adapter);
+        _adapter = adapter;
         _workflowsDirectory = workflowsDirectory ?? WorkflowParser.GetDefaultWorkflowsDirectory();
         _timeProvider = timeProvider ?? TimeProvider.System;
         _executionStore = executionStore;

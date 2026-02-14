@@ -6,6 +6,10 @@
     <ToolCommandName>qyl-watch</ToolCommandName>
   </PropertyGroup>
   <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities" />
     <PackageReference Include="Spectre.Console" />
   </ItemGroup>
 </Project>

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -16,8 +17,8 @@ internal static class AnalyzerHelpers
     /// </summary>
     public static bool IsGeneratedFile(string filePath)
     {
-        return filePath.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase) ||
-               filePath.EndsWith(".generated.cs", StringComparison.OrdinalIgnoreCase);
+        return filePath.EndsWithIgnoreCase(".g.cs") ||
+               filePath.EndsWithIgnoreCase(".generated.cs");
     }
 
     /// <summary>
@@ -102,7 +103,7 @@ internal static class AnalyzerHelpers
     public static bool IsAsyncReturnType(IMethodSymbol method)
     {
         var returnTypeName = method.ReturnType.ToDisplayString();
-        return returnTypeName.StartsWith("System.Threading.Tasks.Task", StringComparison.Ordinal) ||
-               returnTypeName.StartsWith("System.Threading.Tasks.ValueTask", StringComparison.Ordinal);
+        return returnTypeName.StartsWithOrdinal("System.Threading.Tasks.Task") ||
+               returnTypeName.StartsWithOrdinal("System.Threading.Tasks.ValueTask");
     }
 }

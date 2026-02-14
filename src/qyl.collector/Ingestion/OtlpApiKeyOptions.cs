@@ -41,5 +41,5 @@ public sealed class OtlpApiKeyOptions
     } = "x-otlp-api-key";
 
     public bool IsApiKeyMode =>
-        AuthMode.Equals("ApiKey", StringComparison.OrdinalIgnoreCase);
+        AuthMode.EqualsIgnoreCase("ApiKey");
 }

@@ -31,8 +31,13 @@
   </PropertyGroup>
   -->
 
+  <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+  </ItemGroup>
+
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>

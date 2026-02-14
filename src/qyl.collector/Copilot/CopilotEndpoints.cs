@@ -63,7 +63,7 @@ internal static class CopilotEndpoints
 
             return Results.Ok(new WorkflowListResponse { Workflows = dtos });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
+        catch (InvalidOperationException ex) when (ex.Message.ContainsOrdinal("Authentication failed"))
         {
             return Results.Ok(new WorkflowListResponse { Workflows = [] });
         }
@@ -103,7 +103,7 @@ internal static class CopilotEndpoints
         {
             // Client disconnected - expected for SSE streams
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
+        catch (InvalidOperationException ex) when (ex.Message.ContainsOrdinal("Authentication failed"))
         {
             var error = new StreamUpdate
             {
@@ -159,7 +159,7 @@ internal static class CopilotEndpoints
 
             return Results.Ok(new ExecutionListResponse { Executions = dtos, Total = dtos.Count });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
+        catch (InvalidOperationException ex) when (ex.Message.ContainsOrdinal("Authentication failed"))
         {
             return Results.Ok(new ExecutionListResponse { Executions = [], Total = 0 });
         }
@@ -192,7 +192,7 @@ internal static class CopilotEndpoints
                 TraceId = execution.TraceId
             });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("Authentication failed", StringComparison.Ordinal))
+        catch (InvalidOperationException ex) when (ex.Message.ContainsOrdinal("Authentication failed"))
         {
             return Results.NotFound();
         }

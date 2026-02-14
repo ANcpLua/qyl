@@ -23,6 +23,7 @@
 
   <!-- SDK Throw class global using -->
   <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
     <Using Include="Microsoft.Shared.Diagnostics"/>
   </ItemGroup>
 
@@ -32,6 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="Microsoft.Agents.AI"/>
     <PackageReference Include="Microsoft.Agents.AI.A2A"/>
     <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>

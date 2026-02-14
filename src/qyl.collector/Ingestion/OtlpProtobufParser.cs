@@ -75,6 +75,6 @@ public static class OtlpProtobufParser
             return false;
 
         // Handle content types like "application/x-protobuf" or "application/x-protobuf; charset=utf-8"
-        return contentType.StartsWith(ContentType, StringComparison.OrdinalIgnoreCase);
+        return contentType.StartsWithIgnoreCase(ContentType);
     }
 }

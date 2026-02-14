@@ -108,7 +108,7 @@ public sealed class CopilotTools(HttpClient client)
 
             while (await reader.ReadLineAsync().ConfigureAwait(false) is { } line)
             {
-                if (line.StartsWith("data: ", StringComparison.Ordinal))
+                if (line.StartsWithOrdinal("data: "))
                 {
                     var json = line["data: ".Length..];
                     try
@@ -197,7 +197,7 @@ public sealed class CopilotTools(HttpClient client)
 
             while (await reader.ReadLineAsync().ConfigureAwait(false) is { } line)
             {
-                if (line.StartsWith("data: ", StringComparison.Ordinal))
+                if (line.StartsWithOrdinal("data: "))
                 {
                     var json = line["data: ".Length..];
                     try

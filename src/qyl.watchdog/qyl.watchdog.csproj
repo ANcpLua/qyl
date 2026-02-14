@@ -9,6 +9,8 @@
     <PackageTags>watchdog;monitoring;process;cpu;diagnostics;devtool</PackageTags>
   </PropertyGroup>
 
-  <!-- No dependencies - BCL only for minimal footprint -->
+  <ItemGroup>
+    <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+  </ItemGroup>
 
 </Project>

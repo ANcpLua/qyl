@@ -173,7 +173,8 @@ public static partial class QylServiceDefaults
                     .AddRuntimeInstrumentation()
                     .AddMeter("ANcpSdk.*")
                     .AddMeter(ActivitySources.GenAi)
-                    .AddMeter(ActivitySources.Db);
+                    .AddMeter(ActivitySources.Db)
+                    .AddMeter("qyl.collector.storage");
 
                 options.OpenTelemetry.ConfigureMetrics?.Invoke(metrics);
             })

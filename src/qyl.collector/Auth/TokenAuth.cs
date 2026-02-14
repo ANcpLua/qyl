@@ -73,7 +73,7 @@ public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions o
             return;
         }
 
-        if (options.ExcludedPaths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+        if (options.ExcludedPaths.Any(path.StartsWithIgnoreCase))
         {
             await next(context).ConfigureAwait(false);
             return;
@@ -99,7 +99,7 @@ public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions o
         var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            var bearerToken = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+            var bearerToken = authHeader.StartsWithIgnoreCase("Bearer ")
                 ? authHeader[7..]
                 : authHeader;
 
@@ -118,7 +118,7 @@ public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions o
             return;
         }
 
-        if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWithIgnoreCase("/api/"))
         {
             context.Response.StatusCode = 401;
             context.Response.Headers.WWWAuthenticate = "Bearer";
@@ -174,7 +174,7 @@ public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions o
 
         foreach (var ext in staticExtensions)
         {
-            if (path.EndsWith(ext, StringComparison.OrdinalIgnoreCase))
+            if (path.EndsWithIgnoreCase(ext))
                 return true;
         }
 

@@ -152,8 +152,8 @@ public sealed class OpenTelemetryCollector : ITelemetryCollector
     {
         if (TelemetryConstants.ActivitySource.StartActivity($"token_usage {agentName}") is not { } activity) return;
 
-        activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
-        activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+        activity.SetTag(GenAiAttributes.UsageInputTokens, (int)inputTokens);
+        activity.SetTag(GenAiAttributes.UsageOutputTokens, (int)outputTokens);
     }
 
     public void TrackError(string agentName, Exception exception)
@@ -202,8 +202,8 @@ public sealed class TelemetryAgent(AIAgent innerAgent, ITelemetryCollector? coll
 
             if (response.Usage is { } usage)
             {
-                activity?.SetTag(GenAiAttributes.UsageInputTokens, usage.InputTokenCount ?? 0);
-                activity?.SetTag(GenAiAttributes.UsageOutputTokens, usage.OutputTokenCount ?? 0);
+                activity?.SetTag(GenAiAttributes.UsageInputTokens, (int)(usage.InputTokenCount ?? 0));
+                activity?.SetTag(GenAiAttributes.UsageOutputTokens, (int)(usage.OutputTokenCount ?? 0));
                 _collector.TrackTokenUsage(_agentName, usage.InputTokenCount ?? 0, usage.OutputTokenCount ?? 0);
             }
 

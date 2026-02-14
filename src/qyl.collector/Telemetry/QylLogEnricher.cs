@@ -68,10 +68,10 @@ public sealed class QylRequestEnricher(IHttpContextAccessor httpContextAccessor)
         {
             var ipString = remoteIp.ToString();
             // Only log local/internal IPs, redact external
-            if (ipString.StartsWith("127.", StringComparison.Ordinal) ||
-                ipString.StartsWith("::1", StringComparison.Ordinal) ||
-                ipString.StartsWith("10.", StringComparison.Ordinal) ||
-                ipString.StartsWith("192.168.", StringComparison.Ordinal))
+            if (ipString.StartsWithOrdinal("127.") ||
+                ipString.StartsWithOrdinal("::1") ||
+                ipString.StartsWithOrdinal("10.") ||
+                ipString.StartsWithOrdinal("192.168."))
             {
                 collector.Add("client.address", ipString);
             }

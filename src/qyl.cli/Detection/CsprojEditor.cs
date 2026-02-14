@@ -24,7 +24,7 @@ public sealed class CsprojEditor
         return _doc.Descendants("PackageReference")
                    .Any(e => string.Equals(e.Attribute("Include")?.Value, packageName, StringComparison.OrdinalIgnoreCase))
                || _doc.Descendants("ProjectReference")
-                      .Any(e => (e.Attribute("Include")?.Value ?? "").Contains(packageName, StringComparison.OrdinalIgnoreCase));
+                      .Any(e => (e.Attribute("Include")?.Value ?? "").ContainsIgnoreCase(packageName));
     }
 
     /// <summary>

@@ -22,22 +22,22 @@ public static class ErrorCategorizer
         // .NET exception type mapping
         return exceptionType switch
         {
-            _ when exceptionType.Contains("HttpRequestException", StringComparison.Ordinal) => "network",
-            _ when exceptionType.Contains("SocketException", StringComparison.Ordinal) => "network",
-            _ when exceptionType.Contains("TimeoutException", StringComparison.Ordinal) => "timeout",
-            _ when exceptionType.Contains("TaskCanceledException", StringComparison.Ordinal) => "timeout",
-            _ when exceptionType.Contains("UnauthorizedAccess", StringComparison.Ordinal) => "auth",
-            _ when exceptionType.Contains("Authentication", StringComparison.Ordinal) => "auth",
-            _ when exceptionType.Contains("DbException", StringComparison.Ordinal) => "database",
-            _ when exceptionType.Contains("DuckDB", StringComparison.Ordinal) => "database",
-            _ when exceptionType.Contains("SqlException", StringComparison.Ordinal) => "database",
-            _ when exceptionType.Contains("ArgumentException", StringComparison.Ordinal) => "validation",
-            _ when exceptionType.Contains("ArgumentNull", StringComparison.Ordinal) => "validation",
-            _ when exceptionType.Contains("FormatException", StringComparison.Ordinal) => "validation",
-            _ when exceptionType.Contains("InvalidOperation", StringComparison.Ordinal) => "internal",
-            _ when exceptionType.Contains("NotSupported", StringComparison.Ordinal) => "internal",
-            _ when exceptionType.Contains("NotImplemented", StringComparison.Ordinal) => "internal",
-            _ when exceptionType.Contains("NullReference", StringComparison.Ordinal) => "internal",
+            _ when exceptionType.ContainsOrdinal("HttpRequestException") => "network",
+            _ when exceptionType.ContainsOrdinal("SocketException") => "network",
+            _ when exceptionType.ContainsOrdinal("TimeoutException") => "timeout",
+            _ when exceptionType.ContainsOrdinal("TaskCanceledException") => "timeout",
+            _ when exceptionType.ContainsOrdinal("UnauthorizedAccess") => "auth",
+            _ when exceptionType.ContainsOrdinal("Authentication") => "auth",
+            _ when exceptionType.ContainsOrdinal("DbException") => "database",
+            _ when exceptionType.ContainsOrdinal("DuckDB") => "database",
+            _ when exceptionType.ContainsOrdinal("SqlException") => "database",
+            _ when exceptionType.ContainsOrdinal("ArgumentException") => "validation",
+            _ when exceptionType.ContainsOrdinal("ArgumentNull") => "validation",
+            _ when exceptionType.ContainsOrdinal("FormatException") => "validation",
+            _ when exceptionType.ContainsOrdinal("InvalidOperation") => "internal",
+            _ when exceptionType.ContainsOrdinal("NotSupported") => "internal",
+            _ when exceptionType.ContainsOrdinal("NotImplemented") => "internal",
+            _ when exceptionType.ContainsOrdinal("NullReference") => "internal",
             _ => "unknown"
         };
     }

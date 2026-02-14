@@ -72,7 +72,7 @@ public static class DotnetInitCommand
 
     private static string? FindCsproj(string directory)
     {
-        if (File.Exists(directory) && directory.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
+        if (File.Exists(directory) && directory.EndsWithIgnoreCase(".csproj"))
         {
             return Path.GetFullPath(directory);
         }

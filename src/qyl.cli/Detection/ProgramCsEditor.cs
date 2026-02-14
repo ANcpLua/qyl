@@ -19,7 +19,7 @@ public sealed class ProgramCsEditor
     /// </summary>
     public bool NeedsServiceDefaults()
     {
-        if (_content.Contains("AddServiceDefaults", StringComparison.Ordinal))
+        if (_content.ContainsOrdinal("AddServiceDefaults"))
         {
             return false;
         }
@@ -32,7 +32,7 @@ public sealed class ProgramCsEditor
     /// </summary>
     public void InjectServiceDefaults()
     {
-        if (_content.Contains("AddServiceDefaults", StringComparison.Ordinal))
+        if (_content.ContainsOrdinal("AddServiceDefaults"))
         {
             return;
         }
@@ -53,13 +53,13 @@ public sealed class ProgramCsEditor
         {
             foreach (var pattern in builderPatterns)
             {
-                if (lines[i].Contains(pattern, StringComparison.Ordinal))
+                if (lines[i].ContainsOrdinal(pattern))
                 {
                     // Handle multi-line builder calls: find the line with the semicolon
                     insertIndex = i;
                     for (var j = i; j < lines.Length; j++)
                     {
-                        if (lines[j].Contains(';', StringComparison.Ordinal))
+                        if (lines[j].ContainsOrdinal(";"))
                         {
                             insertIndex = j;
                             break;
@@ -119,10 +119,10 @@ public sealed class ProgramCsEditor
 
     private bool HasBuilderPattern()
     {
-        return _content.Contains("WebApplication.CreateBuilder", StringComparison.Ordinal)
-               || _content.Contains("WebApplication.CreateSlimBuilder", StringComparison.Ordinal)
-               || _content.Contains("Host.CreateApplicationBuilder", StringComparison.Ordinal)
-               || _content.Contains("Host.CreateDefaultBuilder", StringComparison.Ordinal);
+        return _content.ContainsOrdinal("WebApplication.CreateBuilder")
+               || _content.ContainsOrdinal("WebApplication.CreateSlimBuilder")
+               || _content.ContainsOrdinal("Host.CreateApplicationBuilder")
+               || _content.ContainsOrdinal("Host.CreateDefaultBuilder");
     }
 
     private static string DetectBuilderVariableName(string line)

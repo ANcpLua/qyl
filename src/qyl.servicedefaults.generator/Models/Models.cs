@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 
 namespace Qyl.ServiceDefaults.Generator.Models;
@@ -142,7 +143,7 @@ internal sealed record GenAiCallSite(
     /// <summary>
     ///     True if return type is IAsyncEnumerable (streaming response).
     /// </summary>
-    public bool IsStreaming => ReturnTypeName.StartsWith("System.Collections.Generic.IAsyncEnumerable<", StringComparison.Ordinal);
+    public bool IsStreaming => ReturnTypeName.StartsWithOrdinal("System.Collections.Generic.IAsyncEnumerable<");
 }
 
 #endregion

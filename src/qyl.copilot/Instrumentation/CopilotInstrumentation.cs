@@ -90,6 +90,7 @@ public static class CopilotInstrumentation
         if (activity is null) return null;
 
         activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
+        activity.SetTag(GenAiAttributes.RequestModel, GenAiSystem);
         activity.SetTag(GenAiAttributes.OperationName, OperationChat);
         activity.SetTag(GenAiAttributes.OutputType, GenAiAttributes.OutputTypes.Text);
 

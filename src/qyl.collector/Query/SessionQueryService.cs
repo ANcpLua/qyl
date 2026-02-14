@@ -401,7 +401,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         return value switch
         {
             IReadOnlyList<string> list => list, // Covers string[], List<string>, etc.
-            object[] arr => arr.Select(static x => x.ToString() ?? "").Where(static s => s.Length > 0).ToArray(),
+            object[] arr => Enumerable.ToArray(Enumerable.Where(Enumerable.Select(arr, static x => x.ToString() ?? ""), static s => s.Length > 0)),
             _ => []
         };
     }

@@ -211,19 +211,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         var job = new FireAndForgetJob(
             batch.Spans.Count,
-            async (con, token) =>
-            {
-                await WriteBatchInternalAsync(con, batch, token).ConfigureAwait(false);
-
-                try
-                {
-                    await ExtractAndUpsertErrorsAsync(con, batch.Spans, token).ConfigureAwait(false);
-                }
-                catch (Exception)
-                {
-                    // Error extraction is best-effort. Span data is already committed.
-                }
-            },
+            (con, token) => WriteBatchInternalAsync(con, batch, token),
             spanCount =>
             {
                 _droppedJobs.Add(1);
@@ -1641,9 +1629,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     /// </summary>
     private static void ValidateArchiveDirectory(string outputDirectory)
     {
-        Throw.IfNull(outputDirectory);
-        if (string.IsNullOrWhiteSpace(outputDirectory))
-            throw new ArgumentException("Value cannot be null or whitespace.", nameof(outputDirectory));
+        Guard.NotNullOrWhiteSpace(outputDirectory);
 
         // Block path traversal sequences before canonicalization
         if (outputDirectory.Contains("..") || outputDirectory.Contains('\0'))
@@ -1666,7 +1652,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
         foreach (var prefix in dangerousPrefixes)
         {
-            if (fullPath.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            if (fullPath.StartsWithIgnoreCase(prefix))
             {
                 throw new ArgumentException($"Output directory cannot be under system path: {prefix}",
                     nameof(outputDirectory));

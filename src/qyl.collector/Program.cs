@@ -638,9 +638,9 @@ app.MapFallback(context =>
     var path = context.Request.Path.Value ?? "/";
 
     // Return 404 for API routes and static asset paths
-    if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/v1/", StringComparison.OrdinalIgnoreCase) ||
-        path.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase))
+    if (path.StartsWithIgnoreCase("/api/") ||
+        path.StartsWithIgnoreCase("/v1/") ||
+        path.StartsWithIgnoreCase("/assets/"))
     {
         context.Response.StatusCode = 404;
         return Task.CompletedTask;

@@ -54,7 +54,7 @@ public sealed class ConsoleTools(HttpClient client)
             // Apply pattern filter client-side if specified
             if (!string.IsNullOrEmpty(pattern))
             {
-                logs = [.. logs.Where(l => l.Msg?.Contains(pattern, StringComparison.OrdinalIgnoreCase) is true)];
+                logs = [.. logs.Where(l => l.Msg?.ContainsIgnoreCase(pattern) is true)];
 
                 if (logs.Length is 0)
                     return $"No console logs matching pattern '{pattern}'.";

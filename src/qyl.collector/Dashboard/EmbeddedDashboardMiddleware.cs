@@ -53,17 +53,17 @@ public sealed partial class EmbeddedDashboardMiddleware
         var path = context.Request.Path.Value?.TrimStart('/') ?? "";
 
         // Strip base path if configured
-        if (!string.IsNullOrEmpty(_basePath) && path.StartsWith(_basePath, StringComparison.OrdinalIgnoreCase))
+        if (!string.IsNullOrEmpty(_basePath) && path.StartsWithIgnoreCase(_basePath))
         {
             path = path[_basePath.Length..].TrimStart('/');
         }
 
         // Skip API and OTLP routes
-        if (path.StartsWith("api/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("v1/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("mcp/", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("health", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("ready", StringComparison.OrdinalIgnoreCase))
+        if (path.StartsWithIgnoreCase("api/") ||
+            path.StartsWithIgnoreCase("v1/") ||
+            path.StartsWithIgnoreCase("mcp/") ||
+            path.StartsWithIgnoreCase("health") ||
+            path.StartsWithIgnoreCase("ready"))
         {
             await _next(context).ConfigureAwait(false);
             return;
@@ -104,7 +104,7 @@ public sealed partial class EmbeddedDashboardMiddleware
         // Serve compressed if client supports and we have compressed version
         var acceptEncoding = context.Request.Headers.AcceptEncoding.ToString();
         if (resource.CompressedContent is not null &&
-            acceptEncoding.Contains("gzip", StringComparison.OrdinalIgnoreCase))
+            acceptEncoding.ContainsIgnoreCase("gzip"))
         {
             context.Response.Headers.ContentEncoding = "gzip";
             context.Response.ContentLength = resource.CompressedContent.Length;
@@ -125,7 +125,7 @@ public sealed partial class EmbeddedDashboardMiddleware
 
         foreach (var name in assembly.GetManifestResourceNames())
         {
-            if (!name.StartsWith(ResourcePrefix, StringComparison.OrdinalIgnoreCase))
+            if (!name.StartsWithIgnoreCase(ResourcePrefix))
                 continue;
 
             if (assembly.GetManifestResourceStream(name) is not { } stream) continue;
@@ -200,8 +200,8 @@ public sealed partial class EmbeddedDashboardMiddleware
     {
         // Assets with hash in filename are immutable
         var name = Path.GetFileNameWithoutExtension(path);
-        return name.Contains('-', StringComparison.Ordinal) || name.Contains('.', StringComparison.Ordinal) ||
-               path.StartsWith("assets/", StringComparison.OrdinalIgnoreCase);
+        return name.ContainsOrdinal("-") || name.ContainsOrdinal(".") ||
+               path.StartsWithIgnoreCase("assets/");
     }
 }
 
@@ -236,5 +236,5 @@ public static class EmbeddedDashboardExtensions
     public static bool HasEmbeddedDashboard() =>
         typeof(EmbeddedDashboardMiddleware).Assembly
             .GetManifestResourceNames()
-            .Any(static n => n.StartsWith("qyl.collector.wwwroot.", StringComparison.Ordinal));
+            .Any(static n => n.StartsWithOrdinal("qyl.collector.wwwroot."));
 }

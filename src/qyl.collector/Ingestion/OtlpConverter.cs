@@ -92,7 +92,7 @@ public static class OtlpConverter
         if (value.BytesValue is not null) return Convert.ToBase64String(value.BytesValue);
         if (value.ArrayValue is not null)
         {
-            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static v => v is not null).ToArray();
+            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static (string? v) => v is not null).ToArray();
             return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
         }
 
@@ -247,7 +247,7 @@ public static class OtlpConverter
 
         foreach (var kvp in attributes)
         {
-            if (!kvp.Key.StartsWith("baggage.", StringComparison.Ordinal))
+            if (!kvp.Key.StartsWithOrdinal("baggage."))
                 continue;
 
             var baggageKey = kvp.Key[8..]; // Remove "baggage." prefix
@@ -339,7 +339,7 @@ public static class OtlpConverter
     private static long? ParseNullableLong(string? value)
     {
         if (string.IsNullOrEmpty(value)) return null;
-        return long.TryParse(value, out var result) ? result : null;
+        return value.TryParseInt64();
     }
 
     private static double? ParseNullableDouble(string? value)

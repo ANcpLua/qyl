@@ -10,5 +10,5 @@ public static class OtlpConstants
 
     /// <summary>Check if a path is an OTLP endpoint.</summary>
     public static bool IsOtlpPath(string path) =>
-        Paths.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+        Paths.Any(path.StartsWithIgnoreCase);
 }

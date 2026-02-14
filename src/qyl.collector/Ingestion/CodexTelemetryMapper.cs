@@ -82,7 +82,7 @@ public static class CodexTelemetryMapper
     public static bool IsCodexSpan(string? spanName)
     {
         return spanName is not null &&
-               spanName.StartsWith(CodexPrefix, StringComparison.Ordinal);
+               spanName.StartsWithOrdinal(CodexPrefix);
     }
 
     /// <summary>
@@ -216,7 +216,7 @@ public static class CodexTelemetryMapper
             UserPrompt => GenAiAttributes.Operations.Chat,
             ToolDecision => GenAiAttributes.Operations.ExecuteTool,
             ToolResult => GenAiAttributes.Operations.ExecuteTool,
-            _ when spanName.StartsWith(CodexPrefix, StringComparison.Ordinal) => GenAiAttributes.Operations.Chat,
+            _ when spanName.StartsWithOrdinal(CodexPrefix) => GenAiAttributes.Operations.Chat,
             _ => null
         };
 
@@ -244,7 +244,7 @@ public static class CodexTelemetryMapper
 
         // For completed requests, also set response model
         if (attributes.TryGetValue(CodexSuccess, out var success) &&
-            success.Equals("true", StringComparison.OrdinalIgnoreCase) &&
+            success.EqualsIgnoreCase("true") &&
             !attributes.ContainsKey(GenAiAttributes.ResponseModel))
         {
             attributes[GenAiAttributes.ResponseModel] = model;
@@ -258,7 +258,7 @@ public static class CodexTelemetryMapper
     {
         // Try conversation_id first, then thread_id
         _ = attributes.TryGetValue(CodexConversationId, out var conversationId);
-        conversationId ??= attributes.TryGetValue(CodexThreadId, out var threadId) ? threadId : null;
+        conversationId ??= attributes.GetOrNull(CodexThreadId);
 
         if (conversationId is null || attributes.ContainsKey(GenAiAttributes.ConversationId))
             return false;
@@ -380,7 +380,7 @@ public static class CodexTelemetryMapper
             return false;
 
         // Quick string check before parsing
-        return attributesJson.Contains("codex.", StringComparison.Ordinal);
+        return attributesJson.ContainsOrdinal("codex.");
     }
 
     private readonly record struct GenAiFields(
@@ -412,7 +412,7 @@ public static class CodexTelemetryMapper
     {
         if (string.IsNullOrEmpty(value))
             return null;
-        return long.TryParse(value, out var result) ? result : null;
+        return value.TryParseInt64();
     }
 }
 

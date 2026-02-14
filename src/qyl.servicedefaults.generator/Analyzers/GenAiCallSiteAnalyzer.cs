@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -179,7 +180,7 @@ internal static class GenAiCallSiteAnalyzer
             var typePrefix = kvp.Key;
             var methods = kvp.Value;
 
-            if (!typeName.StartsWith(typePrefix, StringComparison.Ordinal))
+            if (!typeName.StartsWithOrdinal(typePrefix))
                 continue;
 
             foreach (var methodPattern in methods)

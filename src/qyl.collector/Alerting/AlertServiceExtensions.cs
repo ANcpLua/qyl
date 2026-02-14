@@ -15,7 +15,8 @@ public static class AlertServiceExtensions
         services.AddSingleton<AlertEvaluator>();
         services.AddSingleton<AlertNotifier>();
         services.AddHostedService<AlertService>();
-        services.AddHttpClient("AlertWebhook");
+        services.AddHttpClient("AlertWebhook")
+            .AddStandardResilienceHandler();
 
         return services;
     }

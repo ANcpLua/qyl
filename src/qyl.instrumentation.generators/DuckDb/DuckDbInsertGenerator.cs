@@ -159,7 +159,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
 
         var propType = prop.Type.ToDisplayString();
         var isNullable = prop.Type.NullableAnnotation == NullableAnnotation.Annotated ||
-                         propType.EndsWith("?", StringComparison.Ordinal);
+                         propType.EndsWithOrdinal("?");
 
         // Detect UBIGINT by type if not explicitly marked
         if (!isUBigInt && propType is "ulong" or "System.UInt64")

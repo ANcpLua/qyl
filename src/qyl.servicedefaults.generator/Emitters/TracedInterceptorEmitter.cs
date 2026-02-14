@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.ServiceDefaults.Generator.Models;
 
@@ -190,8 +191,8 @@ internal static class TracedInterceptorEmitter
         string tagSetters,
         string methodCall)
     {
-        var hasReturnValue = !returnType.EndsWith("Task", StringComparison.Ordinal) &&
-                             !returnType.EndsWith("ValueTask", StringComparison.Ordinal);
+        var hasReturnValue = !returnType.EndsWithOrdinal("Task") &&
+                             !returnType.EndsWithOrdinal("ValueTask");
 
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
@@ -352,12 +353,12 @@ internal static class TracedInterceptorEmitter
             return typeName;
 
         // Handle nullable reference types (trailing ?)
-        if (typeName.EndsWith("?", StringComparison.Ordinal))
+        if (typeName.EndsWithOrdinal("?"))
             return ToGlobalTypeName(typeName[..^1], typeParameterNames) + "?";
 
         // Handle generic types: Task<Order> or Dictionary<string, Order>
         var genericStart = typeName.IndexOf('<');
-        if (genericStart > 0 && typeName.EndsWith(">", StringComparison.Ordinal))
+        if (genericStart > 0 && typeName.EndsWithOrdinal(">"))
         {
             var baseTypeName = typeName[..genericStart];
             var argsContent = typeName[(genericStart + 1)..^1];

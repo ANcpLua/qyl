@@ -64,14 +64,14 @@ internal static class EmitterHelpers
             return typeName;
 
         // Handle array types (e.g., "string[]", "int[][]")
-        if (typeName.EndsWith("[]", StringComparison.Ordinal))
+        if (typeName.EndsWithOrdinal("[]"))
         {
             var elementType = typeName[..^2];
             return ToGlobalTypeName(elementType) + "[]";
         }
 
         // Handle nullable reference types (trailing ?)
-        if (typeName.EndsWith("?", StringComparison.Ordinal) &&
+        if (typeName.EndsWithOrdinal("?") &&
             !IsPrimitiveKeyword(typeName[..^1]))
         {
             return ToGlobalTypeName(typeName[..^1]) + "?";
@@ -79,7 +79,7 @@ internal static class EmitterHelpers
 
         // Handle generic types: Task<Order> or Dictionary<string, Order>
         var genericStart = typeName.IndexOf('<');
-        if (genericStart > 0 && typeName.EndsWith(">", StringComparison.Ordinal))
+        if (genericStart > 0 && typeName.EndsWithOrdinal(">"))
         {
             var baseTypeName = typeName[..genericStart];
             var argsContent = typeName[(genericStart + 1)..^1];
@@ -158,18 +158,18 @@ internal static class EmitterHelpers
     /// </summary>
     public static bool IsPrimitiveValueType(string typeName)
     {
-        return typeName.StartsWith("global::System.Int", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.UInt", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Double", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Single", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Decimal", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Boolean", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Byte", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.SByte", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Char", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.DateTime", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.TimeSpan", StringComparison.Ordinal) ||
-               typeName.StartsWith("global::System.Guid", StringComparison.Ordinal) ||
+        return typeName.StartsWithOrdinal("global::System.Int") ||
+               typeName.StartsWithOrdinal("global::System.UInt") ||
+               typeName.StartsWithOrdinal("global::System.Double") ||
+               typeName.StartsWithOrdinal("global::System.Single") ||
+               typeName.StartsWithOrdinal("global::System.Decimal") ||
+               typeName.StartsWithOrdinal("global::System.Boolean") ||
+               typeName.StartsWithOrdinal("global::System.Byte") ||
+               typeName.StartsWithOrdinal("global::System.SByte") ||
+               typeName.StartsWithOrdinal("global::System.Char") ||
+               typeName.StartsWithOrdinal("global::System.DateTime") ||
+               typeName.StartsWithOrdinal("global::System.TimeSpan") ||
+               typeName.StartsWithOrdinal("global::System.Guid") ||
                typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
                    "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
     }

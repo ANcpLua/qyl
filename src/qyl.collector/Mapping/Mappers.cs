@@ -311,13 +311,13 @@ public static class SessionMapper
     private static string? InferProvider(string model) =>
         model switch
         {
-            _ when model.StartsWith("gpt", StringComparison.OrdinalIgnoreCase) => "openai",
-            _ when model.StartsWith("o1", StringComparison.OrdinalIgnoreCase) => "openai",
-            _ when model.StartsWith("claude", StringComparison.OrdinalIgnoreCase) => "anthropic",
-            _ when model.StartsWith("gemini", StringComparison.OrdinalIgnoreCase) => "google",
-            _ when model.StartsWith("llama", StringComparison.OrdinalIgnoreCase) => "meta",
-            _ when model.StartsWith("mistral", StringComparison.OrdinalIgnoreCase) => "mistral",
-            _ when model.StartsWith("command", StringComparison.OrdinalIgnoreCase) => "cohere",
+            _ when model.StartsWithIgnoreCase("gpt") => "openai",
+            _ when model.StartsWithIgnoreCase("o1") => "openai",
+            _ when model.StartsWithIgnoreCase("claude") => "anthropic",
+            _ when model.StartsWithIgnoreCase("gemini") => "google",
+            _ when model.StartsWithIgnoreCase("llama") => "meta",
+            _ when model.StartsWithIgnoreCase("mistral") => "mistral",
+            _ when model.StartsWithIgnoreCase("command") => "cohere",
             _ => null
         };
 }

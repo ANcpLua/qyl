@@ -46,9 +46,9 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 .Select(s => MapToRun(s, time))
                 .Where(r =>
                     (string.IsNullOrEmpty(model) ||
-                     r.Model?.Contains(model, StringComparison.OrdinalIgnoreCase) is true) &&
+                     r.Model?.ContainsIgnoreCase(model) is true) &&
                     (string.IsNullOrEmpty(errorType) ||
-                     r.ErrorType?.Equals(errorType, StringComparison.OrdinalIgnoreCase) is true) &&
+                     r.ErrorType?.EqualsIgnoreCase(errorType) is true) &&
                     (!since.HasValue || r.StartedAt >= since.Value))
                 .ToArray() ?? [];
         }
@@ -195,8 +195,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             s.ErrorCount > 0 ? $"{s.ErrorCount} error(s)" : null);
     }
 
-    private static DateTime? ParseTime(string? s) =>
-        DateTime.TryParse(s, out var dt) ? dt : null;
+    private static DateTime? ParseTime(string? s) => s.TryParseDateTime();
 
     private static bool InRange(DateTime? dt, DateTime? since, DateTime? until) =>
         dt.HasValue && (!since.HasValue || dt >= since) && (!until.HasValue || dt <= until);
