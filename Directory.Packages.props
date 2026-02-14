@@ -2,101 +2,102 @@
   <!-- =======================================================================
        qyl Central Package Versions
        ======================================================================= -->
+  <Import Project="Version.props" />
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
     <!-- OTel Semantic Conventions (BCL-only, generated from @opentelemetry/semantic-conventions) -->
     <!-- OpenTelemetry -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.3" />
-    <PackageVersion Include="OpenTelemetry.Api" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="OpenTelemetry.Api" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Exporter.Console" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryVersion)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryVersion)" />
     <!-- Microsoft.Extensions -->
-    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="$(MicrosoftExtensionsVersion)" />
     <!-- Microsoft.Extensions.Telemetry (.NET 10) - Source generators, enrichment, buffering -->
-    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="10.3.0" />
-    <PackageVersion Include="Microsoft.Extensions.ObjectPool.DependencyInjection" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Telemetry.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Abstractions" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Compliance.Redaction" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Diagnostics" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Diagnostics.Middleware" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.AutoActivation" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ObjectPool.DependencyInjection" Version="$(MicrosoftExtensionsVersion)" />
     <!-- ASP.NET Core -->
-    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)" />
     <!-- Service Discovery & Resilience -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.3" />
-    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.3.0" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)" />
     <!-- System -->
-    <PackageVersion Include="System.IO.Hashing" Version="10.0.3" />
+    <PackageVersion Include="System.IO.Hashing" Version="$(DotNetRuntimeVersion)" />
     <!-- DuckDB -->
-    <PackageVersion Include="DuckDB.NET.Data.Full" Version="1.4.4" />
+    <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)" />
     <!-- gRPC & Protobuf -->
-    <PackageVersion Include="Google.Protobuf" Version="3.33.5" />
-    <PackageVersion Include="Grpc.AspNetCore" Version="2.76.0" />
-    <PackageVersion Include="Grpc.Tools" Version="2.78.0" />
+    <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)" />
+    <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)" />
+    <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)" />
     <!-- Azure Monitor (for AgentsGateway example) -->
-    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="1.4.0" />
+    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="$(AzureMonitorVersion)" />
     <!-- Identity -->
-    <PackageVersion Include="Microsoft.IdentityModel.Validators" Version="8.15.0" />
+    <PackageVersion Include="Microsoft.IdentityModel.Validators" Version="$(MicrosoftIdentityModelVersion)" />
     <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2) -->
-    <PackageVersion Include="xunit.v3.mtp-v2" Version="3.2.2" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="2.1.0" />
-    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.4.1" />
+    <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingTrxVersion)" />
+    <PackageVersion Include="Microsoft.Testing.Extensions.CodeCoverage" Version="$(MicrosoftTestingCodeCoverageVersion)" />
     <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
     <!-- Microsoft.CodeAnalysis.CSharp is implicitly referenced by SDK for IsRoslynComponent=true projects -->
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="4.14.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftCodeAnalysisAnalyzersVersion)" />
     <!-- Roslyn Utilities -->
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.31.0" />
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)" />
     <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="1.0.0-alpha.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="1.0.0-preview.260209.1" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="$(MicrosoftAgentsOpenAIVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(MicrosoftAgentsVersion)" />
     <!-- GitHub Copilot SDK -->
-    <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="1.0.0-preview.260209.1" />
-    <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="1.4.66-beta" />
-    <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="1.4.66-beta" />
+    <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="$(MicrosoftAgentsVersion)" />
+    <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="$(MicrosoftAgentsAuthVersion)" />
+    <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="$(MicrosoftAgentsAuthVersion)" />
     <!-- MCP & AI Clients -->
-    <PackageVersion Include="ModelContextProtocol" Version="0.8.0-preview.1" />
+    <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)" />
     <!-- Build Tooling (Nuke) -->
-    <PackageVersion Include="Nuke.Common" Version="10.1.0" />
-    <PackageVersion Include="Nuke.Components" Version="10.1.0" />
+    <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)" />
+    <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)" />
     <!-- OpenAPI YAML Parsing (for TypeSpec God Schema pipeline) -->
-    <PackageVersion Include="YamlDotNet" Version="16.3.0" />
+    <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)" />
     <!-- Terminal UI -->
-    <PackageVersion Include="Spectre.Console" Version="0.54.0" />
+    <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)" />
     <!-- Messaging -->
-    <PackageVersion Include="RabbitMQ.Client" Version="7.2.0" />
+    <PackageVersion Include="RabbitMQ.Client" Version="$(RabbitMQVersion)" />
   </ItemGroup>
   <ItemGroup>
-    <PackageDownload Include="GitVersion.Tool" Version="[6.5.1]" />
-    <PackageDownload Include="ReportGenerator" Version="[5.5.1]" />
-    <PackageDownload Include="Versionize" Version="[2.5.0]" />
+    <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]" />
+    <PackageDownload Include="ReportGenerator" Version="[$(ReportGeneratorVersion)]" />
+    <PackageDownload Include="Versionize" Version="[$(VersionizeVersion)]" />
   </ItemGroup>
 </Project>

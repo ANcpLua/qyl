@@ -32,7 +32,7 @@
     <!-- Throw.IfNull() etc. from SDK -->
     <InjectSharedThrow>true</InjectSharedThrow>
     <!-- Override SDK-injected analyzer version (ahead of SDK 2.0.6 which ships 1.14.0) -->
-    <ANcpLuaAnalyzersVersion>1.15.0</ANcpLuaAnalyzersVersion>
+    <ANcpLuaAnalyzersVersion>1.16.0</ANcpLuaAnalyzersVersion>
   </PropertyGroup>
 
   <!-- Quality -->
