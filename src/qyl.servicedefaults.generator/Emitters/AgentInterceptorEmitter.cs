@@ -325,6 +325,6 @@ internal static class AgentInterceptorEmitter
 
     private static string EscapeString(string value)
     {
-        return value.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        return value.Replace("\\", @"\\").Replace("\"", "\\\"");
     }
 }
