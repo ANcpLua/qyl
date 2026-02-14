@@ -29,7 +29,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Copy solution-level files for restore
-COPY Directory.Build.props Directory.Build.targets Directory.Packages.props global.json nuget.config ./
+COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Version.props global.json nuget.config ./
 COPY eng/ eng/
 
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)

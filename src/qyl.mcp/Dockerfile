@@ -15,18 +15,18 @@ RUN apk add --no-cache clang build-base zlib-dev
 WORKDIR /src
 
 # Copy solution files for restore
-COPY Directory.Build.props Directory.Packages.props ./
-COPY src/Shared/ src/Shared/
+COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Version.props global.json nuget.config ./
+COPY eng/ eng/
 
-# Copy collector (dependency) and mcp projects
-COPY src/qyl.collector/*.csproj src/qyl.collector/
+# Copy protocol (ProjectReference) and mcp projects
+COPY src/qyl.protocol/*.csproj src/qyl.protocol/
 COPY src/qyl.mcp/*.csproj src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
 RUN dotnet restore
 
 # Copy source and publish
 WORKDIR /src
-COPY src/qyl.collector/ src/qyl.collector/
+COPY src/qyl.protocol/ src/qyl.protocol/
 COPY src/qyl.mcp/ src/qyl.mcp/
 WORKDIR /src/src/qyl.mcp
 RUN dotnet publish -c Release -o /app --no-restore
@@ -58,7 +58,5 @@ USER qyl
 
 # Environment variables
 ENV QYL_COLLECTOR_URL=http://localhost:5100
-
-EXPOSE 5200
 
 ENTRYPOINT ["./qyl.mcp"]

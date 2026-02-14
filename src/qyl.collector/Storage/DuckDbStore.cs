@@ -1,4 +1,3 @@
-using qyl.collector.Errors;
 using qyl.protocol.Copilot;
 using static System.Threading.Volatile;
 
@@ -762,7 +761,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
     }
 
-    private static WorkflowExecution MapExecution(DbDataReader reader)
+    private static WorkflowExecution MapExecution(IDataReader reader)
     {
         var parametersJson = reader.Col(7).AsString;
         Dictionary<string, string>? parameters = null;
@@ -1017,11 +1016,11 @@ public sealed class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
         cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
         cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
         cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
     }
 
     /// <summary>
@@ -1131,7 +1130,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ErrorRow MapErrorRow(DbDataReader reader) =>
+    private static ErrorRow MapErrorRow(IDataReader reader) =>
         new()
         {
             ErrorId = reader.GetString(0),
@@ -1290,7 +1289,7 @@ public sealed class DuckDbStore : IAsyncDisposable
 
     private static async ValueTask ExtractAndUpsertErrorsAsync(
         DuckDBConnection con,
-        IReadOnlyList<SpanStorageRow> spans,
+        IEnumerable<SpanStorageRow> spans,
         CancellationToken ct)
     {
         List<ErrorEvent>? errors = null;
@@ -1598,7 +1597,7 @@ public sealed class DuckDbStore : IAsyncDisposable
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static LogStorageRow MapLog(DbDataReader reader) =>
+    private static LogStorageRow MapLog(IDataReader reader) =>
         new()
         {
             LogId = reader.GetString(0),
@@ -1772,7 +1771,7 @@ public sealed class DuckDbStore : IAsyncDisposable
         }
 
         /// <summary>Adds a condition with no parameters (e.g. IS NOT NULL checks).</summary>
-        public void AddCondition(string condition) => _conditions.Add(condition);
+        public readonly void AddCondition(string condition) => _conditions.Add(condition);
 
         public readonly string WhereClause =>
             _conditions.Count > 0 ? $"WHERE {string.Join(" AND ", _conditions)}" : "";

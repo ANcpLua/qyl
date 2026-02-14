@@ -45,7 +45,8 @@ if (options.Once)
     return;
 }
 
-var cts = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
+var token = cts.Token;
 ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
@@ -57,9 +58,9 @@ var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(options.IntervalMs));
 
 try
 {
-    while (await timer.WaitForNextTickAsync(cts.Token))
+    while (await timer.WaitForNextTickAsync(token))
     {
-        await ScanAsync(cts.Token);
+        await ScanAsync(token);
     }
 }
 catch (OperationCanceledException)
@@ -70,7 +71,6 @@ finally
 {
     Console.CancelKeyPress -= cancelHandler;
     timer.Dispose();
-    cts.Dispose();
 }
 
 async Task ScanAsync(CancellationToken ct)

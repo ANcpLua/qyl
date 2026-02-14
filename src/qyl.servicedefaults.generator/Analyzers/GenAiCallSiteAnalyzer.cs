@@ -1,4 +1,5 @@
 using ANcpLua.Roslyn.Utilities;
+using ANcpLua.Roslyn.Utilities.Matching;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -10,108 +11,27 @@ namespace Qyl.ServiceDefaults.Generator.Analyzers;
 /// <summary>
 ///     Analyzes syntax to find GenAI SDK method invocations to intercept.
 /// </summary>
+/// <remarks>
+///     Patterns cover OTel Semantic Conventions v1.39 operations:
+///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank.
+///     Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
+/// </remarks>
 internal static class GenAiCallSiteAnalyzer
 {
     /// <summary>
-    ///     Known GenAI method patterns to intercept.
-    ///     Key: containing type prefix, Value: (method name, operation name, is async).
+    ///     Declarative GenAI method patterns.
+    ///     Each entry pairs an <see cref="InvocationMatcher" /> with the OTel operation metadata it represents.
     /// </summary>
-    /// <remarks>
-    ///     Patterns cover OTel Semantic Conventions v1.39 operations:
-    ///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank
-    /// </remarks>
-    /// <summary>
-    ///     Shared method patterns for Microsoft Agent Framework types.
-    ///     AIAgent, ChatClientAgent, and DelegatingAIAgent all expose the same RunAsync/RunStreamingAsync API.
-    /// </summary>
-    private static readonly (string MethodName, string Operation, bool IsAsync)[] AgentFrameworkMethods =
-    [
-        ("RunAsync", "invoke_agent", true),
-        ("RunStreamingAsync", "invoke_agent", true)
-    ];
-
-    private static readonly Dictionary<string, (string MethodName, string Operation, bool IsAsync)[]> MethodPatterns =
-        new(StringComparer.OrdinalIgnoreCase)
-        {
-            // OpenAI SDK v2.x
-            ["OpenAI.Chat.ChatClient"] =
-            [
-                ("CompleteChatAsync", "chat", true),
-                ("CompleteChat", "chat", false)
-            ],
-            ["OpenAI.Embeddings.EmbeddingClient"] =
-            [
-                ("GenerateEmbeddingsAsync", "embeddings", true),
-                ("GenerateEmbeddings", "embeddings", false)
-            ],
-            ["OpenAI.Images.ImageClient"] =
-            [
-                ("GenerateImagesAsync", "image_generation", true),
-                ("GenerateImages", "image_generation", false)
-            ],
-            ["OpenAI.Audio.AudioClient"] =
-            [
-                ("GenerateSpeechAsync", "speech", true),
-                ("GenerateSpeech", "speech", false),
-                ("TranscribeAudioAsync", "transcription", true),
-                ("TranscribeAudio", "transcription", false)
-            ],
-
-            // Anthropic SDK
-            ["Anthropic.AnthropicClient"] =
-            [
-                ("CreateMessageAsync", "chat", true),
-                ("CreateMessage", "chat", false)
-            ],
-            ["Anthropic.Messaging.MessageClient"] =
-            [
-                ("CreateMessageAsync", "chat", true),
-                ("CreateMessage", "chat", false)
-            ],
-
-            // OllamaSharp
-            ["OllamaSharp.OllamaApiClient"] =
-            [
-                ("ChatAsync", "chat", true),
-                ("GenerateEmbeddingsAsync", "embeddings", true)
-            ],
-
-            // Azure.AI.OpenAI (legacy pattern)
-            ["Azure.AI.OpenAI.OpenAIClient"] =
-            [
-                ("GetChatCompletionsAsync", "chat", true),
-                ("GetChatCompletions", "chat", false),
-                ("GetEmbeddingsAsync", "embeddings", true),
-                ("GetEmbeddings", "embeddings", false)
-            ],
-
-            // Azure.AI.OpenAI (new pattern using OpenAI SDK)
-            ["Azure.AI.OpenAI.AzureOpenAIClient"] =
-            [
-                // Uses OpenAI.Chat.ChatClient pattern via GetChatClient()
-            ],
-
-            // Microsoft Agent Framework (OpenTelemetryAgent excluded — already emits OTel spans)
-            ["Microsoft.Agents.AI.AIAgent"] = AgentFrameworkMethods,
-            ["Microsoft.Agents.AI.ChatClientAgent"] = AgentFrameworkMethods,
-            ["Microsoft.Agents.AI.DelegatingAIAgent"] = AgentFrameworkMethods,
-
-            // Cohere SDK
-            ["Cohere.CohereClient"] =
-            [
-                ("ChatAsync", "chat", true),
-                ("EmbedAsync", "embeddings", true),
-                ("RerankAsync", "rerank", true)
-            ]
-        };
+    private static readonly (InvocationMatcher Matcher, string Operation, bool IsAsync)[] Matchers =
+        BuildMatchers();
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a GenAI invocation?
-    ///     Runs on every syntax node, so must be cheap (no semantic model).
+    ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken _)
+    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken ct)
     {
-        return node.IsKind(SyntaxKind.InvocationExpression);
+        return AnalyzerHelpers.CouldBeInvocation(node, ct);
     }
 
     /// <summary>
@@ -168,31 +88,16 @@ internal static class GenAiCallSiteAnalyzer
         operation = null;
         isAsync = false;
 
-        var containingType = invocation.TargetMethod.ContainingType;
-        if (containingType is null)
-            return false;
-
-        var typeName = containingType.ToDisplayString();
-        var methodName = invocation.TargetMethod.Name;
-
-        foreach (var kvp in MethodPatterns)
+        foreach (var (matcher, op, async) in Matchers)
         {
-            var typePrefix = kvp.Key;
-            var methods = kvp.Value;
-
-            if (!typeName.StartsWithOrdinal(typePrefix))
+            if (!matcher.Matches(invocation))
                 continue;
 
-            foreach (var methodPattern in methods)
-            {
-                if (methodName != methodPattern.MethodName)
-                    continue;
-
-                provider = ProviderDetector.GetGenAiProviderId(typeName) ?? "unknown";
-                operation = methodPattern.Operation;
-                isAsync = methodPattern.IsAsync;
-                return true;
-            }
+            var typeName = invocation.TargetMethod.ContainingType?.ToDisplayString();
+            provider = (typeName is not null ? ProviderDetector.GetGenAiProviderId(typeName) : null) ?? "unknown";
+            operation = op;
+            isAsync = async;
+            return true;
         }
 
         return false;
@@ -210,5 +115,86 @@ internal static class GenAiCallSiteAnalyzer
         }
 
         return null;
+    }
+
+    /// <summary>
+    ///     Builds all GenAI invocation matchers from the known SDK method patterns.
+    /// </summary>
+    /// <remarks>
+    ///     Each SDK type+method combination gets its own <see cref="InvocationMatcher" /> with a
+    ///     <c>.Where()</c> predicate that checks the containing type's display string prefix.
+    ///     This preserves the original matching semantics (StartsWith on fully-qualified type name)
+    ///     while expressing each pattern declaratively via the <see cref="Invoke" /> DSL.
+    /// </remarks>
+    private static (InvocationMatcher, string, bool)[] BuildMatchers()
+    {
+        // Agent framework methods shared across multiple types
+        var agentMethods = new (string MethodName, string Operation, bool IsAsync)[]
+        {
+            ("RunAsync", "invoke_agent", true),
+            ("RunStreamingAsync", "invoke_agent", true)
+        };
+
+        // (type prefix, methods) — same structure as the old MethodPatterns dictionary
+        var patterns = new (string TypePrefix, (string MethodName, string Operation, bool IsAsync)[] Methods)[]
+        {
+            // OpenAI SDK v2.x
+            ("OpenAI.Chat.ChatClient", [("CompleteChatAsync", "chat", true), ("CompleteChat", "chat", false)]),
+            ("OpenAI.Embeddings.EmbeddingClient",
+                [("GenerateEmbeddingsAsync", "embeddings", true), ("GenerateEmbeddings", "embeddings", false)]),
+            ("OpenAI.Images.ImageClient",
+                [("GenerateImagesAsync", "image_generation", true), ("GenerateImages", "image_generation", false)]),
+            ("OpenAI.Audio.AudioClient",
+            [
+                ("GenerateSpeechAsync", "speech", true), ("GenerateSpeech", "speech", false),
+                ("TranscribeAudioAsync", "transcription", true), ("TranscribeAudio", "transcription", false)
+            ]),
+
+            // Anthropic SDK
+            ("Anthropic.AnthropicClient",
+                [("CreateMessageAsync", "chat", true), ("CreateMessage", "chat", false)]),
+            ("Anthropic.Messaging.MessageClient",
+                [("CreateMessageAsync", "chat", true), ("CreateMessage", "chat", false)]),
+
+            // OllamaSharp
+            ("OllamaSharp.OllamaApiClient",
+                [("ChatAsync", "chat", true), ("GenerateEmbeddingsAsync", "embeddings", true)]),
+
+            // Azure.AI.OpenAI (legacy pattern)
+            ("Azure.AI.OpenAI.OpenAIClient",
+            [
+                ("GetChatCompletionsAsync", "chat", true), ("GetChatCompletions", "chat", false),
+                ("GetEmbeddingsAsync", "embeddings", true), ("GetEmbeddings", "embeddings", false)
+            ]),
+
+            // Azure.AI.OpenAI (new pattern using OpenAI SDK) — no methods; uses OpenAI.Chat.ChatClient via GetChatClient()
+            ("Azure.AI.OpenAI.AzureOpenAIClient", []),
+
+            // Microsoft Agent Framework (OpenTelemetryAgent excluded — already emits OTel spans)
+            ("Microsoft.Agents.AI.AIAgent", agentMethods),
+            ("Microsoft.Agents.AI.ChatClientAgent", agentMethods),
+            ("Microsoft.Agents.AI.DelegatingAIAgent", agentMethods),
+
+            // Cohere SDK
+            ("Cohere.CohereClient",
+                [("ChatAsync", "chat", true), ("EmbedAsync", "embeddings", true), ("RerankAsync", "rerank", true)])
+        };
+
+        var result = new List<(InvocationMatcher, string, bool)>();
+
+        foreach (var (typePrefix, methods) in patterns)
+        {
+            foreach (var (methodName, operation, isAsync) in methods)
+            {
+                var prefix = typePrefix; // capture for closure
+                var matcher = Invoke.Method(methodName)
+                    .Where(i => i.TargetMethod.ContainingType?.ToDisplayString()
+                        .StartsWithIgnoreCase(prefix) == true);
+
+                result.Add((matcher, operation, isAsync));
+            }
+        }
+
+        return result.ToArray();
     }
 }

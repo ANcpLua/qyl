@@ -27,13 +27,13 @@ public sealed class ReplayTools(HttpClient client)
 
                  Returns: Session IDs with span counts, error counts, token usage, and costs
                  """)]
-    public async Task<string> ListSessionsAsync(
+    public Task<string> ListSessionsAsync(
         [Description("Maximum sessions to return (default: 20, max: 100)")]
         int limit = 20,
         [Description("Filter by service/application name")]
         string? serviceName = null)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/sessions?limit={limit}";
             if (!string.IsNullOrEmpty(serviceName))
@@ -67,11 +67,7 @@ public sealed class ReplayTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error fetching sessions: {ex.Message}";
-        }
+        }, "Error fetching sessions");
     }
 
     [McpServerTool(Name = "qyl.get_session_transcript")]
@@ -91,11 +87,11 @@ public sealed class ReplayTools(HttpClient client)
 
                  Returns: Formatted transcript with timing, tokens, costs, and errors
                  """)]
-    public async Task<string> GetSessionTranscriptAsync(
+    public Task<string> GetSessionTranscriptAsync(
         [Description("The session ID from list_sessions (required)")]
         string sessionId)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
@@ -151,11 +147,7 @@ public sealed class ReplayTools(HttpClient client)
                 sb.AppendLine($"- Total Cost: ${totalCost:F4}");
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error fetching session: {ex.Message}";
-        }
+        }, "Error fetching session");
     }
 
     [McpServerTool(Name = "qyl.get_trace")]
@@ -174,11 +166,11 @@ public sealed class ReplayTools(HttpClient client)
 
                  Returns: Span hierarchy with timing, status, and GenAI attributes
                  """)]
-    public async Task<string> GetTraceAsync(
+    public Task<string> GetTraceAsync(
         [Description("The trace ID (hex string, required)")]
         string traceId)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             if (await client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
                     ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
@@ -207,11 +199,7 @@ public sealed class ReplayTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error fetching trace: {ex.Message}";
-        }
+        }, "Error fetching trace");
     }
 
     [McpServerTool(Name = "qyl.analyze_session_errors")]
@@ -230,11 +218,11 @@ public sealed class ReplayTools(HttpClient client)
 
                  Returns: Error details grouped by span with full context
                  """)]
-    public async Task<string> AnalyzeSessionErrorsAsync(
+    public Task<string> AnalyzeSessionErrorsAsync(
         [Description("The session ID from list_sessions (required)")]
         string sessionId)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
@@ -272,11 +260,7 @@ public sealed class ReplayTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error analyzing session: {ex.Message}";
-        }
+        }, "Error analyzing session");
     }
 }
 

@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.ServiceDefaults.Generator.Models;
 
@@ -83,8 +84,9 @@ internal static class GenAiInterceptorEmitter
         var containingType = invocation.ContainingTypeName;
         var originalMethod = invocation.MethodName;
 
-        var parameters = BuildParameterList(invocation, containingType);
-        var arguments = BuildArgumentList(invocation);
+        var argNames = GetPositionalNames(invocation.ParameterTypes.Count);
+        var parameters = EmitterHelpers.BuildParameterList(containingType, invocation.ParameterTypes, argNames);
+        var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
         var modelArg = invocation.Model is not null
             ? $"\"{invocation.Model}\""
@@ -169,8 +171,9 @@ internal static class GenAiInterceptorEmitter
         var containingType = invocation.ContainingTypeName;
         var originalMethod = invocation.MethodName;
 
-        var parameters = BuildParameterList(invocation, containingType);
-        var arguments = BuildArgumentList(invocation);
+        var argNames = GetPositionalNames(invocation.ParameterTypes.Count);
+        var parameters = EmitterHelpers.BuildParameterList(containingType, invocation.ParameterTypes, argNames);
+        var arguments = EmitterHelpers.BuildArgumentList(argNames);
 
         var modelArg = invocation.Model is not null
             ? $"\"{invocation.Model}\""
@@ -257,28 +260,15 @@ internal static class GenAiInterceptorEmitter
         return $"static r => new TokenUsage({inputTokens}, {outputTokens})";
     }
 
-    private static string BuildParameterList(GenAiCallSite invocation, string containingType)
+    /// <summary>
+    ///     Generates positional parameter names (arg0, arg1, ...) for GenAI interceptors.
+    /// </summary>
+    private static IReadOnlyList<string> GetPositionalNames(int count)
     {
-        var sb = new StringBuilder();
-        sb.Append($"this global::{containingType} @this");
-
-        for (var i = 0; i < invocation.ParameterTypes.Count; i++)
-            sb.Append($", {EmitterHelpers.ToGlobalTypeName(invocation.ParameterTypes[i])} arg{i}");
-
-        return sb.ToString();
-    }
-
-
-    private static string BuildArgumentList(GenAiCallSite invocation)
-    {
-        if (invocation.ParameterTypes.Count is 0)
-            return string.Empty;
-
-        var args = new string[invocation.ParameterTypes.Count];
-        for (var i = 0; i < invocation.ParameterTypes.Count; i++)
-            args[i] = $"arg{i}";
-
-        return string.Join(", ", args);
+        var names = new string[count];
+        for (var i = 0; i < count; i++)
+            names[i] = $"arg{i}";
+        return names;
     }
 
 

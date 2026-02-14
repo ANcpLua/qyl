@@ -11,8 +11,6 @@ namespace qyl.mcp.Tools;
 public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger)
     : ITelemetryStore
 {
-    public ValueTask RecordRunAsync(AgentRun run) => ValueTask.CompletedTask; // Read-only observation
-
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
     {
         try
@@ -76,16 +74,19 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 _ => s => s.ServiceName ?? "unknown"
             };
 
-            return [.. response.Items
-                .Where(s => InRange(ParseTime(s.StartTime), since, until))
-                .GroupBy(keySelector)
-                .Select(g => new TokenUsageSummary(
-                    g.Key,
-                    (int)g.Sum(s => s.TotalInputTokens),
-                    (int)g.Sum(s => s.TotalOutputTokens),
-                    g.Count(),
-                    g.Min(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime),
-                    g.Max(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime)))];
+            return
+            [
+                .. response.Items
+                    .Where(s => InRange(ParseTime(s.StartTime), since, until))
+                    .GroupBy(keySelector)
+                    .Select(g => new TokenUsageSummary(
+                        g.Key,
+                        (int)g.Sum(s => s.TotalInputTokens),
+                        (int)g.Sum(s => s.TotalOutputTokens),
+                        g.Count(),
+                        g.Min(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime),
+                        g.Max(s => ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime)))
+            ];
         }
         catch (HttpRequestException ex)
         {
@@ -200,7 +201,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     private static bool InRange(DateTime? dt, DateTime? since, DateTime? until) =>
         dt.HasValue && (!since.HasValue || dt >= since) && (!until.HasValue || dt <= until);
 
-    private static double Percentile(List<double> sorted, double p) =>
+    private static double Percentile(IReadOnlyList<double> sorted, double p) =>
         sorted.Count is 0 ? 0 : sorted[Math.Clamp((int)Math.Ceiling(p * sorted.Count) - 1, 0, sorted.Count - 1)];
 }
 

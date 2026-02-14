@@ -27,7 +27,7 @@ public sealed class ConsoleTools(HttpClient client)
 
                  Returns: Formatted list of console messages with timestamps, levels, and optional stack traces
                  """)]
-    public async Task<string> ListConsoleLogsAsync(
+    public Task<string> ListConsoleLogsAsync(
         [Description("Filter by session ID (e.g., 'session-abc123')")]
         string? sessionId = null,
         [Description("Minimum log level: 'debug', 'log', 'info', 'warn', 'error'")]
@@ -37,7 +37,7 @@ public sealed class ConsoleTools(HttpClient client)
         [Description("Maximum number of logs to return (default: 50)")]
         int limit = 50)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/console?limit={limit}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -87,11 +87,7 @@ public sealed class ConsoleTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.list_console_errors")]
@@ -102,18 +98,19 @@ public sealed class ConsoleTools(HttpClient client)
 
                  Returns: Formatted list of errors/warnings with timestamps and stack traces
                  """)]
-    public async Task<string> ListConsoleErrorsAsync(
+    public Task<string> ListConsoleErrorsAsync(
         [Description("Maximum number of errors to return (default: 20)")]
         int limit = 20)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var errors = await client.GetFromJsonAsync<ConsoleLogDto[]>(
                 $"/api/v1/console/errors?limit={limit}",
                 ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
             if (errors is null || errors.Length is 0)
-                return "No console errors found. Either the app is working, or the qyl-console.js shim isn't installed.";
+                return
+                    "No console errors found. Either the app is working, or the qyl-console.js shim isn't installed.";
 
             var sb = new StringBuilder();
             sb.AppendLine($"# Console Errors ({errors.Length} entries)");
@@ -140,11 +137,7 @@ public sealed class ConsoleTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 }
 
@@ -155,7 +148,8 @@ internal sealed record ConsoleLogDto(
     [property: JsonPropertyName("lvl")] string Lvl,
     [property: JsonPropertyName("msg")] string? Msg,
     [property: JsonPropertyName("at")] DateTime At,
-    [property: JsonPropertyName("session")] string? Session,
+    [property: JsonPropertyName("session")]
+    string? Session,
     [property: JsonPropertyName("url")] string? Url,
     [property: JsonPropertyName("stack")] string? Stack);
 

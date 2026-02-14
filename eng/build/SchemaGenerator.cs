@@ -53,9 +53,9 @@ public static class SchemaGenerator
 
         // C# Enums (grouped by namespace, like Models)
         var enums = schema.Schemas.Where(static s => s.IsEnum).ToList();
-        foreach (var group in enums.GroupBy(static e => GetCSharpNamespace(e.Name)))
+        foreach (var group in enums.GroupBy(static e => NamespaceRoutingTable.GetCSharpNamespace(e.Name)))
         {
-            var fileName = GetFileNameFromNamespace(group.Key) + "Enums";
+            var fileName = NamespaceRoutingTable.GetFileNameFromNamespace(group.Key) + "Enums";
             files.Add(new GeneratedFile(
                 protocolDir / "Enums" / $"{fileName}.g.cs",
                 GenerateEnumsForNamespace(group.Key, group)));
@@ -64,9 +64,9 @@ public static class SchemaGenerator
         // C# Models (grouped by namespace)
         var models = schema.Schemas.Where(static s => s is { IsScalar: false, IsEnum: false, Type: "object" }).ToList();
 
-        foreach (var group in models.GroupBy(static m => GetCSharpNamespace(m.Name)))
+        foreach (var group in models.GroupBy(static m => NamespaceRoutingTable.GetCSharpNamespace(m.Name)))
         {
-            var fileName = GetFileNameFromNamespace(group.Key);
+            var fileName = NamespaceRoutingTable.GetFileNameFromNamespace(group.Key);
             files.Add(new GeneratedFile(
                 protocolDir / "Models" / $"{fileName}.g.cs",
                 GenerateModels(group.Key, group)));
@@ -94,7 +94,7 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Strongly-typed scalar primitives");
 
-        foreach (var group in scalars.GroupBy(static s => GetCSharpNamespace(s.Name)).OrderBy(static g => g.Key))
+        foreach (var group in scalars.GroupBy(static s => NamespaceRoutingTable.GetCSharpNamespace(s.Name)).OrderBy(static g => g.Key))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {group.Key};");
             sb.AppendLine();
@@ -449,7 +449,7 @@ public static class SchemaGenerator
                 return "global::System.Text.Json.Nodes.JsonNode";
 
             // Map namespace-qualified refs to C# types (TypeSpec-style with Qyl.* prefix)
-            var ns = GetCSharpNamespace(refTypeName);
+            var ns = NamespaceRoutingTable.GetCSharpNamespace(refTypeName);
             var typeName = refTypeName[(refTypeName.LastIndexOf('.') + 1)..];
             return $"global::{ns}.{typeName}";
         }
@@ -460,31 +460,14 @@ public static class SchemaGenerator
             var itemType = prop.ItemsRef is not null
                 ? ResolveCSharpType(
                     new SchemaProperty(prop.Name, null, null, null, prop.ItemsRef, null, null, true, []))
-                : MapOpenApiType(prop.ItemsType, null);
+                : TypeMappingTable.GetCSharpType(prop.ItemsType, null);
             return $"IReadOnlyList<{itemType}>";
         }
 
         // Map primitive types
-        return MapOpenApiType(prop.Type, prop.Format);
+        return TypeMappingTable.GetCSharpType(prop.Type, prop.Format);
     }
 
-    static string MapOpenApiType(string? type, string? format) => (type, format) switch
-    {
-        ("string", "date-time") => "DateTimeOffset",
-        ("string", "date") => "DateOnly",
-        ("string", "time") => "TimeOnly",
-        ("string", "uuid") => "Guid",
-        ("string", "byte") => "ReadOnlyMemory<byte>",
-        ("string", _) => "string",
-        ("integer", "int32") => "int",
-        ("integer", "int64") => "long",
-        ("integer", _) => "int",
-        ("number", "float") => "float",
-        ("number", "double") => "double",
-        ("number", _) => "double",
-        ("boolean", _) => "bool",
-        _ => "object"
-    };
 
     // ════════════════════════════════════════════════════════════════════════════
     // DUCKDB SCHEMA - DDL generation
@@ -588,26 +571,12 @@ public static class SchemaGenerator
                     ? refDuckType
                     :
                     // Fall back to type mapping
-                    MapOpenApiTypeToDuckDb(refSchema.Type, refSchema.Format);
+                    TypeMappingTable.GetDuckDbType(refSchema.Type, refSchema.Format);
         }
 
-        return MapOpenApiTypeToDuckDb(prop.Type, prop.Format);
+        return TypeMappingTable.GetDuckDbType(prop.Type, prop.Format);
     }
 
-    static string MapOpenApiTypeToDuckDb(string? type, string? format) => (type, format) switch
-    {
-        ("string", "date-time") => "TIMESTAMP",
-        ("string", "date") => "DATE",
-        ("string", _) => "VARCHAR",
-        ("integer", "int32") => "INTEGER",
-        ("integer", "int64") => "BIGINT",
-        ("integer", _) => "INTEGER",
-        ("number", "float") => "FLOAT",
-        ("number", "double") => "DOUBLE",
-        ("number", _) => "DOUBLE",
-        ("boolean", _) => "BOOLEAN",
-        _ => "VARCHAR"
-    };
 
     static string ToSnakeCase(string value)
     {
@@ -662,137 +631,6 @@ public static class SchemaGenerator
         var escaped = description.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
         sb.AppendLine(CultureInfo.InvariantCulture, $"{indent}/// <summary>{escaped}</summary>");
     }
-
-    /// <summary>
-    ///     Maps TypeSpec schema names to C# namespaces.
-    ///     TypeSpec generates: Qyl.Common.TraceId, Qyl.Domains.AI.GenAi.*, etc.
-    /// </summary>
-    static string GetCSharpNamespace(string schemaName)
-    {
-        // Legacy prefixes (for backward compatibility)
-        if (schemaName.StartsWith("Primitives.", StringComparison.Ordinal)) return "Qyl.Common";
-        if (schemaName.StartsWith("Enums.", StringComparison.Ordinal)) return "Qyl.Enums";
-        if (schemaName.StartsWith("Models.", StringComparison.Ordinal)) return "Qyl.Models";
-        if (schemaName.StartsWith("Api.", StringComparison.Ordinal)) return "Qyl.Api";
-
-        // TypeSpec-generated namespaces (Qyl.* prefix)
-        // Order matters: more specific prefixes first!
-
-        // Common subnamespaces
-        if (schemaName.StartsWith("Qyl.Common.Errors.", StringComparison.Ordinal)) return "Qyl.Common.Errors";
-        if (schemaName.StartsWith("Qyl.Common.Pagination.", StringComparison.Ordinal)) return "Qyl.Common.Pagination";
-        if (schemaName.StartsWith("Qyl.Common.", StringComparison.Ordinal)) return "Qyl.Common";
-
-        // OTel namespaces
-        if (schemaName.StartsWith("Qyl.OTel.Enums.", StringComparison.Ordinal)) return "Qyl.OTel.Enums";
-        if (schemaName.StartsWith("Qyl.OTel.Traces.", StringComparison.Ordinal)) return "Qyl.OTel.Traces";
-        if (schemaName.StartsWith("Qyl.OTel.Logs.", StringComparison.Ordinal)) return "Qyl.OTel.Logs";
-        if (schemaName.StartsWith("Qyl.OTel.Metrics.", StringComparison.Ordinal)) return "Qyl.OTel.Metrics";
-        if (schemaName.StartsWith("Qyl.OTel.Resource.", StringComparison.Ordinal)) return "Qyl.OTel.Resource";
-        if (schemaName.StartsWith("Qyl.OTel.", StringComparison.Ordinal)) return "Qyl.OTel";
-
-        // Domain namespaces - AI (most specific first)
-        if (schemaName.StartsWith("Qyl.Domains.AI.Code.", StringComparison.Ordinal)) return "Qyl.Domains.AI.Code";
-        if (schemaName.StartsWith("Qyl.Domains.AI.", StringComparison.Ordinal)) return "Qyl.Domains.AI";
-
-        // Domain namespaces - Identity
-        if (schemaName.StartsWith("Qyl.Domains.Identity.", StringComparison.Ordinal)) return "Qyl.Domains.Identity";
-
-        // Domain namespaces - Observe (most specific first)
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Error.", StringComparison.Ordinal))
-            return "Qyl.Domains.Observe.Error";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Exceptions.", StringComparison.Ordinal))
-            return "Qyl.Domains.Observe.Exceptions";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Log.", StringComparison.Ordinal))
-            return "Qyl.Domains.Observe.Log";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.Session.", StringComparison.Ordinal))
-            return "Qyl.Domains.Observe.Session";
-        if (schemaName.StartsWith("Qyl.Domains.Observe.", StringComparison.Ordinal)) return "Qyl.Domains.Observe";
-
-        // Domain namespaces - Ops (most specific first)
-        if (schemaName.StartsWith("Qyl.Domains.Ops.Cicd.", StringComparison.Ordinal)) return "Qyl.Domains.Ops.Cicd";
-        if (schemaName.StartsWith("Qyl.Domains.Ops.Deployment.", StringComparison.Ordinal))
-            return "Qyl.Domains.Ops.Deployment";
-        if (schemaName.StartsWith("Qyl.Domains.Ops.", StringComparison.Ordinal)) return "Qyl.Domains.Ops";
-
-        // Domain namespaces - Others
-        if (schemaName.StartsWith("Qyl.Domains.Transport.", StringComparison.Ordinal)) return "Qyl.Domains.Transport";
-        if (schemaName.StartsWith("Qyl.Domains.Security.", StringComparison.Ordinal)) return "Qyl.Domains.Security";
-        if (schemaName.StartsWith("Qyl.Domains.Infra.", StringComparison.Ordinal)) return "Qyl.Domains.Infra";
-        if (schemaName.StartsWith("Qyl.Domains.Runtime.", StringComparison.Ordinal)) return "Qyl.Domains.Runtime";
-        if (schemaName.StartsWith("Qyl.Domains.Data.", StringComparison.Ordinal)) return "Qyl.Domains.Data";
-        if (schemaName.StartsWith("Qyl.Domains.", StringComparison.Ordinal)) return "Qyl.Domains";
-
-        // API namespace
-        if (schemaName.StartsWith("Qyl.Api.", StringComparison.Ordinal)) return "Qyl.Api";
-
-        // Streaming namespace (without Qyl. prefix)
-        if (schemaName.StartsWith("Streaming.", StringComparison.Ordinal)) return "Qyl.Streaming";
-
-        // Default: extract namespace from schema name or fall back
-        return "Qyl.Models";
-    }
-
-    /// <summary>
-    ///     Maps C# namespaces to output file names.
-    /// </summary>
-    static string GetFileNameFromNamespace(string ns) => ns switch
-    {
-        // Primitives/Scalars
-        "Qyl.Common" => "Common",
-
-        // Common subnamespaces
-        "Qyl.Common.Errors" => "Errors",
-        "Qyl.Common.Pagination" => "Pagination",
-
-        // Enums
-        "Qyl.Enums" => "Enums",
-        "Qyl.OTel.Enums" => "OTelEnums",
-
-        // OTel namespaces
-        "Qyl.OTel" => "OTel",
-        "Qyl.OTel.Traces" => "OTelTraces",
-        "Qyl.OTel.Logs" => "OTelLogs",
-        "Qyl.OTel.Metrics" => "OTelMetrics",
-        "Qyl.OTel.Resource" => "OTelResource",
-
-        // Domain namespaces - AI
-        "Qyl.Domains" => "Domains",
-        "Qyl.Domains.AI" => "DomainsAI",
-        "Qyl.Domains.AI.Code" => "DomainsAICode",
-
-        // Domain namespaces - Identity
-        "Qyl.Domains.Identity" => "DomainsIdentity",
-
-        // Domain namespaces - Observe
-        "Qyl.Domains.Observe" => "DomainsObserve",
-        "Qyl.Domains.Observe.Error" => "DomainsObserveError",
-        "Qyl.Domains.Observe.Exceptions" => "DomainsObserveExceptions",
-        "Qyl.Domains.Observe.Log" => "DomainsObserveLog",
-        "Qyl.Domains.Observe.Session" => "DomainsObserveSession",
-
-        // Domain namespaces - Ops
-        "Qyl.Domains.Ops" => "DomainsOps",
-        "Qyl.Domains.Ops.Cicd" => "DomainsOpsCicd",
-        "Qyl.Domains.Ops.Deployment" => "DomainsOpsDeployment",
-
-        // Domain namespaces - Others
-        "Qyl.Domains.Transport" => "DomainsTransport",
-        "Qyl.Domains.Security" => "DomainsSecurity",
-        "Qyl.Domains.Infra" => "DomainsInfra",
-        "Qyl.Domains.Runtime" => "DomainsRuntime",
-        "Qyl.Domains.Data" => "DomainsData",
-
-        // API
-        "Qyl.Api" => "Api",
-
-        // Streaming
-        "Qyl.Streaming" => "Streaming",
-
-        // Legacy/Default
-        "Qyl.Models" => "Models",
-        _ => ns.Replace(".", "")
-    };
 
     static (string CSharpType, string JsonRead, string JsonWrite) GetScalarTypeInfo(string? type, string? format) =>
         (type, format) switch
@@ -879,9 +717,6 @@ public sealed record OpenApiSchema(
         // Determine if enum
         var isEnum = enumValues.Length > 0;
 
-        // Determine if union (anyOf)
-        var isUnion = node.Children.ContainsKey("anyOf");
-
         // Parse properties for objects
         var properties = ImmutableArray<SchemaProperty>.Empty;
         var propsNode = GetMapping(node, "properties");
@@ -902,7 +737,7 @@ public sealed record OpenApiSchema(
         }
 
         return new SchemaDefinition(name, type, description, format, pattern, enumValues, properties, extensions,
-            isScalar, isEnum, isUnion);
+            isScalar, isEnum);
     }
 
     static SchemaProperty ParseProperty(string name, YamlMappingNode node, bool isRequired)
@@ -983,8 +818,7 @@ public sealed record SchemaDefinition(
     ImmutableArray<SchemaProperty> Properties,
     ImmutableDictionary<string, string> Extensions,
     bool IsScalar,
-    bool IsEnum,
-    bool IsUnion)
+    bool IsEnum)
 {
     /// <summary>Gets the C# type name from the last part of the schema name.</summary>
     public string GetTypeName() => Name[(Name.LastIndexOf('.') + 1)..];

@@ -54,103 +54,42 @@ internal static class EmitterHelpers
     }
 
     /// <summary>
-    ///     Escapes a type name for use in generated code.
-    ///     Primitive type aliases (string, int, etc.) cannot be prefixed with global::
-    ///     Handles arrays, nullable types, and generic types.
+    ///     Builds the parameter list for an interceptor method signature.
     /// </summary>
-    public static string ToGlobalTypeName(string typeName)
+    /// <param name="containingType">The fully-qualified type name of the intercepted method's class.</param>
+    /// <param name="parameterTypes">The parameter type names.</param>
+    /// <param name="parameterNames">The parameter names (used in the signature).</param>
+    /// <param name="isStatic">If true, omits the <c>this</c> parameter.</param>
+    /// <param name="typeParamNames">Optional type parameter names for global type name resolution.</param>
+    public static string BuildParameterList(
+        string containingType,
+        IReadOnlyList<string> parameterTypes,
+        IReadOnlyList<string> parameterNames,
+        bool isStatic = false,
+        IReadOnlyList<string>? typeParamNames = null)
     {
-        if (string.IsNullOrEmpty(typeName))
-            return typeName;
+        var sb = new StringBuilder();
 
-        // Handle array types (e.g., "string[]", "int[][]")
-        if (typeName.EndsWithOrdinal("[]"))
+        if (!isStatic)
+            sb.Append($"this global::{containingType} @this");
+
+        for (var i = 0; i < parameterTypes.Count; i++)
         {
-            var elementType = typeName[..^2];
-            return ToGlobalTypeName(elementType) + "[]";
+            if (sb.Length > 0)
+                sb.Append(", ");
+            var typeName = parameterTypes[i].ToGlobalTypeName(typeParamNames);
+            sb.Append($"{typeName} {parameterNames[i]}");
         }
 
-        // Handle nullable reference types (trailing ?)
-        if (typeName.EndsWithOrdinal("?") &&
-            !IsPrimitiveKeyword(typeName[..^1]))
-        {
-            return ToGlobalTypeName(typeName[..^1]) + "?";
-        }
-
-        // Handle generic types: Task<Order> or Dictionary<string, Order>
-        var genericStart = typeName.IndexOf('<');
-        if (genericStart > 0 && typeName.EndsWithOrdinal(">"))
-        {
-            var baseTypeName = typeName[..genericStart];
-            var argsContent = typeName[(genericStart + 1)..^1];
-
-            var args = ParseGenericArguments(argsContent);
-            var qualifiedArgs = args.Select(ToGlobalTypeName);
-
-            return $"{ToGlobalTypeName(baseTypeName)}<{string.Join(", ", qualifiedArgs)}>";
-        }
-
-        // Primitive type aliases don't need global:: prefix
-        return typeName switch
-        {
-            "string" or "string?" => typeName,
-            "bool" or "bool?" => typeName,
-            "byte" or "byte?" => typeName,
-            "sbyte" or "sbyte?" => typeName,
-            "short" or "short?" => typeName,
-            "ushort" or "ushort?" => typeName,
-            "int" or "int?" => typeName,
-            "uint" or "uint?" => typeName,
-            "long" or "long?" => typeName,
-            "ulong" or "ulong?" => typeName,
-            "float" or "float?" => typeName,
-            "double" or "double?" => typeName,
-            "decimal" or "decimal?" => typeName,
-            "char" or "char?" => typeName,
-            "object" or "object?" => typeName,
-            "void" => "void",
-            _ => $"global::{typeName}"
-        };
+        return sb.ToString();
     }
 
     /// <summary>
-    ///     Checks if a type name is a C# primitive keyword.
+    ///     Builds the argument list for forwarding to the original method.
     /// </summary>
-    private static bool IsPrimitiveKeyword(string typeName)
+    public static string BuildArgumentList(IReadOnlyList<string> parameterNames)
     {
-        return typeName is "string" or "bool" or "byte" or "sbyte" or "short" or "ushort"
-            or "int" or "uint" or "long" or "ulong" or "float" or "double"
-            or "decimal" or "char" or "object" or "void";
-    }
-
-    /// <summary>
-    ///     Parses generic type arguments, handling nested generics correctly.
-    /// </summary>
-    private static List<string> ParseGenericArguments(string argsContent)
-    {
-        var args = new List<string>();
-        var depth = 0;
-        var start = 0;
-
-        for (var i = 0; i < argsContent.Length; i++)
-            switch (argsContent[i])
-            {
-                case '<':
-                    depth++;
-                    break;
-                case '>':
-                    depth--;
-                    break;
-                case ',' when depth is 0:
-                    args.Add(argsContent[start..i].Trim());
-                    start = i + 1;
-                    break;
-            }
-
-        if (start < argsContent.Length)
-            args.Add(argsContent[start..].Trim());
-
-        return args;
+        return parameterNames.Count is 0 ? string.Empty : string.Join(", ", parameterNames);
     }
 
     /// <summary>

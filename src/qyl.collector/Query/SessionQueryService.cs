@@ -12,6 +12,23 @@ namespace qyl.collector.Query;
 /// </summary>
 public sealed class SessionQueryService(DuckDbStore store)
 {
+    private const string SessionSelectColumns = """
+        SELECT
+            COALESCE(session_id, trace_id) AS session_id,
+            MIN(start_time_unix_nano) AS start_time,
+            MAX(end_time_unix_nano) AS last_activity,
+            COUNT(*) AS span_count,
+            COUNT(DISTINCT trace_id) AS trace_count,
+            SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+            COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+            COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+            COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
+            COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
+            LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models,
+            LIST(DISTINCT service_name) FILTER (WHERE service_name IS NOT NULL) AS services
+        FROM spans
+        """;
+
     // =========================================================================
     // List Sessions
     // =========================================================================
@@ -27,26 +44,14 @@ public sealed class SessionQueryService(DuckDbStore store)
         // SpanQueryBuilder is better for simpler queries
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT
-                              COALESCE(session_id, trace_id) AS session_id,
-                              MIN(start_time_unix_nano) AS start_time,
-                              MAX(end_time_unix_nano) AS last_activity,
-                              COUNT(*) AS span_count,
-                              COUNT(DISTINCT trace_id) AS trace_count,
-                              SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                              COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                              COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
-                              COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
-                              LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
-                          FROM spans
-                          WHERE ($1::VARCHAR IS NULL OR session_id = $1)
-                            AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
-                          GROUP BY COALESCE(session_id, trace_id)
-                          ORDER BY MAX(end_time_unix_nano) DESC
-                          LIMIT $3 OFFSET $4
-                          """;
+        cmd.CommandText = $"""
+                           {SessionSelectColumns}
+                           WHERE ($1::VARCHAR IS NULL OR session_id = $1)
+                             AND ($2::UBIGINT IS NULL OR start_time_unix_nano >= $2)
+                           GROUP BY COALESCE(session_id, trace_id)
+                           ORDER BY MAX(end_time_unix_nano) DESC
+                           LIMIT $3 OFFSET $4
+                           """;
 
         AddParams(cmd, sessionFilter, after, limit, offset);
         return await ExecuteSessionQueryAsync(cmd, ct);
@@ -60,23 +65,11 @@ public sealed class SessionQueryService(DuckDbStore store)
     {
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT
-                              COALESCE(session_id, trace_id) AS session_id,
-                              MIN(start_time_unix_nano) AS start_time,
-                              MAX(end_time_unix_nano) AS last_activity,
-                              COUNT(*) AS span_count,
-                              COUNT(DISTINCT trace_id) AS trace_count,
-                              SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                              COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                              COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                              COUNT(CASE WHEN gen_ai_provider_name IS NOT NULL THEN 1 END) AS genai_request_count,
-                              COALESCE(SUM(gen_ai_cost_usd), 0) AS total_cost_usd,
-                              LIST(DISTINCT gen_ai_request_model) FILTER (WHERE gen_ai_request_model IS NOT NULL) AS models
-                          FROM spans
-                          WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)
-                          GROUP BY COALESCE(session_id, trace_id)
-                          """;
+        cmd.CommandText = $"""
+                           {SessionSelectColumns}
+                           WHERE session_id = $1 OR (session_id IS NULL AND trace_id = $1)
+                           GROUP BY COALESCE(session_id, trace_id)
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
 
@@ -189,15 +182,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
-        // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
-        object afterUnixNano = DBNull.Value;
-        if (after.HasValue)
-        {
-            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
-            afterUnixNano = (ulong)ticks * 100UL;
-        }
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = DateTimeToUnixNanoParam(after) });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var models = new List<ModelUsage>();
@@ -330,18 +315,23 @@ public sealed class SessionQueryService(DuckDbStore store)
     // Helpers
     // =========================================================================
 
+    /// <summary>
+    ///     Converts a nullable DateTime to a UnixNano UBIGINT parameter value.
+    ///     Cast to ulong BEFORE multiplication to avoid signed overflow.
+    /// </summary>
+    private static object DateTimeToUnixNanoParam(DateTime? dateTime)
+    {
+        if (!dateTime.HasValue)
+            return DBNull.Value;
+
+        var ticks = (dateTime.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
+        return (ulong)ticks * 100UL;
+    }
+
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
     {
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
-        // Convert DateTime to UnixNano (UBIGINT) - cast to ulong BEFORE multiplication to avoid signed overflow
-        object afterUnixNano = DBNull.Value;
-        if (after.HasValue)
-        {
-            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
-            afterUnixNano = (ulong)ticks * 100UL;
-        }
-
-        cmd.Parameters.Add(new DuckDBParameter { Value = afterUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = DateTimeToUnixNanoParam(after) });
     }
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after, int limit, int offset)
@@ -384,7 +374,8 @@ public sealed class SessionQueryService(DuckDbStore store)
                 TotalTokens = inputTokens + outputTokens,
                 GenAiRequestCount = reader.Col(8).GetInt64(0),
                 TotalCostUsd = reader.Col(9).GetDouble(0),
-                Models = await ReadStringListAsync(reader, 10)
+                Models = await ReadStringListAsync(reader, 10),
+                Services = await ReadStringListAsync(reader, 11)
             });
         }
 
@@ -401,7 +392,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         return value switch
         {
             IReadOnlyList<string> list => list, // Covers string[], List<string>, etc.
-            object[] arr => Enumerable.ToArray(Enumerable.Where(Enumerable.Select(arr, static x => x.ToString() ?? ""), static s => s.Length > 0)),
+            object[] arr => Array.ConvertAll(arr, static x => x.ToString() ?? ""),
             _ => []
         };
     }
@@ -433,6 +424,7 @@ public sealed record SessionQueryRow
     public long GenAiRequestCount { get; init; }
     public double TotalCostUsd { get; init; }
     public IReadOnlyList<string> Models { get; init; } = [];
+    public IReadOnlyList<string> Services { get; init; } = [];
 }
 
 public sealed record SessionGenAiStats

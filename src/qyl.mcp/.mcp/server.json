@@ -1,18 +1,18 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json",
-  "description": "<your description here>",
-  "name": "io.github.<your GitHub username here>/<your repo name>",
+  "description": "MCP server for the qyl AI observability platform — query traces, logs, metrics, and GenAI sessions",
+  "name": "io.github.ancplua/qyl-mcp",
   "packages": [
     {
       "registry_name": "nuget",
-      "name": "qtl.mcp.server",
+      "name": "qyl.mcp",
       "version": "0.1.0-beta",
       "package_arguments": [],
       "environment_variables": []
     }
   ],
   "repository": {
-    "url": "https://github.com/<your GitHub username here>/<your repo name>",
+    "url": "https://github.com/ANcpLua/qyl",
     "source": "github"
   },
   "version_detail": {

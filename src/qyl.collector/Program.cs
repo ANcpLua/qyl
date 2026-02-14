@@ -13,7 +13,6 @@ using qyl.copilot;
 using qyl.copilot.Auth;
 using System.Reflection;
 using qyl.collector.Dashboard;
-using qyl.collector.Errors;
 using qyl.collector.Meta;
 using Qyl.ServiceDefaults;
 
@@ -92,6 +91,7 @@ builder.Services.AddSingleton(new TokenAuthOptions
 });
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
+builder.Services.AddSingleton<MigrationRunner>();
 
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
@@ -165,6 +165,10 @@ QylMetrics.RegisterStorageSizeCallback(duckDbStore.GetStorageSizeBytes);
 
 // Initialize alert history schema (must happen after DuckDbStore is resolved)
 duckDbStore.InitializeAlertSchema();
+
+// Apply pending DuckDB schema migrations (after all base DDL has run)
+var migrationRunner = app.Services.GetRequiredService<MigrationRunner>();
+migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, DuckDbSchema.Version);
 
 // OTLP middleware (before token auth - OTLP has its own auth)
 if (otlpCorsOptions.IsEnabled)

@@ -1,5 +1,3 @@
-using qyl.collector.Storage;
-
 namespace qyl.collector.Errors;
 
 public static class ErrorEndpoints

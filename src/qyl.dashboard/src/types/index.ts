@@ -117,10 +117,10 @@ export function flattenTrace(trace: Trace): Span[] {
     return trace.spans;
 }
 
-/** Get primary service name from session (service.name not in SessionEntity schema yet) */
-export function getPrimaryService(_session: SessionEntity): string {
-    // TODO: Add service.name to SessionEntity schema
-    return 'unknown';
+/** Get primary service name from session */
+export function getPrimaryService(session: SessionEntity): string {
+    const services = (session as SessionEntity & { services?: string[] }).services;
+    return services?.[0] ?? 'unknown';
 }
 
 // =============================================================================

@@ -60,14 +60,14 @@ internal static class DuckDbEmitter
         return sb.ToString();
     }
 
-    private static void EmitColumnList(StringBuilder sb, string tableName, DuckDbColumnInfo[] columns)
+    private static void EmitColumnList(StringBuilder sb, string tableName, IReadOnlyList<DuckDbColumnInfo> columns)
     {
         sb.Append("    public const string TableName = \"").Append(tableName).AppendLine("\";");
         sb.AppendLine();
 
         sb.AppendLine("    public const string ColumnList = \"\"\"");
         sb.Append("        ");
-        for (var i = 0; i < columns.Length; i++)
+        for (var i = 0; i < columns.Count; i++)
         {
             if (i > 0)
             {
@@ -147,7 +147,7 @@ internal static class DuckDbEmitter
         sb.AppendLine(" });");
     }
 
-    private static void EmitMapFromReader(StringBuilder sb, DuckDbTableInfo table, DuckDbColumnInfo[] columns)
+    private static void EmitMapFromReader(StringBuilder sb, DuckDbTableInfo table, IReadOnlyList<DuckDbColumnInfo> columns)
     {
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Maps a DbDataReader row to the type using ordinal-based access.");
@@ -158,7 +158,7 @@ internal static class DuckDbEmitter
         sb.Append("        return new ").Append(table.TypeName).AppendLine();
         sb.AppendLine("        {");
 
-        for (var i = 0; i < columns.Length; i++)
+        for (var i = 0; i < columns.Count; i++)
         {
             var col = columns[i];
             var ordinal = col.Ordinal;
@@ -166,7 +166,7 @@ internal static class DuckDbEmitter
             sb.Append("            ").Append(col.PropertyName).Append(" = ");
             EmitReaderAccess(sb, col, ordinal);
 
-            if (i < columns.Length - 1)
+            if (i < columns.Count - 1)
                 sb.Append(',');
             sb.AppendLine();
         }

@@ -155,15 +155,16 @@ internal static class TracedInterceptorEmitter
 
         var methodName = $"Intercept_Traced_{index}";
         var typeParamNames = GetTypeParameterNames(callSite);
-        var returnType = ToGlobalTypeName(callSite.ReturnTypeName, typeParamNames);
+        var returnType = callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames);
         var containingType = callSite.ContainingTypeName;
         var originalMethod = callSite.MethodName;
         var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName, activitySourceFieldNames);
 
         var typeParams = BuildTypeParameterList(callSite);
         var constraints = BuildConstraintClauses(callSite);
-        var parameters = BuildParameterList(callSite, containingType, typeParamNames);
-        var arguments = BuildArgumentList(callSite);
+        var parameters = EmitterHelpers.BuildParameterList(
+            containingType, callSite.ParameterTypes, callSite.ParameterNames, callSite.IsStatic, typeParamNames);
+        var arguments = EmitterHelpers.BuildArgumentList(callSite.ParameterNames);
         var tagSetters = BuildTagSetters(callSite);
         var methodCall = callSite.IsStatic
             ? $"global::{containingType}.{originalMethod}{typeParams}({arguments})"
@@ -320,109 +321,6 @@ internal static class TracedInterceptorEmitter
                 """);
     }
 
-    private static string BuildParameterList(TracedCallSite callSite, string containingType,
-        IReadOnlyList<string>? typeParamNames = null)
-    {
-        var sb = new StringBuilder();
-
-        // Static methods don't have a 'this' parameter
-        if (!callSite.IsStatic) sb.Append($"this global::{containingType} @this");
-
-        for (var i = 0; i < callSite.ParameterTypes.Count; i++)
-        {
-            if (sb.Length > 0)
-                sb.Append(", ");
-            var typeName = ToGlobalTypeName(callSite.ParameterTypes[i], typeParamNames);
-            sb.Append($"{typeName} {callSite.ParameterNames[i]}");
-        }
-
-        return sb.ToString();
-    }
-
-    /// <summary>
-    ///     Converts a type name to a fully qualified global:: format.
-    ///     Handles C# keyword aliases, generics, and nullable types recursively.
-    /// </summary>
-    private static string ToGlobalTypeName(string typeName, IReadOnlyList<string>? typeParameterNames = null)
-    {
-        if (string.IsNullOrEmpty(typeName))
-            return typeName;
-
-        // Check if this is a type parameter (T, TResult, etc.)
-        if (typeParameterNames is not null && typeParameterNames.Contains(typeName))
-            return typeName;
-
-        // Handle nullable reference types (trailing ?)
-        if (typeName.EndsWithOrdinal("?"))
-            return ToGlobalTypeName(typeName[..^1], typeParameterNames) + "?";
-
-        // Handle generic types: Task<Order> or Dictionary<string, Order>
-        var genericStart = typeName.IndexOf('<');
-        if (genericStart > 0 && typeName.EndsWithOrdinal(">"))
-        {
-            var baseTypeName = typeName[..genericStart];
-            var argsContent = typeName[(genericStart + 1)..^1];
-
-            var args = ParseGenericArguments(argsContent);
-            var qualifiedArgs = args.Select(a => ToGlobalTypeName(a, typeParameterNames));
-
-            return $"{ToGlobalTypeName(baseTypeName, typeParameterNames)}<{string.Join(", ", qualifiedArgs)}>";
-        }
-
-        // Map C# keyword aliases to their BCL names
-        var mapped = typeName switch
-        {
-            "string" => "System.String",
-            "int" => "System.Int32",
-            "long" => "System.Int64",
-            "short" => "System.Int16",
-            "byte" => "System.Byte",
-            "sbyte" => "System.SByte",
-            "uint" => "System.UInt32",
-            "ulong" => "System.UInt64",
-            "ushort" => "System.UInt16",
-            "float" => "System.Single",
-            "double" => "System.Double",
-            "decimal" => "System.Decimal",
-            "bool" => "System.Boolean",
-            "char" => "System.Char",
-            "object" => "System.Object",
-            "void" => "void",
-            _ => typeName
-        };
-
-        return mapped == "void" ? "void" : $"global::{mapped}";
-    }
-
-    /// <summary>
-    ///     Parses generic type arguments, handling nested generics correctly.
-    /// </summary>
-    private static List<string> ParseGenericArguments(string argsContent)
-    {
-        var args = new List<string>();
-        var depth = 0;
-        var start = 0;
-
-        for (var i = 0; i < argsContent.Length; i++)
-            switch (argsContent[i])
-            {
-                case '<':
-                    depth++;
-                    break;
-                case '>':
-                    depth--;
-                    break;
-                case ',' when depth is 0:
-                    args.Add(argsContent[start..i].Trim());
-                    start = i + 1;
-                    break;
-            }
-
-        if (start < argsContent.Length)
-            args.Add(argsContent[start..].Trim());
-
-        return args;
-    }
 
     private static string BuildTypeParameterList(TracedCallSite callSite)
     {
@@ -447,10 +345,6 @@ internal static class TracedInterceptorEmitter
         return [.. callSite.TypeParameters.Select(static tp => tp.Name)];
     }
 
-    private static string BuildArgumentList(TracedCallSite callSite)
-    {
-        return callSite.ParameterNames.Count is 0 ? string.Empty : string.Join(", ", callSite.ParameterNames);
-    }
 
     private static string BuildTagSetters(TracedCallSite callSite)
     {

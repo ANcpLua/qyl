@@ -26,49 +26,37 @@ public sealed class StorageTools(HttpClient client)
 
                  Returns: Storage statistics summary
                  """)]
-    public async Task<string> GetStorageStatsAsync()
+    public Task<string> GetStorageStatsAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        try
+        var health = await client.GetFromJsonAsync<HealthResponse>(
+            "/health",
+            StorageJsonContext.Default.HealthResponse).ConfigureAwait(false);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("# Storage Statistics");
+        sb.AppendLine();
+
+        if (health?.Entries is not null)
         {
-            var stats = await client.GetFromJsonAsync<StorageStatsDto>(
-                "/mcp/tools/call",
-                StorageJsonContext.Default.StorageStatsDto).ConfigureAwait(false);
-
-            // Try the direct health endpoint instead
-            var health = await client.GetFromJsonAsync<HealthResponse>(
-                "/health",
-                StorageJsonContext.Default.HealthResponse).ConfigureAwait(false);
-
-            var sb = new StringBuilder();
-            sb.AppendLine("# Storage Statistics");
-            sb.AppendLine();
-
-            if (health?.Entries is not null)
+            foreach (var entry in health.Entries)
             {
-                foreach (var entry in health.Entries)
+                sb.AppendLine($"- **{entry.Key}:** {entry.Value.Status}");
+                if (entry.Value.Data is not null)
                 {
-                    sb.AppendLine($"- **{entry.Key}:** {entry.Value.Status}");
-                    if (entry.Value.Data is not null)
+                    foreach (var data in entry.Value.Data)
                     {
-                        foreach (var data in entry.Value.Data)
-                        {
-                            sb.AppendLine($"  - {data.Key}: {data.Value}");
-                        }
+                        sb.AppendLine($"  - {data.Key}: {data.Value}");
                     }
                 }
             }
-            else
-            {
-                sb.AppendLine("Storage statistics not available from health endpoint.");
-            }
-
-            return sb.ToString();
         }
-        catch (HttpRequestException ex)
+        else
         {
-            return $"Error connecting to qyl collector: {ex.Message}";
+            sb.AppendLine("Storage statistics not available from health endpoint.");
         }
-    }
+
+        return sb.ToString();
+    });
 
     [McpServerTool(Name = "qyl.health_check")]
     [Description("""
@@ -83,37 +71,30 @@ public sealed class StorageTools(HttpClient client)
 
                  Returns: Health status of all components
                  """)]
-    public async Task<string> HealthCheckAsync()
+    public Task<string> HealthCheckAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        try
-        {
-            // Check multiple health endpoints concurrently
-            var aliveTask = client.GetAsync("/alive");
-            var readyTask = client.GetAsync("/ready");
-            var healthTask = client.GetStringAsync("/health");
+        // Check multiple health endpoints concurrently
+        var aliveTask = client.GetAsync("/alive");
+        var readyTask = client.GetAsync("/ready");
+        var healthTask = client.GetStringAsync("/health");
 
-            var alive = await aliveTask.ConfigureAwait(false);
-            var ready = await readyTask.ConfigureAwait(false);
-            var healthJson = await healthTask.ConfigureAwait(false);
+        var alive = await aliveTask.ConfigureAwait(false);
+        var ready = await readyTask.ConfigureAwait(false);
+        var healthJson = await healthTask.ConfigureAwait(false);
 
-            var sb = new StringBuilder();
-            sb.AppendLine("# qyl Collector Health Status");
-            sb.AppendLine();
-            sb.AppendLine($"- **Alive:** {(alive.IsSuccessStatusCode ? "OK" : "FAILED")}");
-            sb.AppendLine($"- **Ready:** {(ready.IsSuccessStatusCode ? "OK" : "FAILED")}");
-            sb.AppendLine();
-            sb.AppendLine("## Detailed Health:");
-            sb.AppendLine("```json");
-            sb.AppendLine(healthJson);
-            sb.AppendLine("```");
+        var sb = new StringBuilder();
+        sb.AppendLine("# qyl Collector Health Status");
+        sb.AppendLine();
+        sb.AppendLine($"- **Alive:** {(alive.IsSuccessStatusCode ? "OK" : "FAILED")}");
+        sb.AppendLine($"- **Ready:** {(ready.IsSuccessStatusCode ? "OK" : "FAILED")}");
+        sb.AppendLine();
+        sb.AppendLine("## Detailed Health:");
+        sb.AppendLine("```json");
+        sb.AppendLine(healthJson);
+        sb.AppendLine("```");
 
-            return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Health check failed - qyl collector may be down: {ex.Message}";
-        }
-    }
+        return sb.ToString();
+    }, "Health check failed - qyl collector may be down");
 
     [McpServerTool(Name = "qyl.get_system_context")]
     [Description("""
@@ -129,28 +110,22 @@ public sealed class StorageTools(HttpClient client)
 
                  Returns: Markdown system context with topology, performance, and alerts
                  """)]
-    public async Task<string> GetSystemContextAsync()
+    public Task<string> GetSystemContextAsync() => CollectorHelper.ExecuteAsync(async () =>
     {
-        try
-        {
-            var response = await client.GetAsync("/api/v1/insights").ConfigureAwait(false);
+        var response = await client.GetAsync("/api/v1/insights").ConfigureAwait(false);
 
-            if (!response.IsSuccessStatusCode)
-                return $"Insights not available (HTTP {(int)response.StatusCode}). The materializer may not have run yet.";
+        if (!response.IsSuccessStatusCode)
+            return
+                $"Insights not available (HTTP {(int)response.StatusCode}). The materializer may not have run yet.";
 
-            var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-            var doc = JsonDocument.Parse(json);
+        var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+        var doc = JsonDocument.Parse(json);
 
-            if (doc.RootElement.TryGetProperty("markdown", out var markdownProp))
-                return markdownProp.GetString() ?? "No insights available.";
+        if (doc.RootElement.TryGetProperty("markdown", out var markdownProp))
+            return markdownProp.GetString() ?? "No insights available.";
 
-            return "Insights response did not contain expected 'markdown' field.";
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
-    }
+        return "Insights response did not contain expected 'markdown' field.";
+    });
 
     [McpServerTool(Name = "qyl.search_spans")]
     [Description("""
@@ -173,9 +148,8 @@ public sealed class StorageTools(HttpClient client)
 
                  Returns: List of matching spans with timing and attributes
                  """)]
-    public async Task<string> SearchSpansAsync(
-        [Description("Filter by session ID")]
-        string? sessionId = null,
+    public Task<string> SearchSpansAsync(
+        [Description("Filter by session ID")] string? sessionId = null,
         [Description("Filter by service name")]
         string? serviceName = null,
         [Description("Filter by operation name (partial match)")]
@@ -185,85 +159,82 @@ public sealed class StorageTools(HttpClient client)
         [Description("Time window in hours (default: 24)")]
         int hours = 24,
         [Description("Maximum spans to return (default: 100)")]
-        int limit = 100)
+        int limit = 100) => CollectorHelper.ExecuteAsync(async () =>
     {
-        try
+        // Build query for the sessions/{id}/spans or general spans endpoint
+        var url = !string.IsNullOrEmpty(sessionId)
+            ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans"
+            : "/api/v1/genai/spans"; // Use genai/spans as general span query
+
+        var queryParams = new List<string> { $"limit={limit}", $"hours={hours}" };
+        if (!string.IsNullOrEmpty(status))
+            queryParams.Add($"status={Uri.EscapeDataString(status)}");
+
+        if (queryParams.Count > 0)
+            url += "?" + string.Join("&", queryParams);
+
+        var response = await client.GetFromJsonAsync<SpanSearchResponse>(
+            url, StorageJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
+
+        var spans = response?.Items ?? response?.Spans;
+
+        if (spans is null || spans.Count is 0)
+            return "No spans found matching the criteria.";
+
+        // Apply client-side filters
+        if (!string.IsNullOrEmpty(serviceName))
         {
-            // Build query for the sessions/{id}/spans or general spans endpoint
-            var url = !string.IsNullOrEmpty(sessionId)
-                ? $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans"
-                : "/api/v1/genai/spans"; // Use genai/spans as general span query
+            spans =
+            [
+                .. spans.Where(s =>
+                    s.ServiceName?.ContainsIgnoreCase(serviceName) is true)
+            ];
+        }
 
-            var queryParams = new List<string> { $"limit={limit}", $"hours={hours}" };
-            if (!string.IsNullOrEmpty(status))
-                queryParams.Add($"status={Uri.EscapeDataString(status)}");
+        if (!string.IsNullOrEmpty(operation))
+        {
+            spans =
+            [
+                .. spans.Where(s =>
+                    s.Name?.ContainsIgnoreCase(operation) is true)
+            ];
+        }
 
-            if (queryParams.Count > 0)
-                url += "?" + string.Join("&", queryParams);
+        if (spans.Count is 0)
+            return "No spans found matching the criteria after filtering.";
 
-            var response = await client.GetFromJsonAsync<SpanSearchResponse>(
-                url, StorageJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
+        var sb = new StringBuilder();
+        sb.AppendLine($"# Span Search Results ({spans.Count} spans)");
+        sb.AppendLine();
 
-            var spans = response?.Items ?? response?.Spans;
+        foreach (var span in spans.Take(limit))
+        {
+            var durationMs = span.DurationNs / 1_000_000.0;
+            var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
+            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(span.StartTimeUnixNano / 1_000_000);
 
-            if (spans is null || spans.Count is 0)
-                return "No spans found matching the criteria.";
+            sb.AppendLine($"**{timestamp:HH:mm:ss}** {span.Name} {statusIcon} ({durationMs:F0}ms)");
 
-            // Apply client-side filters
-            if (!string.IsNullOrEmpty(serviceName))
-                spans = [.. spans.Where(s =>
-                    s.ServiceName?.ContainsIgnoreCase(serviceName) is true)];
+            if (!string.IsNullOrEmpty(span.ServiceName))
+                sb.AppendLine($"  Service: {span.ServiceName}");
 
-            if (!string.IsNullOrEmpty(operation))
-                spans = [.. spans.Where(s =>
-                    s.Name?.ContainsIgnoreCase(operation) is true)];
+            if (span.StatusCode == 2 && !string.IsNullOrEmpty(span.StatusMessage))
+                sb.AppendLine($"  Error: {span.StatusMessage}");
 
-            if (spans.Count is 0)
-                return "No spans found matching the criteria after filtering.";
-
-            var sb = new StringBuilder();
-            sb.AppendLine($"# Span Search Results ({spans.Count} spans)");
+            sb.AppendLine($"  Trace: {span.TraceId}");
             sb.AppendLine();
-
-            foreach (var span in spans.Take(limit))
-            {
-                var durationMs = span.DurationNs / 1_000_000.0;
-                var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
-                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(span.StartTimeUnixNano / 1_000_000);
-
-                sb.AppendLine($"**{timestamp:HH:mm:ss}** {span.Name} {statusIcon} ({durationMs:F0}ms)");
-
-                if (!string.IsNullOrEmpty(span.ServiceName))
-                    sb.AppendLine($"  Service: {span.ServiceName}");
-
-                if (span.StatusCode == 2 && !string.IsNullOrEmpty(span.StatusMessage))
-                    sb.AppendLine($"  Error: {span.StatusMessage}");
-
-                sb.AppendLine($"  Trace: {span.TraceId}");
-                sb.AppendLine();
-            }
-
-            return sb.ToString();
         }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
-    }
+
+        return sb.ToString();
+    });
 }
 
 #region DTOs
 
-internal sealed record StorageStatsDto(
-    [property: JsonPropertyName("span_count")] long SpanCount,
-    [property: JsonPropertyName("log_count")] long LogCount,
-    [property: JsonPropertyName("session_count")] int SessionCount,
-    [property: JsonPropertyName("oldest_timestamp")] string? OldestTimestamp,
-    [property: JsonPropertyName("newest_timestamp")] string? NewestTimestamp);
-
 internal sealed record HealthResponse(
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("entries")] Dictionary<string, HealthEntry>? Entries);
+    [property: JsonPropertyName("entries")]
+    Dictionary<string, HealthEntry>? Entries);
 
 internal sealed record HealthEntry(
     [property: JsonPropertyName("status")] string Status,
@@ -275,18 +246,24 @@ internal sealed record SpanSearchResponse(
     [property: JsonPropertyName("total")] int Total);
 
 internal sealed record SpanSearchDto(
-    [property: JsonPropertyName("trace_id")] string TraceId,
-    [property: JsonPropertyName("span_id")] string SpanId,
+    [property: JsonPropertyName("trace_id")]
+    string TraceId,
+    [property: JsonPropertyName("span_id")]
+    string SpanId,
     [property: JsonPropertyName("name")] string? Name,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")] long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")] long DurationNs,
-    [property: JsonPropertyName("status_code")] int StatusCode,
-    [property: JsonPropertyName("status_message")] string? StatusMessage);
+    [property: JsonPropertyName("service_name")]
+    string? ServiceName,
+    [property: JsonPropertyName("start_time_unix_nano")]
+    long StartTimeUnixNano,
+    [property: JsonPropertyName("duration_ns")]
+    long DurationNs,
+    [property: JsonPropertyName("status_code")]
+    int StatusCode,
+    [property: JsonPropertyName("status_message")]
+    string? StatusMessage);
 
 #endregion
 
-[JsonSerializable(typeof(StorageStatsDto))]
 [JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(SpanSearchResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]

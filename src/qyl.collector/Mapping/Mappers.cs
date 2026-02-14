@@ -47,36 +47,16 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null)
-    {
-        // Convert UnixNano (ulong) to DateTime
-        var startTime = TimeConversions.UnixNanoToDateTime(record.StartTimeUnixNano);
-        var endTime = TimeConversions.UnixNanoToDateTime(record.EndTimeUnixNano);
-        var durationMs = record.DurationNs / 1_000_000.0; // ns → ms
-
-        return new SpanDto
-        {
-            TraceId = record.TraceId,
-            SpanId = record.SpanId,
-            ParentSpanId = record.ParentSpanId,
-            SessionId = record.SessionId,
-            Name = record.Name,
-            Kind = MapSpanKind(record.Kind),
-            Status = MapStatus(record.StatusCode),
-            StatusMessage = record.StatusMessage,
-            StartTime = startTime.ToString("O"),
-            EndTime = endTime.ToString("O"),
-            DurationMs = durationMs,
-            ServiceName = serviceName,
-            ServiceVersion = serviceVersion,
-            Attributes = ParseAttributes(record.AttributesJson),
-            Events = [],
-            Links = [],
-            GenAi = ExtractGenAiData(record),
-            Baggage = ParseBaggage(record.BaggageJson),
-            SchemaUrl = record.SchemaUrl
-        };
-    }
+    public static SpanDto ToDto(SpanStorageRow record, string serviceName, string? serviceVersion = null) =>
+        ToDtoCore(
+            record.TraceId, record.SpanId, record.ParentSpanId, record.SessionId,
+            record.Name, MapSpanKind(record.Kind), MapStatus(record.StatusCode), record.StatusMessage,
+            record.StartTimeUnixNano, record.EndTimeUnixNano, record.DurationNs,
+            serviceName, serviceVersion,
+            record.AttributesJson, record.BaggageJson, record.SchemaUrl,
+            record.GenAiInputTokens, record.GenAiOutputTokens, record.GenAiProviderName,
+            record.GenAiRequestModel, record.GenAiResponseModel, record.GenAiCostUsd,
+            record.GenAiTemperature, record.GenAiStopReason, record.GenAiToolName, record.GenAiToolCallId);
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
@@ -93,35 +73,17 @@ public static class SpanMapper
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
-    public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null)
-    {
-        var startTime = TimeConversions.UnixNanoToDateTime((ulong)record.StartTimeUnixNano);
-        var endTime = TimeConversions.UnixNanoToDateTime((ulong)record.EndTimeUnixNano);
-        var durationMs = record.DurationNs / 1_000_000.0;
-
-        return new SpanDto
-        {
-            TraceId = record.TraceId.Value,
-            SpanId = record.SpanId.Value,
-            ParentSpanId = record.ParentSpanId?.Value,
-            SessionId = record.SessionId?.Value,
-            Name = record.Name,
-            Kind = record.Kind.ToString().ToLowerInvariant(),
-            Status = record.StatusCode.ToString().ToLowerInvariant(),
-            StatusMessage = record.StatusMessage,
-            StartTime = startTime.ToString("O"),
-            EndTime = endTime.ToString("O"),
-            DurationMs = durationMs,
-            ServiceName = serviceName,
-            ServiceVersion = serviceVersion,
-            Attributes = ParseAttributes(record.AttributesJson),
-            Events = [],
-            Links = [],
-            GenAi = ExtractGenAiData(record),
-            Baggage = ParseBaggage(record.BaggageJson),
-            SchemaUrl = record.SchemaUrl
-        };
-    }
+    public static SpanDto ToDto(SpanRecord record, string serviceName, string? serviceVersion = null) =>
+        ToDtoCore(
+            record.TraceId.Value, record.SpanId.Value, record.ParentSpanId?.Value, record.SessionId?.Value,
+            record.Name, record.Kind.ToString().ToLowerInvariant(), record.StatusCode.ToString().ToLowerInvariant(),
+            record.StatusMessage,
+            (ulong)record.StartTimeUnixNano, (ulong)record.EndTimeUnixNano, (ulong)record.DurationNs,
+            serviceName, serviceVersion,
+            record.AttributesJson, record.BaggageJson, record.SchemaUrl,
+            record.GenAiInputTokens, record.GenAiOutputTokens, record.GenAiProviderName,
+            record.GenAiRequestModel, record.GenAiResponseModel, record.GenAiCostUsd,
+            record.GenAiTemperature, record.GenAiStopReason, record.GenAiToolName, record.GenAiToolCallId);
 
     [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
     [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
@@ -182,46 +144,52 @@ public static class SpanMapper
         }
     }
 
-    private static GenAiSpanDataDto? ExtractGenAiData(SpanStorageRow record) =>
-        ExtractGenAiDataCore(
-            record.GenAiInputTokens,
-            record.GenAiOutputTokens,
-            record.GenAiProviderName,
-            record.Name,
-            record.GenAiRequestModel,
-            record.GenAiResponseModel,
-            record.GenAiCostUsd,
-            record.GenAiTemperature,
-            record.GenAiStopReason,
-            record.GenAiToolName,
-            record.GenAiToolCallId);
+    [RequiresUnreferencedCode("Deserializes dynamic OTLP span attributes")]
+    [RequiresDynamicCode("Deserializes dynamic OTLP span attributes")]
+    private static SpanDto ToDtoCore(
+        string traceId, string spanId, string? parentSpanId, string? sessionId,
+        string name, string kind, string status, string? statusMessage,
+        ulong startTimeUnixNano, ulong endTimeUnixNano, ulong durationNs,
+        string serviceName, string? serviceVersion,
+        string? attributesJson, string? baggageJson, string? schemaUrl,
+        long? genAiInputTokens, long? genAiOutputTokens, string? genAiProviderName,
+        string? genAiRequestModel, string? genAiResponseModel, double? genAiCostUsd,
+        double? genAiTemperature, string? genAiStopReason, string? genAiToolName, string? genAiToolCallId)
+    {
+        var startTime = TimeConversions.UnixNanoToDateTime(startTimeUnixNano);
+        var endTime = TimeConversions.UnixNanoToDateTime(endTimeUnixNano);
 
-    private static GenAiSpanDataDto? ExtractGenAiData(SpanRecord record) =>
-        ExtractGenAiDataCore(
-            record.GenAiInputTokens,
-            record.GenAiOutputTokens,
-            record.GenAiProviderName,
-            record.Name,
-            record.GenAiRequestModel,
-            record.GenAiResponseModel,
-            record.GenAiCostUsd,
-            record.GenAiTemperature,
-            record.GenAiStopReason,
-            record.GenAiToolName,
-            record.GenAiToolCallId);
+        return new SpanDto
+        {
+            TraceId = traceId,
+            SpanId = spanId,
+            ParentSpanId = parentSpanId,
+            SessionId = sessionId,
+            Name = name,
+            Kind = kind,
+            Status = status,
+            StatusMessage = statusMessage,
+            StartTime = startTime.ToString("O"),
+            EndTime = endTime.ToString("O"),
+            DurationMs = durationNs / 1_000_000.0,
+            ServiceName = serviceName,
+            ServiceVersion = serviceVersion,
+            Attributes = ParseAttributes(attributesJson),
+            Events = [],
+            Links = [],
+            GenAi = ExtractGenAiData(
+                genAiInputTokens, genAiOutputTokens, genAiProviderName, name,
+                genAiRequestModel, genAiResponseModel, genAiCostUsd,
+                genAiTemperature, genAiStopReason, genAiToolName, genAiToolCallId),
+            Baggage = ParseBaggage(baggageJson),
+            SchemaUrl = schemaUrl
+        };
+    }
 
-    private static GenAiSpanDataDto? ExtractGenAiDataCore(
-        long? inputTokens,
-        long? outputTokens,
-        string? providerName,
-        string spanName,
-        string? requestModel,
-        string? responseModel,
-        double? costUsd,
-        double? temperature,
-        string? stopReason,
-        string? toolName,
-        string? toolCallId)
+    private static GenAiSpanDataDto? ExtractGenAiData(
+        long? inputTokens, long? outputTokens, string? providerName, string spanName,
+        string? requestModel, string? responseModel, double? costUsd,
+        double? temperature, string? stopReason, string? toolName, string? toolCallId)
     {
         if (inputTokens is null && outputTokens is null && string.IsNullOrEmpty(providerName))
             return null;
@@ -267,7 +235,7 @@ public static class SessionMapper
             TraceCount = summary.TraceCount,
             ErrorCount = summary.ErrorCount,
             ErrorRate = summary.ErrorRate,
-            Services = [],
+            Services = [.. summary.Services],
             TraceIds = [],
             IsActive = (TimeProvider.System.GetUtcNow() - lastActivity).TotalMinutes < 5,
             GenAiStats = new SessionGenAiStatsDto

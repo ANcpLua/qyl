@@ -17,11 +17,11 @@ internal static class TracedCallSiteAnalyzer
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
-    ///     Runs on every syntax node, so must be cheap (no semantic model).
+    ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken _)
+    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken ct)
     {
-        return node.IsKind(SyntaxKind.InvocationExpression);
+        return AnalyzerHelpers.CouldBeInvocation(node, ct);
     }
 
     /// <summary>

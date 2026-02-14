@@ -26,13 +26,13 @@ public sealed class GenAiTools(HttpClient client)
 
                  Returns: Request count, input/output tokens, total cost USD
                  """)]
-    public async Task<string> GetGenAiStatsAsync(
+    public Task<string> GetGenAiStatsAsync(
         [Description("Filter by session ID")]
         string? sessionId = null,
         [Description("Time window in hours (default: 24)")]
         int hours = 24)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/genai/stats?hours={hours}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -61,11 +61,7 @@ public sealed class GenAiTools(HttpClient client)
                 sb.AppendLine($"- **Errors:** {stats.ErrorCount:N0}");
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.list_genai_spans")]
@@ -86,7 +82,7 @@ public sealed class GenAiTools(HttpClient client)
 
                  Returns: List of GenAI spans with full details
                  """)]
-    public async Task<string> ListGenAiSpansAsync(
+    public Task<string> ListGenAiSpansAsync(
         [Description("Filter by provider: 'openai', 'anthropic', 'google', 'azure'")]
         string? provider = null,
         [Description("Filter by model name (partial match, e.g., 'claude-3')")]
@@ -98,7 +94,7 @@ public sealed class GenAiTools(HttpClient client)
         [Description("Maximum spans to return (default: 50)")]
         int limit = 50)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/genai/spans?limit={limit}";
             if (!string.IsNullOrEmpty(provider))
@@ -146,11 +142,7 @@ public sealed class GenAiTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.list_models")]
@@ -162,11 +154,11 @@ public sealed class GenAiTools(HttpClient client)
 
                  Returns: List of models with request counts, tokens, and costs
                  """)]
-    public async Task<string> ListModelsAsync(
+    public Task<string> ListModelsAsync(
         [Description("Time window in hours (default: 24)")]
         int hours = 24)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<ModelUsageResponse>(
                 $"/api/v1/genai/models?hours={hours}",
@@ -190,11 +182,7 @@ public sealed class GenAiTools(HttpClient client)
             sb.AppendLine($"**Total Cost:** ${response.Models.Sum(static m => m.TotalCostUsd):F4}");
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.get_token_timeseries")]
@@ -210,13 +198,13 @@ public sealed class GenAiTools(HttpClient client)
 
                  Returns: Time series of token usage with costs
                  """)]
-    public async Task<string> GetTokenTimeseriesAsync(
+    public Task<string> GetTokenTimeseriesAsync(
         [Description("Time window in hours (default: 24)")]
         int hours = 24,
         [Description("Aggregation interval: 'hour' or 'day'")]
         string interval = "hour")
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
                 $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
@@ -239,11 +227,7 @@ public sealed class GenAiTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 }
 

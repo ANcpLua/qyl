@@ -7,11 +7,12 @@ if (config is null)
     return;
 
 var cts = new CancellationTokenSource();
-Console.CancelKeyPress += (_, e) =>
+ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
     cts.Cancel();
 };
+Console.CancelKeyPress += cancelHandler;
 
 AnsiConsole.Write(new FigletText("qyl watch").Color(Color.Orange1));
 AnsiConsole.MarkupLine($"[grey]Connecting to {Markup.Escape(config.CollectorUrl)}...[/]");
@@ -34,7 +35,7 @@ var header = new HeaderRenderer();
 using var client = new SseClient(config.CollectorUrl);
 
 // Start keyboard handler on a background thread
-_ = Task.Run(() => HandleKeyboard(config, header, cts), CancellationToken.None);
+var keyboardTask = Task.Run(() => HandleKeyboard(config, header, cts.Token, cts.Cancel), CancellationToken.None);
 
 var headerInterval = TimeProvider.System.GetUtcNow();
 var spanCount = 0;
@@ -60,10 +61,10 @@ catch (OperationCanceledException)
 {
     // Normal shutdown
 }
-finally
-{
-    cts.Dispose();
-}
+
+await keyboardTask.ConfigureAwait(false);
+Console.CancelKeyPress -= cancelHandler;
+cts.Dispose();
 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine($"[grey]Disconnected. Total spans received: {spanCount}[/]");
@@ -114,9 +115,9 @@ static void ProcessSpanEvent(string data, CliConfig config, HeaderRenderer heade
     }
 }
 
-static void HandleKeyboard(CliConfig config, HeaderRenderer header, CancellationTokenSource cts)
+static void HandleKeyboard(CliConfig config, HeaderRenderer header, CancellationToken token, Action cancel)
 {
-    while (!cts.IsCancellationRequested)
+    while (!token.IsCancellationRequested)
     {
         if (!Console.KeyAvailable)
         {
@@ -129,7 +130,7 @@ static void HandleKeyboard(CliConfig config, HeaderRenderer header, Cancellation
         switch (key.KeyChar)
         {
             case 'q':
-                cts.Cancel();
+                cancel();
                 return;
 
             case 'c':

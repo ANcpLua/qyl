@@ -15,14 +15,14 @@
     <!-- Azure Monitor -->
     <AzureMonitorVersion>1.4.0</AzureMonitorVersion>
     <!-- Identity -->
-    <MicrosoftIdentityModelVersion>8.15.0</MicrosoftIdentityModelVersion>
+    <MicrosoftIdentityModelVersion>8.16.0</MicrosoftIdentityModelVersion>
     <!-- Testing -->
     <XunitVersion>3.2.2</XunitVersion>
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
     <MicrosoftTestingCodeCoverageVersion>18.4.1</MicrosoftTestingCodeCoverageVersion>
     <!-- Analyzers -->
     <MicrosoftCodeAnalysisAnalyzersVersion>4.14.0</MicrosoftCodeAnalysisAnalyzersVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.34.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.36.1</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsVersion>1.0.0-preview.260209.1</MicrosoftAgentsVersion>
     <MicrosoftAgentsOpenAIVersion>1.0.0-alpha.260209.1</MicrosoftAgentsOpenAIVersion>

@@ -5,11 +5,16 @@
 // One command: nuke Generate (does everything)
 // =============================================================================
 
+using System;
 using System.IO;
+using System.Globalization;
+using System.Linq;
+using System.Text.RegularExpressions;
 using Domain.CodeGen;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
@@ -34,6 +39,12 @@ interface IPipeline : IHazSourcePaths
     [Parameter("Preview changes without writing files")]
     bool? DryRunGenerate => TryGetValue<bool?>(() => DryRunGenerate);
 
+    [Parameter("Source schema version for migration (auto-detected from git if omitted)")]
+    int? FromVersion => TryGetValue<int?>(() => FromVersion);
+
+    [Parameter("Target schema version for migration (auto-detected from current DDL if omitted)")]
+    int? ToVersion => TryGetValue<int?>(() => ToVersion);
+
     // ════════════════════════════════════════════════════════════════════════
     // TypeSpec Paths (God Schema - Single Source of Truth)
     // ════════════════════════════════════════════════════════════════════════
@@ -56,7 +67,6 @@ interface IPipeline : IHazSourcePaths
     // ════════════════════════════════════════════════════════════════════════
 
     AbsolutePath DashboardDistDirectory => DashboardDirectory / "dist";
-    AbsolutePath NodeModulesDirectory => DashboardDirectory / "node_modules";
     AbsolutePath DashboardTypesDirectory => DashboardDirectory / "src" / "types";
 
     // ════════════════════════════════════════════════════════════════════════
@@ -383,4 +393,128 @@ interface IPipeline : IHazSourcePaths
             Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
+
+    // ════════════════════════════════════════════════════════════════════════
+    // Schema Migration Target
+    // ════════════════════════════════════════════════════════════════════════
+
+    /// <summary>
+    ///     Generate DuckDB migration SQL by diffing previous and current DDL.
+    ///     Auto-detects versions from <c>DuckDbSchema.g.cs</c> (current) and git HEAD (previous).
+    ///     Override with <c>--ipipeline-from-version</c> and <c>--ipipeline-to-version</c>.
+    /// </summary>
+    Target Migrate => d => d
+        .Description("Generate DuckDB migration from schema diff (auto-detects versions from git)")
+        .DependsOn(Generate)
+        .Executes(() =>
+        {
+            var paths = CodegenPaths.From(this);
+            var schemaFile = paths.CollectorStorage / "DuckDbSchema.g.cs";
+
+            if (!schemaFile.FileExists())
+            {
+                Log.Error("DuckDbSchema.g.cs not found at {Path}", schemaFile);
+                Log.Error("Run 'nuke Generate' first.");
+                throw new FileNotFoundException("DuckDbSchema.g.cs not found", schemaFile);
+            }
+
+            // ── Read current DDL ────────────────────────────────────────────
+            var currentContent = File.ReadAllText(schemaFile);
+            var currentVersion = ToVersion ?? ExtractSchemaVersion(currentContent);
+            var currentDdl = ExtractDdlFromCSharp(currentContent);
+
+            Log.Information("Current schema version: {Version}", currentVersion);
+
+            // ── Read previous DDL from git HEAD ─────────────────────────────
+            var relativeSchemaPath = RootDirectory.GetRelativePathTo(schemaFile)
+                .ToString().Replace('\\', '/');
+
+            string previousContent;
+            try
+            {
+                var output = GitTasks.Git($"show HEAD:{relativeSchemaPath}",
+                    RootDirectory, logOutput: false, logInvocation: false);
+                previousContent = string.Join(Environment.NewLine, output.Select(static o => o.Text));
+            }
+            catch (Exception ex)
+            {
+                Log.Warning("Could not read previous schema from git: {Message}", ex.Message);
+                Log.Warning("This is expected for the first migration. No migration file generated.");
+                return;
+            }
+
+            var previousVersion = FromVersion ?? ExtractSchemaVersion(previousContent);
+            var previousDdl = ExtractDdlFromCSharp(previousContent);
+
+            Log.Information("Previous schema version: {Version}", previousVersion);
+
+            if (previousVersion == currentVersion)
+            {
+                Log.Information("Schema versions are identical ({Version}). No migration needed.", currentVersion);
+                return;
+            }
+
+            // ── Generate migration ──────────────────────────────────────────
+            var result = SchemaMigrationGenerator.GenerateMigration(
+                previousDdl, currentDdl, previousVersion, currentVersion);
+
+            if (result is null)
+            {
+                Log.Information("No schema changes detected between v{From} and v{To}.",
+                    previousVersion, currentVersion);
+                return;
+            }
+
+            Log.Information("Detected {Count} schema change(s):", result.Changes.Length);
+            foreach (var change in result.Changes)
+            {
+                var detail = change.ColumnName is not null
+                    ? $"{change.TableName}.{change.ColumnName}"
+                    : change.TableName;
+                Log.Information("  [{Kind}] {Detail}", change.Kind, detail);
+            }
+
+            // ── Write migration file ────────────────────────────────────────
+            var migrationPath = SchemaMigrationGenerator.WriteMigrationFile(
+                paths.Migrations, result);
+
+            Log.Information("");
+            Log.Information("═══════════════════════════════════════════════════════════════");
+            Log.Information("  Migration Generated");
+            Log.Information("═══════════════════════════════════════════════════════════════");
+            Log.Information("  From:    v{FromVersion}", previousVersion);
+            Log.Information("  To:      v{ToVersion}", currentVersion);
+            Log.Information("  Changes: {Count}", result.Changes.Length);
+            Log.Information("  File:    {Path}", migrationPath);
+            Log.Information("═══════════════════════════════════════════════════════════════");
+        });
+
+    /// <summary>
+    ///     Extracts the <c>Version</c> constant from DuckDbSchema.g.cs content.
+    /// </summary>
+    sealed int ExtractSchemaVersion(string content)
+    {
+        var match = Regex.Match(content, @"public\s+const\s+int\s+Version\s*=\s*(?<ver>\d+)\s*;");
+        return match.Success
+            ? int.Parse(match.Groups["ver"].Value, CultureInfo.InvariantCulture)
+            : throw new InvalidOperationException(
+                "Could not extract Version constant from DuckDbSchema.g.cs");
+    }
+
+    /// <summary>
+    ///     Extracts raw DDL statements from the C# string literals in DuckDbSchema.g.cs.
+    ///     Returns concatenated DDL suitable for <see cref="SchemaMigrationGenerator.GenerateMigration" />.
+    /// </summary>
+    sealed string ExtractDdlFromCSharp(string content)
+    {
+        var ddl = new System.Text.StringBuilder();
+
+        foreach (Match match in VerifyRegexes.CreateTablePattern().Matches(content))
+            ddl.AppendLine(match.Value);
+
+        foreach (Match match in VerifyRegexes.CreateIndexPattern().Matches(content))
+            ddl.AppendLine(match.Value);
+
+        return ddl.ToString();
+    }
 }

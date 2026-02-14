@@ -4,7 +4,6 @@
 // Owner: qyl.instrumentation.generators
 // =============================================================================
 
-using System.Collections.Immutable;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;

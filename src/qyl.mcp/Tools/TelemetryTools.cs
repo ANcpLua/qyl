@@ -245,7 +245,6 @@ public record LatencyStats(
 
 public interface ITelemetryStore
 {
-    ValueTask RecordRunAsync(AgentRun run);
     ValueTask<AgentRun?> GetRunAsync(string runId);
     ValueTask<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since);
     ValueTask<TokenUsageSummary[]> GetTokenUsageAsync(DateTime? since, DateTime? until, string groupBy);

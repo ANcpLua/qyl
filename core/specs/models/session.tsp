@@ -102,6 +102,10 @@ model SessionEntity {
   @minValue(0)
   errorCount: int32;
 
+  @doc("Service names observed in this session")
+  @encodedName("application/json", "services")
+  services: string[];
+
   @doc("Session state")
   state: SessionState;
 

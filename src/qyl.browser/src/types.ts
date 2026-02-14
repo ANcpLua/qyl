@@ -1,3 +1,28 @@
+// ---------------------------------------------------------------------------
+// OTLP wire format types (generated from TypeSpec source of truth)
+// ---------------------------------------------------------------------------
+export type {
+  OtlpAnyValue,
+  OtlpAttribute,
+  OtlpInstrumentationScope,
+  OtlpResource,
+  OtlpSpan,
+  OtlpSpanStatus,
+  OtlpLogRecord,
+  OtlpScopeSpans,
+  OtlpScopeLogs,
+  OtlpResourceSpans,
+  OtlpResourceLogs,
+  ExportTraceServiceRequest,
+  ExportLogsServiceRequest,
+} from './generated/otlp-types.js';
+
+import type { OtlpSpan, OtlpLogRecord } from './generated/otlp-types.js';
+
+// ---------------------------------------------------------------------------
+// SDK configuration types (hand-authored, SDK-specific)
+// ---------------------------------------------------------------------------
+
 /** Configuration for the qyl browser SDK. */
 export interface QylConfig {
   /** Collector URL (e.g., 'http://localhost:5100'). */
@@ -28,82 +53,6 @@ export interface QylConfig {
 
 /** Resolved config with all defaults applied. */
 export interface ResolvedConfig extends Required<QylConfig> {}
-
-/** OTLP KeyValue attribute. */
-export interface OtlpAttribute {
-  key: string;
-  value: OtlpAnyValue;
-}
-
-/** OTLP AnyValue (string, int, bool, double). */
-export type OtlpAnyValue =
-  | { stringValue: string }
-  | { intValue: string }
-  | { boolValue: boolean }
-  | { doubleValue: number };
-
-/** OTLP Span (subset of fields we need). */
-export interface OtlpSpan {
-  traceId: string;
-  spanId: string;
-  parentSpanId?: string;
-  name: string;
-  kind: number;
-  startTimeUnixNano: string;
-  endTimeUnixNano: string;
-  attributes: OtlpAttribute[];
-  status?: { code: number; message?: string };
-}
-
-/** OTLP LogRecord (subset of fields we need). */
-export interface OtlpLogRecord {
-  timeUnixNano: string;
-  severityNumber: number;
-  severityText: string;
-  body: OtlpAnyValue;
-  attributes: OtlpAttribute[];
-  traceId?: string;
-  spanId?: string;
-}
-
-/** OTLP Resource. */
-export interface OtlpResource {
-  attributes: OtlpAttribute[];
-}
-
-/** OTLP ScopeSpans. */
-export interface OtlpScopeSpans {
-  scope: { name: string; version?: string };
-  spans: OtlpSpan[];
-}
-
-/** OTLP ScopeLogs. */
-export interface OtlpScopeLogs {
-  scope: { name: string; version?: string };
-  logRecords: OtlpLogRecord[];
-}
-
-/** OTLP ResourceSpans envelope. */
-export interface OtlpResourceSpans {
-  resource: OtlpResource;
-  scopeSpans: OtlpScopeSpans[];
-}
-
-/** OTLP ResourceLogs envelope. */
-export interface OtlpResourceLogs {
-  resource: OtlpResource;
-  scopeLogs: OtlpScopeLogs[];
-}
-
-/** Payload sent to POST /v1/traces. */
-export interface ExportTraceServiceRequest {
-  resourceSpans: OtlpResourceSpans[];
-}
-
-/** Payload sent to POST /v1/logs. */
-export interface ExportLogsServiceRequest {
-  resourceLogs: OtlpResourceLogs[];
-}
 
 /** Global window extension for script tag config. */
 declare global {

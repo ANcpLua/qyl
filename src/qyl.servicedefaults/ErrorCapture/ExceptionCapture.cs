@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -71,7 +70,7 @@ public static class GlobalExceptionHooks
         var activity = Activity.Current;
         if (activity is null)
         {
-            using var fallback = Source.StartActivity("UnhandledException");
+            using var fallback = Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default);
             if (fallback is null) return;
             TagActivity(fallback, ex, source);
             return;

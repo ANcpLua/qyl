@@ -26,9 +26,9 @@ public sealed class CopilotTools(HttpClient client)
 
                  Returns: Authentication status summary
                  """)]
-    public async Task<string> GetCopilotStatusAsync()
+    public Task<string> GetCopilotStatusAsync()
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var status = await client.GetFromJsonAsync<CopilotStatusDto>(
                 "/api/v1/copilot/status",
@@ -57,11 +57,7 @@ public sealed class CopilotTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.copilot_chat")]
@@ -77,13 +73,13 @@ public sealed class CopilotTools(HttpClient client)
 
                  Returns: Copilot's complete response text
                  """)]
-    public async Task<string> CopilotChatAsync(
+    public Task<string> CopilotChatAsync(
         [Description("The prompt to send to Copilot")]
         string prompt,
         [Description("Additional context to include (e.g., telemetry data)")]
         string? context = null)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotChatRequestDto
             {
@@ -145,11 +141,7 @@ public sealed class CopilotTools(HttpClient client)
                 result += $"\n\n---\n*Tokens: {outputTokens}*";
 
             return result;
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.copilot_run_workflow")]
@@ -167,13 +159,13 @@ public sealed class CopilotTools(HttpClient client)
 
                  Returns: Workflow execution result
                  """)]
-    public async Task<string> RunCopilotWorkflowAsync(
+    public Task<string> RunCopilotWorkflowAsync(
         [Description("Name of the workflow to execute")]
         string name,
         [Description("Additional context for the workflow")]
         string? context = null)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotWorkflowRunDto
             {
@@ -226,11 +218,7 @@ public sealed class CopilotTools(HttpClient client)
             return string.IsNullOrEmpty(result)
                 ? "Workflow completed with no output."
                 : result;
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 }
 

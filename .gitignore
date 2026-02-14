@@ -94,6 +94,9 @@ coverage/
 *.tar.gz
 *.rar
 
+# MSBuild debug dumps
+**/preprocess.xml
+
 # Misc
 *.bak
 *.swp

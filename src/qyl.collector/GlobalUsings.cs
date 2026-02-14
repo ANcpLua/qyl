@@ -24,6 +24,7 @@ global using qyl.collector.Ingestion;
 global using qyl.collector.Query;
 global using qyl.collector.Realtime;
 global using qyl.collector.Storage;
+global using qyl.collector.Storage.Migrations;
 global using Qyl.Common;
 global using Qyl.OTel.Enums;
 global using qyl.protocol.Attributes;

@@ -33,7 +33,7 @@ public sealed class StructuredLogTools(HttpClient client)
 
                  Returns: Formatted list of structured logs with timestamps, severity, and attributes
                  """)]
-    public async Task<string> ListStructuredLogsAsync(
+    public Task<string> ListStructuredLogsAsync(
         [Description("Filter by session ID")]
         string? sessionId = null,
         [Description("Filter by trace ID (correlates with distributed traces)")]
@@ -47,7 +47,7 @@ public sealed class StructuredLogTools(HttpClient client)
         [Description("Maximum number of logs to return (default: 100)")]
         int limit = 100)
     {
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/logs?limit={limit}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -93,11 +93,7 @@ public sealed class StructuredLogTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.list_trace_logs")]
@@ -112,14 +108,14 @@ public sealed class StructuredLogTools(HttpClient client)
 
                  Returns: Logs ordered by timestamp for the specified trace
                  """)]
-    public async Task<string> ListTraceLogsAsync(
+    public Task<string> ListTraceLogsAsync(
         [Description("The trace ID to get logs for (required)")]
         string traceId)
     {
         if (string.IsNullOrEmpty(traceId))
-            return "Error: trace_id is required";
+            return Task.FromResult("Error: trace_id is required");
 
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/logs?trace={Uri.EscapeDataString(traceId)}&limit=500";
 
@@ -154,11 +150,7 @@ public sealed class StructuredLogTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     [McpServerTool(Name = "qyl.search_logs")]
@@ -174,7 +166,7 @@ public sealed class StructuredLogTools(HttpClient client)
 
                  Returns: Matching logs with context
                  """)]
-    public async Task<string> SearchLogsAsync(
+    public Task<string> SearchLogsAsync(
         [Description("Text to search for in logs (required)")]
         string query,
         [Description("Minimum severity (9=Info, 13=Warn, 17=Error)")]
@@ -185,9 +177,9 @@ public sealed class StructuredLogTools(HttpClient client)
         int limit = 50)
     {
         if (string.IsNullOrEmpty(query))
-            return "Error: search query is required";
+            return Task.FromResult("Error: search query is required");
 
-        try
+        return CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/logs?search={Uri.EscapeDataString(query)}&limit={limit}";
             if (minSeverity.HasValue)
@@ -223,11 +215,7 @@ public sealed class StructuredLogTools(HttpClient client)
             }
 
             return sb.ToString();
-        }
-        catch (HttpRequestException ex)
-        {
-            return $"Error connecting to qyl collector: {ex.Message}";
-        }
+        });
     }
 
     private static string FormatSeverity(int? severity) =>

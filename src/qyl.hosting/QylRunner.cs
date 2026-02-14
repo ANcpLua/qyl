@@ -273,7 +273,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         return string.Join(" ", args);
     }
 
-    private static string BuildPostgresArgs(PostgresResource postgres)
+    private static string BuildPostgresArgs(IQylResource postgres)
     {
         var args = new List<string> { "run", "--rm", "--name", postgres.Name };
 
