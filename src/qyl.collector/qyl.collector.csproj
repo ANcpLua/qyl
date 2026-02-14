@@ -40,7 +40,6 @@
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full" />
     <PackageReference Include="MSBuild.StructuredLogger" />
-    <PackageReference Include="System.Reflection.Metadata" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
