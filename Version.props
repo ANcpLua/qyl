@@ -22,7 +22,7 @@
     <MicrosoftTestingCodeCoverageVersion>18.4.1</MicrosoftTestingCodeCoverageVersion>
     <!-- Analyzers -->
     <MicrosoftCodeAnalysisAnalyzersVersion>4.14.0</MicrosoftCodeAnalysisAnalyzersVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.38.1</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.38.2</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsVersion>1.0.0-preview.260209.1</MicrosoftAgentsVersion>
     <MicrosoftAgentsOpenAIVersion>1.0.0-alpha.260209.1</MicrosoftAgentsOpenAIVersion>
