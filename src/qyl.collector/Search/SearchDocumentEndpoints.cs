@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace qyl.collector.Search;
 
 /// <summary>
@@ -15,7 +17,7 @@ public static class SearchDocumentEndpoints
             .WithTags("Search");
 
         group.MapGet("/documents", static async (
-            SearchService service,
+            [FromServices] SearchService service,
             string? q, string? entityType, string? projectId, int? limit,
             CancellationToken ct) =>
         {
@@ -34,7 +36,7 @@ public static class SearchDocumentEndpoints
         .WithSummary("Full-text search across indexed documents with relevance scoring");
 
         group.MapGet("/terms/suggestions", static async (
-            SearchService service,
+            [FromServices] SearchService service,
             string? prefix, int? limit,
             CancellationToken ct) =>
         {
@@ -46,7 +48,7 @@ public static class SearchDocumentEndpoints
         .WithSummary("Autocomplete suggestions from the search term index");
 
         group.MapPost("/clicks", static async (
-            SearchClickRequest body, SearchService service, CancellationToken ct) =>
+            SearchClickRequest body, [FromServices] SearchService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.QueryAuditId) ||
                 string.IsNullOrWhiteSpace(body.ClickedResultId))

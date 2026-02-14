@@ -17,7 +17,7 @@ public static class AlertRuleEndpoints
         // --- Alert Rules ---
 
         group.MapGet("/rules", static async (
-            AlertRuleService service,
+            [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service,
             string? projectId, string? ruleType, bool? enabled,
             int? limit, CancellationToken ct) =>
         {
@@ -30,7 +30,7 @@ public static class AlertRuleEndpoints
         .WithSummary("List alert rules with filtering");
 
         group.MapGet("/rules/{ruleId}", static async (
-            string ruleId, AlertRuleService service, CancellationToken ct) =>
+            string ruleId, [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             var rule = await service.GetRuleByIdAsync(ruleId, ct).ConfigureAwait(false);
             return rule is null ? Results.NotFound() : Results.Ok(rule);
@@ -39,7 +39,7 @@ public static class AlertRuleEndpoints
         .WithSummary("Get a single alert rule by ID");
 
         group.MapPost("/rules", static async (
-            CreateAlertRuleRequest body, AlertRuleService service, CancellationToken ct) =>
+            CreateAlertRuleRequest body, [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.ProjectId) ||
                 string.IsNullOrWhiteSpace(body.Name) ||
@@ -65,7 +65,7 @@ public static class AlertRuleEndpoints
 
         group.MapPatch("/rules/{ruleId}/enabled", static async (
             string ruleId, RuleEnabledUpdate body,
-            AlertRuleService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             var updated = await service.SetRuleEnabledAsync(ruleId, body.Enabled, ct).ConfigureAwait(false);
             return updated ? Results.Ok() : Results.NotFound();
@@ -74,7 +74,7 @@ public static class AlertRuleEndpoints
         .WithSummary("Enable or disable an alert rule");
 
         group.MapDelete("/rules/{ruleId}", static async (
-            string ruleId, AlertRuleService service, CancellationToken ct) =>
+            string ruleId, [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteRuleAsync(ruleId, ct).ConfigureAwait(false);
             return deleted ? Results.NoContent() : Results.NotFound();
@@ -85,7 +85,7 @@ public static class AlertRuleEndpoints
         // --- Alert Firings ---
 
         group.MapGet("/firings", static async (
-            AlertRuleService service,
+            [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service,
             string? ruleId, string? status, int? limit,
             CancellationToken ct) =>
         {
@@ -98,7 +98,7 @@ public static class AlertRuleEndpoints
 
         group.MapPost("/firings/{firingId}/acknowledge", static async (
             string firingId, AcknowledgeRequest body,
-            AlertRuleService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.AcknowledgedBy))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -114,7 +114,7 @@ public static class AlertRuleEndpoints
         .WithSummary("Acknowledge a firing alert");
 
         group.MapPost("/firings/{firingId}/resolve", static async (
-            string firingId, AlertRuleService service, CancellationToken ct) =>
+            string firingId, [Microsoft.AspNetCore.Mvc.FromServices] AlertRuleService service, CancellationToken ct) =>
         {
             var resolved = await service.ResolveFiringAsync(firingId, ct).ConfigureAwait(false);
             return resolved ? Results.Ok() : Results.NotFound();

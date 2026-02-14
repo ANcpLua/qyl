@@ -447,7 +447,7 @@ app.MapPost("/v1/logs", async (
     try
     {
         var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportLogsServiceRequest>(
-            QylSerializerContext.Default.OtlpExportLogsServiceRequest);
+            cancellationToken: context.RequestAborted);
 
         if (otlpData?.ResourceLogs is null) return Results.BadRequest(new ErrorResponse("Invalid OTLP logs format"));
 
@@ -460,6 +460,9 @@ app.MapPost("/v1/logs", async (
     }
     catch (Exception ex)
     {
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("OtlpLogsEndpoint");
+        logger.LogWarning(ex, "Failed to process OTLP logs payload");
         return Results.BadRequest(new ErrorResponse("OTLP logs parse error", ex.Message));
     }
 });

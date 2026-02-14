@@ -17,7 +17,7 @@ public static class IssueEndpoints
         // --- Issue CRUD ---
 
         group.MapGet("/", static async (
-            IssueService service,
+            [Microsoft.AspNetCore.Mvc.FromServices] IssueService service,
             string? projectId, string? status, string? priority, string? level,
             string? assignedTo, int? limit, int? offset,
             CancellationToken ct) =>
@@ -33,7 +33,7 @@ public static class IssueEndpoints
         .WithSummary("List error issues with filtering");
 
         group.MapGet("/{issueId}", static async (
-            string issueId, IssueService service, CancellationToken ct) =>
+            string issueId, [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, CancellationToken ct) =>
         {
             var issue = await service.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             return issue is null ? Results.NotFound() : Results.Ok(issue);
@@ -45,7 +45,7 @@ public static class IssueEndpoints
 
         group.MapPatch("/{issueId}/status", static async (
             string issueId, IssueStatusTransition body,
-            IssueService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.Status))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -72,7 +72,7 @@ public static class IssueEndpoints
 
         group.MapPut("/{issueId}/assign", static async (
             string issueId, IssueAssignment body,
-            IssueService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.Owner))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -88,7 +88,7 @@ public static class IssueEndpoints
 
         group.MapPut("/{issueId}/priority", static async (
             string issueId, IssuePriorityUpdate body,
-            IssueService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(body.Priority))
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -105,7 +105,7 @@ public static class IssueEndpoints
         // --- Issue Events ---
 
         group.MapGet("/{issueId}/events", static async (
-            string issueId, IssueService service, int? limit, CancellationToken ct) =>
+            string issueId, [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, int? limit, CancellationToken ct) =>
         {
             var events = await service.GetEventsAsync(
                 issueId, Math.Clamp(limit ?? 100, 1, 1000), ct).ConfigureAwait(false);
@@ -118,7 +118,7 @@ public static class IssueEndpoints
 
         group.MapGet("/{issueId}/events/{eventId}/breadcrumbs", static async (
             string issueId, string eventId,
-            IssueService service, int? limit, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] IssueService service, int? limit, CancellationToken ct) =>
         {
             var breadcrumbs = await service.GetBreadcrumbsAsync(
                 eventId, Math.Clamp(limit ?? 200, 1, 1000), ct).ConfigureAwait(false);

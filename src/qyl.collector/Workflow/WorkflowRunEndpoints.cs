@@ -17,7 +17,7 @@ public static class WorkflowRunEndpoints
         // --- Workflow Runs ---
 
         group.MapGet("/", static async (
-            WorkflowRunService service,
+            [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service,
             string? projectId, string? workflowId, string? status,
             string? triggerType, int? limit, int? offset,
             CancellationToken ct) =>
@@ -33,7 +33,7 @@ public static class WorkflowRunEndpoints
         .WithSummary("List workflow runs with filtering");
 
         group.MapGet("/{runId}", static async (
-            string runId, WorkflowRunService service, CancellationToken ct) =>
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var run = await service.GetRunByIdAsync(runId, ct).ConfigureAwait(false);
             return run is null ? Results.NotFound() : Results.Ok(run);
@@ -44,7 +44,7 @@ public static class WorkflowRunEndpoints
         // --- Workflow Nodes ---
 
         group.MapGet("/{runId}/nodes", static async (
-            string runId, WorkflowRunService service, CancellationToken ct) =>
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var nodes = await service.GetNodesAsync(runId, ct).ConfigureAwait(false);
             return Results.Ok(new { items = nodes, total = nodes.Count });
@@ -55,7 +55,7 @@ public static class WorkflowRunEndpoints
         // --- Workflow Events ---
 
         group.MapGet("/{runId}/events", static async (
-            string runId, WorkflowRunService service,
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service,
             long? afterSequence, int? limit, CancellationToken ct) =>
         {
             var events = await service.GetEventsAsync(
@@ -68,7 +68,7 @@ public static class WorkflowRunEndpoints
         // --- Workflow Checkpoints ---
 
         group.MapGet("/{runId}/checkpoints", static async (
-            string runId, WorkflowRunService service, CancellationToken ct) =>
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var checkpoints = await service.GetCheckpointsAsync(runId, ct).ConfigureAwait(false);
             return Results.Ok(new { items = checkpoints, total = checkpoints.Count });
@@ -79,7 +79,7 @@ public static class WorkflowRunEndpoints
         // --- Resume / Approve / Cancel ---
 
         group.MapPost("/{runId}/resume", static async (
-            string runId, WorkflowRunService service, CancellationToken ct) =>
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var resumed = await service.ResumeRunAsync(runId, ct).ConfigureAwait(false);
             return resumed
@@ -91,7 +91,7 @@ public static class WorkflowRunEndpoints
 
         group.MapPost("/{runId}/nodes/{nodeId}/approve", static async (
             string runId, string nodeId,
-            WorkflowRunService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var approved = await service.ApproveNodeAsync(runId, nodeId, ct).ConfigureAwait(false);
             return approved
@@ -102,7 +102,7 @@ public static class WorkflowRunEndpoints
         .WithSummary("Approve a workflow node awaiting human approval");
 
         group.MapPost("/{runId}/cancel", static async (
-            string runId, WorkflowRunService service, CancellationToken ct) =>
+            string runId, [Microsoft.AspNetCore.Mvc.FromServices] WorkflowRunService service, CancellationToken ct) =>
         {
             var cancelled = await service.CancelRunAsync(runId, ct).ConfigureAwait(false);
             return cancelled

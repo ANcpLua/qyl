@@ -20,21 +20,21 @@ public static class ProvisioningEndpoints
     private static void MapProfileRoutes(RouteGroupBuilder group)
     {
         group.MapGet("/profiles", static async (
-            GenerationProfileService service, CancellationToken ct) =>
+            [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var profiles = await service.GetProfilesAsync(ct);
             return Results.Ok(new { items = profiles, total = profiles.Count });
         });
 
         group.MapGet("/profiles/{profileId}", static async (
-            string profileId, GenerationProfileService service, CancellationToken ct) =>
+            string profileId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var profile = await service.GetProfileAsync(profileId, ct);
             return profile is null ? Results.NotFound() : Results.Ok(profile);
         });
 
         group.MapPost("/selections", static async (
-            GenerationSelectionRequest request, GenerationProfileService service, CancellationToken ct) =>
+            GenerationSelectionRequest request, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -54,7 +54,7 @@ public static class ProvisioningEndpoints
         });
 
         group.MapGet("/selections/{workspaceId}", static async (
-            string workspaceId, GenerationProfileService service, CancellationToken ct) =>
+            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var selection = await service.GetSelectionAsync(workspaceId, ct);
             return selection is null ? Results.NotFound() : Results.Ok(selection);
@@ -68,7 +68,7 @@ public static class ProvisioningEndpoints
     private static void MapJobRoutes(RouteGroupBuilder group)
     {
         group.MapPost("/jobs", static async (
-            GenerationJobRequest request, GenerationProfileService service, CancellationToken ct) =>
+            GenerationJobRequest request, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -88,14 +88,14 @@ public static class ProvisioningEndpoints
         });
 
         group.MapGet("/jobs/{jobId}", static async (
-            string jobId, GenerationProfileService service, CancellationToken ct) =>
+            string jobId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var job = await service.GetJobAsync(jobId, ct);
             return job is null ? Results.NotFound() : Results.Ok(job);
         });
 
         group.MapGet("/jobs", static async (
-            string workspaceId, GenerationProfileService service,
+            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service,
             int? limit, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(workspaceId))
@@ -106,7 +106,7 @@ public static class ProvisioningEndpoints
         });
 
         group.MapPost("/jobs/{jobId}/cancel", static async (
-            string jobId, GenerationProfileService service, CancellationToken ct) =>
+            string jobId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var cancelled = await service.CancelJobAsync(jobId, ct);
             return cancelled
