@@ -168,10 +168,10 @@ function SyntaxHighlighter({content, type}: {content: string; type: ContentType}
 
     return (
         <pre className="text-sm font-mono whitespace-pre-wrap overflow-x-auto">
-            {typeof highlighted === "string" ? (
-                highlighted
-            ) : (
+            {type === "json" || type === "xml" ? (
                 <code dangerouslySetInnerHTML={{__html: highlighted}}/>
+            ) : (
+                <code>{content}</code>
             )}
         </pre>
     );

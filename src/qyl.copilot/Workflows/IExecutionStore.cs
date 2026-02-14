@@ -37,4 +37,10 @@ public interface IExecutionStore
         WorkflowStatus? status = null,
         int limit = 50,
         CancellationToken ct = default);
+
+    /// <summary>
+    ///     Persists a checkpoint for durable workflow recovery.
+    ///     Default implementation is no-op; override for durable storage.
+    /// </summary>
+    Task SaveCheckpointAsync(CheckpointData checkpoint, CancellationToken ct = default) => Task.CompletedTask;
 }

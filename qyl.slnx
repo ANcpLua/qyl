@@ -76,6 +76,8 @@
         <Project Path="src/qyl.watch/qyl.watch.csproj"/>
         <Project Path="src/qyl.cli/qyl.cli.csproj"/>
         <Project Path="src/qyl.watchdog/qyl.watchdog.csproj"/>
+        <Project Path="src/qyl.Analyzers/qyl.Analyzers.csproj"/>
+        <Project Path="src/qyl.Analyzers.CodeFixes/qyl.Analyzers.CodeFixes.csproj"/>
         <File Path="src/qyl.protocol/CLAUDE.md"/>
         <File Path="src/qyl.collector/CLAUDE.md"/>
         <File Path="src/qyl.copilot/CLAUDE.md"/>

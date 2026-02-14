@@ -11,6 +11,7 @@ import {
     MessageSquare,
     Network,
     Radio,
+    Search,
     Settings,
     Sparkles,
     Terminal,
@@ -33,6 +34,7 @@ const navItems: NavItem[] = [
     {to: '/traces', icon: Network, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
+    {to: '/search', icon: Search, label: 'SEARCH', shortcut: '/'},
 ];
 
 const dashboardIconMap: Record<string, LucideIcon> = {

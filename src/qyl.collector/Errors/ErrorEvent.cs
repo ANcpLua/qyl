@@ -12,6 +12,12 @@ public sealed record ErrorEvent
     public string? GenAiProvider { get; init; }
     public string? GenAiModel { get; init; }
     public string? GenAiOperation { get; init; }
+    public string? GenAiFinishReasons { get; init; }
+    public string? GenAiToolName { get; init; }
+    public long? GenAiInputTokens { get; init; }
+    public long? GenAiOutputTokens { get; init; }
+    public string? GenAiAgentName { get; init; }
+    public string? GenAiAgentId { get; init; }
 }
 
 public sealed record ErrorRow

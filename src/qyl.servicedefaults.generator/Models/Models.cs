@@ -241,6 +241,40 @@ internal sealed record MetricTagParameter(
 
 #endregion
 
+#region Agent Call Site Types
+
+/// <summary>
+///     The kind of Microsoft.Agents.AI call being intercepted.
+/// </summary>
+internal enum AgentCallKind
+{
+    /// <summary>AIAgent.InvokeAsync / ChatClientAgent.InvokeAsync</summary>
+    InvokeAsync,
+
+    /// <summary>AIAgentBuilder.AddAgent / UseAgent / ConfigureAgent</summary>
+    BuilderRegistration,
+
+    /// <summary>[AgentTraced]-decorated method</summary>
+    AgentTracedMethod
+}
+
+/// <summary>
+///     A discovered Microsoft.Agents.AI call site ready for instrumentation.
+/// </summary>
+internal sealed record AgentCallSite(
+    string SortKey,
+    string? AgentName,
+    AgentCallKind Kind,
+    string ContainingTypeName,
+    string MethodName,
+    bool IsAsync,
+    string ReturnTypeName,
+    EquatableArray<string> ParameterTypes,
+    EquatableArray<string> ParameterNames,
+    InterceptableLocation Location);
+
+#endregion
+
 #region Traced Call Site Types
 
 /// <summary>

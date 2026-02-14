@@ -17,9 +17,19 @@ public static class ErrorExtractor
         var stackTrace = attrs.GetValueOrDefault("exception.stacktrace");
         var genAiErrorType = attrs.GetValueOrDefault("gen_ai.error.type");
         var genAiOperation = attrs.GetValueOrDefault("gen_ai.operation.name");
+        var genAiFinishReasons = attrs.GetValueOrDefault("gen_ai.response.finish_reasons");
+        var genAiToolName = span.GenAiToolName ?? attrs.GetValueOrDefault("gen_ai.tool.name");
+        var genAiAgentName = attrs.GetValueOrDefault("gen_ai.agent.name");
+        var genAiAgentId = attrs.GetValueOrDefault("gen_ai.agent.id");
 
-        var category = ErrorCategorizer.Categorize(exceptionType, genAiErrorType);
-        var fingerprint = ErrorFingerprinter.Compute(exceptionType, exceptionMessage, stackTrace, genAiOperation);
+        var category = ErrorCategorizer.Categorize(exceptionType, genAiErrorType, genAiFinishReasons, exceptionMessage);
+        var fingerprint = ErrorFingerprinter.Compute(
+            exceptionType, exceptionMessage, stackTrace,
+            genAiOperation,
+            genAiProvider: span.GenAiProviderName,
+            genAiModel: span.GenAiRequestModel,
+            finishReason: genAiFinishReasons,
+            category: category);
 
         return new ErrorEvent
         {
@@ -33,6 +43,12 @@ public static class ErrorExtractor
             GenAiProvider = span.GenAiProviderName,
             GenAiModel = span.GenAiRequestModel,
             GenAiOperation = genAiOperation,
+            GenAiFinishReasons = genAiFinishReasons,
+            GenAiToolName = genAiToolName,
+            GenAiInputTokens = span.GenAiInputTokens,
+            GenAiOutputTokens = span.GenAiOutputTokens,
+            GenAiAgentName = genAiAgentName,
+            GenAiAgentId = genAiAgentId,
         };
     }
 

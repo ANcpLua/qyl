@@ -68,7 +68,10 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftCodeAnalysisAnalyzersVersion)"/>
     <!-- Roslyn Utilities -->
     <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities.Polyfills" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
     <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsVersion)"/>

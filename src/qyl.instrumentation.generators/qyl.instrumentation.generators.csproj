@@ -3,8 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <!-- SDK provides LangVersion, ImplicitUsings, Nullable for netstandard2.0 -->
-    <!-- Enable polyfills for C# 14 language features (records, required, etc.) -->
-    <InjectANcpLuaLanguageFeaturesPolyfills>true</InjectANcpLuaLanguageFeaturesPolyfills>
+    <!-- Polyfills (IsExternalInit) in Polyfills.cs -->
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
     <IncludeBuildOutput>false</IncludeBuildOutput>

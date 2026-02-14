@@ -1,5 +1,6 @@
 using qyl.collector.Auth;
 using qyl.collector.BuildFailures;
+using qyl.collector.Search;
 
 namespace qyl.collector;
 
@@ -98,4 +99,10 @@ namespace qyl.collector;
 [JsonSerializable(typeof(BuildFailureIngestRequest))]
 [JsonSerializable(typeof(BuildFailureResponse))]
 [JsonSerializable(typeof(BuildFailureResponse[]))]
+// Search types
+[JsonSerializable(typeof(SearchQuery))]
+[JsonSerializable(typeof(SearchResult))]
+[JsonSerializable(typeof(IReadOnlyList<SearchResult>))]
+[JsonSerializable(typeof(SearchSuggestion))]
+[JsonSerializable(typeof(IReadOnlyList<SearchSuggestion>))]
 public partial class QylSerializerContext : JsonSerializerContext;

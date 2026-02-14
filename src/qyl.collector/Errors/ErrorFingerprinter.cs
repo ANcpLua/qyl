@@ -8,7 +8,11 @@ public static partial class ErrorFingerprinter
         string exceptionType,
         string message,
         string? stackTrace,
-        string? genAiOperation = null)
+        string? genAiOperation = null,
+        string? genAiProvider = null,
+        string? genAiModel = null,
+        string? finishReason = null,
+        string? category = null)
     {
         var normalizedStack = NormalizeStackTrace(stackTrace);
         var normalizedMessage = NormalizeMessage(message);
@@ -16,6 +20,33 @@ public static partial class ErrorFingerprinter
         var input = $"{exceptionType}\n{normalizedMessage}\n{normalizedStack}";
         if (!string.IsNullOrEmpty(genAiOperation))
             input = $"{input}\n{genAiOperation}";
+
+        // GenAI-aware grouping: add dimensions based on error category
+        if (!string.IsNullOrEmpty(category))
+        {
+            switch (category)
+            {
+                case "rate_limit" when !string.IsNullOrEmpty(genAiProvider):
+                    // Group rate limit errors by provider (same provider = same fingerprint)
+                    input = $"rate_limit\n{genAiProvider}";
+                    break;
+                case "content_filter" when !string.IsNullOrEmpty(genAiModel):
+                    // Group content filter errors by model
+                    input = $"content_filter\n{genAiModel}";
+                    break;
+                case "token_limit" when !string.IsNullOrEmpty(genAiModel):
+                    // Group token limit errors by model
+                    input = $"token_limit\n{genAiModel}";
+                    break;
+                default:
+                    // For other GenAI errors, include provider and finish reason as dimensions
+                    if (!string.IsNullOrEmpty(genAiProvider))
+                        input = $"{input}\n{genAiProvider}";
+                    if (!string.IsNullOrEmpty(finishReason))
+                        input = $"{input}\n{finishReason}";
+                    break;
+            }
+        }
 
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexStringLower(hash)[..16]; // 64-bit fingerprint

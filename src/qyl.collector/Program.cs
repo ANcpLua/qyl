@@ -8,13 +8,22 @@ using qyl.collector.Health;
 using qyl.collector.Insights;
 using qyl.collector.Alerting;
 using qyl.collector.Dashboards;
+using qyl.collector.Search;
 using qyl.collector.Telemetry;
 using qyl.copilot;
 using qyl.copilot.Auth;
 using System.Reflection;
 using qyl.collector.Dashboard;
 using qyl.collector.Meta;
+using qyl.collector.AgentRuns;
+using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
+using qyl.collector.Errors;
+using qyl.collector.Identity;
+using qyl.collector.Provisioning;
+using qyl.collector.SchemaControl;
+using qyl.collector.Storage;
+using qyl.collector.Workflow;
 using Qyl.ServiceDefaults;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
@@ -145,6 +154,30 @@ builder.Services.AddHostedService<InsightsMaterializerService>();
 
 // SQL alerting: YAML-defined rules, periodic evaluation, webhook/console/SSE notifications
 builder.Services.AddAlertingServices();
+
+// Schema control: plan and apply additive schema promotions
+builder.Services.AddSingleton<SchemaPlanner>();
+builder.Services.AddSingleton<SchemaExecutor>();
+
+// Identity + workspace services
+builder.Services.AddSingleton<WorkspaceService>();
+builder.Services.AddSingleton<HandshakeService>();
+
+// Provisioning: profiles + code generation
+builder.Services.AddSingleton<ProfileService>();
+builder.Services.AddSingleton<GenerationProfileService>();
+builder.Services.AddSingleton<GenerationJobService>();
+
+// Error issue engine + lifecycle + autofix
+builder.Services.AddSingleton<IssueService>();
+builder.Services.AddSingleton<ErrorLifecycleService>();
+builder.Services.AddSingleton<AutofixOrchestrator>();
+
+// Workflow run service
+builder.Services.AddSingleton<WorkflowRunService>();
+
+// Alert rule service
+builder.Services.AddSingleton<AlertRuleService>();
 
 // Auto-generated dashboards: telemetry detection, dynamic widgets
 builder.Services.AddDashboardServices();
@@ -612,7 +645,19 @@ app.MapPost("/api/v1/metrics/query", () =>
 app.MapGet("/api/v1/metrics/{metricName}", (string metricName) =>
     Results.NotFound());
 
+app.MapSchemaEndpoints();
+app.MapSearchEndpoints();
+app.MapSearchDocumentEndpoints();
 app.MapErrorEndpoints();
+app.MapIdentityEndpoints();
+app.MapProvisioningEndpoints();
+app.MapIssueEndpoints();
+app.MapAutofixEndpoints();
+app.MapWorkflowEndpoints();
+app.MapWorkflowRunEndpoints();
+app.MapWorkflowEventEndpoints();
+app.MapAlertRuleEndpoints();
+app.MapAgentRunEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {

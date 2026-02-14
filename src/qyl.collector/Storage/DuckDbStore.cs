@@ -9,7 +9,7 @@ namespace qyl.collector.Storage;
 ///     - Pooled read connections (parallel queries, bounded concurrency)
 ///     - Schema aligned with generated DuckDbSchema.g.cs (OTel 1.39)
 /// </summary>
-public sealed class DuckDbStore : IAsyncDisposable
+public sealed partial class DuckDbStore : IAsyncDisposable
 {
     // ==========================================================================
     // Multi-Row Batch Insert Constants
@@ -192,6 +192,37 @@ public sealed class DuckDbStore : IAsyncDisposable
     /// </summary>
     public ValueTask<ReadLease> GetReadConnectionAsync(CancellationToken ct = default) =>
         RentReadAsync(ct);
+
+    // ==========================================================================
+    // Generic Write Channel
+    // ==========================================================================
+
+    /// <summary>
+    ///     Executes a write operation through the serialized write channel.
+    ///     Use this for any INSERT/UPDATE/DELETE that must go through the single writer.
+    /// </summary>
+    public async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<T>(operation);
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Executes a write operation through the serialized write channel (no return value).
+    /// </summary>
+    public async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation, CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, token) =>
+        {
+            await operation(con, token).ConfigureAwait(false);
+            return 0;
+        });
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
 
     // ==========================================================================
     // Span Operations
@@ -1598,6 +1629,29 @@ public sealed class DuckDbStore : IAsyncDisposable
             CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
             """;
         errorsCmd.ExecuteNonQuery();
+
+        // Identity domain: workspaces, projects, environments, handshake challenges
+        using var identityCmd = con.CreateCommand();
+        identityCmd.CommandText = $"""
+            {DuckDbSchema.WorkspacesDdl}
+            {DuckDbSchema.ProjectsDdl}
+            {DuckDbSchema.ProjectEnvironmentsDdl}
+            {DuckDbSchema.HandshakeChallengesDdl}
+            """;
+        identityCmd.ExecuteNonQuery();
+
+        // Provisioning domain: config selections, generation jobs
+        using var provisioningCmd = con.CreateCommand();
+        provisioningCmd.CommandText = $"""
+            {DuckDbSchema.ConfigSelectionsDdl}
+            {DuckDbSchema.GenerationJobsDdl}
+            """;
+        provisioningCmd.ExecuteNonQuery();
+
+        // Issue lifecycle events
+        using var issueEventsCmd = con.CreateCommand();
+        issueEventsCmd.CommandText = IssueEventsDdl;
+        issueEventsCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

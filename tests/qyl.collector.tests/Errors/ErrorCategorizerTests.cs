@@ -21,7 +21,7 @@ public sealed class ErrorCategorizerTests
 
     [Theory]
     [InlineData("rate_limit_exceeded", "rate_limit")]
-    [InlineData("context_length_exceeded", "validation")]
+    [InlineData("context_length_exceeded", "token_limit")]
     [InlineData("authentication_error", "auth")]
     [InlineData("insufficient_quota", "rate_limit")]
     [InlineData("model_overloaded", "external")]

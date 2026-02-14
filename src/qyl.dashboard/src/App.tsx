@@ -2,7 +2,23 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
-import {DashboardPage, GenAIPage, LoginPage, LogsPage, ResourcesPage, SettingsPage, TracesPage,} from '@/pages';
+import {
+    AgentRunDetailPage,
+    AgentRunsPage,
+    DashboardPage,
+    GenAIPage,
+    IssueDetailPage,
+    IssuesPage,
+    LoginPage,
+    LogsPage,
+    OnboardingPage,
+    ResourcesPage,
+    SearchPage,
+    SettingsPage,
+    TracesPage,
+    WorkflowRunDetailPage,
+    WorkflowRunsPage,
+} from '@/pages';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -29,7 +45,15 @@ export default function App() {
                         <Route path="/logs" element={<LogsPage/>}/>
                         <Route path="/genai" element={<GenAIPage/>}/>
                         <Route path="/dashboards/:id" element={<DashboardPage/>}/>
+                        <Route path="/search" element={<SearchPage/>}/>
                         <Route path="/settings" element={<SettingsPage/>}/>
+                        <Route path="/agents" element={<AgentRunsPage/>}/>
+                        <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
+                        <Route path="/issues" element={<IssuesPage/>}/>
+                        <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
+                        <Route path="/workflows" element={<WorkflowRunsPage/>}/>
+                        <Route path="/workflows/:runId" element={<WorkflowRunDetailPage/>}/>
+                        <Route path="/onboarding" element={<OnboardingPage/>}/>
                     </Route>
                 </Routes>
             </BrowserRouter>
