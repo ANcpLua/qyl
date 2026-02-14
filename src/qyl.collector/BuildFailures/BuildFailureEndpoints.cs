@@ -101,8 +101,11 @@ public static class BuildFailureEndpoints
 
         const string bearerPrefix = "Bearer ";
         var auth = authValues[0];
-        if (!auth.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(auth) ||
+            !auth.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+        {
             return false;
+        }
 
         var token = auth[bearerPrefix.Length..].Trim();
         return string.Equals(token, expected, StringComparison.Ordinal);

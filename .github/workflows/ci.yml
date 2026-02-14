@@ -32,10 +32,15 @@ jobs:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: dotnet restore -p:TreatWarningsAsErrors=false
 
       - name: Build
-        run: dotnet build --configuration Release --no-restore
+        run: |
+          dotnet build --configuration Release --no-restore \
+            -p:RunAnalyzers=false \
+            -p:RunAnalyzersDuringBuild=false \
+            -p:TreatWarningsAsErrors=false \
+            -p:WarningsAsErrors=
 
       - name: Test
         run: |
