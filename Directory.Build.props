@@ -29,8 +29,8 @@
   <PropertyGroup>
     <!-- We maintain our own CLAUDE.md files with @import inheritance -->
     <GenerateClaudeMd>false</GenerateClaudeMd>
-    <!-- Throw.IfNull() etc. from SDK -->
-    <InjectSharedThrow>true</InjectSharedThrow>
+    <!-- Guard.NotNull() etc. from ANcpLua.Roslyn.Utilities -->
+    <InjectSharedThrow>false</InjectSharedThrow>
     <!-- Override SDK-injected analyzer version (ahead of SDK 2.0.6 which ships 1.14.0) -->
     <ANcpLuaAnalyzersVersion>1.16.0</ANcpLuaAnalyzersVersion>
   </PropertyGroup>

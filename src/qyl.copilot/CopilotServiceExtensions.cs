@@ -31,7 +31,7 @@ public static class CopilotServiceExtensions
         this IServiceCollection services,
         Action<CopilotOptions>? configure = null)
     {
-        Throw.IfNull(services);
+        Guard.NotNull(services);
 
         var options = new CopilotOptions();
         configure?.Invoke(options);
@@ -75,7 +75,7 @@ public static class CopilotServiceExtensions
     /// </summary>
     public static TracerProviderBuilder AddQylCopilotInstrumentation(this TracerProviderBuilder builder)
     {
-        Throw.IfNull(builder);
+        Guard.NotNull(builder);
 
         return builder
             .AddSource(CopilotInstrumentation.SourceName)
@@ -89,7 +89,7 @@ public static class CopilotServiceExtensions
     /// </summary>
     public static MeterProviderBuilder AddQylCopilotMetrics(this MeterProviderBuilder builder)
     {
-        Throw.IfNull(builder);
+        Guard.NotNull(builder);
 
         return builder.AddMeter(CopilotInstrumentation.MeterName);
     }
@@ -112,7 +112,7 @@ public static class CopilotServiceExtensions
     /// </example>
     public static IServiceCollection AddQylCopilotTelemetry(this IServiceCollection services)
     {
-        Throw.IfNull(services);
+        Guard.NotNull(services);
 
         services.AddOpenTelemetry()
             .WithTracing(static builder => builder
@@ -168,7 +168,7 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
     /// </summary>
     public CopilotAdapterFactory(CopilotOptions options, IReadOnlyList<AITool>? tools = null)
     {
-        _options = Throw.IfNull(options);
+        _options = Guard.NotNull(options);
         _tools = tools;
     }
 
@@ -249,8 +249,8 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
         Func<CancellationToken, ValueTask<QylCopilotAdapter>> getAdapterAsync,
         IExecutionStore? executionStore = null)
     {
-        _options = Throw.IfNull(options);
-        _getAdapterAsync = Throw.IfNull(getAdapterAsync);
+        _options = Guard.NotNull(options);
+        _getAdapterAsync = Guard.NotNull(getAdapterAsync);
         _executionStore = executionStore;
     }
 

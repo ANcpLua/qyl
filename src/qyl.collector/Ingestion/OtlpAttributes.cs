@@ -288,7 +288,7 @@ public static class SchemaNormalizer
 
     public static Dictionary<string, object?> NormalizeAttributes(IDictionary<string, object?> attributes)
     {
-        Throw.IfNull(attributes);
+        Guard.NotNull(attributes);
 
         var result = new Dictionary<string, object?>(attributes.Count, StringComparer.Ordinal);
 

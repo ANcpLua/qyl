@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using qyl.collector.Ingestion;
@@ -103,6 +104,64 @@ public sealed class OtlpIngestionTests(QylWebApplicationFactory factory)
     // =========================================================================
     // Native /api/v1/ingest Endpoint
     // =========================================================================
+
+    [Fact]
+    public async Task PostLogs_WithCodeAttributes_StoresSourceFields()
+    {
+        var now = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds();
+        var request = new OtlpExportLogsServiceRequest
+        {
+            ResourceLogs =
+            [
+                new OtlpResourceLogs
+                {
+                    Resource = new OtlpResource
+                    {
+                        Attributes =
+                        [
+                            new OtlpKeyValue
+                            {
+                                Key = "service.name",
+                                Value = new OtlpAnyValue { StringValue = "test-service" }
+                            }
+                        ]
+                    },
+                    ScopeLogs =
+                    [
+                        new OtlpScopeLogs
+                        {
+                            LogRecords =
+                            [
+                                new OtlpLogRecord
+                                {
+                                    TimeUnixNano = (ulong)now * 1_000_000UL,
+                                    SeverityNumber = 17,
+                                    SeverityText = "ERROR",
+                                    Body = new OtlpAnyValue { StringValue = "failure" },
+                                    Attributes =
+                                    [
+                                        new OtlpKeyValue { Key = "code.file.path", Value = new OtlpAnyValue { StringValue = "src/Foo.cs" } },
+                                        new OtlpKeyValue { Key = "code.line.number", Value = new OtlpAnyValue { IntValue = 21 } },
+                                        new OtlpKeyValue { Key = "code.function.name", Value = new OtlpAnyValue { StringValue = "Foo.Bar" } }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var post = await Client.PostAsJsonAsync("/v1/logs", request);
+        Assert.Equal(HttpStatusCode.Accepted, post.StatusCode);
+
+        var get = await Client.GetAsync("/api/v1/logs?limit=5");
+        Assert.Equal(HttpStatusCode.OK, get.StatusCode);
+
+        var json = await get.Content.ReadAsStringAsync();
+        Assert.Contains("src/Foo.cs", json, StringComparison.Ordinal);
+        Assert.Contains("Foo.Bar", json, StringComparison.Ordinal);
+    }
 
     [Fact]
     public async Task PostIngest_ValidSpanBatch_ReturnsAccepted()

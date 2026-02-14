@@ -23,7 +23,7 @@ public sealed class OTelAttribute(string name) : Attribute
     /// <summary>
     ///     Gets the OpenTelemetry semantic convention attribute name.
     /// </summary>
-    public string Name { get; } = Throw.IfNull(name);
+    public string Name { get; } = Guard.NotNull(name);
 
     /// <summary>
     ///     Gets or sets a value indicating whether this attribute should be skipped if the value is null.

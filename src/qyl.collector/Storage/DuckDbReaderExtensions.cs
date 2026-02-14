@@ -337,6 +337,10 @@ public sealed record LogStorageRow
     public string? ServiceName { get; init; }
     public string? AttributesJson { get; init; }
     public string? ResourceJson { get; init; }
+    public string? SourceFile { get; init; }
+    public int? SourceLine { get; init; }
+    public int? SourceColumn { get; init; }
+    public string? SourceMethod { get; init; }
     public DateTimeOffset? CreatedAt { get; init; }
 }
 

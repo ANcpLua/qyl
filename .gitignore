@@ -74,6 +74,8 @@ Thumbs.db
 *.duckdb.wal
 *.parquet
 qyl.duckdb/
+.qyl/binlogs/
+.qyl/build-failures-spool.jsonl
 
 # Environment and secrets
 .env

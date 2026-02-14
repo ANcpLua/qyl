@@ -10,6 +10,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Using Include="ANcpLua.Roslyn.Utilities"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="qyl.collector.tests"/>
   </ItemGroup>
 

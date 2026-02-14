@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using qyl.collector.Auth;
 using qyl.collector.Query;
 using qyl.collector.Storage;
+using System.Collections.Concurrent;
 
 namespace qyl.collector.tests.Integration;
 
@@ -37,6 +38,11 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
             if (authDescriptor is not null)
                 services.Remove(authDescriptor);
 
+            // Remove production build failure store (uses file-backed DuckDB connection).
+            var buildFailureStoreDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IBuildFailureStore));
+            if (buildFailureStoreDescriptor is not null)
+                services.Remove(buildFailureStoreDescriptor);
+
             // Add test token auth
             services.AddSingleton(new TokenAuthOptions
             {
@@ -56,6 +62,8 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
                 var store = sp.GetRequiredService<DuckDbStore>();
                 return new SessionQueryService(store);
             });
+
+            services.AddSingleton<IBuildFailureStore, InMemoryBuildFailureStore>();
         });
     }
 
@@ -64,5 +72,45 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
         if (disposing)
             _store?.DisposeAsync().AsTask().GetAwaiter().GetResult();
         base.Dispose(disposing);
+    }
+}
+
+internal sealed class InMemoryBuildFailureStore : IBuildFailureStore
+{
+    private readonly ConcurrentDictionary<string, BuildFailureRecord> _records = new(StringComparer.Ordinal);
+
+    public Task<string> InsertAsync(BuildFailureRecord record, CancellationToken ct = default)
+    {
+        var id = string.IsNullOrWhiteSpace(record.Id) ? Guid.NewGuid().ToString("N") : record.Id;
+        _records[id] = record with { Id = id };
+        return Task.FromResult(id);
+    }
+
+    public Task<BuildFailureRecord?> GetAsync(string id, CancellationToken ct = default)
+    {
+        _records.TryGetValue(id, out var record);
+        return Task.FromResult(record);
+    }
+
+    public Task<IReadOnlyList<BuildFailureRecord>> ListAsync(int limit = 10, CancellationToken ct = default)
+    {
+        IReadOnlyList<BuildFailureRecord> result = _records.Values
+            .OrderByDescending(static r => r.Timestamp)
+            .Take(Math.Clamp(limit, 1, 500))
+            .ToArray();
+        return Task.FromResult(result);
+    }
+
+    public Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50, CancellationToken ct = default)
+    {
+        IReadOnlyList<BuildFailureRecord> result = _records.Values
+            .Where(r =>
+                (r.ErrorSummary?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.PropertyIssuesJson?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                (r.CallStackJson?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false))
+            .OrderByDescending(static r => r.Timestamp)
+            .Take(Math.Clamp(limit, 1, 500))
+            .ToArray();
+        return Task.FromResult(result);
     }
 }

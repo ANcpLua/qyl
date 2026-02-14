@@ -9,8 +9,7 @@
     <!-- Suppress naming convention for intentional lowercase namespace -->
     <NoWarn>$(NoWarn);IDE1006</NoWarn>
 
-    <!-- SDK injection features -->
-    <InjectSharedThrow>true</InjectSharedThrow>
+    <!-- SDK injection features (Guard.NotNull from Roslyn.Utilities used in consuming projects) -->
     <!-- Note: Inject*OnLegacy properties removed - not needed for net10.0 single-TFM -->
 
     <!-- CLAUDE.md v2 generation available - enable with GenerateClaudeMd=true -->

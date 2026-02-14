@@ -56,6 +56,19 @@ Priority build to surpass Sentry. Backend engine first, shells light up automati
 
 DuckDB via `DuckDB.NET.Data.Full`. Tables: `spans`, `logs`, `session_entities`, `errors`.
 
+Build failure diagnostics:
+- `build_failures` table stores captured `dotnet build/test` failures, binlog paths, and parsed metadata.
+- REST endpoints:
+  - `POST /api/v1/build-failures`
+  - `GET /api/v1/build-failures`
+  - `GET /api/v1/build-failures/{id}`
+  - `GET /api/v1/build-failures/search?pattern=...`
+
+Structured log source enrichment:
+- `logs` now includes `source_file`, `source_line`, `source_column`, `source_method`.
+- Enrichment uses normalized `code.*` OTLP attributes first, then stacktrace/PDB best-effort fallback.
+- Missing symbols degrade gracefully (null source fields; ingestion still succeeds).
+
 Write path: channel-buffered single writer, batched multi-row INSERT (100 spans/batch, 200 logs/batch).
 Read path: pooled connections with bounded concurrency.
 

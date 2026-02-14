@@ -39,7 +39,7 @@ public static class GenAiInstrumentation
         string? sourceName = null,
         bool? enableSensitiveData = null)
     {
-        Throw.IfNull(client);
+        Guard.NotNull(client);
 
         // Don't double-wrap
         if (client is OpenTelemetryChatClient)

@@ -39,6 +39,8 @@
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full" />
+    <PackageReference Include="MSBuild.StructuredLogger" />
+    <PackageReference Include="System.Reflection.Metadata" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>
 
@@ -88,6 +90,13 @@
   <!-- Source generators (compile-time only) -->
   <ItemGroup>
     <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Storage/Migrations/*.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

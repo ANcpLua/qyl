@@ -39,6 +39,9 @@ qyl is an OS. MCP is the AI-native shell. While the browser and terminal are hum
 | `qyl.list_structured_logs` | OTLP log records |
 | `qyl.list_trace_logs` | Logs for a trace |
 | `qyl.search_logs` | Search logs by text |
+| `qyl.list_build_failures` | List captured build failures |
+| `qyl.get_build_failure` | Detailed build failure report |
+| `qyl.search_build_failures` | Search build failures |
 | `qyl.get_storage_stats` | Database statistics |
 | `qyl.health_check` | Collector health |
 | `qyl.search_spans` | General span query |
@@ -67,3 +70,8 @@ qyl is an OS. MCP is the AI-native shell. While the browser and terminal are hum
 - No ProjectReference to collector — HTTP only
 - AOT-compatible code only
 - stdio transport for MCP compliance
+
+## Build Diagnostics Notes
+
+- `qyl.list_build_failures`, `qyl.get_build_failure`, and `qyl.search_build_failures` query collector build-failure endpoints.
+- `qyl.list_structured_logs` renders source location hints when collector provides `source_file` and `source_line`.

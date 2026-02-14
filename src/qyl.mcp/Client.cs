@@ -81,7 +81,7 @@ public static class A2ACardResolver
         HttpClient? httpClient = null,
         CancellationToken cancellationToken = default)
     {
-        Throw.IfNull(baseUrl);
+        Guard.NotNull(baseUrl);
 
         var client = httpClient ?? SSharedClient;
         var cardUrl = new Uri(baseUrl, agentCardPath.TrimStart('/'));

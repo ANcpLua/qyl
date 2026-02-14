@@ -49,6 +49,7 @@
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
     <!-- System -->
     <PackageVersion Include="System.IO.Hashing" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="System.Reflection.Metadata" Version="$(DotNetRuntimeVersion)"/>
     <!-- DuckDB -->
     <PackageVersion Include="DuckDB.NET.Data.Full" Version="$(DuckDBVersion)"/>
     <!-- gRPC & Protobuf -->
@@ -85,6 +86,7 @@
     <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="$(MicrosoftAgentsAuthVersion)"/>
     <!-- MCP & AI Clients -->
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)"/>
+    <PackageVersion Include="MSBuild.StructuredLogger" Version="$(MSBuildStructuredLoggerVersion)"/>
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)"/>
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)"/>

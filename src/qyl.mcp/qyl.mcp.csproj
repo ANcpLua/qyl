@@ -21,10 +21,8 @@
     <Description>An MCP server using the MCP C# SDK.</Description>
   </PropertyGroup>
 
-  <!-- SDK Throw class global using -->
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
-    <Using Include="Microsoft.Shared.Diagnostics"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -46,6 +44,8 @@
     <PackageReference Include="Microsoft.Extensions.Http"/>
     <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
+    <PackageReference Include="MSBuild.StructuredLogger"/>
+    <PackageReference Include="System.Reflection.Metadata"/>
   </ItemGroup>
 
   <!-- Reference protocol only - communicate with collector via HTTP -->

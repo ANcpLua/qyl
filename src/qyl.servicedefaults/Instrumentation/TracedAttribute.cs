@@ -36,7 +36,7 @@ public sealed class TracedAttribute(string activitySourceName) : Attribute
     /// <summary>
     ///     Gets the name of the ActivitySource to use for creating spans.
     /// </summary>
-    public string ActivitySourceName { get; } = Throw.IfNull(activitySourceName);
+    public string ActivitySourceName { get; } = Guard.NotNull(activitySourceName);
 
     /// <summary>
     ///     Gets or sets the span name. If not specified, defaults to the method name.

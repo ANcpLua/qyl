@@ -36,7 +36,7 @@ public sealed class TracedTagAttribute : Attribute
     ///     Initializes a new instance of the <see cref="TracedTagAttribute" /> class.
     /// </summary>
     /// <param name="name">The tag name to use in the span (e.g., "order.id").</param>
-    public TracedTagAttribute(string name) => Name = Throw.IfNull(name);
+    public TracedTagAttribute(string name) => Name = Guard.NotNull(name);
 
     /// <summary>
     ///     Gets the tag name to use in the span.

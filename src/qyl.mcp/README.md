@@ -39,6 +39,9 @@ Set environment variables before launching:
 | `qyl.list_structured_logs` | OTLP log records |
 | `qyl.list_trace_logs` | Logs for a specific trace |
 | `qyl.search_logs` | Search logs by text |
+| `qyl.list_build_failures` | List captured build failures |
+| `qyl.get_build_failure` | Detailed build failure report |
+| `qyl.search_build_failures` | Search build failures |
 | `qyl.get_storage_stats` | Database statistics |
 | `qyl.health_check` | Collector health |
 | `qyl.search_spans` | General span query |

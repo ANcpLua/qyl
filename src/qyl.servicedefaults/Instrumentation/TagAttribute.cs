@@ -25,5 +25,5 @@ public sealed class TagAttribute(string name) : Attribute
     /// <summary>
     ///     Gets the tag name.
     /// </summary>
-    public string Name { get; } = Throw.IfNull(name);
+    public string Name { get; } = Guard.NotNull(name);
 }

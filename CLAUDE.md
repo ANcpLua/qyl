@@ -112,3 +112,12 @@ forbidden:
 ## Documentation Map
 
 Each component has its own `CLAUDE.md` with component-specific patterns.
+
+## Observability Enhancements v1.0
+
+- Build failures are captured via hook-based binlog collection and stored in collector DuckDB (`build_failures` table).
+- Source locations are attached to structured logs (`source_file`, `source_line`, `source_column`, `source_method`) when available.
+- Runtime controls:
+  - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
+  - `QYL_MAX_BUILD_FAILURES` (default: `10`)
+  - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)

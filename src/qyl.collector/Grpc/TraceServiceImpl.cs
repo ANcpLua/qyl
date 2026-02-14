@@ -9,9 +9,9 @@ namespace qyl.collector.Grpc;
 public sealed class TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster broadcaster, SpanRingBuffer ringBuffer)
     : TraceServiceBase
 {
-    private readonly ITelemetrySseBroadcaster _broadcaster = Throw.IfNull(broadcaster);
-    private readonly SpanRingBuffer _ringBuffer = Throw.IfNull(ringBuffer);
-    private readonly DuckDbStore _store = Throw.IfNull(store);
+    private readonly ITelemetrySseBroadcaster _broadcaster = Guard.NotNull(broadcaster);
+    private readonly SpanRingBuffer _ringBuffer = Guard.NotNull(ringBuffer);
+    private readonly DuckDbStore _store = Guard.NotNull(store);
 
     /// <summary>
     ///     Implements opentelemetry.proto.collector.trace.v1.TraceService.Export

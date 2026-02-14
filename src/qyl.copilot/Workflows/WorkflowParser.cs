@@ -177,7 +177,7 @@ public static partial class WorkflowParser
     /// </summary>
     public static IReadOnlyList<string> Validate(CopilotWorkflow workflow)
     {
-        Throw.IfNull(workflow);
+        Guard.NotNull(workflow);
 
         var errors = new List<string>();
 

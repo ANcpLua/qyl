@@ -71,11 +71,34 @@ public sealed partial class MigrationRunner
             return;
         }
 
-        // 3. If no migrations have ever been applied, record the current version as baseline
+        // 3. If no migrations have ever been applied, optionally apply file migrations from scratch.
+        // This allows newly added migrations to run on fresh databases.
         if (lastApplied is 0)
         {
-            RecordVersion(connection, currentSchemaVersion, "Initial schema baseline");
-            LogBaselineRecorded(currentSchemaVersion);
+            if (migrationDirectory is not null && Directory.Exists(migrationDirectory))
+            {
+                var bootstrapFiles = GetPendingMigrationFiles(migrationDirectory, afterVersion: 0)
+                    .Where(f => f.Version <= currentSchemaVersion)
+                    .ToList();
+
+                if (bootstrapFiles.Count > 0)
+                {
+                    LogApplyingMigrations(bootstrapFiles.Count, 0, currentSchemaVersion);
+                    foreach (var migrationFile in bootstrapFiles)
+                        ApplyMigrationFile(connection, migrationFile);
+                }
+                else
+                {
+                    RecordVersion(connection, currentSchemaVersion, "Initial schema baseline");
+                    LogBaselineRecorded(currentSchemaVersion);
+                }
+            }
+            else
+            {
+                RecordVersion(connection, currentSchemaVersion, "Initial schema baseline");
+                LogBaselineRecorded(currentSchemaVersion);
+            }
+
             return;
         }
 

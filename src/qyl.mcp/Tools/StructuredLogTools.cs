@@ -89,6 +89,15 @@ public sealed class StructuredLogTools(HttpClient client)
                 if (!string.IsNullOrEmpty(log.SpanId))
                     sb.AppendLine($"  Span: {log.SpanId}");
 
+                if (!string.IsNullOrEmpty(log.SourceFile) || log.SourceLine.HasValue || !string.IsNullOrEmpty(log.SourceMethod))
+                {
+                    var location = log.SourceLine.HasValue
+                        ? $"{log.SourceFile}:{log.SourceLine}"
+                        : log.SourceFile ?? "(unknown)";
+                    var methodName = string.IsNullOrWhiteSpace(log.SourceMethod) ? "unknown_method" : log.SourceMethod;
+                    sb.AppendLine($"  at {methodName} in {location}");
+                }
+
                 sb.AppendLine();
             }
 
@@ -246,14 +255,18 @@ internal sealed record LogsResponse(
     [property: JsonPropertyName("has_more")] bool HasMore);
 
 internal sealed record LogRecordDto(
-    [property: JsonPropertyName("timestamp_unix_nano")] long? TimestampUnixNano,
-    [property: JsonPropertyName("severity_number")] int? SeverityNumber,
-    [property: JsonPropertyName("severity_text")] string? SeverityText,
+    [property: JsonPropertyName("timeUnixNano")] long? TimestampUnixNano,
+    [property: JsonPropertyName("severityNumber")] int? SeverityNumber,
+    [property: JsonPropertyName("severityText")] string? SeverityText,
     [property: JsonPropertyName("body")] string? Body,
-    [property: JsonPropertyName("trace_id")] string? TraceId,
-    [property: JsonPropertyName("span_id")] string? SpanId,
-    [property: JsonPropertyName("session_id")] string? SessionId,
-    [property: JsonPropertyName("service_name")] string? ServiceName);
+    [property: JsonPropertyName("traceId")] string? TraceId,
+    [property: JsonPropertyName("spanId")] string? SpanId,
+    [property: JsonPropertyName("sessionId")] string? SessionId,
+    [property: JsonPropertyName("serviceName")] string? ServiceName,
+    [property: JsonPropertyName("sourceFile")] string? SourceFile,
+    [property: JsonPropertyName("sourceLine")] int? SourceLine,
+    [property: JsonPropertyName("sourceColumn")] int? SourceColumn,
+    [property: JsonPropertyName("sourceMethod")] string? SourceMethod);
 
 #endregion
 

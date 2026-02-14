@@ -34,7 +34,7 @@ public sealed class SpanRingBuffer
 
     public void Push(SpanRecord span)
     {
-        Throw.IfNull(span);
+        Guard.NotNull(span);
         lock (_lock)
         {
             _buffer[_head] = span;

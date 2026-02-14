@@ -324,7 +324,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         ThrowIfDisposed();
-        Throw.IfNull(workflow);
+        Guard.NotNull(workflow);
 
         var startTime = _timeProvider.GetUtcNow();
 

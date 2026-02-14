@@ -2,7 +2,7 @@
   <!-- =======================================================================
        qyl Shared Properties - Imported by Directory.Build.props
        OTel configuration and qyl-specific settings
-       Throw.cs provided by ANcpLua.NET.Sdk (Microsoft.Shared.Diagnostics)
+       Guard.NotNull() etc. from ANcpLua.Roslyn.Utilities
        ======================================================================= -->
 
   <!-- Global Usings for OTel (enabled for modern TFMs, not netstandard2.0) -->

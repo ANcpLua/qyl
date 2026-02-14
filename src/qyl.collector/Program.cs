@@ -14,6 +14,7 @@ using qyl.copilot.Auth;
 using System.Reflection;
 using qyl.collector.Dashboard;
 using qyl.collector.Meta;
+using qyl.collector.BuildFailures;
 using Qyl.ServiceDefaults;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
@@ -92,6 +93,15 @@ builder.Services.AddSingleton(new TokenAuthOptions
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<MigrationRunner>();
+builder.Services.AddSingleton<SourceLocationCache>();
+builder.Services.AddSingleton<PdbSourceResolver>();
+builder.Services.AddSingleton<LogSourceEnricher>();
+builder.Services.AddSingleton<BinlogParser>();
+builder.Services.AddSingleton<IBuildFailureStore>(_ =>
+{
+    var maxRetainedFailures = builder.Configuration.GetValue("QYL_MAX_BUILD_FAILURES", 10);
+    return new DuckDbBuildFailureStore(dataPath, maxRetainedFailures);
+});
 
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
@@ -168,7 +178,9 @@ duckDbStore.InitializeAlertSchema();
 
 // Apply pending DuckDB schema migrations (after all base DDL has run)
 var migrationRunner = app.Services.GetRequiredService<MigrationRunner>();
-migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, DuckDbSchema.Version);
+var migrationDirectory = Path.Combine(app.Environment.ContentRootPath, "Storage", "Migrations");
+const int collectorSchemaVersion = 20260214;
+migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, collectorSchemaVersion, migrationDirectory);
 
 // OTLP middleware (before token auth - OTLP has its own auth)
 if (otlpCorsOptions.IsEnabled)
@@ -601,6 +613,11 @@ app.MapGet("/api/v1/metrics/{metricName}", (string metricName) =>
     Results.NotFound());
 
 app.MapErrorEndpoints();
+var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
+if (buildFailureCaptureEnabled)
+{
+    app.MapBuildFailureEndpoints();
+}
 
 app.MapGet("/api/v1/exceptions", (string? serviceName) =>
     Results.Ok(new { items = Array.Empty<object>(), total = 0 }));

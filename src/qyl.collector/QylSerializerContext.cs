@@ -1,4 +1,5 @@
 using qyl.collector.Auth;
+using qyl.collector.BuildFailures;
 
 namespace qyl.collector;
 
@@ -94,4 +95,7 @@ namespace qyl.collector;
 [JsonSerializable(typeof(ErrorStats))]
 [JsonSerializable(typeof(ErrorCategoryStat))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))]
+[JsonSerializable(typeof(BuildFailureIngestRequest))]
+[JsonSerializable(typeof(BuildFailureResponse))]
+[JsonSerializable(typeof(BuildFailureResponse[]))]
 public partial class QylSerializerContext : JsonSerializerContext;

@@ -25,6 +25,7 @@ builder.Services.AddCollectorToolClient<ReplayTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
 builder.Services.AddCollectorToolClient<ConsoleTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<BuildTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<StorageTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
@@ -40,6 +41,7 @@ var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(BuildJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(StorageJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
@@ -131,6 +133,7 @@ builder.Services
     .WithTools<ReplayTools>(jsonOptions)
     .WithTools<ConsoleTools>(jsonOptions)
     .WithTools<StructuredLogTools>(jsonOptions)
+    .WithTools<BuildTools>(jsonOptions)
     .WithTools<GenAiTools>(jsonOptions)
     .WithTools<StorageTools>(jsonOptions)
     .WithTools<CopilotTools>(jsonOptions);
