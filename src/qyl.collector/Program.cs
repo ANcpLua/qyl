@@ -200,6 +200,12 @@ builder.Services.AddSingleton(sp =>
     return new SessionQueryService(store);
 });
 
+builder.Services.AddSingleton(sp =>
+{
+    var store = sp.GetRequiredService<DuckDbStore>();
+    return new AnalyticsQueryService(store);
+});
+
 var app = builder.Build();
 
 // Register storage size callback for metrics (bridges DI-managed store with static metrics)
@@ -311,6 +317,7 @@ app.MapSpanMemoryEndpoints();
 app.MapInsightsEndpoints();
 app.MapAlertEndpoints();
 app.MapDashboardEndpoints();
+app.MapAnalyticsEndpoints();
 
 app.MapGet("/api/v1/meta", () =>
 {

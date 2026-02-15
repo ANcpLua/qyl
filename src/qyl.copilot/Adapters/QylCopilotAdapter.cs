@@ -172,6 +172,10 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         using var activity = CopilotInstrumentation.StartChatSpan();
         var startTime = _timeProvider.GetUtcNow();
 
+        // Enrich span with conversation and user context
+        CopilotSpanRecorder.RecordConversationId(activity, context?.SessionId);
+        EnrichWithUserIdentity(activity);
+
         // Create per-request tool event channel
         var toolChannel = Channel.CreateUnbounded<StreamUpdate>(
             new UnboundedChannelOptions { SingleReader = true });
@@ -225,6 +229,9 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         // Drain any remaining tool events
         while (toolChannel.Reader.TryRead(out var remaining))
             updates.Add(remaining);
+
+        // Record token usage from metadata updates if available
+        RecordTokenUsageFromUpdates(activity, updates);
 
         // Store in session for multi-turn context
         if (sessionHistory is not null && caughtException is null)
@@ -282,7 +289,6 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         CopilotContext? context = null, // Reserved for future SDK integration
         CancellationToken ct = default)
     {
-        _ = context; // Reserved for future SDK integration
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(prompt);
         ct.ThrowIfCancellationRequested();
@@ -290,6 +296,10 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         // Start OTel span for chat operation
         using var activity = CopilotInstrumentation.StartChatSpan();
         var startTime = _timeProvider.GetUtcNow();
+
+        // Enrich span with conversation and user context
+        CopilotSpanRecorder.RecordConversationId(activity, context?.SessionId);
+        EnrichWithUserIdentity(activity);
 
         try
         {
@@ -327,6 +337,12 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         Guard.NotNull(workflow);
 
         var startTime = _timeProvider.GetUtcNow();
+
+        // Enrich parent workflow span with conversation, user, and data source context
+        var parentActivity = Activity.Current;
+        CopilotSpanRecorder.RecordConversationId(parentActivity, context?.SessionId);
+        CopilotSpanRecorder.RecordDataSourceId(parentActivity, workflow.Name);
+        EnrichWithUserIdentity(parentActivity);
 
         yield return new StreamUpdate
         {
@@ -413,6 +429,44 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
                 Kind = StreamUpdateKind.Completed,
                 Timestamp = _timeProvider.GetUtcNow()
             };
+        }
+    }
+
+    /// <summary>
+    ///     Enriches a span with the authenticated user's identity (enduser.id).
+    /// </summary>
+    private void EnrichWithUserIdentity(Activity? activity)
+    {
+        if (activity is null) return;
+
+        // Use cached auth result to avoid async call — username is populated during CreateAsync
+        var status = _authProvider.GetStatusAsync(CancellationToken.None);
+        if (status.IsCompleted)
+        {
+            CopilotSpanRecorder.RecordEndUserId(activity, status.Result.Username);
+        }
+    }
+
+    /// <summary>
+    ///     Extracts token usage from streaming metadata updates and records on the span.
+    /// </summary>
+    private static void RecordTokenUsageFromUpdates(Activity? activity, List<StreamUpdate> updates)
+    {
+        if (activity is null) return;
+
+        // Find the last metadata update with token info, or sum from individual updates
+        long totalInput = 0, totalOutput = 0;
+        foreach (var update in updates)
+        {
+            if (update.InputTokens.HasValue)
+                totalInput = update.InputTokens.Value;
+            if (update.OutputTokens.HasValue)
+                totalOutput = update.OutputTokens.Value;
+        }
+
+        if (totalInput > 0 || totalOutput > 0)
+        {
+            CopilotSpanRecorder.RecordTokenUsage(activity, (int)totalInput, (int)totalOutput);
         }
     }
 

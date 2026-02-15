@@ -4,6 +4,7 @@
 // =============================================================================
 
 using qyl.protocol.Attributes;
+using qyl.protocol.Attributes.Generated;
 using Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 namespace qyl.copilot.Instrumentation;
@@ -14,6 +15,7 @@ namespace qyl.copilot.Instrumentation;
 /// </summary>
 public static class CopilotSpanRecorder
 {
+    private static readonly string[] FinishReasonStop = ["stop"];
     /// <summary>
     ///     Records token usage on a span per OTel 1.39.
     /// </summary>
@@ -59,25 +61,115 @@ public static class CopilotSpanRecorder
     }
 
     // =========================================================================
+    // Conversation & User Identity
+    // =========================================================================
+
+    /// <summary>
+    ///     Records the conversation/thread ID on a span per OTel 1.39.
+    /// </summary>
+    /// <param name="activity">The activity to record on.</param>
+    /// <param name="conversationId">The conversation/session/thread identifier.</param>
+    public static void RecordConversationId(Activity? activity, string? conversationId)
+    {
+        if (activity is null || string.IsNullOrEmpty(conversationId)) return;
+
+        activity.SetTag(GenAiAttributes.ConversationId, conversationId);
+    }
+
+    /// <summary>
+    ///     Records the end user identity on a span per OTel semantic conventions.
+    /// </summary>
+    /// <param name="activity">The activity to record on.</param>
+    /// <param name="userId">The user identifier (e.g., GitHub username).</param>
+    public static void RecordEndUserId(Activity? activity, string? userId)
+    {
+        if (activity is null || string.IsNullOrEmpty(userId)) return;
+
+        activity.SetTag(EnduserIdAttributes.Id, userId);
+    }
+
+    // =========================================================================
+    // Response Attributes
+    // =========================================================================
+
+    /// <summary>
+    ///     Records the response model on a span per OTel 1.39.
+    /// </summary>
+    /// <param name="activity">The activity to record on.</param>
+    /// <param name="responseModel">The model that generated the response.</param>
+    public static void RecordResponseModel(Activity? activity, string? responseModel)
+    {
+        if (activity is null || string.IsNullOrEmpty(responseModel)) return;
+
+        activity.SetTag(GenAiAttributes.ResponseModel, responseModel);
+    }
+
+    /// <summary>
+    ///     Records the finish reasons on a span per OTel 1.39.
+    /// </summary>
+    /// <param name="activity">The activity to record on.</param>
+    /// <param name="finishReasons">Array of reasons the model stopped generating tokens.</param>
+    public static void RecordFinishReasons(Activity? activity, string[] finishReasons)
+    {
+        if (activity is null || finishReasons.Length is 0) return;
+
+        activity.SetTag(GenAiAttributes.ResponseFinishReasons, finishReasons);
+    }
+
+    // =========================================================================
+    // Data Source
+    // =========================================================================
+
+    /// <summary>
+    ///     Records the data source ID on a span per OTel 1.39.
+    ///     Used when workflows reference knowledge sources.
+    /// </summary>
+    /// <param name="activity">The activity to record on.</param>
+    /// <param name="dataSourceId">The data source identifier.</param>
+    public static void RecordDataSourceId(Activity? activity, string? dataSourceId)
+    {
+        if (activity is null || string.IsNullOrEmpty(dataSourceId)) return;
+
+        activity.SetTag(GenAiDataSourceAttributes.Id, dataSourceId);
+    }
+
+    // =========================================================================
     // Error Recording
     // =========================================================================
 
     /// <summary>
     ///     Records an error on a span per OTel conventions.
+    ///     Sets both error.type and exception details.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     /// <param name="exception">The exception that occurred.</param>
     public static void RecordError(Activity? activity, Exception exception)
     {
+        if (activity is not null)
+        {
+            // Set error.type per GenAI semconv (categorized error type)
+            var errorType = exception switch
+            {
+                OperationCanceledException => "cancelled",
+                TimeoutException => "timeout",
+                HttpRequestException { StatusCode: { } code } => ((int)code).ToString(),
+                _ => exception.GetType().Name
+            };
+            activity.SetTag(GenAiAttributes.ErrorType, errorType);
+        }
+
         GenAiInstrumentation.RecordException(activity, exception);
     }
 
     /// <summary>
-    ///     Marks a span as successful.
+    ///     Marks a span as successful with standard finish reason.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     public static void RecordSuccess(Activity? activity)
     {
-        activity?.SetStatus(ActivityStatusCode.Ok);
+        if (activity is null) return;
+
+        activity.SetStatus(ActivityStatusCode.Ok);
+        activity.SetTag(GenAiAttributes.ResponseFinishReasons, FinishReasonStop);
     }
 }

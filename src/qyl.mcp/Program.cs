@@ -29,6 +29,7 @@ builder.Services.AddCollectorToolClient<BuildTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<StorageTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
+builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITelemetryStore>(static sp =>
@@ -46,6 +47,7 @@ jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(StorageJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
 
 builder.Services
     .AddMcpServer()
@@ -136,6 +138,7 @@ builder.Services
     .WithTools<BuildTools>(jsonOptions)
     .WithTools<GenAiTools>(jsonOptions)
     .WithTools<StorageTools>(jsonOptions)
-    .WithTools<CopilotTools>(jsonOptions);
+    .WithTools<CopilotTools>(jsonOptions)
+    .WithTools<AnalyticsTools>(jsonOptions);
 
 await builder.Build().RunAsync().ConfigureAwait(false);
