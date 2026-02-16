@@ -3,7 +3,7 @@ using qyl.collector.Autofix;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with fix run
+///     Partial class extending <see cref="DuckDbStore" /> with fix run
 ///     storage operations for the autofix module.
 /// </summary>
 public sealed partial class DuckDbStore
@@ -18,12 +18,12 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO fix_runs
-                    (run_id, issue_id, execution_id, status, policy,
-                     fix_description, confidence_score, changes_json)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                ON CONFLICT (run_id) DO NOTHING
-                """;
+                              INSERT INTO fix_runs
+                                  (run_id, issue_id, execution_id, status, policy,
+                                   fix_description, confidence_score, changes_json)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                              ON CONFLICT (run_id) DO NOTHING
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.RunId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.IssueId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ExecutionId ?? (object)DBNull.Value });
@@ -51,14 +51,14 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE fix_runs SET
-                    status = $1,
-                    fix_description = $2,
-                    confidence_score = $3,
-                    changes_json = $4,
-                    completed_at = CASE WHEN $1 IN ('applied', 'failed') THEN now() ELSE completed_at END
-                WHERE run_id = $5
-                """;
+                              UPDATE fix_runs SET
+                                  status = $1,
+                                  fix_description = $2,
+                                  confidence_score = $3,
+                                  changes_json = $4,
+                                  completed_at = CASE WHEN $1 IN ('applied', 'failed') THEN now() ELSE completed_at END
+                              WHERE run_id = $5
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = description ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = confidence ?? (object)DBNull.Value });
@@ -81,11 +81,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT run_id, issue_id, execution_id, status, policy,
-                   fix_description, confidence_score, changes_json,
-                   created_at, completed_at
-            FROM fix_runs WHERE run_id = $1
-            """;
+                          SELECT run_id, issue_id, execution_id, status, policy,
+                                 fix_description, confidence_score, changes_json,
+                                 created_at, completed_at
+                          FROM fix_runs WHERE run_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -106,14 +106,14 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT run_id, issue_id, execution_id, status, policy,
-                   fix_description, confidence_score, changes_json,
-                   created_at, completed_at
-            FROM fix_runs
-            WHERE issue_id = $1
-            ORDER BY created_at DESC
-            LIMIT $2
-            """;
+                          SELECT run_id, issue_id, execution_id, status, policy,
+                                 fix_description, confidence_score, changes_json,
+                                 created_at, completed_at
+                          FROM fix_runs
+                          WHERE issue_id = $1
+                          ORDER BY created_at DESC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 

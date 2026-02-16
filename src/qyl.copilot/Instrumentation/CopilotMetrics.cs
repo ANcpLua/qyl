@@ -9,7 +9,8 @@ namespace qyl.copilot.Instrumentation;
 [Meter("qyl.copilot", Version = "1.0.0")]
 public static partial class CopilotMetrics
 {
-    [Histogram("gen_ai.client.token.usage", Unit = "{token}", Description = "Measures the number of tokens used in GenAI operations")]
+    [Histogram("gen_ai.client.token.usage", Unit = "{token}",
+        Description = "Measures the number of tokens used in GenAI operations")]
     public static partial void RecordTokenUsage(
         long value,
         [Tag("gen_ai.system")] string system,
@@ -21,18 +22,21 @@ public static partial class CopilotMetrics
         [Tag("gen_ai.system")] string system,
         [Tag("gen_ai.operation.name")] string operation);
 
-    [Histogram("gen_ai.client.time_to_first_token", Unit = "s", Description = "Time to first token in streaming GenAI operations")]
+    [Histogram("gen_ai.client.time_to_first_token", Unit = "s",
+        Description = "Time to first token in streaming GenAI operations")]
     public static partial void RecordTimeToFirstToken(
         double value,
         [Tag("gen_ai.system")] string system);
 
-    [Histogram("qyl.copilot.workflow.duration", Unit = "s", Description = "Duration of qyl workflow executions in seconds")]
+    [Histogram("qyl.copilot.workflow.duration", Unit = "s",
+        Description = "Duration of qyl workflow executions in seconds")]
     public static partial void RecordWorkflowDuration(
         double value,
         [Tag("qyl.workflow.name")] string workflowName,
         [Tag("qyl.workflow.status")] string status);
 
-    [Counter("qyl.copilot.workflow.executions", Unit = "{execution}", Description = "Number of qyl workflow executions")]
+    [Counter("qyl.copilot.workflow.executions", Unit = "{execution}",
+        Description = "Number of qyl workflow executions")]
     public static partial void RecordWorkflowExecution(
         [Tag("qyl.workflow.name")] string workflowName,
         [Tag("qyl.workflow.trigger")] string trigger);

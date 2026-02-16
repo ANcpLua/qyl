@@ -29,10 +29,8 @@ internal static class GenAiCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a GenAI invocation?
     ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken ct)
-    {
-        return AnalyzerHelpers.CouldBeInvocation(node, ct);
-    }
+    public static bool CouldBeGenAiInvocation(SyntaxNode node, CancellationToken ct) =>
+        AnalyzerHelpers.CouldBeInvocation(node, ct);
 
     /// <summary>
     ///     Extracts a GenAI call site from a syntax context if it matches known SDK patterns.
@@ -131,16 +129,15 @@ internal static class GenAiCallSiteAnalyzer
         // Agent framework methods shared across multiple types
         var agentMethods = new (string MethodName, string Operation, bool IsAsync)[]
         {
-            ("RunAsync", "invoke_agent", true),
-            ("RunStreamingAsync", "invoke_agent", true)
+            ("RunAsync", "invoke_agent", true), ("RunStreamingAsync", "invoke_agent", true)
         };
 
         // (type prefix, methods) — same structure as the old MethodPatterns dictionary
         var patterns = new (string TypePrefix, (string MethodName, string Operation, bool IsAsync)[] Methods)[]
         {
             // OpenAI SDK v2.x
-            ("OpenAI.Chat.ChatClient", [("CompleteChatAsync", "chat", true), ("CompleteChat", "chat", false)]),
-            ("OpenAI.Embeddings.EmbeddingClient",
+            ("OpenAI.Chat.ChatClient", [("CompleteChatAsync", "chat", true), ("CompleteChat", "chat", false)]), (
+                "OpenAI.Embeddings.EmbeddingClient",
                 [("GenerateEmbeddingsAsync", "embeddings", true), ("GenerateEmbeddings", "embeddings", false)]),
             ("OpenAI.Images.ImageClient",
                 [("GenerateImagesAsync", "image_generation", true), ("GenerateImages", "image_generation", false)]),
@@ -171,8 +168,7 @@ internal static class GenAiCallSiteAnalyzer
             ("Azure.AI.OpenAI.AzureOpenAIClient", []),
 
             // Microsoft Agent Framework (OpenTelemetryAgent excluded — already emits OTel spans)
-            ("Microsoft.Agents.AI.AIAgent", agentMethods),
-            ("Microsoft.Agents.AI.ChatClientAgent", agentMethods),
+            ("Microsoft.Agents.AI.AIAgent", agentMethods), ("Microsoft.Agents.AI.ChatClientAgent", agentMethods),
             ("Microsoft.Agents.AI.DelegatingAIAgent", agentMethods),
 
             // Cohere SDK

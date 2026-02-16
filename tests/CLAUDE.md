@@ -4,12 +4,12 @@ xUnit v3 with Microsoft Testing Platform.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk.Test |
-| Framework | xUnit v3 |
-| Runner | Microsoft Testing Platform v2 |
-| Assertions | AwesomeAssertions |
+| Property   | Value                         |
+|------------|-------------------------------|
+| SDK        | ANcpLua.NET.Sdk.Test          |
+| Framework  | xUnit v3                      |
+| Runner     | Microsoft Testing Platform v2 |
+| Assertions | AwesomeAssertions             |
 
 ## Commands
 

@@ -8,6 +8,21 @@ namespace qyl.collector.tests.Instrumentation;
 /// </summary>
 public sealed class SqlOperationParserTests
 {
+    #region Whitespace Handling
+
+    [Theory]
+    [InlineData("   SELECT * FROM users")]
+    [InlineData("\tSELECT * FROM users")]
+    [InlineData("\n\nSELECT * FROM users")]
+    [InlineData("  \t\n  SELECT * FROM users")]
+    public void Parse_LeadingWhitespace_StripsThenParsesCorrectly(string sql)
+    {
+        var result = SqlOperationParser.TryParse(sql);
+        Assert.Equal("SELECT", result);
+    }
+
+    #endregion
+
     #region Basic Operation Detection
 
     [Theory]
@@ -45,21 +60,6 @@ public sealed class SqlOperationParserTests
     {
         var result = SqlOperationParser.TryParse(sql);
         Assert.Equal(expected, result);
-    }
-
-    #endregion
-
-    #region Whitespace Handling
-
-    [Theory]
-    [InlineData("   SELECT * FROM users")]
-    [InlineData("\tSELECT * FROM users")]
-    [InlineData("\n\nSELECT * FROM users")]
-    [InlineData("  \t\n  SELECT * FROM users")]
-    public void Parse_LeadingWhitespace_StripsThenParsesCorrectly(string sql)
-    {
-        var result = SqlOperationParser.TryParse(sql);
-        Assert.Equal("SELECT", result);
     }
 
     #endregion

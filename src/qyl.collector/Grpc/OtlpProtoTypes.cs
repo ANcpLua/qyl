@@ -105,6 +105,7 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
 {
     public OtlpResourceProto? Resource { get; set; }
     public List<OtlpScopeSpansProto> ScopeSpans { get; } = [];
+
     /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.39.0).</summary>
     public string? SchemaUrl { get; set; }
 
@@ -168,6 +169,7 @@ public sealed class OtlpResourceProto : IProtobufParseable
 public sealed class OtlpScopeSpansProto : IProtobufParseable
 {
     public List<OtlpSpanProto> Spans { get; } = [];
+
     /// <summary>OTel schema URL for this instrumentation scope (overrides resource-level if set).</summary>
     public string? SchemaUrl { get; set; }
 

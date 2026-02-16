@@ -30,10 +30,8 @@ internal static class AgentCallSiteAnalyzer
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be an agent invocation?
     /// </summary>
-    public static bool CouldBeAgentInvocation(SyntaxNode node, CancellationToken ct)
-    {
-        return AnalyzerHelpers.CouldBeInvocation(node, ct);
-    }
+    public static bool CouldBeAgentInvocation(SyntaxNode node, CancellationToken ct) =>
+        AnalyzerHelpers.CouldBeInvocation(node, ct);
 
     /// <summary>
     ///     Extracts an agent call site from a syntax context if it matches agent SDK patterns
@@ -134,8 +132,10 @@ internal static class AgentCallSiteAnalyzer
             // Extract AgentName from named argument
             agentName = method.Name; // Default to method name
             foreach (var namedArg in attribute.NamedArguments)
+            {
                 if (namedArg is { Key: "AgentName", Value.Value: string name })
                     agentName = name;
+            }
 
             return true;
         }
@@ -159,8 +159,7 @@ internal static class AgentCallSiteAnalyzer
 
         var agentTypes = new[]
         {
-            "Microsoft.Agents.AI.AIAgent",
-            "Microsoft.Agents.AI.ChatClientAgent",
+            "Microsoft.Agents.AI.AIAgent", "Microsoft.Agents.AI.ChatClientAgent",
             "Microsoft.Agents.AI.DelegatingAIAgent"
         };
 

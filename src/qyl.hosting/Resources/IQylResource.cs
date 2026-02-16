@@ -1,58 +1,58 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// Base interface for all qyl resources.
+///     Base interface for all qyl resources.
 /// </summary>
 public interface IQylResource
 {
     /// <summary>
-    /// Resource name (unique identifier).
+    ///     Resource name (unique identifier).
     /// </summary>
     string Name { get; }
 
     /// <summary>
-    /// Resource type for display.
+    ///     Resource type for display.
     /// </summary>
     string Type { get; }
 
     /// <summary>
-    /// Resources this depends on.
+    ///     Resources this depends on.
     /// </summary>
     IEnumerable<IQylResource> Dependencies { get; }
 
     /// <summary>
-    /// Environment variables to inject.
+    ///     Environment variables to inject.
     /// </summary>
     IReadOnlyDictionary<string, string> Environment { get; }
 
     /// <summary>
-    /// Port bindings.
+    ///     Port bindings.
     /// </summary>
     IReadOnlyList<PortBinding> Ports { get; }
 
     /// <summary>
-    /// Whether GenAI instrumentation is enabled.
+    ///     Whether GenAI instrumentation is enabled.
     /// </summary>
     bool GenAiEnabled { get; }
 
     /// <summary>
-    /// Whether cost tracking is enabled.
+    ///     Whether cost tracking is enabled.
     /// </summary>
     bool CostTrackingEnabled { get; }
 
     /// <summary>
-    /// HTTP endpoint for health checks (if any).
+    ///     HTTP endpoint for health checks (if any).
     /// </summary>
     string? HealthEndpoint { get; }
 }
 
 /// <summary>
-/// Port binding configuration.
+///     Port binding configuration.
 /// </summary>
 public sealed record PortBinding(int HostPort, int ContainerPort, string? Name = null, bool External = false);
 
 /// <summary>
-/// Base class for qyl resources with fluent API.
+///     Base class for qyl resources with fluent API.
 /// </summary>
 public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder) : IQylResource
     where TSelf : QylResourceBase<TSelf>
@@ -60,6 +60,8 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     private readonly List<IQylResource> _dependencies = [];
     private readonly Dictionary<string, string> _environment = [];
     private readonly List<PortBinding> _ports = [];
+
+    protected QylAppBuilder Builder { get; } = builder;
 
     public string Name { get; } = name;
     public abstract string Type { get; }
@@ -70,10 +72,8 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     public bool CostTrackingEnabled { get; private set; }
     public string? HealthEndpoint { get; private set; }
 
-    protected QylAppBuilder Builder { get; } = builder;
-
     /// <summary>
-    /// Declares a dependency - this resource waits for the other to be healthy.
+    ///     Declares a dependency - this resource waits for the other to be healthy.
     /// </summary>
     public TSelf WaitFor(IQylResource dependency)
     {
@@ -82,7 +82,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Adds a reference to another resource - injects connection info as environment variables.
+    ///     Adds a reference to another resource - injects connection info as environment variables.
     /// </summary>
     protected TSelf WithReference(IQylResource reference)
     {
@@ -101,7 +101,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Sets an environment variable.
+    ///     Sets an environment variable.
     /// </summary>
     public TSelf WithEnvironment(string key, string value)
     {
@@ -110,7 +110,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Enables GenAI instrumentation (traces, metrics, cost tracking).
+    ///     Enables GenAI instrumentation (traces, metrics, cost tracking).
     /// </summary>
     public TSelf WithGenAi()
     {
@@ -130,7 +130,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Enables cost tracking for LLM API calls.
+    ///     Enables cost tracking for LLM API calls.
     /// </summary>
     public TSelf WithCostTracking()
     {
@@ -140,7 +140,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Sets the HTTP health check endpoint.
+    ///     Sets the HTTP health check endpoint.
     /// </summary>
     public TSelf WithHealthCheck(string endpoint = "/health")
     {
@@ -149,7 +149,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Exposes the endpoint externally (outside the orchestration network).
+    ///     Exposes the endpoint externally (outside the orchestration network).
     /// </summary>
     public TSelf WithExternalEndpoint()
     {
@@ -163,7 +163,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Adds a port binding.
+    ///     Adds a port binding.
     /// </summary>
     public TSelf WithPort(int port, string? name = null)
     {
@@ -172,7 +172,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     }
 
     /// <summary>
-    /// Adds a port mapping.
+    ///     Adds a port mapping.
     /// </summary>
     public TSelf WithPort(int hostPort, int containerPort, string? name = null)
     {

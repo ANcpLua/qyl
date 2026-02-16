@@ -34,9 +34,8 @@ public sealed class WorkflowTools(HttpClient client)
         [Description("Filter by status: 'queued', 'running', 'completed', 'failed'")]
         string? status = null,
         [Description("Filter by workflow name (partial match)")]
-        string? workflowName = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? workflowName = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/workflows/runs?limit={limit}";
             if (!string.IsNullOrEmpty(status))
@@ -70,12 +69,12 @@ public sealed class WorkflowTools(HttpClient client)
                 var trigger = run.Trigger ?? "-";
                 var started = run.StartTime ?? "-";
 
-                sb.AppendLine($"| {runId} | {run.WorkflowName ?? "unknown"} | {statusIcon} {run.Status} | {trigger} | {durationStr} | {started} |");
+                sb.AppendLine(
+                    $"| {runId} | {run.WorkflowName ?? "unknown"} | {statusIcon} {run.Status} | {trigger} | {durationStr} | {started} |");
             }
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_workflow_run")]
     [Description("""
@@ -92,9 +91,8 @@ public sealed class WorkflowTools(HttpClient client)
                  """)]
     public Task<string> GetWorkflowRunAsync(
         [Description("The workflow run ID to look up")]
-        string runId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string runId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var run = await client.GetFromJsonAsync<WorkflowRunDetailDto>(
                 $"/api/v1/workflows/runs/{Uri.EscapeDataString(runId)}",
@@ -145,13 +143,13 @@ public sealed class WorkflowTools(HttpClient client)
                         _ => "✅"
                     };
                     var durationStr = evt.DurationMs > 0 ? $"{evt.DurationMs:F0}ms" : "-";
-                    sb.AppendLine($"| {evt.Sequence} | {evt.StepName ?? "unknown"} | {stepIcon} {evt.Status} | {durationStr} |");
+                    sb.AppendLine(
+                        $"| {evt.Sequence} | {evt.StepName ?? "unknown"} | {stepIcon} {evt.Status} | {durationStr} |");
                 }
             }
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
@@ -162,28 +160,41 @@ internal sealed record WorkflowRunsResponse(
 
 internal sealed record WorkflowRunDto(
     [property: JsonPropertyName("run_id")] string RunId,
-    [property: JsonPropertyName("workflow_name")] string? WorkflowName,
+    [property: JsonPropertyName("workflow_name")]
+    string? WorkflowName,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("trigger")] string? Trigger,
-    [property: JsonPropertyName("duration_ms")] double DurationMs,
-    [property: JsonPropertyName("start_time")] string? StartTime);
+    [property: JsonPropertyName("trigger")]
+    string? Trigger,
+    [property: JsonPropertyName("duration_ms")]
+    double DurationMs,
+    [property: JsonPropertyName("start_time")]
+    string? StartTime);
 
 internal sealed record WorkflowRunDetailDto(
     [property: JsonPropertyName("run_id")] string RunId,
-    [property: JsonPropertyName("workflow_name")] string? WorkflowName,
+    [property: JsonPropertyName("workflow_name")]
+    string? WorkflowName,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("trigger")] string? Trigger,
-    [property: JsonPropertyName("duration_ms")] double DurationMs,
-    [property: JsonPropertyName("start_time")] string? StartTime,
-    [property: JsonPropertyName("end_time")] string? EndTime,
-    [property: JsonPropertyName("error_message")] string? ErrorMessage,
+    [property: JsonPropertyName("trigger")]
+    string? Trigger,
+    [property: JsonPropertyName("duration_ms")]
+    double DurationMs,
+    [property: JsonPropertyName("start_time")]
+    string? StartTime,
+    [property: JsonPropertyName("end_time")]
+    string? EndTime,
+    [property: JsonPropertyName("error_message")]
+    string? ErrorMessage,
     [property: JsonPropertyName("events")] List<WorkflowStepDto>? Events);
 
 internal sealed record WorkflowStepDto(
-    [property: JsonPropertyName("step_name")] string? StepName,
+    [property: JsonPropertyName("step_name")]
+    string? StepName,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("duration_ms")] double DurationMs,
-    [property: JsonPropertyName("sequence")] int Sequence);
+    [property: JsonPropertyName("duration_ms")]
+    double DurationMs,
+    [property: JsonPropertyName("sequence")]
+    int Sequence);
 
 #endregion
 

@@ -11,11 +11,13 @@ Accepted
 ## Context
 
 qyl needs AI-assisted telemetry analysis capabilities. Users should be able to:
+
 - Query telemetry data using natural language
 - Execute automated workflows for common analysis tasks
 - Get AI-powered insights without leaving the qyl ecosystem
 
-Existing options like Aspire Dashboard's Copilot integration require IDE dependencies and lack observability into AI interactions themselves.
+Existing options like Aspire Dashboard's Copilot integration require IDE dependencies and lack observability into AI
+interactions themselves.
 
 ## Decision
 
@@ -35,7 +37,8 @@ Personal Access Token (configured)
 OAuth Device Flow (interactive)
 ```
 
-**Rationale**: Users should be able to use qyl.copilot from any environment - CI/CD, containers, terminals - without requiring VS Code or other IDEs.
+**Rationale**: Users should be able to use qyl.copilot from any environment - CI/CD, containers, terminals - without
+requiring VS Code or other IDEs.
 
 ### 2. Composition Over Inheritance for Instrumentation
 
@@ -54,7 +57,9 @@ public class InstrumentedAgent : AIAgent
 ```
 
 **Rationale**:
-- `AIAgent` has complex abstract members (`RunCoreAsync`, `RunCoreStreamingAsync`, `GetNewThread`, `DeserializeThread`) that change between SDK versions
+
+- `AIAgent` has complex abstract members (`RunCoreAsync`, `RunCoreStreamingAsync`, `GetNewThread`, `DeserializeThread`)
+  that change between SDK versions
 - Composition provides stable API regardless of SDK changes
 - Easier to test and mock
 
@@ -63,6 +68,7 @@ public class InstrumentedAgent : AIAgent
 **Decision**: All Copilot interactions emit OTel traces and metrics following GenAI semconv 1.39.
 
 **Span Attributes**:
+
 - `gen_ai.provider.name`: `github_copilot`
 - `gen_ai.operation.name`: `chat`, `invoke_agent`, `execute_tool`, `workflow`
 - `gen_ai.request.model`: `github-copilot`
@@ -70,10 +76,12 @@ public class InstrumentedAgent : AIAgent
 - `gen_ai.response.finish_reasons`
 
 **Metrics**:
+
 - `gen_ai.client.token.usage` (Histogram) - Token consumption
 - `gen_ai.client.operation.duration` (Histogram) - Operation latency
 
 **Custom qyl Attributes**:
+
 - `qyl.workflow.name` - Workflow being executed
 - `qyl.workflow.execution_id` - Unique execution identifier
 - `qyl.copilot.session_id` - Conversation session
@@ -106,6 +114,7 @@ Analyze the following error data and identify:
 ```
 
 **Rationale**:
+
 - Version-controlled alongside code
 - Human-readable and editable
 - Supports template parameters (`{{variable}}`)
@@ -121,6 +130,7 @@ public async IAsyncEnumerable<StreamUpdate> ExecuteWorkflowAsync(CopilotWorkflow
 ```
 
 **StreamUpdate kinds**:
+
 - `Content` - Text chunk from AI
 - `ToolCall` - Tool being invoked
 - `ToolResult` - Tool execution result
@@ -129,6 +139,7 @@ public async IAsyncEnumerable<StreamUpdate> ExecuteWorkflowAsync(CopilotWorkflow
 - `Error` - Execution failure
 
 **Rationale**:
+
 - Better UX for long-running operations
 - Enables real-time progress display in dashboard
 - Allows cancellation mid-stream
@@ -152,13 +163,13 @@ public async IAsyncEnumerable<StreamUpdate> ExecuteWorkflowAsync(CopilotWorkflow
 ### Risks
 
 1. **SDK breaking changes**: Preview SDK may change significantly
-   - *Mitigation*: Composition pattern isolates us from internal API changes
+    - *Mitigation*: Composition pattern isolates us from internal API changes
 
 2. **Token costs**: Heavy usage could incur significant Copilot costs
-   - *Mitigation*: Token usage metrics enable cost monitoring
+    - *Mitigation*: Token usage metrics enable cost monitoring
 
 3. **Rate limiting**: GitHub may rate-limit API calls
-   - *Mitigation*: Expose rate limit info via auth status
+    - *Mitigation*: Expose rate limit info via auth status
 
 ## Alternatives Considered
 

@@ -26,28 +26,28 @@ nuke Generate --force-generate       # Full regen (C#, DuckDB, TS)
 
 ## Custom Extensions (read by SchemaGenerator.cs)
 
-| Extension | Purpose |
-|-----------|---------|
-| `x-duckdb-table` | Mark model for DuckDB table gen |
-| `x-duckdb-column` | Override column name |
-| `x-duckdb-type` | Override DuckDB type (JSON, BLOB) |
-| `x-duckdb-primary-key` | Primary key column |
-| `x-duckdb-index` | Create index |
-| `x-primitive` | Strongly-typed scalar wrapper |
-| `x-promoted` | Promote from attributes_json to column |
-| `x-csharp-type` | Override C# type name |
+| Extension              | Purpose                                |
+|------------------------|----------------------------------------|
+| `x-duckdb-table`       | Mark model for DuckDB table gen        |
+| `x-duckdb-column`      | Override column name                   |
+| `x-duckdb-type`        | Override DuckDB type (JSON, BLOB)      |
+| `x-duckdb-primary-key` | Primary key column                     |
+| `x-duckdb-index`       | Create index                           |
+| `x-primitive`          | Strongly-typed scalar wrapper          |
+| `x-promoted`           | Promote from attributes_json to column |
+| `x-csharp-type`        | Override C# type name                  |
 
 ## Storage Tables
 
-| Model | Table | Source |
-|-------|-------|--------|
-| `Span` | spans | otel/span.tsp |
-| `LogRecord` | logs | otel/logs.tsp |
-| `SessionEntity` | session_entities | domains/observe/session.tsp |
-| `ErrorEntity` | errors | domains/observe/error.tsp |
-| `TestRunEntity` | test_runs | domains/observe/test.tsp |
-| `TestCaseEntity` | test_cases | domains/observe/test.tsp |
-| `DeploymentEntity` | deployments | domains/ops/deployment.tsp |
+| Model              | Table            | Source                      |
+|--------------------|------------------|-----------------------------|
+| `Span`             | spans            | otel/span.tsp               |
+| `LogRecord`        | logs             | otel/logs.tsp               |
+| `SessionEntity`    | session_entities | domains/observe/session.tsp |
+| `ErrorEntity`      | errors           | domains/observe/error.tsp   |
+| `TestRunEntity`    | test_runs        | domains/observe/test.tsp    |
+| `TestCaseEntity`   | test_cases       | domains/observe/test.tsp    |
+| `DeploymentEntity` | deployments      | domains/ops/deployment.tsp  |
 
 ## Code Generation Output
 

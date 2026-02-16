@@ -2,10 +2,10 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {Bot, Send, Square, Trash2, X} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
+import type {CopilotMessage} from '@/hooks/use-copilot';
 import {useCopilotChat} from '@/hooks/use-copilot';
 import {CopilotSuggestions} from './CopilotSuggestions';
 import {ToolCallBubble} from './ToolCallBubble';
-import type {CopilotMessage} from '@/hooks/use-copilot';
 
 interface CopilotPanelProps {
     open: boolean;
@@ -47,7 +47,8 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
     if (!open) return null;
 
     return (
-        <div className="fixed bottom-20 right-4 w-96 h-[32rem] flex flex-col border-3 border-signal-purple bg-brutal-carbon z-50 shadow-[4px_4px_0_0_rgba(139,92,246,0.3)]">
+        <div
+            className="fixed bottom-20 right-4 w-96 h-[32rem] flex flex-col border-3 border-signal-purple bg-brutal-carbon z-50 shadow-[4px_4px_0_0_rgba(139,92,246,0.3)]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 border-b-3 border-brutal-zinc bg-brutal-dark">
                 <div className="flex items-center gap-2">

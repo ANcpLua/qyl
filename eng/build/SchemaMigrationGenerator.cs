@@ -34,7 +34,8 @@ public static partial class SchemaMigrationGenerator
     ///     Compares two DDL snapshots and returns migration SQL if changes are detected.
     ///     Returns null if schemas are identical.
     /// </summary>
-    public static MigrationResult? GenerateMigration(string previousDdl, string currentDdl, int fromVersion, int toVersion)
+    public static MigrationResult? GenerateMigration(string previousDdl, string currentDdl, int fromVersion,
+        int toVersion)
     {
         var previousTables = ParseDdl(previousDdl);
         var currentTables = ParseDdl(currentDdl);
@@ -51,7 +52,8 @@ public static partial class SchemaMigrationGenerator
     ///     Writes a migration file to the specified directory.
     ///     File naming: V{version}__description.sql
     /// </summary>
-    public static string WriteMigrationFile(string outputDirectory, MigrationResult migration, string? description = null)
+    public static string WriteMigrationFile(string outputDirectory, MigrationResult migration,
+        string? description = null)
     {
         Directory.CreateDirectory(outputDirectory);
 
@@ -137,10 +139,7 @@ public static partial class SchemaMigrationGenerator
     internal static ImmutableArray<string> ParseIndexes(string ddl)
     {
         var indexes = ImmutableArray.CreateBuilder<string>();
-        foreach (Match match in CreateIndexRegex().Matches(ddl))
-        {
-            indexes.Add(match.Value.Trim().TrimEnd(';'));
-        }
+        foreach (Match match in CreateIndexRegex().Matches(ddl)) indexes.Add(match.Value.Trim().TrimEnd(';'));
 
         return indexes.ToImmutable();
     }
@@ -163,7 +162,7 @@ public static partial class SchemaMigrationGenerator
         {
             if (!previous.TryGetValue(tableName, out var prevTable))
             {
-                changes.Add(new SchemaChange(ChangeKind.AddTable, tableName, null, tableDef, null));
+                changes.Add(new SchemaChange(ChangeKind.AddTable, tableName, null, null));
                 continue;
             }
 
@@ -172,52 +171,37 @@ public static partial class SchemaMigrationGenerator
 
             // New columns
             foreach (var col in tableDef.Columns)
-            {
                 if (!prevColumns.TryGetValue(col.Name, out var prevCol))
                 {
-                    changes.Add(new SchemaChange(ChangeKind.AddColumn, tableName, col.Name, null, col));
+                    changes.Add(new SchemaChange(ChangeKind.AddColumn, tableName, col.Name, col));
                 }
                 else
                 {
-
                     // Type change
                     if (!string.Equals(prevCol.Type, col.Type, StringComparison.OrdinalIgnoreCase))
-                    {
-                        changes.Add(new SchemaChange(ChangeKind.AlterColumnType, tableName, col.Name, null, col)
+                        changes.Add(new SchemaChange(ChangeKind.AlterColumnType, tableName, col.Name, col)
                         {
                             PreviousColumn = prevCol
                         });
-                    }
 
                     // Nullability change (NOT NULL added)
                     if (col.IsNotNull && !prevCol.IsNotNull)
-                    {
-                        changes.Add(new SchemaChange(ChangeKind.AddNotNull, tableName, col.Name, null, col));
-                    }
+                        changes.Add(new SchemaChange(ChangeKind.AddNotNull, tableName, col.Name, col));
                 }
-            }
 
             // Removed columns (comment only, for safety)
             var currentColumns = tableDef.Columns.ToDictionary(
                 static c => c.Name, static c => c, StringComparer.OrdinalIgnoreCase);
 
             foreach (var col in prevTable.Columns)
-            {
                 if (!currentColumns.ContainsKey(col.Name))
-                {
-                    changes.Add(new SchemaChange(ChangeKind.RemoveColumn, tableName, col.Name, null, col));
-                }
-            }
+                    changes.Add(new SchemaChange(ChangeKind.RemoveColumn, tableName, col.Name, col));
         }
 
         // Dropped tables (comment only, for safety)
         foreach (var (tableName, _) in previous)
-        {
             if (!current.ContainsKey(tableName))
-            {
-                changes.Add(new SchemaChange(ChangeKind.RemoveTable, tableName, null, null, null));
-            }
-        }
+                changes.Add(new SchemaChange(ChangeKind.RemoveTable, tableName, null, null));
 
         return changes.ToImmutable();
     }
@@ -242,7 +226,7 @@ public static partial class SchemaMigrationGenerator
         sb.AppendLine(CultureInfo.InvariantCulture,
             $"-- Changes:   {changes.Length}");
         sb.AppendLine(
-            $"-- =============================================================================");
+            "-- =============================================================================");
         sb.AppendLine();
 
         // Group changes by table for readability
@@ -254,7 +238,6 @@ public static partial class SchemaMigrationGenerator
             sb.AppendLine("-- ---------------------------------------------------------------------------");
 
             foreach (var change in tableGroup)
-            {
                 switch (change.Kind)
                 {
                     case ChangeKind.AddTable:
@@ -268,7 +251,7 @@ public static partial class SchemaMigrationGenerator
                         if (col.DefaultValue is not null)
                             colDef += $" DEFAULT {col.DefaultValue}";
                         // Do NOT add NOT NULL without DEFAULT for existing rows
-                        if (col.IsNotNull && col.DefaultValue is not null)
+                        if (col is { IsNotNull: true, DefaultValue: not null })
                             colDef += " NOT NULL";
 
                         sb.AppendLine(CultureInfo.InvariantCulture,
@@ -276,7 +259,7 @@ public static partial class SchemaMigrationGenerator
                         break;
 
                     case ChangeKind.AlterColumnType
-                        when change.Column is { } newCol && change.PreviousColumn is { } prevCol:
+                        when change is { Column: { } newCol, PreviousColumn: { } prevCol }:
                         sb.AppendLine(CultureInfo.InvariantCulture,
                             $"-- Type change: {change.ColumnName} {prevCol.Type} -> {newCol.Type}");
                         sb.AppendLine(CultureInfo.InvariantCulture,
@@ -306,7 +289,6 @@ public static partial class SchemaMigrationGenerator
                             $"-- DROP TABLE IF EXISTS {change.TableName};");
                         break;
                 }
-            }
 
             sb.AppendLine();
         }
@@ -354,10 +336,24 @@ public static partial class SchemaMigrationGenerator
 // ════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Parsed DuckDB table definition.</summary>
-public sealed record TableDefinition(
-    string Name,
-    ImmutableArray<ColumnDefinition> Columns,
-    ImmutableArray<string> Constraints);
+public sealed class TableDefinition
+{
+    public TableDefinition(
+        string name,
+        ImmutableArray<ColumnDefinition> columns,
+        ImmutableArray<string> constraints)
+    {
+        Name = name;
+        Columns = columns;
+        Constraints = constraints;
+    }
+
+    public string Name { get; }
+
+    public ImmutableArray<ColumnDefinition> Columns { get; }
+
+    public ImmutableArray<string> Constraints { get; }
+}
 
 /// <summary>Parsed DuckDB column definition.</summary>
 public sealed record ColumnDefinition(
@@ -382,7 +378,6 @@ public sealed record SchemaChange(
     ChangeKind Kind,
     string TableName,
     string? ColumnName,
-    TableDefinition? Table,
     ColumnDefinition? Column)
 {
     /// <summary>Previous column definition (for type changes).</summary>

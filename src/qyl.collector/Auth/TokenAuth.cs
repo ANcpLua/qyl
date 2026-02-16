@@ -57,7 +57,8 @@ public sealed class TokenAuthOptions
     ///     Only health probes and OTLP ingestion paths are excluded.
     ///     All /api/* endpoints REQUIRE authentication.
     /// </summary>
-    public string[] ExcludedPaths { get; set; } = ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
+    public string[] ExcludedPaths { get; set; } =
+        ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
 }
 
 public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions options)

@@ -46,13 +46,7 @@ public static class AlertEndpoints
                 Channels = r.Channels.Select(c => new { c.Type, c.Url }),
                 State = state is null
                     ? null
-                    : new
-                    {
-                        state.IsFiring,
-                        state.LastFiredAt,
-                        state.LastEvaluatedAt,
-                        state.LastQueryResult
-                    }
+                    : new { state.IsFiring, state.LastFiredAt, state.LastEvaluatedAt, state.LastQueryResult }
             };
         });
 
@@ -88,12 +82,12 @@ public static class AlertEndpoints
         var whereClause = conditions.Count > 0 ? $"WHERE {string.Join(" AND ", conditions)}" : "";
 
         cmd.CommandText = $"""
-            SELECT id, rule_name, fired_at, resolved_at, query_result, condition_text, status, notification_channels
-            FROM alert_history
-            {whereClause}
-            ORDER BY fired_at DESC
-            LIMIT ${paramIndex}
-            """;
+                           SELECT id, rule_name, fired_at, resolved_at, query_result, condition_text, status, notification_channels
+                           FROM alert_history
+                           {whereClause}
+                           ORDER BY fired_at DESC
+                           LIMIT ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });

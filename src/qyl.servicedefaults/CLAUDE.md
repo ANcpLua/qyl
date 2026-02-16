@@ -4,10 +4,10 @@ Aspire-style service defaults for consistent OTel, health checks, and resilience
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
+| Property  | Value           |
+|-----------|-----------------|
+| SDK       | ANcpLua.NET.Sdk |
+| Framework | net10.0         |
 
 ## Usage
 

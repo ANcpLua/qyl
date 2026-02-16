@@ -67,8 +67,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
                 var sourceCode = GenAiInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.GenAiInterceptors, sourceCode);
-            }, context, id: "QSG001")
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.GenAiInterceptors, sourceCode);
+            }, context, "QSG001")
             .AddSource(context);
 
         // =====================================================================
@@ -87,8 +89,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
                 var sourceCode = DbInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.DbInterceptors, sourceCode);
-            }, context, id: "QSG002")
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.DbInterceptors, sourceCode);
+            }, context, "QSG002")
             .AddSource(context);
 
         // =====================================================================
@@ -107,8 +111,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
                 var sourceCode = OTelTagsEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.OTelTagExtensions, sourceCode);
-            }, context, id: "QSG003")
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.OTelTagExtensions, sourceCode);
+            }, context, "QSG003")
             .AddSource(context);
 
         // =====================================================================
@@ -127,8 +133,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
                 var sourceCode = MeterEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.MeterImplementations, sourceCode);
-            }, context, id: "QSG004")
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.MeterImplementations, sourceCode);
+            }, context, "QSG004")
             .AddSource(context);
 
         // =====================================================================
@@ -147,8 +155,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
                 var sourceCode = TracedInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode) ? FileWithName.Empty : new FileWithName(GeneratedFile.TracedInterceptors, sourceCode);
-            }, context, id: "QSG005")
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.TracedInterceptors, sourceCode);
+            }, context, "QSG005")
             .AddSource(context);
     }
 
@@ -161,19 +171,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Checks if the Qyl.ServiceDefaults runtime is referenced.
     ///     This is the prerequisite for most codegen operations.
     /// </summary>
-    private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _)
-    {
-        return compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
-    }
+    private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _) =>
+        compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
 
     /// <summary>
     ///     Checks if the GenAI instrumentation runtime is referenced.
     ///     GenAI interception can work independently of full service defaults.
     /// </summary>
-    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _)
-    {
-        return compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
-    }
+    private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _) =>
+        compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
 
     // =========================================================================
     // SYNTACTIC PRE-FILTER
@@ -184,10 +190,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     ///     Fast syntactic check: could this node be a method invocation?
     ///     This casts a wide net; semantic analysis narrows it down.
     /// </summary>
-    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _)
-    {
-        return node.IsKind(SyntaxKind.InvocationExpression);
-    }
+    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _) =>
+        node.IsKind(SyntaxKind.InvocationExpression);
 
     // =========================================================================
     // BUILDER CALL SITE EXTRACTION
@@ -239,12 +243,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     private static InterceptableLocation? ExtractInterceptableLocation(
         GeneratorSyntaxContext context,
-        CancellationToken cancellationToken)
-    {
-        return context.SemanticModel.GetInterceptableLocation(
+        CancellationToken cancellationToken) =>
+        context.SemanticModel.GetInterceptableLocation(
             (InvocationExpressionSyntax)context.Node,
             cancellationToken);
-    }
 
 
     // =========================================================================

@@ -1,7 +1,7 @@
 namespace qyl.cli.Detection;
 
 /// <summary>
-/// Auto-detects the project stack from files in the working directory.
+///     Auto-detects the project stack from files in the working directory.
 /// </summary>
 public static class StackDetector
 {
@@ -48,5 +48,5 @@ public enum DetectedStack
     Dotnet,
     Node,
     Python,
-    Docker,
+    Docker
 }

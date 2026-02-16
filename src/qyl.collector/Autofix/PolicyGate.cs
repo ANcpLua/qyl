@@ -28,7 +28,8 @@ public static class PolicyGate
     ///     Determines whether a fix should be applied given the policy and confidence score.
     /// </summary>
     /// <returns><c>true</c> if the fix should be applied; <c>false</c> if review is needed.</returns>
-    public static bool ShouldApply(FixPolicy policy, double confidenceScore, double threshold = DefaultAutoApplyThreshold) =>
+    public static bool ShouldApply(FixPolicy policy, double confidenceScore,
+        double threshold = DefaultAutoApplyThreshold) =>
         policy switch
         {
             FixPolicy.AutoApply => confidenceScore >= threshold,
@@ -40,7 +41,8 @@ public static class PolicyGate
     /// <summary>
     ///     Returns the next status based on policy evaluation.
     /// </summary>
-    public static string EvaluateNextStatus(FixPolicy policy, double confidenceScore, double threshold = DefaultAutoApplyThreshold) =>
+    public static string EvaluateNextStatus(FixPolicy policy, double confidenceScore,
+        double threshold = DefaultAutoApplyThreshold) =>
         policy switch
         {
             FixPolicy.AutoApply when confidenceScore >= threshold => "applied",

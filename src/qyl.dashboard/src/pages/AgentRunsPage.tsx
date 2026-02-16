@@ -1,30 +1,16 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {
-    AlertCircle,
-    Bot,
-    ChevronRight,
-    DollarSign,
-    Filter,
-    Loader2,
-    Cpu,
-} from 'lucide-react';
+import {AlertCircle, Bot, ChevronRight, Cpu, DollarSign, Filter, Loader2,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
-import {useAgentRuns} from '@/hooks/use-agent-runs';
 import type {AgentRun} from '@/hooks/use-agent-runs';
+import {useAgentRuns} from '@/hooks/use-agent-runs';
 
-function StatusBadge({status}: {status: string}) {
+function StatusBadge({status}: { status: string }) {
     const styles: Record<string, string> = {
         running: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
         completed: 'bg-green-500/20 text-green-400 border-green-500/40',
@@ -32,7 +18,8 @@ function StatusBadge({status}: {status: string}) {
         cancelled: 'bg-brutal-zinc/40 text-brutal-slate border-brutal-zinc',
     };
     return (
-        <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wider', styles[status] ?? styles.cancelled)}>
+        <Badge variant="outline"
+               className={cn('text-[10px] uppercase tracking-wider', styles[status] ?? styles.cancelled)}>
             {status}
         </Badge>
     );
@@ -51,20 +38,20 @@ function formatTime(nanos?: number): string {
 function SkeletonRow() {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
-            <div className="w-32 h-4 bg-brutal-zinc rounded" />
-            <div className="w-20 h-4 bg-brutal-zinc rounded" />
-            <div className="w-20 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-5 bg-brutal-zinc rounded" />
-            <div className="flex-1" />
-            <div className="w-24 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
+            <div className="w-32 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-20 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-20 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-5 bg-brutal-zinc rounded"/>
+            <div className="flex-1"/>
+            <div className="w-24 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
         </div>
     );
 }
 
-function AgentRunRow({run, onClick}: {run: AgentRun; onClick: () => void}) {
+function AgentRunRow({run, onClick}: { run: AgentRun; onClick: () => void }) {
     const durationMs = run.duration_ns ? nsToMs(run.duration_ns) : null;
     const totalTokens = run.input_tokens + run.output_tokens;
 
@@ -95,7 +82,7 @@ function AgentRunRow({run, onClick}: {run: AgentRun; onClick: () => void}) {
             </div>
 
             <div className="w-24">
-                <StatusBadge status={run.status} />
+                <StatusBadge status={run.status}/>
             </div>
 
             <div className="w-28 text-right">
@@ -127,7 +114,8 @@ function AgentRunRow({run, onClick}: {run: AgentRun; onClick: () => void}) {
                 </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0" />
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
@@ -152,7 +140,7 @@ export function AgentRunsPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
                         <p className="text-red-400">Failed to load agent runs</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
@@ -170,11 +158,11 @@ export function AgentRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Bot className="w-4 h-4 text-signal-orange" />
+                            <Bot className="w-4 h-4 text-signal-orange"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">AGENT RUNS</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-brutal-white">{totalRuns}</div>
                         )}
@@ -184,13 +172,14 @@ export function AgentRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Cpu className="w-4 h-4 text-cyan-500" />
+                            <Cpu className="w-4 h-4 text-cyan-500"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">TOTAL TOKENS</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-brutal-white">{totalTokens.toLocaleString()}</div>
+                            <div
+                                className="text-2xl font-bold mt-1 text-brutal-white">{totalTokens.toLocaleString()}</div>
                         )}
                     </CardContent>
                 </Card>
@@ -198,11 +187,11 @@ export function AgentRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-signal-green" />
+                            <DollarSign className="w-4 h-4 text-signal-green"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">TOTAL COST</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-signal-green">${totalCost.toFixed(4)}</div>
                         )}
@@ -213,7 +202,7 @@ export function AgentRunsPage() {
             {/* Filters */}
             <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-sm">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate" />
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
                         placeholder="Filter by agent name…"
                         value={agentNameFilter}
@@ -225,7 +214,7 @@ export function AgentRunsPage() {
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-40" aria-label="Filter by status">
-                        <SelectValue placeholder="All statuses" />
+                        <SelectValue placeholder="All statuses"/>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All statuses</SelectItem>
@@ -244,7 +233,8 @@ export function AgentRunsPage() {
             {/* Table */}
             <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
                 {/* Header */}
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-40">AGENT</div>
                     <div className="w-28">MODEL</div>
                     <div className="w-20">PROVIDER</div>
@@ -253,23 +243,24 @@ export function AgentRunsPage() {
                     <div className="w-20 text-right">COST</div>
                     <div className="w-20 text-right">DURATION</div>
                     <div className="w-20 text-right">TIME</div>
-                    <div className="w-4" />
+                    <div className="w-4"/>
                 </div>
 
                 {/* Body */}
                 {isLoading ? (
                     <>
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
                     </>
                 ) : !runs || runs.length === 0 ? (
                     <div className="py-12 text-center">
-                        <Bot className="w-12 h-12 mx-auto mb-4 text-brutal-zinc" />
+                        <Bot className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No agent runs found</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Agent runs will appear as your AI agents are traced</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Agent runs will appear as your AI agents are
+                            traced</p>
                     </div>
                 ) : (
                     runs.map((run) => (

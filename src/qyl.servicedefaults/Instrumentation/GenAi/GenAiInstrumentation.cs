@@ -316,7 +316,7 @@ public static class GenAiInstrumentation
         using var activity = ActivitySources.GenAiSource.StartActivity(spanName, ActivityKind.Client);
 
         var sw = Stopwatch.StartNew();
-        int outputTokens = 0;
+        var outputTokens = 0;
 
         if (activity is not null)
         {

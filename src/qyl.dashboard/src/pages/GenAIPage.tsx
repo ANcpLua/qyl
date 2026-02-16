@@ -20,12 +20,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Separator} from '@/components/ui/separator';
 import {CopyableText, DownloadButton, TextVisualizer} from '@/components/ui';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
-import {
-    ToolDefinitionsViewer,
-    ToolCallViewer,
-    extractToolCallInfo,
-    hasToolDefinitions,
-} from '@/components/genai';
+import {extractToolCallInfo, hasToolDefinitions, ToolCallViewer, ToolDefinitionsViewer,} from '@/components/genai';
 
 // API response types
 interface GenAiStats {
@@ -79,10 +74,10 @@ async function fetchGenAiSpans(limit = 50): Promise<GenAiSpansResponse> {
 }
 
 function GenAISpanCard({
-    span,
-    isExpanded,
-    onToggle,
-}: {
+                           span,
+                           isExpanded,
+                           onToggle,
+                       }: {
     span: GenAiSpan;
     isExpanded: boolean;
     onToggle: () => void;
@@ -134,7 +129,7 @@ function GenAISpanCard({
                             </Badge>
                             {hasToolData && (
                                 <Badge variant="outline" className="text-cyan-500 border-cyan-500">
-                                    <Wrench className="w-3 h-3 mr-1" />
+                                    <Wrench className="w-3 h-3 mr-1"/>
                                     Tools
                                 </Badge>
                             )}
@@ -267,15 +262,16 @@ function GenAISpanCard({
                             <TabsContent value="tools" className="mt-4 space-y-6">
                                 {/* Tool Definitions Section */}
                                 {showToolDefinitions && (
-                                    <ToolDefinitionsViewer attributes={parsedAttrs} />
+                                    <ToolDefinitionsViewer attributes={parsedAttrs}/>
                                 )}
 
                                 {/* Tool Call Section */}
                                 {toolCallInfo.hasToolCall && (
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <FileJson className="w-4 h-4 text-muted-foreground" />
-                                            <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                            <FileJson className="w-4 h-4 text-muted-foreground"/>
+                                            <span
+                                                className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                                                 Tool Call
                                             </span>
                                         </div>

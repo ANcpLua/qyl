@@ -1,7 +1,7 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// A Vite/React/Vue/Svelte frontend application.
+///     A Vite/React/Vue/Svelte frontend application.
 /// </summary>
 public sealed class ViteResource : QylResourceBase<ViteResource>
 {
@@ -12,30 +12,30 @@ public sealed class ViteResource : QylResourceBase<ViteResource>
 
         // Auto-assign port for Vite dev server
         var port = PortAllocator.Next();
-        AddPort(new PortBinding(port, port, "http", External: true));
+        AddPort(new PortBinding(port, port, "http", true));
         SetEnvironment("PORT", port.ToString());
         SetEnvironment("VITE_PORT", port.ToString());
     }
 
     /// <summary>
-    /// Path to the frontend directory (contains package.json).
+    ///     Path to the frontend directory (contains package.json).
     /// </summary>
     public string WorkingDirectory { get; }
 
     /// <summary>
-    /// npm script to run. Default: "dev"
+    ///     npm script to run. Default: "dev"
     /// </summary>
     public string RunScript { get; private set; } = "dev";
 
     /// <summary>
-    /// Whether browser telemetry is enabled.
+    ///     Whether browser telemetry is enabled.
     /// </summary>
     public bool BrowserTelemetryEnabled { get; private set; }
 
     public override string Type => "vite";
 
     /// <summary>
-    /// Sets the npm script to run.
+    ///     Sets the npm script to run.
     /// </summary>
     public ViteResource WithRunScript(string script)
     {
@@ -44,8 +44,8 @@ public sealed class ViteResource : QylResourceBase<ViteResource>
     }
 
     /// <summary>
-    /// Enables browser telemetry - console.log, errors, and performance sent to qyl.
-    /// Injects a small script that bridges browser console to the collector.
+    ///     Enables browser telemetry - console.log, errors, and performance sent to qyl.
+    ///     Injects a small script that bridges browser console to the collector.
     /// </summary>
     public ViteResource WithBrowserTelemetry()
     {
@@ -59,8 +59,8 @@ public sealed class ViteResource : QylResourceBase<ViteResource>
     }
 
     /// <summary>
-    /// Sets the API backend this frontend talks to.
-    /// Configures proxy and injects VITE_API_URL.
+    ///     Sets the API backend this frontend talks to.
+    ///     Configures proxy and injects VITE_API_URL.
     /// </summary>
     public ViteResource WithApi(IQylResource api)
     {

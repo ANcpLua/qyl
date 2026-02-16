@@ -39,7 +39,8 @@ public sealed record WatchdogOptions
                     options = options with { OtlpEndpoint = v };
                     break;
                 case "--ignore" when TryNext(args, ref i, out var v):
-                    foreach (var name in v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    foreach (var name in v.Split(',',
+                                 StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                         options.IgnoreProcesses.Add(name);
                     break;
                 case "--verbose" or "-v":
@@ -90,7 +91,8 @@ public sealed record WatchdogOptions
         var ignore = Env("QYL_WATCH_IGNORE");
         if (!string.IsNullOrEmpty(ignore))
         {
-            foreach (var name in ignore.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            foreach (var name in ignore.Split(',',
+                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 options.IgnoreProcesses.Add(name);
         }
 
@@ -111,31 +113,29 @@ public sealed record WatchdogOptions
         return false;
     }
 
-    private static void PrintUsage()
-    {
+    private static void PrintUsage() =>
         Console.WriteLine("""
-            qyl-watchdog — system resource watchdog
+                          qyl-watchdog — system resource watchdog
 
-            Usage: qyl-watchdog [options]
+                          Usage: qyl-watchdog [options]
 
-            Options:
-              --interval <ms>     Poll interval (default: 5000)
-              --threshold <mult>  Spike multiplier (default: 3.0)
-              --sustained <n>     Samples before alert (default: 6)
-              --cooldown <ms>     Alert cooldown (default: 300000)
-              --otlp <url>        OTLP endpoint for export
-              --ignore <names>    Comma-separated process names to ignore
-              --verbose, -v       Detailed output
-              --once              Single scan then exit
-              --kill <pid>        Kill a process by PID
-              --install           Install as launchd agent (auto-start on login)
-              --uninstall         Remove launchd agent
-              --status            Show launchd agent status
-              --help, -h          Show this help
+                          Options:
+                            --interval <ms>     Poll interval (default: 5000)
+                            --threshold <mult>  Spike multiplier (default: 3.0)
+                            --sustained <n>     Samples before alert (default: 6)
+                            --cooldown <ms>     Alert cooldown (default: 300000)
+                            --otlp <url>        OTLP endpoint for export
+                            --ignore <names>    Comma-separated process names to ignore
+                            --verbose, -v       Detailed output
+                            --once              Single scan then exit
+                            --kill <pid>        Kill a process by PID
+                            --install           Install as launchd agent (auto-start on login)
+                            --uninstall         Remove launchd agent
+                            --status            Show launchd agent status
+                            --help, -h          Show this help
 
-            Environment:
-              QYL_WATCH_INTERVAL, QYL_WATCH_THRESHOLD, QYL_WATCH_SUSTAINED,
-              QYL_WATCH_COOLDOWN, QYL_WATCH_OTLP_ENDPOINT, QYL_WATCH_IGNORE
-            """);
-    }
+                          Environment:
+                            QYL_WATCH_INTERVAL, QYL_WATCH_THRESHOLD, QYL_WATCH_SUSTAINED,
+                            QYL_WATCH_COOLDOWN, QYL_WATCH_OTLP_ENDPOINT, QYL_WATCH_IGNORE
+                          """);
 }

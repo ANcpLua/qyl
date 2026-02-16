@@ -82,7 +82,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
     private static (DateTime Start, DateTime End) GetQuarterBounds(DateTime now, int offset)
     {
-        var quarterMonth = ((now.Month - 1) / 3) * 3 + 1;
+        var quarterMonth = ((now.Month - 1) / 3 * 3) + 1;
         var start = new DateTime(now.Year, quarterMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-3 * offset);
         return (start, start.AddMonths(3));
     }
@@ -123,38 +123,38 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
-            WITH convos AS (
-                SELECT
-                    {ConversationIdExpr} AS conversation_id,
-                    MIN(start_time_unix_nano) AS started_at,
-                    MAX(end_time_unix_nano) AS ended_at,
-                    COUNT(*) AS turn_count,
-                    SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                    COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,
-                    COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,
-                    MAX({EnduserIdExpr}) AS user_id,
-                    MIN(name) AS first_question
-                FROM spans
-                WHERE {OperationNameExpr} IS NOT NULL
-                  AND start_time_unix_nano >= $1
-                  AND start_time_unix_nano < $2
-                  AND ($3::VARCHAR IS NULL OR {EnduserIdExpr} IS NOT DISTINCT FROM $3)
-                  AND ($4::VARCHAR IS NULL OR gen_ai_request_model IS NOT DISTINCT FROM $4)
-                GROUP BY conversation_id
-            )
-            SELECT conversation_id, started_at, ended_at, turn_count, error_count,
-                   total_input_tokens, total_output_tokens, user_id, first_question
-            FROM convos
-            WHERE ($5::BOOLEAN IS NULL OR (error_count > 0) = $5)
-            ORDER BY started_at DESC
-            LIMIT $6 OFFSET $7
-            """;
+                           WITH convos AS (
+                               SELECT
+                                   {ConversationIdExpr} AS conversation_id,
+                                   MIN(start_time_unix_nano) AS started_at,
+                                   MAX(end_time_unix_nano) AS ended_at,
+                                   COUNT(*) AS turn_count,
+                                   SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                   COALESCE(SUM(gen_ai_input_tokens), 0) AS total_input_tokens,
+                                   COALESCE(SUM(gen_ai_output_tokens), 0) AS total_output_tokens,
+                                   MAX({EnduserIdExpr}) AS user_id,
+                                   MIN(name) AS first_question
+                               FROM spans
+                               WHERE {OperationNameExpr} IS NOT NULL
+                                 AND start_time_unix_nano >= $1
+                                 AND start_time_unix_nano < $2
+                                 AND ($3::VARCHAR IS NULL OR {EnduserIdExpr} IS NOT DISTINCT FROM $3)
+                                 AND ($4::VARCHAR IS NULL OR gen_ai_request_model IS NOT DISTINCT FROM $4)
+                               GROUP BY conversation_id
+                           )
+                           SELECT conversation_id, started_at, ended_at, turn_count, error_count,
+                                  total_input_tokens, total_output_tokens, user_id, first_question
+                           FROM convos
+                           WHERE ($5::BOOLEAN IS NULL OR (error_count > 0) = $5)
+                           ORDER BY started_at DESC
+                           LIMIT $6 OFFSET $7
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = userId ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = model ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = hasErrors.HasValue ? (object)hasErrors.Value : DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = hasErrors.HasValue ? hasErrors.Value : DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = pageSize });
         cmd.Parameters.Add(new DuckDBParameter { Value = skip });
 
@@ -184,12 +184,12 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // Get total count
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = $"""
-            SELECT COUNT(DISTINCT {ConversationIdExpr})
-            FROM spans
-            WHERE {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            """;
+                                SELECT COUNT(DISTINCT {ConversationIdExpr})
+                                FROM spans
+                                WHERE {OperationNameExpr} IS NOT NULL
+                                  AND start_time_unix_nano >= $1
+                                  AND start_time_unix_nano < $2
+                                """;
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
 
@@ -197,10 +197,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         return new ConversationListResult
         {
-            Conversations = conversations,
-            Total = total,
-            Page = page,
-            PageSize = pageSize
+            Conversations = conversations, Total = total, Page = page, PageSize = pageSize
         };
     }
 
@@ -216,19 +213,19 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
-            SELECT
-                span_id, name, start_time_unix_nano, end_time_unix_nano, duration_ns,
-                status_code, status_message,
-                gen_ai_provider_name, gen_ai_request_model,
-                gen_ai_input_tokens, gen_ai_output_tokens,
-                gen_ai_tool_name, gen_ai_stop_reason,
-                {OperationNameExpr} AS operation_name,
-                {EnduserIdExpr} AS enduser_id,
-                {DataSourceIdExpr} AS data_source_id
-            FROM spans
-            WHERE {ConversationIdExpr} = $1
-            ORDER BY start_time_unix_nano ASC
-            """;
+                           SELECT
+                               span_id, name, start_time_unix_nano, end_time_unix_nano, duration_ns,
+                               status_code, status_message,
+                               gen_ai_provider_name, gen_ai_request_model,
+                               gen_ai_input_tokens, gen_ai_output_tokens,
+                               gen_ai_tool_name, gen_ai_stop_reason,
+                               {OperationNameExpr} AS operation_name,
+                               {EnduserIdExpr} AS enduser_id,
+                               {DataSourceIdExpr} AS data_source_id
+                           FROM spans
+                           WHERE {ConversationIdExpr} = $1
+                           ORDER BY start_time_unix_nano ASC
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = conversationId });
 
@@ -262,11 +259,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         if (turns.Count is 0)
             return null;
 
-        return new ConversationDetail
-        {
-            ConversationId = conversationId,
-            Turns = turns
-        };
+        return new ConversationDetail { ConversationId = conversationId, Turns = turns };
     }
 
     // =========================================================================
@@ -285,12 +278,12 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // First get total conversation count for the period
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = $"""
-            SELECT COUNT(DISTINCT {ConversationIdExpr})
-            FROM spans
-            WHERE {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            """;
+                                SELECT COUNT(DISTINCT {ConversationIdExpr})
+                                FROM spans
+                                WHERE {OperationNameExpr} IS NOT NULL
+                                  AND start_time_unix_nano >= $1
+                                  AND start_time_unix_nano < $2
+                                """;
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
@@ -298,43 +291,43 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // Find uncertain conversations grouped by span name pattern
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            WITH uncertain AS (
-                SELECT
-                    {ConversationIdExpr} AS conversation_id,
-                    name AS span_name,
-                    COUNT(*) AS span_count,
-                    SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                    COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS total_tokens,
-                    MAX({DurationMsExpr}) AS max_duration_ms
-                FROM spans
-                WHERE {OperationNameExpr} IS NOT NULL
-                  AND start_time_unix_nano >= $1
-                  AND start_time_unix_nano < $2
-                  AND (
-                      status_code = 2
-                      OR gen_ai_output_tokens = 0
-                      OR {DurationMsExpr} > (
-                          SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY {DurationMsExpr}), 999999)
-                          FROM spans
-                          WHERE {OperationNameExpr} IS NOT NULL
-                            AND start_time_unix_nano >= $1
-                            AND start_time_unix_nano < $2
-                      )
-                  )
-                GROUP BY conversation_id, span_name
-            )
-            SELECT
-                span_name AS topic,
-                COUNT(DISTINCT conversation_id) AS conversation_count,
-                array_agg(DISTINCT conversation_id ORDER BY conversation_id) AS sample_ids,
-                SUM(error_count) AS total_errors,
-                MAX(max_duration_ms) AS max_duration_ms
-            FROM uncertain
-            GROUP BY span_name
-            HAVING COUNT(DISTINCT conversation_id) >= 2
-            ORDER BY conversation_count DESC
-            LIMIT 50
-            """;
+                           WITH uncertain AS (
+                               SELECT
+                                   {ConversationIdExpr} AS conversation_id,
+                                   name AS span_name,
+                                   COUNT(*) AS span_count,
+                                   SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                   COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS total_tokens,
+                                   MAX({DurationMsExpr}) AS max_duration_ms
+                               FROM spans
+                               WHERE {OperationNameExpr} IS NOT NULL
+                                 AND start_time_unix_nano >= $1
+                                 AND start_time_unix_nano < $2
+                                 AND (
+                                     status_code = 2
+                                     OR gen_ai_output_tokens = 0
+                                     OR {DurationMsExpr} > (
+                                         SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY {DurationMsExpr}), 999999)
+                                         FROM spans
+                                         WHERE {OperationNameExpr} IS NOT NULL
+                                           AND start_time_unix_nano >= $1
+                                           AND start_time_unix_nano < $2
+                                     )
+                                 )
+                               GROUP BY conversation_id, span_name
+                           )
+                           SELECT
+                               span_name AS topic,
+                               COUNT(DISTINCT conversation_id) AS conversation_count,
+                               array_agg(DISTINCT conversation_id ORDER BY conversation_id) AS sample_ids,
+                               SUM(error_count) AS total_errors,
+                               MAX(max_duration_ms) AS max_duration_ms
+                           FROM uncertain
+                           GROUP BY span_name
+                           HAVING COUNT(DISTINCT conversation_id) >= 2
+                           ORDER BY conversation_count DESC
+                           LIMIT 50
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -363,9 +356,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         return new CoverageGapsResult
         {
-            ConversationsProcessed = totalConversations,
-            GapsIdentified = gaps.Count,
-            Gaps = gaps
+            ConversationsProcessed = totalConversations, GapsIdentified = gaps.Count, Gaps = gaps
         };
     }
 
@@ -386,12 +377,12 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // Total conversations
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = $"""
-            SELECT COUNT(DISTINCT {ConversationIdExpr})
-            FROM spans
-            WHERE {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            """;
+                                SELECT COUNT(DISTINCT {ConversationIdExpr})
+                                FROM spans
+                                WHERE {OperationNameExpr} IS NOT NULL
+                                  AND start_time_unix_nano >= $1
+                                  AND start_time_unix_nano < $2
+                                """;
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
@@ -399,19 +390,19 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // Group by span name (topic proxy)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT
-                name AS topic,
-                COUNT(DISTINCT {ConversationIdExpr}) AS conversation_count,
-                array_agg(DISTINCT {ConversationIdExpr} ORDER BY {ConversationIdExpr}) AS sample_ids
-            FROM spans
-            WHERE {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            GROUP BY name
-            HAVING COUNT(DISTINCT {ConversationIdExpr}) >= $3
-            ORDER BY conversation_count DESC
-            LIMIT 50
-            """;
+                           SELECT
+                               name AS topic,
+                               COUNT(DISTINCT {ConversationIdExpr}) AS conversation_count,
+                               array_agg(DISTINCT {ConversationIdExpr} ORDER BY {ConversationIdExpr}) AS sample_ids
+                           FROM spans
+                           WHERE {OperationNameExpr} IS NOT NULL
+                             AND start_time_unix_nano >= $1
+                             AND start_time_unix_nano < $2
+                           GROUP BY name
+                           HAVING COUNT(DISTINCT {ConversationIdExpr}) >= $3
+                           ORDER BY conversation_count DESC
+                           LIMIT 50
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -434,9 +425,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         return new TopQuestionsResult
         {
-            ConversationsProcessed = totalConversations,
-            ClustersIdentified = clusters.Count,
-            Clusters = clusters
+            ConversationsProcessed = totalConversations, ClustersIdentified = clusters.Count, Clusters = clusters
         };
     }
 
@@ -455,18 +444,18 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
-            SELECT
-                {DataSourceIdExpr} AS source_id,
-                COUNT(*) AS citation_count,
-                array_agg(DISTINCT name ORDER BY name) AS top_questions
-            FROM spans
-            WHERE {DataSourceIdExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            GROUP BY source_id
-            ORDER BY citation_count DESC
-            LIMIT 100
-            """;
+                           SELECT
+                               {DataSourceIdExpr} AS source_id,
+                               COUNT(*) AS citation_count,
+                               array_agg(DISTINCT name ORDER BY name) AS top_questions
+                           FROM spans
+                           WHERE {DataSourceIdExpr} IS NOT NULL
+                             AND start_time_unix_nano >= $1
+                             AND start_time_unix_nano < $2
+                           GROUP BY source_id
+                           ORDER BY citation_count DESC
+                           LIMIT 100
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -486,10 +475,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             });
         }
 
-        return new SourceAnalyticsResult
-        {
-            Sources = sources
-        };
+        return new SourceAnalyticsResult { Sources = sources };
     }
 
     // =========================================================================
@@ -507,16 +493,16 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         // Aggregate feedback from attributes_json
-        cmd.CommandText = $"""
-            SELECT
-                COUNT(*) AS total_feedback,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS upvotes,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS downvotes
-            FROM spans
-            WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            """;
+        cmd.CommandText = """
+                          SELECT
+                              COUNT(*) AS total_feedback,
+                              SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS upvotes,
+                              SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS downvotes
+                          FROM spans
+                          WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                            AND start_time_unix_nano >= $1
+                            AND start_time_unix_nano < $2
+                          """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -534,20 +520,20 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         // Satisfaction by model
         await using var modelCmd = lease.Connection.CreateCommand();
-        modelCmd.CommandText = $"""
-            SELECT
-                gen_ai_request_model AS model,
-                COUNT(*) AS feedback_count,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
-            FROM spans
-            WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-              AND gen_ai_request_model IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            GROUP BY gen_ai_request_model
-            ORDER BY feedback_count DESC
-            """;
+        modelCmd.CommandText = """
+                               SELECT
+                                   gen_ai_request_model AS model,
+                                   COUNT(*) AS feedback_count,
+                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
+                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
+                               FROM spans
+                               WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                 AND gen_ai_request_model IS NOT NULL
+                                 AND start_time_unix_nano >= $1
+                                 AND start_time_unix_nano < $2
+                               GROUP BY gen_ai_request_model
+                               ORDER BY feedback_count DESC
+                               """;
 
         modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         modelCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -572,21 +558,21 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
 
         // Satisfaction by topic (span name)
         await using var topicCmd = lease.Connection.CreateCommand();
-        topicCmd.CommandText = $"""
-            SELECT
-                name AS topic,
-                COUNT(*) AS feedback_count,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
-                SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
-            FROM spans
-            WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            GROUP BY name
-            HAVING SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
-            ORDER BY down DESC
-            LIMIT 20
-            """;
+        topicCmd.CommandText = """
+                               SELECT
+                                   name AS topic,
+                                   COUNT(*) AS feedback_count,
+                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
+                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
+                               FROM spans
+                               WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                 AND start_time_unix_nano >= $1
+                                 AND start_time_unix_nano < $2
+                               GROUP BY name
+                               HAVING SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
+                               ORDER BY down DESC
+                               LIMIT 20
+                               """;
 
         topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         topicCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -640,21 +626,21 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
-            SELECT
-                {EnduserIdExpr} AS user_id,
-                COUNT(DISTINCT {ConversationIdExpr}) AS conversation_count,
-                MIN(start_time_unix_nano) AS first_seen,
-                MAX(end_time_unix_nano) AS last_seen,
-                array_agg(DISTINCT name ORDER BY name) AS top_topics
-            FROM spans
-            WHERE {EnduserIdExpr} IS NOT NULL
-              AND {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            GROUP BY user_id
-            ORDER BY conversation_count DESC
-            LIMIT $3 OFFSET $4
-            """;
+                           SELECT
+                               {EnduserIdExpr} AS user_id,
+                               COUNT(DISTINCT {ConversationIdExpr}) AS conversation_count,
+                               MIN(start_time_unix_nano) AS first_seen,
+                               MAX(end_time_unix_nano) AS last_seen,
+                               array_agg(DISTINCT name ORDER BY name) AS top_topics
+                           FROM spans
+                           WHERE {EnduserIdExpr} IS NOT NULL
+                             AND {OperationNameExpr} IS NOT NULL
+                             AND start_time_unix_nano >= $1
+                             AND start_time_unix_nano < $2
+                           GROUP BY user_id
+                           ORDER BY conversation_count DESC
+                           LIMIT $3 OFFSET $4
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
@@ -683,22 +669,18 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         // Total user count
         await using var countCmd = lease.Connection.CreateCommand();
         countCmd.CommandText = $"""
-            SELECT COUNT(DISTINCT {EnduserIdExpr})
-            FROM spans
-            WHERE {EnduserIdExpr} IS NOT NULL
-              AND {OperationNameExpr} IS NOT NULL
-              AND start_time_unix_nano >= $1
-              AND start_time_unix_nano < $2
-            """;
+                                SELECT COUNT(DISTINCT {EnduserIdExpr})
+                                FROM spans
+                                WHERE {EnduserIdExpr} IS NOT NULL
+                                  AND {OperationNameExpr} IS NOT NULL
+                                  AND start_time_unix_nano >= $1
+                                  AND start_time_unix_nano < $2
+                                """;
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)startNano });
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var total = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
 
-        return new UserListResult
-        {
-            Users = users,
-            Total = total
-        };
+        return new UserListResult { Users = users, Total = total };
     }
 
     // =========================================================================
@@ -713,20 +695,20 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
-            SELECT
-                {ConversationIdExpr} AS conversation_id,
-                MIN(start_time_unix_nano) AS started_at,
-                MIN(name) AS topic,
-                COUNT(*) AS turn_count,
-                SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                COALESCE(SUM(gen_ai_input_tokens), 0) + COALESCE(SUM(gen_ai_output_tokens), 0) AS total_tokens
-            FROM spans
-            WHERE {EnduserIdExpr} = $1
-              AND {OperationNameExpr} IS NOT NULL
-            GROUP BY conversation_id
-            ORDER BY started_at DESC
-            LIMIT 100
-            """;
+                           SELECT
+                               {ConversationIdExpr} AS conversation_id,
+                               MIN(start_time_unix_nano) AS started_at,
+                               MIN(name) AS topic,
+                               COUNT(*) AS turn_count,
+                               SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                               COALESCE(SUM(gen_ai_input_tokens), 0) + COALESCE(SUM(gen_ai_output_tokens), 0) AS total_tokens
+                           FROM spans
+                           WHERE {EnduserIdExpr} = $1
+                             AND {OperationNameExpr} IS NOT NULL
+                           GROUP BY conversation_id
+                           ORDER BY started_at DESC
+                           LIMIT 100
+                           """;
 
         cmd.Parameters.Add(new DuckDBParameter { Value = userId });
 

@@ -126,7 +126,8 @@ internal static class MeterEmitter
         var paramParts = new List<string>();
 
         // Histogram, Gauge, and UpDownCounter all take a value parameter
-        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge or MetricKind.UpDownCounter && method.ValueTypeName is not null)
+        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge or MetricKind.UpDownCounter &&
+            method.ValueTypeName is not null)
             paramParts.Add($"{method.ValueTypeName} value");
 
         foreach (var tag in method.Tags) paramParts.Add($"{tag.TypeName} {tag.ParameterName}");

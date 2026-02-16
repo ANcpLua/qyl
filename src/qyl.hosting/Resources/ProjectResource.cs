@@ -1,7 +1,7 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// A .NET project resource.
+///     A .NET project resource.
 /// </summary>
 public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<TProject>>
     where TProject : IProjectMetadata
@@ -24,14 +24,14 @@ public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<
     }
 
     /// <summary>
-    /// Path to the .csproj file.
+    ///     Path to the .csproj file.
     /// </summary>
     public string ProjectPath { get; }
 
     public override string Type => "project";
 
     /// <summary>
-    /// Sets the launch profile to use.
+    ///     Sets the launch profile to use.
     /// </summary>
     public ProjectResource<TProject> WithLaunchProfile(string profile)
     {
@@ -40,7 +40,7 @@ public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<
     }
 
     /// <summary>
-    /// Adds command-line arguments.
+    ///     Adds command-line arguments.
     /// </summary>
     public ProjectResource<TProject> WithArgs(params string[] args)
     {
@@ -50,7 +50,7 @@ public sealed class ProjectResource<TProject> : QylResourceBase<ProjectResource<
 }
 
 /// <summary>
-/// Allocates unique ports for resources.
+///     Allocates unique ports for resources.
 /// </summary>
 internal static class PortAllocator
 {

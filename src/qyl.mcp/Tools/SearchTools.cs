@@ -31,12 +31,12 @@ public sealed class SearchTools(HttpClient client)
     public Task<string> SearchAsync(
         [Description("Search query string (full-text search)")]
         string query,
-        [Description("Comma-separated entity types to search: 'spans', 'logs', 'issues', 'agents', 'workflows', 'all' (default: 'all')")]
+        [Description(
+            "Comma-separated entity types to search: 'spans', 'logs', 'issues', 'agents', 'workflows', 'all' (default: 'all')")]
         string entityTypes = "all",
         [Description("Maximum results per entity type (default: 10)")]
-        int limit = 10)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int limit = 10) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/search?q={Uri.EscapeDataString(query)}&limit={limit}";
             if (!string.IsNullOrEmpty(entityTypes) && entityTypes != "all")
@@ -73,24 +73,28 @@ public sealed class SearchTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
 
 internal sealed record UnifiedSearchResponse(
-    [property: JsonPropertyName("results")] List<SearchResultGroup>? Results,
-    [property: JsonPropertyName("total_count")] int TotalCount);
+    [property: JsonPropertyName("results")]
+    List<SearchResultGroup>? Results,
+    [property: JsonPropertyName("total_count")]
+    int TotalCount);
 
 internal sealed record SearchResultGroup(
-    [property: JsonPropertyName("entity_type")] string EntityType,
+    [property: JsonPropertyName("entity_type")]
+    string EntityType,
     [property: JsonPropertyName("items")] List<SearchResultItem>? Items);
 
 internal sealed record SearchResultItem(
     [property: JsonPropertyName("id")] string? Id,
     [property: JsonPropertyName("name")] string? Name,
-    [property: JsonPropertyName("timestamp")] string? Timestamp,
-    [property: JsonPropertyName("summary")] string? Summary);
+    [property: JsonPropertyName("timestamp")]
+    string? Timestamp,
+    [property: JsonPropertyName("summary")]
+    string? Summary);
 
 #endregion
 

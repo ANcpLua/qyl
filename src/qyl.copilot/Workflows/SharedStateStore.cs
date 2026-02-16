@@ -17,6 +17,11 @@ public sealed class SharedStateStore
     private readonly Lock _lock = new();
 
     /// <summary>
+    ///     Gets all keys currently in the store.
+    /// </summary>
+    public IReadOnlyCollection<string> Keys => _entries.Keys.ToList();
+
+    /// <summary>
     ///     Gets a value by key, returning default if not found.
     /// </summary>
     public Task<T?> GetAsync<T>(string key, CancellationToken ct = default)
@@ -71,20 +76,13 @@ public sealed class SharedStateStore
     }
 
     /// <summary>
-    ///     Gets all keys currently in the store.
-    /// </summary>
-    public IReadOnlyCollection<string> Keys => _entries.Keys.ToList();
-
-    /// <summary>
     ///     Returns a snapshot of the store as a dictionary (unversioned).
     /// </summary>
-    public IReadOnlyDictionary<string, object?> Snapshot()
-    {
-        return _entries.ToDictionary(
+    public IReadOnlyDictionary<string, object?> Snapshot() =>
+        _entries.ToDictionary(
             static kvp => kvp.Key,
             static kvp => kvp.Value.Value,
             StringComparer.OrdinalIgnoreCase);
-    }
 
     private sealed record VersionedEntry(object? Value, long Version);
 }

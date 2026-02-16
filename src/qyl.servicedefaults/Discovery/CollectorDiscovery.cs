@@ -9,7 +9,8 @@ namespace Qyl.ServiceDefaults.Discovery;
 /// </summary>
 internal static partial class CollectorDiscovery
 {
-    private static readonly Lazy<Uri?> SCachedEndpoint = new(ProbeForCollector, LazyThreadSafetyMode.ExecutionAndPublication);
+    private static readonly Lazy<Uri?> SCachedEndpoint =
+        new(ProbeForCollector, LazyThreadSafetyMode.ExecutionAndPublication);
 
     private static readonly (string Host, int Port)[] SProbeTargets =
     [

@@ -5,17 +5,18 @@ namespace Qyl.Analyzers.Core;
 /// </summary>
 /// <remarks>
 ///     <para>
-///         <b>IMPORTANT:</b> Avoid using <see cref="DiagnosticSeverity.Info"/> for analyzers
+///         <b>IMPORTANT:</b> Avoid using <see cref="DiagnosticSeverity.Info" /> for analyzers
 ///         that should appear in normal build output. Info-level diagnostics are filtered
 ///         out by MSBuild by default and won't appear in build output or IDE error lists
 ///         unless explicitly configured.
 ///     </para>
 ///     <para>
-///         Use <see cref="DiagnosticSeverity.Warning"/> for suggestions and code improvements.
-///         Use <see cref="DiagnosticSeverity.Error"/> only for definite bugs or violations.
+///         Use <see cref="DiagnosticSeverity.Warning" /> for suggestions and code improvements.
+///         Use <see cref="DiagnosticSeverity.Error" /> only for definite bugs or violations.
 ///     </para>
 /// </remarks>
-public static partial class DiagnosticSeverities {
+public static partial class DiagnosticSeverities
+{
     /// <summary>
     ///     Use for suggestions and code style improvements.
     ///     This appears in normal build output and IDE error lists.

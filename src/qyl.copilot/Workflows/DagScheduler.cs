@@ -4,7 +4,6 @@
 // =============================================================================
 
 using System.Collections.Concurrent;
-using Microsoft.Agents.AI;
 using qyl.copilot.Adapters;
 
 namespace qyl.copilot.Workflows;
@@ -35,7 +34,7 @@ public sealed record WorkflowNode
     /// <summary>Conditional edges for branching (evaluated by ConditionalRouter).</summary>
     public IReadOnlyList<ConditionalEdge>? ConditionalEdges { get; init; }
 
-    /// <summary>Optional agent name for nodes that invoke an AI agent via <see cref="QylAgentPipeline"/>.</summary>
+    /// <summary>Optional agent name for nodes that invoke an AI agent via <see cref="QylAgentPipeline" />.</summary>
     public string? AgentName { get; init; }
 
     /// <summary>Optional agent instructions for agent-backed nodes.</summary>
@@ -111,9 +110,9 @@ public sealed record DagExecutionResult
 /// </summary>
 public sealed class DagScheduler
 {
-    private readonly ConditionalRouter _router;
     private readonly ILogger _logger;
     private readonly int _maxWorkers;
+    private readonly ConditionalRouter _router;
 
     /// <summary>
     ///     Creates a new DAG scheduler.
@@ -165,8 +164,8 @@ public sealed class DagScheduler
         var pendingTasks = new ConcurrentDictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
         var allDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        int totalNodes = workflow.Nodes.Count;
-        int processedCount = 0;
+        var totalNodes = workflow.Nodes.Count;
+        var processedCount = 0;
 
         // Process nodes as they become ready
         await ProcessReadyNodesAsync();
@@ -203,7 +202,7 @@ public sealed class DagScheduler
                     continue;
 
                 // Skip if any dependency failed
-                bool hasFailedDep = false;
+                var hasFailedDep = false;
                 foreach (var dep in node.Dependencies)
                 {
                     if (failed.ContainsKey(dep))
@@ -217,7 +216,7 @@ public sealed class DagScheduler
                 {
                     skipped.Add(nodeId);
                     Interlocked.Increment(ref processedCount);
-                    UnblockDependents(nodeId, nodeMap, inDegree, readyQueue, failed: true);
+                    UnblockDependents(nodeId, nodeMap, inDegree, readyQueue, true);
                     continue;
                 }
 
@@ -236,18 +235,18 @@ public sealed class DagScheduler
                         context.NodeResults.TryGetValue(capturedNodeId, out var output);
                         var nextNodes = _router.ResolveNextNodes(capturedNode, output, context.SharedState.Snapshot());
 
-                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, failed: false, nextNodes);
+                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, false, nextNodes);
                     }
                     catch (OperationCanceledException) when (ct.IsCancellationRequested)
                     {
                         failed[capturedNodeId] = "Cancelled";
-                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, failed: true);
+                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, true);
                     }
                     catch (Exception ex)
                     {
                         failed[capturedNodeId] = ex.Message;
                         _logger.LogError(ex, "DAG node {NodeId} failed", capturedNodeId);
-                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, failed: true);
+                        UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, true);
                     }
                     finally
                     {
@@ -269,13 +268,15 @@ public sealed class DagScheduler
     {
         context.CurrentNode = node;
 
-        await context.EventStream.AppendAsync(new WorkflowEvent
-        {
-            ExecutionId = context.ExecutionId,
-            Type = WorkflowEventType.NodeStarted,
-            NodeId = node.Id,
-            Timestamp = TimeProvider.System.GetUtcNow()
-        }, ct).ConfigureAwait(false);
+        await context.EventStream
+            .AppendAsync(
+                new WorkflowEvent
+                {
+                    ExecutionId = context.ExecutionId,
+                    Type = WorkflowEventType.NodeStarted,
+                    NodeId = node.Id,
+                    Timestamp = TimeProvider.System.GetUtcNow()
+                }, ct).ConfigureAwait(false);
 
         _logger.LogDebug("DAG executing node {NodeId} ({NodeName})", node.Id, node.Name);
 
@@ -304,31 +305,36 @@ public sealed class DagScheduler
                     context.CheckpointManager, context.ExecutionId, ct).ConfigureAwait(false);
             }
 
-            await context.EventStream.AppendAsync(new WorkflowEvent
-            {
-                ExecutionId = context.ExecutionId,
-                Type = WorkflowEventType.NodeCompleted,
-                NodeId = node.Id,
-                Data = result,
-                Timestamp = TimeProvider.System.GetUtcNow()
-            }, ct).ConfigureAwait(false);
+            await context.EventStream
+                .AppendAsync(
+                    new WorkflowEvent
+                    {
+                        ExecutionId = context.ExecutionId,
+                        Type = WorkflowEventType.NodeCompleted,
+                        NodeId = node.Id,
+                        Data = result,
+                        Timestamp = TimeProvider.System.GetUtcNow()
+                    }, ct).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            await context.EventStream.AppendAsync(new WorkflowEvent
-            {
-                ExecutionId = context.ExecutionId,
-                Type = WorkflowEventType.NodeFailed,
-                NodeId = node.Id,
-                Data = ex.Message,
-                Timestamp = TimeProvider.System.GetUtcNow()
-            }, ct).ConfigureAwait(false);
+            await context.EventStream
+                .AppendAsync(
+                    new WorkflowEvent
+                    {
+                        ExecutionId = context.ExecutionId,
+                        Type = WorkflowEventType.NodeFailed,
+                        NodeId = node.Id,
+                        Data = ex.Message,
+                        Timestamp = TimeProvider.System.GetUtcNow()
+                    }, ct).ConfigureAwait(false);
 
             throw;
         }
     }
 
-    private static async Task<string> ExecuteAgentNodeAsync(WorkflowNode node, DagExecutionContext context, CancellationToken ct)
+    private static async Task<string> ExecuteAgentNodeAsync(WorkflowNode node, DagExecutionContext context,
+        CancellationToken ct)
     {
         var agent = QylAgentPipeline.CreateInstrumented(node.AgentName!, context.Services!)
             .Build(context.Services!);
@@ -337,7 +343,7 @@ public sealed class DagScheduler
         var prompt = node.AgentInstructions ?? node.Name;
         if (node.Dependencies.Count > 0)
         {
-            var upstreamContext = new System.Text.StringBuilder();
+            var upstreamContext = new StringBuilder();
             upstreamContext.AppendLine("## Upstream Results");
             foreach (var depId in node.Dependencies)
             {
@@ -352,25 +358,28 @@ public sealed class DagScheduler
         }
 
         // Create session from agent (InMemoryAgentSession is abstract, use agent factory)
-        var session = await agent.CreateSessionAsync(cancellationToken: ct).ConfigureAwait(false);
+        var session = await agent.CreateSessionAsync(ct).ConfigureAwait(false);
 
         // Stream agent response into workflow event stream
-        var responseBuilder = new System.Text.StringBuilder();
-        await foreach (var update in agent.RunStreamingAsync(prompt, session, cancellationToken: ct).ConfigureAwait(false))
+        var responseBuilder = new StringBuilder();
+        await foreach (var update in agent.RunStreamingAsync(prompt, session, cancellationToken: ct)
+                           .ConfigureAwait(false))
         {
             var content = update.ToString();
             if (!string.IsNullOrEmpty(content))
             {
                 responseBuilder.Append(content);
 
-                await context.EventStream.AppendAsync(new WorkflowEvent
-                {
-                    ExecutionId = context.ExecutionId,
-                    Type = WorkflowEventType.StateUpdated,
-                    NodeId = node.Id,
-                    Data = content,
-                    Timestamp = TimeProvider.System.GetUtcNow()
-                }, ct).ConfigureAwait(false);
+                await context.EventStream
+                    .AppendAsync(
+                        new WorkflowEvent
+                        {
+                            ExecutionId = context.ExecutionId,
+                            Type = WorkflowEventType.StateUpdated,
+                            NodeId = node.Id,
+                            Data = content,
+                            Timestamp = TimeProvider.System.GetUtcNow()
+                        }, ct).ConfigureAwait(false);
             }
         }
 

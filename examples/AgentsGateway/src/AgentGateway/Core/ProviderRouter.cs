@@ -11,7 +11,8 @@ public interface IProviderSelectionPolicy
 
 public sealed class HeaderSelectionPolicy : IProviderSelectionPolicy
 {
-    public (string providerId, string? modelId) SelectProvider(ChatOptions? options, HttpContext? http, IConfiguration cfg)
+    public (string providerId, string? modelId) SelectProvider(ChatOptions? options, HttpContext? http,
+        IConfiguration cfg)
     {
         var provider = http?.Request.Headers["X-Provider"].ToString();
         var model = http?.Request.Headers["X-Model"].ToString();

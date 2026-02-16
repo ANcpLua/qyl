@@ -12,7 +12,8 @@ public sealed class ErrorExtractionTests
             .WithStatusMessage("Object reference not set")
             .WithServiceName("my-api")
             .WithProvider("openai")
-            .WithAttributes("""{"exception.type":"NullReferenceException","exception.message":"Object reference not set","exception.stacktrace":"at Foo.Bar()"}""")
+            .WithAttributes(
+                """{"exception.type":"NullReferenceException","exception.message":"Object reference not set","exception.stacktrace":"at Foo.Bar()"}""")
             .Build();
 
         var error = ErrorExtractor.Extract(span);

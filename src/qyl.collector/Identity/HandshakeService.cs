@@ -1,5 +1,3 @@
-using qyl.collector.Storage;
-
 namespace qyl.collector.Identity;
 
 /// <summary>
@@ -23,16 +21,16 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var workspace = new WorkspaceRecord(
-            WorkspaceId: workspaceId,
-            Name: request.ServiceName,
-            ServiceName: request.ServiceName,
-            SdkVersion: request.SdkVersion,
-            RuntimeVersion: request.RuntimeVersion,
-            Framework: request.Framework,
-            GitCommit: request.GitCommit,
-            Status: "pending",
-            FirstSeen: now,
-            LastHeartbeat: now);
+            workspaceId,
+            request.ServiceName,
+            request.ServiceName,
+            request.SdkVersion,
+            request.RuntimeVersion,
+            request.Framework,
+            request.GitCommit,
+            "pending",
+            now,
+            now);
 
         await store.UpsertWorkspaceAsync(workspace, ct).ConfigureAwait(false);
 
@@ -134,7 +132,7 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
     /// </summary>
     private static bool ValidatePkce(string codeVerifier, string codeChallenge)
     {
-        var hash = SHA256.HashData(System.Text.Encoding.ASCII.GetBytes(codeVerifier));
+        var hash = SHA256.HashData(Encoding.ASCII.GetBytes(codeVerifier));
         var computed = Convert.ToBase64String(hash)
             .TrimEnd('=')
             .Replace('+', '-')

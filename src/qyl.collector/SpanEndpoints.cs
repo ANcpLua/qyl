@@ -28,10 +28,7 @@ internal static class SpanEndpoints
         }
 
         var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
-        return Results.Ok(new SpanListResponseDto
-        {
-            Spans = spanDtos
-        });
+        return Results.Ok(new SpanListResponseDto { Spans = spanDtos });
     }
 
     public static async Task<IResult> GetTraceAsync(string traceId, DuckDbStore store)

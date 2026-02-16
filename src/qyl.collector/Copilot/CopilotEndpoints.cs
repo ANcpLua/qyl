@@ -77,7 +77,8 @@ internal static class CopilotEndpoints
         CancellationToken ct)
     {
         var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
-        await StreamSseAsync(ctx, engine.ExecuteAsync(name, request?.Parameters, request?.Context?.AdditionalContext, ct), ct);
+        await StreamSseAsync(ctx,
+            engine.ExecuteAsync(name, request?.Parameters, request?.Context?.AdditionalContext, ct), ct);
     }
 
     private static async Task StreamSseAsync(
@@ -116,6 +117,7 @@ internal static class CopilotEndpoints
             await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
         }
     }
+
     /// <summary>
     ///     Maps StreamUpdateKind to snake_case SSE event names (AG-UI convention).
     /// </summary>

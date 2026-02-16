@@ -1,12 +1,12 @@
 namespace Qyl.Analyzers;
 
 /// <summary>
-/// Fluent builders for common syntax patterns in code fixes.
+///     Fluent builders for common syntax patterns in code fixes.
 /// </summary>
 internal static partial class SyntaxBuilders
 {
     /// <summary>
-    /// Builds an extension method invocation: receiver.MethodName(args)
+    ///     Builds an extension method invocation: receiver.MethodName(args)
     /// </summary>
     public static InvocationExpressionSyntax ExtensionCall(
         ExpressionSyntax receiver,
@@ -28,7 +28,7 @@ internal static partial class SyntaxBuilders
     }
 
     /// <summary>
-    /// Builds a static method invocation: TypeName.MethodName(args)
+    ///     Builds a static method invocation: TypeName.MethodName(args)
     /// </summary>
     public static InvocationExpressionSyntax StaticCall(
         string typeName,
@@ -50,7 +50,7 @@ internal static partial class SyntaxBuilders
     }
 
     /// <summary>
-    /// Builds a nameof expression: nameof(expression)
+    ///     Builds a nameof expression: nameof(expression)
     /// </summary>
     public static InvocationExpressionSyntax NameOf(ExpressionSyntax expression) =>
         SyntaxFactory.InvocationExpression(
@@ -60,7 +60,7 @@ internal static partial class SyntaxBuilders
                     SyntaxFactory.Argument(expression))));
 
     /// <summary>
-    /// Builds a nameof expression: nameof(name)
+    ///     Builds a nameof expression: nameof(name)
     /// </summary>
     public static InvocationExpressionSyntax NameOf(string name) =>
         NameOf(SyntaxFactory.IdentifierName(name));

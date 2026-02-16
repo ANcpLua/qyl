@@ -32,12 +32,14 @@ public static class ActivitySources
 
     // Lazy-initialized ActivitySource instances
     private static ActivitySource? s_genAi;
+
     private static ActivitySource? s_db;
+
     // Lazy-initialized Meter instances
     private static Meter? s_genAiMeter;
 
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
-    public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(name: GenAi, Version);
+    public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(GenAi, Version);
 
     /// <summary>ActivitySource for database instrumentation.</summary>
     public static ActivitySource DbSource => s_db ??= new ActivitySource(Db, Version);

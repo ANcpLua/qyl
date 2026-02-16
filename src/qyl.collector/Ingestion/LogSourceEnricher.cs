@@ -25,7 +25,7 @@ public sealed class LogSourceEnricher
 
         // Fallback to stacktrace parsing first.
         var stackTrace = attrs.GetValueOrDefault("exception.stacktrace")
-            ?? attrs.GetValueOrDefault("code.stacktrace");
+                         ?? attrs.GetValueOrDefault("code.stacktrace");
 
         if (!string.IsNullOrWhiteSpace(stackTrace))
         {
@@ -53,9 +53,9 @@ public sealed class LogSourceEnricher
 
             var key = SchemaNormalizer.Normalize(kv.Key);
             map[key] = kv.Value?.StringValue
-                ?? kv.Value?.IntValue?.ToString(CultureInfo.InvariantCulture)
-                ?? kv.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-                ?? kv.Value?.BoolValue?.ToString();
+                       ?? kv.Value?.IntValue?.ToString(CultureInfo.InvariantCulture)
+                       ?? kv.Value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
+                       ?? kv.Value?.BoolValue?.ToString();
         }
 
         return map;

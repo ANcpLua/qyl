@@ -1,6 +1,6 @@
 import * as React from "react";
-import {useState, useMemo, useCallback} from "react";
-import {ChevronDown, ChevronRight, Copy, Check, Code2, FileJson, FileCode, Maximize2, Minimize2} from "lucide-react";
+import {useCallback, useMemo, useState} from "react";
+import {Check, ChevronDown, ChevronRight, Code2, Copy, FileCode, FileJson, Maximize2, Minimize2} from "lucide-react";
 import {Button} from "./button";
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from "./collapsible";
 import {Tooltip, TooltipContent, TooltipTrigger} from "./tooltip";
@@ -155,7 +155,7 @@ function JsonTreeNode({name, value, depth, isLast}: JsonTreeNodeProps) {
 }
 
 // Syntax highlighting for formatted content
-function SyntaxHighlighter({content, type}: {content: string; type: ContentType}) {
+function SyntaxHighlighter({content, type}: { content: string; type: ContentType }) {
     const highlighted = useMemo(() => {
         if (type === "json") {
             return highlightJson(content);
@@ -220,13 +220,13 @@ interface TextVisualizerProps {
 }
 
 export function TextVisualizer({
-    content,
-    label,
-    defaultExpanded = false,
-    maxCollapsedHeight = 120,
-    showTreeView = true,
-    className,
-}: TextVisualizerProps) {
+                                   content,
+                                   label,
+                                   defaultExpanded = false,
+                                   maxCollapsedHeight = 120,
+                                   showTreeView = true,
+                                   className,
+                               }: TextVisualizerProps) {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [viewMode, setViewMode] = useState<"formatted" | "tree">("formatted");
     const [copied, setCopied] = useState(false);
@@ -375,7 +375,8 @@ export function TextVisualizer({
 
                     {/* Fade overlay when collapsed */}
                     {!isExpanded && needsCollapse && (
-                        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-brutal-carbon to-transparent pointer-events-none"/>
+                        <div
+                            className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-brutal-carbon to-transparent pointer-events-none"/>
                     )}
                 </div>
 

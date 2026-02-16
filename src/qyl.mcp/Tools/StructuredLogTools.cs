@@ -34,8 +34,7 @@ public sealed class StructuredLogTools(HttpClient client)
                  Returns: Formatted list of structured logs with timestamps, severity, and attributes
                  """)]
     public Task<string> ListStructuredLogsAsync(
-        [Description("Filter by session ID")]
-        string? sessionId = null,
+        [Description("Filter by session ID")] string? sessionId = null,
         [Description("Filter by trace ID (correlates with distributed traces)")]
         string? traceId = null,
         [Description("Filter by severity level name: 'trace', 'debug', 'info', 'warn', 'error', 'fatal'")]
@@ -45,9 +44,8 @@ public sealed class StructuredLogTools(HttpClient client)
         [Description("Text to search in log body and attributes (case-insensitive)")]
         string? search = null,
         [Description("Maximum number of logs to return (default: 100)")]
-        int limit = 100)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int limit = 100) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/logs?limit={limit}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -70,7 +68,7 @@ public sealed class StructuredLogTools(HttpClient client)
             var sb = new StringBuilder();
             sb.AppendLine($"# Structured Logs ({response.Logs.Count} entries)");
             if (response.HasMore)
-                sb.AppendLine($"_(More logs available, increase limit or narrow filters)_");
+                sb.AppendLine("_(More logs available, increase limit or narrow filters)_");
             sb.AppendLine();
 
             foreach (var log in response.Logs)
@@ -89,7 +87,8 @@ public sealed class StructuredLogTools(HttpClient client)
                 if (!string.IsNullOrEmpty(log.SpanId))
                     sb.AppendLine($"  Span: {log.SpanId}");
 
-                if (!string.IsNullOrEmpty(log.SourceFile) || log.SourceLine.HasValue || !string.IsNullOrEmpty(log.SourceMethod))
+                if (!string.IsNullOrEmpty(log.SourceFile) || log.SourceLine.HasValue ||
+                    !string.IsNullOrEmpty(log.SourceMethod))
                 {
                     var location = log.SourceLine.HasValue
                         ? $"{log.SourceFile}:{log.SourceLine}"
@@ -103,7 +102,6 @@ public sealed class StructuredLogTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.list_trace_logs")]
     [Description("""
@@ -252,21 +250,32 @@ public sealed class StructuredLogTools(HttpClient client)
 internal sealed record LogsResponse(
     [property: JsonPropertyName("logs")] List<LogRecordDto>? Logs,
     [property: JsonPropertyName("total")] int Total,
-    [property: JsonPropertyName("has_more")] bool HasMore);
+    [property: JsonPropertyName("has_more")]
+    bool HasMore);
 
 internal sealed record LogRecordDto(
-    [property: JsonPropertyName("timeUnixNano")] long? TimestampUnixNano,
-    [property: JsonPropertyName("severityNumber")] int? SeverityNumber,
-    [property: JsonPropertyName("severityText")] string? SeverityText,
+    [property: JsonPropertyName("timeUnixNano")]
+    long? TimestampUnixNano,
+    [property: JsonPropertyName("severityNumber")]
+    int? SeverityNumber,
+    [property: JsonPropertyName("severityText")]
+    string? SeverityText,
     [property: JsonPropertyName("body")] string? Body,
-    [property: JsonPropertyName("traceId")] string? TraceId,
+    [property: JsonPropertyName("traceId")]
+    string? TraceId,
     [property: JsonPropertyName("spanId")] string? SpanId,
-    [property: JsonPropertyName("sessionId")] string? SessionId,
-    [property: JsonPropertyName("serviceName")] string? ServiceName,
-    [property: JsonPropertyName("sourceFile")] string? SourceFile,
-    [property: JsonPropertyName("sourceLine")] int? SourceLine,
-    [property: JsonPropertyName("sourceColumn")] int? SourceColumn,
-    [property: JsonPropertyName("sourceMethod")] string? SourceMethod);
+    [property: JsonPropertyName("sessionId")]
+    string? SessionId,
+    [property: JsonPropertyName("serviceName")]
+    string? ServiceName,
+    [property: JsonPropertyName("sourceFile")]
+    string? SourceFile,
+    [property: JsonPropertyName("sourceLine")]
+    int? SourceLine,
+    [property: JsonPropertyName("sourceColumn")]
+    int? SourceColumn,
+    [property: JsonPropertyName("sourceMethod")]
+    string? SourceMethod);
 
 #endregion
 

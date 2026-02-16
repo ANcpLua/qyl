@@ -12,12 +12,12 @@
   </PropertyGroup>
 
   <ItemGroup Condition="'$(QylEmbedDashboard)' == 'true' AND Exists('..\qyl.dashboard\dist\index.html')">
-    <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot" />
+    <EmbeddedResource Include="..\qyl.dashboard\dist\**\*" LinkBase="wwwroot"/>
   </ItemGroup>
 
   <!-- Expose internals to test project -->
   <ItemGroup>
-    <InternalsVisibleTo Include="qyl.collector.tests" />
+    <InternalsVisibleTo Include="qyl.collector.tests"/>
   </ItemGroup>
 
   <!-- CLAUDE.md v2: Enable generation with rich metadata -->
@@ -38,57 +38,57 @@
   <!-- DuckDB for embedded columnar storage -->
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
-    <PackageReference Include="DuckDB.NET.Data.Full" />
-    <PackageReference Include="MSBuild.StructuredLogger" />
-    <PackageReference Include="YamlDotNet" />
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
+    <PackageReference Include="MSBuild.StructuredLogger"/>
+    <PackageReference Include="YamlDotNet"/>
   </ItemGroup>
 
   <!-- M.E.AI for AIFunctionFactory (Copilot tool definitions) -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI"/>
   </ItemGroup>
 
 
   <!-- OTLP protobuf ingestion -->
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf" />
-    <PackageReference Include="Grpc.AspNetCore" />
-    <PackageReference Include="Grpc.Tools" />
-    <PackageReference Include="OpenTelemetry.Api" />
-    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
-    <PackageReference Include="System.IO.Hashing" />
+    <PackageReference Include="Google.Protobuf"/>
+    <PackageReference Include="Grpc.AspNetCore"/>
+    <PackageReference Include="Grpc.Tools"/>
+    <PackageReference Include="OpenTelemetry.Api"/>
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
+    <PackageReference Include="System.IO.Hashing"/>
   </ItemGroup>
 
   <!-- .NET 10 Telemetry: Source generators, enrichment, redaction, buffering (in Telemetry pkg) -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Telemetry" />
-    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions" />
-    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction" />
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware" />
+    <PackageReference Include="Microsoft.Extensions.Telemetry"/>
+    <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Abstractions"/>
+    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
     <!-- HealthChecks is transitive from HealthChecks.Common - explicit reference causes NU1510 -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring" />
-    <PackageReference Include="Microsoft.Extensions.Http.Diagnostics" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
+    <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
   </ItemGroup>
 
   <!-- .NET 10 DI Lifecycle: AsyncState, auto-activation, object pooling -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation" />
-    <PackageReference Include="Microsoft.Extensions.AsyncState" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.AutoActivation"/>
+    <PackageReference Include="Microsoft.Extensions.AsyncState"/>
   </ItemGroup>
 
   <!-- Core dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.copilot\qyl.copilot.csproj" />
-    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj" />
-    <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj" />
+    <ProjectReference Include="..\qyl.copilot\qyl.copilot.csproj"/>
+    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
+    <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj"/>
   </ItemGroup>
 
   <!-- Source generators (compile-time only) -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
   <ItemGroup>

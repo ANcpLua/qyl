@@ -1,29 +1,15 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {
-    AlertCircle,
-    ChevronRight,
-    DollarSign,
-    Filter,
-    GitBranch,
-    Loader2,
-    Workflow,
-} from 'lucide-react';
+import {AlertCircle, ChevronRight, DollarSign, Filter, GitBranch, Loader2, Workflow,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
-import {useWorkflowRuns} from '@/hooks/use-workflows';
 import type {WorkflowRun} from '@/hooks/use-workflows';
+import {useWorkflowRuns} from '@/hooks/use-workflows';
 
-function StatusBadge({status}: {status: string}) {
+function StatusBadge({status}: { status: string }) {
     const styles: Record<string, string> = {
         pending: 'bg-slate-500/20 text-slate-400 border-slate-500/40',
         running: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
@@ -32,13 +18,14 @@ function StatusBadge({status}: {status: string}) {
         cancelled: 'bg-brutal-zinc/40 text-brutal-slate border-brutal-zinc',
     };
     return (
-        <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wider', styles[status] ?? styles.cancelled)}>
+        <Badge variant="outline"
+               className={cn('text-[10px] uppercase tracking-wider', styles[status] ?? styles.cancelled)}>
             {status}
         </Badge>
     );
 }
 
-function ProgressBar({completed, total}: {completed: number; total: number}) {
+function ProgressBar({completed, total}: { completed: number; total: number }) {
     const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
     return (
         <div className="flex items-center gap-2">
@@ -71,18 +58,18 @@ function formatTime(nanos?: number): string {
 function SkeletonRow() {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
-            <div className="w-32 h-4 bg-brutal-zinc rounded" />
-            <div className="w-20 h-4 bg-brutal-zinc rounded" />
-            <div className="w-24 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
-            <div className="flex-1" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
+            <div className="w-32 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-20 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-24 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="flex-1"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
         </div>
     );
 }
 
-function WorkflowRunRow({run, onClick}: {run: WorkflowRun; onClick: () => void}) {
+function WorkflowRunRow({run, onClick}: { run: WorkflowRun; onClick: () => void }) {
     const durationMs = run.duration_ns ? nsToMs(run.duration_ns) : null;
 
     return (
@@ -100,11 +87,11 @@ function WorkflowRunRow({run, onClick}: {run: WorkflowRun; onClick: () => void})
             </div>
 
             <div className="w-24">
-                <StatusBadge status={run.status} />
+                <StatusBadge status={run.status}/>
             </div>
 
             <div className="w-32">
-                <ProgressBar completed={run.completed_nodes} total={run.node_count} />
+                <ProgressBar completed={run.completed_nodes} total={run.node_count}/>
             </div>
 
             <div className="w-20 text-right">
@@ -125,7 +112,8 @@ function WorkflowRunRow({run, onClick}: {run: WorkflowRun; onClick: () => void})
                 </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0" />
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
@@ -146,7 +134,7 @@ export function WorkflowRunsPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
                         <p className="text-red-400">Failed to load workflow runs</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
@@ -164,11 +152,11 @@ export function WorkflowRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Workflow className="w-4 h-4 text-signal-orange" />
+                            <Workflow className="w-4 h-4 text-signal-orange"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">WORKFLOW RUNS</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-brutal-white">{totalRuns}</div>
                         )}
@@ -178,11 +166,11 @@ export function WorkflowRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <GitBranch className="w-4 h-4 text-cyan-500" />
+                            <GitBranch className="w-4 h-4 text-cyan-500"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">COMPLETED</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-brutal-white">
                                 {runs?.filter((r) => r.status === 'completed').length ?? 0}
@@ -194,11 +182,11 @@ export function WorkflowRunsPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-signal-green" />
+                            <DollarSign className="w-4 h-4 text-signal-green"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">TOTAL COST</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-signal-green">${totalCost.toFixed(4)}</div>
                         )}
@@ -209,12 +197,12 @@ export function WorkflowRunsPage() {
             {/* Filters */}
             <div className="flex items-center gap-4">
                 <div className="relative flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-brutal-slate" />
+                    <Filter className="w-4 h-4 text-brutal-slate"/>
                 </div>
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-40" aria-label="Filter by status">
-                        <SelectValue placeholder="All statuses" />
+                        <SelectValue placeholder="All statuses"/>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All statuses</SelectItem>
@@ -234,30 +222,32 @@ export function WorkflowRunsPage() {
             {/* Table */}
             <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
                 {/* Header */}
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-40">WORKFLOW</div>
                     <div className="w-24">STATUS</div>
                     <div className="w-32">PROGRESS</div>
                     <div className="w-20 text-right">DURATION</div>
                     <div className="w-20">TRIGGER</div>
                     <div className="w-20 text-right">TIME</div>
-                    <div className="w-4" />
+                    <div className="w-4"/>
                 </div>
 
                 {/* Body */}
                 {isLoading ? (
                     <>
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
                     </>
                 ) : !runs || runs.length === 0 ? (
                     <div className="py-12 text-center">
-                        <Workflow className="w-12 h-12 mx-auto mb-4 text-brutal-zinc" />
+                        <Workflow className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No workflow runs found</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Workflow runs will appear as your workflows are traced</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Workflow runs will appear as your workflows are
+                            traced</p>
                     </div>
                 ) : (
                     runs.map((run) => (

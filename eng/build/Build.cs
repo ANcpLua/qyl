@@ -35,17 +35,6 @@ sealed class Build : NukeBuild,
     [GitVersion(Framework = "net10.0", NoCache = true, NoFetch = true)]
     internal readonly GitVersion? Versioning;
 
-    // ── IHazArtifacts override (Artifacts/, not output/) ─────────────────────
-    AbsolutePath IHazArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
-
-    // ── ICompile.CompileSettings override (CI flags) ─────────────────────────
-    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
-        .SetDeterministic(IsServerBuild)
-        .SetContinuousIntegrationBuild(IsServerBuild);
-
-    // ── Helper to avoid ((IFoo)this) casting ─────────────────────────────────
-    T From<T>() where T : INukeBuild => (T)(object)this;
-
     // ════════════════════════════════════════════════════════════════════════════
     // Orchestration Targets
     // ════════════════════════════════════════════════════════════════════════════
@@ -102,6 +91,17 @@ sealed class Build : NukeBuild,
             Log.Information("  MCP:        http://localhost:5100/mcp (AI agent queries)");
             Log.Information("  Run 'nuke FrontendDev' in another terminal for hot reload");
         });
+
+    // ── IHazArtifacts override (Artifacts/, not output/) ─────────────────────
+    AbsolutePath IHazArtifacts.ArtifactsDirectory => RootDirectory / "Artifacts";
+
+    // ── ICompile.CompileSettings override (CI flags) ─────────────────────────
+    Configure<DotNetBuildSettings> ICompile.CompileSettings => s => s
+        .SetDeterministic(IsServerBuild)
+        .SetContinuousIntegrationBuild(IsServerBuild);
+
+    // ── Helper to avoid ((IFoo)this) casting ─────────────────────────────────
+    T From<T>() where T : INukeBuild => (T)(object)this;
 
     public static int Main() => Execute<Build>(static x => ((IQylTest)x).Test);
 }

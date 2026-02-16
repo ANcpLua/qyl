@@ -22,6 +22,7 @@ internal static class SpanRenderer
                 list = [];
                 byTrace[key] = list;
             }
+
             list.Add(span);
         }
 
@@ -47,6 +48,7 @@ internal static class SpanRenderer
                         children = [];
                         childMap[parentId] = children;
                     }
+
                     children.Add(s);
                 }
             }
@@ -97,6 +99,7 @@ internal static class SpanRenderer
                 var output = span.GenAiOutputTokens?.ToString() ?? "?";
                 tokens = $" [grey]({input}/{output} tokens)[/]";
             }
+
             var cost = span.GenAiCostUsd is { } c ? $" [yellow]${c:F4}[/]" : "";
             var tool = span.GenAiToolName is { } t ? $" [blue]{Markup.Escape(t)}[/]" : "";
 

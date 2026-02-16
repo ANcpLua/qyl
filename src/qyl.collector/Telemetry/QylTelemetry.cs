@@ -37,7 +37,6 @@ public static class QylTelemetry
     {
         Version = ServiceVersion, TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString()
     });
-
 }
 
 /// <summary>

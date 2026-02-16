@@ -2,7 +2,8 @@
 
 ## Overview
 
-Lightweight daemon that monitors system processes, detects anomalous resource consumption, and alerts via native notifications before your Mac becomes a space heater.
+Lightweight daemon that monitors system processes, detects anomalous resource consumption, and alerts via native
+notifications before your Mac becomes a space heater.
 
 ## Identity
 
@@ -19,12 +20,14 @@ run: qyl-watchdogdog
 ## Problem Statement
 
 Developer workstations accumulate zombie processes:
+
 - Orphaned IDE backends (Rider.Backend, WebStorm, etc.)
 - Runaway browser tabs with infinite loops
 - System daemons stuck in loops (duetexpertd, mds_stores)
 - Background indexers that never finish
 
 Users only notice when:
+
 - Laptop is physically hot
 - Fans are screaming
 - System becomes laggy
@@ -90,6 +93,7 @@ public readonly record struct ProcessSnapshot(
 ```
 
 **Platform strategies:**
+
 - macOS: `Process.GetProcesses()` + `/proc` style via `libproc`
 - Linux: `/proc/[pid]/stat` parsing
 - Windows: `Process.GetProcesses()` (built-in)
@@ -145,6 +149,7 @@ public sealed class ProcessBaseline(string name)
 ```
 
 **Detection algorithm:**
+
 1. Maintain EMA of CPU% per process
 2. Spike = current > max(baseline * 3, 50%)
 3. Sustained = spike persists for 6 samples (30 seconds)
@@ -152,6 +157,7 @@ public sealed class ProcessBaseline(string name)
 5. Reset spike counter when process returns to normal
 
 **Why this works:**
+
 - EMA adapts to processes that legitimately use more CPU sometimes
 - 50% minimum threshold prevents false positives on idle processes
 - Sustained requirement filters transient spikes (compilation, etc.)
@@ -196,6 +202,7 @@ public sealed class Alerter(INotificationSender sender, IOtlpExporter? exporter)
 **Notification strategies:**
 
 macOS (primary):
+
 ```csharp
 public sealed class MacOsNotificationSender : INotificationSender
 {
@@ -321,12 +328,12 @@ forbidden:
 
 ## Constraints
 
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| RAM | < 10 MB | Must be invisible |
-| CPU | < 0.5% | Can't be the problem it detects |
-| Startup | < 500ms | Instant feedback |
-| Binary | < 5 MB | Small global tool |
+| Metric  | Target  | Rationale                       |
+|---------|---------|---------------------------------|
+| RAM     | < 10 MB | Must be invisible               |
+| CPU     | < 0.5%  | Can't be the problem it detects |
+| Startup | < 500ms | Instant feedback                |
+| Binary  | < 5 MB  | Small global tool               |
 
 ## Future Enhancements (YAGNI for now)
 

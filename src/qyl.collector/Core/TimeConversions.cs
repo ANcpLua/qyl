@@ -40,5 +40,4 @@ public static class TimeConversions
         var ticks = (long)(unixNano / 100);
         return DateTime.UnixEpoch.AddTicks(ticks);
     }
-
 }

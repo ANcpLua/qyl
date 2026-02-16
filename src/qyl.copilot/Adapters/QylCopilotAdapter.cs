@@ -25,8 +25,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     private readonly CopilotAuthProvider _authProvider;
     private readonly CopilotClient _client;
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private readonly TimeProvider _timeProvider;
     private readonly CopilotSessionStore _sessionStore;
+    private readonly TimeProvider _timeProvider;
     private bool _disposed;
 
     /// <summary>
@@ -107,12 +107,15 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         if (tools is { Count: > 0 })
         {
-            wrappedTools = [.. tools.Select(tool =>
-            {
-                if (tool is not AIFunction fn) return tool;
+            wrappedTools =
+            [
+                .. tools.Select(tool =>
+                {
+                    if (tool is not AIFunction fn) return tool;
 
-                return new ToolEventInterceptor(fn, () => adapterHolder.Value?._toolEventChannel, time);
-            })];
+                    return new ToolEventInterceptor(fn, () => adapterHolder.Value?._toolEventChannel, time);
+                })
+            ];
         }
 
         // Create the agent - OTel instrumentation is handled AUTOMATICALLY by
@@ -183,7 +186,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         var updates = new List<StreamUpdate>();
         Exception? caughtException = null;
-        bool firstTokenReceived = false;
+        var firstTokenReceived = false;
 
         // Collect updates without yielding in try block
         var enumerator = _agent.RunStreamingAsync(effectivePrompt, cancellationToken: ct).GetAsyncEnumerator(ct);
@@ -208,9 +211,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
                 updates.Add(new StreamUpdate
                 {
-                    Kind = StreamUpdateKind.Content,
-                    Content = content,
-                    Timestamp = _timeProvider.GetUtcNow()
+                    Kind = StreamUpdateKind.Content, Content = content, Timestamp = _timeProvider.GetUtcNow()
                 });
             }
         }
@@ -236,7 +237,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         // Store in session for multi-turn context
         if (sessionHistory is not null && caughtException is null)
         {
-            var responseText = string.Concat(updates.Where(static u => u.Kind is StreamUpdateKind.Content).Select(static u => u.Content));
+            var responseText = string.Concat(updates.Where(static u => u.Kind is StreamUpdateKind.Content)
+                .Select(static u => u.Content));
             if (responseText.Length > 0)
             {
                 sessionHistory.Add(("user", prompt));
@@ -246,7 +248,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         // Record operation duration metric
         var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationChat);
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
+            CopilotInstrumentation.OperationChat);
 
         // Now yield outside try-catch
         foreach (var update in updates)
@@ -268,11 +271,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
             CopilotSpanRecorder.RecordSuccess(activity);
 
             // Final metadata update
-            yield return new StreamUpdate
-            {
-                Kind = StreamUpdateKind.Completed,
-                Timestamp = _timeProvider.GetUtcNow()
-            };
+            yield return new StreamUpdate { Kind = StreamUpdateKind.Completed, Timestamp = _timeProvider.GetUtcNow() };
         }
     }
 
@@ -308,7 +307,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
             // Record operation duration
             var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-            CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem, CopilotInstrumentation.OperationChat);
+            CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
+                CopilotInstrumentation.OperationChat);
 
             CopilotSpanRecorder.RecordSuccess(activity);
             return response;
@@ -371,7 +371,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         var updates = new List<StreamUpdate>();
         Exception? caughtException = null;
-        bool firstTokenReceived = false;
+        var firstTokenReceived = false;
 
         var enumerator = _agent.RunStreamingAsync(instructions, cancellationToken: ct).GetAsyncEnumerator(ct);
         try
@@ -392,9 +392,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
                 updates.Add(new StreamUpdate
                 {
-                    Kind = StreamUpdateKind.Content,
-                    Content = content,
-                    Timestamp = _timeProvider.GetUtcNow()
+                    Kind = StreamUpdateKind.Content, Content = content, Timestamp = _timeProvider.GetUtcNow()
                 });
             }
         }
@@ -424,11 +422,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         }
         else
         {
-            yield return new StreamUpdate
-            {
-                Kind = StreamUpdateKind.Completed,
-                Timestamp = _timeProvider.GetUtcNow()
-            };
+            yield return new StreamUpdate { Kind = StreamUpdateKind.Completed, Timestamp = _timeProvider.GetUtcNow() };
         }
     }
 

@@ -1,6 +1,10 @@
 using qyl.collector.Auth;
 using qyl.collector.BuildFailures;
+using qyl.collector.Dashboards;
+using qyl.collector.Insights;
+using qyl.collector.Meta;
 using qyl.collector.Search;
+using qyl.protocol.Copilot;
 
 namespace qyl.collector;
 
@@ -63,32 +67,32 @@ namespace qyl.collector;
 // Telemetry management types
 [JsonSerializable(typeof(ClearTelemetryResponse))]
 // Insights materializer types
-[JsonSerializable(typeof(Insights.InsightsResponse))]
-[JsonSerializable(typeof(Insights.InsightTierStatus))]
-[JsonSerializable(typeof(IReadOnlyList<Insights.InsightTierStatus>))]
+[JsonSerializable(typeof(InsightsResponse))]
+[JsonSerializable(typeof(InsightTierStatus))]
+[JsonSerializable(typeof(IReadOnlyList<InsightTierStatus>))]
 // Dashboard types
-[JsonSerializable(typeof(Dashboards.DashboardDefinition))]
-[JsonSerializable(typeof(Dashboards.DashboardData))]
-[JsonSerializable(typeof(Dashboards.DashboardWidget))]
-[JsonSerializable(typeof(Dashboards.StatCardData))]
-[JsonSerializable(typeof(Dashboards.TimeSeriesPoint))]
-[JsonSerializable(typeof(Dashboards.TopNRow))]
-[JsonSerializable(typeof(IReadOnlyList<Dashboards.DashboardDefinition>))]
-[JsonSerializable(typeof(IReadOnlyList<Dashboards.DashboardWidget>))]
-[JsonSerializable(typeof(IReadOnlyList<Dashboards.TopNRow>))]
-[JsonSerializable(typeof(IReadOnlyList<Dashboards.TimeSeriesPoint>))]
+[JsonSerializable(typeof(DashboardDefinition))]
+[JsonSerializable(typeof(DashboardData))]
+[JsonSerializable(typeof(DashboardWidget))]
+[JsonSerializable(typeof(StatCardData))]
+[JsonSerializable(typeof(TimeSeriesPoint))]
+[JsonSerializable(typeof(TopNRow))]
+[JsonSerializable(typeof(IReadOnlyList<DashboardDefinition>))]
+[JsonSerializable(typeof(IReadOnlyList<DashboardWidget>))]
+[JsonSerializable(typeof(IReadOnlyList<TopNRow>))]
+[JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
 // Copilot types (for request body deserialization)
-[JsonSerializable(typeof(qyl.protocol.Copilot.ChatRequest))]
-[JsonSerializable(typeof(qyl.protocol.Copilot.WorkflowRunRequest))]
-[JsonSerializable(typeof(qyl.protocol.Copilot.CopilotAuthStatus))]
-[JsonSerializable(typeof(qyl.protocol.Copilot.StreamUpdate))]
+[JsonSerializable(typeof(ChatRequest))]
+[JsonSerializable(typeof(WorkflowRunRequest))]
+[JsonSerializable(typeof(CopilotAuthStatus))]
+[JsonSerializable(typeof(StreamUpdate))]
 // Meta endpoint types
-[JsonSerializable(typeof(Meta.MetaResponse))]
-[JsonSerializable(typeof(Meta.MetaBuild))]
-[JsonSerializable(typeof(Meta.MetaCapabilities))]
-[JsonSerializable(typeof(Meta.MetaStatus))]
-[JsonSerializable(typeof(Meta.MetaLinks))]
-[JsonSerializable(typeof(Meta.MetaPorts))]
+[JsonSerializable(typeof(MetaResponse))]
+[JsonSerializable(typeof(MetaBuild))]
+[JsonSerializable(typeof(MetaCapabilities))]
+[JsonSerializable(typeof(MetaStatus))]
+[JsonSerializable(typeof(MetaLinks))]
+[JsonSerializable(typeof(MetaPorts))]
 // Error engine types
 [JsonSerializable(typeof(ErrorStatusUpdate))]
 [JsonSerializable(typeof(ErrorRow))]

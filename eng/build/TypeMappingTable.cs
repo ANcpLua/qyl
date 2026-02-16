@@ -52,7 +52,7 @@ public static class TypeMappingTable
         new("number", null, "double", "DOUBLE"),
 
         // boolean (no format variants)
-        new("boolean", null, "bool", "BOOLEAN"),
+        new("boolean", null, "bool", "BOOLEAN")
     ];
 
     /// <summary>

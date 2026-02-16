@@ -8,7 +8,7 @@ import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
-import {CopyableText, DownloadButton, TextVisualizer, isStructuredContent} from '@/components/ui';
+import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
 import {
     formatDuration,
     formatTimestamp,
@@ -123,7 +123,8 @@ function SpanRow({
             {/* Expand/collapse and indentation */}
             <div style={{paddingLeft: depth * 16}} className="flex items-center">
                 {hasChildren ? (
-                    <button onClick={handleToggle} className="p-0.5 hover:bg-muted rounded" aria-label={isExpanded ? 'Collapse span' : 'Expand span'} aria-expanded={isExpanded}>
+                    <button onClick={handleToggle} className="p-0.5 hover:bg-muted rounded"
+                            aria-label={isExpanded ? 'Collapse span' : 'Expand span'} aria-expanded={isExpanded}>
                         {isExpanded ? (
                             <ChevronDown className="w-4 h-4 text-muted-foreground"/>
                         ) : (
@@ -582,7 +583,8 @@ export function TracesPage() {
                 <div className="w-96 border-l border-border bg-card">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                         <span className="font-medium">Span Details</span>
-                        <Button variant="ghost" size="icon" onClick={() => setSelectedSpan(null)} aria-label="Close details panel">
+                        <Button variant="ghost" size="icon" onClick={() => setSelectedSpan(null)}
+                                aria-label="Close details panel">
                             <X className="w-4 h-4"/>
                         </Button>
                     </div>

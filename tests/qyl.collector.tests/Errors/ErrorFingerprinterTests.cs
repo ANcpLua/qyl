@@ -41,8 +41,8 @@ public sealed class ErrorFingerprinterTests
     [Fact]
     public void Fingerprint_WithGenAiOperation_IncludesInHash()
     {
-        var fp1 = ErrorFingerprinter.Compute("Exception", "rate limited", "", genAiOperation: "chat");
-        var fp2 = ErrorFingerprinter.Compute("Exception", "rate limited", "", genAiOperation: "embeddings");
+        var fp1 = ErrorFingerprinter.Compute("Exception", "rate limited", "", "chat");
+        var fp2 = ErrorFingerprinter.Compute("Exception", "rate limited", "", "embeddings");
         Assert.NotEqual(fp1, fp2);
     }
 

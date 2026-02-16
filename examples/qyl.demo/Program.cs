@@ -9,6 +9,7 @@
 // - HTTP client resilience
 // =============================================================================
 
+using System.Text.Json;
 using qyl.copilot;
 using Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
 
@@ -48,21 +49,23 @@ app.MapPost("/chat", async (ChatRequest request, CopilotAdapterFactory factory, 
     return new ChatResponse(response);
 });
 
-app.MapPost("/chat/stream", async (ChatRequest request, CopilotAdapterFactory factory, HttpContext http, CancellationToken ct) =>
-{
-    // Streaming also just works
-    http.Response.ContentType = "text/event-stream";
-
-    var adapter = await factory.GetAdapterAsync(ct);
-    await foreach (var update in adapter.ChatAsync(request.Message, ct: ct))
+app.MapPost("/chat/stream",
+    async (ChatRequest request, CopilotAdapterFactory factory, HttpContext http, CancellationToken ct) =>
     {
-        await http.Response.WriteAsync($"data: {update.Content}\n\n", ct);
-        await http.Response.Body.FlushAsync(ct);
-    }
-});
+        // Streaming also just works
+        http.Response.ContentType = "text/event-stream";
+
+        var adapter = await factory.GetAdapterAsync(ct);
+        await foreach (var update in adapter.ChatAsync(request.Message, ct: ct))
+        {
+            await http.Response.WriteAsync($"data: {update.Content}\n\n", ct);
+            await http.Response.Body.FlushAsync(ct);
+        }
+    });
 
 // Workflow execution endpoint
-app.MapPost("/workflow/{name}", async (string name, WorkflowRequest request, WorkflowEngineFactory factory, HttpContext http, CancellationToken ct) =>
+app.MapPost("/workflow/{name}", async (string name, WorkflowRequest request, WorkflowEngineFactory factory,
+    HttpContext http, CancellationToken ct) =>
 {
     // Streaming workflow execution with auto-instrumentation
     http.Response.ContentType = "text/event-stream";
@@ -71,7 +74,8 @@ app.MapPost("/workflow/{name}", async (string name, WorkflowRequest request, Wor
 
     await foreach (var update in engine.ExecuteAsync(name, request.Parameters, request.Context, ct))
     {
-        await http.Response.WriteAsync($"data: {System.Text.Json.JsonSerializer.Serialize(update, CopilotJsonContext.Default.StreamUpdate)}\n\n", ct);
+        await http.Response.WriteAsync(
+            $"data: {JsonSerializer.Serialize(update, CopilotJsonContext.Default.StreamUpdate)}\n\n", ct);
         await http.Response.Body.FlushAsync(ct);
     }
 });
@@ -81,6 +85,8 @@ app.Run();
 // ============================================================
 // DTOs
 // ============================================================
-sealed record ChatRequest(string Message);
-sealed record ChatResponse(string Response);
-sealed record WorkflowRequest(string? Context, Dictionary<string, string>? Parameters);
+internal sealed record ChatRequest(string Message);
+
+internal sealed record ChatResponse(string Response);
+
+internal sealed record WorkflowRequest(string? Context, Dictionary<string, string>? Parameters);

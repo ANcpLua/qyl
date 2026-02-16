@@ -55,12 +55,6 @@
         <Project Path="examples/AgentsGateway/test/AgentGateway.Tests/AgentGateway.Tests.csproj"/>
     </Folder>
 
-    <Folder Name="/examples/MicroserviceExample/">
-        <Project Path="examples/MicroserviceExample/Utils/Utils.csproj"/>
-        <Project Path="examples/MicroserviceExample/WebApi/WebApi.csproj"/>
-        <Project Path="examples/MicroserviceExample/WorkerService/WorkerService.csproj"/>
-    </Folder>
-
     <!-- Core libraries -->
     <Folder Name="/src/">
         <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>

@@ -9,7 +9,7 @@ var cliArgs = CliArgs.Parse([.. Environment.GetCommandLineArgs().Skip(1)]);
 return await (cliArgs.Command switch
 {
     "init" => InitCommand.ExecuteAsync(cliArgs),
-    _ => Task.FromResult(ShowHelp()),
+    _ => Task.FromResult(ShowHelp())
 });
 
 static int ShowHelp()

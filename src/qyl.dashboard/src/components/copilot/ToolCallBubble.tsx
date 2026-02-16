@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {ChevronDown, ChevronRight, Wrench, Check, Loader2} from 'lucide-react';
+import {Check, ChevronDown, ChevronRight, Loader2, Wrench} from 'lucide-react';
 import type {ToolCallEvent} from '@/hooks/use-copilot';
 
 interface ToolCallBubbleProps {
@@ -55,7 +55,8 @@ export function ToolCallBubble({toolCall}: ToolCallBubbleProps) {
                 </button>
             )}
             {showArgs && toolCall.arguments && (
-                <pre className="mt-1 p-2 bg-brutal-carbon border border-brutal-zinc text-[10px] text-brutal-slate overflow-x-auto whitespace-pre-wrap break-all">
+                <pre
+                    className="mt-1 p-2 bg-brutal-carbon border border-brutal-zinc text-[10px] text-brutal-slate overflow-x-auto whitespace-pre-wrap break-all">
                     {formatJson(toolCall.arguments)}
                 </pre>
             )}
@@ -75,7 +76,8 @@ export function ToolCallBubble({toolCall}: ToolCallBubbleProps) {
                 </button>
             )}
             {showResult && toolCall.result && (
-                <pre className="mt-1 p-2 bg-brutal-carbon border border-brutal-zinc text-[10px] text-brutal-slate overflow-x-auto whitespace-pre-wrap break-all">
+                <pre
+                    className="mt-1 p-2 bg-brutal-carbon border border-brutal-zinc text-[10px] text-brutal-slate overflow-x-auto whitespace-pre-wrap break-all">
                     {toolCall.result}
                 </pre>
             )}

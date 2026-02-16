@@ -34,8 +34,7 @@ internal static class OTelTagsEmitter
         sb.AppendLine();
     }
 
-    private static void AppendClassOpen(StringBuilder sb)
-    {
+    private static void AppendClassOpen(StringBuilder sb) =>
         sb.AppendLine("""
                       namespace Qyl.ServiceDefaults.Generator
                       {
@@ -45,7 +44,6 @@ internal static class OTelTagsEmitter
                           internal static class OTelTagExtensions
                           {
                       """);
-    }
 
     private static void AppendExtensionMethods(
         StringBuilder sb,
@@ -98,14 +96,18 @@ internal static class OTelTagsEmitter
         var attributeName = tag.AttributeName;
 
         if (tag.SkipIfNull && (tag.IsNullable || !EmitterHelpers.IsPrimitiveValueType(tag.MemberTypeName)))
+        {
             sb.AppendLine($"""
                                            if ({accessor} is not null)
                                                activity.SetTag("{attributeName}", {accessor});
                            """);
+        }
         else
+        {
             sb.AppendLine($"""
                                            activity.SetTag("{attributeName}", {accessor});
                            """);
+        }
     }
 
     private static string GenerateMethodName(string typeName)

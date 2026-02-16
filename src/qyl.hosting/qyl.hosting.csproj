@@ -15,22 +15,22 @@
 
   <ItemGroup>
     <!-- Core hosting -->
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Hosting"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables"/>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json"/>
 
     <!-- Health checks -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks"/>
   </ItemGroup>
 
   <ItemGroup>
     <!-- Service defaults (attributes + runtime helpers, transitively provides qyl.protocol) -->
-    <ProjectReference Include="../qyl.servicedefaults/qyl.servicedefaults.csproj" />
+    <ProjectReference Include="../qyl.servicedefaults/qyl.servicedefaults.csproj"/>
 
     <!-- Source generator (compile-time instrumentation) -->
     <ProjectReference Include="../qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"
                       OutputItemType="Analyzer"
-                      ReferenceOutputAssembly="false" />
+                      ReferenceOutputAssembly="false"/>
   </ItemGroup>
 
 </Project>

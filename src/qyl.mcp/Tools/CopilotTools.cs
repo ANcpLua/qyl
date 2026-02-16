@@ -26,9 +26,8 @@ public sealed class CopilotTools(HttpClient client)
 
                  Returns: Authentication status summary
                  """)]
-    public Task<string> GetCopilotStatusAsync()
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+    public Task<string> GetCopilotStatusAsync() =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var status = await client.GetFromJsonAsync<CopilotStatusDto>(
                 "/api/v1/copilot/status",
@@ -58,7 +57,6 @@ public sealed class CopilotTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.copilot_chat")]
     [Description("""
@@ -77,9 +75,8 @@ public sealed class CopilotTools(HttpClient client)
         [Description("The prompt to send to Copilot")]
         string prompt,
         [Description("Additional context to include (e.g., telemetry data)")]
-        string? context = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? context = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotChatRequestDto
             {
@@ -109,7 +106,8 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        var update = JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
+                        var update =
+                            JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
                         if (update is null) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
@@ -142,7 +140,6 @@ public sealed class CopilotTools(HttpClient client)
 
             return result;
         });
-    }
 
     [McpServerTool(Name = "qyl.copilot_run_workflow")]
     [Description("""
@@ -163,9 +160,8 @@ public sealed class CopilotTools(HttpClient client)
         [Description("Name of the workflow to execute")]
         string name,
         [Description("Additional context for the workflow")]
-        string? context = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? context = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotWorkflowRunDto
             {
@@ -194,7 +190,8 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        var update = JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
+                        var update =
+                            JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
                         if (update is null) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
@@ -219,7 +216,6 @@ public sealed class CopilotTools(HttpClient client)
                 ? "Workflow completed with no output."
                 : result;
         });
-    }
 }
 
 #region DTOs
@@ -233,8 +229,7 @@ internal sealed record CopilotStatusDto(
     string? Username,
     [property: JsonPropertyName("capabilities")]
     List<string>? Capabilities,
-    [property: JsonPropertyName("error")]
-    string? Error);
+    [property: JsonPropertyName("error")] string? Error);
 
 internal sealed record CopilotChatRequestDto
 {

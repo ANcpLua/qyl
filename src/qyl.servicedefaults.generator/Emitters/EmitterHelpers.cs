@@ -45,13 +45,11 @@ internal static class EmitterHelpers
     /// <summary>
     ///     Appends closing braces for nested namespace and class.
     /// </summary>
-    public static void AppendClassClose(StringBuilder sb)
-    {
+    public static void AppendClassClose(StringBuilder sb) =>
         sb.AppendLine("""
                           }
                       }
                       """);
-    }
 
     /// <summary>
     ///     Builds the parameter list for an interceptor method signature.
@@ -77,7 +75,8 @@ internal static class EmitterHelpers
         {
             if (sb.Length > 0)
                 sb.Append(", ");
-            var typeName = parameterTypes[i].ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
+            var typeName = parameterTypes[i]
+                .ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
             sb.Append($"{typeName} {parameterNames[i]}");
         }
 
@@ -87,29 +86,25 @@ internal static class EmitterHelpers
     /// <summary>
     ///     Builds the argument list for forwarding to the original method.
     /// </summary>
-    public static string BuildArgumentList(EquatableArray<string> parameterNames)
-    {
-        return parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
-    }
+    public static string BuildArgumentList(EquatableArray<string> parameterNames) =>
+        parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
 
     /// <summary>
     ///     Checks if a type name represents a primitive value type.
     /// </summary>
-    public static bool IsPrimitiveValueType(string typeName)
-    {
-        return typeName.StartsWithOrdinal("global::System.Int") ||
-               typeName.StartsWithOrdinal("global::System.UInt") ||
-               typeName.StartsWithOrdinal("global::System.Double") ||
-               typeName.StartsWithOrdinal("global::System.Single") ||
-               typeName.StartsWithOrdinal("global::System.Decimal") ||
-               typeName.StartsWithOrdinal("global::System.Boolean") ||
-               typeName.StartsWithOrdinal("global::System.Byte") ||
-               typeName.StartsWithOrdinal("global::System.SByte") ||
-               typeName.StartsWithOrdinal("global::System.Char") ||
-               typeName.StartsWithOrdinal("global::System.DateTime") ||
-               typeName.StartsWithOrdinal("global::System.TimeSpan") ||
-               typeName.StartsWithOrdinal("global::System.Guid") ||
-               typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
-                   "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
-    }
+    public static bool IsPrimitiveValueType(string typeName) =>
+        typeName.StartsWithOrdinal("global::System.Int") ||
+        typeName.StartsWithOrdinal("global::System.UInt") ||
+        typeName.StartsWithOrdinal("global::System.Double") ||
+        typeName.StartsWithOrdinal("global::System.Single") ||
+        typeName.StartsWithOrdinal("global::System.Decimal") ||
+        typeName.StartsWithOrdinal("global::System.Boolean") ||
+        typeName.StartsWithOrdinal("global::System.Byte") ||
+        typeName.StartsWithOrdinal("global::System.SByte") ||
+        typeName.StartsWithOrdinal("global::System.Char") ||
+        typeName.StartsWithOrdinal("global::System.DateTime") ||
+        typeName.StartsWithOrdinal("global::System.TimeSpan") ||
+        typeName.StartsWithOrdinal("global::System.Guid") ||
+        typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
+            "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
 }

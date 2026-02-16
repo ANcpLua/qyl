@@ -21,11 +21,11 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
         await using (var cmd = connection.CreateCommand())
         {
             cmd.CommandText = """
-                INSERT INTO build_failures (
-                    id, timestamp, target, exit_code, binlog_path, error_summary,
-                    property_issues_json, env_reads_json, call_stack_json, duration_ms)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                """;
+                              INSERT INTO build_failures (
+                                  id, timestamp, target, exit_code, binlog_path, error_summary,
+                                  property_issues_json, env_reads_json, call_stack_json, duration_ms)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                              """;
 
             cmd.Parameters.Add(new DuckDBParameter { Value = id });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.Timestamp.UtcDateTime });
@@ -51,12 +51,12 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
-                   property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
-            FROM build_failures
-            WHERE id = $1
-            LIMIT 1
-            """;
+                          SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
+                                 property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
+                          FROM build_failures
+                          WHERE id = $1
+                          LIMIT 1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = id });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -70,33 +70,34 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
-                   property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
-            FROM build_failures
-            ORDER BY timestamp DESC
-            LIMIT $1
-            """;
+                          SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
+                                 property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
+                          FROM build_failures
+                          ORDER BY timestamp DESC
+                          LIMIT $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 500) });
 
         return await ReadManyAsync(cmd, ct).ConfigureAwait(false);
     }
 
-    public async Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50, CancellationToken ct = default)
+    public async Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50,
+        CancellationToken ct = default)
     {
         await using var connection = new DuckDBConnection(_connectionString);
         await connection.OpenAsync(ct).ConfigureAwait(false);
 
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
-                   property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
-            FROM build_failures
-            WHERE error_summary LIKE $1
-               OR CAST(property_issues_json AS VARCHAR) LIKE $1
-               OR CAST(call_stack_json AS VARCHAR) LIKE $1
-            ORDER BY timestamp DESC
-            LIMIT $2
-            """;
+                          SELECT id, timestamp, target, exit_code, binlog_path, error_summary,
+                                 property_issues_json, env_reads_json, call_stack_json, duration_ms, created_at
+                          FROM build_failures
+                          WHERE error_summary LIKE $1
+                             OR CAST(property_issues_json AS VARCHAR) LIKE $1
+                             OR CAST(call_stack_json AS VARCHAR) LIKE $1
+                          ORDER BY timestamp DESC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = $"%{pattern}%" });
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 500) });
 
@@ -107,14 +108,14 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
     {
         await using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            DELETE FROM build_failures
-            WHERE id IN (
-                SELECT id
-                FROM build_failures
-                ORDER BY timestamp DESC
-                OFFSET $1
-            )
-            """;
+                          DELETE FROM build_failures
+                          WHERE id IN (
+                              SELECT id
+                              FROM build_failures
+                              ORDER BY timestamp DESC
+                              OFFSET $1
+                          )
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = _maxRetainedFailures });
         await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
@@ -129,9 +130,8 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
         return rows;
     }
 
-    private static BuildFailureRecord Map(IDataReader reader)
-    {
-        return new BuildFailureRecord
+    private static BuildFailureRecord Map(IDataReader reader) =>
+        new()
         {
             Id = reader.GetString(0),
             Timestamp = new DateTimeOffset(reader.GetDateTime(1), TimeSpan.Zero),
@@ -145,5 +145,4 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
             DurationMs = reader.Col(9).AsInt32,
             CreatedAt = reader.Col(10).AsDateTimeOffset
         };
-    }
 }

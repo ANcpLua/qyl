@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using qyl.collector.Ingestion;
@@ -140,9 +139,18 @@ public sealed class OtlpIngestionTests(QylWebApplicationFactory factory)
                                     Body = new OtlpAnyValue { StringValue = "failure" },
                                     Attributes =
                                     [
-                                        new OtlpKeyValue { Key = "code.file.path", Value = new OtlpAnyValue { StringValue = "src/Foo.cs" } },
-                                        new OtlpKeyValue { Key = "code.line.number", Value = new OtlpAnyValue { IntValue = 21 } },
-                                        new OtlpKeyValue { Key = "code.function.name", Value = new OtlpAnyValue { StringValue = "Foo.Bar" } }
+                                        new OtlpKeyValue
+                                        {
+                                            Key = "code.file.path",
+                                            Value = new OtlpAnyValue { StringValue = "src/Foo.cs" }
+                                        },
+                                        new OtlpKeyValue
+                                            { Key = "code.line.number", Value = new OtlpAnyValue { IntValue = 21 } },
+                                        new OtlpKeyValue
+                                        {
+                                            Key = "code.function.name",
+                                            Value = new OtlpAnyValue { StringValue = "Foo.Bar" }
+                                        }
                                     ]
                                 }
                             ]

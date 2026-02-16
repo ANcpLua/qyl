@@ -12,7 +12,8 @@ Two complementary features to help AI agents (Claude) diagnose issues faster:
 1. **MSBuild Binlog Auto-Capture**: Auto-capture binlogs with property tracking on build failures
 2. **PDB-Enhanced Logging**: Enrich all logs with source file:line from Portable PDBs
 
-**Combined Impact**: Reduce diagnosis time from 10+ minutes to <1 minute by providing exact source locations and build context.
+**Combined Impact**: Reduce diagnosis time from 10+ minutes to <1 minute by providing exact source locations and build
+context.
 
 **Total Effort**: 12-17 hours (can be done in parallel by 2 devs)
 
@@ -25,6 +26,7 @@ Two complementary features to help AI agents (Claude) diagnose issues faster:
 **Context**: Need to store binlog metadata (timestamps, errors, property issues) for querying via MCP tools.
 
 **Options Considered**:
+
 1. Store binlogs as files only, parse on-demand
 2. Store parsed metadata in JSON files
 3. Store metadata in DuckDB with binlog files on disk
@@ -32,12 +34,14 @@ Two complementary features to help AI agents (Claude) diagnose issues faster:
 **Decision**: DuckDB metadata + file storage (Option 3)
 
 **Why**:
+
 - **Query Performance**: DuckDB enables indexed queries (<100ms) vs file scanning (seconds)
 - **Retention Management**: SQL-based cleanup (DELETE oldest) vs manual file iteration
 - **Consistency**: Existing qyl pattern (spans, logs use DuckDB)
 - **Trade-off**: Extra storage overhead (~1KB metadata per 5MB binlog) is negligible
 
 **Alternatives Rejected**:
+
 - Option 1: Too slow for MCP queries (need to parse 5MB binlog every time)
 - Option 2: No indexing, retention logic complex
 
@@ -46,6 +50,7 @@ Two complementary features to help AI agents (Claude) diagnose issues faster:
 **Context**: Binlogs are 5MB+ files. Using `BinaryData.FromStream()` copies the entire buffer.
 
 **Options Considered**:
+
 1. `BinaryData.FromStream(stream)` - simple but copies buffer
 2. `new BinaryData(stream.GetBuffer().AsMemory(0, position))` - zero-copy
 3. Memory-mapped files - most efficient but complex
@@ -53,16 +58,19 @@ Two complementary features to help AI agents (Claude) diagnose issues faster:
 **Decision**: Zero-copy MemoryStream (Option 2)
 
 **Why**:
+
 - **Performance**: Avoids 5MB+ buffer copy per binlog (saves memory allocation)
 - **Simplicity**: One-line change from Option 1
 - **Safety**: BinaryData constructor validates buffer bounds
 - **Trade-off**: Buffer mutability risk (mitigated by reading file once)
 
 **Alternatives Rejected**:
+
 - Option 1: Wastes memory on large binlogs (unacceptable for 10 × 5MB = 50MB retention)
 - Option 3: Overkill for sequential reads, adds complexity
 
 **Code Pattern**:
+
 ```csharp
 // ❌ BAD: Copies the entire buffer
 var data = BinaryData.FromStream(stream);
@@ -76,6 +84,7 @@ var data = new BinaryData(stream.GetBuffer().AsMemory(0, (int)stream.Position));
 **Context**: Build failures show "target failed" but not WHERE in Build.cs the failure originated.
 
 **Options Considered**:
+
 1. Binlog only (property tracking)
 2. Binlog + PDB call stack
 3. Binlog + PDB + async stack traces
@@ -83,16 +92,19 @@ var data = new BinaryData(stream.GetBuffer().AsMemory(0, (int)stream.Position));
 **Decision**: Binlog + PDB call stack (Option 2)
 
 **Why**:
+
 - **Root Cause Speed**: Shows "Compile target → called from Build.cs:156" immediately
 - **Existing Infrastructure**: System.Reflection.Metadata already used for Option 2 (PDB logging)
 - **Negligible Overhead**: PDB read is <5ms, happens only on failure
 - **Trade-off**: Requires PDBs available (acceptable for dev/CI scenarios)
 
 **Alternatives Rejected**:
+
 - Option 1: Incomplete picture - shows property issues but not code location
 - Option 3: Async stack traces need runtime profiler (too invasive)
 
 **Example Output**:
+
 ```
 Build failed: error CS0246: The type or namespace name 'Foo' could not be found
 Property tracking: Property 'Foo' was never set
@@ -106,6 +118,7 @@ Call stack:
 **Context**: MCP tools show error messages but Claude must manually search code to find source location.
 
 **Options Considered**:
+
 1. Store PDB info only for errors (severity >= 17)
 2. Store PDB info for all logs
 3. On-demand PDB lookup at MCP query time
@@ -113,16 +126,19 @@ Call stack:
 **Decision**: Store for all logs (Option 2)
 
 **Why**:
+
 - **Query Speed**: MCP queries are <100ms (pre-computed), Option 3 would be seconds (parse PDB every query)
 - **Cache Hit Rate**: >95% of logs come from same methods (cache amortizes cost)
 - **Completeness**: Info and Debug logs often contain context for errors
 - **Trade-off**: Extra 3 columns per log (~30 bytes) - acceptable with 500K log retention limit
 
 **Alternatives Rejected**:
+
 - Option 1: Misses context logs that explain errors
 - Option 3: Too slow for MCP queries, cache invalidation complex
 
 **Cost Analysis**:
+
 - Storage: 500K logs × 30 bytes = 15MB (negligible)
 - Compute: <1ms per log (cached), amortized to <0.1ms at 95% hit rate
 
@@ -131,6 +147,7 @@ Call stack:
 **Context**: Reading PDB for every log is slow (~5ms). Need caching strategy.
 
 **Options Considered**:
+
 1. No cache (parse PDB every time)
 2. LRU cache with fixed size (10K entries)
 3. Per-assembly cache (unlimited size)
@@ -139,17 +156,20 @@ Call stack:
 **Decision**: LRU cache with idle timeout (Option 2 + 4 hybrid)
 
 **Why**:
+
 - **Memory Bounded**: 10K entries × ~200 bytes = 2MB max (predictable)
 - **High Hit Rate**: Typical app has <1000 unique log call sites
 - **Idle Cleanup**: Assemblies unload after 1 hour idle (prevents leak)
 - **Trade-off**: May evict entries prematurely (acceptable - cache miss is 5ms)
 
 **Alternatives Rejected**:
+
 - Option 1: Too slow (5ms × 10K logs/day = 50 seconds wasted)
 - Option 3: Memory leak risk if assemblies never unload
 - Option 4: No memory bound (could grow indefinitely)
 
 **Cache Parameters** (tunable):
+
 ```csharp
 const int MaxCacheEntries = 10_000;
 const int IdleTimeoutMinutes = 60;
@@ -160,6 +180,7 @@ const int IdleTimeoutMinutes = 60;
 **Context**: Production builds may strip PDBs. Feature must not break without them.
 
 **Options Considered**:
+
 1. Fail log ingestion if PDB missing (strict)
 2. Log warning and continue (degraded)
 3. Silently skip PDB enrichment (silent)
@@ -167,16 +188,19 @@ const int IdleTimeoutMinutes = 60;
 **Decision**: Log warning and continue (Option 2)
 
 **Why**:
+
 - **Reliability**: Log ingestion must never fail (observability is critical)
 - **Debuggability**: Warning in qyl logs helps diagnose deployment issues
 - **User Experience**: MCP tools show `null` for source fields (clear signal)
 - **Trade-off**: Warning noise in production (acceptable - rare occurrence)
 
 **Alternatives Rejected**:
+
 - Option 1: Too fragile - breaks observability if PDB missing
 - Option 3: Silent failures are invisible, hard to debug
 
 **Behavior**:
+
 ```csharp
 if (!pdbReader.TryGetMethodLocation(method, out var location))
 {
@@ -195,13 +219,13 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **Dependencies & Schema**
 
 - [ ] **Add NuGet packages to qyl.mcp**
-  - `Microsoft.Build.Logging.StructuredLogger` (binlog parsing)
-  - `System.Reflection.Metadata` (PDB reading)
-  - `System.Reflection.PortableExecutable` (PDB reading)
-  - **Why**: Official Microsoft libraries, stable APIs, cross-platform
+    - `Microsoft.Build.Logging.StructuredLogger` (binlog parsing)
+    - `System.Reflection.Metadata` (PDB reading)
+    - `System.Reflection.PortableExecutable` (PDB reading)
+    - **Why**: Official Microsoft libraries, stable APIs, cross-platform
 
 - [ ] **Add NuGet package to qyl.collector**
-  - `System.Reflection.Metadata` (for log enrichment)
+    - `System.Reflection.Metadata` (for log enrichment)
 
 - [ ] **Create DuckDB migration: `001_build_failures.sql`**
   ```sql
@@ -221,7 +245,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   CREATE INDEX idx_bf_timestamp ON build_failures(timestamp DESC);
   CREATE INDEX idx_bf_target ON build_failures(target);
   ```
-  - **Why JSON columns**: Flexible schema for property issues (variable structure), DuckDB has native JSON support
+    - **Why JSON columns**: Flexible schema for property issues (variable structure), DuckDB has native JSON support
 
 - [ ] **Create DuckDB migration: `002_source_locations.sql`**
   ```sql
@@ -236,16 +260,17 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   ALTER TABLE console_logs ADD COLUMN IF NOT EXISTS source_column INTEGER;
   CREATE INDEX IF NOT EXISTS idx_console_source ON console_logs(source_file);
   ```
-  - **Why nullable columns**: Backward-compatible (existing logs have no source info), graceful degradation if PDB missing
+    - **Why nullable columns**: Backward-compatible (existing logs have no source info), graceful degradation if PDB
+      missing
 
 - [ ] **Add `.qyl/binlogs/` to `.gitignore`**
-  - **Why**: Binlogs may contain secrets (env vars, connection strings), should not be committed
+    - **Why**: Binlogs may contain secrets (env vars, connection strings), should not be committed
 
 - [ ] **Design test fixtures**
-  - Sample .binlog with property tracking enabled
-  - Sample assembly with embedded PDB
-  - Sample assembly with separate .pdb file
-  - Sample assembly with no PDB (test degradation)
+    - Sample .binlog with property tracking enabled
+    - Sample assembly with embedded PDB
+    - Sample assembly with separate .pdb file
+    - Sample assembly with no PDB (test degradation)
 
 ### Phase 2: Core Components (6-8 hours)
 
@@ -260,8 +285,8 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Handles missing PDB gracefully (returns null)
   }
   ```
-  - **Why separate class**: Reused by both binlog capture and log enrichment, single source of truth for PDB logic
-  - **Why IDisposable**: PDB readers hold file handles, must be disposed
+    - **Why separate class**: Reused by both binlog capture and log enrichment, single source of truth for PDB logic
+    - **Why IDisposable**: PDB readers hold file handles, must be disposed
 
 - [ ] **Implement zero-copy pattern in PdbReader**
   ```csharp
@@ -273,7 +298,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       memoryStream.GetBuffer().AsMemory(0, (int)memoryStream.Position)
   );
   ```
-  - **Why**: Avoids copying 5MB+ PDB buffers (saves memory allocation)
+    - **Why**: Avoids copying 5MB+ PDB buffers (saves memory allocation)
 
 - [ ] **Create `SourceLocationCache.cs`**
   ```csharp
@@ -288,9 +313,9 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       private void EvictIdle(); // Background task, runs every 5 minutes
   }
   ```
-  - **Why LRU**: Predictable memory usage (max 2MB), high hit rate (>95%)
-  - **Why idle timeout**: Prevents memory leak if assemblies never unload
-  - **Why ConcurrentDictionary**: Thread-safe, lock-free reads (log ingestion is multi-threaded)
+    - **Why LRU**: Predictable memory usage (max 2MB), high hit rate (>95%)
+    - **Why idle timeout**: Prevents memory leak if assemblies never unload
+    - **Why ConcurrentDictionary**: Thread-safe, lock-free reads (log ingestion is multi-threaded)
 
 **Binlog Capture**
 
@@ -306,8 +331,8 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // - Build duration
   }
   ```
-  - **Why dependency injection**: PdbReader is shared, testable
-  - **Why sealed**: No inheritance needed, enables compiler optimizations
+    - **Why dependency injection**: PdbReader is shared, testable
+    - **Why sealed**: No inheritance needed, enables compiler optimizations
 
 - [ ] **Create `PostToolUse` hook: `hooks/dotnet-build-capture.sh`**
   ```bash
@@ -320,9 +345,9 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   #   4. Store in DuckDB
   #   5. Cleanup if >10 failures
   ```
-  - **Why PostToolUse**: Triggered after command fails, can inspect exit code
-  - **Why re-run with -bl**: Original run didn't have binlog enabled, need second pass (fast, no rebuild)
-  - **Why timestamp in filename**: Prevents collisions (concurrent builds)
+    - **Why PostToolUse**: Triggered after command fails, can inspect exit code
+    - **Why re-run with -bl**: Original run didn't have binlog enabled, need second pass (fast, no rebuild)
+    - **Why timestamp in filename**: Prevents collisions (concurrent builds)
 
 - [ ] **Create `BuildFailureStore.cs`**
   ```csharp
@@ -339,14 +364,14 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Implements retention: DELETE FROM build_failures WHERE ... ORDER BY timestamp DESC OFFSET 10
   }
   ```
-  - **Why interface**: Testable, could swap DuckDB for PostgreSQL later
-  - **Why retention in store**: Encapsulates business rule (10 failures), automatic on insert
+    - **Why interface**: Testable, could swap DuckDB for PostgreSQL later
+    - **Why retention in store**: Encapsulates business rule (10 failures), automatic on insert
 
 - [ ] **Unit tests for BinlogParser**
-  - Parse binlog with property reassignment → extracts correctly
-  - Parse binlog with missing env var → extracts env reads
-  - Parse malformed binlog → returns null, logs warning
-  - Parse binlog with no errors → handles gracefully
+    - Parse binlog with property reassignment → extracts correctly
+    - Parse binlog with missing env var → extracts env reads
+    - Parse malformed binlog → returns null, logs warning
+    - Parse binlog with no errors → handles gracefully
 
 **Log Enrichment**
 
@@ -360,8 +385,8 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Returns source file:line:column
   }
   ```
-  - **Why separate from cache**: Single responsibility (enrichment logic vs caching)
-  - **Why nullable return**: Graceful degradation if PDB missing
+    - **Why separate from cache**: Single responsibility (enrichment logic vs caching)
+    - **Why nullable return**: Graceful degradation if PDB missing
 
 - [ ] **Integrate into OTLP log handler** (`qyl.collector/Handlers/OtlpLogHandler.cs`)
   ```csharp
@@ -375,13 +400,13 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       SourceMethod = sourceLocation?.MethodName
   });
   ```
-  - **Why at ingestion time**: Pre-computed (fast MCP queries), cache amortizes cost
+    - **Why at ingestion time**: Pre-computed (fast MCP queries), cache amortizes cost
 
 - [ ] **Unit tests for PdbEnricher**
-  - Enrich log with embedded PDB → extracts source location
-  - Enrich log with separate .pdb → extracts source location
-  - Enrich log with no PDB → returns null, logs warning (once per assembly)
-  - Enrich 1000 logs from same method → cache hit rate >95%
+    - Enrich log with embedded PDB → extracts source location
+    - Enrich log with separate .pdb → extracts source location
+    - Enrich log with no PDB → returns null, logs warning (once per assembly)
+    - Enrich 1000 logs from same method → cache hit rate >95%
 
 ### Phase 3: MCP Tools (4-5 hours)
 
@@ -402,7 +427,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       public async Task<string> SearchBuildFailuresAsync(string pattern);
   }
   ```
-  - **Why pattern matches existing tools**: ConsoleTools, StructuredLogTools use same conventions
+    - **Why pattern matches existing tools**: ConsoleTools, StructuredLogTools use same conventions
 
 - [ ] **Implement `qyl.list_build_failures`**
   ```csharp
@@ -417,14 +442,14 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   //   → Build.Execute() at Build.cs:89
   // Binlog: .qyl/binlogs/2026-02-14-10-23-15-Compile-1.binlog
   ```
-  - **Why markdown**: Rendered nicely in Claude UI, structured but human-readable
+    - **Why markdown**: Rendered nicely in Claude UI, structured but human-readable
 
 - [ ] **Implement `qyl.get_build_failure`**
-  - Returns full details for single failure (all property issues, env reads, full call stack)
+    - Returns full details for single failure (all property issues, env reads, full call stack)
 
 - [ ] **Implement `qyl.search_build_failures`**
-  - SQL: `WHERE error_summary LIKE '%pattern%' OR property_issues::TEXT LIKE '%pattern%'`
-  - **Why JSON search**: DuckDB supports searching inside JSON columns
+    - SQL: `WHERE error_summary LIKE '%pattern%' OR property_issues::TEXT LIKE '%pattern%'`
+    - **Why JSON search**: DuckDB supports searching inside JSON columns
 
 **Updated Tools: Log Source Locations**
 
@@ -437,62 +462,62 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   // **10:23:45** [ERROR] Connection failed
   //   at DbContext.ConnectAsync() in DbContext.cs:125
   ```
-  - **Why indented**: Distinguishes source location from message, clear visual hierarchy
+    - **Why indented**: Distinguishes source location from message, clear visual hierarchy
 
 - [ ] **Update `ConsoleTools.ListConsoleErrorsAsync`**
-  - Same format as StructuredLogTools
+    - Same format as StructuredLogTools
 
 - [ ] **Update MCP tool descriptions**
-  - Mention source location feature in `[Description]` attribute
-  - Example: "Returns logs with source file:line if PDB available"
+    - Mention source location feature in `[Description]` attribute
+    - Example: "Returns logs with source file:line if PDB available"
 
 **Integration Tests**
 
 - [ ] **Test: Binlog capture end-to-end**
-  1. Trigger `dotnet build` failure (compile error)
-  2. Verify binlog captured in `.qyl/binlogs/`
-  3. Query `qyl.list_build_failures`
-  4. Verify property issues + call stack present
+    1. Trigger `dotnet build` failure (compile error)
+    2. Verify binlog captured in `.qyl/binlogs/`
+    3. Query `qyl.list_build_failures`
+    4. Verify property issues + call stack present
 
 - [ ] **Test: Log enrichment end-to-end**
-  1. Log error from method with PDB
-  2. Query `qyl.list_structured_logs(level="error")`
-  3. Verify source location present: `at File.cs:line`
+    1. Log error from method with PDB
+    2. Query `qyl.list_structured_logs(level="error")`
+    3. Verify source location present: `at File.cs:line`
 
 - [ ] **Test: Retention enforcement**
-  1. Trigger 11 build failures
-  2. Verify only 10 most recent kept
-  3. Verify oldest binlog file deleted
+    1. Trigger 11 build failures
+    2. Verify only 10 most recent kept
+    3. Verify oldest binlog file deleted
 
 - [ ] **Test: Graceful degradation**
-  1. Deploy qyl.collector without PDBs
-  2. Log error
-  3. Verify log stored successfully (source fields null)
-  4. Verify warning logged once per assembly
+    1. Deploy qyl.collector without PDBs
+    2. Log error
+    3. Verify log stored successfully (source fields null)
+    4. Verify warning logged once per assembly
 
 ### Phase 4: Documentation & Deployment (2-3 hours)
 
 **Documentation**
 
 - [ ] **Update `/Users/ancplua/qyl/CLAUDE.md`**
-  - Add section: "Build Failure Diagnosis"
-  - Mention `qyl.list_build_failures` MCP tool
-  - Add section: "Log Source Locations"
-  - Mention PDB requirement for source info
+    - Add section: "Build Failure Diagnosis"
+    - Mention `qyl.list_build_failures` MCP tool
+    - Add section: "Log Source Locations"
+    - Mention PDB requirement for source info
 
 - [ ] **Update `/Users/ancplua/qyl/src/qyl.mcp/CLAUDE.md`**
-  - Document all 3 new BuildTools MCP tools
-  - Add examples of source location in log responses
-  - Document graceful degradation (PDB optional)
+    - Document all 3 new BuildTools MCP tools
+    - Add examples of source location in log responses
+    - Document graceful degradation (PDB optional)
 
 - [ ] **Update `/Users/ancplua/qyl/src/qyl.collector/CLAUDE.md`**
-  - Document PdbEnricher component
-  - Document SourceLocationCache tuning parameters
-  - Add troubleshooting: "Source locations not appearing"
+    - Document PdbEnricher component
+    - Document SourceLocationCache tuning parameters
+    - Add troubleshooting: "Source locations not appearing"
 
 - [ ] **Create ADR summary document** (this file!)
-  - Store at `/Users/ancplua/qyl/docs/adrs/001-observability-enhancements.md`
-  - **Why**: 6 months from now, team needs to understand trade-offs
+    - Store at `/Users/ancplua/qyl/docs/adrs/001-observability-enhancements.md`
+    - **Why**: 6 months from now, team needs to understand trade-offs
 
 - [ ] **Document tuning parameters**
   ```csharp
@@ -504,45 +529,48 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   // BuildFailureStore.cs
   public const int MaxRetainedFailures = 10;        // Tune for disk space vs history
   ```
-  - **Why constants**: Easy to find and adjust, single source of truth
+    - **Why constants**: Easy to find and adjust, single source of truth
 
 **Deployment**
 
 - [ ] **Test in qyl CI failure scenario**
-  - Trigger real build failure
-  - Verify binlog capture works in CI environment
-  - Verify MCP tools accessible (auth configured)
+    - Trigger real build failure
+    - Verify binlog capture works in CI environment
+    - Verify MCP tools accessible (auth configured)
 
 - [ ] **Verify cache hit rate in production**
-  - Add telemetry: `_logger.LogInformation("Cache hit rate: {Rate}%", hitRate)`
-  - Monitor for 1 week, ensure >95%
-  - **Why**: Validates ADR-005 assumption
+    - Add telemetry: `_logger.LogInformation("Cache hit rate: {Rate}%", hitRate)`
+    - Monitor for 1 week, ensure >95%
+    - **Why**: Validates ADR-005 assumption
 
 - [ ] **Verify retention cleanup works**
-  - Check `.qyl/binlogs/` directory after 20 failures
-  - Verify only 10 binlog files present
-  - Verify DuckDB table has 10 rows
+    - Check `.qyl/binlogs/` directory after 20 failures
+    - Verify only 10 binlog files present
+    - Verify DuckDB table has 10 rows
 
 - [ ] **Security review**
-  - Confirm binlogs not committed to git
-  - Confirm MCP tools require authentication
-  - Confirm PDB file paths not exposed (only relative source paths)
+    - Confirm binlogs not committed to git
+    - Confirm MCP tools require authentication
+    - Confirm PDB file paths not exposed (only relative source paths)
 
 ---
 
 ## Success Metrics
 
 **Performance** (measure after 1 week in production):
+
 - [ ] Binlog capture overhead: <5 seconds per failure
 - [ ] MCP query latency: <100ms (p95)
 - [ ] Source location cache hit rate: >95%
 - [ ] Source location lookup time: <1ms (cached), <5ms (uncached)
 
 **Reliability**:
+
 - [ ] Log ingestion never fails due to missing PDBs (100% graceful degradation)
 - [ ] Retention enforcement never fails (10 binlogs max, always)
 
 **User Experience** (Claude feedback):
+
 - [ ] Time to diagnose build failure: <1 minute (down from 10+ minutes)
 - [ ] Source location accuracy: 100% (when PDB available)
 
@@ -550,14 +578,14 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 
 ## Trade-offs Summary
 
-| Decision | Benefit | Cost | Why Worth It |
-|----------|---------|------|--------------|
-| DuckDB storage | Fast queries (<100ms) | Extra storage (~1KB/binlog) | Query speed critical for MCP tools |
-| Zero-copy BinaryData | Saves 5MB+ per binlog | Buffer mutability risk | Memory efficiency > marginal safety risk |
-| PDB call stacks | Instant root cause | Requires PDBs in CI/dev | PDBs available in 99% of scenarios |
-| Enrich all logs | Complete context | 30 bytes/log × 500K = 15MB | Storage cost negligible vs diagnosis speed |
-| LRU cache | >95% hit rate | May evict prematurely | 5ms miss penalty acceptable |
-| Graceful degradation | Never breaks observability | Warning noise | Reliability > silence |
+| Decision             | Benefit                    | Cost                        | Why Worth It                               |
+|----------------------|----------------------------|-----------------------------|--------------------------------------------|
+| DuckDB storage       | Fast queries (<100ms)      | Extra storage (~1KB/binlog) | Query speed critical for MCP tools         |
+| Zero-copy BinaryData | Saves 5MB+ per binlog      | Buffer mutability risk      | Memory efficiency > marginal safety risk   |
+| PDB call stacks      | Instant root cause         | Requires PDBs in CI/dev     | PDBs available in 99% of scenarios         |
+| Enrich all logs      | Complete context           | 30 bytes/log × 500K = 15MB  | Storage cost negligible vs diagnosis speed |
+| LRU cache            | >95% hit rate              | May evict prematurely       | 5ms miss penalty acceptable                |
+| Graceful degradation | Never breaks observability | Warning noise               | Reliability > silence                      |
 
 ---
 
@@ -566,18 +594,19 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **When to revisit these decisions**:
 
 1. **ADR-001 (DuckDB)**: If binlog metadata exceeds 1GB (query performance degrades)
-   - **Mitigation**: Add partitioning by date, archive old failures
+    - **Mitigation**: Add partitioning by date, archive old failures
 
 2. **ADR-004 (Enrich all logs)**: If storage exceeds 100MB for source locations
-   - **Mitigation**: Switch to error-only enrichment (ADR-004 Option 1)
+    - **Mitigation**: Switch to error-only enrichment (ADR-004 Option 1)
 
 3. **ADR-005 (LRU cache)**: If cache hit rate drops below 90%
-   - **Mitigation**: Increase MaxCacheEntries to 50K (10MB max)
+    - **Mitigation**: Increase MaxCacheEntries to 50K (10MB max)
 
 4. **ADR-006 (Graceful degradation)**: If warning noise becomes excessive
-   - **Mitigation**: Rate-limit warnings to 1 per assembly per hour
+    - **Mitigation**: Rate-limit warnings to 1 per assembly per hour
 
 **Continuous improvement**:
+
 - Monitor cache hit rate weekly (target: >95%)
 - Monitor MCP query latency monthly (target: p95 <100ms)
 - Review ADRs every 6 months (are assumptions still valid?)
@@ -589,18 +618,21 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 If issues arise, features can be disabled independently:
 
 **Disable binlog capture**:
+
 ```bash
 # Remove PostToolUse hook
 rm ~/.claude/hooks/PostToolUse/dotnet-build-capture.sh
 ```
 
 **Disable log enrichment**:
+
 ```csharp
 // qyl.collector/Startup.cs
 services.AddSingleton<PdbEnricher>(sp => new NoOpPdbEnricher()); // Returns null always
 ```
 
 **Rollback schema changes**:
+
 ```sql
 -- Build failures (safe - independent table)
 DROP TABLE build_failures;
@@ -619,7 +651,8 @@ ALTER TABLE logs DROP COLUMN source_method;
 
 - [MSBuild Property Tracking](https://www.meziantou.net/msbuild-binlogs-property-tracking.htm) - Inspiration for ADR-001
 - [Zero-Copy BinaryData](https://www.meziantou.net/zero-copy-binarydata-from-memorystream.htm) - Inspiration for ADR-002
-- [Portable PDB Source Locations](https://www.meziantou.net/retrieve-method-source-location-at-runtime-using-portable-pdbs.htm) - Inspiration for ADR-003, ADR-004
+- [Portable PDB Source Locations](https://www.meziantou.net/retrieve-method-source-location-at-runtime-using-portable-pdbs.htm) -
+  Inspiration for ADR-003, ADR-004
 
 **Document Version**: 1.0
 **Last Updated**: 2026-02-14

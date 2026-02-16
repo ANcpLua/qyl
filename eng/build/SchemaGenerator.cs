@@ -94,7 +94,8 @@ public static class SchemaGenerator
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "Strongly-typed scalar primitives");
 
-        foreach (var group in scalars.GroupBy(static s => NamespaceRoutingTable.GetCSharpNamespace(s.Name)).OrderBy(static g => g.Key))
+        foreach (var group in scalars.GroupBy(static s => NamespaceRoutingTable.GetCSharpNamespace(s.Name))
+                     .OrderBy(static g => g.Key))
         {
             sb.AppendLine(CultureInfo.InvariantCulture, $"namespace {group.Key};");
             sb.AppendLine();

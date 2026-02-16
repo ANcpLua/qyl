@@ -15,10 +15,12 @@ public static class BuildFailureEndpoints
                 return Results.Unauthorized();
 
             if (string.IsNullOrWhiteSpace(request.Target))
+            {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["target"] = ["target is required"]
                 });
+            }
 
             var row = new BuildFailureRecord
             {
@@ -44,11 +46,7 @@ public static class BuildFailureEndpoints
             CancellationToken ct) =>
         {
             var rows = await store.ListAsync(limit ?? 10, ct).ConfigureAwait(false);
-            return Results.Ok(new
-            {
-                items = rows.Select(Map).ToArray(),
-                total = rows.Count
-            });
+            return Results.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
         });
 
         endpoints.MapGet("/api/v1/build-failures/{id}", async (
@@ -67,17 +65,15 @@ public static class BuildFailureEndpoints
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(pattern))
+            {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["pattern"] = ["pattern is required"]
                 });
+            }
 
             var rows = await store.SearchAsync(pattern, limit ?? 50, ct).ConfigureAwait(false);
-            return Results.Ok(new
-            {
-                items = rows.Select(Map).ToArray(),
-                total = rows.Count
-            });
+            return Results.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
         });
 
         return endpoints;
@@ -111,9 +107,8 @@ public static class BuildFailureEndpoints
         return string.Equals(token, expected, StringComparison.Ordinal);
     }
 
-    private static BuildFailureResponse Map(BuildFailureRecord row)
-    {
-        return new BuildFailureResponse(
+    private static BuildFailureResponse Map(BuildFailureRecord row) =>
+        new(
             row.Id,
             row.Timestamp,
             row.Target,
@@ -125,5 +120,4 @@ public static class BuildFailureEndpoints
             row.CallStackJson,
             row.DurationMs,
             row.CreatedAt);
-    }
 }

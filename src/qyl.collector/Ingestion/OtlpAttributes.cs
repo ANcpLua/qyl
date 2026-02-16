@@ -326,6 +326,7 @@ public sealed record OtlpResourceSpans
 {
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeSpans>? ScopeSpans { get; init; }
+
     /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.39.0).</summary>
     public string? SchemaUrl { get; init; }
 }
@@ -338,6 +339,7 @@ public sealed record OtlpResource
 public sealed record OtlpScopeSpans
 {
     public List<OtlpSpan>? Spans { get; init; }
+
     /// <summary>OTel schema URL for this instrumentation scope (overrides resource-level if set).</summary>
     public string? SchemaUrl { get; init; }
 }

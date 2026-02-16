@@ -6,9 +6,10 @@
 // =============================================================================
 
 using System;
-using System.IO;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Domain.CodeGen;
 using Nuke.Common;
@@ -507,7 +508,7 @@ interface IPipeline : IHazSourcePaths
     /// </summary>
     sealed string ExtractDdlFromCSharp(string content)
     {
-        var ddl = new System.Text.StringBuilder();
+        var ddl = new StringBuilder();
 
         foreach (Match match in VerifyRegexes.CreateTablePattern().Matches(content))
             ddl.AppendLine(match.Value);

@@ -1,5 +1,3 @@
-using qyl.collector.Errors;
-
 namespace qyl.collector.Autofix;
 
 /// <summary>
@@ -66,7 +64,8 @@ public sealed partial class AutofixOrchestrator(DuckDbStore store, ILogger<Autof
         LogFixRunUpdated(runId, status);
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Fix run {RunId} created for issue {IssueId} with policy {Policy}")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Fix run {RunId} created for issue {IssueId} with policy {Policy}")]
     private partial void LogFixRunCreated(string runId, string issueId, FixPolicy policy);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Fix run {RunId} status updated to {Status}")]

@@ -1,5 +1,3 @@
-using qyl.collector.Storage;
-
 namespace qyl.collector.Provisioning;
 
 /// <summary>
@@ -94,14 +92,14 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var job = new GenerationJobRecord(
-            JobId: jobId,
-            WorkspaceId: request.WorkspaceId,
-            ProfileId: request.ProfileId,
-            Status: "pending",
-            OutputUrl: null,
-            ErrorMessage: null,
-            CreatedAt: now,
-            CompletedAt: null);
+            jobId,
+            request.WorkspaceId,
+            request.ProfileId,
+            "pending",
+            null,
+            null,
+            now,
+            null);
 
         await store.InsertGenerationJobAsync(job, ct).ConfigureAwait(false);
         LogJobEnqueued(jobId, request.ProfileId);

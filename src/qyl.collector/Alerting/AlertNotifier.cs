@@ -5,8 +5,8 @@ namespace qyl.collector.Alerting;
 /// </summary>
 public sealed partial class AlertNotifier
 {
-    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ITelemetrySseBroadcaster _broadcaster;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<AlertNotifier> _logger;
 
     public AlertNotifier(
@@ -120,7 +120,8 @@ public sealed partial class AlertNotifier
 
     [LoggerMessage(Level = LogLevel.Warning,
         Message = "ALERT FIRING: {Name} - {Description} (value={QueryResult}, condition={Condition})")]
-    private static partial void LogAlertFiring(ILogger logger, string name, string description, double queryResult, string condition);
+    private static partial void LogAlertFiring(ILogger logger, string name, string description, double queryResult,
+        string condition);
 
     [LoggerMessage(Level = LogLevel.Information,
         Message = "ALERT RESOLVED: {Name} - {Description}")]

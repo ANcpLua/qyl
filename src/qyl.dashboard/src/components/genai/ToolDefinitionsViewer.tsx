@@ -1,16 +1,16 @@
 import {useState} from 'react';
-import {Check, ChevronDown, ChevronRight, Copy, Code2, FileJson, Wrench} from 'lucide-react';
+import {Check, ChevronDown, ChevronRight, Code2, Copy, FileJson, Wrench} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Collapsible, CollapsibleContent, CollapsibleTrigger} from '@/components/ui/collapsible';
 import {
-    GEN_AI_TOOL_DEFINITIONS,
-    GEN_AI_TOOL_NAME,
-    GEN_AI_TOOL_CALL_ID,
     GEN_AI_TOOL_CALL_ARGUMENTS,
+    GEN_AI_TOOL_CALL_ID,
     GEN_AI_TOOL_CALL_RESULT,
+    GEN_AI_TOOL_DEFINITIONS,
     GEN_AI_TOOL_DESCRIPTION,
+    GEN_AI_TOOL_NAME,
     GEN_AI_TOOL_TYPE,
 } from '@/lib/semconv';
 
@@ -126,9 +126,9 @@ function JsonSchemaViewer({schema}: JsonSchemaViewerProps) {
                 onClick={copySchema}
             >
                 {copiedSchema ? (
-                    <Check className="w-3 h-3 text-green-500" />
+                    <Check className="w-3 h-3 text-green-500"/>
                 ) : (
-                    <Copy className="w-3 h-3" />
+                    <Copy className="w-3 h-3"/>
                 )}
             </Button>
             <pre className="text-xs font-mono bg-muted/50 p-3 rounded-lg overflow-auto max-h-64 whitespace-pre-wrap">
@@ -155,13 +155,14 @@ function SingleToolViewer({tool, defaultOpen = false}: SingleToolViewerProps) {
 
     return (
         <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-            <CollapsibleTrigger className="flex items-center gap-2 w-full p-3 text-left hover:bg-muted/50 rounded-lg transition-colors">
+            <CollapsibleTrigger
+                className="flex items-center gap-2 w-full p-3 text-left hover:bg-muted/50 rounded-lg transition-colors">
                 {isOpen ? (
-                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0"/>
                 ) : (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0"/>
                 )}
-                <Wrench className="w-4 h-4 text-primary shrink-0" />
+                <Wrench className="w-4 h-4 text-primary shrink-0"/>
                 <span className="font-medium text-sm">{name}</span>
                 <Badge variant="outline" className="text-xs ml-auto">
                     {toolType}
@@ -175,12 +176,12 @@ function SingleToolViewer({tool, defaultOpen = false}: SingleToolViewerProps) {
                     {schema && (
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
-                                <FileJson className="w-4 h-4 text-muted-foreground" />
+                                <FileJson className="w-4 h-4 text-muted-foreground"/>
                                 <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                                     Parameters Schema
                                 </span>
                             </div>
-                            <JsonSchemaViewer schema={schema} />
+                            <JsonSchemaViewer schema={schema}/>
                         </div>
                     )}
                 </div>
@@ -202,13 +203,13 @@ interface ToolCallViewerProps {
  * Display a tool call with its arguments and result
  */
 export function ToolCallViewer({
-    toolName,
-    toolCallId,
-    toolType,
-    description,
-    arguments: toolArgs,
-    result,
-}: ToolCallViewerProps) {
+                                   toolName,
+                                   toolCallId,
+                                   toolType,
+                                   description,
+                                   arguments: toolArgs,
+                                   result,
+                               }: ToolCallViewerProps) {
     const [showArgs, setShowArgs] = useState(true);
     const [showResult, setShowResult] = useState(true);
     const [copiedArgs, setCopiedArgs] = useState(false);
@@ -228,7 +229,7 @@ export function ToolCallViewer({
         <div className="space-y-4">
             {/* Tool Call Header */}
             <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <Wrench className="w-5 h-5 text-primary" />
+                <Wrench className="w-5 h-5 text-primary"/>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium">{toolName}</span>
@@ -255,11 +256,11 @@ export function ToolCallViewer({
                 <Collapsible open={showArgs} onOpenChange={setShowArgs}>
                     <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
                         {showArgs ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            <ChevronDown className="w-4 h-4 text-muted-foreground"/>
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground"/>
                         )}
-                        <Code2 className="w-4 h-4 text-cyan-500" />
+                        <Code2 className="w-4 h-4 text-cyan-500"/>
                         <span className="text-sm font-medium">Arguments</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -271,12 +272,13 @@ export function ToolCallViewer({
                                 onClick={() => copyToClipboard(parsedArgs, setCopiedArgs)}
                             >
                                 {copiedArgs ? (
-                                    <Check className="w-3 h-3 text-green-500" />
+                                    <Check className="w-3 h-3 text-green-500"/>
                                 ) : (
-                                    <Copy className="w-3 h-3" />
+                                    <Copy className="w-3 h-3"/>
                                 )}
                             </Button>
-                            <pre className="text-xs font-mono bg-muted/50 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">
+                            <pre
+                                className="text-xs font-mono bg-muted/50 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">
                                 {typeof parsedArgs === 'string'
                                     ? parsedArgs
                                     : JSON.stringify(parsedArgs, null, 2)}
@@ -291,11 +293,11 @@ export function ToolCallViewer({
                 <Collapsible open={showResult} onOpenChange={setShowResult}>
                     <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
                         {showResult ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                            <ChevronDown className="w-4 h-4 text-muted-foreground"/>
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                            <ChevronRight className="w-4 h-4 text-muted-foreground"/>
                         )}
-                        <Check className="w-4 h-4 text-green-500" />
+                        <Check className="w-4 h-4 text-green-500"/>
                         <span className="text-sm font-medium">Result</span>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -307,12 +309,13 @@ export function ToolCallViewer({
                                 onClick={() => copyToClipboard(parsedResult, setCopiedResult)}
                             >
                                 {copiedResult ? (
-                                    <Check className="w-3 h-3 text-green-500" />
+                                    <Check className="w-3 h-3 text-green-500"/>
                                 ) : (
-                                    <Copy className="w-3 h-3" />
+                                    <Copy className="w-3 h-3"/>
                                 )}
                             </Button>
-                            <pre className="text-xs font-mono bg-muted/50 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">
+                            <pre
+                                className="text-xs font-mono bg-muted/50 p-3 rounded-lg overflow-auto max-h-48 whitespace-pre-wrap">
                                 {typeof parsedResult === 'string'
                                     ? parsedResult
                                     : JSON.stringify(parsedResult, null, 2)}
@@ -342,7 +345,7 @@ export function ToolDefinitionsViewer({attributes, className}: ToolDefinitionsVi
     return (
         <div className={cn('space-y-2', className)}>
             <div className="flex items-center gap-2 mb-3">
-                <Wrench className="w-4 h-4 text-muted-foreground" />
+                <Wrench className="w-4 h-4 text-muted-foreground"/>
                 <span className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
                     Available Tools ({toolDefinitions.length})
                 </span>

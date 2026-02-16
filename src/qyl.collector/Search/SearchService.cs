@@ -54,21 +54,21 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT d.id, d.entity_type, d.entity_id, d.title, d.body, d.url,
-                   d.tags_json, d.boost, d.indexed_at,
-                   COALESCE(t.score, 0.0) + d.boost AS relevance_score
-            FROM search_documents d
-            LEFT JOIN (
-                SELECT document_id, SUM(term_frequency) AS score
-                FROM search_terms
-                WHERE term ILIKE $1 ESCAPE '\\'
-                GROUP BY document_id
-            ) t ON t.document_id = d.id
-            WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)
-            {additionalWhere}
-            ORDER BY relevance_score DESC, d.updated_at DESC
-            LIMIT ${paramIndex}
-            """;
+                           SELECT d.id, d.entity_type, d.entity_id, d.title, d.body, d.url,
+                                  d.tags_json, d.boost, d.indexed_at,
+                                  COALESCE(t.score, 0.0) + d.boost AS relevance_score
+                           FROM search_documents d
+                           LEFT JOIN (
+                               SELECT document_id, SUM(term_frequency) AS score
+                               FROM search_terms
+                               WHERE term ILIKE $1 ESCAPE '\\'
+                               GROUP BY document_id
+                           ) t ON t.document_id = d.id
+                           WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)
+                           {additionalWhere}
+                           ORDER BY relevance_score DESC, d.updated_at DESC
+                           LIMIT ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 200) });
@@ -124,13 +124,13 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT term, field, SUM(term_frequency) AS total_freq
-            FROM search_terms
-            WHERE term ILIKE $1 ESCAPE '\'
-            GROUP BY term, field
-            ORDER BY total_freq DESC
-            LIMIT $2
-            """;
+                          SELECT term, field, SUM(term_frequency) AS total_freq
+                          FROM search_terms
+                          WHERE term ILIKE $1 ESCAPE '\'
+                          GROUP BY term, field
+                          ORDER BY total_freq DESC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 50) });
 
@@ -140,9 +140,7 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         {
             suggestions.Add(new SearchTermSuggestion
             {
-                Term = reader.GetString(0),
-                Field = reader.GetString(1),
-                Frequency = reader.GetInt32(2)
+                Term = reader.GetString(0), Field = reader.GetString(1), Frequency = reader.GetInt32(2)
             });
         }
 
@@ -161,23 +159,21 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
         string queryAuditId,
         string clickedResultId,
         int clickedPosition,
-        CancellationToken ct = default)
-    {
+        CancellationToken ct = default) =>
         await store.ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE search_query_audit SET
-                    clicked_result_id = $1,
-                    clicked_position = $2
-                WHERE id = $3
-                """;
+                              UPDATE search_query_audit SET
+                                  clicked_result_id = $1,
+                                  clicked_position = $2
+                              WHERE id = $3
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = clickedResultId });
             cmd.Parameters.Add(new DuckDBParameter { Value = clickedPosition });
             cmd.Parameters.Add(new DuckDBParameter { Value = queryAuditId });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
-    }
 
     // ==========================================================================
     // Private Methods
@@ -199,18 +195,18 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
             {
                 await using var cmd = con.CreateCommand();
                 cmd.CommandText = """
-                    INSERT INTO search_query_audit
-                        (id, query_text, query_type, entity_types_json, project_id,
-                         result_count, timestamp)
-                    VALUES ($1, $2, 'text', $3, $4, $5, $6)
-                    """;
+                                  INSERT INTO search_query_audit
+                                      (id, query_text, query_type, entity_types_json, project_id,
+                                       result_count, timestamp)
+                                  VALUES ($1, $2, 'text', $3, $4, $5, $6)
+                                  """;
                 cmd.Parameters.Add(new DuckDBParameter { Value = auditId });
                 cmd.Parameters.Add(new DuckDBParameter { Value = queryText });
                 cmd.Parameters.Add(new DuckDBParameter
                 {
                     Value = entityType is not null
                         ? JsonSerializer.Serialize(new[] { entityType })
-                        : (object)DBNull.Value
+                        : DBNull.Value
                 });
                 cmd.Parameters.Add(new DuckDBParameter { Value = projectId ?? (object)DBNull.Value });
                 cmd.Parameters.Add(new DuckDBParameter { Value = resultCount });

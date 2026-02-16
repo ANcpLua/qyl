@@ -1,27 +1,13 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {
-    AlertCircle,
-    ChevronRight,
-    Filter,
-    Loader2,
-    ShieldAlert,
-    ShieldCheck,
-    ShieldQuestion,
-} from 'lucide-react';
+import {AlertCircle, ChevronRight, Filter, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import {useIssues} from '@/hooks/use-issues';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import type {Issue} from '@/hooks/use-issues';
+import {useIssues} from '@/hooks/use-issues';
 
 const statusStyles: Record<string, string> = {
     new: 'bg-red-500/20 text-red-400 border-red-500/40',
@@ -31,9 +17,10 @@ const statusStyles: Record<string, string> = {
     reopened: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
 };
 
-function StatusBadge({status}: {status: string}) {
+function StatusBadge({status}: { status: string }) {
     return (
-        <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wider', statusStyles[status] ?? statusStyles.new)}>
+        <Badge variant="outline"
+               className={cn('text-[10px] uppercase tracking-wider', statusStyles[status] ?? statusStyles.new)}>
             {status}
         </Badge>
     );
@@ -53,18 +40,18 @@ function formatTimestamp(iso?: string): string {
 function SkeletonRow() {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
-            <div className="w-40 h-4 bg-brutal-zinc rounded" />
-            <div className="flex-1 h-4 bg-brutal-zinc rounded" />
-            <div className="w-24 h-5 bg-brutal-zinc rounded" />
-            <div className="w-16 h-4 bg-brutal-zinc rounded" />
-            <div className="w-28 h-4 bg-brutal-zinc rounded" />
-            <div className="w-28 h-4 bg-brutal-zinc rounded" />
-            <div className="w-24 h-4 bg-brutal-zinc rounded" />
+            <div className="w-40 h-4 bg-brutal-zinc rounded"/>
+            <div className="flex-1 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-24 h-5 bg-brutal-zinc rounded"/>
+            <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-28 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-28 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-24 h-4 bg-brutal-zinc rounded"/>
         </div>
     );
 }
 
-function IssueRow({issue, onClick}: {issue: Issue; onClick: () => void}) {
+function IssueRow({issue, onClick}: { issue: Issue; onClick: () => void }) {
     return (
         <div
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
@@ -83,7 +70,7 @@ function IssueRow({issue, onClick}: {issue: Issue; onClick: () => void}) {
             </div>
 
             <div className="w-28">
-                <StatusBadge status={issue.status} />
+                <StatusBadge status={issue.status}/>
             </div>
 
             <div className="w-16 text-right">
@@ -110,7 +97,8 @@ function IssueRow({issue, onClick}: {issue: Issue; onClick: () => void}) {
                 </span>
             </div>
 
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0" />
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
@@ -135,7 +123,7 @@ export function IssuesPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
                         <p className="text-red-400">Failed to load issues</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
@@ -153,11 +141,11 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldAlert className="w-4 h-4 text-red-400" />
+                            <ShieldAlert className="w-4 h-4 text-red-400"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">NEW</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-red-400">{newCount}</div>
                         )}
@@ -167,11 +155,11 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldQuestion className="w-4 h-4 text-amber-400" />
+                            <ShieldQuestion className="w-4 h-4 text-amber-400"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">ACKNOWLEDGED</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-amber-400">{acknowledgedCount}</div>
                         )}
@@ -181,11 +169,11 @@ export function IssuesPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-green-400" />
+                            <ShieldCheck className="w-4 h-4 text-green-400"/>
                             <span className="text-xs font-bold text-brutal-slate tracking-wider">RESOLVED</span>
                         </div>
                         {isLoading ? (
-                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
                         ) : (
                             <div className="text-2xl font-bold mt-1 text-green-400">{resolvedCount}</div>
                         )}
@@ -196,7 +184,7 @@ export function IssuesPage() {
             {/* Filters */}
             <div className="flex items-center gap-4">
                 <div className="relative flex-1 max-w-sm">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate" />
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
                         placeholder="Filter by error type…"
                         value={errorTypeFilter}
@@ -208,7 +196,7 @@ export function IssuesPage() {
 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-40" aria-label="Filter by status">
-                        <SelectValue placeholder="All statuses" />
+                        <SelectValue placeholder="All statuses"/>
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All statuses</SelectItem>
@@ -228,7 +216,8 @@ export function IssuesPage() {
             {/* Table */}
             <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
                 {/* Header */}
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-40">ERROR TYPE</div>
                     <div className="flex-1">MESSAGE</div>
                     <div className="w-28">STATUS</div>
@@ -236,23 +225,24 @@ export function IssuesPage() {
                     <div className="w-28 text-right">FIRST SEEN</div>
                     <div className="w-28 text-right">LAST SEEN</div>
                     <div className="w-24 text-right">OWNER</div>
-                    <div className="w-4" />
+                    <div className="w-4"/>
                 </div>
 
                 {/* Body */}
                 {isLoading ? (
                     <>
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
                     </>
                 ) : !issues || issues.length === 0 ? (
                     <div className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-brutal-zinc" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No issues found</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Issues will appear as errors are grouped from your telemetry</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Issues will appear as errors are grouped from your
+                            telemetry</p>
                     </div>
                 ) : (
                     issues.map((issue) => (

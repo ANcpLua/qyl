@@ -34,10 +34,7 @@ public sealed class ConditionalRouter
     /// <summary>
     ///     Creates a new conditional router.
     /// </summary>
-    public ConditionalRouter(ILogger<ConditionalRouter> logger)
-    {
-        _logger = Guard.NotNull(logger);
-    }
+    public ConditionalRouter(ILogger<ConditionalRouter> logger) => _logger = Guard.NotNull(logger);
 
     /// <summary>
     ///     Resolves the next node IDs based on the current node's output and conditional edges.

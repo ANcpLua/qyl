@@ -23,16 +23,26 @@ public sealed class OpenAiAdapter : IChatClient, IModelCatalog
     }
 
     public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
-        CancellationToken cancellationToken = default) =>
-        _inner.GetResponseAsync(messages, options, cancellationToken);
+        CancellationToken cancellationToken = default)
+    {
+        return _inner.GetResponseAsync(messages, options, cancellationToken);
+    }
 
     public IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages,
-        ChatOptions? options = null, CancellationToken cancellationToken = default) =>
-        _inner.GetStreamingResponseAsync(messages, options, cancellationToken);
+        ChatOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        return _inner.GetStreamingResponseAsync(messages, options, cancellationToken);
+    }
 
-    public void Dispose() => _inner.Dispose();
+    public void Dispose()
+    {
+        _inner.Dispose();
+    }
 
-    public object? GetService(Type serviceType, object? serviceKey = null) => _inner.GetService(serviceType, serviceKey);
+    public object? GetService(Type serviceType, object? serviceKey = null)
+    {
+        return _inner.GetService(serviceType, serviceKey);
+    }
 
     public Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
     {

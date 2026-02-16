@@ -1,10 +1,4 @@
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,} from '@/components/ui/dialog';
 
 interface ShortcutItem {
     key: string;
@@ -32,9 +26,9 @@ interface KeyboardShortcutsModalProps {
 }
 
 export function KeyboardShortcutsModal({
-    open,
-    onOpenChange,
-}: KeyboardShortcutsModalProps) {
+                                           open,
+                                           onOpenChange,
+                                       }: KeyboardShortcutsModalProps) {
     const navigationShortcuts = shortcuts.filter((s) => s.category === 'navigation');
     const actionShortcuts = shortcuts.filter((s) => s.category === 'actions');
 
@@ -89,9 +83,9 @@ export function KeyboardShortcutsModal({
 }
 
 function ShortcutRow({
-    shortcutKey,
-    description,
-}: {
+                         shortcutKey,
+                         description,
+                     }: {
     shortcutKey: string;
     description: string;
 }) {

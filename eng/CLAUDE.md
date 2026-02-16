@@ -32,7 +32,8 @@ IQylTest  IPipeline  IDocker  IVerify  IVersionize
  ICoverage
 ```
 
-All interfaces extend `IHazSourcePaths` for access to `SourceDirectory`, `CollectorDirectory`, `DashboardDirectory`, etc.
+All interfaces extend `IHazSourcePaths` for access to `SourceDirectory`, `CollectorDirectory`, `DashboardDirectory`,
+etc.
 
 ## Targets
 
@@ -42,17 +43,17 @@ GenerateSemconv + TypeSpecCompile -> Generate -> Compile -> Test
                            FrontendBuild -> DockerImageBuild
 ```
 
-| Target | Command |
-|--------|---------|
-| `Full` | `nuke Full` — complete pipeline |
-| `Generate` | `nuke Generate --force-generate` — regen types |
-| `Compile` | `nuke Compile` — build .NET (Nuke.Components.ICompile) |
-| `Test` | `nuke Test` — run tests (Nuke.Components.ITest + MTP) |
-| `Coverage` | `nuke Coverage` — tests + Cobertura + reports |
-| `UnitTests` | `nuke UnitTests` — unit tests only |
-| `IntegrationTests` | `nuke IntegrationTests` — integration tests only |
-| `FrontendBuild` | `nuke FrontendBuild` — React app |
-| `DockerImageBuild` | `nuke DockerImageBuild` — Docker images |
+| Target             | Command                                                |
+|--------------------|--------------------------------------------------------|
+| `Full`             | `nuke Full` — complete pipeline                        |
+| `Generate`         | `nuke Generate --force-generate` — regen types         |
+| `Compile`          | `nuke Compile` — build .NET (Nuke.Components.ICompile) |
+| `Test`             | `nuke Test` — run tests (Nuke.Components.ITest + MTP)  |
+| `Coverage`         | `nuke Coverage` — tests + Cobertura + reports          |
+| `UnitTests`        | `nuke UnitTests` — unit tests only                     |
+| `IntegrationTests` | `nuke IntegrationTests` — integration tests only       |
+| `FrontendBuild`    | `nuke FrontendBuild` — React app                       |
+| `DockerImageBuild` | `nuke DockerImageBuild` — Docker images                |
 
 ## NUKE Compat Notes
 

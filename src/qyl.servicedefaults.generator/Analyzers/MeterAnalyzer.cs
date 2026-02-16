@@ -22,10 +22,8 @@ internal static class MeterAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a [Meter] class?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldBeMeterClass(SyntaxNode node, CancellationToken _)
-    {
-        return node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
-    }
+    public static bool CouldBeMeterClass(SyntaxNode node, CancellationToken _) =>
+        node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
 
     /// <summary>
     ///     Extracts a meter definition from a syntax context if it has a [Meter] attribute.
@@ -82,8 +80,10 @@ internal static class MeterAnalyzer
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
+        {
             if (namedArg is { Key: "Version", Value.Value: string versionValue })
                 version = versionValue;
+        }
 
         return (name, version);
     }
@@ -103,7 +103,8 @@ internal static class MeterAnalyzer
             var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), CounterAttributeFullName);
             var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), HistogramAttributeFullName);
             var gaugeAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), GaugeAttributeFullName);
-            var upDownCounterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), UpDownCounterAttributeFullName);
+            var upDownCounterAttr =
+                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), UpDownCounterAttributeFullName);
 
             if (counterAttr is null && histogramAttr is null && gaugeAttr is null && upDownCounterAttr is null)
                 continue;
@@ -126,11 +127,13 @@ internal static class MeterAnalyzer
 
                 // First non-tagged parameter is the value for histogram
                 foreach (var param in method.Parameters)
+                {
                     if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {
                         valueTypeName = param.Type.ToDisplayString();
                         break;
                     }
+                }
             }
             else if (gaugeAttr is not null)
             {
@@ -139,11 +142,13 @@ internal static class MeterAnalyzer
 
                 // First non-tagged parameter is the value for gauge
                 foreach (var param in method.Parameters)
+                {
                     if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {
                         valueTypeName = param.Type.ToDisplayString();
                         break;
                     }
+                }
             }
             else if (upDownCounterAttr is not null)
             {
@@ -152,11 +157,13 @@ internal static class MeterAnalyzer
 
                 // First non-tagged parameter is the delta value for up-down counter
                 foreach (var param in method.Parameters)
+                {
                     if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
                     {
                         valueTypeName = param.Type.ToDisplayString();
                         break;
                     }
+                }
             }
             else
             {
@@ -191,6 +198,7 @@ internal static class MeterAnalyzer
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
+        {
             switch (namedArg.Key)
             {
                 case "Unit" when namedArg.Value.Value is string unitValue:
@@ -200,6 +208,7 @@ internal static class MeterAnalyzer
                     description = descValue;
                     break;
             }
+        }
 
         return (name, unit, description);
     }

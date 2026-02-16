@@ -80,9 +80,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "duckdb",
-                Status = "unhealthy",
-                Message = $"Database connection failed: {ex.Message}"
+                Name = "duckdb", Status = "unhealthy", Message = $"Database connection failed: {ex.Message}"
             };
         }
     }
@@ -100,7 +98,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             var totalBytes = driveInfo.TotalSize;
             var freeBytes = driveInfo.AvailableFreeSpace;
             var usedPercent = totalBytes > 0
-                ? Math.Round((1.0 - (double)freeBytes / totalBytes) * 100, 1)
+                ? Math.Round((1.0 - ((double)freeBytes / totalBytes)) * 100, 1)
                 : 0;
 
             var status = usedPercent switch
@@ -136,9 +134,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "disk",
-                Status = "degraded",
-                Message = $"Could not determine disk space: {ex.Message}"
+                Name = "disk", Status = "degraded", Message = $"Could not determine disk space: {ex.Message}"
             };
         }
     }
@@ -196,9 +192,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "memory",
-                Status = "degraded",
-                Message = $"Could not determine memory usage: {ex.Message}"
+                Name = "memory", Status = "degraded", Message = $"Could not determine memory usage: {ex.Message}"
             };
         }
     }
@@ -244,13 +238,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             data["secondsSinceLastIngestion"] = secondsSinceLastIngestion;
         }
 
-        return new ComponentHealth
-        {
-            Name = "ingestion",
-            Status = status,
-            Message = message,
-            Data = data
-        };
+        return new ComponentHealth { Name = "ingestion", Status = status, Message = message, Data = data };
     }
 
     private static string DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)

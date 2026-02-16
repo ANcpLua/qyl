@@ -17,55 +17,57 @@ public static class SearchDocumentEndpoints
             .WithTags("Search");
 
         group.MapGet("/documents", static async (
-            [FromServices] SearchService service,
-            string? q, string? entityType, string? projectId, int? limit,
-            CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(q))
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                [FromServices] SearchService service,
+                string? q, string? entityType, string? projectId, int? limit,
+                CancellationToken ct) =>
+            {
+                if (string.IsNullOrWhiteSpace(q))
                 {
-                    ["q"] = ["Search query text is required."]
-                });
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["q"] = ["Search query text is required."]
+                    });
+                }
 
-            var results = await service.SearchDocumentsAsync(
-                q, entityType, projectId,
-                Math.Clamp(limit ?? 20, 1, 200), ct).ConfigureAwait(false);
-            return Results.Ok(new { items = results, total = results.Count });
-        })
-        .WithName("SearchDocuments")
-        .WithSummary("Full-text search across indexed documents with relevance scoring");
+                var results = await service.SearchDocumentsAsync(
+                    q, entityType, projectId,
+                    Math.Clamp(limit ?? 20, 1, 200), ct).ConfigureAwait(false);
+                return Results.Ok(new { items = results, total = results.Count });
+            })
+            .WithName("SearchDocuments")
+            .WithSummary("Full-text search across indexed documents with relevance scoring");
 
         group.MapGet("/terms/suggestions", static async (
-            [FromServices] SearchService service,
-            string? prefix, int? limit,
-            CancellationToken ct) =>
-        {
-            var suggestions = await service.GetSuggestionsAsync(
-                prefix ?? "", Math.Clamp(limit ?? 20, 1, 50), ct).ConfigureAwait(false);
-            return Results.Ok(new { items = suggestions, total = suggestions.Count });
-        })
-        .WithName("GetSearchTermSuggestions")
-        .WithSummary("Autocomplete suggestions from the search term index");
+                [FromServices] SearchService service,
+                string? prefix, int? limit,
+                CancellationToken ct) =>
+            {
+                var suggestions = await service.GetSuggestionsAsync(
+                    prefix ?? "", Math.Clamp(limit ?? 20, 1, 50), ct).ConfigureAwait(false);
+                return Results.Ok(new { items = suggestions, total = suggestions.Count });
+            })
+            .WithName("GetSearchTermSuggestions")
+            .WithSummary("Autocomplete suggestions from the search term index");
 
         group.MapPost("/clicks", static async (
-            SearchClickRequest body, [FromServices] SearchService service, CancellationToken ct) =>
-        {
-            if (string.IsNullOrWhiteSpace(body.QueryAuditId) ||
-                string.IsNullOrWhiteSpace(body.ClickedResultId))
+                SearchClickRequest body, [FromServices] SearchService service, CancellationToken ct) =>
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                if (string.IsNullOrWhiteSpace(body.QueryAuditId) ||
+                    string.IsNullOrWhiteSpace(body.ClickedResultId))
                 {
-                    ["body"] = ["queryAuditId and clickedResultId are required."]
-                });
-            }
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["body"] = ["queryAuditId and clickedResultId are required."]
+                    });
+                }
 
-            await service.RecordClickAsync(
-                body.QueryAuditId, body.ClickedResultId, body.ClickedPosition,
-                ct).ConfigureAwait(false);
-            return Results.Accepted();
-        })
-        .WithName("RecordSearchClick")
-        .WithSummary("Record a search result click for relevance tuning");
+                await service.RecordClickAsync(
+                    body.QueryAuditId, body.ClickedResultId, body.ClickedPosition,
+                    ct).ConfigureAwait(false);
+                return Results.Accepted();
+            })
+            .WithName("RecordSearchClick")
+            .WithSummary("Record a search result click for relevance tuning");
 
         return endpoints;
     }

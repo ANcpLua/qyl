@@ -59,14 +59,14 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export const workflowKeys = {
     all: ['workflow-runs'] as const,
-    list: (filters?: {status?: string}) =>
+    list: (filters?: { status?: string }) =>
         [...workflowKeys.all, 'list', filters] as const,
     detail: (runId: string) => [...workflowKeys.all, 'detail', runId] as const,
     events: (runId: string) => [...workflowKeys.all, 'events', runId] as const,
     checkpoints: (runId: string) => [...workflowKeys.all, 'checkpoints', runId] as const,
 };
 
-export function useWorkflowRuns(filters?: {status?: string}) {
+export function useWorkflowRuns(filters?: { status?: string }) {
     return useQuery({
         queryKey: workflowKeys.list(filters),
         queryFn: () => {

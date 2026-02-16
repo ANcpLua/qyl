@@ -35,7 +35,8 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
 
         var result =
             await response.Content.ReadFromJsonAsync(OllamaJsonContext.Default.OllamaChatResponse, cancellationToken);
-        return new ChatResponse(new ChatMessage(ChatRole.Assistant, result?.Message?.Content is { } content ? content : string.Empty));
+        return new ChatResponse(new ChatMessage(ChatRole.Assistant,
+            result?.Message?.Content is { } content ? content : string.Empty));
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
@@ -69,9 +70,15 @@ public sealed class OllamaAdapter : IChatClient, IModelCatalog
         }
     }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        _http.Dispose();
+    }
 
-    public object? GetService(Type serviceType, object? serviceKey = null) => null;
+    public object? GetService(Type serviceType, object? serviceKey = null)
+    {
+        return null;
+    }
 
     public async Task<IReadOnlyList<ModelInfo>> ListModelsAsync(CancellationToken ct = default)
     {

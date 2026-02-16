@@ -16,23 +16,23 @@ public sealed class BuildFailureStoreTests : IAsyncLifetime
         await con.OpenAsync();
         await using var cmd = con.CreateCommand();
         cmd.CommandText = """
-            CREATE TABLE IF NOT EXISTS build_failures (
-                id VARCHAR PRIMARY KEY,
-                timestamp TIMESTAMP NOT NULL,
-                target VARCHAR NOT NULL,
-                exit_code INTEGER NOT NULL,
-                binlog_path VARCHAR,
-                error_summary TEXT,
-                property_issues_json JSON,
-                env_reads_json JSON,
-                call_stack_json JSON,
-                duration_ms INTEGER,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """;
+                          CREATE TABLE IF NOT EXISTS build_failures (
+                              id VARCHAR PRIMARY KEY,
+                              timestamp TIMESTAMP NOT NULL,
+                              target VARCHAR NOT NULL,
+                              exit_code INTEGER NOT NULL,
+                              binlog_path VARCHAR,
+                              error_summary TEXT,
+                              property_issues_json JSON,
+                              env_reads_json JSON,
+                              call_stack_json JSON,
+                              duration_ms INTEGER,
+                              created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                          );
+                          """;
         await cmd.ExecuteNonQueryAsync();
 
-        _store = new DuckDbBuildFailureStore(_dbPath, maxRetainedFailures: 2);
+        _store = new DuckDbBuildFailureStore(_dbPath, 2);
     }
 
     public ValueTask DisposeAsync()
@@ -71,7 +71,6 @@ public sealed class BuildFailureStoreTests : IAsyncLifetime
         var store = _store ?? throw new InvalidOperationException("Store not initialized");
 
         for (var i = 0; i < 4; i++)
-        {
             await store.InsertAsync(new BuildFailureRecord
             {
                 Id = Guid.NewGuid().ToString("N"),
@@ -80,9 +79,8 @@ public sealed class BuildFailureStoreTests : IAsyncLifetime
                 ExitCode = 1,
                 ErrorSummary = $"error-{i}"
             });
-        }
 
-        var rows = await store.ListAsync(limit: 10);
+        var rows = await store.ListAsync(10);
         Assert.Equal(2, rows.Count);
         Assert.Contains(rows, static r => r.ErrorSummary == "error-3");
         Assert.Contains(rows, static r => r.ErrorSummary == "error-2");

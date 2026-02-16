@@ -1,20 +1,54 @@
 -- Triggered alert history + dedupe: immutable audit trail of fired alerts
-CREATE TABLE IF NOT EXISTS alert_firings (
-    id VARCHAR PRIMARY KEY,
-    rule_id VARCHAR NOT NULL,
-    fingerprint VARCHAR NOT NULL,
-    severity VARCHAR NOT NULL,
-    title VARCHAR NOT NULL,
-    message TEXT,
-    trigger_value DOUBLE,
-    threshold_value DOUBLE,
-    context_json JSON,
-    status VARCHAR NOT NULL DEFAULT 'firing',
-    acknowledged_at TIMESTAMP,
-    acknowledged_by VARCHAR,
-    resolved_at TIMESTAMP,
-    fired_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    dedup_key VARCHAR
+CREATE TABLE IF NOT EXISTS alert_firings
+(
+    id
+    VARCHAR
+    PRIMARY
+    KEY,
+    rule_id
+    VARCHAR
+    NOT
+    NULL,
+    fingerprint
+    VARCHAR
+    NOT
+    NULL,
+    severity
+    VARCHAR
+    NOT
+    NULL,
+    title
+    VARCHAR
+    NOT
+    NULL,
+    message
+    TEXT,
+    trigger_value
+    DOUBLE,
+    threshold_value
+    DOUBLE,
+    context_json
+    JSON,
+    status
+    VARCHAR
+    NOT
+    NULL
+    DEFAULT
+    'firing',
+    acknowledged_at
+    TIMESTAMP,
+    acknowledged_by
+    VARCHAR,
+    resolved_at
+    TIMESTAMP,
+    fired_at
+    TIMESTAMP
+    NOT
+    NULL
+    DEFAULT
+    CURRENT_TIMESTAMP,
+    dedup_key
+    VARCHAR
 );
 
 CREATE INDEX IF NOT EXISTS idx_alert_firings_rule ON alert_firings(rule_id);

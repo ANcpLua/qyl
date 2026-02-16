@@ -24,12 +24,14 @@ namespace Qyl.Analyzers.Core;
 ///         </list>
 ///     </para>
 /// </remarks>
-public static partial class DeprecatedOtelAttributes {
+public static partial class DeprecatedOtelAttributes
+{
     /// <summary>
     ///     Deprecated attribute names mapped to replacements.
     /// </summary>
     public static readonly Dictionary<string, (string Replacement, string Version)> Renames =
-        new() {
+        new()
+        {
             ["gen_ai.system"] = ("gen_ai.provider.name", "1.37.0"),
             ["gen_ai.usage.prompt_tokens"] = ("gen_ai.usage.input_tokens", "1.27.0"),
             ["gen_ai.usage.completion_tokens"] = ("gen_ai.usage.output_tokens", "1.27.0"),
@@ -64,7 +66,8 @@ public static partial class DeprecatedOtelAttributes {
     ///     Known attribute key patterns used in OpenTelemetry APIs.
     /// </summary>
     public static readonly HashSet<string> AttributeKeyPatterns =
-        new(StringComparer.OrdinalIgnoreCase) {
+        new(StringComparer.OrdinalIgnoreCase)
+        {
             "SetAttribute",
             "AddTag",
             "SetTag",

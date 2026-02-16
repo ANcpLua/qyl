@@ -1,8 +1,8 @@
 namespace Qyl.Watchdog;
 
 /// <summary>
-/// Manages macOS launchd agent for auto-start on login.
-/// Creates ~/Library/LaunchAgents/com.qyl.watchdog.plist pointing to the global tool.
+///     Manages macOS launchd agent for auto-start on login.
+///     Creates ~/Library/LaunchAgents/com.qyl.watchdog.plist pointing to the global tool.
 /// </summary>
 public static class LaunchdSetup
 {
@@ -99,10 +99,7 @@ public static class LaunchdSetup
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
-            FileName = "launchctl",
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            FileName = "launchctl", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true
         };
         process.StartInfo.ArgumentList.Add("print");
         process.StartInfo.ArgumentList.Add($"gui/{GetUid()}/{Label}");
@@ -134,36 +131,36 @@ public static class LaunchdSetup
     }
 
     private static string GeneratePlist(string toolPath) => $"""
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>Label</key>
-            <string>{Label}</string>
-            <key>ProgramArguments</key>
-            <array>
-                <string>{toolPath}</string>
-            </array>
-            <key>RunAtLoad</key>
-            <true/>
-            <key>KeepAlive</key>
-            <dict>
-                <key>SuccessfulExit</key>
-                <false/>
-            </dict>
-            <key>ThrottleInterval</key>
-            <integer>10</integer>
-            <key>StandardOutPath</key>
-            <string>{SLogDir}/watchdog.log</string>
-            <key>StandardErrorPath</key>
-            <string>{SLogDir}/watchdog.err</string>
-            <key>ProcessType</key>
-            <string>Background</string>
-            <key>LowPriorityBackgroundIO</key>
-            <true/>
-        </dict>
-        </plist>
-        """;
+                                                             <?xml version="1.0" encoding="UTF-8"?>
+                                                             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+                                                             <plist version="1.0">
+                                                             <dict>
+                                                                 <key>Label</key>
+                                                                 <string>{Label}</string>
+                                                                 <key>ProgramArguments</key>
+                                                                 <array>
+                                                                     <string>{toolPath}</string>
+                                                                 </array>
+                                                                 <key>RunAtLoad</key>
+                                                                 <true/>
+                                                                 <key>KeepAlive</key>
+                                                                 <dict>
+                                                                     <key>SuccessfulExit</key>
+                                                                     <false/>
+                                                                 </dict>
+                                                                 <key>ThrottleInterval</key>
+                                                                 <integer>10</integer>
+                                                                 <key>StandardOutPath</key>
+                                                                 <string>{SLogDir}/watchdog.log</string>
+                                                                 <key>StandardErrorPath</key>
+                                                                 <string>{SLogDir}/watchdog.err</string>
+                                                                 <key>ProcessType</key>
+                                                                 <string>Background</string>
+                                                                 <key>LowPriorityBackgroundIO</key>
+                                                                 <true/>
+                                                             </dict>
+                                                             </plist>
+                                                             """;
 
     private static string? FindToolPath()
     {
@@ -177,10 +174,7 @@ public static class LaunchdSetup
         using var process = new Process();
         process.StartInfo = new ProcessStartInfo
         {
-            FileName = "which",
-            RedirectStandardOutput = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
+            FileName = "which", RedirectStandardOutput = true, UseShellExecute = false, CreateNoWindow = true
         };
         process.StartInfo.ArgumentList.Add("qyl-watchdog");
         process.Start();
@@ -194,10 +188,7 @@ public static class LaunchdSetup
     {
         using var process = Process.Start(new ProcessStartInfo
         {
-            FileName = "id",
-            ArgumentList = { "-u" },
-            RedirectStandardOutput = true,
-            UseShellExecute = false
+            FileName = "id", ArgumentList = { "-u" }, RedirectStandardOutput = true, UseShellExecute = false
         }) ?? throw new InvalidOperationException("Failed to start 'id' process");
 
         var uid = process.StandardOutput.ReadToEnd().Trim();

@@ -69,7 +69,8 @@ cts.Dispose();
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine($"[grey]Disconnected. Total spans received: {spanCount}[/]");
 
-static void ProcessSpanEvent(string data, CliConfig config, HeaderRenderer header, ref int spanCount, ref DateTimeOffset headerInterval)
+static void ProcessSpanEvent(string data, CliConfig config, HeaderRenderer header, ref int spanCount,
+    ref DateTimeOffset headerInterval)
 {
     // SSE data is the full TelemetryEventDto: {"eventType":"spans","data":{"spans":[...]},"timestamp":"..."}
     // We need to extract the nested "data" field which contains the SpanBatch.
@@ -125,7 +126,7 @@ static void HandleKeyboard(CliConfig config, HeaderRenderer header, Cancellation
             continue;
         }
 
-        var key = Console.ReadKey(intercept: true);
+        var key = Console.ReadKey(true);
 
         switch (key.KeyChar)
         {
@@ -166,6 +167,7 @@ static void HandleKeyboard(CliConfig config, HeaderRenderer header, Cancellation
                             break;
                         }
                     }
+
                     config.ServiceFilter = idx < 0 || idx >= services.Count - 1
                         ? null // cycle back to "all"
                         : services[idx + 1];

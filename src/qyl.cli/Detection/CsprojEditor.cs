@@ -3,12 +3,12 @@ using System.Xml.Linq;
 namespace qyl.cli.Detection;
 
 /// <summary>
-/// Safe csproj XML manipulation — reads and modifies PackageReference elements.
+///     Safe csproj XML manipulation — reads and modifies PackageReference elements.
 /// </summary>
 public sealed class CsprojEditor
 {
-    private readonly string _path;
     private readonly XDocument _doc;
+    private readonly string _path;
 
     public CsprojEditor(string path)
     {
@@ -17,18 +17,16 @@ public sealed class CsprojEditor
     }
 
     /// <summary>
-    /// Checks if a PackageReference or ProjectReference with the given name exists.
+    ///     Checks if a PackageReference or ProjectReference with the given name exists.
     /// </summary>
-    public bool HasReference(string packageName)
-    {
-        return _doc.Descendants("PackageReference")
-                   .Any(e => string.Equals(e.Attribute("Include")?.Value, packageName, StringComparison.OrdinalIgnoreCase))
-               || _doc.Descendants("ProjectReference")
-                      .Any(e => (e.Attribute("Include")?.Value ?? "").ContainsIgnoreCase(packageName));
-    }
+    public bool HasReference(string packageName) =>
+        _doc.Descendants("PackageReference")
+            .Any(e => string.Equals(e.Attribute("Include")?.Value, packageName, StringComparison.OrdinalIgnoreCase))
+        || _doc.Descendants("ProjectReference")
+            .Any(e => (e.Attribute("Include")?.Value ?? "").ContainsIgnoreCase(packageName));
 
     /// <summary>
-    /// Adds a PackageReference element to the csproj. Idempotent — does nothing if already present.
+    ///     Adds a PackageReference element to the csproj. Idempotent — does nothing if already present.
     /// </summary>
     public void AddPackageReference(string packageName)
     {

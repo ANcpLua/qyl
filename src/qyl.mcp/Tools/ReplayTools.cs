@@ -31,9 +31,8 @@ public sealed class ReplayTools(HttpClient client)
         [Description("Maximum sessions to return (default: 20, max: 100)")]
         int limit = 20,
         [Description("Filter by service/application name")]
-        string? serviceName = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? serviceName = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/sessions?limit={limit}";
             if (!string.IsNullOrEmpty(serviceName))
@@ -68,7 +67,6 @@ public sealed class ReplayTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching sessions");
-    }
 
     [McpServerTool(Name = "qyl.get_session_transcript")]
     [Description("""
@@ -89,9 +87,8 @@ public sealed class ReplayTools(HttpClient client)
                  """)]
     public Task<string> GetSessionTranscriptAsync(
         [Description("The session ID from list_sessions (required)")]
-        string sessionId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string sessionId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
@@ -148,7 +145,6 @@ public sealed class ReplayTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching session");
-    }
 
     [McpServerTool(Name = "qyl.get_trace")]
     [Description("""
@@ -168,9 +164,8 @@ public sealed class ReplayTools(HttpClient client)
                  """)]
     public Task<string> GetTraceAsync(
         [Description("The trace ID (hex string, required)")]
-        string traceId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string traceId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             if (await client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
                     ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
@@ -200,7 +195,6 @@ public sealed class ReplayTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching trace");
-    }
 
     [McpServerTool(Name = "qyl.analyze_session_errors")]
     [Description("""
@@ -220,9 +214,8 @@ public sealed class ReplayTools(HttpClient client)
                  """)]
     public Task<string> AnalyzeSessionErrorsAsync(
         [Description("The session ID from list_sessions (required)")]
-        string sessionId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string sessionId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
@@ -261,7 +254,6 @@ public sealed class ReplayTools(HttpClient client)
 
             return sb.ToString();
         }, "Error analyzing session");
-    }
 }
 
 #region Response Types

@@ -4,15 +4,16 @@ Roslyn source generators for telemetry instrumentation.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | netstandard2.0 |
-| Output | Analyzer DLL |
+| Property  | Value           |
+|-----------|-----------------|
+| SDK       | ANcpLua.NET.Sdk |
+| Framework | netstandard2.0  |
+| Output    | Analyzer DLL    |
 
 ## Purpose
 
-Compile-time instrumentation: auto-generates OTel spans, captures method arguments as attributes, handles async methods, supports interceptor patterns.
+Compile-time instrumentation: auto-generates OTel spans, captures method arguments as attributes, handles async methods,
+supports interceptor patterns.
 
 ## Usage
 

@@ -8,11 +8,11 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using Qyl.ServiceDefaults.Instrumentation;
 using qyl.copilot.Adapters;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
 using qyl.copilot.Workflows;
+using Qyl.ServiceDefaults.Instrumentation;
 
 namespace qyl.copilot;
 
@@ -220,7 +220,6 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
             _lock.Release();
         }
     }
-
 }
 
 /// <summary>

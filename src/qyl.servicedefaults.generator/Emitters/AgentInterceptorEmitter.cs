@@ -63,15 +63,13 @@ internal static class AgentInterceptorEmitter
         sb.AppendLine();
     }
 
-    private static void AppendClassOpen(StringBuilder sb)
-    {
+    private static void AppendClassOpen(StringBuilder sb) =>
         sb.AppendLine("""
                       namespace Qyl.ServiceDefaults.Generator
                       {
                           file static class AgentInterceptors
                           {
                       """);
-    }
 
     private static void AppendInterceptorMethods(
         StringBuilder sb,
@@ -113,13 +111,17 @@ internal static class AgentInterceptorEmitter
         var operationConst = GetOperationConstant(invocation.Kind);
 
         if (invocation.IsAsync)
+        {
             EmitAsyncInterceptor(sb, methodName, returnType, parameters, arguments,
                 displayLocation, interceptAttribute, originalMethod, spanName,
                 agentNameLiteral, operationConst);
+        }
         else
+        {
             EmitSyncInterceptor(sb, methodName, returnType, parameters, arguments,
                 displayLocation, interceptAttribute, originalMethod, spanName,
                 agentNameLiteral, operationConst);
+        }
     }
 
     private static void EmitAsyncInterceptor(
@@ -295,9 +297,8 @@ internal static class AgentInterceptorEmitter
                 """);
     }
 
-    private static string GetSpanName(AgentCallSite invocation)
-    {
-        return invocation.Kind switch
+    private static string GetSpanName(AgentCallSite invocation) =>
+        invocation.Kind switch
         {
             AgentCallKind.InvokeAsync => invocation.AgentName is not null
                 ? $"invoke_agent {EscapeString(invocation.AgentName)}"
@@ -310,21 +311,15 @@ internal static class AgentInterceptorEmitter
                 : "invoke_agent",
             _ => "invoke_agent"
         };
-    }
 
-    private static string GetOperationConstant(AgentCallKind kind)
-    {
-        return kind switch
+    private static string GetOperationConstant(AgentCallKind kind) =>
+        kind switch
         {
             AgentCallKind.InvokeAsync => "GenAiAttributes.Operations.InvokeAgent",
             AgentCallKind.BuilderRegistration => "GenAiAttributes.Operations.CreateAgent",
             AgentCallKind.AgentTracedMethod => "GenAiAttributes.Operations.InvokeAgent",
             _ => "GenAiAttributes.Operations.InvokeAgent"
         };
-    }
 
-    private static string EscapeString(string value)
-    {
-        return value.Replace("\\", @"\\").Replace("\"", "\\\"");
-    }
+    private static string EscapeString(string value) => value.Replace("\\", @"\\").Replace("\"", "\\\"");
 }

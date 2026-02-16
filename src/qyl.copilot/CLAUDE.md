@@ -1,20 +1,22 @@
 # qyl.copilot - GitHub Copilot Integration
 
-IDE surface of qyl. First contact after `docker compose up` — Copilot activates, asks for GitHub OAuth (one click), then guides the developer through setup from inside their editor.
+IDE surface of qyl. First contact after `docker compose up` — Copilot activates, asks for GitHub OAuth (one click), then
+guides the developer through setup from inside their editor.
 
 ## Role in Architecture
 
 One of three shells (browser, terminal, IDE). Copilot is the onboarding guide and ongoing AI assistant:
+
 - **Onboarding**: `docker compose up` → Copilot activates → GitHub OAuth (proves you're a dev) → guided setup
 - **Runtime**: Query observability data, explain traces, suggest fixes — all from the IDE
 - GitHub OAuth doubles as identity (no user table needed) and abuse protection for the remote instance
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
+| Property  | Value           |
+|-----------|-----------------|
+| SDK       | ANcpLua.NET.Sdk |
+| Framework | net10.0         |
 
 ## Features
 
@@ -26,12 +28,12 @@ One of three shells (browser, terminal, IDE). Copilot is the onboarding guide an
 
 ## Structure
 
-| Directory | Purpose |
-|-----------|---------|
-| `Adapters/` | Core GitHubCopilotAgent wrapper |
-| `Auth/` | Cascading auth detection |
-| `Workflows/` | Markdown workflow parser + engine |
-| `Instrumentation/` | OTel spans + metrics |
+| Directory          | Purpose                           |
+|--------------------|-----------------------------------|
+| `Adapters/`        | Core GitHubCopilotAgent wrapper   |
+| `Auth/`            | Cascading auth detection          |
+| `Workflows/`       | Markdown workflow parser + engine |
+| `Instrumentation/` | OTel spans + metrics              |
 
 ## OTel
 

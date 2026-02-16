@@ -3,15 +3,15 @@ using Qyl.Watchdog.Platform;
 namespace Qyl.Watchdog.Detection;
 
 /// <summary>
-/// Tracks per-process CPU baseline via exponential moving average.
-/// Only triggers anomaly after sustained spike (consecutive samples above threshold).
-/// Baseline is NOT updated during spikes to prevent inflation.
+///     Tracks per-process CPU baseline via exponential moving average.
+///     Only triggers anomaly after sustained spike (consecutive samples above threshold).
+///     Baseline is NOT updated during spikes to prevent inflation.
 /// </summary>
 public sealed class ProcessBaseline(string name, double spikeMultiplier, int sustainedCount)
 {
-    private double _cpuEma;
-    private int _consecutiveSpikes;
     private const double Alpha = 0.1;
+    private int _consecutiveSpikes;
+    private double _cpuEma;
 
     public AnomalyResult Update(ProcessSnapshot snapshot)
     {
@@ -30,7 +30,7 @@ public sealed class ProcessBaseline(string name, double spikeMultiplier, int sus
         else
         {
             _consecutiveSpikes = 0;
-            _cpuEma = Alpha * snapshot.CpuPercent + (1 - Alpha) * _cpuEma;
+            _cpuEma = (Alpha * snapshot.CpuPercent) + ((1 - Alpha) * _cpuEma);
         }
 
         return AnomalyResult.Normal;

@@ -1,5 +1,4 @@
 using System.Text.RegularExpressions;
-using qyl.collector.Storage;
 
 namespace qyl.collector.SchemaControl;
 
@@ -23,7 +22,8 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         CancellationToken ct = default)
     {
         if (!AllowedChangeTypes.Contains(request.ChangeType))
-            throw new ArgumentException($"Unsupported change type: {request.ChangeType}. Allowed: {string.Join(", ", AllowedChangeTypes)}");
+            throw new ArgumentException(
+                $"Unsupported change type: {request.ChangeType}. Allowed: {string.Join(", ", AllowedChangeTypes)}");
 
         var sql = GenerateSql(request);
         ValidateNoDestructiveDdl(sql);
@@ -31,16 +31,16 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         var promotionId = $"promo-{Guid.CreateVersion7():N}"[..24];
 
         var record = new SchemaPromotionRecord(
-            PromotionId: promotionId,
-            RequestedBy: request.RequestedBy,
-            ChangeType: request.ChangeType,
-            TargetTable: request.TargetTable,
-            TargetColumn: request.TargetColumn,
-            ColumnType: request.ColumnType,
-            SqlStatements: sql,
-            Status: "pending",
-            AppliedAt: null,
-            CreatedAt: TimeProvider.System.GetUtcNow().UtcDateTime);
+            promotionId,
+            request.RequestedBy,
+            request.ChangeType,
+            request.TargetTable,
+            request.TargetColumn,
+            request.ColumnType,
+            sql,
+            "pending",
+            null,
+            TimeProvider.System.GetUtcNow().UtcDateTime);
 
         await store.InsertSchemaPromotionAsync(record, ct).ConfigureAwait(false);
 
@@ -66,9 +66,12 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
 
     private static string GenerateSql(PromotionRequest request) => request.ChangeType switch
     {
-        "add_column" => $"ALTER TABLE {request.TargetTable} ADD COLUMN IF NOT EXISTS {request.TargetColumn} {request.ColumnType};",
-        "add_table" => $"CREATE TABLE IF NOT EXISTS {request.TargetTable} ({request.TargetColumn} {request.ColumnType});",
-        "add_index" => $"CREATE INDEX IF NOT EXISTS idx_{request.TargetTable}_{request.TargetColumn} ON {request.TargetTable}({request.TargetColumn});",
+        "add_column" =>
+            $"ALTER TABLE {request.TargetTable} ADD COLUMN IF NOT EXISTS {request.TargetColumn} {request.ColumnType};",
+        "add_table" =>
+            $"CREATE TABLE IF NOT EXISTS {request.TargetTable} ({request.TargetColumn} {request.ColumnType});",
+        "add_index" =>
+            $"CREATE INDEX IF NOT EXISTS idx_{request.TargetTable}_{request.TargetColumn} ON {request.TargetTable}({request.TargetColumn});",
         _ => throw new ArgumentException($"Unsupported change type: {request.ChangeType}")
     };
 

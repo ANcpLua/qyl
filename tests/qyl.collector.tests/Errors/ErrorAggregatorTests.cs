@@ -14,7 +14,10 @@ public sealed class ErrorAggregatorTests : IAsyncLifetime
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        return _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 
     [Fact]
     public async Task UpsertError_NewFingerprint_InsertsRow()
@@ -82,7 +85,7 @@ public sealed class ErrorAggregatorTests : IAsyncLifetime
             Category = "internal", Fingerprint = "fp-int", ServiceName = "api", TraceId = "t2"
         });
 
-        var networkErrors = await Store.GetErrorsAsync(category: "network");
+        var networkErrors = await Store.GetErrorsAsync("network");
         Assert.Single(networkErrors);
         Assert.Equal("network", networkErrors[0].Category);
     }

@@ -16,19 +16,15 @@ internal static class AnalyzerHelpers
     ///     Fast syntactic pre-filter: could this syntax node be an invocation?
     ///     Shared by all call site analyzers. Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldBeInvocation(SyntaxNode node, CancellationToken _)
-    {
-        return node.IsKind(SyntaxKind.InvocationExpression);
-    }
+    public static bool CouldBeInvocation(SyntaxNode node, CancellationToken _) =>
+        node.IsKind(SyntaxKind.InvocationExpression);
 
     /// <summary>
     ///     Checks if a file is generated code based on its file path.
     /// </summary>
-    public static bool IsGeneratedFile(string filePath)
-    {
-        return filePath.EndsWithIgnoreCase(".g.cs") ||
-               filePath.EndsWithIgnoreCase(".generated.cs");
-    }
+    public static bool IsGeneratedFile(string filePath) =>
+        filePath.EndsWithIgnoreCase(".g.cs") ||
+        filePath.EndsWithIgnoreCase(".generated.cs");
 
     /// <summary>
     ///     Tries to get an invocation operation from the syntax context.
@@ -80,8 +76,10 @@ internal static class AnalyzerHelpers
         string fullMetadataName)
     {
         foreach (var attr in attributes)
+        {
             if (attr.AttributeClass?.ToDisplayString() == fullMetadataName)
                 return attr;
+        }
 
         return null;
     }

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace qyl.collector.Dashboards;
 
 /// <summary>
@@ -8,7 +10,7 @@ public static class DashboardEndpoints
     internal static void MapDashboardEndpoints(IEndpointRouteBuilder endpoints)
     {
         // List all detected dashboards (only available ones)
-        endpoints.MapGet("/api/v1/dashboards", ([Microsoft.AspNetCore.Mvc.FromServices] DashboardService service) =>
+        endpoints.MapGet("/api/v1/dashboards", ([FromServices] DashboardService service) =>
         {
             var dashboards = service.GetAvailable()
                 .Where(d => d.IsAvailable)
@@ -19,7 +21,7 @@ public static class DashboardEndpoints
         // Get dashboard data with computed widgets
         endpoints.MapGet("/api/v1/dashboards/{id}", async (
             string id,
-            [Microsoft.AspNetCore.Mvc.FromServices] DashboardService service,
+            [FromServices] DashboardService service,
             DuckDbStore store,
             CancellationToken ct) =>
         {
@@ -41,7 +43,7 @@ public static class DashboardEndpoints
         // Get individual widget data (partial refresh)
         endpoints.MapGet("/api/v1/dashboards/{id}/widgets", async (
             string id,
-            [Microsoft.AspNetCore.Mvc.FromServices] DashboardService service,
+            [FromServices] DashboardService service,
             DuckDbStore store,
             CancellationToken ct) =>
         {

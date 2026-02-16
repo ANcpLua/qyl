@@ -31,8 +31,6 @@ public static class AlertServiceExtensions
     ///     Initializes the alert history DuckDB schema.
     ///     Call during app startup after DuckDbStore is constructed.
     /// </summary>
-    public static void InitializeAlertSchema(this DuckDbStore store)
-    {
+    public static void InitializeAlertSchema(this DuckDbStore store) =>
         DuckDbSchemaAlerts.InitializeAlertSchema(store.Connection);
-    }
 }

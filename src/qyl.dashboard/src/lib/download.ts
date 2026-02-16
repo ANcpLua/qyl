@@ -82,7 +82,7 @@ function escapeCSVValue(value: string): string {
  * @param mimeType - MIME type for the file
  */
 export function downloadFile(content: string, filename: string, mimeType: string): void {
-    const blob = new Blob([content], { type: mimeType });
+    const blob = new Blob([content], {type: mimeType});
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');

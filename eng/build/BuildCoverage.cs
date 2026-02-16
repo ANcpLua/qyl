@@ -55,7 +55,8 @@ interface ICoverage : IQylTest
                 if (StopOnFail == true) mtp.StopOnFail();
                 if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
 
-                var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                var projectPath = project.Path ??
+                                  throw new InvalidOperationException($"Project '{project.Name}' has no path");
                 string[] coverageArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
                 DotNetTasks.DotNetTest(s => s
                     .SetConfiguration(Configuration)

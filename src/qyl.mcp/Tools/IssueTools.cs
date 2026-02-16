@@ -31,9 +31,8 @@ public sealed class IssueTools(HttpClient client)
         [Description("Maximum issues to return (default: 20)")]
         int limit = 20,
         [Description("Filter by status: 'open', 'resolved', 'ignored'")]
-        string? status = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? status = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/issues?limit={limit}";
             if (!string.IsNullOrEmpty(status))
@@ -65,12 +64,12 @@ public sealed class IssueTools(HttpClient client)
                 var firstSeen = issue.FirstSeen ?? "-";
                 var lastSeen = issue.LastSeen ?? "-";
 
-                sb.AppendLine($"| {id} | {issue.Title ?? "untitled"} | {statusIcon} {issue.Status} | {owner} | {issue.EventCount:N0} | {firstSeen} | {lastSeen} |");
+                sb.AppendLine(
+                    $"| {id} | {issue.Title ?? "untitled"} | {statusIcon} {issue.Status} | {owner} | {issue.EventCount:N0} | {firstSeen} | {lastSeen} |");
             }
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_issue")]
     [Description("""
@@ -86,9 +85,8 @@ public sealed class IssueTools(HttpClient client)
                  """)]
     public Task<string> GetIssueAsync(
         [Description("The issue ID to look up")]
-        string issueId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string issueId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var issue = await client.GetFromJsonAsync<IssueDetailDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
@@ -135,7 +133,6 @@ public sealed class IssueTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.trigger_fix")]
     [Description("""
@@ -149,12 +146,10 @@ public sealed class IssueTools(HttpClient client)
                  Returns: Fix dispatch confirmation with run ID
                  """)]
     public Task<string> TriggerFixAsync(
-        [Description("The issue ID to fix")]
-        string issueId,
+        [Description("The issue ID to fix")] string issueId,
         [Description("Fix policy: 'auto', 'suggest', or 'review' (default: 'suggest')")]
-        string policy = "suggest")
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string policy = "suggest") =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new TriggerFixRequest(issueId, policy);
             var response = await client.PostAsJsonAsync(
@@ -163,7 +158,8 @@ public sealed class IssueTools(HttpClient client)
                 IssueJsonContext.Default.TriggerFixRequest).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
-                return $"Failed to trigger fix (HTTP {(int)response.StatusCode}). The issue may not exist or the policy is invalid.";
+                return
+                    $"Failed to trigger fix (HTTP {(int)response.StatusCode}). The issue may not exist or the policy is invalid.";
 
             var result = await response.Content.ReadFromJsonAsync(
                 IssueJsonContext.Default.TriggerFixResponse).ConfigureAwait(false);
@@ -184,7 +180,6 @@ public sealed class IssueTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
@@ -194,32 +189,45 @@ internal sealed record IssuesListResponse(
     [property: JsonPropertyName("total")] int Total);
 
 internal sealed record IssueSummaryDto(
-    [property: JsonPropertyName("issue_id")] string IssueId,
+    [property: JsonPropertyName("issue_id")]
+    string IssueId,
     [property: JsonPropertyName("title")] string? Title,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("owner")] string? Owner,
-    [property: JsonPropertyName("event_count")] long EventCount,
-    [property: JsonPropertyName("first_seen")] string? FirstSeen,
-    [property: JsonPropertyName("last_seen")] string? LastSeen);
+    [property: JsonPropertyName("event_count")]
+    long EventCount,
+    [property: JsonPropertyName("first_seen")]
+    string? FirstSeen,
+    [property: JsonPropertyName("last_seen")]
+    string? LastSeen);
 
 internal sealed record IssueDetailDto(
-    [property: JsonPropertyName("issue_id")] string IssueId,
+    [property: JsonPropertyName("issue_id")]
+    string IssueId,
     [property: JsonPropertyName("title")] string? Title,
-    [property: JsonPropertyName("description")] string? Description,
+    [property: JsonPropertyName("description")]
+    string? Description,
     [property: JsonPropertyName("status")] string Status,
     [property: JsonPropertyName("owner")] string? Owner,
-    [property: JsonPropertyName("event_count")] long EventCount,
-    [property: JsonPropertyName("first_seen")] string? FirstSeen,
-    [property: JsonPropertyName("last_seen")] string? LastSeen,
+    [property: JsonPropertyName("event_count")]
+    long EventCount,
+    [property: JsonPropertyName("first_seen")]
+    string? FirstSeen,
+    [property: JsonPropertyName("last_seen")]
+    string? LastSeen,
     [property: JsonPropertyName("events")] List<IssueEventDto>? Events);
 
 internal sealed record IssueEventDto(
-    [property: JsonPropertyName("timestamp")] string? Timestamp,
-    [property: JsonPropertyName("trace_id")] string? TraceId,
-    [property: JsonPropertyName("message")] string? Message);
+    [property: JsonPropertyName("timestamp")]
+    string? Timestamp,
+    [property: JsonPropertyName("trace_id")]
+    string? TraceId,
+    [property: JsonPropertyName("message")]
+    string? Message);
 
 internal sealed record TriggerFixRequest(
-    [property: JsonPropertyName("issue_id")] string IssueId,
+    [property: JsonPropertyName("issue_id")]
+    string IssueId,
     [property: JsonPropertyName("policy")] string Policy);
 
 internal sealed record TriggerFixResponse(

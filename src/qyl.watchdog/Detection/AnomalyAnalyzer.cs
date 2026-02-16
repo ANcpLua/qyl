@@ -8,8 +8,8 @@ public sealed class AnomalyAnalyzer(double spikeMultiplier, int sustainedCount)
 
     public AnomalyResult Analyze(ProcessSnapshot snapshot) =>
         _baselines.GetOrAdd(snapshot.Pid,
-            _ => new ProcessBaseline(snapshot.Name, spikeMultiplier, sustainedCount))
-        .Update(snapshot);
+                _ => new ProcessBaseline(snapshot.Name, spikeMultiplier, sustainedCount))
+            .Update(snapshot);
 
     public void PruneExited(IReadOnlySet<int> activePids)
     {

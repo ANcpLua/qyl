@@ -1,7 +1,7 @@
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with issue lifecycle,
+///     Partial class extending <see cref="DuckDbStore" /> with issue lifecycle,
 ///     ownership, and regression detection storage operations.
 /// </summary>
 public sealed partial class DuckDbStore
@@ -11,19 +11,19 @@ public sealed partial class DuckDbStore
     // ==========================================================================
 
     internal const string IssueEventsDdl = """
-        CREATE TABLE IF NOT EXISTS issue_events (
-            event_id VARCHAR PRIMARY KEY,
-            issue_id VARCHAR NOT NULL,
-            event_type VARCHAR NOT NULL,
-            old_value VARCHAR,
-            new_value VARCHAR,
-            reason VARCHAR,
-            created_at TIMESTAMP DEFAULT now()
-        );
-        CREATE INDEX IF NOT EXISTS idx_issue_events_issue ON issue_events(issue_id);
-        CREATE INDEX IF NOT EXISTS idx_issue_events_type ON issue_events(event_type);
-        CREATE INDEX IF NOT EXISTS idx_issue_events_created ON issue_events(created_at DESC);
-        """;
+                                           CREATE TABLE IF NOT EXISTS issue_events (
+                                               event_id VARCHAR PRIMARY KEY,
+                                               issue_id VARCHAR NOT NULL,
+                                               event_type VARCHAR NOT NULL,
+                                               old_value VARCHAR,
+                                               new_value VARCHAR,
+                                               reason VARCHAR,
+                                               created_at TIMESTAMP DEFAULT now()
+                                           );
+                                           CREATE INDEX IF NOT EXISTS idx_issue_events_issue ON issue_events(issue_id);
+                                           CREATE INDEX IF NOT EXISTS idx_issue_events_type ON issue_events(event_type);
+                                           CREATE INDEX IF NOT EXISTS idx_issue_events_created ON issue_events(created_at DESC);
+                                           """;
 
     // ==========================================================================
     // Issue Lifecycle Operations
@@ -131,13 +131,13 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT error_id, fingerprint, error_type, message, status,
-                   assigned_to, occurrence_count, first_seen, last_seen
-            FROM errors
-            {qb.WhereClause}
-            ORDER BY last_seen DESC
-            LIMIT {qb.NextParam}
-            """;
+                           SELECT error_id, fingerprint, error_type, message, status,
+                                  assigned_to, occurrence_count, first_seen, last_seen
+                           FROM errors
+                           {qb.WhereClause}
+                           ORDER BY last_seen DESC
+                           LIMIT {qb.NextParam}
+                           """;
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -173,10 +173,10 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT error_id, fingerprint, error_type, message, status,
-                   assigned_to, occurrence_count, first_seen, last_seen
-            FROM errors WHERE error_id = $1
-            """;
+                          SELECT error_id, fingerprint, error_type, message, status,
+                                 assigned_to, occurrence_count, first_seen, last_seen
+                          FROM errors WHERE error_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -208,12 +208,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT event_id, issue_id, event_type, old_value, new_value, reason, created_at
-            FROM issue_events
-            WHERE issue_id = $1
-            ORDER BY created_at DESC
-            LIMIT $2
-            """;
+                          SELECT event_id, issue_id, event_type, old_value, new_value, reason, created_at
+                          FROM issue_events
+                          WHERE issue_id = $1
+                          ORDER BY created_at DESC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
@@ -248,11 +248,11 @@ public sealed partial class DuckDbStore
             // matches errors in the same service with recent occurrences.
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                SELECT error_id, fingerprint
-                FROM errors
-                WHERE status = 'resolved'
-                  AND affected_services LIKE '%' || $1 || '%' ESCAPE '\'
-                """;
+                              SELECT error_id, fingerprint
+                              FROM errors
+                              WHERE status = 'resolved'
+                                AND affected_services LIKE '%' || $1 || '%' ESCAPE '\'
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = EscapeLikePattern(serviceName) });
 
             var regressedIds = new List<string>();
@@ -268,9 +268,9 @@ public sealed partial class DuckDbStore
                 // Check if there are newer unresolved errors with the same fingerprint
                 await using var checkCmd = con.CreateCommand();
                 checkCmd.CommandText = """
-                    SELECT COUNT(*) FROM errors
-                    WHERE fingerprint = $1 AND status = 'new' AND error_id != $2
-                    """;
+                                       SELECT COUNT(*) FROM errors
+                                       WHERE fingerprint = $1 AND status = 'new' AND error_id != $2
+                                       """;
                 checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
                 checkCmd.Parameters.Add(new DuckDBParameter { Value = errorId });
 
@@ -293,7 +293,7 @@ public sealed partial class DuckDbStore
                 regressedIds.Add(errorId);
             }
 
-            return (IReadOnlyList<string>)regressedIds;
+            return regressedIds;
         });
 
         await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
@@ -310,9 +310,9 @@ public sealed partial class DuckDbStore
     {
         await using var cmd = con.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO issue_events (event_id, issue_id, event_type, old_value, new_value, reason)
-            VALUES ($1, $2, $3, $4, $5, $6)
-            """;
+                          INSERT INTO issue_events (event_id, issue_id, event_type, old_value, new_value, reason)
+                          VALUES ($1, $2, $3, $4, $5, $6)
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = Guid.NewGuid().ToString("N") });
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
         cmd.Parameters.Add(new DuckDBParameter { Value = eventType });

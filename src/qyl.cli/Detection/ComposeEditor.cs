@@ -3,13 +3,13 @@ using YamlDotNet.RepresentationModel;
 namespace qyl.cli.Detection;
 
 /// <summary>
-/// Safe docker-compose YAML manipulation — adds qyl service and OTEL env vars.
+///     Safe docker-compose YAML manipulation — adds qyl service and OTEL env vars.
 /// </summary>
 public sealed class ComposeEditor
 {
     private readonly string _path;
-    private readonly YamlStream _yaml;
     private readonly YamlMappingNode _root;
+    private readonly YamlStream _yaml;
 
     public ComposeEditor(string path)
     {
@@ -21,7 +21,7 @@ public sealed class ComposeEditor
     }
 
     /// <summary>
-    /// Checks if a 'qyl' service already exists in the compose file.
+    ///     Checks if a 'qyl' service already exists in the compose file.
     /// </summary>
     public bool HasQylService()
     {
@@ -39,7 +39,7 @@ public sealed class ComposeEditor
     }
 
     /// <summary>
-    /// Returns a list of planned changes for dry-run output.
+    ///     Returns a list of planned changes for dry-run output.
     /// </summary>
     public List<string> GetPlannedChanges()
     {
@@ -56,8 +56,8 @@ public sealed class ComposeEditor
                     {
                         changes.Add($"Add OTEL env vars to service '{nameValue}'");
                     }
+                }
             }
-        }
         }
 
         if (!HasVolume("qyl-data"))
@@ -69,7 +69,7 @@ public sealed class ComposeEditor
     }
 
     /// <summary>
-    /// Applies all changes to the compose file.
+    ///     Applies all changes to the compose file.
     /// </summary>
     public void Apply()
     {
@@ -88,12 +88,7 @@ public sealed class ComposeEditor
                 "volumes", new YamlSequenceNode(
                     new YamlScalarNode("qyl-data:/data"))
             },
-            {
-                "environment", new YamlMappingNode
-                {
-                    { "QYL_DATA_PATH", "/data/qyl.duckdb" },
-                }
-            },
+            { "environment", new YamlMappingNode { { "QYL_DATA_PATH", "/data/qyl.duckdb" } } }
         };
 
         services.Children[new YamlScalarNode("qyl")] = qylService;
@@ -129,7 +124,7 @@ public sealed class ComposeEditor
         }
 
         using var writer = new StreamWriter(_path);
-        _yaml.Save(writer, assignAnchors: false);
+        _yaml.Save(writer, false);
     }
 
     private YamlMappingNode? GetServicesNode()
@@ -183,7 +178,7 @@ public sealed class ComposeEditor
         {
             return envSeq.Children.Any(static c =>
                 c is YamlScalarNode s && s.Value is not null
-                && s.Value.StartsWithOrdinal("OTEL_EXPORTER_OTLP_ENDPOINT="));
+                                      && s.Value.StartsWithOrdinal("OTEL_EXPORTER_OTLP_ENDPOINT="));
         }
 
         return false;

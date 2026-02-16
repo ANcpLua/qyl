@@ -3,7 +3,7 @@ using qyl.collector.Identity;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with workspace identity operations,
+///     Partial class extending <see cref="DuckDbStore" /> with workspace identity operations,
 ///     project CRUD, project environments, and handshake PKCE challenge persistence.
 /// </summary>
 public sealed partial class DuckDbStore
@@ -23,21 +23,21 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO workspaces
-                    (workspace_id, name, service_name, sdk_version, runtime_version,
-                     framework, git_commit, status, metadata_json)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                ON CONFLICT (workspace_id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    service_name = EXCLUDED.service_name,
-                    sdk_version = EXCLUDED.sdk_version,
-                    runtime_version = EXCLUDED.runtime_version,
-                    framework = EXCLUDED.framework,
-                    git_commit = EXCLUDED.git_commit,
-                    status = EXCLUDED.status,
-                    last_heartbeat = now(),
-                    metadata_json = EXCLUDED.metadata_json
-                """;
+                              INSERT INTO workspaces
+                                  (workspace_id, name, service_name, sdk_version, runtime_version,
+                                   framework, git_commit, status, metadata_json)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                              ON CONFLICT (workspace_id) DO UPDATE SET
+                                  name = EXCLUDED.name,
+                                  service_name = EXCLUDED.service_name,
+                                  sdk_version = EXCLUDED.sdk_version,
+                                  runtime_version = EXCLUDED.runtime_version,
+                                  framework = EXCLUDED.framework,
+                                  git_commit = EXCLUDED.git_commit,
+                                  status = EXCLUDED.status,
+                                  last_heartbeat = now(),
+                                  metadata_json = EXCLUDED.metadata_json
+                              """;
             AddWorkspaceParameters(cmd, workspace);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -56,11 +56,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT workspace_id, name, service_name, sdk_version, runtime_version,
-                   framework, git_commit, status, first_seen, last_heartbeat, metadata_json
-            FROM workspaces
-            WHERE workspace_id = $1
-            """;
+                          SELECT workspace_id, name, service_name, sdk_version, runtime_version,
+                                 framework, git_commit, status, first_seen, last_heartbeat, metadata_json
+                          FROM workspaces
+                          WHERE workspace_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -80,9 +80,9 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE workspaces SET last_heartbeat = now()
-                WHERE workspace_id = $1
-                """;
+                              UPDATE workspaces SET last_heartbeat = now()
+                              WHERE workspace_id = $1
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -105,12 +105,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT workspace_id, name, service_name, sdk_version, runtime_version,
-                   framework, git_commit, status, first_seen, last_heartbeat, metadata_json
-            FROM workspaces
-            ORDER BY last_heartbeat DESC
-            LIMIT {clampedLimit}
-            """;
+                           SELECT workspace_id, name, service_name, sdk_version, runtime_version,
+                                  framework, git_commit, status, first_seen, last_heartbeat, metadata_json
+                           FROM workspaces
+                           ORDER BY last_heartbeat DESC
+                           LIMIT {clampedLimit}
+                           """;
 
         var workspaces = new List<WorkspaceRecord>();
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -152,10 +152,10 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO projects
-                    (project_id, workspace_id, name, description, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                """;
+                              INSERT INTO projects
+                                  (project_id, workspace_id, name, description, created_at, updated_at)
+                              VALUES ($1, $2, $3, $4, $5, $6)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = project.ProjectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = project.WorkspaceId });
             cmd.Parameters.Add(new DuckDBParameter { Value = project.Name });
@@ -179,10 +179,10 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT project_id, workspace_id, name, description, created_at, updated_at
-            FROM projects
-            WHERE project_id = $1
-            """;
+                          SELECT project_id, workspace_id, name, description, created_at, updated_at
+                          FROM projects
+                          WHERE project_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -194,7 +194,7 @@ public sealed partial class DuckDbStore
 
     /// <summary>
     ///     Lists projects for a workspace with cursor-based pagination.
-    ///     When <paramref name="cursor"/> is provided, returns projects created after that ID.
+    ///     When <paramref name="cursor" /> is provided, returns projects created after that ID.
     /// </summary>
     public async Task<IReadOnlyList<ProjectRecord>> GetProjectsAsync(
         string workspaceId,
@@ -214,12 +214,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT project_id, workspace_id, name, description, created_at, updated_at
-            FROM projects
-            {qb.WhereClause}
-            ORDER BY project_id ASC
-            LIMIT {qb.NextParam}
-            """;
+                           SELECT project_id, workspace_id, name, description, created_at, updated_at
+                           FROM projects
+                           {qb.WhereClause}
+                           ORDER BY project_id ASC
+                           LIMIT {qb.NextParam}
+                           """;
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
@@ -266,10 +266,10 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO project_environments
-                    (environment_id, project_id, name, description, created_at)
-                VALUES ($1, $2, $3, $4, $5)
-                """;
+                              INSERT INTO project_environments
+                                  (environment_id, project_id, name, description, created_at)
+                              VALUES ($1, $2, $3, $4, $5)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = env.EnvironmentId });
             cmd.Parameters.Add(new DuckDBParameter { Value = env.ProjectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = env.Name });
@@ -294,11 +294,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT environment_id, project_id, name, description, created_at
-            FROM project_environments
-            WHERE project_id = $1
-            ORDER BY created_at ASC
-            """;
+                          SELECT environment_id, project_id, name, description, created_at
+                          FROM project_environments
+                          WHERE project_id = $1
+                          ORDER BY created_at ASC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
 
         var envs = new List<ProjectEnvironmentRecord>();
@@ -347,12 +347,12 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO handshake_challenges (workspace_id, code_challenge, created_at)
-                VALUES ($1, $2, $3)
-                ON CONFLICT (workspace_id) DO UPDATE SET
-                    code_challenge = EXCLUDED.code_challenge,
-                    created_at = EXCLUDED.created_at
-                """;
+                              INSERT INTO handshake_challenges (workspace_id, code_challenge, created_at)
+                              VALUES ($1, $2, $3)
+                              ON CONFLICT (workspace_id) DO UPDATE SET
+                                  code_challenge = EXCLUDED.code_challenge,
+                                  created_at = EXCLUDED.created_at
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
             cmd.Parameters.Add(new DuckDBParameter { Value = codeChallenge });
             cmd.Parameters.Add(new DuckDBParameter { Value = createdAt });
@@ -375,19 +375,19 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT workspace_id, code_challenge, created_at
-            FROM handshake_challenges
-            WHERE workspace_id = $1
-            """;
+                          SELECT workspace_id, code_challenge, created_at
+                          FROM handshake_challenges
+                          WHERE workspace_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new HandshakeChallengeRecord(
-                WorkspaceId: reader.GetString(0),
-                CodeChallenge: reader.GetString(1),
-                CreatedAt: reader.GetDateTime(2));
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetDateTime(2));
         }
 
         return null;
@@ -433,18 +433,18 @@ public sealed partial class DuckDbStore
     private static WorkspaceRecord MapWorkspace(IDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
-        return new(
-            WorkspaceId: reader.GetString(0),
-            Name: reader.Col(1).AsString,
-            ServiceName: reader.Col(2).AsString,
-            SdkVersion: reader.Col(3).AsString,
-            RuntimeVersion: reader.Col(4).AsString,
-            Framework: reader.Col(5).AsString,
-            GitCommit: reader.Col(6).AsString,
-            Status: reader.Col(7).AsString ?? "pending",
-            FirstSeen: reader.Col(8).AsDateTime ?? fallback,
-            LastHeartbeat: reader.Col(9).AsDateTime ?? fallback,
-            MetadataJson: reader.Col(10).AsString
+        return new WorkspaceRecord(
+            reader.GetString(0),
+            reader.Col(1).AsString,
+            reader.Col(2).AsString,
+            reader.Col(3).AsString,
+            reader.Col(4).AsString,
+            reader.Col(5).AsString,
+            reader.Col(6).AsString,
+            reader.Col(7).AsString ?? "pending",
+            reader.Col(8).AsDateTime ?? fallback,
+            reader.Col(9).AsDateTime ?? fallback,
+            reader.Col(10).AsString
         );
     }
 
@@ -452,25 +452,25 @@ public sealed partial class DuckDbStore
     private static ProjectRecord MapProject(IDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
-        return new(
-            ProjectId: reader.GetString(0),
-            WorkspaceId: reader.GetString(1),
-            Name: reader.GetString(2),
-            Description: reader.Col(3).AsString,
-            CreatedAt: reader.Col(4).AsDateTime ?? fallback,
-            UpdatedAt: reader.Col(5).AsDateTime ?? fallback);
+        return new ProjectRecord(
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.Col(3).AsString,
+            reader.Col(4).AsDateTime ?? fallback,
+            reader.Col(5).AsDateTime ?? fallback);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ProjectEnvironmentRecord MapProjectEnvironment(IDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
-        return new(
-            EnvironmentId: reader.GetString(0),
-            ProjectId: reader.GetString(1),
-            Name: reader.GetString(2),
-            Description: reader.Col(3).AsString,
-            CreatedAt: reader.Col(4).AsDateTime ?? fallback);
+        return new ProjectEnvironmentRecord(
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.Col(3).AsString,
+            reader.Col(4).AsDateTime ?? fallback);
     }
 }
 

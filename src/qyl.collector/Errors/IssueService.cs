@@ -8,6 +8,18 @@ namespace qyl.collector.Errors;
 public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService> logger)
 {
     // ==========================================================================
+    // Private Methods - SQL & Mapping
+    // ==========================================================================
+
+    private const string IssueSelectSql = """
+                                          SELECT id, project_id, fingerprint, title, culprit, error_type, category,
+                                                 level, platform, first_seen_at, last_seen_at, occurrence_count,
+                                                 affected_users_count, status, substatus, priority, assigned_to,
+                                                 resolved_at, resolved_by, regression_count, last_release,
+                                                 tags_json, metadata_json, created_at, updated_at
+                                          FROM error_issues
+                                          """;
+    // ==========================================================================
     // Valid Statuses and Transitions
     // ==========================================================================
 
@@ -53,10 +65,10 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var checkCmd = lease.Connection.CreateCommand();
         checkCmd.CommandText = """
-            SELECT id FROM error_issues
-            WHERE project_id = $1 AND fingerprint = $2
-            LIMIT 1
-            """;
+                               SELECT id FROM error_issues
+                               WHERE project_id = $1 AND fingerprint = $2
+                               LIMIT 1
+                               """;
         checkCmd.Parameters.Add(new DuckDBParameter { Value = projectId });
         checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
         var existingId = await checkCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
@@ -68,12 +80,12 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
             {
                 await using var updateCmd = con.CreateCommand();
                 updateCmd.CommandText = """
-                    UPDATE error_issues SET
-                        occurrence_count = occurrence_count + 1,
-                        last_seen_at = $1,
-                        updated_at = $1
-                    WHERE id = $2
-                    """;
+                                        UPDATE error_issues SET
+                                            occurrence_count = occurrence_count + 1,
+                                            last_seen_at = $1,
+                                            updated_at = $1
+                                        WHERE id = $2
+                                        """;
                 updateCmd.Parameters.Add(new DuckDBParameter { Value = now });
                 updateCmd.Parameters.Add(new DuckDBParameter { Value = existingId });
                 await updateCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -88,12 +100,12 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         {
             await using var insertCmd = con.CreateCommand();
             insertCmd.CommandText = """
-                INSERT INTO error_issues
-                    (id, project_id, fingerprint, title, culprit, error_type, category,
-                     level, platform, first_seen_at, last_seen_at, occurrence_count,
-                     status, priority, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 1, 'unresolved', 'medium', $12, $13)
-                """;
+                                    INSERT INTO error_issues
+                                        (id, project_id, fingerprint, title, culprit, error_type, category,
+                                         level, platform, first_seen_at, last_seen_at, occurrence_count,
+                                         status, priority, created_at, updated_at)
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 1, 'unresolved', 'medium', $12, $13)
+                                    """;
             insertCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             insertCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
@@ -183,11 +195,11 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            {IssueSelectSql}
-            {whereClause}
-            ORDER BY last_seen_at DESC
-            LIMIT ${paramIndex++} OFFSET ${paramIndex}
-            """;
+                           {IssueSelectSql}
+                           {whereClause}
+                           ORDER BY last_seen_at DESC
+                           LIMIT ${paramIndex++} OFFSET ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
@@ -327,11 +339,11 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO error_issue_events
-                    (id, issue_id, trace_id, span_id, message, stack_trace,
-                     environment, release_version, user_id, timestamp)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-                """;
+                              INSERT INTO error_issue_events
+                                  (id, issue_id, trace_id, span_id, message, stack_trace,
+                                   environment, release_version, user_id, timestamp)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = eventId });
             cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             cmd.Parameters.Add(new DuckDBParameter { Value = traceId ?? (object)DBNull.Value });
@@ -359,16 +371,16 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, issue_id, trace_id, span_id, message, stack_trace,
-                   stack_frames_json, environment, release_version,
-                   user_id, user_ip, request_url, request_method,
-                   browser, os, device, runtime, runtime_version,
-                   context_json, tags_json, timestamp
-            FROM error_issue_events
-            WHERE issue_id = $1
-            ORDER BY timestamp DESC
-            LIMIT $2
-            """;
+                          SELECT id, issue_id, trace_id, span_id, message, stack_trace,
+                                 stack_frames_json, environment, release_version,
+                                 user_id, user_ip, request_url, request_method,
+                                 browser, os, device, runtime, runtime_version,
+                                 context_json, tags_json, timestamp
+                          FROM error_issue_events
+                          WHERE issue_id = $1
+                          ORDER BY timestamp DESC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
 
@@ -395,13 +407,13 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, event_id, breadcrumb_type, category, message,
-                   level, data_json, timestamp
-            FROM error_breadcrumbs
-            WHERE event_id = $1
-            ORDER BY timestamp ASC
-            LIMIT $2
-            """;
+                          SELECT id, event_id, breadcrumb_type, category, message,
+                                 level, data_json, timestamp
+                          FROM error_breadcrumbs
+                          WHERE event_id = $1
+                          ORDER BY timestamp ASC
+                          LIMIT $2
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = eventId });
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
 
@@ -424,19 +436,6 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
 
         return results;
     }
-
-    // ==========================================================================
-    // Private Methods - SQL & Mapping
-    // ==========================================================================
-
-    private const string IssueSelectSql = """
-        SELECT id, project_id, fingerprint, title, culprit, error_type, category,
-               level, platform, first_seen_at, last_seen_at, occurrence_count,
-               affected_users_count, status, substatus, priority, assigned_to,
-               resolved_at, resolved_by, regression_count, last_release,
-               tags_json, metadata_json, created_at, updated_at
-        FROM error_issues
-        """;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static ErrorIssueRow MapIssue(IDataReader reader) =>

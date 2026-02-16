@@ -3,7 +3,7 @@ using Spectre.Console;
 namespace qyl.cli.Output;
 
 /// <summary>
-/// Spectre.Console formatted output for CLI results.
+///     Spectre.Console formatted output for CLI results.
 /// </summary>
 public static class ConsoleOutput
 {

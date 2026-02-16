@@ -1,18 +1,18 @@
 import {useState} from 'react';
 import {
     Bot,
+    CheckCircle2,
     ChevronDown,
     ChevronRight,
-    CheckCircle2,
-    XCircle,
     Clock,
-    Loader2,
-    Wrench,
-    FileSearch,
     Code,
-    Globe,
-    Terminal,
     Database,
+    FileSearch,
+    Globe,
+    Loader2,
+    Terminal,
+    Wrench,
+    XCircle,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Badge} from '@/components/ui/badge';
@@ -31,17 +31,17 @@ function getToolIcon(toolName?: string) {
     return Wrench;
 }
 
-function StatusDot({status}: {status: string}) {
+function StatusDot({status}: { status: string }) {
     if (status === 'running') {
-        return <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0" />;
+        return <Loader2 className="w-3.5 h-3.5 text-blue-400 animate-spin flex-shrink-0"/>;
     }
     if (status === 'completed') {
-        return <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />;
+        return <CheckCircle2 className="w-3.5 h-3.5 text-green-500 flex-shrink-0"/>;
     }
     if (status === 'failed') {
-        return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />;
+        return <XCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0"/>;
     }
-    return <Clock className="w-3.5 h-3.5 text-brutal-slate flex-shrink-0" />;
+    return <Clock className="w-3.5 h-3.5 text-brutal-slate flex-shrink-0"/>;
 }
 
 interface ToolCallNodeProps {
@@ -76,21 +76,21 @@ function ToolCallNode({call, agentStartTime, agentDurationNs}: ToolCallNodeProps
                 onClick={() => hasPayload && setExpanded(!expanded)}
             >
                 {/* Connector */}
-                <div className="w-4 h-px bg-brutal-zinc -ml-[calc(0.75rem+1px)]" />
+                <div className="w-4 h-px bg-brutal-zinc -ml-[calc(0.75rem+1px)]"/>
 
                 {/* Expand/collapse */}
                 <div className="w-4 flex-shrink-0">
                     {hasPayload ? (
                         expanded ? (
-                            <ChevronDown className="w-3.5 h-3.5 text-brutal-slate" />
+                            <ChevronDown className="w-3.5 h-3.5 text-brutal-slate"/>
                         ) : (
-                            <ChevronRight className="w-3.5 h-3.5 text-brutal-slate" />
+                            <ChevronRight className="w-3.5 h-3.5 text-brutal-slate"/>
                         )
                     ) : null}
                 </div>
 
-                <Icon className="w-4 h-4 text-brutal-slate flex-shrink-0" />
-                <StatusDot status={call.status} />
+                <Icon className="w-4 h-4 text-brutal-slate flex-shrink-0"/>
+                <StatusDot status={call.status}/>
 
                 <span className="font-mono text-sm text-brutal-white truncate">
                     {call.tool_name ?? 'unknown'}
@@ -149,7 +149,8 @@ function ToolCallNode({call, agentStartTime, agentDurationNs}: ToolCallNodeProps
                         />
                     )}
                     {call.error_message && (
-                        <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2 font-mono">
+                        <div
+                            className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded p-2 font-mono">
                             {call.error_message}
                         </div>
                     )}
@@ -178,13 +179,13 @@ export function AgentTraceTree({run, toolCalls, isLoading}: AgentTraceTreeProps)
                 onClick={() => setRootExpanded(!rootExpanded)}
             >
                 {rootExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-brutal-slate" />
+                    <ChevronDown className="w-4 h-4 text-brutal-slate"/>
                 ) : (
-                    <ChevronRight className="w-4 h-4 text-brutal-slate" />
+                    <ChevronRight className="w-4 h-4 text-brutal-slate"/>
                 )}
 
-                <Bot className="w-5 h-5 text-signal-orange" />
-                <StatusDot status={run.status} />
+                <Bot className="w-5 h-5 text-signal-orange"/>
+                <StatusDot status={run.status}/>
 
                 <span className="font-bold text-brutal-white tracking-wide">
                     {run.agent_name ?? 'Agent Run'}
@@ -202,7 +203,7 @@ export function AgentTraceTree({run, toolCalls, isLoading}: AgentTraceTreeProps)
                     </Badge>
                 )}
 
-                <div className="flex-1" />
+                <div className="flex-1"/>
 
                 <span className="font-mono text-xs text-brutal-slate">
                     {run.tool_call_count} tool{run.tool_call_count !== 1 ? 's' : ''}
@@ -226,7 +227,7 @@ export function AgentTraceTree({run, toolCalls, isLoading}: AgentTraceTreeProps)
                 <div className="border-t border-brutal-zinc">
                     {isLoading ? (
                         <div className="flex items-center justify-center py-8">
-                            <Loader2 className="w-5 h-5 animate-spin text-brutal-slate" />
+                            <Loader2 className="w-5 h-5 animate-spin text-brutal-slate"/>
                             <span className="ml-2 text-sm text-brutal-slate">Loading tool calls…</span>
                         </div>
                     ) : sortedCalls.length === 0 ? (

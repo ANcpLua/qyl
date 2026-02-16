@@ -115,8 +115,10 @@ public sealed class StorageTools(HttpClient client)
         var response = await client.GetAsync("/api/v1/insights").ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
+        {
             return
                 $"Insights not available (HTTP {(int)response.StatusCode}). The materializer may not have run yet.";
+        }
 
         var json = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
         var doc = JsonDocument.Parse(json);

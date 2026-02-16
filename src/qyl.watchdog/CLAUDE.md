@@ -4,25 +4,26 @@ Lightweight process anomaly detection daemon for developer workstations.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Type | console-daemon / dotnet global tool |
-| Command | `qyl-watchdog` |
+| Property | Value                               |
+|----------|-------------------------------------|
+| SDK      | ANcpLua.NET.Sdk                     |
+| Type     | console-daemon / dotnet global tool |
+| Command  | `qyl-watchdog`                      |
 
 ## Purpose
 
-Monitors system processes, detects anomalous CPU via EMA baselines, alerts via native notifications. Standalone — no qyl dependencies.
+Monitors system processes, detects anomalous CPU via EMA baselines, alerts via native notifications. Standalone — no qyl
+dependencies.
 
 ## Architecture
 
-| Component | Purpose |
-|-----------|---------|
-| `Platform/ProcessSampler.cs` | Poll process stats (5s interval) |
-| `Detection/AnomalyAnalyzer.cs` | EMA baseline + spike detection |
-| `Detection/ProcessBaseline.cs` | Per-process EMA state |
-| `Alerting/Alerter.cs` | Notification dispatch + cooldown |
-| `Alerting/MacOsNotificationSender.cs` | osascript notifications |
+| Component                             | Purpose                          |
+|---------------------------------------|----------------------------------|
+| `Platform/ProcessSampler.cs`          | Poll process stats (5s interval) |
+| `Detection/AnomalyAnalyzer.cs`        | EMA baseline + spike detection   |
+| `Detection/ProcessBaseline.cs`        | Per-process EMA state            |
+| `Alerting/Alerter.cs`                 | Notification dispatch + cooldown |
+| `Alerting/MacOsNotificationSender.cs` | osascript notifications          |
 
 ## Algorithm
 
@@ -32,13 +33,13 @@ Monitors system processes, detects anomalous CPU via EMA baselines, alerts via n
 
 ## Config
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `QYL_WATCH_INTERVAL` | 5000 | Poll interval ms |
-| `QYL_WATCH_THRESHOLD` | 3.0 | Spike multiplier |
-| `QYL_WATCH_SUSTAINED` | 6 | Samples before alert |
-| `QYL_WATCH_COOLDOWN` | 300000 | Alert cooldown ms |
-| `QYL_WATCH_OTLP_ENDPOINT` | (none) | Optional collector URL |
+| Variable                  | Default | Purpose                |
+|---------------------------|---------|------------------------|
+| `QYL_WATCH_INTERVAL`      | 5000    | Poll interval ms       |
+| `QYL_WATCH_THRESHOLD`     | 3.0     | Spike multiplier       |
+| `QYL_WATCH_SUSTAINED`     | 6       | Samples before alert   |
+| `QYL_WATCH_COOLDOWN`      | 300000  | Alert cooldown ms      |
+| `QYL_WATCH_OTLP_ENDPOINT` | (none)  | Optional collector URL |
 
 ## Constraints
 
