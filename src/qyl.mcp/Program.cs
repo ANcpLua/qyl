@@ -85,7 +85,8 @@ builder.Services
     })
     .AddOutgoingMessageFilter(next => async (context, cancellationToken) =>
     {
-        using var activity = TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
+        using var activity =
+            TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
 
         switch (context.JsonRpcMessage)
         {
@@ -122,6 +123,7 @@ builder.Services
             {
                 activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
             }
+
             return result;
         }
         catch (Exception ex)

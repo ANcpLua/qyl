@@ -24,8 +24,9 @@ public sealed class WorkflowEngine : IAsyncDisposable
     private readonly ConcurrentDictionary<string, WorkflowExecution>
         _executions = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly IExecutionStore? _executionStore;
     private readonly Lock _executionsLock = new();
+
+    private readonly IExecutionStore? _executionStore;
     private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, CopilotWorkflow> _workflows = new(StringComparer.OrdinalIgnoreCase);
     private readonly string _workflowsDirectory;
@@ -200,8 +201,8 @@ public sealed class WorkflowEngine : IAsyncDisposable
 
         var context = new CopilotContext { Parameters = parameters, AdditionalContext = additionalContext };
 
-        int totalInputTokens = 0;
-        int totalOutputTokens = 0;
+        var totalInputTokens = 0;
+        var totalOutputTokens = 0;
         var resultBuilder = new StringBuilder();
         var success = false;
         string? error = null;

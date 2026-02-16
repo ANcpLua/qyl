@@ -28,9 +28,8 @@ public sealed class WorkspaceTools(HttpClient client)
                  """)]
     public Task<string> GetWorkspaceAsync(
         [Description("Workspace ID to look up (default: current workspace)")]
-        string? workspaceId = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? workspaceId = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = string.IsNullOrEmpty(workspaceId)
                 ? "/api/v1/workspace"
@@ -40,9 +39,11 @@ public sealed class WorkspaceTools(HttpClient client)
                 url, WorkspaceJsonContext.Default.WorkspaceDto).ConfigureAwait(false);
 
             if (workspace is null)
+            {
                 return workspaceId is not null
                     ? $"Workspace '{workspaceId}' not found."
                     : "No workspace information available.";
+            }
 
             var sb = new StringBuilder();
             sb.AppendLine($"# Workspace: {workspace.Name ?? "unnamed"}");
@@ -75,21 +76,25 @@ public sealed class WorkspaceTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
 
 internal sealed record WorkspaceDto(
-    [property: JsonPropertyName("workspace_id")] string WorkspaceId,
+    [property: JsonPropertyName("workspace_id")]
+    string WorkspaceId,
     [property: JsonPropertyName("name")] string? Name,
     [property: JsonPropertyName("owner")] string? Owner,
     [property: JsonPropertyName("plan")] string? Plan,
-    [property: JsonPropertyName("retention_days")] int RetentionDays,
+    [property: JsonPropertyName("retention_days")]
+    int RetentionDays,
     [property: JsonPropertyName("region")] string? Region,
-    [property: JsonPropertyName("created_at")] string? CreatedAt,
-    [property: JsonPropertyName("member_count")] int MemberCount,
-    [property: JsonPropertyName("storage_used_bytes")] long StorageUsedBytes);
+    [property: JsonPropertyName("created_at")]
+    string? CreatedAt,
+    [property: JsonPropertyName("member_count")]
+    int MemberCount,
+    [property: JsonPropertyName("storage_used_bytes")]
+    long StorageUsedBytes);
 
 #endregion
 

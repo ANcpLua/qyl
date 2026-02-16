@@ -1,7 +1,7 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// A Python application.
+///     A Python application.
 /// </summary>
 public sealed class PythonResource : QylResourceBase<PythonResource>
 {
@@ -24,24 +24,24 @@ public sealed class PythonResource : QylResourceBase<PythonResource>
     }
 
     /// <summary>
-    /// Path to the Python project directory.
+    ///     Path to the Python project directory.
     /// </summary>
     public string WorkingDirectory { get; }
 
     /// <summary>
-    /// Entry script path relative to working directory.
+    ///     Entry script path relative to working directory.
     /// </summary>
     public string ScriptPath { get; }
 
     /// <summary>
-    /// Use uv for package management.
+    ///     Use uv for package management.
     /// </summary>
     public bool UseUv { get; private set; }
 
     public override string Type => "python";
 
     /// <summary>
-    /// Use uv for fast package management.
+    ///     Use uv for fast package management.
     /// </summary>
     public PythonResource WithUv()
     {
@@ -50,7 +50,7 @@ public sealed class PythonResource : QylResourceBase<PythonResource>
     }
 
     /// <summary>
-    /// Sets command-line arguments.
+    ///     Sets command-line arguments.
     /// </summary>
     public PythonResource WithArgs(params string[] args)
     {
@@ -60,7 +60,7 @@ public sealed class PythonResource : QylResourceBase<PythonResource>
 }
 
 /// <summary>
-/// A FastAPI/Uvicorn ASGI application.
+///     A FastAPI/Uvicorn ASGI application.
 /// </summary>
 public sealed class UvicornResource : QylResourceBase<UvicornResource>
 {
@@ -84,24 +84,24 @@ public sealed class UvicornResource : QylResourceBase<UvicornResource>
     }
 
     /// <summary>
-    /// Path to the Python project directory.
+    ///     Path to the Python project directory.
     /// </summary>
     public string WorkingDirectory { get; }
 
     /// <summary>
-    /// ASGI application module (e.g., "main:app").
+    ///     ASGI application module (e.g., "main:app").
     /// </summary>
     public string AppModule { get; }
 
     /// <summary>
-    /// Use uv for package management.
+    ///     Use uv for package management.
     /// </summary>
     public bool UseUv { get; private set; }
 
     public override string Type => "uvicorn";
 
     /// <summary>
-    /// Use uv for fast package management.
+    ///     Use uv for fast package management.
     /// </summary>
     public UvicornResource WithUv()
     {

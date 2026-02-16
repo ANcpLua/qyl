@@ -53,10 +53,8 @@ internal static class DbCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
     ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken ct)
-    {
-        return AnalyzerHelpers.CouldBeInvocation(node, ct);
-    }
+    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken ct) =>
+        AnalyzerHelpers.CouldBeInvocation(node, ct);
 
     /// <summary>
     ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.

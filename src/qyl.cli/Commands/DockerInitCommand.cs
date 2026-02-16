@@ -5,7 +5,7 @@ using Spectre.Console;
 namespace qyl.cli.Commands;
 
 /// <summary>
-/// Adds qyl collector service to a Docker Compose file.
+///     Adds qyl collector service to a Docker Compose file.
 /// </summary>
 public static class DockerInitCommand
 {

@@ -16,10 +16,10 @@ internal static class TopologyMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT service_name, COUNT(*) as span_count
-                FROM spans WHERE service_name IS NOT NULL
-                GROUP BY service_name ORDER BY span_count DESC LIMIT 20
-                """;
+                              SELECT service_name, COUNT(*) as span_count
+                              FROM spans WHERE service_name IS NOT NULL
+                              GROUP BY service_name ORDER BY span_count DESC LIMIT 20
+                              """;
 
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             var services = new List<string>();
@@ -40,13 +40,13 @@ internal static class TopologyMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT gen_ai_request_model, gen_ai_provider_name,
-                       COUNT(*) as call_count,
-                       ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct
-                FROM spans WHERE gen_ai_request_model IS NOT NULL
-                GROUP BY gen_ai_request_model, gen_ai_provider_name
-                ORDER BY call_count DESC LIMIT 10
-                """;
+                              SELECT gen_ai_request_model, gen_ai_provider_name,
+                                     COUNT(*) as call_count,
+                                     ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 1) as pct
+                              FROM spans WHERE gen_ai_request_model IS NOT NULL
+                              GROUP BY gen_ai_request_model, gen_ai_provider_name
+                              ORDER BY call_count DESC LIMIT 10
+                              """;
 
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             var models = new List<string>();
@@ -66,10 +66,10 @@ internal static class TopologyMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT service_name, status_message, COUNT(*) as error_count
-                FROM spans WHERE status_code = 2 AND status_message IS NOT NULL
-                GROUP BY service_name, status_message ORDER BY error_count DESC LIMIT 5
-                """;
+                              SELECT service_name, status_message, COUNT(*) as error_count
+                              FROM spans WHERE status_code = 2 AND status_message IS NOT NULL
+                              GROUP BY service_name, status_message ORDER BY error_count DESC LIMIT 5
+                              """;
 
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             var hasErrors = false;

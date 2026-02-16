@@ -27,12 +27,10 @@ public sealed class GenAiTools(HttpClient client)
                  Returns: Request count, input/output tokens, total cost USD
                  """)]
     public Task<string> GetGenAiStatsAsync(
-        [Description("Filter by session ID")]
-        string? sessionId = null,
+        [Description("Filter by session ID")] string? sessionId = null,
         [Description("Time window in hours (default: 24)")]
-        int hours = 24)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int hours = 24) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/genai/stats?hours={hours}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -62,7 +60,6 @@ public sealed class GenAiTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.list_genai_spans")]
     [Description("""
@@ -89,12 +86,10 @@ public sealed class GenAiTools(HttpClient client)
         string? model = null,
         [Description("Filter by status: 'ok' or 'error'")]
         string? status = null,
-        [Description("Filter by session ID")]
-        string? sessionId = null,
+        [Description("Filter by session ID")] string? sessionId = null,
         [Description("Maximum spans to return (default: 50)")]
-        int limit = 50)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int limit = 50) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/genai/spans?limit={limit}";
             if (!string.IsNullOrEmpty(provider))
@@ -143,7 +138,6 @@ public sealed class GenAiTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.list_models")]
     [Description("""
@@ -156,9 +150,8 @@ public sealed class GenAiTools(HttpClient client)
                  """)]
     public Task<string> ListModelsAsync(
         [Description("Time window in hours (default: 24)")]
-        int hours = 24)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int hours = 24) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<ModelUsageResponse>(
                 $"/api/v1/genai/models?hours={hours}",
@@ -175,7 +168,8 @@ public sealed class GenAiTools(HttpClient client)
 
             foreach (var model in response.Models.OrderByDescending(static m => m.TotalCostUsd))
             {
-                sb.AppendLine($"| {model.ModelName} | {model.RequestCount:N0} | {model.TotalInputTokens:N0} | {model.TotalOutputTokens:N0} | ${model.TotalCostUsd:F4} |");
+                sb.AppendLine(
+                    $"| {model.ModelName} | {model.RequestCount:N0} | {model.TotalInputTokens:N0} | {model.TotalOutputTokens:N0} | ${model.TotalCostUsd:F4} |");
             }
 
             sb.AppendLine();
@@ -183,7 +177,6 @@ public sealed class GenAiTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_token_timeseries")]
     [Description("""
@@ -202,9 +195,8 @@ public sealed class GenAiTools(HttpClient client)
         [Description("Time window in hours (default: 24)")]
         int hours = 24,
         [Description("Aggregation interval: 'hour' or 'day'")]
-        string interval = "hour")
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string interval = "hour") =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
                 $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
@@ -223,61 +215,88 @@ public sealed class GenAiTools(HttpClient client)
             {
                 var time = DateTimeOffset.FromUnixTimeMilliseconds(point.TimestampMs);
                 var timeStr = interval == "day" ? time.ToString("MM-dd") : time.ToString("HH:mm");
-                sb.AppendLine($"| {timeStr} | {point.InputTokens:N0} | {point.OutputTokens:N0} | ${point.CostUsd:F4} |");
+                sb.AppendLine(
+                    $"| {timeStr} | {point.InputTokens:N0} | {point.OutputTokens:N0} | ${point.CostUsd:F4} |");
             }
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
 
 internal sealed record GenAiStatsDto(
-    [property: JsonPropertyName("request_count")] int RequestCount,
-    [property: JsonPropertyName("total_input_tokens")] long TotalInputTokens,
-    [property: JsonPropertyName("total_output_tokens")] long TotalOutputTokens,
-    [property: JsonPropertyName("total_cost_usd")] double TotalCostUsd,
-    [property: JsonPropertyName("avg_latency_ms")] double AvgLatencyMs,
-    [property: JsonPropertyName("error_count")] int ErrorCount);
+    [property: JsonPropertyName("request_count")]
+    int RequestCount,
+    [property: JsonPropertyName("total_input_tokens")]
+    long TotalInputTokens,
+    [property: JsonPropertyName("total_output_tokens")]
+    long TotalOutputTokens,
+    [property: JsonPropertyName("total_cost_usd")]
+    double TotalCostUsd,
+    [property: JsonPropertyName("avg_latency_ms")]
+    double AvgLatencyMs,
+    [property: JsonPropertyName("error_count")]
+    int ErrorCount);
 
 internal sealed record GenAiSpansResponse(
     [property: JsonPropertyName("spans")] List<GenAiSpanDto>? Spans,
     [property: JsonPropertyName("total")] int Total);
 
 internal sealed record GenAiSpanDto(
-    [property: JsonPropertyName("trace_id")] string TraceId,
-    [property: JsonPropertyName("span_id")] string SpanId,
+    [property: JsonPropertyName("trace_id")]
+    string TraceId,
+    [property: JsonPropertyName("span_id")]
+    string SpanId,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("start_time_unix_nano")] long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")] long DurationNs,
-    [property: JsonPropertyName("status_code")] int StatusCode,
-    [property: JsonPropertyName("status_message")] string? StatusMessage,
-    [property: JsonPropertyName("gen_ai_provider_name")] string? GenAiProviderName,
-    [property: JsonPropertyName("gen_ai_request_model")] string? GenAiRequestModel,
-    [property: JsonPropertyName("gen_ai_input_tokens")] long? GenAiInputTokens,
-    [property: JsonPropertyName("gen_ai_output_tokens")] long? GenAiOutputTokens,
-    [property: JsonPropertyName("gen_ai_cost_usd")] double? GenAiCostUsd);
+    [property: JsonPropertyName("start_time_unix_nano")]
+    long StartTimeUnixNano,
+    [property: JsonPropertyName("duration_ns")]
+    long DurationNs,
+    [property: JsonPropertyName("status_code")]
+    int StatusCode,
+    [property: JsonPropertyName("status_message")]
+    string? StatusMessage,
+    [property: JsonPropertyName("gen_ai_provider_name")]
+    string? GenAiProviderName,
+    [property: JsonPropertyName("gen_ai_request_model")]
+    string? GenAiRequestModel,
+    [property: JsonPropertyName("gen_ai_input_tokens")]
+    long? GenAiInputTokens,
+    [property: JsonPropertyName("gen_ai_output_tokens")]
+    long? GenAiOutputTokens,
+    [property: JsonPropertyName("gen_ai_cost_usd")]
+    double? GenAiCostUsd);
 
 internal sealed record ModelUsageResponse(
     [property: JsonPropertyName("models")] List<ModelUsageDto>? Models);
 
 internal sealed record ModelUsageDto(
-    [property: JsonPropertyName("model_name")] string ModelName,
-    [property: JsonPropertyName("provider")] string? Provider,
-    [property: JsonPropertyName("request_count")] int RequestCount,
-    [property: JsonPropertyName("total_input_tokens")] long TotalInputTokens,
-    [property: JsonPropertyName("total_output_tokens")] long TotalOutputTokens,
-    [property: JsonPropertyName("total_cost_usd")] double TotalCostUsd);
+    [property: JsonPropertyName("model_name")]
+    string ModelName,
+    [property: JsonPropertyName("provider")]
+    string? Provider,
+    [property: JsonPropertyName("request_count")]
+    int RequestCount,
+    [property: JsonPropertyName("total_input_tokens")]
+    long TotalInputTokens,
+    [property: JsonPropertyName("total_output_tokens")]
+    long TotalOutputTokens,
+    [property: JsonPropertyName("total_cost_usd")]
+    double TotalCostUsd);
 
 internal sealed record TokenTimeseriesResponse(
     [property: JsonPropertyName("data")] List<TokenTimeseriesPoint>? Data);
 
 internal sealed record TokenTimeseriesPoint(
-    [property: JsonPropertyName("timestamp_ms")] long TimestampMs,
-    [property: JsonPropertyName("input_tokens")] long InputTokens,
-    [property: JsonPropertyName("output_tokens")] long OutputTokens,
-    [property: JsonPropertyName("cost_usd")] double CostUsd);
+    [property: JsonPropertyName("timestamp_ms")]
+    long TimestampMs,
+    [property: JsonPropertyName("input_tokens")]
+    long InputTokens,
+    [property: JsonPropertyName("output_tokens")]
+    long OutputTokens,
+    [property: JsonPropertyName("cost_usd")]
+    double CostUsd);
 
 #endregion
 

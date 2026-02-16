@@ -13,9 +13,9 @@ internal static class AlertsMaterializer
         sb.AppendLine("## Known Issues (auto-detected)");
 
         var now = timeProvider.GetUtcNow();
-        var oneHourAgoNanos = (decimal)((ulong)(now.AddHours(-1).ToUnixTimeMilliseconds() * 1_000_000));
-        var twoHoursAgoNanos = (decimal)((ulong)(now.AddHours(-2).ToUnixTimeMilliseconds() * 1_000_000));
-        var twentyFourHoursAgoNanos = (decimal)((ulong)(now.AddHours(-24).ToUnixTimeMilliseconds() * 1_000_000));
+        var oneHourAgoNanos = (decimal)(ulong)(now.AddHours(-1).ToUnixTimeMilliseconds() * 1_000_000);
+        var twoHoursAgoNanos = (decimal)(ulong)(now.AddHours(-2).ToUnixTimeMilliseconds() * 1_000_000);
+        var twentyFourHoursAgoNanos = (decimal)(ulong)(now.AddHours(-24).ToUnixTimeMilliseconds() * 1_000_000);
 
         var hasAlerts = false;
 
@@ -23,12 +23,12 @@ internal static class AlertsMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT service_name,
-                       SUM(CASE WHEN start_time_unix_nano >= $1 THEN 1 ELSE 0 END) as this_hr,
-                       SUM(CASE WHEN start_time_unix_nano < $1 THEN 1 ELSE 0 END) as prev_hr
-                FROM spans WHERE status_code = 2 AND start_time_unix_nano >= $2
-                GROUP BY service_name HAVING this_hr > prev_hr * 2 AND this_hr > 5
-                """;
+                              SELECT service_name,
+                                     SUM(CASE WHEN start_time_unix_nano >= $1 THEN 1 ELSE 0 END) as this_hr,
+                                     SUM(CASE WHEN start_time_unix_nano < $1 THEN 1 ELSE 0 END) as prev_hr
+                              FROM spans WHERE status_code = 2 AND start_time_unix_nano >= $2
+                              GROUP BY service_name HAVING this_hr > prev_hr * 2 AND this_hr > 5
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = oneHourAgoNanos });
             cmd.Parameters.Add(new DuckDBParameter { Value = twoHoursAgoNanos });
 
@@ -39,7 +39,7 @@ internal static class AlertsMaterializer
                 var service = reader.Col(0).AsString ?? "unknown";
                 var thisHr = reader.Col(1).GetInt64(0);
                 var prevHr = reader.Col(2).GetInt64(0);
-                var changePct = prevHr > 0 ? ((thisHr - prevHr) * 100 / prevHr) : 100;
+                var changePct = prevHr > 0 ? (thisHr - prevHr) * 100 / prevHr : 100;
                 sb.AppendLine($"- [ERROR SPIKE] {service}: {thisHr} errors/hr (was {prevHr}/hr, +{changePct}%)");
             }
         }
@@ -48,10 +48,10 @@ internal static class AlertsMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT COALESCE(SUM(CASE WHEN start_time_unix_nano >= $1 THEN gen_ai_cost_usd ELSE 0 END),0) as this_hr,
-                       COALESCE(SUM(gen_ai_cost_usd),0)/24.0 as avg_hr
-                FROM spans WHERE gen_ai_provider_name IS NOT NULL AND start_time_unix_nano >= $2
-                """;
+                              SELECT COALESCE(SUM(CASE WHEN start_time_unix_nano >= $1 THEN gen_ai_cost_usd ELSE 0 END),0) as this_hr,
+                                     COALESCE(SUM(gen_ai_cost_usd),0)/24.0 as avg_hr
+                              FROM spans WHERE gen_ai_provider_name IS NOT NULL AND start_time_unix_nano >= $2
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = oneHourAgoNanos });
             cmd.Parameters.Add(new DuckDBParameter { Value = twentyFourHoursAgoNanos });
 
@@ -64,8 +64,9 @@ internal static class AlertsMaterializer
                 if (avgHr > 0.01 && thisHr > avgHr * 1.5)
                 {
                     hasAlerts = true;
-                    var changePct = ((thisHr - avgHr) / avgHr) * 100;
-                    sb.AppendLine($"- [COST] Token spend this hour: ${thisHr:F2} vs ${avgHr:F2}/hr avg (+{changePct:F0}%)");
+                    var changePct = (thisHr - avgHr) / avgHr * 100;
+                    sb.AppendLine(
+                        $"- [COST] Token spend this hour: ${thisHr:F2} vs ${avgHr:F2}/hr avg (+{changePct:F0}%)");
                 }
             }
         }
@@ -74,11 +75,11 @@ internal static class AlertsMaterializer
         await using (var cmd = lease.Connection.CreateCommand())
         {
             cmd.CommandText = """
-                SELECT name, service_name,
-                       PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns/1e6) as p95_ms, COUNT(*) as cnt
-                FROM spans WHERE start_time_unix_nano >= $1
-                GROUP BY name, service_name HAVING p95_ms > 2000 ORDER BY p95_ms DESC LIMIT 5
-                """;
+                              SELECT name, service_name,
+                                     PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns/1e6) as p95_ms, COUNT(*) as cnt
+                              FROM spans WHERE start_time_unix_nano >= $1
+                              GROUP BY name, service_name HAVING p95_ms > 2000 ORDER BY p95_ms DESC LIMIT 5
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = oneHourAgoNanos });
 
             await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);

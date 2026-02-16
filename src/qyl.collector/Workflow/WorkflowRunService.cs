@@ -8,6 +8,17 @@ namespace qyl.collector.Workflow;
 public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<WorkflowRunService> logger)
 {
     // ==========================================================================
+    // Private Methods - SQL & Mapping
+    // ==========================================================================
+
+    private const string RunSelectSql = """
+                                        SELECT id, workflow_id, workflow_version, project_id, trigger_type,
+                                               trigger_source, input_json, output_json, status, error_message,
+                                               parent_run_id, correlation_id, started_at, completed_at,
+                                               duration_ms, created_at
+                                        FROM workflow_runs
+                                        """;
+    // ==========================================================================
     // Workflow Runs
     // ==========================================================================
 
@@ -73,11 +84,11 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            {RunSelectSql}
-            {whereClause}
-            ORDER BY created_at DESC
-            LIMIT ${paramIndex++} OFFSET ${paramIndex}
-            """;
+                           {RunSelectSql}
+                           {whereClause}
+                           ORDER BY created_at DESC
+                           LIMIT ${paramIndex++} OFFSET ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
@@ -105,14 +116,14 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, run_id, node_id, node_type, node_name, attempt,
-                   input_json, output_json, status, error_message,
-                   retry_count, max_retries, timeout_ms,
-                   started_at, completed_at, duration_ms, created_at
-            FROM workflow_nodes
-            WHERE run_id = $1
-            ORDER BY created_at ASC
-            """;
+                          SELECT id, run_id, node_id, node_type, node_name, attempt,
+                                 input_json, output_json, status, error_message,
+                                 retry_count, max_retries, timeout_ms,
+                                 started_at, completed_at, duration_ms, created_at
+                          FROM workflow_nodes
+                          WHERE run_id = $1
+                          ORDER BY created_at ASC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
         var results = new List<WorkflowNodeRow>();
@@ -150,13 +161,13 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT id, run_id, node_id, event_type, event_name,
-                   payload_json, sequence_number, source, correlation_id, timestamp
-            FROM workflow_events
-            WHERE {string.Join(" AND ", conditions)}
-            ORDER BY sequence_number ASC
-            LIMIT ${paramIndex}
-            """;
+                           SELECT id, run_id, node_id, event_type, event_name,
+                                  payload_json, sequence_number, source, correlation_id, timestamp
+                           FROM workflow_events
+                           WHERE {string.Join(" AND ", conditions)}
+                           ORDER BY sequence_number ASC
+                           LIMIT ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 5000) });
@@ -183,12 +194,12 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, run_id, node_id, checkpoint_type, state_json,
-                   sequence_number, created_at
-            FROM workflow_checkpoints
-            WHERE run_id = $1
-            ORDER BY sequence_number DESC
-            """;
+                          SELECT id, run_id, node_id, checkpoint_type, state_json,
+                                 sequence_number, created_at
+                          FROM workflow_checkpoints
+                          WHERE run_id = $1
+                          ORDER BY sequence_number DESC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
         var results = new List<WorkflowCheckpointRow>();
@@ -222,9 +233,9 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE workflow_runs SET status = 'running'
-            WHERE id = $1 AND status IN ('paused', 'pending')
-            """;
+                          UPDATE workflow_runs SET status = 'running'
+                          WHERE id = $1 AND status IN ('paused', 'pending')
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
         var updated = await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
 
@@ -242,9 +253,9 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE workflow_nodes SET status = 'approved'
-            WHERE run_id = $1 AND node_id = $2 AND status = 'awaiting_approval'
-            """;
+                          UPDATE workflow_nodes SET status = 'approved'
+                          WHERE run_id = $1 AND node_id = $2 AND status = 'awaiting_approval'
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
         cmd.Parameters.Add(new DuckDBParameter { Value = nodeId });
         var updated = await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
@@ -264,27 +275,15 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            UPDATE workflow_runs SET
-                status = 'cancelled',
-                completed_at = $1
-            WHERE id = $2 AND status IN ('pending', 'running', 'paused')
-            """;
+                          UPDATE workflow_runs SET
+                              status = 'cancelled',
+                              completed_at = $1
+                          WHERE id = $2 AND status IN ('pending', 'running', 'paused')
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
         return await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false) > 0;
     }
-
-    // ==========================================================================
-    // Private Methods - SQL & Mapping
-    // ==========================================================================
-
-    private const string RunSelectSql = """
-        SELECT id, workflow_id, workflow_version, project_id, trigger_type,
-               trigger_source, input_json, output_json, status, error_message,
-               parent_run_id, correlation_id, started_at, completed_at,
-               duration_ms, created_at
-        FROM workflow_runs
-        """;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static WorkflowRunRow MapRun(IDataReader reader) =>

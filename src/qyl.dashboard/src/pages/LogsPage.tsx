@@ -18,7 +18,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
-import {CopyableText, DownloadButton, TextVisualizer, isStructuredContent} from '@/components/ui';
+import {CopyableText, DownloadButton, isStructuredContent, TextVisualizer} from '@/components/ui';
 import {formatTimestamp} from '@/hooks/use-telemetry';
 import {RingBuffer} from '@/lib/RingBuffer';
 import type {LogLevel, LogRecord} from '@/types';

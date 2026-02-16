@@ -1,30 +1,32 @@
+using System.Reflection;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
-using qyl.collector.Auth;
-using qyl.collector.Copilot;
-using qyl.collector.Grpc;
-using qyl.collector.Health;
-using qyl.collector.Insights;
-using qyl.collector.Alerting;
-using qyl.collector.Dashboards;
-using qyl.collector.Search;
-using qyl.collector.Telemetry;
-using qyl.copilot;
-using qyl.copilot.Auth;
-using System.Reflection;
-using qyl.collector.Dashboard;
-using qyl.collector.Meta;
 using qyl.collector.AgentRuns;
+using qyl.collector.Alerting;
+using qyl.collector.Auth;
 using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
-using qyl.collector.Errors;
+using qyl.collector.Copilot;
+using qyl.collector.Dashboard;
+using qyl.collector.Dashboards;
+using qyl.collector.Grpc;
+using qyl.collector.Health;
 using qyl.collector.Identity;
+using qyl.collector.Insights;
+using qyl.collector.Meta;
 using qyl.collector.Provisioning;
 using qyl.collector.SchemaControl;
-using qyl.collector.Storage;
+using qyl.collector.Search;
+using qyl.collector.Telemetry;
 using qyl.collector.Workflow;
+using qyl.copilot;
+using qyl.copilot.Auth;
+using qyl.copilot.Workflows;
 using Qyl.ServiceDefaults;
+using HealthResponse = qyl.collector.HealthResponse;
+using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -96,7 +98,7 @@ builder.Services.AddSingleton(new TokenAuthOptions
         "/v1/traces", // OTLP ingestion
         "/api/", // Dashboard API (public)
         "/assets/", // Dashboard static assets
-        "/favicon.ico", // Favicon
+        "/favicon.ico" // Favicon
     ]
 });
 builder.Services.AddSingleton<FrontendConsole>();
@@ -138,11 +140,11 @@ var ringBufferCapacity = builder.Configuration.GetValue("QYL_RINGBUFFER_CAPACITY
 builder.Services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));
 
 // Workflow execution persistence (DuckDB-backed)
-builder.Services.AddSingleton<qyl.copilot.Workflows.IExecutionStore>(static sp =>
+builder.Services.AddSingleton<IExecutionStore>(static sp =>
     new DuckDbExecutionStore(sp.GetRequiredService<DuckDbStore>()));
 
 // Copilot observability tools (backed by DuckDbStore singleton)
-builder.Services.AddSingleton<IReadOnlyList<Microsoft.Extensions.AI.AITool>>(static sp =>
+builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
 // GitHub Copilot integration (auto-detect auth, zero config)
@@ -204,6 +206,12 @@ builder.Services.AddSingleton(sp =>
 {
     var store = sp.GetRequiredService<DuckDbStore>();
     return new AnalyticsQueryService(store);
+});
+
+builder.Services.AddSingleton(sp =>
+{
+    var store = sp.GetRequiredService<DuckDbStore>();
+    return new AgentInsightsService(store);
 });
 
 var app = builder.Build();
@@ -329,11 +337,12 @@ app.MapGet("/api/v1/meta", () =>
     {
         Version = version,
         Runtime = $"dotnet/{Environment.Version}",
-        Build = new MetaBuild
-        {
-            InformationalVersion = version,
-            Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null,
-        },
+        Build =
+            new MetaBuild
+            {
+                InformationalVersion = version,
+                Commit = version.Contains('+') ? version[(version.IndexOf('+') + 1)..] : null
+            },
         Capabilities = new MetaCapabilities
         {
             Tracing = true,
@@ -341,20 +350,20 @@ app.MapGet("/api/v1/meta", () =>
             Alerting = true,
             GenAi = true,
             Copilot = true,
-            EmbeddedDashboard = hasEmbeddedDashboard,
+            EmbeddedDashboard = hasEmbeddedDashboard
         },
-        Status = new MetaStatus
-        {
-            GrpcEnabled = grpcPort > 0,
-            AuthMode = otlpApiKeyOptions.IsApiKeyMode ? "api-key" : "unsecured",
-        },
+        Status =
+            new MetaStatus
+            {
+                GrpcEnabled = grpcPort > 0, AuthMode = otlpApiKeyOptions.IsApiKeyMode ? "api-key" : "unsecured"
+            },
         Links = new MetaLinks
         {
             Dashboard = hasEmbeddedDashboard ? $"http://localhost:{port}" : null,
             OtlpHttp = $"http://localhost:{port}/v1/traces",
-            OtlpGrpc = grpcPort > 0 ? $"http://localhost:{grpcPort}" : null,
+            OtlpGrpc = grpcPort > 0 ? $"http://localhost:{grpcPort}" : null
         },
-        Ports = new MetaPorts { Http = port, Grpc = grpcPort },
+        Ports = new MetaPorts { Http = port, Grpc = grpcPort }
     });
 });
 
@@ -454,7 +463,7 @@ app.MapPost("/v1/logs", async (
     try
     {
         var otlpData = await context.Request.ReadFromJsonAsync<OtlpExportLogsServiceRequest>(
-            cancellationToken: context.RequestAborted);
+            context.RequestAborted);
 
         if (otlpData?.ResourceLogs is null) return Results.BadRequest(new ErrorResponse("Invalid OTLP logs format"));
 
@@ -627,12 +636,12 @@ static Func<IServiceProvider, CancellationToken, Task<IResult>> RunHealthCheck(s
     {
         var healthService = sp.GetService<HealthCheckService>();
         if (healthService is null)
-            return Results.Ok(new qyl.collector.HealthResponse(label));
+            return Results.Ok(new HealthResponse(label));
 
         var result = await healthService.CheckHealthAsync(
             c => c.Tags.Contains(tag), ct).ConfigureAwait(false);
-        return result.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Healthy
-            ? Results.Ok(new qyl.collector.HealthResponse(label))
+        return result.Status == HealthStatus.Healthy
+            ? Results.Ok(new HealthResponse(label))
             : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
     };
 
@@ -668,6 +677,7 @@ app.MapWorkflowRunEndpoints();
 app.MapWorkflowEventEndpoints();
 app.MapAlertRuleEndpoints();
 app.MapAgentRunEndpoints();
+app.MapAgentInsightsEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {

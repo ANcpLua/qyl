@@ -1,18 +1,21 @@
 # qyl.cli - Instrumentation CLI
 
-Zero-config entry point. One command detects stack, modifies project files, adds qyl observability. Embodies the philosophy: eliminate every decision that isn't "what do I want to observe?"
+Zero-config entry point. One command detects stack, modifies project files, adds qyl observability. Embodies the
+philosophy: eliminate every decision that isn't "what do I want to observe?"
 
 ## Role in Architecture
 
-Terminal surface for onboarding. `qyl init` is the fastest path from "nothing" to "fully instrumented." Auto-detection means no configuration — the CLI figures out .NET, Docker, or Node and wires everything up. Pairs with Copilot (IDE surface) for guided setup.
+Terminal surface for onboarding. `qyl init` is the fastest path from "nothing" to "fully instrumented." Auto-detection
+means no configuration — the CLI figures out .NET, Docker, or Node and wires everything up. Pairs with Copilot (IDE
+surface) for guided setup.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | net10.0 |
-| Tool | `qyl` (dotnet tool) |
+| Property     | Value                       |
+|--------------|-----------------------------|
+| SDK          | ANcpLua.NET.Sdk             |
+| Framework    | net10.0                     |
+| Tool         | `qyl` (dotnet tool)         |
 | Dependencies | Spectre.Console, YamlDotNet |
 
 ## Usage
@@ -28,18 +31,18 @@ qyl init --collector-url http://host   # Custom collector URL
 
 ## Files
 
-| File | Purpose |
-|------|---------|
-| `Program.cs` | Entry point — command dispatch |
-| `CliArgs.cs` | CLI argument parsing |
-| `Commands/InitCommand.cs` | Auto-detect orchestrator |
-| `Commands/DotnetInitCommand.cs` | .NET project instrumentation |
-| `Commands/DockerInitCommand.cs` | Docker Compose instrumentation |
-| `Detection/StackDetector.cs` | Stack detection (csproj/compose/package.json) |
-| `Detection/CsprojEditor.cs` | Add PackageReference to csproj |
-| `Detection/ProgramCsEditor.cs` | Insert code into Program.cs |
-| `Detection/ComposeEditor.cs` | Add collector service to compose.yaml |
-| `Output/ConsoleOutput.cs` | Spectre.Console formatted output |
+| File                            | Purpose                                       |
+|---------------------------------|-----------------------------------------------|
+| `Program.cs`                    | Entry point — command dispatch                |
+| `CliArgs.cs`                    | CLI argument parsing                          |
+| `Commands/InitCommand.cs`       | Auto-detect orchestrator                      |
+| `Commands/DotnetInitCommand.cs` | .NET project instrumentation                  |
+| `Commands/DockerInitCommand.cs` | Docker Compose instrumentation                |
+| `Detection/StackDetector.cs`    | Stack detection (csproj/compose/package.json) |
+| `Detection/CsprojEditor.cs`     | Add PackageReference to csproj                |
+| `Detection/ProgramCsEditor.cs`  | Insert code into Program.cs                   |
+| `Detection/ComposeEditor.cs`    | Add collector service to compose.yaml         |
+| `Output/ConsoleOutput.cs`       | Spectre.Console formatted output              |
 
 ## Commands
 

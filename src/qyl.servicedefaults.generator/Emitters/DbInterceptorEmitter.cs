@@ -39,15 +39,13 @@ internal static class DbInterceptorEmitter
         sb.AppendLine();
     }
 
-    private static void AppendClassOpen(StringBuilder sb)
-    {
+    private static void AppendClassOpen(StringBuilder sb) =>
         sb.AppendLine("""
                       namespace Qyl.ServiceDefaults.Generator
                       {
                           file static class DbInterceptors
                           {
                       """);
-    }
 
     private static void AppendInterceptorMethods(
         StringBuilder sb,
@@ -111,8 +109,7 @@ internal static class DbInterceptorEmitter
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -124,15 +121,13 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 
     private static void EmitExecuteReader(
         StringBuilder sb,
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -143,15 +138,13 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 
     private static void EmitExecuteNonQueryAsync(
         StringBuilder sb,
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -163,15 +156,13 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 
     private static void EmitExecuteNonQuery(
         StringBuilder sb,
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -182,15 +173,13 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 
     private static void EmitExecuteScalarAsync(
         StringBuilder sb,
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -202,15 +191,13 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 
     private static void EmitExecuteScalar(
         StringBuilder sb,
         string displayLocation,
         string interceptAttribute,
         string methodName,
-        string commandType)
-    {
+        string commandType) =>
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
                                 {{interceptAttribute}}
@@ -221,5 +208,4 @@ internal static class DbInterceptorEmitter
                                 }
 
                         """);
-    }
 }

@@ -174,8 +174,60 @@ interface IQylTest : ITest, IHazSourcePaths
     [Parameter("Stop on first test failure")]
     bool? StopOnFail => TryGetValue<bool?>(() => StopOnFail);
 
-    [Parameter("Show live test output")]
-    bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
+    [Parameter("Show live test output")] bool? LiveOutput => TryGetValue<bool?>(() => LiveOutput);
+
+    Target UnitTests => d => d
+        .Description("Run unit tests only")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() =>
+        {
+            DotNetTasks.DotNetTest(s => s
+                .SetNoBuild(true)
+                .SetNoRestore(true)
+                .SetResultsDirectory(TestResultsDirectory)
+                .CombineWith(TestProjects, (ss, project) =>
+                {
+                    var mtp = MtpExtensions.Mtp()
+                        .ReportTrx($"{project.Name}.Unit.trx")
+                        .IgnoreExitCode(8)
+                        .FilterNamespace("*.Unit.*");
+
+                    if (StopOnFail == true) mtp.StopOnFail();
+                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                    var projectPath = project.Path ??
+                                      throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                    string[] unitArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    return ss.SetProcessAdditionalArguments(unitArgs);
+                }), completeOnFailure: true);
+        });
+
+    Target IntegrationTests => d => d
+        .Description("Run integration tests only")
+        .DependsOn<ICompile>(static x => x.Compile)
+        .Executes(() =>
+        {
+            EnsureTestcontainersConfigured();
+            DotNetTasks.DotNetTest(s => s
+                .SetNoBuild(true)
+                .SetNoRestore(true)
+                .SetResultsDirectory(TestResultsDirectory)
+                .CombineWith(TestProjects, (ss, project) =>
+                {
+                    var mtp = MtpExtensions.Mtp()
+                        .ReportTrx($"{project.Name}.Integration.trx")
+                        .IgnoreExitCode(8)
+                        .FilterNamespace("*.Integration.*");
+
+                    if (StopOnFail == true) mtp.StopOnFail();
+                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                    var projectPath = project.Path ??
+                                      throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                    string[] integrationArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                    return ss.SetProcessAdditionalArguments(integrationArgs);
+                }), completeOnFailure: true);
+        });
 
     // Override test project discovery (tests/ dir, not *.Tests naming)
     IEnumerable<Project> ITest.TestProjects =>
@@ -218,55 +270,4 @@ interface IQylTest : ITest, IHazSourcePaths
             Log.Information("Testcontainers: Configured for CI");
         }
     }
-
-    Target UnitTests => d => d
-        .Description("Run unit tests only")
-        .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() =>
-        {
-            DotNetTasks.DotNetTest(s => s
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetResultsDirectory(TestResultsDirectory)
-                .CombineWith(TestProjects, (ss, project) =>
-                {
-                    var mtp = MtpExtensions.Mtp()
-                        .ReportTrx($"{project.Name}.Unit.trx")
-                        .IgnoreExitCode(8)
-                        .FilterNamespace("*.Unit.*");
-
-                    if (StopOnFail == true) mtp.StopOnFail();
-                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
-
-                    var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
-                    string[] unitArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
-                    return ss.SetProcessAdditionalArguments(unitArgs);
-                }), completeOnFailure: true);
-        });
-
-    Target IntegrationTests => d => d
-        .Description("Run integration tests only")
-        .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() =>
-        {
-            EnsureTestcontainersConfigured();
-            DotNetTasks.DotNetTest(s => s
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetResultsDirectory(TestResultsDirectory)
-                .CombineWith(TestProjects, (ss, project) =>
-                {
-                    var mtp = MtpExtensions.Mtp()
-                        .ReportTrx($"{project.Name}.Integration.trx")
-                        .IgnoreExitCode(8)
-                        .FilterNamespace("*.Integration.*");
-
-                    if (StopOnFail == true) mtp.StopOnFail();
-                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
-
-                    var projectPath = project.Path ?? throw new InvalidOperationException($"Project '{project.Name}' has no path");
-                    string[] integrationArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
-                    return ss.SetProcessAdditionalArguments(integrationArgs);
-                }), completeOnFailure: true);
-        });
 }

@@ -408,14 +408,14 @@ public sealed class CodexTelemetryMapperTests
             DurationNs = 1000000000UL,
             StatusCode = 1,
             AttributesJson = """
-            {
-                "codex.model": "gpt-4o",
-                "codex.input_tokens": "100",
-                "codex.output_tokens": "200",
-                "codex.conversation_id": "conv-abc",
-                "codex.success": "true"
-            }
-            """
+                             {
+                                 "codex.model": "gpt-4o",
+                                 "codex.input_tokens": "100",
+                                 "codex.output_tokens": "200",
+                                 "codex.conversation_id": "conv-abc",
+                                 "codex.success": "true"
+                             }
+                             """
         };
 
         // Act

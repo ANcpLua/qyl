@@ -4,11 +4,11 @@ import {useQueryClient} from '@tanstack/react-query';
 import {TooltipProvider} from '@/components/ui/tooltip';
 import {Sidebar} from './Sidebar';
 import {TopBar} from './TopBar';
-import {useLiveStream, telemetryKeys} from '@/hooks/use-telemetry';
+import {telemetryKeys, useLiveStream} from '@/hooks/use-telemetry';
 import {useCopilotStatus} from '@/hooks/use-copilot';
 import {CopilotButton} from '@/components/copilot/CopilotButton';
 import {CopilotPanel} from '@/components/copilot/CopilotPanel';
-import {useNavigationShortcuts, useKeyboardShortcuts} from '@/hooks/use-keyboard-shortcuts';
+import {useKeyboardShortcuts, useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
 import {KeyboardShortcutsModal} from '@/components/KeyboardShortcutsModal';
 import type {Span} from '@/types';
 

@@ -16,6 +16,7 @@ namespace qyl.copilot.Instrumentation;
 public static class CopilotSpanRecorder
 {
     private static readonly string[] FinishReasonStop = ["stop"];
+
     /// <summary>
     ///     Records token usage on a span per OTel 1.39.
     /// </summary>
@@ -39,10 +40,8 @@ public static class CopilotSpanRecorder
     public static void RecordTimeToFirstToken(Activity? activity, double ttftSeconds)
     {
         // Record on span as event
-        activity?.AddEvent(new ActivityEvent("first_token", tags: new ActivityTagsCollection
-        {
-            { "gen_ai.client.time_to_first_token", ttftSeconds }
-        }));
+        activity?.AddEvent(new ActivityEvent("first_token",
+            tags: new ActivityTagsCollection { { "gen_ai.client.time_to_first_token", ttftSeconds } }));
 
         // Also record as metric
         CopilotMetrics.RecordTimeToFirstToken(ttftSeconds, CopilotInstrumentation.GenAiSystem);

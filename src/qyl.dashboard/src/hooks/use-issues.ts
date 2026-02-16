@@ -1,4 +1,4 @@
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 export interface Issue {
     issue_id: string;
@@ -54,13 +54,13 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 
 export const issueKeys = {
     all: ['issues'] as const,
-    list: (filters?: {status?: string; errorType?: string}) =>
+    list: (filters?: { status?: string; errorType?: string }) =>
         [...issueKeys.all, 'list', filters] as const,
     detail: (issueId: string) => [...issueKeys.all, 'detail', issueId] as const,
     events: (issueId: string) => [...issueKeys.all, 'events', issueId] as const,
 };
 
-export function useIssues(filters?: {status?: string; errorType?: string}) {
+export function useIssues(filters?: { status?: string; errorType?: string }) {
     return useQuery({
         queryKey: issueKeys.list(filters),
         queryFn: () => {
@@ -97,7 +97,7 @@ export function useIssueEvents(issueId: string) {
 export function useUpdateIssueStatus() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({issueId, status, reason}: {issueId: string; status: string; reason?: string}) =>
+        mutationFn: ({issueId, status, reason}: { issueId: string; status: string; reason?: string }) =>
             postJson<Issue>(`/api/v1/issues/${issueId}/status`, {status, reason}),
         onMutate: async ({issueId, status}) => {
             await queryClient.cancelQueries({queryKey: issueKeys.detail(issueId)});
@@ -123,7 +123,7 @@ export function useUpdateIssueStatus() {
 export function useAssignIssue() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({issueId, owner}: {issueId: string; owner: string}) =>
+        mutationFn: ({issueId, owner}: { issueId: string; owner: string }) =>
             postJson<Issue>(`/api/v1/issues/${issueId}/assign`, {owner}),
         onMutate: async ({issueId, owner}) => {
             await queryClient.cancelQueries({queryKey: issueKeys.detail(issueId)});

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace qyl.collector.Identity;
 
 /// <summary>
@@ -22,28 +24,28 @@ public static class IdentityEndpoints
     private static void MapWorkspaceRoutes(RouteGroupBuilder group)
     {
         group.MapGet("/", static async (
-            [Microsoft.AspNetCore.Mvc.FromServices] WorkspaceService service, int? limit, CancellationToken ct) =>
+            [FromServices] WorkspaceService service, int? limit, CancellationToken ct) =>
         {
             var workspaces = await service.ListWorkspacesAsync(limit ?? 50, ct);
             return Results.Ok(new { items = workspaces, total = workspaces.Count });
         });
 
         group.MapGet("/{workspaceId}", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] WorkspaceService service, CancellationToken ct) =>
+            string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var workspace = await service.GetWorkspaceAsync(workspaceId, ct);
             return workspace is null ? Results.NotFound() : Results.Ok(workspace);
         });
 
         group.MapPost("/{workspaceId}/heartbeat", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] WorkspaceService service, CancellationToken ct) =>
+            string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var found = await service.HeartbeatAsync(workspaceId, ct);
             return found ? Results.Ok(new { status = "ok" }) : Results.NotFound();
         });
 
         group.MapDelete("/{workspaceId}", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] WorkspaceService service, CancellationToken ct) =>
+            string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteWorkspaceAsync(workspaceId, ct);
             return deleted ? Results.NoContent() : Results.NotFound();
@@ -52,7 +54,7 @@ public static class IdentityEndpoints
         // --- Project sub-routes under workspace ---
 
         group.MapGet("/{workspaceId}/projects", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service,
+            string workspaceId, [FromServices] ProjectService service,
             int? limit, string? cursor, CancellationToken ct) =>
         {
             var projects = await service.ListProjectsAsync(workspaceId, limit ?? 50, cursor, ct);
@@ -62,7 +64,7 @@ public static class IdentityEndpoints
 
         group.MapPost("/{workspaceId}/projects", static async (
             string workspaceId, CreateProjectRequest request,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
                 return Results.BadRequest(new { error = "Name is required" });
@@ -75,7 +77,7 @@ public static class IdentityEndpoints
 
         group.MapGet("/{workspaceId}/projects/{projectId}", static async (
             string workspaceId, string projectId,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var project = await service.GetProjectAsync(projectId, ct);
             return project is null || project.WorkspaceId != workspaceId
@@ -85,7 +87,7 @@ public static class IdentityEndpoints
 
         group.MapDelete("/{workspaceId}/projects/{projectId}", static async (
             string workspaceId, string projectId,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var project = await service.GetProjectAsync(projectId, ct);
             if (project is null || project.WorkspaceId != workspaceId)
@@ -99,7 +101,7 @@ public static class IdentityEndpoints
 
         group.MapGet("/{workspaceId}/projects/{projectId}/environments", static async (
             string workspaceId, string projectId,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var envs = await service.ListEnvironmentsAsync(projectId, ct);
             return Results.Ok(new { items = envs, total = envs.Count });
@@ -108,7 +110,7 @@ public static class IdentityEndpoints
         group.MapPost("/{workspaceId}/projects/{projectId}/environments", static async (
             string workspaceId, string projectId,
             AddEnvironmentRequest request,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
                 return Results.BadRequest(new { error = "Name is required" });
@@ -121,7 +123,7 @@ public static class IdentityEndpoints
 
         group.MapDelete("/{workspaceId}/projects/{projectId}/environments/{environmentId}", static async (
             string workspaceId, string projectId, string environmentId,
-            [Microsoft.AspNetCore.Mvc.FromServices] ProjectService service, CancellationToken ct) =>
+            [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteEnvironmentAsync(environmentId, ct);
             return deleted ? Results.NoContent() : Results.NotFound();
@@ -135,7 +137,7 @@ public static class IdentityEndpoints
     private static void MapOnboardingRoutes(RouteGroupBuilder group)
     {
         group.MapPost("/handshake/start", static async (
-            HandshakeRequest request, [Microsoft.AspNetCore.Mvc.FromServices] HandshakeService service, CancellationToken ct) =>
+            HandshakeRequest request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.ServiceName))
                 return Results.BadRequest(new { error = "ServiceName is required" });
@@ -145,7 +147,7 @@ public static class IdentityEndpoints
         });
 
         group.MapPost("/handshake/verify", static async (
-            HandshakeVerifyRequest request, [Microsoft.AspNetCore.Mvc.FromServices] HandshakeService service, CancellationToken ct) =>
+            HandshakeVerifyRequest request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -160,7 +162,7 @@ public static class IdentityEndpoints
         });
 
         group.MapPost("/handshake/complete", static async (
-            HandshakeResponse request, [Microsoft.AspNetCore.Mvc.FromServices] HandshakeService service, CancellationToken ct) =>
+            HandshakeResponse request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });

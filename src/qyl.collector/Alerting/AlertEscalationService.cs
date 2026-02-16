@@ -6,9 +6,9 @@ namespace qyl.collector.Alerting;
 /// </summary>
 public sealed partial class AlertEscalationService
 {
-    private readonly ConcurrentDictionary<string, EscalationState> _states = new();
-    private readonly AlertNotifier _notifier;
     private readonly ILogger<AlertEscalationService> _logger;
+    private readonly AlertNotifier _notifier;
+    private readonly ConcurrentDictionary<string, EscalationState> _states = new();
     private readonly TimeProvider _timeProvider;
 
     public AlertEscalationService(
@@ -20,6 +20,11 @@ public sealed partial class AlertEscalationService
         _logger = logger;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
+
+    /// <summary>
+    ///     Gets the current escalation states for diagnostics.
+    /// </summary>
+    public IReadOnlyDictionary<string, EscalationState> States => _states;
 
     /// <summary>
     ///     Tracks a newly fired alert for potential escalation.
@@ -112,11 +117,6 @@ public sealed partial class AlertEscalationService
         return false;
     }
 
-    /// <summary>
-    ///     Gets the current escalation states for diagnostics.
-    /// </summary>
-    public IReadOnlyDictionary<string, EscalationState> States => _states;
-
     private static AlertPriority DeterminePriority(AlertRule rule)
     {
         // Rules with short intervals or containing "critical" are high priority
@@ -167,8 +167,10 @@ public sealed partial class AlertEscalationService
     [LoggerMessage(Level = LogLevel.Information, Message = "Alert '{RuleName}' acknowledged (id={AlertId})")]
     private static partial void LogAcknowledged(ILogger logger, string ruleName, string alertId);
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Failed to send escalation notification for '{RuleName}' at level {Level}")]
-    private static partial void LogEscalationError(ILogger logger, string ruleName, EscalationLevel level, Exception ex);
+    [LoggerMessage(Level = LogLevel.Error,
+        Message = "Failed to send escalation notification for '{RuleName}' at level {Level}")]
+    private static partial void
+        LogEscalationError(ILogger logger, string ruleName, EscalationLevel level, Exception ex);
 }
 
 // ==========================================================================

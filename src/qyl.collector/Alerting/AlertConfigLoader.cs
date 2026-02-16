@@ -8,19 +8,19 @@ namespace qyl.collector.Alerting;
 /// </summary>
 public sealed partial class AlertConfigLoader : IDisposable
 {
-    private readonly ILogger<AlertConfigLoader> _logger;
     private readonly string _configPath;
     private readonly IDeserializer _deserializer;
-    private FileSystemWatcher? _watcher;
+    private readonly ILogger<AlertConfigLoader> _logger;
     private volatile AlertConfiguration _current = new([]);
     private Action<AlertConfiguration>? _onChanged;
+    private FileSystemWatcher? _watcher;
 
     public AlertConfigLoader(ILogger<AlertConfigLoader> logger, string? configPath = null)
     {
         _logger = logger;
         _configPath = configPath
-            ?? Environment.GetEnvironmentVariable("QYL_ALERTS_PATH")
-            ?? "./qyl-alerts.yaml";
+                      ?? Environment.GetEnvironmentVariable("QYL_ALERTS_PATH")
+                      ?? "./qyl-alerts.yaml";
 
         _deserializer = new DeserializerBuilder()
             .WithNamingConvention(UnderscoredNamingConvention.Instance)
@@ -29,6 +29,8 @@ public sealed partial class AlertConfigLoader : IDisposable
     }
 
     public AlertConfiguration Current => _current;
+
+    public void Dispose() => _watcher?.Dispose();
 
     /// <summary>Registers a callback invoked when the YAML configuration is reloaded.</summary>
     public void OnConfigurationChanged(Action<AlertConfiguration> callback) =>
@@ -110,8 +112,8 @@ public sealed partial class AlertConfigLoader : IDisposable
                 continue;
 
             var channels = a.Channels?.Select(static c =>
-                new NotificationChannel(c.Type ?? "console", c.Url)).ToList()
-                ?? [new NotificationChannel("console", null)];
+                               new NotificationChannel(c.Type ?? "console", c.Url)).ToList()
+                           ?? [new NotificationChannel("console", null)];
 
             rules.Add(new AlertRule(
                 a.Name,
@@ -141,7 +143,8 @@ public sealed partial class AlertConfigLoader : IDisposable
             }
             else if (File.Exists(fullPath))
             {
-                watchDir = Path.GetDirectoryName(fullPath) ?? throw new InvalidOperationException($"Cannot determine directory for '{fullPath}'");
+                watchDir = Path.GetDirectoryName(fullPath) ??
+                           throw new InvalidOperationException($"Cannot determine directory for '{fullPath}'");
                 watchFilter = Path.GetFileName(fullPath);
             }
             else
@@ -182,42 +185,6 @@ public sealed partial class AlertConfigLoader : IDisposable
         }
     }
 
-    public void Dispose()
-    {
-        _watcher?.Dispose();
-    }
-
-    // ==========================================================================
-    // YAML DTOs — snake_case mapping
-    // ==========================================================================
-
-    private sealed class AlertConfigYaml
-    {
-        public IReadOnlyList<AlertRuleYaml>? Alerts { get; init; }
-    }
-
-    private sealed class AlertRuleYaml
-    {
-        public string Name { get; init; } = "";
-        public string? Description { get; init; }
-        public string Query { get; init; } = "";
-        public string? Condition { get; init; }
-
-        [YamlMember(Alias = "interval_seconds")]
-        public int IntervalSeconds { get; init; }
-
-        [YamlMember(Alias = "cooldown_seconds")]
-        public int CooldownSeconds { get; init; }
-
-        public IReadOnlyList<ChannelYaml>? Channels { get; init; }
-    }
-
-    private sealed class ChannelYaml
-    {
-        public string? Type { get; init; }
-        public string? Url { get; init; }
-    }
-
     // ==========================================================================
     // Log Messages
     // ==========================================================================
@@ -242,4 +209,35 @@ public sealed partial class AlertConfigLoader : IDisposable
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to reload alert config")]
     private static partial void LogConfigReloadError(ILogger logger, Exception ex);
+
+    // ==========================================================================
+    // YAML DTOs — snake_case mapping
+    // ==========================================================================
+
+    private sealed class AlertConfigYaml
+    {
+        public IReadOnlyList<AlertRuleYaml>? Alerts { get; init; }
+    }
+
+    private sealed class AlertRuleYaml
+    {
+        public string Name { get; } = "";
+        public string? Description { get; init; }
+        public string Query { get; } = "";
+        public string? Condition { get; init; }
+
+        [YamlMember(Alias = "interval_seconds")]
+        public int IntervalSeconds { get; init; }
+
+        [YamlMember(Alias = "cooldown_seconds")]
+        public int CooldownSeconds { get; init; }
+
+        public IReadOnlyList<ChannelYaml>? Channels { get; init; }
+    }
+
+    private sealed class ChannelYaml
+    {
+        public string? Type { get; init; }
+        public string? Url { get; init; }
+    }
 }

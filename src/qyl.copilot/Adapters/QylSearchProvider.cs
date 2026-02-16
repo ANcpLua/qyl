@@ -14,13 +14,13 @@ namespace qyl.copilot.Adapters;
 /// <summary>
 ///     RAG-mode search provider that queries qyl collector telemetry data.
 ///     Useful for "what happened in my last deployment?" type queries.
-///     Implements the <see cref="TextSearchProvider"/> search pattern.
+///     Implements the <see cref="TextSearchProvider" /> search pattern.
 /// </summary>
 public sealed class QylSearchProvider : IDisposable
 {
+    private readonly string _collectorBaseUrl;
     private readonly HttpClient _httpClient;
     private readonly ILogger _logger;
-    private readonly string _collectorBaseUrl;
     private bool _disposed;
 
     /// <summary>
@@ -38,6 +38,9 @@ public sealed class QylSearchProvider : IDisposable
         _logger = Guard.NotNull(logger);
         _collectorBaseUrl = collectorBaseUrl.TrimEnd('/');
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _disposed = true;
 
     /// <summary>
     ///     Searches spans matching the query text.
@@ -143,7 +146,7 @@ public sealed class QylSearchProvider : IDisposable
         var spans = await spanTask.ConfigureAwait(false);
         var logs = await logTask.ConfigureAwait(false);
 
-        var sb = new System.Text.StringBuilder();
+        var sb = new StringBuilder();
 
         if (spans.Count > 0)
         {
@@ -169,18 +172,16 @@ public sealed class QylSearchProvider : IDisposable
     }
 
     /// <summary>
-    ///     Creates a <see cref="TextSearchProviderOptions"/> configured for qyl telemetry search.
+    ///     Creates a <see cref="TextSearchProviderOptions" /> configured for qyl telemetry search.
     /// </summary>
     /// <param name="maxResults">Maximum search results per query.</param>
-    /// <returns>Options for use with <see cref="TextSearchProvider"/>.</returns>
-    public TextSearchProviderOptions CreateSearchOptions(int maxResults = 20)
-    {
-        return new TextSearchProviderOptions
+    /// <returns>Options for use with <see cref="TextSearchProvider" />.</returns>
+    public TextSearchProviderOptions CreateSearchOptions(int maxResults = 20) =>
+        new()
         {
             SearchTime = TextSearchProviderOptions.TextSearchBehavior.BeforeAIInvoke,
             RecentMessageMemoryLimit = maxResults
         };
-    }
 
     private static List<TelemetrySearchResult> ParseSpanResults(JsonElement element)
     {
@@ -238,12 +239,6 @@ public sealed class QylSearchProvider : IDisposable
         }
 
         return results;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _disposed = true;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

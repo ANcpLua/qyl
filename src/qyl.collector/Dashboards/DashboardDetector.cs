@@ -36,7 +36,7 @@ public sealed class DashboardDetector(DuckDbStore store)
         new("messaging", "Message Queues",
             "Messaging throughput, latency, and consumer lag",
             "message-square",
-            "SELECT 1 FROM spans WHERE attributes_json LIKE '%messaging.system%' LIMIT 1"),
+            "SELECT 1 FROM spans WHERE attributes_json LIKE '%messaging.system%' LIMIT 1")
     ];
 
     public async Task<IReadOnlyList<DashboardDefinition>> DetectAsync(CancellationToken ct = default)

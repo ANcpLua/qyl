@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace qyl.collector.Provisioning;
 
 /// <summary>
@@ -20,21 +22,22 @@ public static class ProvisioningEndpoints
     private static void MapProfileRoutes(RouteGroupBuilder group)
     {
         group.MapGet("/profiles", static async (
-            [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var profiles = await service.GetProfilesAsync(ct);
             return Results.Ok(new { items = profiles, total = profiles.Count });
         });
 
         group.MapGet("/profiles/{profileId}", static async (
-            string profileId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            string profileId, [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var profile = await service.GetProfileAsync(profileId, ct);
             return profile is null ? Results.NotFound() : Results.Ok(profile);
         });
 
         group.MapPost("/selections", static async (
-            GenerationSelectionRequest request, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            GenerationSelectionRequest request, [FromServices] GenerationProfileService service,
+            CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -54,7 +57,7 @@ public static class ProvisioningEndpoints
         });
 
         group.MapGet("/selections/{workspaceId}", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            string workspaceId, [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var selection = await service.GetSelectionAsync(workspaceId, ct);
             return selection is null ? Results.NotFound() : Results.Ok(selection);
@@ -68,7 +71,7 @@ public static class ProvisioningEndpoints
     private static void MapJobRoutes(RouteGroupBuilder group)
     {
         group.MapPost("/jobs", static async (
-            GenerationJobRequest request, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            GenerationJobRequest request, [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -88,14 +91,14 @@ public static class ProvisioningEndpoints
         });
 
         group.MapGet("/jobs/{jobId}", static async (
-            string jobId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            string jobId, [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var job = await service.GetJobAsync(jobId, ct);
             return job is null ? Results.NotFound() : Results.Ok(job);
         });
 
         group.MapGet("/jobs", static async (
-            string workspaceId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service,
+            string workspaceId, [FromServices] GenerationProfileService service,
             int? limit, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(workspaceId))
@@ -106,7 +109,7 @@ public static class ProvisioningEndpoints
         });
 
         group.MapPost("/jobs/{jobId}/cancel", static async (
-            string jobId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationProfileService service, CancellationToken ct) =>
+            string jobId, [FromServices] GenerationProfileService service, CancellationToken ct) =>
         {
             var cancelled = await service.CancelJobAsync(jobId, ct);
             return cancelled

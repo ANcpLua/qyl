@@ -1,6 +1,3 @@
-using System.Diagnostics;
-using System.Reflection;
-using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 
@@ -13,7 +10,8 @@ public sealed partial class PdbSourceResolver
         if (string.IsNullOrWhiteSpace(stackTrace))
             return null;
 
-        foreach (var line in stackTrace.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var line in stackTrace.Split('\n',
+                     StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var match = StackFrameRegex().Match(line);
             if (!match.Success)
@@ -33,7 +31,7 @@ public sealed partial class PdbSourceResolver
             return null;
 
         // Best-effort fallback: use current stack symbol info if available.
-        var stackTrace = new StackTrace(fNeedFileInfo: true);
+        var stackTrace = new StackTrace(true);
         foreach (var frame in stackTrace.GetFrames() ?? [])
         {
             var method = frame.GetMethod();

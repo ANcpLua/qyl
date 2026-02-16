@@ -147,7 +147,8 @@ internal static class DuckDbEmitter
         sb.AppendLine(" });");
     }
 
-    private static void EmitMapFromReader(StringBuilder sb, DuckDbTableInfo table, IReadOnlyList<DuckDbColumnInfo> columns)
+    private static void EmitMapFromReader(StringBuilder sb, DuckDbTableInfo table,
+        IReadOnlyList<DuckDbColumnInfo> columns)
     {
         sb.AppendLine("    /// <summary>");
         sb.AppendLine("    /// Maps a DbDataReader row to the type using ordinal-based access.");

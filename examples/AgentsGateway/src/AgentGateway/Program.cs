@@ -122,4 +122,7 @@ if (app.Environment.IsDevelopment()) app.MapDevUI();
 app.Run();
 
 [Description("Formats the story for publication.")]
-static string FormatStory(string title, string story) => $"**Title**: {title}\n\n{story}";
+static string FormatStory(string title, string story)
+{
+    return $"**Title**: {title}\n\n{story}";
+}

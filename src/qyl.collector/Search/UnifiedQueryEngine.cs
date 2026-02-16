@@ -5,6 +5,94 @@ namespace qyl.collector.Search;
 /// </summary>
 internal static class UnifiedQueryEngine
 {
+    // Each subquery returns: entity_type, entity_id, title, snippet, ts (as UBIGINT unix nano), score
+    // Score: 2.0 for exact name match, 1.0 for partial match in secondary columns
+
+    private const string SpanSubquery = """
+                                        SELECT
+                                            'spans' AS entity_type,
+                                            span_id AS entity_id,
+                                            name AS title,
+                                            COALESCE(service_name, '') AS snippet,
+                                            start_time_unix_nano AS ts,
+                                            CASE WHEN name ILIKE $1 ESCAPE '\\' THEN 2.0
+                                                 WHEN COALESCE(service_name, '') ILIKE $1 ESCAPE '\\' THEN 1.5
+                                                 ELSE 1.0 END AS score
+                                        FROM spans
+                                        WHERE (name ILIKE $1 ESCAPE '\\'
+                                            OR COALESCE(service_name, '') ILIKE $1 ESCAPE '\\')
+                                          AND start_time_unix_nano >= $2
+                                          AND start_time_unix_nano <= $3
+                                        """;
+
+    private const string LogSubquery = """
+                                       SELECT
+                                           'logs' AS entity_type,
+                                           log_id AS entity_id,
+                                           COALESCE(severity_text, 'LOG') AS title,
+                                           COALESCE(body, '') AS snippet,
+                                           time_unix_nano AS ts,
+                                           CASE WHEN COALESCE(body, '') ILIKE $1 ESCAPE '\\' THEN 2.0
+                                                WHEN COALESCE(service_name, '') ILIKE $1 ESCAPE '\\' THEN 1.5
+                                                ELSE 1.0 END AS score
+                                       FROM logs
+                                       WHERE (COALESCE(body, '') ILIKE $1 ESCAPE '\\'
+                                           OR COALESCE(service_name, '') ILIKE $1 ESCAPE '\\')
+                                         AND time_unix_nano >= $2
+                                         AND time_unix_nano <= $3
+                                       """;
+
+    private const string ErrorSubquery = """
+                                         SELECT
+                                             'errors' AS entity_type,
+                                             error_id AS entity_id,
+                                             COALESCE(error_type, 'Error') AS title,
+                                             COALESCE(message, '') AS snippet,
+                                             CAST(epoch_ns(last_seen) AS UBIGINT) AS ts,
+                                             CASE WHEN COALESCE(message, '') ILIKE $1 ESCAPE '\\' THEN 2.0
+                                                  WHEN COALESCE(error_type, '') ILIKE $1 ESCAPE '\\' THEN 1.5
+                                                  ELSE 1.0 END AS score
+                                         FROM errors
+                                         WHERE (COALESCE(message, '') ILIKE $1 ESCAPE '\\'
+                                             OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\\')
+                                           AND CAST(epoch_ns(last_seen) AS UBIGINT) >= $2
+                                           AND CAST(epoch_ns(last_seen) AS UBIGINT) <= $3
+                                         """;
+
+    private const string AgentRunSubquery = """
+                                            SELECT
+                                                'agent_runs' AS entity_type,
+                                                run_id AS entity_id,
+                                                COALESCE(agent_name, 'Agent') AS title,
+                                                COALESCE(model, '') AS snippet,
+                                                COALESCE(start_time, 0) AS ts,
+                                                CASE WHEN COALESCE(agent_name, '') ILIKE $1 ESCAPE '\\' THEN 2.0
+                                                     WHEN COALESCE(model, '') ILIKE $1 ESCAPE '\\' THEN 1.5
+                                                     ELSE 1.0 END AS score
+                                            FROM agent_runs
+                                            WHERE (COALESCE(agent_name, '') ILIKE $1 ESCAPE '\\'
+                                                OR COALESCE(model, '') ILIKE $1 ESCAPE '\\')
+                                              AND COALESCE(start_time, 0) >= $2
+                                              AND COALESCE(start_time, 0) <= $3
+                                            """;
+
+    private const string WorkflowSubquery = """
+                                            SELECT
+                                                'workflows' AS entity_type,
+                                                execution_id AS entity_id,
+                                                COALESCE(workflow_name, 'Workflow') AS title,
+                                                COALESCE(status, '') AS snippet,
+                                                COALESCE(start_time_unix_nano, 0) AS ts,
+                                                CASE WHEN COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\\' THEN 2.0
+                                                     WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\\' THEN 1.5
+                                                     ELSE 1.0 END AS score
+                                            FROM workflow_executions
+                                            WHERE (COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\\'
+                                                OR COALESCE(status, '') ILIKE $1 ESCAPE '\\')
+                                              AND COALESCE(start_time_unix_nano, 0) >= $2
+                                              AND COALESCE(start_time_unix_nano, 0) <= $3
+                                            """;
+
     /// <summary>Default time window when no explicit range is specified (24 hours).</summary>
     private static readonly TimeSpan DefaultWindow = TimeSpan.FromHours(24);
 
@@ -24,9 +112,7 @@ internal static class UnifiedQueryEngine
 
         var parameters = new List<DuckDBParameter>
         {
-            new() { Value = searchText },
-            new() { Value = (decimal)startNano },
-            new() { Value = (decimal)endNano }
+            new() { Value = searchText }, new() { Value = (decimal)startNano }, new() { Value = (decimal)endNano }
         };
 
         // $1 = search text, $2 = start nano, $3 = end nano
@@ -50,13 +136,13 @@ internal static class UnifiedQueryEngine
         var unionSql = string.Join("\nUNION ALL\n", unions);
 
         var sql = $"""
-            SELECT entity_type, entity_id, title, snippet, ts, score
-            FROM (
-            {unionSql}
-            ) AS combined
-            ORDER BY score DESC, ts DESC
-            LIMIT {clampedLimit}
-            """;
+                   SELECT entity_type, entity_id, title, snippet, ts, score
+                   FROM (
+                   {unionSql}
+                   ) AS combined
+                   ORDER BY score DESC, ts DESC
+                   LIMIT {clampedLimit}
+                   """;
 
         return (sql, parameters);
     }
@@ -91,92 +177,4 @@ internal static class UnifiedQueryEngine
 
     private static string EscapeLike(string input) =>
         input.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
-
-    // Each subquery returns: entity_type, entity_id, title, snippet, ts (as UBIGINT unix nano), score
-    // Score: 2.0 for exact name match, 1.0 for partial match in secondary columns
-
-    private const string SpanSubquery = """
-        SELECT
-            'spans' AS entity_type,
-            span_id AS entity_id,
-            name AS title,
-            COALESCE(service_name, '') AS snippet,
-            start_time_unix_nano AS ts,
-            CASE WHEN name ILIKE $1 ESCAPE '\\' THEN 2.0
-                 WHEN COALESCE(service_name, '') ILIKE $1 ESCAPE '\\' THEN 1.5
-                 ELSE 1.0 END AS score
-        FROM spans
-        WHERE (name ILIKE $1 ESCAPE '\\'
-            OR COALESCE(service_name, '') ILIKE $1 ESCAPE '\\')
-          AND start_time_unix_nano >= $2
-          AND start_time_unix_nano <= $3
-        """;
-
-    private const string LogSubquery = """
-        SELECT
-            'logs' AS entity_type,
-            log_id AS entity_id,
-            COALESCE(severity_text, 'LOG') AS title,
-            COALESCE(body, '') AS snippet,
-            time_unix_nano AS ts,
-            CASE WHEN COALESCE(body, '') ILIKE $1 ESCAPE '\\' THEN 2.0
-                 WHEN COALESCE(service_name, '') ILIKE $1 ESCAPE '\\' THEN 1.5
-                 ELSE 1.0 END AS score
-        FROM logs
-        WHERE (COALESCE(body, '') ILIKE $1 ESCAPE '\\'
-            OR COALESCE(service_name, '') ILIKE $1 ESCAPE '\\')
-          AND time_unix_nano >= $2
-          AND time_unix_nano <= $3
-        """;
-
-    private const string ErrorSubquery = """
-        SELECT
-            'errors' AS entity_type,
-            error_id AS entity_id,
-            COALESCE(error_type, 'Error') AS title,
-            COALESCE(message, '') AS snippet,
-            CAST(epoch_ns(last_seen) AS UBIGINT) AS ts,
-            CASE WHEN COALESCE(message, '') ILIKE $1 ESCAPE '\\' THEN 2.0
-                 WHEN COALESCE(error_type, '') ILIKE $1 ESCAPE '\\' THEN 1.5
-                 ELSE 1.0 END AS score
-        FROM errors
-        WHERE (COALESCE(message, '') ILIKE $1 ESCAPE '\\'
-            OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\\')
-          AND CAST(epoch_ns(last_seen) AS UBIGINT) >= $2
-          AND CAST(epoch_ns(last_seen) AS UBIGINT) <= $3
-        """;
-
-    private const string AgentRunSubquery = """
-        SELECT
-            'agent_runs' AS entity_type,
-            run_id AS entity_id,
-            COALESCE(agent_name, 'Agent') AS title,
-            COALESCE(model, '') AS snippet,
-            COALESCE(start_time, 0) AS ts,
-            CASE WHEN COALESCE(agent_name, '') ILIKE $1 ESCAPE '\\' THEN 2.0
-                 WHEN COALESCE(model, '') ILIKE $1 ESCAPE '\\' THEN 1.5
-                 ELSE 1.0 END AS score
-        FROM agent_runs
-        WHERE (COALESCE(agent_name, '') ILIKE $1 ESCAPE '\\'
-            OR COALESCE(model, '') ILIKE $1 ESCAPE '\\')
-          AND COALESCE(start_time, 0) >= $2
-          AND COALESCE(start_time, 0) <= $3
-        """;
-
-    private const string WorkflowSubquery = """
-        SELECT
-            'workflows' AS entity_type,
-            execution_id AS entity_id,
-            COALESCE(workflow_name, 'Workflow') AS title,
-            COALESCE(status, '') AS snippet,
-            COALESCE(start_time_unix_nano, 0) AS ts,
-            CASE WHEN COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\\' THEN 2.0
-                 WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\\' THEN 1.5
-                 ELSE 1.0 END AS score
-        FROM workflow_executions
-        WHERE (COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\\'
-            OR COALESCE(status, '') ILIKE $1 ESCAPE '\\')
-          AND COALESCE(start_time_unix_nano, 0) >= $2
-          AND COALESCE(start_time_unix_nano, 0) <= $3
-        """;
 }

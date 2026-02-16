@@ -77,11 +77,57 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                              """;
 
     // ==========================================================================
+    // Error Operations
+    // ==========================================================================
+
+    private const string ErrorUpsertSql = """
+                                          INSERT INTO errors
+                                              (error_id, error_type, message, category, fingerprint,
+                                               first_seen, last_seen, occurrence_count,
+                                               affected_user_ids, affected_services, status,
+                                               assigned_to, issue_url, sample_traces)
+                                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                                          ON CONFLICT (fingerprint) DO UPDATE SET
+                                              last_seen = EXCLUDED.last_seen,
+                                              occurrence_count = errors.occurrence_count + 1,
+                                              affected_user_ids = CASE
+                                                  WHEN EXCLUDED.affected_user_ids IS NULL THEN errors.affected_user_ids
+                                                  WHEN errors.affected_user_ids IS NULL THEN EXCLUDED.affected_user_ids
+                                                  WHEN ',' || errors.affected_user_ids || ',' LIKE '%,' || EXCLUDED.affected_user_ids || ',%'
+                                                      THEN errors.affected_user_ids
+                                                  ELSE errors.affected_user_ids || ',' || EXCLUDED.affected_user_ids
+                                              END,
+                                              affected_services = CASE
+                                                  WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
+                                                  WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
+                                                  WHEN ',' || errors.affected_services || ',' LIKE '%,' || EXCLUDED.affected_services || ',%'
+                                                      THEN errors.affected_services
+                                                  ELSE errors.affected_services || ',' || EXCLUDED.affected_services
+                                              END,
+                                              sample_traces = CASE
+                                                  WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
+                                                  WHEN EXCLUDED.sample_traces IS NULL THEN errors.sample_traces
+                                                  WHEN ',' || errors.sample_traces || ',' LIKE '%,' || EXCLUDED.sample_traces || ',%'
+                                                      THEN errors.sample_traces
+                                                  WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
+                                                      THEN errors.sample_traces
+                                                  ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
+                                              END
+                                          """;
+
+    // ==========================================================================
+    // Private Methods - Multi-Row Insert SQL Builders (with caching)
+    // ==========================================================================
+
+    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
+    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
+
+    // ==========================================================================
     // Instance Fields
     // ==========================================================================
 
     private readonly CancellationTokenSource _cts = new();
-    private readonly string _databasePath;
     private readonly Counter<long> _droppedJobs;
     private readonly Counter<long> _droppedSpans;
     private readonly bool _isInMemory;
@@ -107,7 +153,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         int maxConcurrentReads = 8,
         int maxRetainedReadConnections = 16)
     {
-        _databasePath = databasePath;
+        DatabasePath = databasePath;
         _isInMemory = databasePath == ":memory:";
         Connection = new DuckDBConnection($"DataSource={databasePath}");
         Connection.Open();
@@ -140,7 +186,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     /// </summary>
     public DuckDBConnection Connection { get; }
 
-    internal string DatabasePath => _databasePath;
+    internal string DatabasePath { get; }
 
     // ==========================================================================
     // Lifecycle
@@ -201,7 +247,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     ///     Executes a write operation through the serialized write channel.
     ///     Use this for any INSERT/UPDATE/DELETE that must go through the single writer.
     /// </summary>
-    public async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation, CancellationToken ct = default)
+    public async Task<T> ExecuteWriteAsync<T>(Func<DuckDBConnection, CancellationToken, ValueTask<T>> operation,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         var job = new WriteJob<T>(operation);
@@ -212,7 +259,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     /// <summary>
     ///     Executes a write operation through the serialized write channel (no return value).
     /// </summary>
-    public async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation, CancellationToken ct = default)
+    public async Task ExecuteWriteAsync(Func<DuckDBConnection, CancellationToken, ValueTask> operation,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         var job = new WriteJob<int>(async (con, token) =>
@@ -456,7 +504,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             try
             {
-                var fileInfo = new FileInfo(_databasePath);
+                var fileInfo = new FileInfo(DatabasePath);
                 if (fileInfo.Exists)
                     return fileInfo.Length;
             }
@@ -531,13 +579,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                DELETE FROM spans
-                WHERE span_id IN (
-                    SELECT span_id FROM spans
-                    ORDER BY start_time_unix_nano ASC
-                    LIMIT $1
-                )
-                """;
+                              DELETE FROM spans
+                              WHERE span_id IN (
+                                  SELECT span_id FROM spans
+                                  ORDER BY start_time_unix_nano ASC
+                                  LIMIT $1
+                              )
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = count });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -553,13 +601,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                DELETE FROM logs
-                WHERE rowid IN (
-                    SELECT rowid FROM logs
-                    ORDER BY time_unix_nano ASC
-                    LIMIT $1
-                )
-                """;
+                              DELETE FROM logs
+                              WHERE rowid IN (
+                                  SELECT rowid FROM logs
+                                  ORDER BY time_unix_nano ASC
+                                  LIMIT $1
+                              )
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = count });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -649,12 +697,12 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO workflow_executions
-                    (execution_id, workflow_name, status, started_at, completed_at,
-                     result, error, parameters_json, input_tokens, output_tokens, trace_id)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                ON CONFLICT (execution_id) DO NOTHING
-                """;
+                              INSERT INTO workflow_executions
+                                  (execution_id, workflow_name, status, started_at, completed_at,
+                                   result, error, parameters_json, input_tokens, output_tokens, trace_id)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                              ON CONFLICT (execution_id) DO NOTHING
+                              """;
             AddExecutionInsertParameters(cmd, execution);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -673,16 +721,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE workflow_executions SET
-                    status = $1,
-                    completed_at = $2,
-                    result = $3,
-                    error = $4,
-                    input_tokens = $5,
-                    output_tokens = $6,
-                    trace_id = $7
-                WHERE execution_id = $8
-                """;
+                              UPDATE workflow_executions SET
+                                  status = $1,
+                                  completed_at = $2,
+                                  result = $3,
+                                  error = $4,
+                                  input_tokens = $5,
+                                  output_tokens = $6,
+                                  trace_id = $7
+                              WHERE execution_id = $8
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = execution.Status.ToString().ToLowerInvariant() });
             cmd.Parameters.Add(new DuckDBParameter
             {
@@ -713,11 +761,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT execution_id, workflow_name, status, started_at, completed_at,
-                   result, error, parameters_json, input_tokens, output_tokens, trace_id
-            FROM workflow_executions
-            WHERE execution_id = $1
-            """;
+                          SELECT execution_id, workflow_name, status, started_at, completed_at,
+                                 result, error, parameters_json, input_tokens, output_tokens, trace_id
+                          FROM workflow_executions
+                          WHERE execution_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -748,13 +796,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT execution_id, workflow_name, status, started_at, completed_at,
-                   result, error, parameters_json, input_tokens, output_tokens, trace_id
-            FROM workflow_executions
-            {qb.WhereClause}
-            ORDER BY started_at DESC
-            LIMIT {qb.NextParam}
-            """;
+                           SELECT execution_id, workflow_name, status, started_at, completed_at,
+                                  result, error, parameters_json, input_tokens, output_tokens, trace_id
+                           FROM workflow_executions
+                           {qb.WhereClause}
+                           ORDER BY started_at DESC
+                           LIMIT {qb.NextParam}
+                           """;
 
         qb.ApplyTo(cmd);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
@@ -806,7 +854,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             Id = reader.GetString(0),
             WorkflowName = reader.GetString(1),
-            Status = Enum.TryParse<WorkflowStatus>(reader.GetString(2), true, out var s) ? s : WorkflowStatus.Pending,
+            Status =
+                Enum.TryParse<WorkflowStatus>(reader.GetString(2), true, out var s) ? s : WorkflowStatus.Pending,
             StartedAt = new DateTimeOffset(reader.GetDateTime(3), TimeSpan.Zero),
             CompletedAt = reader.Col(4).AsDateTimeOffset,
             Result = reader.Col(5).AsString,
@@ -849,11 +898,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         var rows = new List<InsightRow>();
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT tier, content_markdown, content_hash, materialized_at,
-                   span_count_at_materialization, duration_ms
-            FROM materialized_insights
-            ORDER BY tier
-            """;
+                          SELECT tier, content_markdown, content_hash, materialized_at,
+                                 span_count_at_materialization, duration_ms
+                          FROM materialized_insights
+                          ORDER BY tier
+                          """;
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
@@ -886,16 +935,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO materialized_insights
-                    (tier, content_markdown, content_hash, materialized_at, span_count_at_materialization, duration_ms)
-                VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)
-                ON CONFLICT (tier) DO UPDATE SET
-                    content_markdown = EXCLUDED.content_markdown,
-                    content_hash = EXCLUDED.content_hash,
-                    materialized_at = EXCLUDED.materialized_at,
-                    span_count_at_materialization = EXCLUDED.span_count_at_materialization,
-                    duration_ms = EXCLUDED.duration_ms
-                """;
+                              INSERT INTO materialized_insights
+                                  (tier, content_markdown, content_hash, materialized_at, span_count_at_materialization, duration_ms)
+                              VALUES ($1, $2, $3, CURRENT_TIMESTAMP, $4, $5)
+                              ON CONFLICT (tier) DO UPDATE SET
+                                  content_markdown = EXCLUDED.content_markdown,
+                                  content_hash = EXCLUDED.content_hash,
+                                  materialized_at = EXCLUDED.materialized_at,
+                                  span_count_at_materialization = EXCLUDED.span_count_at_materialization,
+                                  duration_ms = EXCLUDED.duration_ms
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = tier });
             cmd.Parameters.Add(new DuckDBParameter { Value = markdown });
             cmd.Parameters.Add(new DuckDBParameter { Value = hash });
@@ -1000,45 +1049,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return logs;
     }
 
-    // ==========================================================================
-    // Error Operations
-    // ==========================================================================
-
-    private const string ErrorUpsertSql = """
-        INSERT INTO errors
-            (error_id, error_type, message, category, fingerprint,
-             first_seen, last_seen, occurrence_count,
-             affected_user_ids, affected_services, status,
-             assigned_to, issue_url, sample_traces)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-        ON CONFLICT (fingerprint) DO UPDATE SET
-            last_seen = EXCLUDED.last_seen,
-            occurrence_count = errors.occurrence_count + 1,
-            affected_user_ids = CASE
-                WHEN EXCLUDED.affected_user_ids IS NULL THEN errors.affected_user_ids
-                WHEN errors.affected_user_ids IS NULL THEN EXCLUDED.affected_user_ids
-                WHEN ',' || errors.affected_user_ids || ',' LIKE '%,' || EXCLUDED.affected_user_ids || ',%'
-                    THEN errors.affected_user_ids
-                ELSE errors.affected_user_ids || ',' || EXCLUDED.affected_user_ids
-            END,
-            affected_services = CASE
-                WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
-                WHEN EXCLUDED.affected_services IS NULL THEN errors.affected_services
-                WHEN ',' || errors.affected_services || ',' LIKE '%,' || EXCLUDED.affected_services || ',%'
-                    THEN errors.affected_services
-                ELSE errors.affected_services || ',' || EXCLUDED.affected_services
-            END,
-            sample_traces = CASE
-                WHEN errors.sample_traces IS NULL THEN EXCLUDED.sample_traces
-                WHEN EXCLUDED.sample_traces IS NULL THEN errors.sample_traces
-                WHEN ',' || errors.sample_traces || ',' LIKE '%,' || EXCLUDED.sample_traces || ',%'
-                    THEN errors.sample_traces
-                WHEN length(errors.sample_traces) - length(replace(errors.sample_traces, ',', '')) >= 9
-                    THEN errors.sample_traces
-                ELSE errors.sample_traces || ',' || EXCLUDED.sample_traces
-            END
-        """;
-
     private static void AddErrorUpsertParameters(DuckDBCommand cmd, ErrorEvent error, string errorId, DateTime now)
     {
         cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
@@ -1138,29 +1148,21 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT category, SUM(occurrence_count) as total
-            FROM errors
-            GROUP BY category
-            ORDER BY total DESC
-            """;
+                          SELECT category, SUM(occurrence_count) as total
+                          FROM errors
+                          GROUP BY category
+                          ORDER BY total DESC
+                          """;
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             var count = reader.GetInt64(1);
             totalCount += count;
-            byCategory.Add(new ErrorCategoryStat
-            {
-                Category = reader.GetString(0),
-                Count = count
-            });
+            byCategory.Add(new ErrorCategoryStat { Category = reader.GetString(0), Count = count });
         }
 
-        return new ErrorStats
-        {
-            TotalCount = totalCount,
-            ByCategory = byCategory
-        };
+        return new ErrorStats { TotalCount = totalCount, ByCategory = byCategory };
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1219,11 +1221,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT error_id, error_type, message, category, fingerprint,
-                   first_seen, last_seen, occurrence_count, affected_user_ids,
-                   affected_services, status, assigned_to, issue_url, sample_traces
-            FROM errors WHERE error_id = $1
-            """;
+                          SELECT error_id, error_type, message, category, fingerprint,
+                                 first_seen, last_seen, occurrence_count, affected_user_ids,
+                                 affected_services, status, assigned_to, issue_url, sample_traces
+                          FROM errors WHERE error_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -1402,14 +1404,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         return count;
     }
-
-    // ==========================================================================
-    // Private Methods - Multi-Row Insert SQL Builders (with caching)
-    // ==========================================================================
-
-    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
-    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
-    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
 
     /// <summary>
     ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
@@ -1623,29 +1617,29 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         using var errorsCmd = con.CreateCommand();
         errorsCmd.CommandText = """
-            CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
-            CREATE INDEX IF NOT EXISTS idx_errors_category ON errors(category);
-            CREATE INDEX IF NOT EXISTS idx_errors_status ON errors(status);
-            CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
-            """;
+                                CREATE UNIQUE INDEX IF NOT EXISTS idx_errors_fingerprint ON errors(fingerprint);
+                                CREATE INDEX IF NOT EXISTS idx_errors_category ON errors(category);
+                                CREATE INDEX IF NOT EXISTS idx_errors_status ON errors(status);
+                                CREATE INDEX IF NOT EXISTS idx_errors_last_seen ON errors(last_seen);
+                                """;
         errorsCmd.ExecuteNonQuery();
 
         // Identity domain: workspaces, projects, environments, handshake challenges
         using var identityCmd = con.CreateCommand();
         identityCmd.CommandText = $"""
-            {DuckDbSchema.WorkspacesDdl}
-            {DuckDbSchema.ProjectsDdl}
-            {DuckDbSchema.ProjectEnvironmentsDdl}
-            {DuckDbSchema.HandshakeChallengesDdl}
-            """;
+                                   {DuckDbSchema.WorkspacesDdl}
+                                   {DuckDbSchema.ProjectsDdl}
+                                   {DuckDbSchema.ProjectEnvironmentsDdl}
+                                   {DuckDbSchema.HandshakeChallengesDdl}
+                                   """;
         identityCmd.ExecuteNonQuery();
 
         // Provisioning domain: config selections, generation jobs
         using var provisioningCmd = con.CreateCommand();
         provisioningCmd.CommandText = $"""
-            {DuckDbSchema.ConfigSelectionsDdl}
-            {DuckDbSchema.GenerationJobsDdl}
-            """;
+                                       {DuckDbSchema.ConfigSelectionsDdl}
+                                       {DuckDbSchema.GenerationJobsDdl}
+                                       """;
         provisioningCmd.ExecuteNonQuery();
 
         // Issue lifecycle events

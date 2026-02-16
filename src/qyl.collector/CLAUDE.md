@@ -5,6 +5,7 @@ The kernel of qyl. This IS qyl from the user's perspective — the single binary
 ## Role in Architecture
 
 qyl is an OS in the cloud. The collector is its kernel. Three shells surface the same data:
+
 - **Browser** — dashboard at `:5100` (embedded, no login)
 - **Terminal** — `qyl-watch`, Docker logs, CLI
 - **IDE** — Copilot + source generator
@@ -15,30 +16,30 @@ All three read from the same DuckDB. The collector owns ingest, storage, query, 
 
 Priority build to surpass Sentry. Backend engine first, shells light up automatically.
 
-| Feature | Status | Purpose |
-|---------|--------|---------|
-| Auto crash capture | Planned | AppDomain.UnhandledException + TaskScheduler hooks + ASP.NET middleware |
-| Error fingerprinting | Planned | Stack trace normalization + message pattern extraction |
+| Feature              | Status  | Purpose                                                                               |
+|----------------------|---------|---------------------------------------------------------------------------------------|
+| Auto crash capture   | Planned | AppDomain.UnhandledException + TaskScheduler hooks + ASP.NET middleware               |
+| Error fingerprinting | Planned | Stack trace normalization + message pattern extraction                                |
 | GenAI-aware grouping | Planned | Group by `gen_ai.operation.name`, finish_reason, token limits — not just stack traces |
-| Breadcrumbs | Planned | Passive event trail per scope (ambient HTTP/DB/log activity before crash) |
-| Deploy correlation | Planned | Tag spans with release version, auto-resolve on deploy, regression detection |
-| AI auto-triage | Planned | MCP tools query grouped errors, correlate with GenAI sessions, suggest root cause |
-| SLO burn rate | Planned | Real-time error budget tracking per service/deploy |
+| Breadcrumbs          | Planned | Passive event trail per scope (ambient HTTP/DB/log activity before crash)             |
+| Deploy correlation   | Planned | Tag spans with release version, auto-resolve on deploy, regression detection          |
+| AI auto-triage       | Planned | MCP tools query grouped errors, correlate with GenAI sessions, suggest root cause     |
+| SLO burn rate        | Planned | Real-time error budget tracking per service/deploy                                    |
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk.Web |
-| Framework | net10.0 |
-| AOT | No (DuckDB native libs) |
+| Property  | Value                   |
+|-----------|-------------------------|
+| SDK       | ANcpLua.NET.Sdk.Web     |
+| Framework | net10.0                 |
+| AOT       | No (DuckDB native libs) |
 
 ## Ports
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | REST API, SSE, Dashboard |
-| 4317 | gRPC | OTLP traces/logs/metrics |
+| Port | Protocol | Purpose                  |
+|------|----------|--------------------------|
+| 5100 | HTTP     | REST API, SSE, Dashboard |
+| 4317 | gRPC     | OTLP traces/logs/metrics |
 
 ## API Endpoints
 
@@ -57,14 +58,16 @@ Priority build to surpass Sentry. Backend engine first, shells light up automati
 DuckDB via `DuckDB.NET.Data.Full`. Tables: `spans`, `logs`, `session_entities`, `errors`.
 
 Build failure diagnostics:
+
 - `build_failures` table stores captured `dotnet build/test` failures, binlog paths, and parsed metadata.
 - REST endpoints:
-  - `POST /api/v1/build-failures`
-  - `GET /api/v1/build-failures`
-  - `GET /api/v1/build-failures/{id}`
-  - `GET /api/v1/build-failures/search?pattern=...`
+    - `POST /api/v1/build-failures`
+    - `GET /api/v1/build-failures`
+    - `GET /api/v1/build-failures/{id}`
+    - `GET /api/v1/build-failures/search?pattern=...`
 
 Structured log source enrichment:
+
 - `logs` now includes `source_file`, `source_line`, `source_column`, `source_method`.
 - Enrichment uses normalized `code.*` OTLP attributes first, then stacktrace/PDB best-effort fallback.
 - Missing symbols degrade gracefully (null source fields; ingestion still succeeds).

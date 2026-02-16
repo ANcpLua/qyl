@@ -79,22 +79,18 @@ public static class CodexTelemetryMapper
     ///     Determines if a span contains Codex telemetry that should be transformed.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsCodexSpan(string? spanName)
-    {
-        return spanName is not null &&
-               spanName.StartsWithOrdinal(CodexPrefix);
-    }
+    public static bool IsCodexSpan(string? spanName) =>
+        spanName is not null &&
+        spanName.StartsWithOrdinal(CodexPrefix);
 
     /// <summary>
     ///     Determines if attributes contain Codex telemetry.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool HasCodexAttributes(IDictionary<string, string> attributes)
-    {
-        return attributes.ContainsKey(CodexModel) ||
-               attributes.ContainsKey(CodexConversationId) ||
-               attributes.ContainsKey(CodexThreadId);
-    }
+    public static bool HasCodexAttributes(IDictionary<string, string> attributes) =>
+        attributes.ContainsKey(CodexModel) ||
+        attributes.ContainsKey(CodexConversationId) ||
+        attributes.ContainsKey(CodexThreadId);
 
     /// <summary>
     ///     Transforms Codex attributes to OTel GenAI semantic conventions.
@@ -383,6 +379,26 @@ public static class CodexTelemetryMapper
         return attributesJson.ContainsOrdinal("codex.");
     }
 
+    private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes) =>
+        new(
+            attributes.GetValueOrDefault(GenAiAttributes.ProviderName),
+            attributes.GetValueOrDefault(GenAiAttributes.RequestModel),
+            attributes.GetValueOrDefault(GenAiAttributes.ResponseModel),
+            ParseNullableLong(attributes.GetValueOrDefault(GenAiAttributes.UsageInputTokens)),
+            ParseNullableLong(attributes.GetValueOrDefault(GenAiAttributes.UsageOutputTokens)),
+            attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons),
+            attributes.GetValueOrDefault(GenAiAttributes.ToolName),
+            attributes.GetValueOrDefault(GenAiAttributes.ToolCallId)
+        );
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long? ParseNullableLong(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return null;
+        return value.TryParseInt64();
+    }
+
     private readonly record struct GenAiFields(
         string? ProviderName,
         string? RequestModel,
@@ -392,28 +408,6 @@ public static class CodexTelemetryMapper
         string? StopReason,
         string? ToolName,
         string? ToolCallId);
-
-    private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes)
-    {
-        return new GenAiFields(
-            ProviderName: attributes.GetValueOrDefault(GenAiAttributes.ProviderName),
-            RequestModel: attributes.GetValueOrDefault(GenAiAttributes.RequestModel),
-            ResponseModel: attributes.GetValueOrDefault(GenAiAttributes.ResponseModel),
-            InputTokens: ParseNullableLong(attributes.GetValueOrDefault(GenAiAttributes.UsageInputTokens)),
-            OutputTokens: ParseNullableLong(attributes.GetValueOrDefault(GenAiAttributes.UsageOutputTokens)),
-            StopReason: attributes.GetValueOrDefault(GenAiAttributes.ResponseFinishReasons),
-            ToolName: attributes.GetValueOrDefault(GenAiAttributes.ToolName),
-            ToolCallId: attributes.GetValueOrDefault(GenAiAttributes.ToolCallId)
-        );
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long? ParseNullableLong(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-            return null;
-        return value.TryParseInt64();
-    }
 }
 
 /// <summary>

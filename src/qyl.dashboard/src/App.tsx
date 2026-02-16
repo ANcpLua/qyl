@@ -4,7 +4,7 @@ import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
 import {
     AgentRunDetailPage,
-    AgentRunsPage,
+    AgentsPage,
     DashboardPage,
     GenAIPage,
     IssueDetailPage,
@@ -47,7 +47,7 @@ export default function App() {
                         <Route path="/dashboards/:id" element={<DashboardPage/>}/>
                         <Route path="/search" element={<SearchPage/>}/>
                         <Route path="/settings" element={<SettingsPage/>}/>
-                        <Route path="/agents" element={<AgentRunsPage/>}/>
+                        <Route path="/agents" element={<AgentsPage/>}/>
                         <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
                         <Route path="/issues" element={<IssuesPage/>}/>
                         <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>

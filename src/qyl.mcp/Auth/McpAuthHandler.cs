@@ -35,7 +35,8 @@ public sealed partial class McpAuthHandler : DelegatingHandler
         return base.SendAsync(request, cancellationToken);
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "MCP authentication enabled - adding x-mcp-api-key header to collector requests")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "MCP authentication enabled - adding x-mcp-api-key header to collector requests")]
     private partial void LogAuthEnabled();
 
     [LoggerMessage(Level = LogLevel.Debug, Message = "MCP authentication disabled - running in dev mode without auth")]

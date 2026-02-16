@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Json;
 using qyl.collector.BuildFailures;
 
 namespace qyl.collector.tests.Integration;
@@ -29,16 +28,16 @@ public sealed class BuildFailureEndpointsTests(QylWebApplicationFactory factory)
     public async Task PostThenGetBuildFailure_ReturnsPersistedItem()
     {
         var request = new BuildFailureIngestRequest(
-            Id: null,
-            Timestamp: TimeProvider.System.GetUtcNow(),
-            Target: "build",
-            ExitCode: 1,
-            BinlogPath: ".qyl/binlogs/test.binlog",
-            ErrorSummary: "CS0246",
-            PropertyIssuesJson: "[\"Foo was never set\"]",
-            EnvReadsJson: "[]",
-            CallStackJson: "[]",
-            DurationMs: 1234);
+            null,
+            TimeProvider.System.GetUtcNow(),
+            "build",
+            1,
+            ".qyl/binlogs/test.binlog",
+            "CS0246",
+            "[\"Foo was never set\"]",
+            "[]",
+            "[]",
+            1234);
 
         var postResponse = await Client.PostAsJsonAsync("/api/v1/build-failures", request);
         Assert.Equal(HttpStatusCode.Created, postResponse.StatusCode);
@@ -61,16 +60,16 @@ public sealed class BuildFailureEndpointsTests(QylWebApplicationFactory factory)
     public async Task SearchBuildFailures_FindsMatchingRows()
     {
         var request = new BuildFailureIngestRequest(
-            Id: null,
-            Timestamp: TimeProvider.System.GetUtcNow(),
-            Target: "test",
-            ExitCode: 1,
-            BinlogPath: null,
-            ErrorSummary: "NU1101 package missing",
-            PropertyIssuesJson: null,
-            EnvReadsJson: null,
-            CallStackJson: null,
-            DurationMs: null);
+            null,
+            TimeProvider.System.GetUtcNow(),
+            "test",
+            1,
+            null,
+            "NU1101 package missing",
+            null,
+            null,
+            null,
+            null);
 
         _ = await Client.PostAsJsonAsync("/api/v1/build-failures", request);
 

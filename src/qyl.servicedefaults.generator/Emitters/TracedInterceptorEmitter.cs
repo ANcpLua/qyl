@@ -103,12 +103,10 @@ internal static class TracedInterceptorEmitter
 
     private static string GetActivitySourceFieldName(
         string activitySourceName,
-        IReadOnlyDictionary<string, string> activitySourceFieldNames)
-    {
-        return activitySourceFieldNames.TryGetValue(activitySourceName, out var fieldName)
+        IReadOnlyDictionary<string, string> activitySourceFieldNames) =>
+        activitySourceFieldNames.TryGetValue(activitySourceName, out var fieldName)
             ? fieldName
             : SanitizeFieldName(activitySourceName);
-    }
 
     private static string SanitizeFieldName(string activitySourceName)
     {
@@ -118,15 +116,13 @@ internal static class TracedInterceptorEmitter
         return sanitized.ToString();
     }
 
-    private static void AppendClassOpen(StringBuilder sb)
-    {
+    private static void AppendClassOpen(StringBuilder sb) =>
         sb.AppendLine("""
                       namespace Qyl.ServiceDefaults.Generator
                       {
                           file static class TracedInterceptors
                           {
                       """);
-    }
 
     private static void AppendInterceptorMethods(
         StringBuilder sb,
@@ -155,7 +151,10 @@ internal static class TracedInterceptorEmitter
 
         var methodName = $"Intercept_Traced_{index}";
         var typeParamNames = GetTypeParameterNames(callSite);
-        var returnType = callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
+        var returnType =
+            callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty
+                ? null
+                : typeParamNames.AsImmutableArray());
         var containingType = callSite.ContainingTypeName;
         var originalMethod = callSite.MethodName;
         var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName, activitySourceFieldNames);
@@ -171,11 +170,15 @@ internal static class TracedInterceptorEmitter
             : $"@this.{originalMethod}{typeParams}({arguments})";
 
         if (callSite.IsAsync)
+        {
             EmitAsyncInterceptor(sb, callSite, methodName, typeParams, constraints, returnType, parameters,
                 displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
+        }
         else
+        {
             EmitSyncInterceptor(sb, callSite, methodName, typeParams, constraints, returnType, parameters,
                 displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
+        }
     }
 
     private static void EmitAsyncInterceptor(
@@ -342,10 +345,8 @@ internal static class TracedInterceptorEmitter
         return clauseList.Count > 0 ? " " + string.Join(" ", clauseList) : "";
     }
 
-    private static EquatableArray<string> GetTypeParameterNames(TracedCallSite callSite)
-    {
-        return callSite.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
-    }
+    private static EquatableArray<string> GetTypeParameterNames(TracedCallSite callSite) =>
+        callSite.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
 
 
     private static string BuildTagSetters(TracedCallSite callSite)
@@ -356,6 +357,7 @@ internal static class TracedInterceptorEmitter
         var sb = new StringBuilder();
 
         foreach (var tag in callSite.TracedTags)
+        {
             if (tag.SkipIfNull && tag.IsNullable)
             {
                 sb.AppendLine($"                if ({tag.ParameterName} is not null)");
@@ -365,6 +367,7 @@ internal static class TracedInterceptorEmitter
             {
                 sb.AppendLine($"                activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
             }
+        }
 
         return sb.ToString();
     }

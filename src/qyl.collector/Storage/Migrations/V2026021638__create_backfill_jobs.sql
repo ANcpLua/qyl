@@ -1,19 +1,56 @@
 -- Backfill/reindex/repair jobs: tracks bulk data maintenance operations
-CREATE TABLE IF NOT EXISTS backfill_jobs (
-    id VARCHAR PRIMARY KEY,
-    job_type VARCHAR NOT NULL,
-    target_table VARCHAR NOT NULL,
-    description TEXT,
-    filter_json JSON,
-    status VARCHAR NOT NULL DEFAULT 'pending',
-    error_message TEXT,
-    total_rows BIGINT,
-    processed_rows BIGINT NOT NULL DEFAULT 0,
-    progress_pct DOUBLE NOT NULL DEFAULT 0.0,
-    queued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    started_at TIMESTAMP,
-    completed_at TIMESTAMP,
-    duration_ms INTEGER
+CREATE TABLE IF NOT EXISTS backfill_jobs
+(
+    id
+    VARCHAR
+    PRIMARY
+    KEY,
+    job_type
+    VARCHAR
+    NOT
+    NULL,
+    target_table
+    VARCHAR
+    NOT
+    NULL,
+    description
+    TEXT,
+    filter_json
+    JSON,
+    status
+    VARCHAR
+    NOT
+    NULL
+    DEFAULT
+    'pending',
+    error_message
+    TEXT,
+    total_rows
+    BIGINT,
+    processed_rows
+    BIGINT
+    NOT
+    NULL
+    DEFAULT
+    0,
+    progress_pct
+    DOUBLE
+    NOT
+    NULL
+    DEFAULT
+    0.0,
+    queued_at
+    TIMESTAMP
+    NOT
+    NULL
+    DEFAULT
+    CURRENT_TIMESTAMP,
+    started_at
+    TIMESTAMP,
+    completed_at
+    TIMESTAMP,
+    duration_ms
+    INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS idx_backfill_jobs_status ON backfill_jobs(status);

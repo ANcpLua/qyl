@@ -8,9 +8,9 @@ public sealed partial class AlertService : BackgroundService
 {
     private readonly AlertConfigLoader _configLoader;
     private readonly AlertEvaluator _evaluator;
+    private readonly ILogger<AlertService> _logger;
     private readonly AlertNotifier _notifier;
     private readonly DuckDbStore _store;
-    private readonly ILogger<AlertService> _logger;
     private readonly TimeProvider _timeProvider;
 
     public AlertService(
@@ -95,10 +95,10 @@ public sealed partial class AlertService : BackgroundService
             if (alertEvent.Status == "firing")
             {
                 cmd.CommandText = """
-                    INSERT INTO alert_history (id, rule_name, fired_at, query_result, condition_text, status, notification_channels)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7)
-                    ON CONFLICT (id) DO NOTHING
-                    """;
+                                  INSERT INTO alert_history (id, rule_name, fired_at, query_result, condition_text, status, notification_channels)
+                                  VALUES ($1, $2, $3, $4, $5, $6, $7)
+                                  ON CONFLICT (id) DO NOTHING
+                                  """;
                 cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.Id });
                 cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.RuleName });
                 cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.FiredAt.UtcDateTime });
@@ -114,10 +114,13 @@ public sealed partial class AlertService : BackgroundService
             {
                 // Update resolved_at for existing alert
                 cmd.CommandText = """
-                    UPDATE alert_history SET resolved_at = $1, status = $2
-                    WHERE id = $3
-                    """;
-                cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.ResolvedAt?.UtcDateTime ?? _timeProvider.GetUtcNow().UtcDateTime });
+                                  UPDATE alert_history SET resolved_at = $1, status = $2
+                                  WHERE id = $3
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter
+                {
+                    Value = alertEvent.ResolvedAt?.UtcDateTime ?? _timeProvider.GetUtcNow().UtcDateTime
+                });
                 cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.Status });
                 cmd.Parameters.Add(new DuckDBParameter { Value = alertEvent.Id });
             }
@@ -146,7 +149,8 @@ public sealed partial class AlertService : BackgroundService
     [LoggerMessage(Level = LogLevel.Information, Message = "Alert service started with {Count} rules")]
     private static partial void LogServiceStarted(ILogger logger, int count);
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Starting evaluation loop for rule '{RuleName}' every {IntervalSeconds}s")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Starting evaluation loop for rule '{RuleName}' every {IntervalSeconds}s")]
     private static partial void LogRuleStarted(ILogger logger, string ruleName, double intervalSeconds);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error evaluating alert rule '{RuleName}'")]
@@ -155,6 +159,7 @@ public sealed partial class AlertService : BackgroundService
     [LoggerMessage(Level = LogLevel.Error, Message = "Failed to store alert event for rule '{RuleName}'")]
     private static partial void LogStoreError(ILogger logger, string ruleName, Exception ex);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Alert configuration changed, will apply on next evaluation cycle")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Alert configuration changed, will apply on next evaluation cycle")]
     private static partial void LogConfigChanged(ILogger logger);
 }

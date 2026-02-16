@@ -6,10 +6,10 @@ namespace qyl.collector.Alerting;
 /// </summary>
 public sealed partial class AlertEvaluator
 {
-    private readonly DuckDbStore _store;
     private readonly ILogger<AlertEvaluator> _logger;
-    private readonly TimeProvider _timeProvider;
     private readonly ConcurrentDictionary<string, AlertRuleState> _states = new();
+    private readonly DuckDbStore _store;
+    private readonly TimeProvider _timeProvider;
 
     public AlertEvaluator(
         DuckDbStore store,
@@ -79,7 +79,8 @@ public sealed partial class AlertEvaluator
             var resolvedId = state.ActiveAlertId ?? Guid.NewGuid().ToString("N");
             state.ActiveAlertId = null;
 
-            return new AlertEvent(resolvedId, rule.Name, state.LastFiredAt ?? now, now, queryResult, rule.Condition, "resolved");
+            return new AlertEvent(resolvedId, rule.Name, state.LastFiredAt ?? now, now, queryResult, rule.Condition,
+                "resolved");
         }
 
         return null;
@@ -146,5 +147,6 @@ public sealed partial class AlertEvaluator
 
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Alert evaluation: {RuleName} query={QueryResult}, condition='{Condition}', met={ConditionMet}")]
-    private static partial void LogEvaluation(ILogger logger, string ruleName, double queryResult, string condition, bool conditionMet);
+    private static partial void LogEvaluation(ILogger logger, string ruleName, double queryResult, string condition,
+        bool conditionMet);
 }

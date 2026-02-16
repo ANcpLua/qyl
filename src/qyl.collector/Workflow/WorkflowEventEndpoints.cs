@@ -19,13 +19,11 @@ public static class WorkflowEventEndpoints
     private static ServerSentEventsResult<SseItem<WorkflowEventRecord>> HandleEventStream(
         string runId,
         DuckDbStore store,
-        HttpContext context)
-    {
-        return TypedResults.ServerSentEvents(
+        HttpContext context) =>
+        TypedResults.ServerSentEvents(
             StreamEventsAsync(runId, store, context.RequestAborted),
             null
         );
-    }
 
     private static async IAsyncEnumerable<SseItem<WorkflowEventRecord>> StreamEventsAsync(
         string runId,

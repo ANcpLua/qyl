@@ -25,13 +25,14 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
         if (activity is null) return;
 
         activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
-        {
-            { "exception.type", ex.GetType().FullName },
-            { "exception.message", ex.Message },
-            { "exception.stacktrace", ex.ToString() },
-            { "exception.escaped", "true" },
-        }));
+        activity.AddEvent(new ActivityEvent("exception",
+            tags: new ActivityTagsCollection
+            {
+                { "exception.type", ex.GetType().FullName },
+                { "exception.message", ex.Message },
+                { "exception.stacktrace", ex.ToString() },
+                { "exception.escaped", "true" }
+            }));
 
         logger.LogExceptionCaptured(ex.GetType().Name, ex.Message);
     }
@@ -40,6 +41,8 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
 public static class GlobalExceptionHooks
 {
     private static int _registered;
+
+    private static readonly ActivitySource Source = new("Qyl.ServiceDefaults.ErrorCapture");
 
     public static void Register(ILoggerFactory loggerFactory)
     {
@@ -63,14 +66,13 @@ public static class GlobalExceptionHooks
         };
     }
 
-    private static readonly ActivitySource Source = new("Qyl.ServiceDefaults.ErrorCapture");
-
     private static void RecordGlobalException(Exception ex, string source)
     {
         var activity = Activity.Current;
         if (activity is null)
         {
-            using var fallback = Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default);
+            using var fallback =
+                Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default);
             if (fallback is null) return;
             TagActivity(fallback, ex, source);
             return;
@@ -82,14 +84,15 @@ public static class GlobalExceptionHooks
     private static void TagActivity(Activity activity, Exception ex, string source)
     {
         activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
-        {
-            { "exception.type", ex.GetType().FullName },
-            { "exception.message", ex.Message },
-            { "exception.stacktrace", ex.ToString() },
-            { "exception.escaped", "true" },
-            { "exception.source", source },
-        }));
+        activity.AddEvent(new ActivityEvent("exception",
+            tags: new ActivityTagsCollection
+            {
+                { "exception.type", ex.GetType().FullName },
+                { "exception.message", ex.Message },
+                { "exception.stacktrace", ex.ToString() },
+                { "exception.escaped", "true" },
+                { "exception.source", source }
+            }));
     }
 }
 

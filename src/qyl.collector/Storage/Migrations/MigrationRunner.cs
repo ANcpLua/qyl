@@ -27,22 +27,19 @@ public sealed partial class MigrationRunner
     ///     DDL for the migration tracking table. Created automatically on first run.
     /// </summary>
     public const string SchemaVersionsDdl = """
-        CREATE TABLE IF NOT EXISTS _schema_versions (
-            version INTEGER NOT NULL PRIMARY KEY,
-            description VARCHAR NOT NULL,
-            applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            checksum VARCHAR(64)
-        );
-        """;
+                                            CREATE TABLE IF NOT EXISTS _schema_versions (
+                                                version INTEGER NOT NULL PRIMARY KEY,
+                                                description VARCHAR NOT NULL,
+                                                applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                                                checksum VARCHAR(64)
+                                            );
+                                            """;
 
     private const string CommentPrefix = "--";
 
     private readonly ILogger<MigrationRunner> _logger;
 
-    public MigrationRunner(ILogger<MigrationRunner> logger)
-    {
-        _logger = logger;
-    }
+    public MigrationRunner(ILogger<MigrationRunner> logger) => _logger = logger;
 
     /// <summary>
     ///     Initializes the version tracking table and applies any pending migrations.
@@ -77,7 +74,7 @@ public sealed partial class MigrationRunner
         {
             if (migrationDirectory is not null && Directory.Exists(migrationDirectory))
             {
-                var bootstrapFiles = GetPendingMigrationFiles(migrationDirectory, afterVersion: 0)
+                var bootstrapFiles = GetPendingMigrationFiles(migrationDirectory, 0)
                     .Where(f => f.Version <= currentSchemaVersion)
                     .ToList();
 
@@ -153,10 +150,10 @@ public sealed partial class MigrationRunner
 
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            SELECT version, description, applied_at, checksum
-            FROM _schema_versions
-            ORDER BY version ASC
-            """;
+                          SELECT version, description, applied_at, checksum
+                          FROM _schema_versions
+                          ORDER BY version ASC
+                          """;
 
         using var reader = cmd.ExecuteReader();
         while (reader.Read())
@@ -186,10 +183,10 @@ public sealed partial class MigrationRunner
     {
         using var cmd = connection.CreateCommand();
         cmd.CommandText = """
-            INSERT INTO _schema_versions (version, description, applied_at)
-            VALUES ($1, $2, CURRENT_TIMESTAMP)
-            ON CONFLICT (version) DO NOTHING
-            """;
+                          INSERT INTO _schema_versions (version, description, applied_at)
+                          VALUES ($1, $2, CURRENT_TIMESTAMP)
+                          ON CONFLICT (version) DO NOTHING
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = version });
         cmd.Parameters.Add(new DuckDBParameter { Value = description });
         cmd.ExecuteNonQuery();
@@ -254,10 +251,10 @@ public sealed partial class MigrationRunner
         {
             recordCmd.Transaction = tx;
             recordCmd.CommandText = """
-                INSERT INTO _schema_versions (version, description, applied_at, checksum)
-                VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
-                ON CONFLICT (version) DO NOTHING
-                """;
+                                    INSERT INTO _schema_versions (version, description, applied_at, checksum)
+                                    VALUES ($1, $2, CURRENT_TIMESTAMP, $3)
+                                    ON CONFLICT (version) DO NOTHING
+                                    """;
             recordCmd.Parameters.Add(new DuckDBParameter { Value = migration.Version });
             recordCmd.Parameters.Add(new DuckDBParameter { Value = migration.Description });
             recordCmd.Parameters.Add(new DuckDBParameter { Value = checksum });

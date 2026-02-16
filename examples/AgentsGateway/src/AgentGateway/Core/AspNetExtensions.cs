@@ -16,8 +16,11 @@ public static class AspNetExtensions
     private static readonly ConcurrentDictionary<string, ConfigurationManager<OpenIdConnectConfiguration>>
         OpenIdMetadataCache = new();
 
-    private static readonly CompositeFormat IssuerUrlTemplateV1 = CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV1);
-    private static readonly CompositeFormat IssuerUrlTemplateV2 = CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV2);
+    private static readonly CompositeFormat IssuerUrlTemplateV1 =
+        CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV1);
+
+    private static readonly CompositeFormat IssuerUrlTemplateV2 =
+        CompositeFormat.Parse(AuthenticationConstants.ValidTokenIssuerUrlTemplateV2);
 
     public static void AddBotAspNetAuthentication(this IServiceCollection services, IConfiguration configuration,
         string tokenValidationSectionName = "TokenValidation", ILogger? logger = null)
@@ -141,19 +144,21 @@ public static class AspNetExtensions
                             AuthenticationConstants.BotFrameworkTokenIssuer.Equals(issuer, StringComparison.Ordinal))
                             // Use the Bot Framework authority for this configuration manager
                             context.Options.TokenValidationParameters.ConfigurationManager =
-                                OpenIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, _ => new ConfigurationManager<OpenIdConnectConfiguration>(
-                                    azureBotServiceOpenIdMetadataUrl, new OpenIdConnectConfigurationRetriever(),
-                                    new HttpClient())
-                                {
-                                    AutomaticRefreshInterval = openIdRefreshInterval
-                                });
+                                OpenIdMetadataCache.GetOrAdd(azureBotServiceOpenIdMetadataUrl, _ =>
+                                    new ConfigurationManager<OpenIdConnectConfiguration>(
+                                        azureBotServiceOpenIdMetadataUrl, new OpenIdConnectConfigurationRetriever(),
+                                        new HttpClient())
+                                    {
+                                        AutomaticRefreshInterval = openIdRefreshInterval
+                                    });
                         else
                             context.Options.TokenValidationParameters.ConfigurationManager =
-                                OpenIdMetadataCache.GetOrAdd(openIdMetadataUrl, _ => new ConfigurationManager<OpenIdConnectConfiguration>(openIdMetadataUrl,
-                                    new OpenIdConnectConfigurationRetriever(), new HttpClient())
-                                {
-                                    AutomaticRefreshInterval = openIdRefreshInterval
-                                });
+                                OpenIdMetadataCache.GetOrAdd(openIdMetadataUrl, _ =>
+                                    new ConfigurationManager<OpenIdConnectConfiguration>(openIdMetadataUrl,
+                                        new OpenIdConnectConfigurationRetriever(), new HttpClient())
+                                    {
+                                        AutomaticRefreshInterval = openIdRefreshInterval
+                                    });
 
                         await Task.CompletedTask.ConfigureAwait(false);
                     },
@@ -165,7 +170,8 @@ public static class AspNetExtensions
                     },
                     OnForbidden = context =>
                     {
-                        if (logger is not null && logger.IsEnabled(LogLevel.Warning)) AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
+                        if (logger is not null && logger.IsEnabled(LogLevel.Warning))
+                            AgentGatewayLogs.LogForbidden(logger, context.Result?.ToString() ?? string.Empty);
                         return Task.CompletedTask;
                     },
                     OnAuthenticationFailed = context =>

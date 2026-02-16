@@ -56,13 +56,13 @@ async function fetchJson<T>(url: string): Promise<T> {
 
 export const agentRunKeys = {
     all: ['agent-runs'] as const,
-    list: (filters?: {agentName?: string; status?: string}) =>
+    list: (filters?: { agentName?: string; status?: string }) =>
         [...agentRunKeys.all, 'list', filters] as const,
     detail: (runId: string) => [...agentRunKeys.all, 'detail', runId] as const,
     tools: (runId: string) => [...agentRunKeys.all, 'tools', runId] as const,
 };
 
-export function useAgentRuns(filters?: {agentName?: string; status?: string}) {
+export function useAgentRuns(filters?: { agentName?: string; status?: string }) {
     return useQuery({
         queryKey: agentRunKeys.list(filters),
         queryFn: () => {

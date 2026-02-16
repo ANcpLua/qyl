@@ -6,15 +6,35 @@ using Qyl.Hosting.Telemetry;
 namespace Qyl.Hosting;
 
 /// <summary>
-/// Orchestrates the startup and management of qyl resources.
+///     Orchestrates the startup and management of qyl resources.
 /// </summary>
 internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 {
     private static readonly HttpClient HealthCheckClient = new() { Timeout = TimeSpan.FromSeconds(2) };
     private readonly ConcurrentDictionary<string, Process> _processes = new();
-    private readonly ConcurrentDictionary<string, ResourceState> _states = new();
     private readonly CancellationTokenSource _shutdownCts = new();
+    private readonly ConcurrentDictionary<string, ResourceState> _states = new();
     private bool _disposed;
+
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        _shutdownCts.Dispose();
+
+        foreach (var (_, process) in _processes)
+        {
+            try
+            {
+                process.Dispose();
+            }
+            catch
+            {
+                // Best effort
+            }
+        }
+    }
 
     public async Task RunAsync(CancellationToken ct = default)
     {
@@ -22,7 +42,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
         // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            name: HostingActivityNames.Run);
+            HostingActivityNames.Run);
 
         activity?.SetTag("qyl.hosting.resource.name", "qyl");
         activity?.SetTag("qyl.hosting.resource.count", builder.Resources.Count);
@@ -61,11 +81,11 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
-            {
-                ["exception.type"] = ex.GetType().FullName,
-                ["exception.message"] = ex.Message
-            }));
+            activity?.AddEvent(new ActivityEvent("exception", default,
+                new ActivityTagsCollection
+                {
+                    ["exception.type"] = ex.GetType().FullName, ["exception.message"] = ex.Message
+                }));
             throw;
         }
         finally
@@ -103,13 +123,14 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
             if (collectorPath is not null)
             {
                 // Run locally
-                await StartProcessAsync("qyl", collectorPath, "", new Dictionary<string, string>
-                {
-                    ["QYL_PORT"] = builder.Options.DashboardPort.ToString(),
-                    ["QYL_GRPC_PORT"] = builder.Options.OtlpPort.ToString(),
-                    ["QYL_TOKEN"] = builder.Options.Token ?? GenerateToken(),
-                    ["QYL_DATA_PATH"] = Path.Combine(builder.Options.DataPath, "qyl.duckdb")
-                }, ct);
+                await StartProcessAsync("qyl", collectorPath, "",
+                    new Dictionary<string, string>
+                    {
+                        ["QYL_PORT"] = builder.Options.DashboardPort.ToString(),
+                        ["QYL_GRPC_PORT"] = builder.Options.OtlpPort.ToString(),
+                        ["QYL_TOKEN"] = builder.Options.Token ?? GenerateToken(),
+                        ["QYL_DATA_PATH"] = Path.Combine(builder.Options.DataPath, "qyl.duckdb")
+                    }, ct);
             }
             else
             {
@@ -128,11 +149,11 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
-            {
-                ["exception.type"] = ex.GetType().FullName,
-                ["exception.message"] = ex.Message
-            }));
+            activity?.AddEvent(new ActivityEvent("exception", default,
+                new ActivityTagsCollection
+                {
+                    ["exception.type"] = ex.GetType().FullName, ["exception.message"] = ex.Message
+                }));
             throw;
         }
     }
@@ -205,25 +226,23 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddEvent(new ActivityEvent("exception", default, new ActivityTagsCollection
-            {
-                ["exception.type"] = ex.GetType().FullName,
-                ["exception.message"] = ex.Message
-            }));
+            activity?.AddEvent(new ActivityEvent("exception", default,
+                new ActivityTagsCollection
+                {
+                    ["exception.type"] = ex.GetType().FullName, ["exception.message"] = ex.Message
+                }));
             activity?.AddEvent(new ActivityEvent(HostingEventNames.ResourceFailed,
                 default,
                 new ActivityTagsCollection
                 {
-                    ["qyl.hosting.resource.name"] = resource.Name,
-                    ["error.type"] = ex.GetType().FullName
+                    ["qyl.hosting.resource.name"] = resource.Name, ["error.type"] = ex.GetType().FullName
                 }));
             throw;
         }
     }
 
-    private static (string command, string args, string? workingDir) GetStartCommand(IQylResource resource)
-    {
-        return resource switch
+    private static (string command, string args, string? workingDir) GetStartCommand(IQylResource resource) =>
+        resource switch
         {
             ProjectResource<IProjectMetadata> project =>
                 ("dotnet", $"run --project \"{project.ProjectPath}\" --no-launch-profile", null),
@@ -235,14 +254,15 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
                 (node.PackageManager == "bun" ? "bun" : "node", node.ScriptPath, node.WorkingDirectory),
 
             PythonResource python =>
-                (python.UseUv ? "uv" : "python", python.UseUv ? $"run {python.ScriptPath}" : python.ScriptPath, python.WorkingDirectory),
+                (python.UseUv ? "uv" : "python", python.UseUv ? $"run {python.ScriptPath}" : python.ScriptPath,
+                    python.WorkingDirectory),
 
             UvicornResource uvicorn =>
                 (uvicorn.UseUv ? "uv" : "uvicorn",
-                 uvicorn.UseUv
-                     ? $"run uvicorn {uvicorn.AppModule} --host 0.0.0.0 --port {(uvicorn.Ports.Count > 0 ? uvicorn.Ports[0].HostPort : 8000)}"
-                     : $"{uvicorn.AppModule} --host 0.0.0.0 --port {(uvicorn.Ports.Count > 0 ? uvicorn.Ports[0].HostPort : 8000)}",
-                 uvicorn.WorkingDirectory),
+                    uvicorn.UseUv
+                        ? $"run uvicorn {uvicorn.AppModule} --host 0.0.0.0 --port {(uvicorn.Ports.Count > 0 ? uvicorn.Ports[0].HostPort : 8000)}"
+                        : $"{uvicorn.AppModule} --host 0.0.0.0 --port {(uvicorn.Ports.Count > 0 ? uvicorn.Ports[0].HostPort : 8000)}",
+                    uvicorn.WorkingDirectory),
 
             ContainerResource container =>
                 ("docker", BuildDockerArgs(container), null),
@@ -252,7 +272,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
             _ => throw new NotSupportedException($"Resource type {resource.GetType().Name} is not supported")
         };
-    }
 
     private static string BuildDockerArgs(ContainerResource container)
     {
@@ -343,7 +362,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
                 while (await processStdErr.ReadLineAsync(ct) is { } line)
                 {
                     if (ct.IsCancellationRequested) break;
-                    PrintLog(name, line, isError: true);
+                    PrintLog(name, line, true);
                 }
             }
             catch (OperationCanceledException)
@@ -359,7 +378,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
         // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            name: HostingActivityNames.HealthCheck);
+            HostingActivityNames.HealthCheck);
 
         activity?.SetTag("qyl.hosting.resource.name", name);
         activity?.SetTag("qyl.hosting.health_check.endpoint", endpoint);
@@ -395,7 +414,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         activity?.SetTag("qyl.hosting.health_check.attempts", attempts);
         activity?.SetStatus(ActivityStatusCode.Error, "Health check timed out");
 
-        PrintLog(name, $"Warning: Health check at {endpoint} did not respond", isError: true);
+        PrintLog(name, $"Warning: Health check at {endpoint} did not respond", true);
     }
 
     private static async Task WaitForShutdownAsync(CancellationToken ct)
@@ -414,7 +433,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
-            name: HostingActivityNames.Shutdown);
+            HostingActivityNames.Shutdown);
 
         activity?.AddEvent(new ActivityEvent(HostingEventNames.ShutdownStarted));
 
@@ -427,7 +446,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
             {
                 if (!process.HasExited)
                 {
-                    process.Kill(entireProcessTree: true);
+                    process.Kill(true);
                     await process.WaitForExitAsync();
                 }
 
@@ -497,6 +516,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         {
             result[i] = Chars[randomBytes[i] % Chars.Length];
         }
+
         return new string(result);
     }
 
@@ -506,15 +526,14 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         Console.WriteLine();
         Console.WriteLine("  \u001b[38;5;141m┌─────────────────────────────────────────┐\u001b[0m");
-        Console.WriteLine("  \u001b[38;5;141m│\u001b[0m  \u001b[1;38;5;147mqyl\u001b[0m - GenAI-native orchestration       \u001b[38;5;141m│\u001b[0m");
+        Console.WriteLine(
+            "  \u001b[38;5;141m│\u001b[0m  \u001b[1;38;5;147mqyl\u001b[0m - GenAI-native orchestration       \u001b[38;5;141m│\u001b[0m");
         Console.WriteLine("  \u001b[38;5;141m└─────────────────────────────────────────┘\u001b[0m");
         Console.WriteLine();
     }
 
-    private static void PrintResourceStart(string name, string type)
-    {
-        Console.WriteLine($"  \u001b[38;5;245m▸\u001b[0m Starting \u001b[1m{name}\u001b[0m \u001b[38;5;245m({type})\u001b[0m");
-    }
+    private static void PrintResourceStart(string name, string type) => Console.WriteLine(
+        $"  \u001b[38;5;245m▸\u001b[0m Starting \u001b[1m{name}\u001b[0m \u001b[38;5;245m({type})\u001b[0m");
 
     private static void PrintResourceReady(string name, string? url)
     {
@@ -527,7 +546,8 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     private void PrintStatus()
     {
         Console.WriteLine();
-        Console.WriteLine($"  \u001b[38;5;141mDashboard:\u001b[0m  \u001b[4;36mhttp://localhost:{builder.Options.DashboardPort}\u001b[0m");
+        Console.WriteLine(
+            $"  \u001b[38;5;141mDashboard:\u001b[0m  \u001b[4;36mhttp://localhost:{builder.Options.DashboardPort}\u001b[0m");
         Console.WriteLine();
         Console.WriteLine("  Press \u001b[1mCtrl+C\u001b[0m to stop");
         Console.WriteLine();
@@ -551,26 +571,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     }
 
     #endregion
-
-    public void Dispose()
-    {
-        if (_disposed) return;
-        _disposed = true;
-
-        _shutdownCts.Dispose();
-
-        foreach (var (_, process) in _processes)
-        {
-            try
-            {
-                process.Dispose();
-            }
-            catch
-            {
-                // Best effort
-            }
-        }
-    }
 }
 
 internal enum ResourceState

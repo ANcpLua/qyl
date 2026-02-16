@@ -5,7 +5,7 @@ using Spectre.Console;
 namespace qyl.cli.Commands;
 
 /// <summary>
-/// Instruments a .NET project with qyl.servicedefaults.
+///     Instruments a .NET project with qyl.servicedefaults.
 /// </summary>
 public static class DotnetInitCommand
 {
@@ -35,7 +35,8 @@ public static class DotnetInitCommand
         var changes = new List<string>();
         changes.Add("Add PackageReference: qyl.servicedefaults");
 
-        var projectDir = Path.GetDirectoryName(csprojPath) ?? throw new InvalidOperationException($"Cannot determine directory for '{csprojPath}'");
+        var projectDir = Path.GetDirectoryName(csprojPath) ??
+                         throw new InvalidOperationException($"Cannot determine directory for '{csprojPath}'");
         var programCsPath = Path.Combine(projectDir, "Program.cs");
         var programCsPatched = false;
 

@@ -1,20 +1,11 @@
-import {useState, useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
-import {
-    AlertCircle,
-    Bot,
-    ChevronRight,
-    FileText,
-    Network,
-    Search,
-    Workflow,
-    Zap,
-} from 'lucide-react';
+import {AlertCircle, Bot, ChevronRight, FileText, Network, Search, Workflow, Zap,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
-import {useSearch} from '@/hooks/use-search';
 import type {SearchResult} from '@/hooks/use-search';
+import {useSearch} from '@/hooks/use-search';
 
 const entityTypes = [
     {key: '', label: 'All'},
@@ -25,7 +16,7 @@ const entityTypes = [
     {key: 'workflow', label: 'Workflows'},
 ] as const;
 
-const entityStyles: Record<string, {color: string; icon: typeof Search}> = {
+const entityStyles: Record<string, { color: string; icon: typeof Search }> = {
     span: {color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: Network},
     log: {color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: FileText},
     error: {color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle},
@@ -56,16 +47,22 @@ function formatTimestamp(nanos?: number): string {
 
 function entityRoute(result: SearchResult): string {
     switch (result.entity_type) {
-        case 'span': return `/traces`;
-        case 'log': return `/logs`;
-        case 'error': return `/issues/${result.entity_id}`;
-        case 'agent_run': return `/agents/${result.entity_id}`;
-        case 'workflow': return `/workflows/${result.entity_id}`;
-        default: return '/';
+        case 'span':
+            return `/traces`;
+        case 'log':
+            return `/logs`;
+        case 'error':
+            return `/issues/${result.entity_id}`;
+        case 'agent_run':
+            return `/agents/${result.entity_id}`;
+        case 'workflow':
+            return `/workflows/${result.entity_id}`;
+        default:
+            return '/';
     }
 }
 
-function HighlightedSnippet({text}: {text: string}) {
+function HighlightedSnippet({text}: { text: string }) {
     const parts = text.split(/(<mark>.*?<\/mark>)/g);
     return (
         <span>
@@ -86,17 +83,17 @@ function HighlightedSnippet({text}: {text: string}) {
 function SkeletonRow() {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
-            <div className="w-5 h-5 bg-brutal-zinc rounded" />
+            <div className="w-5 h-5 bg-brutal-zinc rounded"/>
             <div className="flex-1 space-y-2">
-                <div className="w-48 h-4 bg-brutal-zinc rounded" />
-                <div className="w-80 h-3 bg-brutal-zinc rounded" />
+                <div className="w-48 h-4 bg-brutal-zinc rounded"/>
+                <div className="w-80 h-3 bg-brutal-zinc rounded"/>
             </div>
-            <div className="w-24 h-3 bg-brutal-zinc rounded" />
+            <div className="w-24 h-3 bg-brutal-zinc rounded"/>
         </div>
     );
 }
 
-function ResultRow({result, onClick}: {result: SearchResult; onClick: () => void}) {
+function ResultRow({result, onClick}: { result: SearchResult; onClick: () => void }) {
     const style = entityStyles[result.entity_type] ?? entityStyles.span;
     const Icon = style.icon;
 
@@ -105,7 +102,7 @@ function ResultRow({result, onClick}: {result: SearchResult; onClick: () => void
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
             onClick={onClick}
         >
-            <Icon className={cn('w-5 h-5 flex-shrink-0', style.color.split(' ')[1])} />
+            <Icon className={cn('w-5 h-5 flex-shrink-0', style.color.split(' ')[1])}/>
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -118,7 +115,7 @@ function ResultRow({result, onClick}: {result: SearchResult; onClick: () => void
                 </div>
                 {result.snippet && (
                     <p className="text-xs text-brutal-slate mt-0.5 truncate">
-                        <HighlightedSnippet text={result.snippet} />
+                        <HighlightedSnippet text={result.snippet}/>
                     </p>
                 )}
             </div>
@@ -129,7 +126,8 @@ function ResultRow({result, onClick}: {result: SearchResult; onClick: () => void
                 </span>
             )}
 
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0" />
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
@@ -151,6 +149,7 @@ export function SearchPage() {
                 inputRef.current?.focus();
             }
         }
+
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, []);
@@ -162,7 +161,7 @@ export function SearchPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
                         <p className="text-red-400">Search failed</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
@@ -177,7 +176,7 @@ export function SearchPage() {
         <div className="p-6 space-y-6">
             {/* Search bar */}
             <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brutal-slate" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-brutal-slate"/>
                 <input
                     ref={inputRef}
                     type="text"
@@ -212,27 +211,28 @@ export function SearchPage() {
             <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
                 {!hasQuery ? (
                     <div className="py-16 text-center">
-                        <Search className="w-12 h-12 mx-auto mb-4 text-brutal-zinc" />
+                        <Search className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">Search across all telemetry data</p>
                         <p className="text-brutal-zinc text-xs mt-1">Spans, logs, errors, agent runs, and workflows</p>
                     </div>
                 ) : isLoading ? (
                     <>
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
-                        <SkeletonRow />
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
+                        <SkeletonRow/>
                     </>
                 ) : !results || results.length === 0 ? (
                     <div className="py-16 text-center">
-                        <Zap className="w-12 h-12 mx-auto mb-4 text-brutal-zinc" />
+                        <Zap className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No results found</p>
                         <p className="text-brutal-zinc text-xs mt-1">Try different keywords or filters</p>
                     </div>
                 ) : (
                     <>
-                        <div className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                        <div
+                            className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                             {results.length} RESULT{results.length !== 1 ? 'S' : ''}
                         </div>
                         {results.map((result) => (

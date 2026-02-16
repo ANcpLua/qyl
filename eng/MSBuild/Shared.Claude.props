@@ -7,8 +7,8 @@
   <!-- Master switch -->
   <PropertyGroup>
     <GenerateClaudeMd Condition="'$(GenerateClaudeMd)' == ''">false</GenerateClaudeMd>
-    
-    <!-- Location options: 
+
+    <!-- Location options:
          'root' = ./CLAUDE.md (default, traditional)
          'dotclaude' = ./.claude/CLAUDE.md (Claude Code preferred)
     -->
@@ -25,13 +25,13 @@
     <ClaudeName Condition="'$(ClaudeName)' == ''">$(MSBuildProjectName)</ClaudeName>
     <ClaudeRole Condition="'$(ClaudeRole)' == ''"></ClaudeRole>
     <!-- Options: primary-runtime, leaf-dependency, build-tool, frontend, mcp-server -->
-    
+
     <!-- Auto-detect project type from SDK -->
     <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(UsingMicrosoftNETSdkWeb)' == 'true'">aspnetcore-webapi</ClaudeType>
     <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(OutputType)' == 'Exe'">console-app</ClaudeType>
     <ClaudeType Condition="'$(ClaudeType)' == '' AND '$(IsTestProject)' == 'true'">test-project</ClaudeType>
     <ClaudeType Condition="'$(ClaudeType)' == ''">class-library</ClaudeType>
-    
+
     <!-- SDK detection -->
     <ClaudeSdk Condition="'$(ClaudeSdk)' == '' AND '$(UsingANcpLuaNETSdkWeb)' == 'true'">ANcpLua.NET.Sdk.Web</ClaudeSdk>
     <ClaudeSdk Condition="'$(ClaudeSdk)' == '' AND '$(UsingANcpLuaNETSdk)' == 'true'">ANcpLua.NET.Sdk</ClaudeSdk>
@@ -45,7 +45,7 @@
     <!-- Dependency constraint -->
     <ClaudeConstraint Condition="'$(ClaudeConstraint)' == ''"></ClaudeConstraint>
     <!-- Options: bcl-only, no-external-packages, leaf-dependency -->
-    
+
     <!-- Brief reason for constraint -->
     <ClaudeConstraintReason Condition="'$(ClaudeConstraintReason)' == ''"></ClaudeConstraintReason>
   </PropertyGroup>

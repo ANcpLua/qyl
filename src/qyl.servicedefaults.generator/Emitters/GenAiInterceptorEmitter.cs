@@ -14,6 +14,26 @@ namespace Qyl.ServiceDefaults.Generator.Emitters;
 internal static class GenAiInterceptorEmitter
 {
     /// <summary>
+    ///     Operations that support token usage extraction.
+    /// </summary>
+    private static readonly HashSet<string> TokenUsageOperations = new(StringComparer.Ordinal)
+    {
+        "chat",
+        "embeddings",
+        "invoke_agent",
+        "text_completion",
+        "generate_content"
+    };
+
+    /// <summary>
+    ///     Operations where output tokens are not applicable (input-only).
+    /// </summary>
+    private static readonly HashSet<string> InputOnlyOperations = new(StringComparer.Ordinal)
+    {
+        "embeddings", "rerank", "transcription"
+    };
+
+    /// <summary>
     ///     Emits the interceptor source code for all GenAI invocations.
     /// </summary>
     public static string Emit(ImmutableArray<GenAiCallSite> invocations)
@@ -43,15 +63,13 @@ internal static class GenAiInterceptorEmitter
         sb.AppendLine();
     }
 
-    private static void AppendClassOpen(StringBuilder sb)
-    {
+    private static void AppendClassOpen(StringBuilder sb) =>
         sb.AppendLine("""
                       namespace Qyl.ServiceDefaults.Generator
                       {
                           file static class GenAiInterceptors
                           {
                       """);
-    }
 
     private static void AppendInterceptorMethods(
         StringBuilder sb,
@@ -99,6 +117,7 @@ internal static class GenAiInterceptorEmitter
         var usageExtractor = GetUsageExtractor(invocation.Provider, invocation.Operation);
 
         if (invocation.IsAsync)
+        {
             sb.AppendLine(usageExtractor is not null
                 ? $$"""
                             // Intercepted call at {{displayLocation}}
@@ -127,7 +146,9 @@ internal static class GenAiInterceptorEmitter
                             }
 
                     """);
+        }
         else
+        {
             sb.AppendLine(usageExtractor is not null
                 ? $$"""
                             // Intercepted call at {{displayLocation}}
@@ -156,6 +177,7 @@ internal static class GenAiInterceptorEmitter
                             }
 
                     """);
+        }
     }
 
     private static void AppendStreamingInterceptor(
@@ -216,28 +238,6 @@ internal static class GenAiInterceptorEmitter
     }
 
     /// <summary>
-    ///     Operations that support token usage extraction.
-    /// </summary>
-    private static readonly HashSet<string> TokenUsageOperations = new(StringComparer.Ordinal)
-    {
-        "chat",
-        "embeddings",
-        "invoke_agent",
-        "text_completion",
-        "generate_content"
-    };
-
-    /// <summary>
-    ///     Operations where output tokens are not applicable (input-only).
-    /// </summary>
-    private static readonly HashSet<string> InputOnlyOperations = new(StringComparer.Ordinal)
-    {
-        "embeddings",
-        "rerank",
-        "transcription"
-    };
-
-    /// <summary>
     ///     Gets the usage extractor lambda for a provider/operation combination.
     ///     Uses ProviderRegistry as the SSOT.
     /// </summary>
@@ -276,9 +276,8 @@ internal static class GenAiInterceptorEmitter
     ///     Maps a provider ID to its GenAiAttributes.Providers constant reference.
     ///     Falls back to literal string for unknown providers.
     /// </summary>
-    private static string GetProviderConstant(string providerId)
-    {
-        return providerId switch
+    private static string GetProviderConstant(string providerId) =>
+        providerId switch
         {
             "openai" => "GenAiAttributes.Providers.OpenAi",
             "azure.ai.openai" => "GenAiAttributes.Providers.AzureOpenAi",
@@ -296,7 +295,6 @@ internal static class GenAiInterceptorEmitter
             "microsoft_agents" => "GenAiAttributes.Providers.MicrosoftAgents",
             _ => $"\"{providerId}\"" // Fallback for custom providers
         };
-    }
 
     /// <summary>
     ///     Maps an operation ID to its GenAiAttributes.Operations constant reference.
@@ -306,9 +304,8 @@ internal static class GenAiInterceptorEmitter
     ///     Operation IDs follow OTel Semantic Conventions v1.39 gen_ai.operation.name values.
     ///     Operations not yet in GenAiAttributes use string literals until protocol is updated.
     /// </remarks>
-    private static string GetOperationConstant(string operationId)
-    {
-        return operationId switch
+    private static string GetOperationConstant(string operationId) =>
+        operationId switch
         {
             // Core operations (defined in GenAiAttributes.Operations)
             "chat" => "GenAiAttributes.Operations.Chat",
@@ -331,5 +328,4 @@ internal static class GenAiInterceptorEmitter
 
             _ => $"\"{operationId}\"" // Fallback for custom operations
         };
-    }
 }

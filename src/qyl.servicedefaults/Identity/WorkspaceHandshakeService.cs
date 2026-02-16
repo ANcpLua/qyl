@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -17,12 +18,14 @@ internal sealed partial class WorkspaceHandshakeService(
     IHostEnvironment environment,
     ILogger<WorkspaceHandshakeService> logger) : IHostedService, IDisposable
 {
+    private const int MaxRetries = 5;
     private static readonly TimeSpan HeartbeatInterval = TimeSpan.FromSeconds(60);
     private static readonly TimeSpan InitialRetryDelay = TimeSpan.FromSeconds(2);
-    private const int MaxRetries = 5;
+    private Task? _backgroundTask;
 
     private CancellationTokenSource? _cts;
-    private Task? _backgroundTask;
+
+    public void Dispose() => _cts?.Dispose();
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -43,11 +46,6 @@ internal sealed partial class WorkspaceHandshakeService(
             await Task.WhenAny(_backgroundTask, Task.Delay(Timeout.Infinite, cancellationToken))
                 .ConfigureAwait(false);
         }
-    }
-
-    public void Dispose()
-    {
-        _cts?.Dispose();
     }
 
     private async Task RunAsync(CancellationToken ct)
@@ -103,8 +101,8 @@ internal sealed partial class WorkspaceHandshakeService(
             ServiceName = serviceName,
             SdkVersion = sdkAssembly.TryGetPackageVersion(out var sdkVer) ? sdkVer : "unknown",
             RuntimeVersion = Environment.Version.ToString(),
-            Framework = entryAssembly?.GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()
-                ?.FrameworkName ?? $".NET {Environment.Version}",
+            Framework = entryAssembly?.GetCustomAttribute<TargetFrameworkAttribute>()
+                    ?.FrameworkName ?? $".NET {Environment.Version}",
             GitCommit = Environment.GetEnvironmentVariable("GIT_COMMIT")
                         ?? entryAssembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()
                             ?.InformationalVersion
@@ -177,27 +175,20 @@ internal sealed partial class WorkspaceHandshakeService(
 // Local DTOs — avoids coupling to collector types
 internal sealed class HandshakeRequestDto
 {
-    [JsonPropertyName("serviceName")]
-    public required string ServiceName { get; init; }
+    [JsonPropertyName("serviceName")] public required string ServiceName { get; init; }
 
-    [JsonPropertyName("sdkVersion")]
-    public string? SdkVersion { get; init; }
+    [JsonPropertyName("sdkVersion")] public string? SdkVersion { get; init; }
 
-    [JsonPropertyName("runtimeVersion")]
-    public string? RuntimeVersion { get; init; }
+    [JsonPropertyName("runtimeVersion")] public string? RuntimeVersion { get; init; }
 
-    [JsonPropertyName("framework")]
-    public string? Framework { get; init; }
+    [JsonPropertyName("framework")] public string? Framework { get; init; }
 
-    [JsonPropertyName("gitCommit")]
-    public string? GitCommit { get; init; }
+    [JsonPropertyName("gitCommit")] public string? GitCommit { get; init; }
 }
 
 internal sealed class HandshakeResponseDto
 {
-    [JsonPropertyName("workspaceId")]
-    public string? WorkspaceId { get; init; }
+    [JsonPropertyName("workspaceId")] public string? WorkspaceId { get; init; }
 
-    [JsonPropertyName("status")]
-    public string? Status { get; init; }
+    [JsonPropertyName("status")] public string? Status { get; init; }
 }

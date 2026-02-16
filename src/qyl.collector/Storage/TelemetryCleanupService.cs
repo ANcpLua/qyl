@@ -63,7 +63,8 @@ public sealed partial class TelemetryCleanupService(
         }
     }
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Telemetry cleanup service started. Interval: {Interval}, MaxRetentionDays: {Days}")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Telemetry cleanup service started. Interval: {Interval}, MaxRetentionDays: {Days}")]
     private static partial void LogServiceStarted(ILogger logger, TimeSpan interval, int days);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Error during telemetry cleanup")]
@@ -72,9 +73,11 @@ public sealed partial class TelemetryCleanupService(
     [LoggerMessage(Level = LogLevel.Information, Message = "Deleted {Count} spans older than {Days} days")]
     private static partial void LogSpansDeletedByAge(ILogger logger, int count, int days);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Span count {Count} exceeded max {Max}. Deleted {Deleted} oldest spans")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Span count {Count} exceeded max {Max}. Deleted {Deleted} oldest spans")]
     private static partial void LogSpansDeletedByCount(ILogger logger, long count, int max, int deleted);
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Log count {Count} exceeded max {Max}. Deleted {Deleted} oldest logs")]
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Log count {Count} exceeded max {Max}. Deleted {Deleted} oldest logs")]
     private static partial void LogLogsDeletedByCount(ILogger logger, long count, int max, int deleted);
 }

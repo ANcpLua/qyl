@@ -32,9 +32,8 @@ internal static class GenAiConstants
     ///     Returns the default <c>gen_ai.output.type</c> for a known operation.
     ///     Returns <c>null</c> when output modality is not known at compile time.
     /// </summary>
-    public static string? TryGetDefaultOutputType(string operation)
-    {
-        return operation switch
+    public static string? TryGetDefaultOutputType(string operation) =>
+        operation switch
         {
             GenAiAttributes.Operations.Chat => GenAiAttributes.OutputTypes.Text,
             GenAiAttributes.Operations.GenerateContent => GenAiAttributes.OutputTypes.Text,
@@ -45,5 +44,4 @@ internal static class GenAiConstants
             "speech" => GenAiAttributes.OutputTypes.Speech,
             _ => null
         };
-    }
 }

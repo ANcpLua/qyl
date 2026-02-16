@@ -8,6 +8,17 @@ namespace qyl.collector.Alerting;
 public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRuleService> logger)
 {
     // ==========================================================================
+    // Private Methods - SQL & Mapping
+    // ==========================================================================
+
+    private const string RuleSelectSql = """
+                                         SELECT id, project_id, name, description, rule_type, condition_json,
+                                                threshold_json, target_type, target_filter_json, severity,
+                                                cooldown_seconds, notification_channels_json, enabled,
+                                                last_triggered_at, trigger_count, created_at, updated_at
+                                         FROM alert_rules
+                                         """;
+    // ==========================================================================
     // Alert Rules CRUD
     // ==========================================================================
 
@@ -36,13 +47,13 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO alert_rules
-                    (id, project_id, name, description, rule_type, condition_json,
-                     threshold_json, target_type, target_filter_json, severity,
-                     cooldown_seconds, notification_channels_json, enabled,
-                     created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, $13, $14)
-                """;
+                              INSERT INTO alert_rules
+                                  (id, project_id, name, description, rule_type, condition_json,
+                                   threshold_json, target_type, target_filter_json, severity,
+                                   cooldown_seconds, notification_channels_json, enabled,
+                                   created_at, updated_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, TRUE, $13, $14)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
             cmd.Parameters.Add(new DuckDBParameter { Value = name });
@@ -116,11 +127,11 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            {RuleSelectSql}
-            {whereClause}
-            ORDER BY created_at DESC
-            LIMIT ${paramIndex}
-            """;
+                           {RuleSelectSql}
+                           {whereClause}
+                           ORDER BY created_at DESC
+                           LIMIT ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
@@ -153,16 +164,14 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
     /// <summary>
     ///     Deletes an alert rule by ID.
     /// </summary>
-    public async Task<bool> DeleteRuleAsync(string ruleId, CancellationToken ct = default)
-    {
-        return await store.ExecuteWriteAsync(async (con, token) =>
+    public async Task<bool> DeleteRuleAsync(string ruleId, CancellationToken ct = default) =>
+        await store.ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM alert_rules WHERE id = $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
         }, ct).ConfigureAwait(false);
-    }
 
     // ==========================================================================
     // Alert Firings
@@ -190,11 +199,11 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO alert_firings
-                    (id, rule_id, fingerprint, severity, title, message,
-                     trigger_value, threshold_value, context_json, status, fired_at, dedup_key)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'firing', $10, $11)
-                """;
+                              INSERT INTO alert_firings
+                                  (id, rule_id, fingerprint, severity, title, message,
+                                   trigger_value, threshold_value, context_json, status, fired_at, dedup_key)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'firing', $10, $11)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = firingId });
             cmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
             cmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
@@ -211,12 +220,12 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
             // Update trigger count on the rule
             await using var updateCmd = con.CreateCommand();
             updateCmd.CommandText = """
-                UPDATE alert_rules SET
-                    trigger_count = trigger_count + 1,
-                    last_triggered_at = $1,
-                    updated_at = $1
-                WHERE id = $2
-                """;
+                                    UPDATE alert_rules SET
+                                        trigger_count = trigger_count + 1,
+                                        last_triggered_at = $1,
+                                        updated_at = $1
+                                    WHERE id = $2
+                                    """;
             updateCmd.Parameters.Add(new DuckDBParameter { Value = now });
             updateCmd.Parameters.Add(new DuckDBParameter { Value = ruleId });
             await updateCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -257,14 +266,14 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT id, rule_id, fingerprint, severity, title, message,
-                   trigger_value, threshold_value, context_json, status,
-                   acknowledged_at, acknowledged_by, resolved_at, fired_at, dedup_key
-            FROM alert_firings
-            {whereClause}
-            ORDER BY fired_at DESC
-            LIMIT ${paramIndex}
-            """;
+                           SELECT id, rule_id, fingerprint, severity, title, message,
+                                  trigger_value, threshold_value, context_json, status,
+                                  acknowledged_at, acknowledged_by, resolved_at, fired_at, dedup_key
+                           FROM alert_firings
+                           {whereClause}
+                           ORDER BY fired_at DESC
+                           LIMIT ${paramIndex}
+                           """;
 
         cmd.Parameters.AddRange(parameters);
         cmd.Parameters.Add(new DuckDBParameter { Value = Math.Clamp(limit, 1, 1000) });
@@ -280,19 +289,20 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
     /// <summary>
     ///     Acknowledges a firing alert.
     /// </summary>
-    public async Task<bool> AcknowledgeFiringAsync(string firingId, string acknowledgedBy, CancellationToken ct = default)
+    public async Task<bool> AcknowledgeFiringAsync(string firingId, string acknowledgedBy,
+        CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
         return await store.ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE alert_firings SET
-                    status = 'acknowledged',
-                    acknowledged_at = $1,
-                    acknowledged_by = $2
-                WHERE id = $3 AND status = 'firing'
-                """;
+                              UPDATE alert_firings SET
+                                  status = 'acknowledged',
+                                  acknowledged_at = $1,
+                                  acknowledged_by = $2
+                              WHERE id = $3 AND status = 'firing'
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = now });
             cmd.Parameters.Add(new DuckDBParameter { Value = acknowledgedBy });
             cmd.Parameters.Add(new DuckDBParameter { Value = firingId });
@@ -310,11 +320,11 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE alert_firings SET
-                    status = 'resolved',
-                    resolved_at = $1
-                WHERE id = $2 AND status IN ('firing', 'acknowledged')
-                """;
+                              UPDATE alert_firings SET
+                                  status = 'resolved',
+                                  resolved_at = $1
+                              WHERE id = $2 AND status IN ('firing', 'acknowledged')
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = now });
             cmd.Parameters.Add(new DuckDBParameter { Value = firingId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
@@ -344,11 +354,11 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO fix_runs
-                    (id, issue_id, alert_firing_id, trigger_type, strategy,
-                     model_name, model_provider, status, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
-                """;
+                              INSERT INTO fix_runs
+                                  (id, issue_id, alert_firing_id, trigger_type, strategy,
+                                   model_name, model_provider, status, created_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending', $8)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
             cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             cmd.Parameters.Add(new DuckDBParameter { Value = alertFiringId ?? (object)DBNull.Value });
@@ -382,18 +392,19 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO fix_artifacts
-                    (id, fix_run_id, artifact_type, name, content_type,
-                     content, size_bytes, metadata_json, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                """;
+                              INSERT INTO fix_artifacts
+                                  (id, fix_run_id, artifact_type, name, content_type,
+                                   content, size_bytes, metadata_json, created_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = artifactId });
             cmd.Parameters.Add(new DuckDBParameter { Value = fixRunId });
             cmd.Parameters.Add(new DuckDBParameter { Value = artifactType });
             cmd.Parameters.Add(new DuckDBParameter { Value = name });
             cmd.Parameters.Add(new DuckDBParameter { Value = contentType });
             cmd.Parameters.Add(new DuckDBParameter { Value = content ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = content is not null ? (long)content.Length : (object)DBNull.Value });
+            cmd.Parameters.Add(
+                new DuckDBParameter { Value = content is not null ? (long)content.Length : DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = metadataJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = now });
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
@@ -401,18 +412,6 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
 
         return artifactId;
     }
-
-    // ==========================================================================
-    // Private Methods - SQL & Mapping
-    // ==========================================================================
-
-    private const string RuleSelectSql = """
-        SELECT id, project_id, name, description, rule_type, condition_json,
-               threshold_json, target_type, target_filter_json, severity,
-               cooldown_seconds, notification_channels_json, enabled,
-               last_triggered_at, trigger_count, created_at, updated_at
-        FROM alert_rules
-        """;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static AlertRuleRow MapRule(IDataReader reader) =>

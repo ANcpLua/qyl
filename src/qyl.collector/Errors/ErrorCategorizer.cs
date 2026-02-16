@@ -37,13 +37,17 @@ public static class ErrorCategorizer
         // Infer GenAI category from error message patterns
         if (!string.IsNullOrEmpty(message))
         {
-            if (message.ContainsOrdinal("rate limit") || message.ContainsOrdinal("429") || message.ContainsOrdinal("Too Many Requests"))
+            if (message.ContainsOrdinal("rate limit") || message.ContainsOrdinal("429") ||
+                message.ContainsOrdinal("Too Many Requests"))
                 return "rate_limit";
-            if (message.ContainsOrdinal("content filter") || message.ContainsOrdinal("content management policy") || message.ContainsOrdinal("content_policy"))
+            if (message.ContainsOrdinal("content filter") || message.ContainsOrdinal("content management policy") ||
+                message.ContainsOrdinal("content_policy"))
                 return "content_filter";
-            if (message.ContainsOrdinal("maximum context length") || message.ContainsOrdinal("token limit") || message.ContainsOrdinal("max_tokens"))
+            if (message.ContainsOrdinal("maximum context length") || message.ContainsOrdinal("token limit") ||
+                message.ContainsOrdinal("max_tokens"))
                 return "token_limit";
-            if (message.ContainsOrdinal("tool") && (message.ContainsOrdinal("failed") || message.ContainsOrdinal("error")))
+            if (message.ContainsOrdinal("tool") &&
+                (message.ContainsOrdinal("failed") || message.ContainsOrdinal("error")))
                 return "tool_execution_error";
         }
 

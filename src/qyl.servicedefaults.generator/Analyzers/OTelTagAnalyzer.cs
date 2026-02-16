@@ -16,11 +16,9 @@ internal static class OTelTagAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node have an [OTel] attribute?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
-    public static bool CouldHaveOTelAttribute(SyntaxNode node, CancellationToken _)
-    {
-        return node is PropertyDeclarationSyntax { AttributeLists.Count: > 0 }
+    public static bool CouldHaveOTelAttribute(SyntaxNode node, CancellationToken _) =>
+        node is PropertyDeclarationSyntax { AttributeLists.Count: > 0 }
             or ParameterSyntax { AttributeLists.Count: > 0 };
-    }
 
     /// <summary>
     ///     Extracts an OTel tag binding from a syntax context if it has an [OTel] attribute.
@@ -122,12 +120,14 @@ internal static class OTelTagAnalyzer
         }
 
         foreach (var namedArg in attr.NamedArguments)
+        {
             if (namedArg is
                 {
                     Key: "SkipIfNull",
                     Value.Value: bool skipValue
                 })
                 skipIfNull = skipValue;
+        }
 
         return (name, skipIfNull);
     }

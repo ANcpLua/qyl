@@ -6,10 +6,10 @@ namespace qyl.collector.Alerting;
 /// </summary>
 public sealed partial class AlertDeduplicator
 {
-    private readonly ConcurrentDictionary<string, DeduplicationEntry> _entries = new();
-    private readonly TimeProvider _timeProvider;
-    private readonly ILogger<AlertDeduplicator> _logger;
     private readonly TimeSpan _defaultWindow;
+    private readonly ConcurrentDictionary<string, DeduplicationEntry> _entries = new();
+    private readonly ILogger<AlertDeduplicator> _logger;
+    private readonly TimeProvider _timeProvider;
 
     public AlertDeduplicator(
         ILogger<AlertDeduplicator> logger,
@@ -20,6 +20,11 @@ public sealed partial class AlertDeduplicator
         _timeProvider = timeProvider ?? TimeProvider.System;
         _defaultWindow = defaultWindow ?? TimeSpan.FromMinutes(5);
     }
+
+    /// <summary>
+    ///     Gets the current deduplication entries for diagnostics.
+    /// </summary>
+    public IReadOnlyDictionary<string, DeduplicationEntry> Entries => _entries;
 
     /// <summary>
     ///     Returns true if the alert should be sent (first occurrence or window expired).
@@ -36,12 +41,7 @@ public sealed partial class AlertDeduplicator
 
         var entry = _entries.AddOrUpdate(
             key,
-            _ => new DeduplicationEntry
-            {
-                FirstSeen = now,
-                LastSeen = now,
-                Count = 1
-            },
+            _ => new DeduplicationEntry { FirstSeen = now, LastSeen = now, Count = 1 },
             (_, existing) =>
             {
                 existing.LastSeen = now;
@@ -88,11 +88,6 @@ public sealed partial class AlertDeduplicator
 
         return purged;
     }
-
-    /// <summary>
-    ///     Gets the current deduplication entries for diagnostics.
-    /// </summary>
-    public IReadOnlyDictionary<string, DeduplicationEntry> Entries => _entries;
 
     private static string BuildKey(string ruleName, string condition, double queryResult) =>
         string.Create(CultureInfo.InvariantCulture, $"{ruleName}:{condition}:{queryResult:F2}");

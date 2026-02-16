@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {useParams, useNavigate, Link} from 'react-router-dom';
+import {Link, useNavigate, useParams} from 'react-router-dom';
 import {
     AlertCircle,
     ArrowLeft,
@@ -18,8 +18,8 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {CopyableText} from '@/components/ui';
-import {useIssue, useIssueEvents, useUpdateIssueStatus, useAssignIssue} from '@/hooks/use-issues';
 import type {IssueEvent} from '@/hooks/use-issues';
+import {useAssignIssue, useIssue, useIssueEvents, useUpdateIssueStatus} from '@/hooks/use-issues';
 
 const statusStyles: Record<string, string> = {
     new: 'bg-red-500/20 text-red-400 border-red-500/40',
@@ -29,7 +29,7 @@ const statusStyles: Record<string, string> = {
     reopened: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
 };
 
-function StatusBadge({status}: {status: string}) {
+function StatusBadge({status}: { status: string }) {
     return (
         <Badge variant="outline" className={cn('uppercase tracking-wider', statusStyles[status] ?? statusStyles.new)}>
             {status}
@@ -49,7 +49,7 @@ function formatTimestamp(iso?: string): string {
     });
 }
 
-const statusTransitions: Record<string, {label: string; target: string; icon: typeof Eye}[]> = {
+const statusTransitions: Record<string, { label: string; target: string; icon: typeof Eye }[]> = {
     new: [{label: 'Acknowledge', target: 'acknowledged', icon: Eye}],
     acknowledged: [{label: 'Resolve', target: 'resolved', icon: CheckCircle2}],
     resolved: [{label: 'Reopen', target: 'reopened', icon: RotateCcw}],
@@ -69,13 +69,13 @@ const eventTypeIcons: Record<string, typeof AlertCircle> = {
     assignment: User,
 };
 
-function EventRow({event}: {event: IssueEvent}) {
+function EventRow({event}: { event: IssueEvent }) {
     const Icon = eventTypeIcons[event.event_type] ?? Clock;
 
     return (
         <div className="flex items-start gap-3 px-4 py-3 border-b border-brutal-zinc">
             <div className="mt-0.5">
-                <Icon className="w-4 h-4 text-brutal-slate" />
+                <Icon className="w-4 h-4 text-brutal-slate"/>
             </div>
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ function EventRow({event}: {event: IssueEvent}) {
                 {event.old_value && event.new_value && (
                     <div className="flex items-center gap-2 mt-1 text-xs">
                         <span className="text-brutal-slate">{event.old_value}</span>
-                        <ArrowRight className="w-3 h-3 text-brutal-zinc" />
+                        <ArrowRight className="w-3 h-3 text-brutal-zinc"/>
                         <span className="text-brutal-white">{event.new_value}</span>
                     </div>
                 )}
@@ -116,15 +116,15 @@ function SkeletonCard() {
     return (
         <Card>
             <CardContent className="pt-4">
-                <div className="h-4 w-20 bg-brutal-zinc rounded animate-pulse mb-2" />
-                <div className="h-7 w-32 bg-brutal-zinc rounded animate-pulse" />
+                <div className="h-4 w-20 bg-brutal-zinc rounded animate-pulse mb-2"/>
+                <div className="h-7 w-32 bg-brutal-zinc rounded animate-pulse"/>
             </CardContent>
         </Card>
     );
 }
 
 export function IssueDetailPage() {
-    const {issueId} = useParams<{issueId: string}>();
+    const {issueId} = useParams<{ issueId: string }>();
     const navigate = useNavigate();
     const [assignInput, setAssignInput] = useState('');
 
@@ -138,7 +138,7 @@ export function IssueDetailPage() {
             <div className="p-6">
                 <Card>
                     <CardContent className="py-12 text-center">
-                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
+                        <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
                         <p className="text-red-400">Failed to load issue</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {issueError instanceof Error ? issueError.message : 'Unknown error'}
@@ -162,22 +162,22 @@ export function IssueDetailPage() {
                     onClick={() => navigate('/issues')}
                     className="text-brutal-slate hover:text-brutal-white"
                 >
-                    <ArrowLeft className="w-4 h-4 mr-1" />
+                    <ArrowLeft className="w-4 h-4 mr-1"/>
                     Back
                 </Button>
 
                 {isLoading ? (
                     <div className="flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-brutal-slate" />
+                        <Loader2 className="w-5 h-5 animate-spin text-brutal-slate"/>
                         <span className="text-brutal-slate">Loading…</span>
                     </div>
                 ) : issue ? (
                     <div className="flex items-center gap-3 flex-1">
-                        <AlertCircle className="w-5 h-5 text-red-400" />
+                        <AlertCircle className="w-5 h-5 text-red-400"/>
                         <h1 className="text-lg font-bold text-brutal-white tracking-wide">
                             {issue.error_type}
                         </h1>
-                        <StatusBadge status={issue.status} />
+                        <StatusBadge status={issue.status}/>
                         {issue.owner && (
                             <Badge variant="outline" className="text-xs text-brutal-slate border-brutal-zinc">
                                 {issue.owner}
@@ -189,7 +189,8 @@ export function IssueDetailPage() {
 
             {/* Error message */}
             {issue?.message && (
-                <div className="text-sm text-brutal-slate bg-brutal-dark border-2 border-brutal-zinc rounded p-4 font-mono whitespace-pre-wrap">
+                <div
+                    className="text-sm text-brutal-slate bg-brutal-dark border-2 border-brutal-zinc rounded p-4 font-mono whitespace-pre-wrap">
                     {issue.message}
                 </div>
             )}
@@ -198,17 +199,18 @@ export function IssueDetailPage() {
             <div className="grid grid-cols-3 gap-4">
                 {isLoading ? (
                     <>
-                        <SkeletonCard />
-                        <SkeletonCard />
-                        <SkeletonCard />
+                        <SkeletonCard/>
+                        <SkeletonCard/>
+                        <SkeletonCard/>
                     </>
                 ) : issue ? (
                     <>
                         <Card>
                             <CardContent className="pt-4">
                                 <div className="flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-400" />
-                                    <span className="text-[10px] font-bold text-brutal-slate tracking-wider">EVENTS</span>
+                                    <AlertCircle className="w-4 h-4 text-red-400"/>
+                                    <span
+                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">EVENTS</span>
                                 </div>
                                 <div className="text-xl font-bold mt-1 text-brutal-white font-mono">
                                     {issue.event_count.toLocaleString()}
@@ -219,8 +221,9 @@ export function IssueDetailPage() {
                         <Card>
                             <CardContent className="pt-4">
                                 <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-brutal-slate" />
-                                    <span className="text-[10px] font-bold text-brutal-slate tracking-wider">FIRST SEEN</span>
+                                    <Clock className="w-4 h-4 text-brutal-slate"/>
+                                    <span
+                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">FIRST SEEN</span>
                                 </div>
                                 <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
                                     {formatTimestamp(issue.first_seen)}
@@ -231,8 +234,9 @@ export function IssueDetailPage() {
                         <Card>
                             <CardContent className="pt-4">
                                 <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-signal-orange" />
-                                    <span className="text-[10px] font-bold text-brutal-slate tracking-wider">LAST SEEN</span>
+                                    <Clock className="w-4 h-4 text-signal-orange"/>
+                                    <span
+                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">LAST SEEN</span>
                                 </div>
                                 <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
                                     {formatTimestamp(issue.last_seen)}
@@ -248,12 +252,13 @@ export function IssueDetailPage() {
                 <div className="flex items-center gap-6 text-sm">
                     <div className="flex items-center gap-2">
                         <span className="text-brutal-slate text-xs font-bold tracking-wider">ISSUE ID</span>
-                        <CopyableText value={issue.issue_id} label="Issue ID" truncate maxWidth="140px" />
+                        <CopyableText value={issue.issue_id} label="Issue ID" truncate maxWidth="140px"/>
                     </div>
                     {issue.trace_id && (
                         <div className="flex items-center gap-2">
                             <span className="text-brutal-slate text-xs font-bold tracking-wider">TRACE ID</span>
-                            <CopyableText value={issue.trace_id} label="Trace ID" truncate maxWidth="140px" textClassName="text-primary" />
+                            <CopyableText value={issue.trace_id} label="Trace ID" truncate maxWidth="140px"
+                                          textClassName="text-primary"/>
                         </div>
                     )}
                 </div>
@@ -271,7 +276,7 @@ export function IssueDetailPage() {
                             onClick={() => updateStatus.mutate({issueId: issue.issue_id, status: target})}
                             className="text-xs font-bold tracking-wider"
                         >
-                            <BtnIcon className="w-4 h-4 mr-1" />
+                            <BtnIcon className="w-4 h-4 mr-1"/>
                             {label}
                         </Button>
                     ))}
@@ -294,7 +299,7 @@ export function IssueDetailPage() {
                             }}
                             className="text-xs font-bold tracking-wider"
                         >
-                            <User className="w-4 h-4 mr-1" />
+                            <User className="w-4 h-4 mr-1"/>
                             Assign
                         </Button>
                     </div>
@@ -307,16 +312,16 @@ export function IssueDetailPage() {
                 <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
                     {eventsLoading ? (
                         <div className="py-8 text-center">
-                            <Loader2 className="w-6 h-6 mx-auto animate-spin text-brutal-slate" />
+                            <Loader2 className="w-6 h-6 mx-auto animate-spin text-brutal-slate"/>
                         </div>
                     ) : events.length === 0 ? (
                         <div className="py-8 text-center">
-                            <Clock className="w-8 h-8 mx-auto mb-2 text-brutal-zinc" />
+                            <Clock className="w-8 h-8 mx-auto mb-2 text-brutal-zinc"/>
                             <p className="text-brutal-slate text-sm">No events recorded</p>
                         </div>
                     ) : (
                         events.map((event) => (
-                            <EventRow key={event.event_id} event={event} />
+                            <EventRow key={event.event_id} event={event}/>
                         ))
                     )}
                 </div>

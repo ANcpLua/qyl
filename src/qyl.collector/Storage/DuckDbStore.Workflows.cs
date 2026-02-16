@@ -1,11 +1,22 @@
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with workflow execution,
+///     Partial class extending <see cref="DuckDbStore" /> with workflow execution,
 ///     checkpoint, and event operations.
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    // ==========================================================================
+    // Private Methods - Workflow Mapping
+    // ==========================================================================
+
+    private const string WorkflowExecutionSelectSql = """
+                                                      SELECT execution_id, trace_id, workflow_name, trigger, status,
+                                                             input_json, output_json, gen_ai_input_tokens, gen_ai_output_tokens,
+                                                             gen_ai_cost_usd, node_count, completed_nodes,
+                                                             start_time_unix_nano, end_time_unix_nano, duration_ns, error_message
+                                                      FROM workflow_executions
+                                                      """;
     // ==========================================================================
     // Workflow Execution Operations (WorkflowExecutionRecord)
     // ==========================================================================
@@ -20,14 +31,14 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO workflow_executions
-                    (execution_id, trace_id, workflow_name, trigger, status,
-                     input_json, output_json, gen_ai_input_tokens, gen_ai_output_tokens,
-                     gen_ai_cost_usd, node_count, completed_nodes,
-                     start_time_unix_nano, end_time_unix_nano, duration_ns, error_message)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-                ON CONFLICT (execution_id) DO NOTHING
-                """;
+                              INSERT INTO workflow_executions
+                                  (execution_id, trace_id, workflow_name, trigger, status,
+                                   input_json, output_json, gen_ai_input_tokens, gen_ai_output_tokens,
+                                   gen_ai_cost_usd, node_count, completed_nodes,
+                                   start_time_unix_nano, end_time_unix_nano, duration_ns, error_message)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                              ON CONFLICT (execution_id) DO NOTHING
+                              """;
             AddWorkflowExecutionParameters(cmd, record);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -46,18 +57,18 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE workflow_executions SET
-                    status = $1,
-                    output_json = $2,
-                    gen_ai_input_tokens = $3,
-                    gen_ai_output_tokens = $4,
-                    gen_ai_cost_usd = $5,
-                    completed_nodes = $6,
-                    end_time_unix_nano = $7,
-                    duration_ns = $8,
-                    error_message = $9
-                WHERE execution_id = $10
-                """;
+                              UPDATE workflow_executions SET
+                                  status = $1,
+                                  output_json = $2,
+                                  gen_ai_input_tokens = $3,
+                                  gen_ai_output_tokens = $4,
+                                  gen_ai_cost_usd = $5,
+                                  completed_nodes = $6,
+                                  end_time_unix_nano = $7,
+                                  duration_ns = $8,
+                                  error_message = $9
+                              WHERE execution_id = $10
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.Status ?? "pending" });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.OutputJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.GenAiInputTokens });
@@ -121,11 +132,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            {WorkflowExecutionSelectSql}
-            {qb.WhereClause}
-            ORDER BY start_time_unix_nano DESC
-            LIMIT {clampedLimit} OFFSET {clampedOffset}
-            """;
+                           {WorkflowExecutionSelectSql}
+                           {qb.WhereClause}
+                           ORDER BY start_time_unix_nano DESC
+                           LIMIT {clampedLimit} OFFSET {clampedOffset}
+                           """;
 
         qb.ApplyTo(cmd);
 
@@ -151,12 +162,12 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO workflow_checkpoints
-                    (checkpoint_id, execution_id, node_id, state_json,
-                     sequence_number, created_at_unix_nano)
-                VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT (checkpoint_id) DO NOTHING
-                """;
+                              INSERT INTO workflow_checkpoints
+                                  (checkpoint_id, execution_id, node_id, state_json,
+                                   sequence_number, created_at_unix_nano)
+                              VALUES ($1, $2, $3, $4, $5, $6)
+                              ON CONFLICT (checkpoint_id) DO NOTHING
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.CheckpointId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ExecutionId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.NodeId ?? (object)DBNull.Value });
@@ -182,12 +193,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT checkpoint_id, execution_id, node_id, state_json,
-                   sequence_number, created_at_unix_nano
-            FROM workflow_checkpoints
-            WHERE execution_id = $1
-            ORDER BY sequence_number ASC
-            """;
+                          SELECT checkpoint_id, execution_id, node_id, state_json,
+                                 sequence_number, created_at_unix_nano
+                          FROM workflow_checkpoints
+                          WHERE execution_id = $1
+                          ORDER BY sequence_number ASC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
 
         var records = new List<WorkflowCheckpointRecord>();
@@ -212,12 +223,12 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO workflow_events
-                    (event_id, execution_id, node_id, event_type,
-                     payload_json, sequence_number, created_at_unix_nano)
-                VALUES ($1, $2, $3, $4, $5, $6, $7)
-                ON CONFLICT (event_id) DO NOTHING
-                """;
+                              INSERT INTO workflow_events
+                                  (event_id, execution_id, node_id, event_type,
+                                   payload_json, sequence_number, created_at_unix_nano)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7)
+                              ON CONFLICT (event_id) DO NOTHING
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.EventId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ExecutionId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.NodeId ?? (object)DBNull.Value });
@@ -250,12 +261,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT event_id, execution_id, node_id, event_type,
-                   payload_json, sequence_number, created_at_unix_nano
-            FROM workflow_events
-            {qb.WhereClause}
-            ORDER BY sequence_number ASC
-            """;
+                           SELECT event_id, execution_id, node_id, event_type,
+                                  payload_json, sequence_number, created_at_unix_nano
+                           FROM workflow_events
+                           {qb.WhereClause}
+                           ORDER BY sequence_number ASC
+                           """;
 
         qb.ApplyTo(cmd);
 
@@ -281,13 +292,16 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE workflow_executions
-                SET status = 'cancelled',
-                    end_time_unix_nano = $1
-                WHERE execution_id = $2
-                  AND status IN ('pending', 'running')
-                """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L });
+                              UPDATE workflow_executions
+                              SET status = 'cancelled',
+                                  end_time_unix_nano = $1
+                              WHERE execution_id = $2
+                                AND status IN ('pending', 'running')
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L
+            });
             cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -295,18 +309,6 @@ public sealed partial class DuckDbStore
         await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
         return await job.Task.ConfigureAwait(false) > 0;
     }
-
-    // ==========================================================================
-    // Private Methods - Workflow Mapping
-    // ==========================================================================
-
-    private const string WorkflowExecutionSelectSql = """
-        SELECT execution_id, trace_id, workflow_name, trigger, status,
-               input_json, output_json, gen_ai_input_tokens, gen_ai_output_tokens,
-               gen_ai_cost_usd, node_count, completed_nodes,
-               start_time_unix_nano, end_time_unix_nano, duration_ns, error_message
-        FROM workflow_executions
-        """;
 
     private static void AddWorkflowExecutionParameters(DuckDBCommand cmd, WorkflowExecutionRecord record)
     {

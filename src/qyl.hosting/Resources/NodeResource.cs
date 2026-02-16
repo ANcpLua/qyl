@@ -1,7 +1,7 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// A Node.js application.
+///     A Node.js application.
 /// </summary>
 public sealed class NodeResource : QylResourceBase<NodeResource>
 {
@@ -25,24 +25,24 @@ public sealed class NodeResource : QylResourceBase<NodeResource>
     }
 
     /// <summary>
-    /// Path to the Node.js project directory.
+    ///     Path to the Node.js project directory.
     /// </summary>
     public string WorkingDirectory { get; }
 
     /// <summary>
-    /// Entry script path relative to working directory.
+    ///     Entry script path relative to working directory.
     /// </summary>
     public string ScriptPath { get; }
 
     /// <summary>
-    /// Package manager to use. Default: npm
+    ///     Package manager to use. Default: npm
     /// </summary>
     public string PackageManager { get; private set; } = "npm";
 
     public override string Type => "node";
 
     /// <summary>
-    /// Use npm as package manager.
+    ///     Use npm as package manager.
     /// </summary>
     public NodeResource WithNpm()
     {
@@ -51,7 +51,7 @@ public sealed class NodeResource : QylResourceBase<NodeResource>
     }
 
     /// <summary>
-    /// Use yarn as package manager.
+    ///     Use yarn as package manager.
     /// </summary>
     public NodeResource WithYarn()
     {
@@ -60,7 +60,7 @@ public sealed class NodeResource : QylResourceBase<NodeResource>
     }
 
     /// <summary>
-    /// Use pnpm as package manager.
+    ///     Use pnpm as package manager.
     /// </summary>
     public NodeResource WithPnpm()
     {
@@ -69,7 +69,7 @@ public sealed class NodeResource : QylResourceBase<NodeResource>
     }
 
     /// <summary>
-    /// Use bun as package manager and runtime.
+    ///     Use bun as package manager and runtime.
     /// </summary>
     public NodeResource WithBun()
     {

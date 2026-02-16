@@ -3,7 +3,7 @@ using qyl.collector.SchemaControl;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with schema control operations.
+///     Partial class extending <see cref="DuckDbStore" /> with schema control operations.
 /// </summary>
 public sealed partial class DuckDbStore
 {
@@ -23,10 +23,10 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO schema_promotions
-                    (id, profile_id, source_attribute, target_column, target_type, target_table, status, applied_at, created_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-                """;
+                              INSERT INTO schema_promotions
+                                  (id, profile_id, source_attribute, target_column, target_type, target_table, status, applied_at, created_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = record.PromotionId });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.RequestedBy ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ChangeType });
@@ -55,11 +55,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, profile_id, source_attribute, target_column, target_type,
-                   target_table, status, applied_at, created_at
-            FROM schema_promotions
-            WHERE id = $1
-            """;
+                          SELECT id, profile_id, source_attribute, target_column, target_type,
+                                 target_table, status, applied_at, created_at
+                          FROM schema_promotions
+                          WHERE id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = promotionId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -81,12 +81,12 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT id, profile_id, source_attribute, target_column, target_type,
-                   target_table, status, applied_at, created_at
-            FROM schema_promotions
-            WHERE status = $1
-            ORDER BY created_at DESC
-            """;
+                          SELECT id, profile_id, source_attribute, target_column, target_type,
+                                 target_table, status, applied_at, created_at
+                          FROM schema_promotions
+                          WHERE status = $1
+                          ORDER BY created_at DESC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = status });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -154,9 +154,9 @@ public sealed partial class DuckDbStore
 
     private static SchemaPromotionRecord MapSchemaPromotion(IDataReader reader) =>
         new(
-            PromotionId: reader.GetString(0),
-            RequestedBy: reader.Col(1).AsString,
-            ChangeType: reader.Col(2).AsString ?? string.Empty,
+            reader.GetString(0),
+            reader.Col(1).AsString,
+            reader.Col(2).AsString ?? string.Empty,
             TargetColumn: reader.Col(3).AsString,
             ColumnType: reader.Col(4).AsString,
             TargetTable: reader.Col(5).AsString ?? string.Empty,

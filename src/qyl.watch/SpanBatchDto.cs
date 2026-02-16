@@ -8,8 +8,7 @@ namespace qyl.watch;
 /// </summary>
 internal sealed record SpanBatchDto
 {
-    [JsonPropertyName("spans")]
-    public IReadOnlyList<SpanDto>? Spans { get; init; }
+    [JsonPropertyName("spans")] public IReadOnlyList<SpanDto>? Spans { get; init; }
 }
 
 /// <summary>
@@ -17,41 +16,30 @@ internal sealed record SpanBatchDto
 /// </summary>
 internal sealed record SpanDto
 {
-    [JsonPropertyName("spanId")]
-    public string? SpanId { get; init; }
+    [JsonPropertyName("spanId")] public string? SpanId { get; init; }
 
-    [JsonPropertyName("traceId")]
-    public string? TraceId { get; init; }
+    [JsonPropertyName("traceId")] public string? TraceId { get; init; }
 
-    [JsonPropertyName("parentSpanId")]
-    public string? ParentSpanId { get; init; }
+    [JsonPropertyName("parentSpanId")] public string? ParentSpanId { get; init; }
 
-    [JsonPropertyName("sessionId")]
-    public string? SessionId { get; init; }
+    [JsonPropertyName("sessionId")] public string? SessionId { get; init; }
 
-    [JsonPropertyName("name")]
-    public string? Name { get; init; }
+    [JsonPropertyName("name")] public string? Name { get; init; }
 
-    [JsonPropertyName("kind")]
-    public byte Kind { get; init; }
+    [JsonPropertyName("kind")] public byte Kind { get; init; }
 
     [JsonPropertyName("startTimeUnixNano")]
     public ulong StartTimeUnixNano { get; init; }
 
-    [JsonPropertyName("endTimeUnixNano")]
-    public ulong EndTimeUnixNano { get; init; }
+    [JsonPropertyName("endTimeUnixNano")] public ulong EndTimeUnixNano { get; init; }
 
-    [JsonPropertyName("durationNs")]
-    public ulong DurationNs { get; init; }
+    [JsonPropertyName("durationNs")] public ulong DurationNs { get; init; }
 
-    [JsonPropertyName("statusCode")]
-    public byte StatusCode { get; init; }
+    [JsonPropertyName("statusCode")] public byte StatusCode { get; init; }
 
-    [JsonPropertyName("statusMessage")]
-    public string? StatusMessage { get; init; }
+    [JsonPropertyName("statusMessage")] public string? StatusMessage { get; init; }
 
-    [JsonPropertyName("serviceName")]
-    public string? ServiceName { get; init; }
+    [JsonPropertyName("serviceName")] public string? ServiceName { get; init; }
 
     [JsonPropertyName("genAiProviderName")]
     public string? GenAiProviderName { get; init; }
@@ -62,20 +50,16 @@ internal sealed record SpanDto
     [JsonPropertyName("genAiResponseModel")]
     public string? GenAiResponseModel { get; init; }
 
-    [JsonPropertyName("genAiInputTokens")]
-    public long? GenAiInputTokens { get; init; }
+    [JsonPropertyName("genAiInputTokens")] public long? GenAiInputTokens { get; init; }
 
     [JsonPropertyName("genAiOutputTokens")]
     public long? GenAiOutputTokens { get; init; }
 
-    [JsonPropertyName("genAiCostUsd")]
-    public double? GenAiCostUsd { get; init; }
+    [JsonPropertyName("genAiCostUsd")] public double? GenAiCostUsd { get; init; }
 
-    [JsonPropertyName("genAiToolName")]
-    public string? GenAiToolName { get; init; }
+    [JsonPropertyName("genAiToolName")] public string? GenAiToolName { get; init; }
 
-    [JsonPropertyName("attributesJson")]
-    public string? AttributesJson { get; init; }
+    [JsonPropertyName("attributesJson")] public string? AttributesJson { get; init; }
 
     /// <summary>Duration in milliseconds, derived from DurationNs.</summary>
     public double DurationMs => DurationNs / 1_000_000.0;
@@ -87,7 +71,8 @@ internal sealed record SpanDto
     public bool IsError => StatusCode == 2;
 
     /// <summary>HTTP status code extracted from attributes, if present.</summary>
-    public int? HttpStatusCode => TryGetIntAttribute("http.response.status_code") ?? TryGetIntAttribute("http.status_code");
+    public int? HttpStatusCode =>
+        TryGetIntAttribute("http.response.status_code") ?? TryGetIntAttribute("http.status_code");
 
     /// <summary>HTTP method extracted from attributes, if present.</summary>
     public string? HttpMethod => TryGetStringAttribute("http.request.method") ?? TryGetStringAttribute("http.method");
@@ -114,6 +99,7 @@ internal sealed record SpanDto
         {
             // Malformed JSON
         }
+
         return null;
     }
 
@@ -130,6 +116,7 @@ internal sealed record SpanDto
         {
             // Malformed JSON
         }
+
         return null;
     }
 }

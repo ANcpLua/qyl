@@ -6,8 +6,8 @@ public sealed class SourceLocationCache
     public const int IdleTimeoutMinutes = 60;
 
     private readonly ConcurrentDictionary<string, CacheEntry> _cache = new(StringComparer.Ordinal);
-    private readonly ConcurrentQueue<string> _insertionOrder = new();
     private readonly TimeSpan _idleTimeout = TimeSpan.FromMinutes(IdleTimeoutMinutes);
+    private readonly ConcurrentQueue<string> _insertionOrder = new();
 
     public SourceLocation? GetOrAdd(string key, Func<SourceLocation?> factory)
     {

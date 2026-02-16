@@ -20,10 +20,8 @@ internal static class TracedCallSiteAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a traced method invocation?
     ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken ct)
-    {
-        return AnalyzerHelpers.CouldBeInvocation(node, ct);
-    }
+    public static bool CouldBeTracedInvocation(SyntaxNode node, CancellationToken ct) =>
+        AnalyzerHelpers.CouldBeInvocation(node, ct);
 
     /// <summary>
     ///     Extracts a traced call site from a syntax context if the target has [Traced] attribute.
@@ -55,7 +53,8 @@ internal static class TracedCallSiteAnalyzer
 
         var method = invocation.TargetMethod;
         var tracedTags = ExtractTracedTags(method, context.SemanticModel.Compilation);
-        var parameterTypes = method.Parameters.Select(static p => p.Type.ToDisplayString()).ToArray().ToEquatableArray();
+        var parameterTypes =
+            method.Parameters.Select(static p => p.Type.ToDisplayString()).ToArray().ToEquatableArray();
         var parameterNames = method.Parameters.Select(static p => p.Name).ToArray().ToEquatableArray();
         var typeParameters = ExtractTypeParameters(method);
 
@@ -140,8 +139,11 @@ internal static class TracedCallSiteAnalyzer
         ISymbol tracedAttributeType)
     {
         foreach (var attribute in attributes)
+        {
             if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, tracedAttributeType))
                 return attribute;
+        }
+
         return null;
     }
 
@@ -158,6 +160,7 @@ internal static class TracedCallSiteAnalyzer
 
         // Get named arguments
         foreach (var namedArg in attribute.NamedArguments)
+        {
             switch (namedArg.Key)
             {
                 case "SpanName":
@@ -166,6 +169,7 @@ internal static class TracedCallSiteAnalyzer
                 case "Kind":
                     // ActivityKind enum value
                     if (namedArg.Value.Value is int kindValue)
+                    {
                         spanKind = kindValue switch
                         {
                             0 => "Internal",
@@ -175,8 +179,11 @@ internal static class TracedCallSiteAnalyzer
                             4 => "Consumer",
                             _ => "Internal"
                         };
+                    }
+
                     break;
             }
+        }
 
         return (activitySourceName, spanName ?? defaultSpanName, spanKind);
     }
@@ -210,8 +217,10 @@ internal static class TracedCallSiteAnalyzer
 
             var skipIfNull = true; // Default
             foreach (var namedArg in attribute.NamedArguments)
+            {
                 if (namedArg is { Key: "SkipIfNull", Value.Value: bool skipValue })
                     skipIfNull = skipValue;
+            }
 
             var isNullable = parameter.Type.NullableAnnotation == NullableAnnotation.Annotated ||
                              parameter.Type.IsReferenceType;

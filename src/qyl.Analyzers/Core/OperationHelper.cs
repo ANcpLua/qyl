@@ -3,9 +3,10 @@ namespace Qyl.Analyzers.Core;
 /// <summary>
 ///     Provides helper methods for checking argument exception types.
 /// </summary>
-internal static partial class OperationHelper {
+internal static partial class OperationHelper
+{
     /// <summary>
-    ///     Determines whether the type represents <see cref="System.ArgumentNullException"/>.
+    ///     Determines whether the type represents <see cref="System.ArgumentNullException" />.
     /// </summary>
     /// <param name="type">The type symbol to check.</param>
     /// <returns><c>true</c> if the type is ArgumentNullException; otherwise, <c>false</c>.</returns>
@@ -13,7 +14,7 @@ internal static partial class OperationHelper {
         type?.ToDisplayString() is "System.ArgumentNullException" or "ArgumentNullException";
 
     /// <summary>
-    ///     Determines whether the type represents <see cref="System.ArgumentException"/>.
+    ///     Determines whether the type represents <see cref="System.ArgumentException" />.
     /// </summary>
     /// <param name="type">The type symbol to check.</param>
     /// <returns><c>true</c> if the type is ArgumentException; otherwise, <c>false</c>.</returns>
@@ -21,7 +22,7 @@ internal static partial class OperationHelper {
         type?.ToDisplayString() is "System.ArgumentException" or "ArgumentException";
 
     /// <summary>
-    ///     Determines whether the type represents <see cref="System.ArgumentOutOfRangeException"/>.
+    ///     Determines whether the type represents <see cref="System.ArgumentOutOfRangeException" />.
     /// </summary>
     /// <param name="type">The type symbol to check.</param>
     /// <returns><c>true</c> if the type is ArgumentOutOfRangeException; otherwise, <c>false</c>.</returns>

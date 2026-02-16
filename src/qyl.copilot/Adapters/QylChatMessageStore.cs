@@ -7,8 +7,6 @@
 using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.Agents.AI;
-using qyl.copilot.Instrumentation;
-using qyl.protocol.Copilot;
 using ChatMessage = qyl.protocol.Copilot.ChatMessage;
 using ProtocolChatRole = qyl.protocol.Copilot.ChatRole;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
@@ -18,16 +16,16 @@ namespace qyl.copilot.Adapters;
 
 /// <summary>
 ///     Persistent chat message store backed by qyl collector.
-///     Uses <see cref="InMemoryChatHistoryProvider"/> for in-process history
+///     Uses <see cref="InMemoryChatHistoryProvider" /> for in-process history
 ///     with periodic persistence to the collector API for historical recall.
 /// </summary>
 public sealed class QylChatMessageStore : IDisposable
 {
-    private readonly ConcurrentDictionary<string, List<ChatMessage>> _messages = new(StringComparer.OrdinalIgnoreCase);
-    private readonly ILogger _logger;
-    private readonly TimeProvider _timeProvider;
     private readonly Lock _lock = new();
+    private readonly ILogger _logger;
     private readonly int _maxMessagesPerThread;
+    private readonly ConcurrentDictionary<string, List<ChatMessage>> _messages = new(StringComparer.OrdinalIgnoreCase);
+    private readonly TimeProvider _timeProvider;
     private bool _disposed;
 
     /// <summary>
@@ -45,6 +43,14 @@ public sealed class QylChatMessageStore : IDisposable
         _timeProvider = timeProvider ?? TimeProvider.System;
         _maxMessagesPerThread = maxMessagesPerThread > 0 ? maxMessagesPerThread : 200;
     }
+
+    /// <summary>
+    ///     Gets all active thread IDs.
+    /// </summary>
+    public IReadOnlyCollection<string> ThreadIds => _messages.Keys.ToList();
+
+    /// <inheritdoc />
+    public void Dispose() => _disposed = true;
 
     /// <summary>
     ///     Adds a message to the store for the given thread.
@@ -104,12 +110,12 @@ public sealed class QylChatMessageStore : IDisposable
     }
 
     /// <summary>
-    ///     Creates an <see cref="InMemoryChatHistoryProvider"/> backed by this store's messages.
-    ///     The provider implements context bounding via <see cref="InMemoryChatHistoryProvider.ChatReducerTriggerEvent"/>.
+    ///     Creates an <see cref="InMemoryChatHistoryProvider" /> backed by this store's messages.
+    ///     The provider implements context bounding via <see cref="InMemoryChatHistoryProvider.ChatReducerTriggerEvent" />.
     /// </summary>
     /// <param name="threadId">The thread to create a provider for.</param>
     /// <param name="maxTokenEstimate">Approximate max tokens for context window (default: 4000).</param>
-    /// <returns>A chat history provider for use with <see cref="ChatClientAgent"/>.</returns>
+    /// <returns>A chat history provider for use with <see cref="ChatClientAgent" />.</returns>
     public InMemoryChatHistoryProvider CreateHistoryProvider(string threadId, int maxTokenEstimate = 4000)
     {
         ThrowIfDisposed();
@@ -188,17 +194,6 @@ public sealed class QylChatMessageStore : IDisposable
     {
         ThrowIfDisposed();
         return _messages.TryRemove(threadId, out _);
-    }
-
-    /// <summary>
-    ///     Gets all active thread IDs.
-    /// </summary>
-    public IReadOnlyCollection<string> ThreadIds => _messages.Keys.ToList();
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _disposed = true;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

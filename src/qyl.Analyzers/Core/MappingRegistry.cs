@@ -4,7 +4,8 @@ namespace Qyl.Analyzers.Core;
 ///     Centralized registry for type-to-extension-method mappings.
 ///     Single source of truth used by multiple analyzers.
 /// </summary>
-internal static partial class MappingRegistry {
+internal static partial class MappingRegistry
+{
     /// <summary>
     ///     Maps type names to their TryParse extension method names.
     ///     Used by AL0037.
@@ -14,7 +15,8 @@ internal static partial class MappingRegistry {
     ///     C# keyword aliases (e.g., "int").
     /// </remarks>
     private static readonly Dictionary<string, string> TryParseMappings =
-        new(StringComparer.Ordinal) {
+        new(StringComparer.Ordinal)
+        {
             ["System.Int32"] = "TryParseInt32",
             ["int"] = "TryParseInt32",
             ["System.Int64"] = "TryParseInt64",
@@ -45,7 +47,8 @@ internal static partial class MappingRegistry {
     ///     Note: LastIndexOf is NOT included - no extension exists for it.
     /// </remarks>
     private static readonly HashSet<string> StringComparisonMethods =
-        new(StringComparer.Ordinal) {
+        new(StringComparer.Ordinal)
+        {
             "Equals",
             "StartsWith",
             "EndsWith",
@@ -58,7 +61,8 @@ internal static partial class MappingRegistry {
     ///     Used by AL0039.
     /// </summary>
     private static readonly Dictionary<string, string> StringComparisonSuffixes =
-        new(StringComparer.Ordinal) {
+        new(StringComparer.Ordinal)
+        {
             ["Ordinal"] = "Ordinal",
             ["OrdinalIgnoreCase"] = "IgnoreCase",
             ["CurrentCulture"] = "CurrentCulture",

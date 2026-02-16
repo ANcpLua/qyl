@@ -1,7 +1,9 @@
 import {NavLink, useLocation} from 'react-router-dom';
+import type {LucideIcon} from 'lucide-react';
 import {
     Activity,
     AlertTriangle,
+    Bot,
     Brain,
     ChevronLeft,
     ChevronRight,
@@ -16,7 +18,6 @@ import {
     Sparkles,
     Terminal,
 } from 'lucide-react';
-import type {LucideIcon} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
@@ -35,6 +36,10 @@ const navItems: NavItem[] = [
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
     {to: '/search', icon: Search, label: 'SEARCH', shortcut: '/'},
+];
+
+const aiNavItems: NavItem[] = [
+    {to: '/agents', icon: Bot, label: 'AGENTS', shortcut: 'A'},
 ];
 
 const dashboardIconMap: Record<string, LucideIcon> = {
@@ -137,11 +142,61 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 })}
             </nav>
 
+            {/* AI Section */}
+            <div className="px-2 space-y-1">
+                {!collapsed && (
+                    <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                        AI
+                    </div>
+                )}
+                {aiNavItems.map((item) => {
+                    const isActive = location.pathname === item.to || location.pathname.startsWith(item.to + '/');
+                    const Icon = item.icon;
+
+                    const aiLinkContent = (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            className={cn(
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                isActive
+                                    ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
+                                    : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
+                            )}
+                        >
+                            <Icon className="w-5 h-5 flex-shrink-0"/>
+                            {!collapsed && (
+                                <>
+                                    <span className="flex-1">{item.label}</span>
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                </>
+                            )}
+                        </NavLink>
+                    );
+
+                    if (collapsed) {
+                        return (
+                            <Tooltip key={item.to} delayDuration={0}>
+                                <TooltipTrigger asChild>{aiLinkContent}</TooltipTrigger>
+                                <TooltipContent side="right"
+                                                className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
+                                    {item.label}
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                </TooltipContent>
+                            </Tooltip>
+                        );
+                    }
+
+                    return aiLinkContent;
+                })}
+            </div>
+
             {/* Auto-detected dashboards */}
             {dashboards && dashboards.length > 0 && (
                 <div className="px-2 space-y-1">
                     {!collapsed && (
-                        <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                        <div
+                            className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
                             DASHBOARDS
                         </div>
                     )}

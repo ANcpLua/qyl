@@ -9,8 +9,10 @@ namespace qyl.watch;
 /// </summary>
 internal sealed class SseClient(string baseUrl) : IDisposable
 {
-    private readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
     private const int MaxBackoffSeconds = 30;
+    private readonly HttpClient _http = new() { Timeout = Timeout.InfiniteTimeSpan };
+
+    public void Dispose() => _http.Dispose();
 
     public IAsyncEnumerable<SseEvent> StreamAsync(string? session, CancellationToken ct)
     {
@@ -101,6 +103,7 @@ internal sealed class SseClient(string baseUrl) : IDisposable
                     eventType = null;
                     dataLines.Clear();
                 }
+
                 continue;
             }
 
@@ -114,6 +117,4 @@ internal sealed class SseClient(string baseUrl) : IDisposable
             }
         }
     }
-
-    public void Dispose() => _http.Dispose();
 }

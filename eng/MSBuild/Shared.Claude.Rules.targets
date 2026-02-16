@@ -1,11 +1,11 @@
 <Project>
   <!-- =======================================================================
        .claude/rules/ Generation - Modular Rules Support
-       
+
        Claude Code supports path-specific rules in .claude/rules/:
        - .claude/rules/tests.md      → applies to **/test*/**
        - .claude/rules/frontend.md   → applies to specific paths
-       
+
        This target generates rules files from ItemGroups.
        ======================================================================= -->
 
@@ -41,7 +41,7 @@
     </ParameterGroup>
     <Task>
       <Code Type="Fragment" Language="cs">
-<![CDATA[
+        <![CDATA[
 System.IO.Directory.CreateDirectory(RulesDir);
 var path = System.IO.Path.Combine(RulesDir, RuleName + ".md");
 
@@ -49,7 +49,7 @@ var header = $"---\nglobs: {GlobPattern}\nalwaysApply: false\n---\n\n";
 var fullContent = header + Content.Trim() + "\n";
 
 System.IO.File.WriteAllText(path, fullContent);
-Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High, 
+Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High,
     $"[Claude] Generated rule: {path}");
 ]]>
       </Code>
@@ -59,7 +59,7 @@ Log.LogMessage(Microsoft.Build.Framework.MessageImportance.High,
   <Target Name="_GenerateClaudeRules"
           AfterTargets="Build"
           Condition="'$(GenerateClaudeMd)' == 'true' AND '@(ClaudeRule)' != ''">
-    
+
     <PropertyGroup>
       <_ClaudeRulesDir>$(MSBuildProjectDirectory)/.claude/rules</_ClaudeRulesDir>
     </PropertyGroup>

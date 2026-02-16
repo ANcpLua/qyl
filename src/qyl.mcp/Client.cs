@@ -20,7 +20,8 @@ internal static class TelemetryConstants
 
 public sealed partial class HostClientAgent(ILoggerFactory? loggerFactory = null)
 {
-    private readonly ILogger _logger = loggerFactory?.CreateLogger<HostClientAgent>() ?? NullLogger<HostClientAgent>.Instance;
+    private readonly ILogger _logger =
+        loggerFactory?.CreateLogger<HostClientAgent>() ?? NullLogger<HostClientAgent>.Instance;
 
     public AIAgent? Agent { get; private set; }
 

@@ -6,12 +6,12 @@
  *   const sdk = init({ endpoint: 'http://localhost:5100' });
  */
 
-export { init } from './core.js';
+export {init} from './core.js';
 export type {
-  QylConfig,
-  QylSdk,
-  OtlpSpan,
-  OtlpLogRecord,
-  OtlpAttribute,
-  OtlpAnyValue,
+    QylConfig,
+    QylSdk,
+    OtlpSpan,
+    OtlpLogRecord,
+    OtlpAttribute,
+    OtlpAnyValue,
 } from './types.js';

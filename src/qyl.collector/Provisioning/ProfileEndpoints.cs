@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 namespace qyl.collector.Provisioning;
 
 /// <summary>
@@ -8,14 +10,14 @@ public static class ProfileEndpoints
     public static void MapProfileEndpoints(this WebApplication app)
     {
         app.MapGet("/api/v1/config/profiles", static async (
-            [Microsoft.AspNetCore.Mvc.FromServices] ProfileService service, CancellationToken ct) =>
+            [FromServices] ProfileService service, CancellationToken ct) =>
         {
             var profiles = await service.GetProfilesAsync(ct);
             return Results.Ok(profiles);
         });
 
         app.MapPost("/api/v1/config/selections", static async (
-            ConfigSelectionRequest request, [Microsoft.AspNetCore.Mvc.FromServices] ProfileService service, CancellationToken ct) =>
+            ConfigSelectionRequest request, [FromServices] ProfileService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -35,7 +37,7 @@ public static class ProfileEndpoints
         });
 
         app.MapPost("/api/v1/config/generation-jobs", static async (
-            GenerationJobRequest request, [Microsoft.AspNetCore.Mvc.FromServices] GenerationJobService service, CancellationToken ct) =>
+            GenerationJobRequest request, [FromServices] GenerationJobService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
                 return Results.BadRequest(new { error = "WorkspaceId is required" });
@@ -48,7 +50,7 @@ public static class ProfileEndpoints
         });
 
         app.MapGet("/api/v1/config/generation-jobs/{jobId}", static async (
-            string jobId, [Microsoft.AspNetCore.Mvc.FromServices] GenerationJobService service, CancellationToken ct) =>
+            string jobId, [FromServices] GenerationJobService service, CancellationToken ct) =>
         {
             var job = await service.GetJobAsync(jobId, ct);
             return job is null ? Results.NotFound() : Results.Ok(job);

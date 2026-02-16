@@ -15,30 +15,30 @@ public sealed class BinlogParser
             var envReads = Array.Empty<string>();
 
             return new BuildFailureIngestRequest(
-                Id: null,
-                Timestamp: TimeProvider.System.GetUtcNow(),
-                Target: target,
-                ExitCode: exitCode,
-                BinlogPath: binlogPath,
-                ErrorSummary: summary,
-                PropertyIssuesJson: JsonSerializer.Serialize(propertyIssues),
-                EnvReadsJson: JsonSerializer.Serialize(envReads),
-                CallStackJson: null,
-                DurationMs: null);
+                null,
+                TimeProvider.System.GetUtcNow(),
+                target,
+                exitCode,
+                binlogPath,
+                summary,
+                JsonSerializer.Serialize(propertyIssues),
+                JsonSerializer.Serialize(envReads),
+                null,
+                null);
         }
         catch
         {
             return new BuildFailureIngestRequest(
-                Id: null,
-                Timestamp: TimeProvider.System.GetUtcNow(),
-                Target: target,
-                ExitCode: exitCode,
-                BinlogPath: binlogPath,
-                ErrorSummary: "Failed to parse binlog",
-                PropertyIssuesJson: null,
-                EnvReadsJson: null,
-                CallStackJson: null,
-                DurationMs: null);
+                null,
+                TimeProvider.System.GetUtcNow(),
+                target,
+                exitCode,
+                binlogPath,
+                "Failed to parse binlog",
+                null,
+                null,
+                null,
+                null);
         }
     }
 }

@@ -19,11 +19,11 @@ public static class QylAgentPipeline
 {
     /// <summary>
     ///     Creates an instrumented agent pipeline builder using a factory for deferred agent resolution.
-    ///     The factory receives the <see cref="IServiceProvider"/> at <see cref="AIAgentBuilder.Build"/> time.
+    ///     The factory receives the <see cref="IServiceProvider" /> at <see cref="AIAgentBuilder.Build" /> time.
     /// </summary>
     /// <param name="agentName">Logical agent name (set as gen_ai.agent.name).</param>
     /// <param name="services">Service provider for resolving dependencies.</param>
-    /// <returns>An <see cref="AIAgentBuilder"/> configured with OTel and logging middleware.</returns>
+    /// <returns>An <see cref="AIAgentBuilder" /> configured with OTel and logging middleware.</returns>
     public static AIAgentBuilder CreateInstrumented(string agentName, IServiceProvider services)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
@@ -55,7 +55,7 @@ public static class QylAgentPipeline
     /// <param name="agentName">Logical agent name (set as gen_ai.agent.name).</param>
     /// <param name="innerAgent">The inner agent to wrap with instrumentation.</param>
     /// <param name="services">Service provider for resolving dependencies.</param>
-    /// <returns>An <see cref="AIAgentBuilder"/> configured with OTel and logging middleware.</returns>
+    /// <returns>An <see cref="AIAgentBuilder" /> configured with OTel and logging middleware.</returns>
     public static AIAgentBuilder CreateInstrumented(string agentName, AIAgent innerAgent, IServiceProvider services)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
@@ -76,7 +76,7 @@ public static class QylAgentPipeline
     }
 
     /// <summary>
-    ///     Creates a fully instrumented agent from a <see cref="ChatClientAgent"/>.
+    ///     Creates a fully instrumented agent from a <see cref="ChatClientAgent" />.
     ///     Wraps the agent in OTel + Logging middleware layers.
     /// </summary>
     /// <param name="agentName">Logical agent name.</param>
@@ -84,7 +84,7 @@ public static class QylAgentPipeline
     /// <param name="services">Service provider for resolving dependencies.</param>
     /// <param name="instructions">Optional system instructions.</param>
     /// <param name="tools">Optional tools the agent can invoke.</param>
-    /// <returns>An instrumented <see cref="AIAgent"/>.</returns>
+    /// <returns>An instrumented <see cref="AIAgent" />.</returns>
     public static AIAgent CreateChatAgent(
         string agentName,
         IChatClient chatClient,
@@ -113,7 +113,7 @@ public static class QylAgentPipeline
     /// <param name="agentName">Logical agent name for telemetry.</param>
     /// <param name="innerAgent">The agent to wrap.</param>
     /// <param name="services">Service provider for resolving dependencies.</param>
-    /// <returns>An instrumented <see cref="AIAgent"/>.</returns>
+    /// <returns>An instrumented <see cref="AIAgent" />.</returns>
     public static AIAgent WrapWithInstrumentation(
         string agentName,
         AIAgent innerAgent,

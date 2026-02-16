@@ -4,8 +4,8 @@ using qyl.protocol.Copilot;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     DuckDB-backed implementation of <see cref="IExecutionStore"/>.
-///     Delegates to <see cref="DuckDbStore"/> workflow execution methods.
+///     DuckDB-backed implementation of <see cref="IExecutionStore" />.
+///     Delegates to <see cref="DuckDbStore" /> workflow execution methods.
 /// </summary>
 internal sealed class DuckDbExecutionStore(DuckDbStore store) : IExecutionStore
 {

@@ -14,10 +14,12 @@ public static class SearchEndpoints
             SearchQuery query, DuckDbStore store, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(query.Text))
+            {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["text"] = ["Search text is required."]
                 });
+            }
 
             var results = await store.SearchAsync(query, ct).ConfigureAwait(false);
             return Results.Ok(new { items = results, total = results.Count });

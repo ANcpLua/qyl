@@ -3,7 +3,7 @@ using qyl.collector.Search;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with unified cross-entity search operations.
+///     Partial class extending <see cref="DuckDbStore" /> with unified cross-entity search operations.
 /// </summary>
 public sealed partial class DuckDbStore
 {
@@ -58,31 +58,31 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT text, entity_type, cnt FROM (
-                SELECT name AS text, 'spans' AS entity_type, COUNT(*) AS cnt
-                FROM spans WHERE name ILIKE $1 ESCAPE '\'
-                GROUP BY name
-                UNION ALL
-                SELECT COALESCE(service_name, '') AS text, 'spans' AS entity_type, COUNT(*) AS cnt
-                FROM spans WHERE service_name ILIKE $1 ESCAPE '\'
-                GROUP BY service_name
-                UNION ALL
-                SELECT COALESCE(agent_name, '') AS text, 'agent_runs' AS entity_type, COUNT(*) AS cnt
-                FROM agent_runs WHERE agent_name ILIKE $1 ESCAPE '\'
-                GROUP BY agent_name
-                UNION ALL
-                SELECT COALESCE(workflow_name, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
-                FROM workflow_executions WHERE workflow_name ILIKE $1 ESCAPE '\'
-                GROUP BY workflow_name
-                UNION ALL
-                SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
-                FROM errors WHERE error_type ILIKE $1 ESCAPE '\'
-                GROUP BY error_type
-            ) AS suggestions
-            WHERE text != ''
-            ORDER BY cnt DESC
-            LIMIT 20
-            """;
+                          SELECT text, entity_type, cnt FROM (
+                              SELECT name AS text, 'spans' AS entity_type, COUNT(*) AS cnt
+                              FROM spans WHERE name ILIKE $1 ESCAPE '\'
+                              GROUP BY name
+                              UNION ALL
+                              SELECT COALESCE(service_name, '') AS text, 'spans' AS entity_type, COUNT(*) AS cnt
+                              FROM spans WHERE service_name ILIKE $1 ESCAPE '\'
+                              GROUP BY service_name
+                              UNION ALL
+                              SELECT COALESCE(agent_name, '') AS text, 'agent_runs' AS entity_type, COUNT(*) AS cnt
+                              FROM agent_runs WHERE agent_name ILIKE $1 ESCAPE '\'
+                              GROUP BY agent_name
+                              UNION ALL
+                              SELECT COALESCE(workflow_name, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
+                              FROM workflow_executions WHERE workflow_name ILIKE $1 ESCAPE '\'
+                              GROUP BY workflow_name
+                              UNION ALL
+                              SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
+                              FROM errors WHERE error_type ILIKE $1 ESCAPE '\'
+                              GROUP BY error_type
+                          ) AS suggestions
+                          WHERE text != ''
+                          ORDER BY cnt DESC
+                          LIMIT 20
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = likePattern });
 
         var suggestions = new List<SearchSuggestion>();
@@ -90,9 +90,9 @@ public sealed partial class DuckDbStore
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             suggestions.Add(new SearchSuggestion(
-                Text: reader.GetString(0),
-                EntityType: reader.GetString(1),
-                Count: reader.GetInt32(2)));
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetInt32(2)));
         }
 
         return suggestions;
@@ -110,11 +110,11 @@ public sealed partial class DuckDbStore
             : TimeProvider.System.GetUtcNow().UtcDateTime;
 
         return new SearchResult(
-            EntityType: reader.GetString(0),
-            EntityId: reader.GetString(1),
-            Title: reader.GetString(2),
-            Snippet: reader.Col(3).AsString,
-            Timestamp: timestamp,
-            Score: reader.Col(5).GetDouble(0));
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.Col(3).AsString,
+            timestamp,
+            reader.Col(5).GetDouble(0));
     }
 }

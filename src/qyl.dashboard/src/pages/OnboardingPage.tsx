@@ -1,4 +1,4 @@
-import {useState, useEffect, useCallback} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {
     ArrowLeft,
@@ -20,7 +20,7 @@ import {toast} from 'sonner';
 const STEPS = ['Welcome', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
 type Step = (typeof STEPS)[number];
 
-function StepIndicator({current, steps}: {current: number; steps: readonly string[]}) {
+function StepIndicator({current, steps}: { current: number; steps: readonly string[] }) {
     return (
         <div className="flex items-center gap-2">
             {steps.map((label, i) => (
@@ -31,8 +31,8 @@ function StepIndicator({current, steps}: {current: number; steps: readonly strin
                             i < current
                                 ? 'bg-signal-green border-signal-green text-brutal-black'
                                 : i === current
-                                  ? 'bg-signal-orange border-signal-orange text-brutal-black'
-                                  : 'bg-brutal-dark border-brutal-zinc text-brutal-slate'
+                                    ? 'bg-signal-orange border-signal-orange text-brutal-black'
+                                    : 'bg-brutal-dark border-brutal-zinc text-brutal-slate'
                         )}
                     >
                         {i < current ? <Check className="w-4 h-4"/> : i + 1}
@@ -51,7 +51,7 @@ function StepIndicator({current, steps}: {current: number; steps: readonly strin
     );
 }
 
-function CodeBlock({code, label}: {code: string; label?: string}) {
+function CodeBlock({code, label}: { code: string; label?: string }) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
@@ -67,7 +67,8 @@ function CodeBlock({code, label}: {code: string; label?: string}) {
 
     return (
         <div className="relative group">
-            <pre className="bg-slate-900 border-2 border-brutal-zinc p-4 text-sm font-mono text-brutal-white overflow-x-auto">
+            <pre
+                className="bg-slate-900 border-2 border-brutal-zinc p-4 text-sm font-mono text-brutal-white overflow-x-auto">
                 {code}
             </pre>
             <Button
@@ -86,7 +87,8 @@ function CodeBlock({code, label}: {code: string; label?: string}) {
 function WelcomeStep() {
     return (
         <div className="space-y-6 text-center max-w-lg mx-auto">
-            <div className="w-16 h-16 mx-auto bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
+            <div
+                className="w-16 h-16 mx-auto bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
                 <Rocket className="w-8 h-8 text-brutal-black"/>
             </div>
             <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
@@ -138,7 +140,8 @@ function ConnectStep() {
                 </div>
             </div>
             <p className="text-[10px] text-brutal-slate tracking-wider">
-                For gRPC transport, use <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</span>
+                For gRPC transport, use <span
+                className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</span>
             </p>
         </div>
     );
@@ -359,7 +362,8 @@ function DoneStep() {
 
     return (
         <div className="space-y-6 max-w-lg mx-auto text-center">
-            <div className="w-16 h-16 mx-auto bg-signal-green flex items-center justify-center border-2 border-brutal-black">
+            <div
+                className="w-16 h-16 mx-auto bg-signal-green flex items-center justify-center border-2 border-brutal-black">
                 <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
             </div>
             <h2 className="text-2xl font-bold text-brutal-white tracking-wider">YOU'RE ALL SET</h2>

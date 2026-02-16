@@ -8,23 +8,23 @@
  * The SDK auto-initializes from window.qyl config.
  */
 
-import { init } from './core.js';
-import type { QylConfig, QylSdk } from './types.js';
+import {init} from './core.js';
+import type {QylConfig, QylSdk} from './types.js';
 
 (function autoInit() {
-  const existing = window.qyl;
-  if (!existing || typeof existing !== 'object') return;
+    const existing = window.qyl;
+    if (!existing || typeof existing !== 'object') return;
 
-  // Already initialized (QylSdk has a flush method)
-  if ('flush' in existing) return;
+    // Already initialized (QylSdk has a flush method)
+    if ('flush' in existing) return;
 
-  // Treat as config
-  const config = existing as Partial<QylConfig>;
-  if (!config.endpoint) {
-    console.warn('[qyl] Missing endpoint in window.qyl config. SDK not initialized.');
-    return;
-  }
+    // Treat as config
+    const config = existing as Partial<QylConfig>;
+    if (!config.endpoint) {
+        console.warn('[qyl] Missing endpoint in window.qyl config. SDK not initialized.');
+        return;
+    }
 
-  const sdk: QylSdk = init(config as QylConfig);
-  window.qyl = sdk;
+    const sdk: QylSdk = init(config as QylConfig);
+    window.qyl = sdk;
 })();

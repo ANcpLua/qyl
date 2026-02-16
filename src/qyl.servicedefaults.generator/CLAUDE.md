@@ -4,25 +4,26 @@ Roslyn source generator for automatic OTel instrumentation via C# interceptors.
 
 ## Identity
 
-| Property | Value |
-|----------|-------|
-| SDK | ANcpLua.NET.Sdk |
-| Framework | netstandard2.0 |
-| Pattern | C# 12 interceptors |
+| Property  | Value              |
+|-----------|--------------------|
+| SDK       | ANcpLua.NET.Sdk    |
+| Framework | netstandard2.0     |
+| Pattern   | C# 12 interceptors |
 
 ## Purpose
 
-Zero-config compile-time telemetry: intercepts GenAI SDK calls, database calls, and `[Traced]` methods. Emits OTel spans with semantic conventions. No runtime reflection.
+Zero-config compile-time telemetry: intercepts GenAI SDK calls, database calls, and `[Traced]` methods. Emits OTel spans
+with semantic conventions. No runtime reflection.
 
 ## Analyzers -> Emitters
 
-| Analyzer | Emitter | Detects |
-|----------|---------|---------|
-| `GenAiCallSiteAnalyzer` | `GenAiInterceptorEmitter` | GenAI SDK calls |
-| `DbCallSiteAnalyzer` | `DbInterceptorEmitter` | Database calls |
-| `OTelTagAnalyzer` | `OTelTagEmitter` | OTel tag definitions |
-| `MeterAnalyzer` | `MeterEmitter` | Meter classes |
-| `TracedCallSiteAnalyzer` | `TracedInterceptorEmitter` | [Traced] methods |
+| Analyzer                 | Emitter                    | Detects              |
+|--------------------------|----------------------------|----------------------|
+| `GenAiCallSiteAnalyzer`  | `GenAiInterceptorEmitter`  | GenAI SDK calls      |
+| `DbCallSiteAnalyzer`     | `DbInterceptorEmitter`     | Database calls       |
+| `OTelTagAnalyzer`        | `OTelTagEmitter`           | OTel tag definitions |
+| `MeterAnalyzer`          | `MeterEmitter`             | Meter classes        |
+| `TracedCallSiteAnalyzer` | `TracedInterceptorEmitter` | [Traced] methods     |
 
 ## Provider Detection
 

@@ -15,7 +15,7 @@ public static class AutofixEndpoints
             if (issue is null)
                 return Results.NotFound();
 
-            if (!Enum.TryParse<FixPolicy>(request.Policy, ignoreCase: true, out var policy))
+            if (!Enum.TryParse<FixPolicy>(request.Policy, true, out var policy))
                 policy = FixPolicy.RequireReview;
 
             var run = await orchestrator.CreateFixRunAsync(issueId, issue, policy, ct);

@@ -3,7 +3,7 @@ using qyl.collector.Provisioning;
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with provisioning operations:
+///     Partial class extending <see cref="DuckDbStore" /> with provisioning operations:
 ///     config selections, generation job CRUD, and job queue queries.
 /// </summary>
 public sealed partial class DuckDbStore
@@ -26,13 +26,13 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO config_selections (workspace_id, profile_id, custom_overrides, updated_at)
-                VALUES ($1, $2, $3, now())
-                ON CONFLICT (workspace_id) DO UPDATE SET
-                    profile_id = EXCLUDED.profile_id,
-                    custom_overrides = EXCLUDED.custom_overrides,
-                    updated_at = now()
-                """;
+                              INSERT INTO config_selections (workspace_id, profile_id, custom_overrides, updated_at)
+                              VALUES ($1, $2, $3, now())
+                              ON CONFLICT (workspace_id) DO UPDATE SET
+                                  profile_id = EXCLUDED.profile_id,
+                                  custom_overrides = EXCLUDED.custom_overrides,
+                                  updated_at = now()
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
             cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
             cmd.Parameters.Add(new DuckDBParameter { Value = customOverrides ?? (object)DBNull.Value });
@@ -55,10 +55,10 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT workspace_id, profile_id, custom_overrides, updated_at
-            FROM config_selections
-            WHERE workspace_id = $1
-            """;
+                          SELECT workspace_id, profile_id, custom_overrides, updated_at
+                          FROM config_selections
+                          WHERE workspace_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -84,10 +84,10 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO generation_jobs
-                    (job_id, workspace_id, profile_id, status, output_url, error_message, created_at, completed_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-                """;
+                              INSERT INTO generation_jobs
+                                  (job_id, workspace_id, profile_id, status, output_url, error_message, created_at, completed_at)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = job.JobId });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.WorkspaceId ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ProfileId ?? (object)DBNull.Value });
@@ -115,11 +115,11 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT job_id, workspace_id, profile_id, status,
-                   output_url, error_message, created_at, completed_at
-            FROM generation_jobs
-            WHERE job_id = $1
-            """;
+                          SELECT job_id, workspace_id, profile_id, status,
+                                 output_url, error_message, created_at, completed_at
+                          FROM generation_jobs
+                          WHERE job_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = jobId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -141,13 +141,13 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE generation_jobs SET
-                    status = $1,
-                    output_url = $2,
-                    error_message = $3,
-                    completed_at = $4
-                WHERE job_id = $5
-                """;
+                              UPDATE generation_jobs SET
+                                  status = $1,
+                                  output_url = $2,
+                                  error_message = $3,
+                                  completed_at = $4
+                              WHERE job_id = $5
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = job.Status });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.OutputUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ErrorMessage ?? (object)DBNull.Value });
@@ -175,13 +175,13 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT job_id, workspace_id, profile_id, status,
-                   output_url, error_message, created_at, completed_at
-            FROM generation_jobs
-            WHERE workspace_id = $1
-            ORDER BY created_at DESC
-            LIMIT {clampedLimit}
-            """;
+                           SELECT job_id, workspace_id, profile_id, status,
+                                  output_url, error_message, created_at, completed_at
+                           FROM generation_jobs
+                           WHERE workspace_id = $1
+                           ORDER BY created_at DESC
+                           LIMIT {clampedLimit}
+                           """;
         cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
 
         var jobs = new List<GenerationJobRecord>();
@@ -199,24 +199,24 @@ public sealed partial class DuckDbStore
     private static ConfigSelectionRecord MapConfigSelection(IDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
-        return new(
-            WorkspaceId: reader.GetString(0),
-            ProfileId: reader.GetString(1),
-            CustomOverrides: reader.Col(2).AsString,
-            UpdatedAt: reader.Col(3).AsDateTime ?? fallback);
+        return new ConfigSelectionRecord(
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.Col(2).AsString,
+            reader.Col(3).AsDateTime ?? fallback);
     }
 
     private static GenerationJobRecord MapGenerationJob(IDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
-        return new(
-            JobId: reader.GetString(0),
-            WorkspaceId: reader.Col(1).AsString,
-            ProfileId: reader.Col(2).AsString,
-            Status: reader.GetString(3),
-            OutputUrl: reader.Col(4).AsString,
-            ErrorMessage: reader.Col(5).AsString,
-            CreatedAt: reader.Col(6).AsDateTime ?? fallback,
-            CompletedAt: reader.Col(7).AsDateTime);
+        return new GenerationJobRecord(
+            reader.GetString(0),
+            reader.Col(1).AsString,
+            reader.Col(2).AsString,
+            reader.GetString(3),
+            reader.Col(4).AsString,
+            reader.Col(5).AsString,
+            reader.Col(6).AsDateTime ?? fallback,
+            reader.Col(7).AsDateTime);
     }
 }

@@ -34,9 +34,8 @@ public sealed class AgentTools(HttpClient client)
         [Description("Filter by agent name (partial match)")]
         string? agentName = null,
         [Description("Filter by status: 'running', 'completed', 'failed'")]
-        string? status = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string? status = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/agent-runs?limit={limit}";
             if (!string.IsNullOrEmpty(agentName))
@@ -69,12 +68,12 @@ public sealed class AgentTools(HttpClient client)
                 var costStr = run.CostUsd > 0 ? $"${run.CostUsd:F4}" : "-";
                 var tokensStr = $"{run.InputTokens:N0}/{run.OutputTokens:N0}";
 
-                sb.AppendLine($"| {runId} | {run.AgentName ?? "unknown"} | {run.Model ?? "unknown"} | {statusIcon} {run.Status} | {tokensStr} | {costStr} | {durationStr} |");
+                sb.AppendLine(
+                    $"| {runId} | {run.AgentName ?? "unknown"} | {run.Model ?? "unknown"} | {statusIcon} {run.Status} | {tokensStr} | {costStr} | {durationStr} |");
             }
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_agent_run")]
     [Description("""
@@ -91,9 +90,8 @@ public sealed class AgentTools(HttpClient client)
                  """)]
     public Task<string> GetAgentRunAsync(
         [Description("The agent run ID to look up")]
-        string runId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string runId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var run = await client.GetFromJsonAsync<AgentRunDto>(
                 $"/api/v1/agent-runs/{Uri.EscapeDataString(runId)}",
@@ -130,15 +128,14 @@ public sealed class AgentTools(HttpClient client)
             if (!string.IsNullOrEmpty(run.ErrorMessage))
             {
                 sb.AppendLine();
-                sb.AppendLine($"### Error");
-                sb.AppendLine($"```");
+                sb.AppendLine("### Error");
+                sb.AppendLine("```");
                 sb.AppendLine(run.ErrorMessage);
-                sb.AppendLine($"```");
+                sb.AppendLine("```");
             }
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_tool_calls")]
     [Description("""
@@ -153,9 +150,8 @@ public sealed class AgentTools(HttpClient client)
                  """)]
     public Task<string> GetToolCallsAsync(
         [Description("The agent run ID to get tool calls for")]
-        string runId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string runId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<ToolCallsResponse>(
                 $"/api/v1/agent-runs/{Uri.EscapeDataString(runId)}/tools",
@@ -165,7 +161,8 @@ public sealed class AgentTools(HttpClient client)
                 return $"No tool calls found for agent run '{runId}'.";
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Tool Calls for Run {(runId.Length > 8 ? runId[..8] : runId)} ({response.ToolCalls.Count} calls)");
+            sb.AppendLine(
+                $"# Tool Calls for Run {(runId.Length > 8 ? runId[..8] : runId)} ({response.ToolCalls.Count} calls)");
             sb.AppendLine();
             sb.AppendLine("| # | Tool | Status | Duration |");
             sb.AppendLine("|---|------|--------|----------|");
@@ -178,12 +175,12 @@ public sealed class AgentTools(HttpClient client)
                     _ => "✅"
                 };
                 var durationStr = call.DurationMs > 0 ? $"{call.DurationMs:F0}ms" : "-";
-                sb.AppendLine($"| {call.Sequence} | {call.ToolName ?? "unknown"} | {statusIcon} {call.Status} | {durationStr} |");
+                sb.AppendLine(
+                    $"| {call.Sequence} | {call.ToolName ?? "unknown"} | {statusIcon} {call.Status} | {durationStr} |");
             }
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs
@@ -194,26 +191,39 @@ internal sealed record AgentRunsResponse(
 
 internal sealed record AgentRunDto(
     [property: JsonPropertyName("run_id")] string RunId,
-    [property: JsonPropertyName("trace_id")] string? TraceId,
-    [property: JsonPropertyName("agent_name")] string? AgentName,
+    [property: JsonPropertyName("trace_id")]
+    string? TraceId,
+    [property: JsonPropertyName("agent_name")]
+    string? AgentName,
     [property: JsonPropertyName("model")] string? Model,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("input_tokens")] long InputTokens,
-    [property: JsonPropertyName("output_tokens")] long OutputTokens,
-    [property: JsonPropertyName("cost_usd")] double CostUsd,
-    [property: JsonPropertyName("duration_ms")] double DurationMs,
-    [property: JsonPropertyName("start_time")] string? StartTime,
-    [property: JsonPropertyName("end_time")] string? EndTime,
-    [property: JsonPropertyName("error_message")] string? ErrorMessage);
+    [property: JsonPropertyName("input_tokens")]
+    long InputTokens,
+    [property: JsonPropertyName("output_tokens")]
+    long OutputTokens,
+    [property: JsonPropertyName("cost_usd")]
+    double CostUsd,
+    [property: JsonPropertyName("duration_ms")]
+    double DurationMs,
+    [property: JsonPropertyName("start_time")]
+    string? StartTime,
+    [property: JsonPropertyName("end_time")]
+    string? EndTime,
+    [property: JsonPropertyName("error_message")]
+    string? ErrorMessage);
 
 internal sealed record ToolCallsResponse(
-    [property: JsonPropertyName("tool_calls")] List<ToolCallDto>? ToolCalls);
+    [property: JsonPropertyName("tool_calls")]
+    List<ToolCallDto>? ToolCalls);
 
 internal sealed record ToolCallDto(
-    [property: JsonPropertyName("tool_name")] string? ToolName,
+    [property: JsonPropertyName("tool_name")]
+    string? ToolName,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("duration_ms")] double DurationMs,
-    [property: JsonPropertyName("sequence")] int Sequence);
+    [property: JsonPropertyName("duration_ms")]
+    double DurationMs,
+    [property: JsonPropertyName("sequence")]
+    int Sequence);
 
 #endregion
 

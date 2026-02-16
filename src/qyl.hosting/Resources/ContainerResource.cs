@@ -1,38 +1,36 @@
 namespace Qyl.Hosting.Resources;
 
 /// <summary>
-/// A container resource (Docker/Podman).
+///     A container resource (Docker/Podman).
 /// </summary>
 public sealed class ContainerResource : QylResourceBase<ContainerResource>
 {
-    private readonly List<string> _volumes = [];
     private readonly List<string> _args = [];
+    private readonly List<string> _volumes = [];
 
     internal ContainerResource(string name, string image, QylAppBuilder builder)
-        : base(name, builder)
-    {
+        : base(name, builder) =>
         Image = image;
-    }
 
     /// <summary>
-    /// Container image.
+    ///     Container image.
     /// </summary>
     public string Image { get; }
 
     /// <summary>
-    /// Volume mounts.
+    ///     Volume mounts.
     /// </summary>
     public IEnumerable<string> Volumes => _volumes;
 
     /// <summary>
-    /// Additional container arguments.
+    ///     Additional container arguments.
     /// </summary>
     public IEnumerable<string> Args => _args;
 
     public override string Type => "container";
 
     /// <summary>
-    /// Adds a volume mount.
+    ///     Adds a volume mount.
     /// </summary>
     public ContainerResource WithVolume(string name, string containerPath)
     {
@@ -41,7 +39,7 @@ public sealed class ContainerResource : QylResourceBase<ContainerResource>
     }
 
     /// <summary>
-    /// Adds a bind mount.
+    ///     Adds a bind mount.
     /// </summary>
     public ContainerResource WithBindMount(string hostPath, string containerPath)
     {
@@ -50,7 +48,7 @@ public sealed class ContainerResource : QylResourceBase<ContainerResource>
     }
 
     /// <summary>
-    /// Adds container arguments.
+    ///     Adds container arguments.
     /// </summary>
     public ContainerResource WithArgs(params string[] args)
     {
@@ -60,7 +58,7 @@ public sealed class ContainerResource : QylResourceBase<ContainerResource>
 }
 
 /// <summary>
-/// A PostgreSQL database resource.
+///     A PostgreSQL database resource.
 /// </summary>
 public sealed class PostgresResource : QylResourceBase<PostgresResource>
 {
@@ -76,14 +74,14 @@ public sealed class PostgresResource : QylResourceBase<PostgresResource>
     }
 
     /// <summary>
-    /// Database name.
+    ///     Database name.
     /// </summary>
     public string DatabaseName => Name;
 
     public override string Type => "postgres";
 
     /// <summary>
-    /// Adds a database to this PostgreSQL instance.
+    ///     Adds a database to this PostgreSQL instance.
     /// </summary>
     public PostgresResource AddDatabase(string name)
     {
@@ -92,7 +90,7 @@ public sealed class PostgresResource : QylResourceBase<PostgresResource>
     }
 
     /// <summary>
-    /// Sets the PostgreSQL password.
+    ///     Sets the PostgreSQL password.
     /// </summary>
     public PostgresResource WithPassword(string password)
     {
@@ -101,7 +99,7 @@ public sealed class PostgresResource : QylResourceBase<PostgresResource>
     }
 
     /// <summary>
-    /// Gets the connection string for this database.
+    ///     Gets the connection string for this database.
     /// </summary>
     public string GetConnectionString()
     {

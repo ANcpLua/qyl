@@ -146,9 +146,9 @@ public sealed class OtlpProtobufParserTests
                 BuildScopeSpans(
                     BuildSpanWithAttributes(
                         "0123456789abcdef0123456789abcdef", "0123456789abcdef", "chat completions",
-                        kind: 3,
-                        startNano: 1_000_000_000,
-                        endNano: 2_000_000_000,
+                        3,
+                        1_000_000_000,
+                        2_000_000_000,
                         ("gen_ai.provider.name", "openai"),
                         ("gen_ai.request.model", "gpt-4o"),
                         ("gen_ai.response.model", "gpt-4o-2024-08-06"),
@@ -216,6 +216,7 @@ public sealed class OtlpProtobufParserTests
             ms.WriteByte((byte)(value | 0x80));
             value >>= 7;
         }
+
         ms.WriteByte((byte)value);
     }
 
@@ -275,6 +276,7 @@ public sealed class OtlpProtobufParserTests
             WriteTag(ms, 1, WireType.LengthDelimited);
             WriteBytes(ms, BuildKeyValue(key, value));
         }
+
         return ms.ToArray();
     }
 
@@ -323,6 +325,7 @@ public sealed class OtlpProtobufParserTests
             WriteTag(ms, 9, WireType.LengthDelimited);
             WriteBytes(ms, BuildKeyValue(key, value));
         }
+
         return ms.ToArray();
     }
 
@@ -335,6 +338,7 @@ public sealed class OtlpProtobufParserTests
             WriteTag(ms, 2, WireType.LengthDelimited);
             WriteBytes(ms, span);
         }
+
         return ms.ToArray();
     }
 
@@ -358,6 +362,7 @@ public sealed class OtlpProtobufParserTests
             WriteTag(ms, 1, WireType.LengthDelimited);
             WriteBytes(ms, rs);
         }
+
         return ms.ToArray();
     }
 }

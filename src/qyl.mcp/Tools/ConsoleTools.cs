@@ -35,9 +35,8 @@ public sealed class ConsoleTools(HttpClient client)
         [Description("Text pattern to search in messages (case-insensitive)")]
         string? pattern = null,
         [Description("Maximum number of logs to return (default: 50)")]
-        int limit = 50)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int limit = 50) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var url = $"/api/v1/console?limit={limit}";
             if (!string.IsNullOrEmpty(sessionId))
@@ -88,7 +87,6 @@ public sealed class ConsoleTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.list_console_errors")]
     [Description("""
@@ -100,17 +98,18 @@ public sealed class ConsoleTools(HttpClient client)
                  """)]
     public Task<string> ListConsoleErrorsAsync(
         [Description("Maximum number of errors to return (default: 20)")]
-        int limit = 20)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int limit = 20) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var errors = await client.GetFromJsonAsync<ConsoleLogDto[]>(
                 $"/api/v1/console/errors?limit={limit}",
                 ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
             if (errors is null || errors.Length is 0)
+            {
                 return
                     "No console errors found. Either the app is working, or the qyl-console.js shim isn't installed.";
+            }
 
             var sb = new StringBuilder();
             sb.AppendLine($"# Console Errors ({errors.Length} entries)");
@@ -138,7 +137,6 @@ public sealed class ConsoleTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 }
 
 #region DTOs

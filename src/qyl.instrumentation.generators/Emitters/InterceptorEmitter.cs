@@ -100,33 +100,33 @@ internal static class InterceptorEmitter
         var commonTagLines = BuildCommonTagLines(target);
 
         var source = $$"""
-                            internal static async {{target.ReturnType}} {{methodId}}(
-                                this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
-                            {
-                                using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
+                           internal static async {{target.ReturnType}} {{methodId}}(
+                               this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
+                           {
+                               using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
 
-                                // OTel GenAI semantic conventions (gen_ai.*)
-                                __COMMON_TAGS__
+                               // OTel GenAI semantic conventions (gen_ai.*)
+                               __COMMON_TAGS__
 
-                                try
-                                {
-                                    var result = await instance.{{target.MethodName}}({{FormatArguments(target.Parameters)}}).ConfigureAwait(false);
+                               try
+                               {
+                                   var result = await instance.{{target.MethodName}}({{FormatArguments(target.Parameters)}}).ConfigureAwait(false);
 
-                                    // Extract response attributes if available
-                                    ExtractResponseAttributes(activity, result);
+                                   // Extract response attributes if available
+                                   ExtractResponseAttributes(activity, result);
 
-                                    activity?.SetStatus(ActivityStatusCode.Ok);
-                                    return result;
-                                }
-                                catch (Exception ex)
-                                {
-                                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                                    activity?.RecordException(ex);
-                                    throw;
-                                }
-                            }
+                                   activity?.SetStatus(ActivityStatusCode.Ok);
+                                   return result;
+                               }
+                               catch (Exception ex)
+                               {
+                                   activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                                   activity?.RecordException(ex);
+                                   throw;
+                               }
+                           }
 
-                        """;
+                       """;
 
         sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
     }
@@ -136,27 +136,27 @@ internal static class InterceptorEmitter
         var commonTagLines = BuildCommonTagLines(target);
 
         var source = $$"""
-                            internal static async Task {{methodId}}(
-                                this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
-                            {
-                                using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
+                           internal static async Task {{methodId}}(
+                               this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
+                           {
+                               using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
 
-                                __COMMON_TAGS__
+                               __COMMON_TAGS__
 
-                                try
-                                {
-                                    await instance.{{target.MethodName}}({{FormatArguments(target.Parameters)}}).ConfigureAwait(false);
-                                    activity?.SetStatus(ActivityStatusCode.Ok);
-                                }
-                                catch (Exception ex)
-                                {
-                                    activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-                                    activity?.RecordException(ex);
-                                    throw;
-                                }
-                            }
+                               try
+                               {
+                                   await instance.{{target.MethodName}}({{FormatArguments(target.Parameters)}}).ConfigureAwait(false);
+                                   activity?.SetStatus(ActivityStatusCode.Ok);
+                               }
+                               catch (Exception ex)
+                               {
+                                   activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                                   activity?.RecordException(ex);
+                                   throw;
+                               }
+                           }
 
-                        """;
+                       """;
 
         sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
     }
@@ -167,15 +167,15 @@ internal static class InterceptorEmitter
         var commonTagLines = BuildCommonTagLines(target);
 
         var source = $$"""
-                            internal static {{target.ReturnType}} {{methodId}}(
-                                this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
-                            {
-                                using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
-                                __COMMON_TAGS__
+                           internal static {{target.ReturnType}} {{methodId}}(
+                               this {{target.ContainingType}} instance{{FormatParameters(target.Parameters)}})
+                           {
+                               using var activity = Source.StartActivity("{{target.SpanNameTemplate}}", ActivityKind.Client);
+                               __COMMON_TAGS__
 
-                                try
-                                {
-                        """;
+                               try
+                               {
+                       """;
 
         sb.AppendLine(source.Replace("__COMMON_TAGS__", commonTagLines));
 
@@ -216,27 +216,30 @@ internal static class InterceptorEmitter
     private static string BuildCommonTagLines(InterceptorTarget target)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.ProviderName, \"{target.Provider}\");");
-        sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.OperationName, \"{target.Operation}\");");
+        sb.AppendLine(
+            $"                                activity?.SetTag(GenAiAttributes.ProviderName, \"{target.Provider}\");");
+        sb.AppendLine(
+            $"                                activity?.SetTag(GenAiAttributes.OperationName, \"{target.Operation}\");");
 
         var outputType = GetDefaultOutputType(target.Operation);
         if (outputType is not null)
         {
-            sb.AppendLine($"                                activity?.SetTag(GenAiAttributes.OutputType, \"{outputType}\");");
+            sb.AppendLine(
+                $"                                activity?.SetTag(GenAiAttributes.OutputType, \"{outputType}\");");
         }
 
         var requestChoiceCountArgs = FormatChoiceCountArguments(target.Parameters);
         if (requestChoiceCountArgs.Length > 0)
         {
-            sb.AppendLine($"                                TrySetRequestChoiceCount(activity, {requestChoiceCountArgs});");
+            sb.AppendLine(
+                $"                                TrySetRequestChoiceCount(activity, {requestChoiceCountArgs});");
         }
 
         return sb.ToString().TrimEnd();
     }
 
-    private static string? GetDefaultOutputType(string operation)
-    {
-        return operation switch
+    private static string? GetDefaultOutputType(string operation) =>
+        operation switch
         {
             "chat" => "text",
             "generate_content" => "text",
@@ -247,7 +250,6 @@ internal static class InterceptorEmitter
             "speech" => "speech",
             _ => null
         };
-    }
 
     private static string FormatChoiceCountArguments(EquatableArray<ParameterInfo> parameters)
     {

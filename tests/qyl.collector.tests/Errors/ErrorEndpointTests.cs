@@ -14,7 +14,10 @@ public sealed class ErrorEndpointTests : IAsyncLifetime
         await DuckDbTestHelpers.WaitForSchemaInit();
     }
 
-    public ValueTask DisposeAsync() => _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    public ValueTask DisposeAsync()
+    {
+        return _store?.DisposeAsync() ?? ValueTask.CompletedTask;
+    }
 
     [Fact]
     public async Task UpdateErrorStatus_ChangesStatus()

@@ -1,5 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 
 export interface SearchResult {
     entity_type: string;

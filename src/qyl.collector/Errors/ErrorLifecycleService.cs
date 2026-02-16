@@ -32,8 +32,10 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
 
         var currentStatus = ParseStatus(existing.Status);
         if (!IsTransitionAllowed(currentStatus, newStatus))
+        {
             throw new InvalidOperationException(
                 $"Cannot transition from '{currentStatus}' to '{newStatus}'.");
+        }
 
         var statusString = StatusToString(newStatus);
         await store.UpdateIssueStatusAsync(issueId, statusString, reason, ct).ConfigureAwait(false);
@@ -43,7 +45,7 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
     }
 
     /// <summary>
-    ///     Checks whether a transition from <paramref name="from"/> to <paramref name="to"/> is valid.
+    ///     Checks whether a transition from <paramref name="from" /> to <paramref name="to" /> is valid.
     /// </summary>
     public static bool IsTransitionAllowed(IssueStatus from, IssueStatus to) =>
         AllowedTransitions.TryGetValue(from, out var allowed) && allowed.AsSpan().Contains(to);

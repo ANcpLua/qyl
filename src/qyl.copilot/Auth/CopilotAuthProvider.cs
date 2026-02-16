@@ -262,7 +262,12 @@ public sealed class CopilotAuthProvider
             catch (OperationCanceledException) when (!ct.IsCancellationRequested)
             {
                 // Timeout occurred, kill the process
-                try { process.Kill(); } catch { /* ignore */ }
+                try { process.Kill(); }
+                catch
+                {
+                    /* ignore */
+                }
+
                 return AuthResult.Failed("gh auth token timed out after 10 seconds");
             }
 

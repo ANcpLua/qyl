@@ -1,7 +1,7 @@
 import {useParams} from 'react-router-dom';
 import {Loader2} from 'lucide-react';
-import {useDashboard} from '@/hooks/use-dashboards';
 import type {StatCardData, TimeSeriesPoint, TopNRow} from '@/hooks/use-dashboards';
+import {useDashboard} from '@/hooks/use-dashboards';
 import {StatCard, TimeSeriesChart, TopNTable} from '@/components/dashboards';
 
 export function DashboardPage() {

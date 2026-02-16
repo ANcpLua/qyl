@@ -65,25 +65,23 @@ internal sealed class CliConfig
         };
     }
 
-    private static void PrintHelp()
-    {
+    private static void PrintHelp() =>
         Console.WriteLine("""
-            qyl-watch -- Live Terminal Observability
+                          qyl-watch -- Live Terminal Observability
 
-            Usage:
-              qyl-watch                           Show all spans
-              qyl-watch --url http://host:5100    Custom collector URL
-              qyl-watch --errors                  Errors only
-              qyl-watch --slow [ms]               Slow spans (default >200ms)
-              qyl-watch --service my-api           Filter by service name
-              qyl-watch --genai                   GenAI spans only
-              qyl-watch --session abc123           Filter by session
+                          Usage:
+                            qyl-watch                           Show all spans
+                            qyl-watch --url http://host:5100    Custom collector URL
+                            qyl-watch --errors                  Errors only
+                            qyl-watch --slow [ms]               Slow spans (default >200ms)
+                            qyl-watch --service my-api           Filter by service name
+                            qyl-watch --genai                   GenAI spans only
+                            qyl-watch --session abc123           Filter by session
 
-            Keyboard:
-              q / Ctrl+C    Quit
-              c             Clear screen
-              e             Toggle errors-only filter
-              f             Cycle service filter
-            """);
-    }
+                          Keyboard:
+                            q / Ctrl+C    Quit
+                            c             Clear screen
+                            e             Toggle errors-only filter
+                            f             Cycle service filter
+                          """);
 }

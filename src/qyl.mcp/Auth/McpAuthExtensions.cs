@@ -37,8 +37,6 @@ public static class McpAuthExtensions
     ///     Adds the MCP authentication handler to the HTTP client builder.
     ///     This handler adds the x-mcp-api-key header to all requests when auth is enabled.
     /// </summary>
-    public static IHttpClientBuilder AddMcpAuthHandler(this IHttpClientBuilder builder)
-    {
-        return builder.AddHttpMessageHandler<McpAuthHandler>();
-    }
+    public static IHttpClientBuilder AddMcpAuthHandler(this IHttpClientBuilder builder) =>
+        builder.AddHttpMessageHandler<McpAuthHandler>();
 }

@@ -6,6 +6,7 @@ export {DashboardPage} from './DashboardPage';
 export {SettingsPage} from './SettingsPage';
 export {LoginPage} from './LoginPage';
 export {SearchPage} from './SearchPage';
+export {AgentsPage} from './AgentsPage';
 export {AgentRunsPage} from './AgentRunsPage';
 export {AgentRunDetailPage} from './AgentRunDetailPage';
 export {IssuesPage} from './IssuesPage';

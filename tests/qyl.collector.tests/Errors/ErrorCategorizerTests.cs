@@ -13,7 +13,8 @@ public sealed class ErrorCategorizerTests
     [InlineData("System.ArgumentException", null, "validation")]
     [InlineData("System.ArgumentNullException", null, "validation")]
     [InlineData("SomeCustomException", null, "unknown")]
-    public void Categorize_ByExceptionType_ReturnsExpected(string exceptionType, string? genAiErrorType, string expected)
+    public void Categorize_ByExceptionType_ReturnsExpected(string exceptionType, string? genAiErrorType,
+        string expected)
     {
         var result = ErrorCategorizer.Categorize(exceptionType, genAiErrorType);
         Assert.Equal(expected, result);

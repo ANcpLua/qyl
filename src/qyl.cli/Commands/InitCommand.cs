@@ -4,20 +4,18 @@ using Spectre.Console;
 namespace qyl.cli.Commands;
 
 /// <summary>
-/// Router for 'qyl init' — dispatches to stack-specific commands or auto-detects.
+///     Router for 'qyl init' — dispatches to stack-specific commands or auto-detects.
 /// </summary>
 public static class InitCommand
 {
-    public static async Task<int> ExecuteAsync(CliArgs args)
-    {
-        return args.SubCommand switch
+    public static async Task<int> ExecuteAsync(CliArgs args) =>
+        args.SubCommand switch
         {
             "dotnet" => await DotnetInitCommand.ExecuteAsync(args),
             "docker" => await DockerInitCommand.ExecuteAsync(args),
             null => await AutoDetectAndExecuteAsync(args),
-            _ => UnknownStack(args.SubCommand),
+            _ => UnknownStack(args.SubCommand)
         };
-    }
 
     private static async Task<int> AutoDetectAndExecuteAsync(CliArgs args)
     {

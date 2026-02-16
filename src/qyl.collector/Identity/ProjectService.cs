@@ -1,5 +1,3 @@
-using qyl.collector.Storage;
-
 namespace qyl.collector.Identity;
 
 /// <summary>
@@ -19,12 +17,12 @@ public sealed partial class ProjectService(DuckDbStore store, ILogger<ProjectSer
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var project = new ProjectRecord(
-            ProjectId: projectId,
-            WorkspaceId: request.WorkspaceId,
-            Name: request.Name,
-            Description: request.Description,
-            CreatedAt: now,
-            UpdatedAt: now);
+            projectId,
+            request.WorkspaceId,
+            request.Name,
+            request.Description,
+            now,
+            now);
 
         await store.InsertProjectAsync(project, ct).ConfigureAwait(false);
         LogProjectCreated(projectId, request.Name);
@@ -41,7 +39,7 @@ public sealed partial class ProjectService(DuckDbStore store, ILogger<ProjectSer
 
     /// <summary>
     ///     Lists projects for a workspace with cursor-based pagination.
-    ///     When <paramref name="cursor"/> is provided, returns projects created after that cursor.
+    ///     When <paramref name="cursor" /> is provided, returns projects created after that cursor.
     /// </summary>
     public Task<IReadOnlyList<ProjectRecord>> ListProjectsAsync(
         string workspaceId,
@@ -80,11 +78,11 @@ public sealed partial class ProjectService(DuckDbStore store, ILogger<ProjectSer
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
         var env = new ProjectEnvironmentRecord(
-            EnvironmentId: envId,
-            ProjectId: projectId,
-            Name: name,
-            Description: description,
-            CreatedAt: now);
+            envId,
+            projectId,
+            name,
+            description,
+            now);
 
         await store.InsertProjectEnvironmentAsync(env, ct).ConfigureAwait(false);
         LogEnvironmentAdded(envId, projectId, name);

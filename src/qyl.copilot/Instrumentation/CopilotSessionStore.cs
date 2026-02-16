@@ -8,8 +8,8 @@ namespace qyl.copilot.Instrumentation;
 /// </summary>
 internal sealed class CopilotSessionStore
 {
-    private readonly ConcurrentDictionary<string, SessionEntry> _sessions = new();
     private readonly int _maxSessions;
+    private readonly ConcurrentDictionary<string, SessionEntry> _sessions = new();
     private readonly TimeProvider _timeProvider;
     private readonly TimeSpan _ttl;
 

@@ -33,23 +33,23 @@ public sealed record CheckpointData
 /// </summary>
 public sealed class CheckpointManager
 {
-    private readonly IExecutionStore? _store;
-    private readonly ConcurrentDictionary<string, List<CheckpointData>> _inMemory = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, List<CheckpointData>> _inMemory =
+        new(StringComparer.OrdinalIgnoreCase);
+
     private readonly Lock _lock = new();
+    private readonly IExecutionStore? _store;
 
     /// <summary>
     ///     Creates a new checkpoint manager.
     /// </summary>
     /// <param name="store">Optional durable execution store.</param>
-    public CheckpointManager(IExecutionStore? store = null)
-    {
-        _store = store;
-    }
+    public CheckpointManager(IExecutionStore? store = null) => _store = store;
 
     /// <summary>
     ///     Saves a checkpoint after a durable node boundary.
     /// </summary>
-    public async Task SaveCheckpointAsync(string executionId, string nodeId, object? state, CancellationToken ct = default)
+    public async Task SaveCheckpointAsync(string executionId, string nodeId, object? state,
+        CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executionId);
         ArgumentException.ThrowIfNullOrWhiteSpace(nodeId);

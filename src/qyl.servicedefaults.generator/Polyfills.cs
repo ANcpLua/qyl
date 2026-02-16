@@ -19,10 +19,7 @@ namespace System
     {
         private readonly int _value;
 
-        public Index(int value, bool fromEnd = false)
-        {
-            _value = fromEnd ? ~value : value;
-        }
+        public Index(int value, bool fromEnd = false) => _value = fromEnd ? ~value : value;
 
         public int Value => _value < 0 ? ~_value : _value;
         public bool IsFromEnd => _value < 0;
@@ -64,7 +61,7 @@ namespace System
 
         public bool Equals(Range other) => Start.Equals(other.Start) && End.Equals(other.End);
         public override bool Equals(object? obj) => obj is Range other && Equals(other);
-        public override int GetHashCode() => Start.GetHashCode() * 31 + End.GetHashCode();
+        public override int GetHashCode() => (Start.GetHashCode() * 31) + End.GetHashCode();
         public override string ToString() => $"{Start}..{End}";
     }
 }

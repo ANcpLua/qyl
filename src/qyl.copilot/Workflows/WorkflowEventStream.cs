@@ -59,8 +59,8 @@ public sealed record WorkflowEvent
 /// </summary>
 public sealed class WorkflowEventStream
 {
-    private readonly ConcurrentDictionary<string, List<WorkflowEvent>> _streams = new(StringComparer.OrdinalIgnoreCase);
     private readonly Lock _appendLock = new();
+    private readonly ConcurrentDictionary<string, List<WorkflowEvent>> _streams = new(StringComparer.OrdinalIgnoreCase);
     private long _globalSequence;
 
     /// <summary>
@@ -77,7 +77,9 @@ public sealed class WorkflowEventStream
             var stamped = workflowEvent with
             {
                 Sequence = seq,
-                Timestamp = workflowEvent.Timestamp == default ? TimeProvider.System.GetUtcNow() : workflowEvent.Timestamp
+                Timestamp = workflowEvent.Timestamp == default
+                    ? TimeProvider.System.GetUtcNow()
+                    : workflowEvent.Timestamp
             };
 
             var list = _streams.GetOrAdd(stamped.ExecutionId, static _ => []);

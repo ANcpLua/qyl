@@ -12,7 +12,7 @@ namespace qyl.copilot.Adapters;
 
 /// <summary>
 ///     Agent thread that persists across workflow checkpoints.
-///     Links an <see cref="AgentSession"/> to a workflow execution,
+///     Links an <see cref="AgentSession" /> to a workflow execution,
 ///     enabling thread state to be serialized into checkpoints and rehydrated
 ///     when a workflow resumes.
 /// </summary>
@@ -20,8 +20,8 @@ public sealed class QylAgentThread : IDisposable
 {
     private readonly Lock _lock = new();
     private readonly QylChatMessageStore _messageStore;
-    private AgentSession? _session;
     private bool _disposed;
+    private AgentSession? _session;
 
     /// <summary>
     ///     Creates a new agent thread linked to a workflow execution.
@@ -52,8 +52,8 @@ public sealed class QylAgentThread : IDisposable
     public DateTimeOffset CreatedAt { get; init; } = TimeProvider.System.GetUtcNow();
 
     /// <summary>
-    ///     Gets the underlying <see cref="AgentSession"/> for use with agent invocations.
-    ///     Session is created lazily via <see cref="GetOrCreateSessionAsync"/>.
+    ///     Gets the underlying <see cref="AgentSession" /> for use with agent invocations.
+    ///     Session is created lazily via <see cref="GetOrCreateSessionAsync" />.
     /// </summary>
     public AgentSession? Session
     {
@@ -63,6 +63,9 @@ public sealed class QylAgentThread : IDisposable
             return _session;
         }
     }
+
+    /// <inheritdoc />
+    public void Dispose() => _disposed = true;
 
     /// <summary>
     ///     Gets the current session or creates one from the specified agent.
@@ -78,7 +81,7 @@ public sealed class QylAgentThread : IDisposable
         if (_session is not null)
             return _session;
 
-        _session = await agent.CreateSessionAsync(cancellationToken: ct).ConfigureAwait(false);
+        _session = await agent.CreateSessionAsync(ct).ConfigureAwait(false);
         return _session;
     }
 
@@ -128,7 +131,7 @@ public sealed class QylAgentThread : IDisposable
     }
 
     /// <summary>
-    ///     Saves thread state into a <see cref="CheckpointManager"/>.
+    ///     Saves thread state into a <see cref="CheckpointManager" />.
     /// </summary>
     /// <param name="checkpointManager">The checkpoint manager to save to.</param>
     /// <param name="executionId">The workflow execution ID.</param>
@@ -153,7 +156,7 @@ public sealed class QylAgentThread : IDisposable
     }
 
     /// <summary>
-    ///     Restores thread state from a <see cref="CheckpointManager"/>.
+    ///     Restores thread state from a <see cref="CheckpointManager" />.
     /// </summary>
     /// <param name="checkpointManager">The checkpoint manager to load from.</param>
     /// <param name="executionId">The workflow execution ID.</param>
@@ -180,12 +183,6 @@ public sealed class QylAgentThread : IDisposable
 
         RestoreFromCheckpoint(checkpoint);
         return true;
-    }
-
-    /// <inheritdoc />
-    public void Dispose()
-    {
-        _disposed = true;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

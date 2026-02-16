@@ -407,4 +407,3 @@ public static class GenAiAttributes
         public const string UsageCompletionTokens = "gen_ai.usage.completion_tokens";
     }
 }
-

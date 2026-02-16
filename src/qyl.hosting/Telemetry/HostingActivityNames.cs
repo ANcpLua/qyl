@@ -1,7 +1,7 @@
 namespace Qyl.Hosting.Telemetry;
 
 /// <summary>
-/// Span name constants for qyl.hosting activities.
+///     Span name constants for qyl.hosting activities.
 /// </summary>
 internal static class HostingActivityNames
 {
@@ -13,7 +13,7 @@ internal static class HostingActivityNames
 }
 
 /// <summary>
-/// Event name constants for qyl.hosting span events.
+///     Event name constants for qyl.hosting span events.
 /// </summary>
 internal static class HostingEventNames
 {

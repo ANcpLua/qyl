@@ -1,7 +1,7 @@
 namespace qyl.cli;
 
 /// <summary>
-/// Parsed CLI arguments for the qyl tool.
+///     Parsed CLI arguments for the qyl tool.
 /// </summary>
 public sealed class CliArgs
 {
@@ -52,7 +52,7 @@ public sealed class CliArgs
             SubCommand = subCommand,
             ProjectPath = projectPath,
             CollectorUrl = collectorUrl,
-            DryRun = dryRun,
+            DryRun = dryRun
         };
     }
 }

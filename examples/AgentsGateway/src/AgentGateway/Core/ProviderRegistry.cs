@@ -33,18 +33,25 @@ public sealed class ProviderRegistry : IProviderRegistry
         _providers[providerId] = new RegisteredProvider(providerId, displayName, caps, factory, catalogFactory);
     }
 
-    public bool TryGet(string providerId, out RegisteredProvider? provider) => _providers.TryGetValue(providerId, out provider);
+    public bool TryGet(string providerId, out RegisteredProvider? provider)
+    {
+        return _providers.TryGetValue(providerId, out provider);
+    }
 
     public IEnumerable<RegisteredProvider> All => _providers.Values;
 
     public IChatClient Resolve(string providerId, IServiceProvider serviceProvider)
     {
-        return _providers.TryGetValue(providerId, out var registered) ? registered.Factory(serviceProvider) : throw new KeyNotFoundException($"Provider '{providerId}' not registered.");
+        return _providers.TryGetValue(providerId, out var registered)
+            ? registered.Factory(serviceProvider)
+            : throw new KeyNotFoundException($"Provider '{providerId}' not registered.");
     }
 
     public IModelCatalog? ResolveCatalog(string providerId, IServiceProvider serviceProvider)
     {
-        return _providers.TryGetValue(providerId, out var registered) ? registered.CatalogFactory(serviceProvider) : null;
+        return _providers.TryGetValue(providerId, out var registered)
+            ? registered.CatalogFactory(serviceProvider)
+            : null;
     }
 }
 

@@ -1,7 +1,7 @@
 namespace qyl.collector.Storage;
 
 /// <summary>
-///     Partial class extending <see cref="DuckDbStore"/> with agent run and tool call operations.
+///     Partial class extending <see cref="DuckDbStore" /> with agent run and tool call operations.
 /// </summary>
 public sealed partial class DuckDbStore
 {
@@ -19,14 +19,14 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO agent_runs
-                    (run_id, trace_id, parent_run_id, agent_name, agent_type,
-                     model, provider, status, input_tokens, output_tokens,
-                     total_cost, tool_call_count, start_time, end_time,
-                     duration_ns, error_message, metadata_json)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
-                ON CONFLICT (run_id) DO NOTHING
-                """;
+                              INSERT INTO agent_runs
+                                  (run_id, trace_id, parent_run_id, agent_name, agent_type,
+                                   model, provider, status, input_tokens, output_tokens,
+                                   total_cost, tool_call_count, start_time, end_time,
+                                   duration_ns, error_message, metadata_json)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+                              ON CONFLICT (run_id) DO NOTHING
+                              """;
             AddAgentRunParameters(cmd, run);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -55,23 +55,26 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE agent_runs SET
-                    status = $1,
-                    input_tokens = $2,
-                    output_tokens = $3,
-                    total_cost = $4,
-                    tool_call_count = $5,
-                    end_time = $6,
-                    duration_ns = $7,
-                    error_message = $8
-                WHERE run_id = $9
-                """;
+                              UPDATE agent_runs SET
+                                  status = $1,
+                                  input_tokens = $2,
+                                  output_tokens = $3,
+                                  total_cost = $4,
+                                  tool_call_count = $5,
+                                  end_time = $6,
+                                  duration_ns = $7,
+                                  error_message = $8
+                              WHERE run_id = $9
+                              """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = inputTokens });
             cmd.Parameters.Add(new DuckDBParameter { Value = outputTokens });
             cmd.Parameters.Add(new DuckDBParameter { Value = totalCost });
             cmd.Parameters.Add(new DuckDBParameter { Value = toolCallCount });
-            cmd.Parameters.Add(new DuckDBParameter { Value = endTime.HasValue ? (decimal)endTime.Value : DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = endTime.HasValue ? (decimal)endTime.Value : DBNull.Value
+            });
             cmd.Parameters.Add(new DuckDBParameter { Value = durationNs ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = errorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
@@ -107,15 +110,15 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                   model, provider, status, input_tokens, output_tokens,
-                   total_cost, tool_call_count, start_time, end_time,
-                   duration_ns, error_message, metadata_json
-            FROM agent_runs
-            {qb.WhereClause}
-            ORDER BY start_time DESC
-            LIMIT {clampedLimit} OFFSET {clampedOffset}
-            """;
+                           SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
+                                  model, provider, status, input_tokens, output_tokens,
+                                  total_cost, tool_call_count, start_time, end_time,
+                                  duration_ns, error_message, metadata_json
+                           FROM agent_runs
+                           {qb.WhereClause}
+                           ORDER BY start_time DESC
+                           LIMIT {clampedLimit} OFFSET {clampedOffset}
+                           """;
 
         qb.ApplyTo(cmd);
 
@@ -137,13 +140,13 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                   model, provider, status, input_tokens, output_tokens,
-                   total_cost, tool_call_count, start_time, end_time,
-                   duration_ns, error_message, metadata_json
-            FROM agent_runs
-            WHERE run_id = $1
-            """;
+                          SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
+                                 model, provider, status, input_tokens, output_tokens,
+                                 total_cost, tool_call_count, start_time, end_time,
+                                 duration_ns, error_message, metadata_json
+                          FROM agent_runs
+                          WHERE run_id = $1
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
@@ -165,14 +168,14 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                   model, provider, status, input_tokens, output_tokens,
-                   total_cost, tool_call_count, start_time, end_time,
-                   duration_ns, error_message, metadata_json
-            FROM agent_runs
-            WHERE trace_id = $1
-            ORDER BY start_time ASC
-            """;
+                          SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
+                                 model, provider, status, input_tokens, output_tokens,
+                                 total_cost, tool_call_count, start_time, end_time,
+                                 duration_ns, error_message, metadata_json
+                          FROM agent_runs
+                          WHERE trace_id = $1
+                          ORDER BY start_time ASC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
 
         var runs = new List<AgentRunRecord>();
@@ -197,13 +200,13 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO tool_calls
-                    (call_id, run_id, trace_id, span_id, tool_name, tool_type,
-                     arguments_json, result_json, status, start_time, end_time,
-                     duration_ns, error_message, sequence_number)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-                ON CONFLICT (call_id) DO NOTHING
-                """;
+                              INSERT INTO tool_calls
+                                  (call_id, run_id, trace_id, span_id, tool_name, tool_type,
+                                   arguments_json, result_json, status, start_time, end_time,
+                                   duration_ns, error_message, sequence_number)
+                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                              ON CONFLICT (call_id) DO NOTHING
+                              """;
             AddToolCallParameters(cmd, toolCall);
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
@@ -224,13 +227,13 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
-            SELECT call_id, run_id, trace_id, span_id, tool_name, tool_type,
-                   arguments_json, result_json, status, start_time, end_time,
-                   duration_ns, error_message, sequence_number
-            FROM tool_calls
-            WHERE run_id = $1
-            ORDER BY sequence_number ASC
-            """;
+                          SELECT call_id, run_id, trace_id, span_id, tool_name, tool_type,
+                                 arguments_json, result_json, status, start_time, end_time,
+                                 duration_ns, error_message, sequence_number
+                          FROM tool_calls
+                          WHERE run_id = $1
+                          ORDER BY sequence_number ASC
+                          """;
         cmd.Parameters.Add(new DuckDBParameter { Value = runId });
 
         var calls = new List<ToolCallRecord>();
@@ -259,8 +262,14 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = run.OutputTokens });
         cmd.Parameters.Add(new DuckDBParameter { Value = run.TotalCost });
         cmd.Parameters.Add(new DuckDBParameter { Value = run.ToolCallCount });
-        cmd.Parameters.Add(new DuckDBParameter { Value = run.StartTime.HasValue ? (decimal)run.StartTime.Value : DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = run.EndTime.HasValue ? (decimal)run.EndTime.Value : DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = run.StartTime.HasValue ? (decimal)run.StartTime.Value : DBNull.Value
+        });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = run.EndTime.HasValue ? (decimal)run.EndTime.Value : DBNull.Value
+        });
         cmd.Parameters.Add(new DuckDBParameter { Value = run.DurationNs ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = run.ErrorMessage ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = run.MetadataJson ?? (object)DBNull.Value });
@@ -277,8 +286,14 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = call.ArgumentsJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = call.ResultJson ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = call.Status ?? "running" });
-        cmd.Parameters.Add(new DuckDBParameter { Value = call.StartTime.HasValue ? (decimal)call.StartTime.Value : DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = call.EndTime.HasValue ? (decimal)call.EndTime.Value : DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = call.StartTime.HasValue ? (decimal)call.StartTime.Value : DBNull.Value
+        });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = call.EndTime.HasValue ? (decimal)call.EndTime.Value : DBNull.Value
+        });
         cmd.Parameters.Add(new DuckDBParameter { Value = call.DurationNs ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = call.ErrorMessage ?? (object)DBNull.Value });
         cmd.Parameters.Add(new DuckDBParameter { Value = call.SequenceNumber });

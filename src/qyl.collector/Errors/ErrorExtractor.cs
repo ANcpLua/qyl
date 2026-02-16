@@ -9,11 +9,11 @@ public static class ErrorExtractor
         var attrs = ParseAttributesJson(span.AttributesJson);
 
         var exceptionType = attrs.GetValueOrDefault("exception.type")
-                           ?? attrs.GetValueOrDefault("error.type")
-                           ?? span.Name;
+                            ?? attrs.GetValueOrDefault("error.type")
+                            ?? span.Name;
         var exceptionMessage = attrs.GetValueOrDefault("exception.message")
-                              ?? span.StatusMessage
-                              ?? "Unknown error";
+                               ?? span.StatusMessage
+                               ?? "Unknown error";
         var stackTrace = attrs.GetValueOrDefault("exception.stacktrace");
         var genAiErrorType = attrs.GetValueOrDefault("gen_ai.error.type");
         var genAiOperation = attrs.GetValueOrDefault("gen_ai.operation.name");
@@ -26,10 +26,10 @@ public static class ErrorExtractor
         var fingerprint = ErrorFingerprinter.Compute(
             exceptionType, exceptionMessage, stackTrace,
             genAiOperation,
-            genAiProvider: span.GenAiProviderName,
-            genAiModel: span.GenAiRequestModel,
-            finishReason: genAiFinishReasons,
-            category: category);
+            span.GenAiProviderName,
+            span.GenAiRequestModel,
+            genAiFinishReasons,
+            category);
 
         return new ErrorEvent
         {
@@ -48,7 +48,7 @@ public static class ErrorExtractor
             GenAiInputTokens = span.GenAiInputTokens,
             GenAiOutputTokens = span.GenAiOutputTokens,
             GenAiAgentName = genAiAgentName,
-            GenAiAgentId = genAiAgentId,
+            GenAiAgentId = genAiAgentId
         };
     }
 

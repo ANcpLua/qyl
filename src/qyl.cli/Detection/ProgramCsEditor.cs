@@ -1,7 +1,7 @@
 namespace qyl.cli.Detection;
 
 /// <summary>
-/// Safe Program.cs text manipulation — injects builder.AddServiceDefaults() call.
+///     Safe Program.cs text manipulation — injects builder.AddServiceDefaults() call.
 /// </summary>
 public sealed class ProgramCsEditor
 {
@@ -15,7 +15,7 @@ public sealed class ProgramCsEditor
     }
 
     /// <summary>
-    /// Returns true if AddServiceDefaults() is not already present and a builder pattern is detected.
+    ///     Returns true if AddServiceDefaults() is not already present and a builder pattern is detected.
     /// </summary>
     public bool NeedsServiceDefaults()
     {
@@ -28,7 +28,7 @@ public sealed class ProgramCsEditor
     }
 
     /// <summary>
-    /// Injects builder.AddServiceDefaults() after the builder creation line.
+    ///     Injects builder.AddServiceDefaults() after the builder creation line.
     /// </summary>
     public void InjectServiceDefaults()
     {
@@ -43,7 +43,7 @@ public sealed class ProgramCsEditor
             "WebApplication.CreateBuilder",
             "WebApplication.CreateSlimBuilder",
             "Host.CreateApplicationBuilder",
-            "Host.CreateDefaultBuilder",
+            "Host.CreateDefaultBuilder"
         ];
 
         var lines = _content.Split('\n');
@@ -117,13 +117,11 @@ public sealed class ProgramCsEditor
         File.WriteAllText(_path, _content);
     }
 
-    private bool HasBuilderPattern()
-    {
-        return _content.ContainsOrdinal("WebApplication.CreateBuilder")
-               || _content.ContainsOrdinal("WebApplication.CreateSlimBuilder")
-               || _content.ContainsOrdinal("Host.CreateApplicationBuilder")
-               || _content.ContainsOrdinal("Host.CreateDefaultBuilder");
-    }
+    private bool HasBuilderPattern() =>
+        _content.ContainsOrdinal("WebApplication.CreateBuilder")
+        || _content.ContainsOrdinal("WebApplication.CreateSlimBuilder")
+        || _content.ContainsOrdinal("Host.CreateApplicationBuilder")
+        || _content.ContainsOrdinal("Host.CreateDefaultBuilder");
 
     private static string DetectBuilderVariableName(string line)
     {

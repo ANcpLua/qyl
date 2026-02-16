@@ -11,9 +11,9 @@ public sealed class BuildTools(HttpClient client)
     [McpServerTool(Name = "qyl.list_build_failures")]
     [Description("List captured build failures with summary, property issues, and source hints.")]
     public Task<string> ListBuildFailuresAsync(
-        [Description("Maximum number of failures to return (default: 10)")] int limit = 10)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        [Description("Maximum number of failures to return (default: 10)")]
+        int limit = 10) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<BuildFailuresResponse>(
                 $"/api/v1/build-failures?limit={Math.Clamp(limit, 1, 100)}",
@@ -47,7 +47,6 @@ public sealed class BuildTools(HttpClient client)
 
             return sb.ToString();
         });
-    }
 
     [McpServerTool(Name = "qyl.get_build_failure")]
     [Description("Get full details for a single captured build failure by id.")]
@@ -108,7 +107,8 @@ public sealed class BuildTools(HttpClient client)
     [Description("Search captured build failures by error text, property tracking details, or call stack text.")]
     public Task<string> SearchBuildFailuresAsync(
         [Description("Search pattern")] string pattern,
-        [Description("Maximum results (default: 20)")] int limit = 20)
+        [Description("Maximum results (default: 20)")]
+        int limit = 20)
     {
         if (string.IsNullOrWhiteSpace(pattern))
             return Task.FromResult("Error: pattern is required");
@@ -128,7 +128,8 @@ public sealed class BuildTools(HttpClient client)
 
             foreach (var item in response.Items)
             {
-                sb.AppendLine($"- {item.Timestamp:yyyy-MM-dd HH:mm:ss} [{item.Target}] ({item.ExitCode}) {item.ErrorSummary}");
+                sb.AppendLine(
+                    $"- {item.Timestamp:yyyy-MM-dd HH:mm:ss} [{item.Target}] ({item.ExitCode}) {item.ErrorSummary}");
                 sb.AppendLine($"  id: `{item.Id}`");
             }
 
@@ -151,16 +152,25 @@ internal sealed record BuildFailuresResponse(
 
 internal sealed record BuildFailureDto(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("timestamp")] DateTimeOffset Timestamp,
+    [property: JsonPropertyName("timestamp")]
+    DateTimeOffset Timestamp,
     [property: JsonPropertyName("target")] string Target,
-    [property: JsonPropertyName("exitCode")] int ExitCode,
-    [property: JsonPropertyName("binlogPath")] string? BinlogPath,
-    [property: JsonPropertyName("errorSummary")] string? ErrorSummary,
-    [property: JsonPropertyName("propertyIssuesJson")] string? PropertyIssuesJson,
-    [property: JsonPropertyName("envReadsJson")] string? EnvReadsJson,
-    [property: JsonPropertyName("callStackJson")] string? CallStackJson,
-    [property: JsonPropertyName("durationMs")] int? DurationMs,
-    [property: JsonPropertyName("createdAt")] DateTimeOffset? CreatedAt);
+    [property: JsonPropertyName("exitCode")]
+    int ExitCode,
+    [property: JsonPropertyName("binlogPath")]
+    string? BinlogPath,
+    [property: JsonPropertyName("errorSummary")]
+    string? ErrorSummary,
+    [property: JsonPropertyName("propertyIssuesJson")]
+    string? PropertyIssuesJson,
+    [property: JsonPropertyName("envReadsJson")]
+    string? EnvReadsJson,
+    [property: JsonPropertyName("callStackJson")]
+    string? CallStackJson,
+    [property: JsonPropertyName("durationMs")]
+    int? DurationMs,
+    [property: JsonPropertyName("createdAt")]
+    DateTimeOffset? CreatedAt);
 
 [JsonSerializable(typeof(BuildFailureDto))]
 [JsonSerializable(typeof(BuildFailuresResponse))]

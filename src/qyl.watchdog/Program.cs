@@ -6,9 +6,23 @@ using Qyl.Watchdog.Platform;
 var options = WatchdogOptions.Parse(args);
 
 // Command dispatch — early exits before starting the daemon loop
-if (options.Install) { await LaunchdSetup.InstallAsync(); return; }
-if (options.Uninstall) { await LaunchdSetup.UninstallAsync(); return; }
-if (options.Status) { await LaunchdSetup.StatusAsync(); return; }
+if (options.Install)
+{
+    await LaunchdSetup.InstallAsync();
+    return;
+}
+
+if (options.Uninstall)
+{
+    await LaunchdSetup.UninstallAsync();
+    return;
+}
+
+if (options.Status)
+{
+    await LaunchdSetup.StatusAsync();
+    return;
+}
 
 if (options.KillPid is { } killPid)
 {
@@ -35,7 +49,8 @@ INotificationSender sender = OperatingSystem.IsMacOS()
 
 var alerter = new Alerter(sender, timeProvider, options.CooldownMs);
 
-Console.WriteLine($"qyl-watchdog started (interval: {options.IntervalMs}ms, threshold: {options.SpikeThreshold}x, sustained: {options.SustainedCount} samples)");
+Console.WriteLine(
+    $"qyl-watchdog started (interval: {options.IntervalMs}ms, threshold: {options.SpikeThreshold}x, sustained: {options.SustainedCount} samples)");
 if (options.IgnoreProcesses.Count > 0)
     Console.WriteLine($"  ignoring: {string.Join(", ", options.IgnoreProcesses)}");
 

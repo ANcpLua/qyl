@@ -27,6 +27,7 @@ public static class ModelPricingTable
 {
     private static readonly FrozenDictionary<(string Provider, string Model), ModelPricing> SAll =
         CreatePricingTable();
+
     private static readonly ProviderModelComparer SProviderModelComparer = new();
     private static readonly StringComparer SProviderComparer = StringComparer.OrdinalIgnoreCase;
 
@@ -188,22 +189,6 @@ public static class ModelPricingTable
             .Select(k => k.Model);
     }
 
-    private sealed class ProviderModelComparer : IEqualityComparer<(string Provider, string Model)>
-    {
-        public bool Equals((string Provider, string Model) x, (string Provider, string Model) y)
-        {
-            return SProviderComparer.Equals(x.Provider, y.Provider) &&
-                SProviderComparer.Equals(x.Model, y.Model);
-        }
-
-        public int GetHashCode((string Provider, string Model) obj)
-        {
-            var providerHash = SProviderComparer.GetHashCode(obj.Provider);
-            var modelHash = SProviderComparer.GetHashCode(obj.Model);
-            return unchecked((providerHash * 397) ^ modelHash);
-        }
-    }
-
     /// <summary>
     ///     Calculates cost in USD for token usage.
     /// </summary>
@@ -251,4 +236,18 @@ public static class ModelPricingTable
     /// <param name="model">Model name.</param>
     /// <returns>Context window in tokens, or null if not found.</returns>
     public static int? GetContextWindow(string? provider, string? model) => GetPricing(provider, model)?.ContextWindow;
+
+    private sealed class ProviderModelComparer : IEqualityComparer<(string Provider, string Model)>
+    {
+        public bool Equals((string Provider, string Model) x, (string Provider, string Model) y) =>
+            SProviderComparer.Equals(x.Provider, y.Provider) &&
+            SProviderComparer.Equals(x.Model, y.Model);
+
+        public int GetHashCode((string Provider, string Model) obj)
+        {
+            var providerHash = SProviderComparer.GetHashCode(obj.Provider);
+            var modelHash = SProviderComparer.GetHashCode(obj.Model);
+            return unchecked((providerHash * 397) ^ modelHash);
+        }
+    }
 }

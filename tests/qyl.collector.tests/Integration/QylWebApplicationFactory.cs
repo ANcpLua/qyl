@@ -1,8 +1,8 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Mvc.Testing;
 using qyl.collector.Auth;
 using qyl.collector.Query;
 using qyl.collector.Storage;
-using System.Collections.Concurrent;
 
 namespace qyl.collector.tests.Integration;
 
@@ -39,7 +39,8 @@ public sealed class QylWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(authDescriptor);
 
             // Remove production build failure store (uses file-backed DuckDB connection).
-            var buildFailureStoreDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IBuildFailureStore));
+            var buildFailureStoreDescriptor =
+                services.SingleOrDefault(d => d.ServiceType == typeof(IBuildFailureStore));
             if (buildFailureStoreDescriptor is not null)
                 services.Remove(buildFailureStoreDescriptor);
 
@@ -101,7 +102,8 @@ internal sealed class InMemoryBuildFailureStore : IBuildFailureStore
         return Task.FromResult(result);
     }
 
-    public Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50, CancellationToken ct = default)
+    public Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50,
+        CancellationToken ct = default)
     {
         IReadOnlyList<BuildFailureRecord> result = _records.Values
             .Where(r =>

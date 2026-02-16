@@ -42,7 +42,8 @@ public static class OtlpConverter
                 {
                     var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
                     var baggageJson = ExtractBaggageJson(attributes);
-                    var spanRecord = CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl);
+                    var spanRecord =
+                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl);
                     spans.Add(spanRecord);
                 }
             }
@@ -95,7 +96,8 @@ public static class OtlpConverter
         if (value.BytesValue is not null) return Convert.ToBase64String(value.BytesValue);
         if (value.ArrayValue is not null)
         {
-            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static (string? v) => v is not null).ToArray();
+            var items = value.ArrayValue.Select(ConvertAnyValueToString).Where(static (string? v) => v is not null)
+                .ToArray();
             return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
         }
 

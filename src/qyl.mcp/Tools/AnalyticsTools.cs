@@ -40,14 +40,12 @@ public sealed class AnalyticsTools(HttpClient client)
         int pageSize = 20,
         [Description("Filter: only conversations with errors")]
         bool? hasErrors = null,
-        [Description("Filter: by user ID")]
-        string? userId = null,
-        [Description("Filter: by model name")]
-        string? model = null)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        [Description("Filter: by user ID")] string? userId = null,
+        [Description("Filter: by model name")] string? model = null) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
-            var url = $"/api/v1/analytics/conversations?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}";
+            var url =
+                $"/api/v1/analytics/conversations?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}";
             if (hasErrors.HasValue) url += $"&hasErrors={hasErrors.Value}";
             if (!string.IsNullOrEmpty(userId)) url += $"&userId={Uri.EscapeDataString(userId)}";
             if (!string.IsNullOrEmpty(model)) url += $"&model={Uri.EscapeDataString(model)}";
@@ -59,7 +57,8 @@ public sealed class AnalyticsTools(HttpClient client)
                 return "No conversations found for the specified period.";
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Conversations (page {response.Page}/{Math.Max(1, (response.Total + response.PageSize - 1) / response.PageSize)}, total: {response.Total})");
+            sb.AppendLine(
+                $"# Conversations (page {response.Page}/{Math.Max(1, (response.Total + response.PageSize - 1) / response.PageSize)}, total: {response.Total})");
             sb.AppendLine();
 
             foreach (var conv in response.Conversations)
@@ -80,7 +79,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching conversations");
-    }
 
     [McpServerTool(Name = "qyl.get_conversation")]
     [Description("""
@@ -98,9 +96,8 @@ public sealed class AnalyticsTools(HttpClient client)
                  """)]
     public Task<string> GetConversationAsync(
         [Description("The conversation ID from list_conversations (required)")]
-        string conversationId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string conversationId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<ConversationDetailDto>(
                 $"/api/v1/analytics/conversations/{Uri.EscapeDataString(conversationId)}",
@@ -137,7 +134,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching conversation");
-    }
 
     [McpServerTool(Name = "qyl.get_coverage_gaps")]
     [Description("""
@@ -159,9 +155,8 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
         string period = "monthly",
         [Description("Period offset (0=current, 1=previous, etc.)")]
-        int offset = 0)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int offset = 0) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<CoverageGapsDto>(
                 $"/api/v1/analytics/coverage-gaps?period={Uri.EscapeDataString(period)}&offset={offset}",
@@ -196,7 +191,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching coverage gaps");
-    }
 
     [McpServerTool(Name = "qyl.get_top_questions")]
     [Description("""
@@ -215,9 +209,8 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Period offset (0=current, 1=previous, etc.)")]
         int offset = 0,
         [Description("Minimum conversations to form a cluster (default: 3)")]
-        int minConversations = 3)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int minConversations = 3) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<TopQuestionsDto>(
                 $"/api/v1/analytics/top-questions?period={Uri.EscapeDataString(period)}&offset={offset}&minConversations={minConversations}",
@@ -248,7 +241,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching top questions");
-    }
 
     [McpServerTool(Name = "qyl.get_source_analytics")]
     [Description("""
@@ -265,9 +257,8 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
         string period = "monthly",
         [Description("Period offset (0=current, 1=previous, etc.)")]
-        int offset = 0)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int offset = 0) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SourceAnalyticsDto>(
                 $"/api/v1/analytics/source-analytics?period={Uri.EscapeDataString(period)}&offset={offset}",
@@ -292,7 +283,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching source analytics");
-    }
 
     [McpServerTool(Name = "qyl.get_satisfaction")]
     [Description("""
@@ -310,9 +300,8 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Period: 'weekly', 'monthly', 'quarterly' (default: monthly)")]
         string period = "monthly",
         [Description("Period offset (0=current, 1=previous, etc.)")]
-        int offset = 0)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int offset = 0) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SatisfactionDto>(
                 $"/api/v1/analytics/satisfaction?period={Uri.EscapeDataString(period)}&offset={offset}",
@@ -351,7 +340,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching satisfaction data");
-    }
 
     [McpServerTool(Name = "qyl.list_users")]
     [Description("""
@@ -372,9 +360,8 @@ public sealed class AnalyticsTools(HttpClient client)
         [Description("Page number (default: 1)")]
         int page = 1,
         [Description("Results per page (default: 20)")]
-        int pageSize = 20)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        int pageSize = 20) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<UserListDto>(
                 $"/api/v1/analytics/users?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}",
@@ -400,7 +387,6 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching users");
-    }
 
     [McpServerTool(Name = "qyl.get_user_journey")]
     [Description("""
@@ -416,9 +402,8 @@ public sealed class AnalyticsTools(HttpClient client)
                  """)]
     public Task<string> GetUserJourneyAsync(
         [Description("The user ID from list_users (required)")]
-        string userId)
-    {
-        return CollectorHelper.ExecuteAsync(async () =>
+        string userId) =>
+        CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<UserJourneyDto>(
                 $"/api/v1/analytics/users/{Uri.EscapeDataString(userId)}/journey",
@@ -449,97 +434,142 @@ public sealed class AnalyticsTools(HttpClient client)
 
             return sb.ToString();
         }, "Error fetching user journey");
-    }
 }
 
 #region DTOs
 
 internal sealed record ConversationListDto(
-    [property: JsonPropertyName("conversations")] List<ConversationSummaryDto>? Conversations,
+    [property: JsonPropertyName("conversations")]
+    List<ConversationSummaryDto>? Conversations,
     [property: JsonPropertyName("total")] long Total,
     [property: JsonPropertyName("page")] int Page,
-    [property: JsonPropertyName("pageSize")] int PageSize);
+    [property: JsonPropertyName("pageSize")]
+    int PageSize);
 
 internal sealed record ConversationSummaryDto(
-    [property: JsonPropertyName("conversationId")] string ConversationId,
-    [property: JsonPropertyName("startTime")] string StartTime,
-    [property: JsonPropertyName("durationMs")] double DurationMs,
-    [property: JsonPropertyName("turnCount")] long TurnCount,
-    [property: JsonPropertyName("errorCount")] long ErrorCount,
-    [property: JsonPropertyName("hasErrors")] bool HasErrors,
-    [property: JsonPropertyName("totalInputTokens")] long TotalInputTokens,
-    [property: JsonPropertyName("totalOutputTokens")] long TotalOutputTokens,
+    [property: JsonPropertyName("conversationId")]
+    string ConversationId,
+    [property: JsonPropertyName("startTime")]
+    string StartTime,
+    [property: JsonPropertyName("durationMs")]
+    double DurationMs,
+    [property: JsonPropertyName("turnCount")]
+    long TurnCount,
+    [property: JsonPropertyName("errorCount")]
+    long ErrorCount,
+    [property: JsonPropertyName("hasErrors")]
+    bool HasErrors,
+    [property: JsonPropertyName("totalInputTokens")]
+    long TotalInputTokens,
+    [property: JsonPropertyName("totalOutputTokens")]
+    long TotalOutputTokens,
     [property: JsonPropertyName("userId")] string? UserId,
-    [property: JsonPropertyName("firstQuestion")] string? FirstQuestion);
+    [property: JsonPropertyName("firstQuestion")]
+    string? FirstQuestion);
 
 internal sealed record ConversationDetailDto(
-    [property: JsonPropertyName("conversationId")] string ConversationId,
+    [property: JsonPropertyName("conversationId")]
+    string ConversationId,
     [property: JsonPropertyName("turns")] List<ConversationTurnDto>? Turns);
 
 internal sealed record ConversationTurnDto(
     [property: JsonPropertyName("spanId")] string SpanId,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("timestamp")] string Timestamp,
-    [property: JsonPropertyName("durationMs")] double DurationMs,
-    [property: JsonPropertyName("statusCode")] byte StatusCode,
-    [property: JsonPropertyName("statusMessage")] string? StatusMessage,
-    [property: JsonPropertyName("provider")] string? Provider,
+    [property: JsonPropertyName("timestamp")]
+    string Timestamp,
+    [property: JsonPropertyName("durationMs")]
+    double DurationMs,
+    [property: JsonPropertyName("statusCode")]
+    byte StatusCode,
+    [property: JsonPropertyName("statusMessage")]
+    string? StatusMessage,
+    [property: JsonPropertyName("provider")]
+    string? Provider,
     [property: JsonPropertyName("model")] string? Model,
-    [property: JsonPropertyName("inputTokens")] long InputTokens,
-    [property: JsonPropertyName("outputTokens")] long OutputTokens,
-    [property: JsonPropertyName("toolName")] string? ToolName,
-    [property: JsonPropertyName("stopReason")] string? StopReason,
-    [property: JsonPropertyName("operationName")] string? OperationName,
+    [property: JsonPropertyName("inputTokens")]
+    long InputTokens,
+    [property: JsonPropertyName("outputTokens")]
+    long OutputTokens,
+    [property: JsonPropertyName("toolName")]
+    string? ToolName,
+    [property: JsonPropertyName("stopReason")]
+    string? StopReason,
+    [property: JsonPropertyName("operationName")]
+    string? OperationName,
     [property: JsonPropertyName("userId")] string? UserId,
-    [property: JsonPropertyName("dataSourceId")] string? DataSourceId);
+    [property: JsonPropertyName("dataSourceId")]
+    string? DataSourceId);
 
 internal sealed record CoverageGapsDto(
-    [property: JsonPropertyName("conversationsProcessed")] long ConversationsProcessed,
-    [property: JsonPropertyName("gapsIdentified")] int GapsIdentified,
+    [property: JsonPropertyName("conversationsProcessed")]
+    long ConversationsProcessed,
+    [property: JsonPropertyName("gapsIdentified")]
+    int GapsIdentified,
     [property: JsonPropertyName("gaps")] List<CoverageGapDto>? Gaps);
 
 internal sealed record CoverageGapDto(
     [property: JsonPropertyName("topic")] string Topic,
-    [property: JsonPropertyName("conversationCount")] long ConversationCount,
-    [property: JsonPropertyName("finding")] string? Finding,
-    [property: JsonPropertyName("recommendation")] string? Recommendation,
-    [property: JsonPropertyName("sampleConversationIds")] List<string>? SampleConversationIds);
+    [property: JsonPropertyName("conversationCount")]
+    long ConversationCount,
+    [property: JsonPropertyName("finding")]
+    string? Finding,
+    [property: JsonPropertyName("recommendation")]
+    string? Recommendation,
+    [property: JsonPropertyName("sampleConversationIds")]
+    List<string>? SampleConversationIds);
 
 internal sealed record TopQuestionsDto(
-    [property: JsonPropertyName("conversationsProcessed")] long ConversationsProcessed,
-    [property: JsonPropertyName("clustersIdentified")] int ClustersIdentified,
-    [property: JsonPropertyName("clusters")] List<TopQuestionClusterDto>? Clusters);
+    [property: JsonPropertyName("conversationsProcessed")]
+    long ConversationsProcessed,
+    [property: JsonPropertyName("clustersIdentified")]
+    int ClustersIdentified,
+    [property: JsonPropertyName("clusters")]
+    List<TopQuestionClusterDto>? Clusters);
 
 internal sealed record TopQuestionClusterDto(
     [property: JsonPropertyName("topic")] string Topic,
-    [property: JsonPropertyName("conversationCount")] long ConversationCount,
-    [property: JsonPropertyName("sampleConversationIds")] List<string>? SampleConversationIds);
+    [property: JsonPropertyName("conversationCount")]
+    long ConversationCount,
+    [property: JsonPropertyName("sampleConversationIds")]
+    List<string>? SampleConversationIds);
 
 internal sealed record SourceAnalyticsDto(
-    [property: JsonPropertyName("sources")] List<SourceUsageDto>? Sources);
+    [property: JsonPropertyName("sources")]
+    List<SourceUsageDto>? Sources);
 
 internal sealed record SourceUsageDto(
-    [property: JsonPropertyName("sourceId")] string SourceId,
-    [property: JsonPropertyName("citationCount")] long CitationCount,
-    [property: JsonPropertyName("topQuestions")] List<string>? TopQuestions);
+    [property: JsonPropertyName("sourceId")]
+    string SourceId,
+    [property: JsonPropertyName("citationCount")]
+    long CitationCount,
+    [property: JsonPropertyName("topQuestions")]
+    List<string>? TopQuestions);
 
 internal sealed record SatisfactionDto(
-    [property: JsonPropertyName("totalFeedback")] long TotalFeedback,
-    [property: JsonPropertyName("upvotes")] long Upvotes,
-    [property: JsonPropertyName("downvotes")] long Downvotes,
-    [property: JsonPropertyName("satisfactionRate")] double SatisfactionRate,
-    [property: JsonPropertyName("byModel")] List<SatisfactionByModelDto>? ByModel,
-    [property: JsonPropertyName("byTopic")] List<SatisfactionByTopicDto>? ByTopic);
+    [property: JsonPropertyName("totalFeedback")]
+    long TotalFeedback,
+    [property: JsonPropertyName("upvotes")]
+    long Upvotes,
+    [property: JsonPropertyName("downvotes")]
+    long Downvotes,
+    [property: JsonPropertyName("satisfactionRate")]
+    double SatisfactionRate,
+    [property: JsonPropertyName("byModel")]
+    List<SatisfactionByModelDto>? ByModel,
+    [property: JsonPropertyName("byTopic")]
+    List<SatisfactionByTopicDto>? ByTopic);
 
 internal sealed record SatisfactionByModelDto(
     [property: JsonPropertyName("model")] string Model,
     [property: JsonPropertyName("rate")] double Rate,
-    [property: JsonPropertyName("downvotes")] long Downvotes);
+    [property: JsonPropertyName("downvotes")]
+    long Downvotes);
 
 internal sealed record SatisfactionByTopicDto(
     [property: JsonPropertyName("topic")] string Topic,
     [property: JsonPropertyName("rate")] double Rate,
-    [property: JsonPropertyName("downvotes")] long Downvotes);
+    [property: JsonPropertyName("downvotes")]
+    long Downvotes);
 
 internal sealed record UserListDto(
     [property: JsonPropertyName("users")] List<UserSummaryDto>? Users,
@@ -547,24 +577,35 @@ internal sealed record UserListDto(
 
 internal sealed record UserSummaryDto(
     [property: JsonPropertyName("userId")] string UserId,
-    [property: JsonPropertyName("conversationCount")] long ConversationCount,
-    [property: JsonPropertyName("firstSeen")] string FirstSeen,
-    [property: JsonPropertyName("lastSeen")] string LastSeen,
-    [property: JsonPropertyName("topTopics")] List<string>? TopTopics);
+    [property: JsonPropertyName("conversationCount")]
+    long ConversationCount,
+    [property: JsonPropertyName("firstSeen")]
+    string FirstSeen,
+    [property: JsonPropertyName("lastSeen")]
+    string LastSeen,
+    [property: JsonPropertyName("topTopics")]
+    List<string>? TopTopics);
 
 internal sealed record UserJourneyDto(
     [property: JsonPropertyName("userId")] string UserId,
-    [property: JsonPropertyName("conversations")] List<UserConversationDto>? Conversations,
-    [property: JsonPropertyName("totalTokens")] long TotalTokens,
-    [property: JsonPropertyName("frequentTopics")] List<string>? FrequentTopics,
-    [property: JsonPropertyName("retentionDays")] int RetentionDays);
+    [property: JsonPropertyName("conversations")]
+    List<UserConversationDto>? Conversations,
+    [property: JsonPropertyName("totalTokens")]
+    long TotalTokens,
+    [property: JsonPropertyName("frequentTopics")]
+    List<string>? FrequentTopics,
+    [property: JsonPropertyName("retentionDays")]
+    int RetentionDays);
 
 internal sealed record UserConversationDto(
-    [property: JsonPropertyName("conversationId")] string ConversationId,
+    [property: JsonPropertyName("conversationId")]
+    string ConversationId,
     [property: JsonPropertyName("date")] string Date,
     [property: JsonPropertyName("topic")] string? Topic,
-    [property: JsonPropertyName("turnCount")] long TurnCount,
-    [property: JsonPropertyName("satisfied")] bool Satisfied);
+    [property: JsonPropertyName("turnCount")]
+    long TurnCount,
+    [property: JsonPropertyName("satisfied")]
+    bool Satisfied);
 
 #endregion
 
