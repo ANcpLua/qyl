@@ -57,7 +57,7 @@ public static class OtlpProtobufParser
         request.EnableBuffering();
 
         // Read the entire body into memory
-        using var ms = new MemoryStream();
+        await using var ms = new MemoryStream();
         await request.Body.CopyToAsync(ms, ct).ConfigureAwait(false);
 
         var bytes = ms.ToArray();

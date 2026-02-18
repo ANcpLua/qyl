@@ -93,7 +93,7 @@ public sealed class CopilotTools(HttpClient client)
                 return $"Copilot chat failed with status {response.StatusCode}";
 
             // Read SSE stream and collect content
-            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var reader = new StreamReader(stream);
 
             var contentBuilder = new StringBuilder();
@@ -178,7 +178,7 @@ public sealed class CopilotTools(HttpClient client)
                 return $"Workflow execution failed with status {response.StatusCode}";
 
             // Read SSE stream and collect content
-            using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+            await using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
             using var reader = new StreamReader(stream);
 
             var contentBuilder = new StringBuilder();
