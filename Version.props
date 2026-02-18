@@ -25,7 +25,7 @@
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
     <ANcpLuaRoslynUtilitiesVersion>1.38.2</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
-    <MicrosoftAgentsVersion>1.0.0-preview.260209.1</MicrosoftAgentsVersion>
+    <MicrosoftAgentsVersion>1.0.0-preview.260212.1</MicrosoftAgentsVersion>
     <MicrosoftAgentsOpenAIVersion>1.0.0-alpha.260209.1</MicrosoftAgentsOpenAIVersion>
     <MicrosoftAgentsAuthVersion>1.4.66-beta</MicrosoftAgentsAuthVersion>
     <!-- MCP -->
