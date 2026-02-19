@@ -4,7 +4,7 @@ Question Your Logs — observe everything, judge nothing, document perfectly.
 
 ## Architecture
 
-```
+```text
               +------------------+
               |   qyl.dashboard  |
               |    (React 19)    |
@@ -70,7 +70,7 @@ dotnet test                                      # Run tests
 
 All types in `core/specs/` — never edit `*.g.cs` or `api.ts`.
 
-```
+```text
 core/specs/*.tsp -> openapi.yaml -> C# | DuckDB | TypeScript | JSON
 ```
 
@@ -126,12 +126,26 @@ Install: `/plugin marketplace add .claude/plugins/qyl` then `/plugin install qyl
 
 Each component has its own `CLAUDE.md` with component-specific patterns.
 
+## Documentation Authoring Rules
+
+- For catalog/registry/matrix/taxonomy/inventory requests, follow `@catalog-format-v1` from:
+  - `/Users/ancplua/qyl/docs/policies/catalog-format-policy.md`
+- Default artifact set:
+  - `<slug>-catalog.csv`
+  - `<slug>-abstractions.csv`
+  - `<slug>-catalog.json`
+- Keep IDs stable once assigned and use commit-pinned source links when requested.
+- Write clearly and concretely; avoid filler phrasing and unnecessary verbosity.
+- Code-first freshness hint:
+  - If docs and implementation disagree, treat the implementation (code + tests + recent commits) as more likely to be current.
+  - Use docs as guidance, then verify behavior in code before finalizing claims.
+
 ## Observability Enhancements v1.0
 
 - Build failures are captured via hook-based binlog collection and stored in collector DuckDB (`build_failures` table).
 - Source locations are attached to structured logs (`source_file`, `source_line`, `source_column`, `source_method`) when
   available.
 - Runtime controls:
-    - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
-    - `QYL_MAX_BUILD_FAILURES` (default: `10`)
-    - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)
+  - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
+  - `QYL_MAX_BUILD_FAILURES` (default: `10`)
+  - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)
