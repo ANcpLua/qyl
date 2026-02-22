@@ -23,7 +23,7 @@ already there.
 qyl.copilot is already a GitHub Copilot agent. It handles chat via `QylCopilotAdapter` and instruments every interaction
 through `CopilotSpanRecorder`. The spans flow into qyl.collector via OTLP.
 
-```
+```text
 GitHub Copilot (VS Code / JetBrains / GitHub.com)
         |
         | Copilot Extensions Protocol
@@ -87,14 +87,14 @@ extensions (`openai.*`, `aws.bedrock.*`, `azure.*`). This means:
 
 **MCP Tool:** `qyl.list_conversations`
 
-```
+```json
 Input:  { period: "2026-02", page: 1, pageSize: 20, filter?: { hasErrors?, userId?, model? } }
 Output: { conversations: [{ conversationId, firstQuestion, turnCount, startTime, duration, tokenCount, hasErrors, userId }], total, page }
 ```
 
 **MCP Tool:** `qyl.get_conversation`
 
-```
+```json
 Input:  { conversationId: "abc-123" }
 Output: { turns: [{ role, content, timestamp, tokens, model, toolCalls?, sources?, feedback? }] }
 ```
@@ -162,7 +162,7 @@ recurring failure patterns into clusters, each with:
 
 **MCP Tool:** `qyl.get_coverage_gaps`
 
-```
+```json
 Input:  { period: "weekly" | "monthly" | "quarterly", offset?: 0 }
 Output: {
   conversationsProcessed: 226,
@@ -229,7 +229,7 @@ Clusters similar questions into broader topics.
 
 **MCP Tool:** `qyl.get_top_questions`
 
-```
+```json
 Input:  { period: "weekly" | "monthly" | "quarterly", offset?: 0, minConversations?: 5 }
 Output: {
   conversationsProcessed: 742,
@@ -281,7 +281,7 @@ MCP tool output is already LLM-consumable.
 
 **MCP Tool:** `qyl.get_source_analytics`
 
-```
+```json
 Input:  { period: "monthly", offset?: 0 }
 Output: {
   sources: [{
@@ -313,7 +313,7 @@ Output: {
 
 **Feedback flow:**
 
-```
+```text
 User gives feedback in Copilot chat
     |
     v
@@ -328,7 +328,7 @@ Analytics query aggregates feedback per period
 
 **MCP Tool:** `qyl.get_satisfaction`
 
-```
+```json
 Input:  { period: "monthly", offset?: 0 }
 Output: {
   totalFeedback: 456,
@@ -360,7 +360,7 @@ Output: {
 
 **Identity resolution:**
 
-```
+```text
 Anonymous visit (gen_ai.conversation.id: "conv-abc")
     | user identified via Copilot auth
     v
@@ -372,7 +372,7 @@ Single user profile with full history
 
 **MCP Tool:** `qyl.list_users`
 
-```
+```json
 Input:  { period: "monthly", page: 1, pageSize: 20 }
 Output: {
   users: [{
@@ -389,7 +389,7 @@ Output: {
 
 **MCP Tool:** `qyl.get_user_journey`
 
-```
+```json
 Input:  { userId: "user@example.com" }
 Output: {
   conversations: [{ conversationId, date, topic, turnCount, satisfied }],
@@ -423,7 +423,7 @@ are in **Development** status (semconv v1.39). Instrumentations on v1.36.0 SHOUL
 
 ### Span Hierarchy for AI Chat
 
-```
+```text
 invoke_agent (gen_ai.operation.name = "invoke_agent")    <- pipeline span
 ├── embeddings (gen_ai.operation.name = "embeddings")     <- query embedding
 ├── db.client (db.system.name = "duckdb")                 <- content retrieval

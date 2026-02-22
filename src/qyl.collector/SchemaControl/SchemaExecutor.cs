@@ -18,8 +18,10 @@ public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExec
             return null;
 
         if (promotion.Status is not "pending")
+        {
             throw new InvalidOperationException(
                 $"Promotion {promotionId} has status '{promotion.Status}' and cannot be applied.");
+        }
 
         var sw = Stopwatch.StartNew();
         try

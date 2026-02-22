@@ -2,7 +2,7 @@
 
 **Question Your Logs** — observe everything, judge nothing, document perfectly.
 
-Landing page: https://ancplua.github.io/qyl/
+Landing page: <https://ancplua.github.io/qyl/>
 
 ## What qyl Does
 
@@ -41,7 +41,7 @@ Landing page: https://ancplua.github.io/qyl/
 
 **Hosted**
 
-https://qyl-api-production.up.railway.app
+<https://qyl-api-production.up.railway.app>
 
 **Docker**
 
@@ -96,7 +96,7 @@ Supported protocols:
 
 ## Architecture
 
-```
+```text
 +------------------+                     +------------------+
 |  Your .NET App   |                     |  Any OTel App    |
 | (servicedefaults)|                     |  (Python, Go..)  |

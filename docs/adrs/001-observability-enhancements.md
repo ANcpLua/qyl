@@ -11,7 +11,8 @@ AI-assisted diagnosis needed faster build failure triage and source-aware log in
 
 1. Store build-failure metadata in DuckDB (`build_failures`) and keep binlogs on disk.
 2. Enrich OTLP logs with source metadata fields on ingestion.
-3. Resolve log source with attrs-first (`code.file.path`, `code.line.number`, `code.column.number`, `code.function.name`) and fallback stacktrace/PDB best effort.
+3. Resolve log source with attrs-first (`code.file.path`, `code.line.number`, `code.column.number`,
+   `code.function.name`) and fallback stacktrace/PDB best effort.
 4. Expose build-failure data through collector REST endpoints and MCP tools.
 
 ## Consequences

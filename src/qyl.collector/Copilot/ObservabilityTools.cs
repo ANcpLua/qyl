@@ -47,8 +47,11 @@ internal static class ObservabilityTools
                     sb.AppendLine(
                         $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} service={span.ServiceName ?? "unknown"} duration={span.DurationNs / 1_000_000.0:F1}ms");
                     if (span.GenAiRequestModel is not null)
+                    {
                         sb.AppendLine(
                             $"  model={span.GenAiRequestModel} in={span.GenAiInputTokens} out={span.GenAiOutputTokens}");
+                    }
+
                     if (span.StatusMessage is not null)
                         sb.AppendLine($"  message={span.StatusMessage}");
                 }
@@ -82,8 +85,10 @@ internal static class ObservabilityTools
                     sb.AppendLine(
                         $"{indent}- [{span.Name}] span={span.SpanId} parent={span.ParentSpanId ?? "root"} status={span.StatusCode} duration={span.DurationNs / 1_000_000.0:F1}ms");
                     if (span.GenAiRequestModel is not null)
+                    {
                         sb.AppendLine(
                             $"{indent}  model={span.GenAiRequestModel} in={span.GenAiInputTokens} out={span.GenAiOutputTokens}");
+                    }
                 }
 
                 return sb.ToString();
@@ -205,8 +210,10 @@ internal static class ObservabilityTools
                     sb.AppendLine(
                         $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} duration={span.DurationNs / 1_000_000.0:F1}ms");
                     if (span.GenAiRequestModel is not null)
+                    {
                         sb.AppendLine(
                             $"  model={span.GenAiRequestModel} in={span.GenAiInputTokens} out={span.GenAiOutputTokens}");
+                    }
                 }
 
                 return sb.ToString();
@@ -229,8 +236,10 @@ internal static class ObservabilityTools
                 CopilotMetrics.RecordToolDuration(duration, "get_system_context", CopilotInstrumentation.GenAiSystem);
 
                 if (rows.Count is 0)
+                {
                     return
                         "No insights materialized yet. The system context is generated every 5 minutes after ingestion starts.";
+                }
 
                 var sb = new StringBuilder();
                 sb.AppendLine("# System Context (auto-generated from telemetry)");

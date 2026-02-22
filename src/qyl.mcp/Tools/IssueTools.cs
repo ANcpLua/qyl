@@ -158,8 +158,10 @@ public sealed class IssueTools(HttpClient client)
                 IssueJsonContext.Default.TriggerFixRequest).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
+            {
                 return
                     $"Failed to trigger fix (HTTP {(int)response.StatusCode}). The issue may not exist or the policy is invalid.";
+            }
 
             var result = await response.Content.ReadFromJsonAsync(
                 IssueJsonContext.Default.TriggerFixResponse).ConfigureAwait(false);

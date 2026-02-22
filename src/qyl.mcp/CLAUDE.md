@@ -63,10 +63,10 @@ autonomous triage.
 
 ## Environment
 
-| Variable            | Default               | Purpose       |
-|---------------------|-----------------------|---------------|
-| `QYL_COLLECTOR_URL` | http://localhost:5100 | Collector URL |
-| `QYL_MCP_TOKEN`     | (none)                | Auth token    |
+| Variable            | Default                 | Purpose       |
+|---------------------|-------------------------|---------------|
+| `QYL_COLLECTOR_URL` | <http://localhost:5100> | Collector URL |
+| `QYL_MCP_TOKEN`     | (none)                  | Auth token    |
 
 ## Rules
 

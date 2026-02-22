@@ -4,7 +4,7 @@ NUKE 10.1.0 build system with Nuke.Components composition.
 
 ## Structure
 
-```
+```text
 build/
   Build.cs              # Entry point, orchestration targets (Ci, Full, Dev)
   BuildPaths.cs         # IHazSourcePaths, CodegenPaths, IVersionize
@@ -22,7 +22,7 @@ MSBuild/
 
 ## Component Hierarchy
 
-```
+```text
 IHazSolution + IHazArtifacts
         |
   IHazSourcePaths          <- qyl project paths (BuildPaths.cs)
@@ -37,7 +37,7 @@ etc.
 
 ## Targets
 
-```
+```text
 GenerateSemconv + TypeSpecCompile -> Generate -> Compile -> Test
                                                     |
                            FrontendBuild -> DockerImageBuild

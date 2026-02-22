@@ -76,7 +76,7 @@ activity?.SetTag("gen_ai.usage.output_tokens", response.Usage.OutputTokens);
 
 1. **OTLP Export**: Traces, metrics, and logs flow to qyl.collector
 2. **DuckDB Storage**: Efficient columnar storage for querying
-3. **Dashboard**: Real-time visualization at http://localhost:5100
+3. **Dashboard**: Real-time visualization at <http://localhost:5100>
 
 ## What's NOT Done Yet
 
@@ -90,7 +90,7 @@ activity?.SetTag("gen_ai.usage.output_tokens", response.Usage.OutputTokens);
 
 ## Architecture
 
-```
+```text
 ┌─────────────┐     OTLP      ┌─────────────────┐     HTTP     ┌─────────────┐
 │  qyl.demo   │ ─────────────>│  qyl.collector  │<────────────>│  Dashboard  │
 │  (your app) │   :4317       │  (backend)      │   :5100      │  (React)    │

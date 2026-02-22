@@ -5,6 +5,7 @@
 You are redesigning the `/agents` route in qyl.dashboard to match the quality and feature set of a production-grade AI agent observability dashboard. The reference is Vercel/Browserbase's "Agents" Insights page — the gold standard for agentic telemetry UX.
 
 This is NOT a greenfield build. qyl.dashboard already has:
+
 - `/agents` page (AgentRunsPage) with agent run list and tool call sequences
   - `/genai` page with token tracking, cost analysis, provider stats
   - `/traces` page with span hierarchy and waterfall timeline
@@ -37,6 +38,7 @@ const result = await generateText({
 ```
 
 This produces spans with these exact names and attributes:
+
 - **`ai.generateText`** — root LLM call span
   - `gen_ai.request.model`: "claude-sonnet-4-5-20250929"
   - `gen_ai.usage.input_tokens`: 1423
@@ -56,6 +58,7 @@ Same pattern for `streamText`, `generateObject`, `streamObject`. Each produces n
 ### Source 2: Claude Code (CLI agent sessions)
 
 Claude Code emits OTLP traces when configured with an endpoint. Each session produces:
+
 - **`runner.start-build`** — root span for the entire session
   - **`claude-code - invoke_agent (claude-haiku-4-5)`** — agent invocation span
     - `gen_ai.agent.name`: "claude-code"
@@ -108,6 +111,7 @@ WHERE json_extract_string(attr, '$.key') = 'gen_ai.request.model'
 ```
 
 Or if attributes are pre-flattened to a JSON object:
+
 ```sql
 SELECT attributes->>'gen_ai.request.model' as model FROM spans
 ```
@@ -120,7 +124,7 @@ Check which format qyl uses before writing queries.
 
 ### Page header
 
-```
+```text
 Agents                                    [fullscreen icon]
 ─────────────────────────────────────────────────────────
 Overview    Models    Tools              ← tab bar
@@ -130,7 +134,7 @@ Overview    Models    Tools              ← tab bar
 
 ### Filters bar (below tabs)
 
-```
+```text
 [My Projects ▾]  [All Envs ▾]  [Oct 18, 2025-Jan 1 ▾]  🔍 Search for spans, users, tags, and more
 ```
 
@@ -140,7 +144,7 @@ Four elements in a row. Dropdowns have chevrons. Date range shows the exact sele
 
 The grid is NOT a uniform 3x2. It is:
 
-```
+```text
 ┌─────────────────────┐ ┌─────────────────────┐ ┌─────────────┐
 │      Traffic        │ │      Duration       │ │   Issues    │
 │                     │ │                     │ │             │
@@ -173,6 +177,7 @@ The grid is NOT a uniform 3x2. It is:
 ```
 
 Key visual details:
+
 - Top row: Traffic and Duration are wide (roughly 40% each), Issues is narrow (roughly 20%) and is a LIST not a chart
   - Bottom row: three equal-width panels
   - Each chart has checkbox toggles in the legend (☑ Runs, ☑ Error Rate, ☑ Releases)
@@ -184,7 +189,7 @@ Key visual details:
 
 ### Trace list table (below the grid)
 
-```
+```text
 TRACE ID    AGENTS / TRACE ROOT    ROOT DURATION    ERRORS    LLM CALLS    TOOL CALLS    TOTAL TOKENS    TOTAL COST    TIMESTAMP ↓
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 e68d3888    [claude-code]          2.15min          0         0            7             0               —             2wk ago
@@ -199,6 +204,7 @@ ec81f29c    GET /api/projects/[i.. 3.89min          0         1            0    
 ```
 
 Key details:
+
 - TRACE ID is monospace, purple/link colored, 8 characters
   - Agent names appear as dark badges: `[claude-code]` with rounded corners, dark background
   - Non-agent traces show their HTTP route as plain text
@@ -213,7 +219,7 @@ Key details:
 
 When you click a trace ID, a panel slides in covering roughly 60% of the page width:
 
-```
+```text
 ✕ Close    Abbreviated Trace
 ─────────────────────────────────────────────────────────────────
 
@@ -261,6 +267,7 @@ runner.start-build                          │ ID: 03afcd7872fa4f19  📋
 ```
 
 Key visual details:
+
 - "✕ Close" button + "Abbreviated Trace" header at top
   - Left panel: "AI Spans" header, hierarchical tree with indentation
   - Green dots (●) for successful tool calls, duration right-aligned in gray
@@ -277,7 +284,7 @@ Key visual details:
 
 When the trace view is open, the left sidebar shows a model breakdown:
 
-```
+```text
 ■ claude-haiku-4-5
 ■ gpt-5-codex
 ■ claude-sonnet-4-5
@@ -303,6 +310,7 @@ Model names with colored squares act as filters. The trace list is compressed to
 A single page with 6 synchronized panels, all respecting the same filters:
 
 **Filters bar** (top):
+
 - Project selector (dropdown, "My Projects" default)
   - Environment selector (dropdown, "All Envs" default)
   - Date range picker (presets: 24h, 7d, 30d, custom range)
@@ -320,6 +328,7 @@ A single page with 6 synchronized panels, all respecting the same filters:
 | Tool Calls | Time buckets | Count | Stacked bars by tool name | Top N tools by frequency: TodoWrite, Read, Edit, Bash, etc. |
 
 **Reasoning questions you must answer:**
+
 - What SQL queries against DuckDB produce each panel's data? Think about `time_bucket` or `date_trunc` for grouping. Check DuckDB docs for the exact function.
   - How do you compute error rate? `COUNT(CASE WHEN status_code = 2 THEN 1 END)::FLOAT / COUNT(*) * 100` per bucket.
   - How do you get p95 duration? DuckDB has `quantile_cont(duration, 0.95)`.
@@ -330,6 +339,7 @@ A single page with 6 synchronized panels, all respecting the same filters:
 ### 2. Trace List Table (below the charts)
 
 Columns:
+
 | Column | Source | Format |
 |--------|--------|--------|
 | TRACE ID | `trace_id` (first 8 chars) | Monospace, purple link color, clickable |
@@ -343,6 +353,7 @@ Columns:
 | TIMESTAMP | Root span `start_time` | Relative: "2wk ago", "3h ago", sorted descending |
 
 **Reasoning questions:**
+
 - This requires a backend endpoint that aggregates per-trace. The SQL must GROUP BY trace_id and compute all columns in a single query. Sketch it before implementing.
   - Pagination: cursor-based (keyed on `start_time DESC, trace_id`) is more stable for time-series data than offset.
   - Agent detection: a trace is an "agent trace" when the root span (or first child) has `gen_ai.agent.name` set. HTTP route traces show the span name directly.
@@ -352,6 +363,7 @@ Columns:
 When clicking a trace ID, a panel slides in from the right (60% width):
 
 **Left: AI Spans waterfall**
+
 - Show ONLY AI-relevant spans from the trace. Filter criteria:
   - Span name contains `invoke_agent` → agent invocation
   - Span name contains `execute_tool` → tool call
@@ -365,6 +377,7 @@ When clicking a trace ID, a panel slides in from the right (60% width):
 
 **Right: Span detail panel**
 When a span is selected (clicked) in the waterfall:
+
 - **Span ID**: hex string with copy button
   - **Span name**: e.g., `gen_ai.invoke_agent`
   - **Duration**: "1.03min"
@@ -377,6 +390,7 @@ When a span is selected (clicked) in the waterfall:
   - **Attributes section**: searchable key-value table of ALL span attributes
 
 **Reasoning questions:**
+
 - Can you reuse the existing TracesPage waterfall component with an AI-span filter? Or does the "abbreviated" concept (hiding HTTP/DB spans, showing only the AI decision chain) require a new component?
   - The waterfall must show duration bars proportional to time — this is a horizontal bar/flame graph, not just a list
   - Use `semconv.ts` attribute constants for extraction — don't hardcode attribute key strings
@@ -384,6 +398,7 @@ When a span is selected (clicked) in the waterfall:
 ### 4. Models Tab
 
 Model-level analytics:
+
 - Table: Model name, Total calls, Total tokens (input/output split), Total cost, Avg duration, Error rate
   - Time-series: calls over time stacked by model
   - Token distribution: input vs output per model
@@ -393,6 +408,7 @@ Query: aggregate `spans` table grouped by extracted `gen_ai.request.model`.
 ### 5. Tools Tab
 
 Tool usage analytics:
+
 - Table: Tool name, Total calls, Avg duration, Error rate, Top agents using it
   - Time-series: tool calls over time stacked by tool
   - Latency distribution per tool

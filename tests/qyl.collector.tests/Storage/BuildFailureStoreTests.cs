@@ -80,7 +80,7 @@ public sealed class BuildFailureStoreTests : IAsyncLifetime
                 ErrorSummary = $"error-{i}"
             });
 
-        var rows = await store.ListAsync(10);
+        var rows = await store.ListAsync();
         Assert.Equal(2, rows.Count);
         Assert.Contains(rows, static r => r.ErrorSummary == "error-3");
         Assert.Contains(rows, static r => r.ErrorSummary == "error-2");

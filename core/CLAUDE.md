@@ -4,7 +4,7 @@ Single source of truth for all types. Everything downstream is generated.
 
 ## Structure
 
-```
+```text
 specs/
   main.tsp              # Entry point
   common/               # Shared types, errors, pagination
@@ -51,7 +51,7 @@ nuke Generate --force-generate       # Full regen (C#, DuckDB, TS)
 
 ## Code Generation Output
 
-```
+```text
 main.tsp -> openapi.yaml -> src/qyl.protocol/*.g.cs
                           -> src/qyl.collector/Storage/DuckDbSchema.g.cs
                           -> src/qyl.dashboard/src/types/api.ts

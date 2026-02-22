@@ -105,7 +105,7 @@ var data = new BinaryData(stream.GetBuffer().AsMemory(0, (int)stream.Position));
 
 **Example Output**:
 
-```
+```text
 Build failed: error CS0246: The type or namespace name 'Foo' could not be found
 Property tracking: Property 'Foo' was never set
 Call stack:
@@ -228,6 +228,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
     - `System.Reflection.Metadata` (for log enrichment)
 
 - [ ] **Create DuckDB migration: `001_build_failures.sql`**
+
   ```sql
   CREATE TABLE IF NOT EXISTS build_failures (
     id VARCHAR PRIMARY KEY,
@@ -245,9 +246,11 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   CREATE INDEX idx_bf_timestamp ON build_failures(timestamp DESC);
   CREATE INDEX idx_bf_target ON build_failures(target);
   ```
+
     - **Why JSON columns**: Flexible schema for property issues (variable structure), DuckDB has native JSON support
 
 - [ ] **Create DuckDB migration: `002_source_locations.sql`**
+
   ```sql
   ALTER TABLE logs ADD COLUMN IF NOT EXISTS source_file VARCHAR;
   ALTER TABLE logs ADD COLUMN IF NOT EXISTS source_line INTEGER;
@@ -260,6 +263,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   ALTER TABLE console_logs ADD COLUMN IF NOT EXISTS source_column INTEGER;
   CREATE INDEX IF NOT EXISTS idx_console_source ON console_logs(source_file);
   ```
+
     - **Why nullable columns**: Backward-compatible (existing logs have no source info), graceful degradation if PDB
       missing
 
@@ -277,6 +281,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **Shared Infrastructure**
 
 - [ ] **Create `PdbReader.cs` (shared utility)**
+
   ```csharp
   public sealed class PdbReader : IDisposable
   {
@@ -285,10 +290,12 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Handles missing PDB gracefully (returns null)
   }
   ```
+
     - **Why separate class**: Reused by both binlog capture and log enrichment, single source of truth for PDB logic
     - **Why IDisposable**: PDB readers hold file handles, must be disposed
 
 - [ ] **Implement zero-copy pattern in PdbReader**
+
   ```csharp
   using var fs = File.OpenRead(assemblyPath);
   using var peReader = new PEReader(fs);
@@ -298,9 +305,11 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       memoryStream.GetBuffer().AsMemory(0, (int)memoryStream.Position)
   );
   ```
+
     - **Why**: Avoids copying 5MB+ PDB buffers (saves memory allocation)
 
 - [ ] **Create `SourceLocationCache.cs`**
+
   ```csharp
   public sealed class SourceLocationCache
   {
@@ -313,6 +322,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       private void EvictIdle(); // Background task, runs every 5 minutes
   }
   ```
+
     - **Why LRU**: Predictable memory usage (max 2MB), high hit rate (>95%)
     - **Why idle timeout**: Prevents memory leak if assemblies never unload
     - **Why ConcurrentDictionary**: Thread-safe, lock-free reads (log ingestion is multi-threaded)
@@ -320,6 +330,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **Binlog Capture**
 
 - [ ] **Create `BinlogParser.cs`**
+
   ```csharp
   public sealed class BinlogParser(PdbReader pdbReader)
   {
@@ -331,10 +342,12 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // - Build duration
   }
   ```
+
     - **Why dependency injection**: PdbReader is shared, testable
     - **Why sealed**: No inheritance needed, enables compiler optimizations
 
 - [ ] **Create `PostToolUse` hook: `hooks/dotnet-build-capture.sh`**
+
   ```bash
   #!/usr/bin/env bash
   # Triggered on: dotnet build, dotnet test
@@ -345,11 +358,13 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   #   4. Store in DuckDB
   #   5. Cleanup if >10 failures
   ```
+
     - **Why PostToolUse**: Triggered after command fails, can inspect exit code
     - **Why re-run with -bl**: Original run didn't have binlog enabled, need second pass (fast, no rebuild)
     - **Why timestamp in filename**: Prevents collisions (concurrent builds)
 
 - [ ] **Create `BuildFailureStore.cs`**
+
   ```csharp
   public interface IBuildFailureStore
   {
@@ -364,6 +379,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Implements retention: DELETE FROM build_failures WHERE ... ORDER BY timestamp DESC OFFSET 10
   }
   ```
+
     - **Why interface**: Testable, could swap DuckDB for PostgreSQL later
     - **Why retention in store**: Encapsulates business rule (10 failures), automatic on insert
 
@@ -376,6 +392,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **Log Enrichment**
 
 - [ ] **Create `PdbEnricher.cs`**
+
   ```csharp
   public sealed class PdbEnricher(SourceLocationCache cache)
   {
@@ -385,10 +402,12 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       // Returns source file:line:column
   }
   ```
+
     - **Why separate from cache**: Single responsibility (enrichment logic vs caching)
     - **Why nullable return**: Graceful degradation if PDB missing
 
 - [ ] **Integrate into OTLP log handler** (`qyl.collector/Handlers/OtlpLogHandler.cs`)
+
   ```csharp
   var sourceLocation = _pdbEnricher.EnrichLogRecord(logRecord);
   await _logStore.InsertAsync(new LogRecordDto
@@ -400,6 +419,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       SourceMethod = sourceLocation?.MethodName
   });
   ```
+
     - **Why at ingestion time**: Pre-computed (fast MCP queries), cache amortizes cost
 
 - [ ] **Unit tests for PdbEnricher**
@@ -413,6 +433,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **New Tools: Build Failures**
 
 - [ ] **Create `BuildTools.cs` in qyl.mcp**
+
   ```csharp
   [McpServerToolType]
   public sealed class BuildTools(IBuildFailureStore store)
@@ -427,9 +448,11 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
       public async Task<string> SearchBuildFailuresAsync(string pattern);
   }
   ```
+
     - **Why pattern matches existing tools**: ConsoleTools, StructuredLogTools use same conventions
 
 - [ ] **Implement `qyl.list_build_failures`**
+
   ```csharp
   // Returns markdown formatted:
   // # Build Failures (3 entries)
@@ -442,6 +465,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   //   → Build.Execute() at Build.cs:89
   // Binlog: .qyl/binlogs/2026-02-14-10-23-15-Compile-1.binlog
   ```
+
     - **Why markdown**: Rendered nicely in Claude UI, structured but human-readable
 
 - [ ] **Implement `qyl.get_build_failure`**
@@ -454,6 +478,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
 **Updated Tools: Log Source Locations**
 
 - [ ] **Update `StructuredLogTools.ListStructuredLogsAsync`**
+
   ```csharp
   // Before:
   // **10:23:45** [ERROR] Connection failed
@@ -462,6 +487,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   // **10:23:45** [ERROR] Connection failed
   //   at DbContext.ConnectAsync() in DbContext.cs:125
   ```
+
     - **Why indented**: Distinguishes source location from message, clear visual hierarchy
 
 - [ ] **Update `ConsoleTools.ListConsoleErrorsAsync`**
@@ -520,6 +546,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
     - **Why**: 6 months from now, team needs to understand trade-offs
 
 - [ ] **Document tuning parameters**
+
   ```csharp
   // SourceLocationCache.cs
   public const int MaxCacheEntries = 10_000;        // Tune if >10K unique log call sites
@@ -529,6 +556,7 @@ if (!pdbReader.TryGetMethodLocation(method, out var location))
   // BuildFailureStore.cs
   public const int MaxRetainedFailures = 10;        // Tune for disk space vs history
   ```
+
     - **Why constants**: Easy to find and adjust, single source of truth
 
 **Deployment**

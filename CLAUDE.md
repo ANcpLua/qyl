@@ -129,16 +129,17 @@ Each component has its own `CLAUDE.md` with component-specific patterns.
 ## Documentation Authoring Rules
 
 - For catalog/registry/matrix/taxonomy/inventory requests, follow `@catalog-format-v1` from:
-  - `/Users/ancplua/qyl/docs/policies/catalog-format-policy.md`
+    - `/Users/ancplua/qyl/docs/policies/catalog-format-policy.md`
 - Default artifact set:
-  - `<slug>-catalog.csv`
-  - `<slug>-abstractions.csv`
-  - `<slug>-catalog.json`
+    - `<slug>-catalog.csv`
+    - `<slug>-abstractions.csv`
+    - `<slug>-catalog.json`
 - Keep IDs stable once assigned and use commit-pinned source links when requested.
 - Write clearly and concretely; avoid filler phrasing and unnecessary verbosity.
 - Code-first freshness hint:
-  - If docs and implementation disagree, treat the implementation (code + tests + recent commits) as more likely to be current.
-  - Use docs as guidance, then verify behavior in code before finalizing claims.
+    - If docs and implementation disagree, treat the implementation (code + tests + recent commits) as more likely to be
+      current.
+    - Use docs as guidance, then verify behavior in code before finalizing claims.
 
 ## Observability Enhancements v1.0
 
@@ -146,6 +147,6 @@ Each component has its own `CLAUDE.md` with component-specific patterns.
 - Source locations are attached to structured logs (`source_file`, `source_line`, `source_column`, `source_method`) when
   available.
 - Runtime controls:
-  - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
-  - `QYL_MAX_BUILD_FAILURES` (default: `10`)
-  - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)
+    - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
+    - `QYL_MAX_BUILD_FAILURES` (default: `10`)
+    - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)

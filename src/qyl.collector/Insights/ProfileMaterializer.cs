@@ -38,8 +38,10 @@ internal static class ProfileMaterializer
                 var total = reader.Col(3).GetInt64(0);
 
                 if (total > 0 && p50.HasValue)
+                {
                     sb.AppendLine(
                         $"- Latency: P50={FormatMs(p50.Value)} | P95={FormatMs(p95 ?? 0)} | P99={FormatMs(p99 ?? 0)} ({total:N0} spans)");
+                }
                 else
                     sb.AppendLine("- No span data in the last 7 days.");
             }

@@ -14,6 +14,7 @@
     --color-signal-green: oklch(0.85 0.25 145);
     --color-signal-cyan: oklch(0.80 0.15 210);
     --color-signal-violet: oklch(0.60 0.25 300);
+    --color-signal-purple: oklch(0.55 0.25 285);
     --color-signal-red: oklch(0.65 0.25 25);
 
     /* Brutalist Grayscale */
@@ -188,6 +189,7 @@
         --color-signal-green: oklch(0.50 0.22 145);
         --color-signal-cyan: oklch(0.45 0.15 210);
         --color-signal-violet: oklch(0.45 0.25 300);
+        --color-signal-purple: oklch(0.40 0.25 285);
         --color-signal-red: oklch(0.50 0.25 25);
 
         /* Shadow adjustments for light mode */
@@ -225,6 +227,22 @@
     /* BRUTALIST 3-pixel borders */
     .border-3 {
         border-width: 3px;
+    }
+
+    .border-l-3 {
+        border-left-width: 3px;
+    }
+
+    .border-r-3 {
+        border-right-width: 3px;
+    }
+
+    .border-t-3 {
+        border-top-width: 3px;
+    }
+
+    .border-b-3 {
+        border-bottom-width: 3px;
     }
 
     /* BRUTALIST offset shadow utilities */
@@ -393,6 +411,10 @@
         color: var(--color-signal-violet);
     }
 
+    .text-signal-purple {
+        color: var(--color-signal-purple);
+    }
+
     .text-signal-red {
         color: var(--color-signal-red);
     }
@@ -418,6 +440,10 @@
         background-color: var(--color-signal-violet);
     }
 
+    .bg-signal-purple {
+        background-color: var(--color-signal-purple);
+    }
+
     .bg-signal-red {
         background-color: var(--color-signal-red);
     }
@@ -441,6 +467,10 @@
 
     .border-signal-violet {
         border-color: var(--color-signal-violet);
+    }
+
+    .border-signal-purple {
+        border-color: var(--color-signal-purple);
     }
 
     .border-signal-red {

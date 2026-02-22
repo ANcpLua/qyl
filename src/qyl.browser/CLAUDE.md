@@ -30,7 +30,7 @@ their users' browsers send telemetry directly to the collector. The dashboard (q
 
 ## Usage
 
-```typescript
+```ts
 // ESM
 import { init } from '@qyl/browser';
 const sdk = init({ endpoint: 'http://localhost:5100' });
@@ -38,6 +38,7 @@ const sdk = init({ endpoint: 'http://localhost:5100' });
 // React
 import { QylProvider } from '@qyl/browser/react';
 <QylProvider config={{ endpoint: 'http://localhost:5100' }}><App /></QylProvider>
+
 
 // Script tag
 <script>window.qyl = { endpoint: 'http://localhost:5100' };</script>

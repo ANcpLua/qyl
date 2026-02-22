@@ -22,8 +22,10 @@ public sealed partial class SchemaPlanner(DuckDbStore store, ILogger<SchemaPlann
         CancellationToken ct = default)
     {
         if (!AllowedChangeTypes.Contains(request.ChangeType))
+        {
             throw new ArgumentException(
                 $"Unsupported change type: {request.ChangeType}. Allowed: {string.Join(", ", AllowedChangeTypes)}");
+        }
 
         var sql = GenerateSql(request);
         ValidateNoDestructiveDdl(sql);

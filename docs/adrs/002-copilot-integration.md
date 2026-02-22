@@ -27,7 +27,7 @@ Implement a standalone GitHub Copilot integration (`qyl.copilot`) with the follo
 
 **Decision**: Implement cascading authentication that auto-detects available credentials.
 
-```
+```text
 Environment (GITHUB_TOKEN/GH_TOKEN)
     ↓ fallback
 GitHub CLI (gh auth token)

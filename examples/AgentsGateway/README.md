@@ -14,11 +14,13 @@ providers (OpenAI, GitHub Models, Ollama, etc.) while providing robust infrastru
 ## Getting Started
 
 1. Install the package:
+
    ```bash
    dotnet add package AgentGateway
    ```
 
 2. Register the gateway in `Program.cs`:
+
    ```csharp
    builder.Services.AddBotAspNetAuthentication(builder.Configuration);
    builder.Services.AddSingleton<IStorage>(sp => ...);

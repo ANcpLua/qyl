@@ -4,7 +4,7 @@ Question Your Logs — observe everything, judge nothing, document perfectly.
 
 ## Architecture
 
-```
+```text
               +------------------+
               |   qyl.dashboard  |
               |    (React 19)    |
@@ -70,7 +70,7 @@ dotnet test                                      # Run tests
 
 All types in `core/specs/` — never edit `*.g.cs` or `api.ts`.
 
-```
+```text
 core/specs/*.tsp -> openapi.yaml -> C# | DuckDB | TypeScript | JSON
 ```
 
@@ -119,6 +119,6 @@ Each component has its own `CLAUDE.md` with component-specific patterns.
 - Source locations are attached to structured logs (`source_file`, `source_line`, `source_column`, `source_method`) when
   available.
 - Runtime controls:
-    - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
-    - `QYL_MAX_BUILD_FAILURES` (default: `10`)
-    - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)
+  - `QYL_BUILD_FAILURE_CAPTURE_ENABLED` (default: `true`)
+  - `QYL_MAX_BUILD_FAILURES` (default: `10`)
+  - `QYL_BINLOG_DIR` (default: `.qyl/binlogs`)
