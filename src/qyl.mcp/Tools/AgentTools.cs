@@ -93,11 +93,7 @@ public sealed class AgentTools(HttpClient client)
         string runId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var run = await client.GetFromJsonAsync<AgentRunDto>(
-                $"/api/v1/agent-runs/{Uri.EscapeDataString(runId)}",
-                AgentJsonContext.Default.AgentRunDto).ConfigureAwait(false);
-
-            if (run is null)
+            if (await client.GetFromJsonAsync<AgentRunDto>($"/api/v1/agent-runs/{Uri.EscapeDataString(runId)}", AgentJsonContext.Default.AgentRunDto).ConfigureAwait(false) is not { } run)
                 return $"Agent run '{runId}' not found.";
 
             var sb = new StringBuilder();

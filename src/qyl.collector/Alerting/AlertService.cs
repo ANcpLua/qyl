@@ -68,8 +68,7 @@ public sealed partial class AlertService : BackgroundService
         {
             try
             {
-                var alertEvent = await _evaluator.EvaluateAsync(rule, ct).ConfigureAwait(false);
-                if (alertEvent is null)
+                if (await _evaluator.EvaluateAsync(rule, ct).ConfigureAwait(false) is not { } alertEvent)
                     continue;
 
                 // Notify on state change

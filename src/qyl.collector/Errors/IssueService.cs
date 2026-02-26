@@ -232,8 +232,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         if (!ValidStatuses.Contains(newStatus))
             throw new ArgumentException($"Invalid status: '{newStatus}'", nameof(newStatus));
 
-        var existing = await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (existing is null)
+        if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is not { } existing)
             return false;
 
         if (!AllowedTransitions.TryGetValue(existing.Status, out var allowed) ||
@@ -277,8 +276,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
     /// </summary>
     public async Task<bool> AssignOwnerAsync(string issueId, string owner, CancellationToken ct = default)
     {
-        var existing = await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (existing is null)
+        if (await GetIssueByIdAsync(issueId, ct).ConfigureAwait(false) is not { } existing)
             return false;
 
         var now = TimeProvider.System.GetUtcNow().UtcDateTime;
@@ -438,7 +436,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ErrorIssueRow MapIssue(IDataReader reader) =>
+    private static ErrorIssueRow MapIssue(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),
@@ -469,7 +467,7 @@ public sealed partial class IssueService(DuckDbStore store, ILogger<IssueService
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ErrorIssueEventRow MapIssueEvent(IDataReader reader) =>
+    private static ErrorIssueEventRow MapIssueEvent(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),

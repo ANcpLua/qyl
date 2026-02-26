@@ -73,6 +73,7 @@ internal static class TracedInterceptorEmitter
     private static void AppendUsings(StringBuilder sb)
     {
         sb.AppendLine("using System.Diagnostics;");
+        sb.AppendLine("using qyl.protocol.Attributes;");
         sb.AppendLine();
     }
 
@@ -230,7 +231,7 @@ internal static class TracedInterceptorEmitter
                             catch (global::System.Exception ex)
                             {
                                 activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { "exception.type", ex.GetType().FullName }, { "exception.message", ex.Message } }));
+                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
                                 throw;
                             }
                         }
@@ -245,7 +246,7 @@ internal static class TracedInterceptorEmitter
                             catch (global::System.Exception ex)
                             {
                                 activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { "exception.type", ex.GetType().FullName }, { "exception.message", ex.Message } }));
+                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
                                 throw;
                             }
                         }
@@ -301,7 +302,7 @@ internal static class TracedInterceptorEmitter
                             catch (global::System.Exception ex)
                             {
                                 activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { "exception.type", ex.GetType().FullName }, { "exception.message", ex.Message } }));
+                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
                                 throw;
                             }
                         }
@@ -316,7 +317,7 @@ internal static class TracedInterceptorEmitter
                             catch (global::System.Exception ex)
                             {
                                 activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { "exception.type", ex.GetType().FullName }, { "exception.message", ex.Message } }));
+                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
                                 throw;
                             }
                         }

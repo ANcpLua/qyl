@@ -44,8 +44,7 @@ internal static class MeterAnalyzer
         if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
             return null;
 
-        var meterAttr = AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName);
-        if (meterAttr is null)
+        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName) is not { } meterAttr)
             return null;
 
         // Must be partial and static
@@ -219,8 +218,7 @@ internal static class MeterAnalyzer
 
         foreach (var param in method.Parameters)
         {
-            var tagAttr = AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName);
-            if (tagAttr is null)
+            if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is not { } tagAttr)
                 continue;
 
             string? tagName = null;

@@ -30,7 +30,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
     /// <summary>
     ///     Returns all available generation profiles (built-in set).
     /// </summary>
-    public ValueTask<IReadOnlyList<GenerationProfile>> GetProfilesAsync(CancellationToken ct = default)
+    public ValueTask<IReadOnlyList<GenerationProfile>> GetProfilesAsync(CancellationToken _ = default)
     {
         IReadOnlyList<GenerationProfile> profiles = [.. BuiltInProfiles.Values];
         return ValueTask.FromResult(profiles);
@@ -39,7 +39,7 @@ public sealed partial class GenerationProfileService(DuckDbStore store, ILogger<
     /// <summary>
     ///     Gets a single profile by ID. Returns null if not found.
     /// </summary>
-    public ValueTask<GenerationProfile?> GetProfileAsync(string profileId, CancellationToken ct = default)
+    public ValueTask<GenerationProfile?> GetProfileAsync(string profileId, CancellationToken _ = default)
     {
         BuiltInProfiles.TryGetValue(profileId, out var profile);
         return ValueTask.FromResult(profile);

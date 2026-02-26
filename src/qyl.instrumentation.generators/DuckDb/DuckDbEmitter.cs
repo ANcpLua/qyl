@@ -60,14 +60,14 @@ internal static class DuckDbEmitter
         return sb.ToString();
     }
 
-    private static void EmitColumnList(StringBuilder sb, string tableName, IReadOnlyList<DuckDbColumnInfo> columns)
+    private static void EmitColumnList(StringBuilder sb, string tableName, DuckDbColumnInfo[] columns)
     {
         sb.Append("    public const string TableName = \"").Append(tableName).AppendLine("\";");
         sb.AppendLine();
 
         sb.AppendLine("    public const string ColumnList = \"\"\"");
         sb.Append("        ");
-        for (var i = 0; i < columns.Count; i++)
+        for (var i = 0; i < columns.Length; i++)
         {
             if (i > 0)
             {

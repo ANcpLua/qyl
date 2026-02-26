@@ -414,6 +414,83 @@ public sealed partial class DuckDbStore
     }
 
     // ==========================================================================
+    // GitHub Token Operations
+    // ==========================================================================
+
+    public async Task UpsertGitHubTokenAsync(
+        string token,
+        string? scope,
+        string? githubLogin,
+        string authMethod = "pat",
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(async (con, cancellation) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = """
+                              INSERT INTO github_tokens (key, token, scope, github_login, auth_method, created_at)
+                              VALUES ($1, $2, $3, $4, $5, now())
+                              ON CONFLICT (key) DO UPDATE SET
+                                  token = EXCLUDED.token,
+                                  scope = EXCLUDED.scope,
+                                  github_login = EXCLUDED.github_login,
+                                  auth_method = EXCLUDED.auth_method,
+                                  created_at = now()
+                              """;
+            cmd.Parameters.Add(new DuckDBParameter { Value = "default" });
+            cmd.Parameters.Add(new DuckDBParameter { Value = token });
+            cmd.Parameters.Add(new DuckDBParameter { Value = scope ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = githubLogin ?? (object)DBNull.Value });
+            cmd.Parameters.Add(new DuckDBParameter { Value = authMethod });
+            return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        await job.Task.ConfigureAwait(false);
+    }
+
+    public async Task<GitHubTokenRecord?> GetGitHubTokenAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = """
+                          SELECT token, scope, github_login, auth_method, created_at
+                          FROM github_tokens
+                          WHERE key = 'default'
+                          """;
+
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        if (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            return new GitHubTokenRecord(
+                reader.GetString(0),
+                reader.Col(1).AsString,
+                reader.Col(2).AsString,
+                reader.Col(3).AsString ?? "pat",
+                reader.Col(4).AsDateTime ?? TimeProvider.System.GetUtcNow().UtcDateTime);
+        }
+
+        return null;
+    }
+
+    public async Task<bool> DeleteGitHubTokenAsync(CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        var job = new WriteJob<int>(static async (con, cancellation) =>
+        {
+            await using var cmd = con.CreateCommand();
+            cmd.CommandText = "DELETE FROM github_tokens WHERE key = 'default'";
+            return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
+        });
+
+        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false) > 0;
+    }
+
+    // ==========================================================================
     // Private Methods - Identity Mapping
     // ==========================================================================
 
@@ -430,7 +507,7 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = workspace.MetadataJson ?? (object)DBNull.Value });
     }
 
-    private static WorkspaceRecord MapWorkspace(IDataReader reader)
+    private static WorkspaceRecord MapWorkspace(DbDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
         return new WorkspaceRecord(
@@ -449,7 +526,7 @@ public sealed partial class DuckDbStore
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ProjectRecord MapProject(IDataReader reader)
+    private static ProjectRecord MapProject(DbDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
         return new ProjectRecord(
@@ -462,7 +539,7 @@ public sealed partial class DuckDbStore
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ProjectEnvironmentRecord MapProjectEnvironment(IDataReader reader)
+    private static ProjectEnvironmentRecord MapProjectEnvironment(DbDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
         return new ProjectEnvironmentRecord(
@@ -481,6 +558,13 @@ public sealed partial class DuckDbStore
 /// <summary>
 ///     Storage record for a workspace. Maps to the workspaces DuckDB table.
 /// </summary>
+public sealed record GitHubTokenRecord(
+    string Token,
+    string? Scope,
+    string? GitHubLogin,
+    string AuthMethod,
+    DateTime CreatedAt);
+
 public sealed record WorkspaceRecord(
     string WorkspaceId,
     string? Name,

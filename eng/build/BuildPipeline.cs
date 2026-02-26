@@ -28,7 +28,7 @@ using Serilog;
 ///     Single entry point: <c>nuke Generate</c>
 /// </summary>
 [ParameterPrefix(nameof(IPipeline))]
-interface IPipeline : IHazSourcePaths
+partial interface IPipeline : IHazSourcePaths
 {
     // ════════════════════════════════════════════════════════════════════════
     // Parameters
@@ -495,7 +495,7 @@ interface IPipeline : IHazSourcePaths
     /// </summary>
     sealed int ExtractSchemaVersion(string content)
     {
-        var match = Regex.Match(content, @"public\s+const\s+int\s+Version\s*=\s*(?<ver>\d+)\s*;");
+        var match = VersionConstantRegex().Match(content);
         return match.Success
             ? int.Parse(match.Groups["ver"].Value, CultureInfo.InvariantCulture)
             : throw new InvalidOperationException(
@@ -518,4 +518,7 @@ interface IPipeline : IHazSourcePaths
 
         return ddl.ToString();
     }
+
+    [GeneratedRegex(@"public\s+const\s+int\s+Version\s*=\s*(?<ver>\d+)\s*;")]
+    private static partial Regex VersionConstantRegex();
 }

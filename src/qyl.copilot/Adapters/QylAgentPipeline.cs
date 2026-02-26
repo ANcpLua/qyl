@@ -34,8 +34,7 @@ public static class QylAgentPipeline
         var builder = new AIAgentBuilder(sp =>
             {
                 // Resolve IChatClient from DI for deferred agent creation
-                var chatClient = (IChatClient?)sp.GetService(typeof(IChatClient));
-                if (chatClient is null)
+                if ((IChatClient? )sp.GetService(typeof(IChatClient)) is not { } chatClient)
                     throw new InvalidOperationException($"No IChatClient registered for agent '{agentName}'.");
                 return new ChatClientAgent(chatClient, name: agentName);
             })

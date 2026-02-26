@@ -1,6 +1,6 @@
 # qyl - AI Observability Platform
 
-Question Your Logs — observe everything, judge nothing, document perfectly.
+Polyglot OTLP collector — like Grafana/Jaeger, but for AI. Docker image IS the product.
 
 ## Architecture
 
@@ -38,7 +38,6 @@ dotnet test                                      # Run tests
 |---------------------------------------|------------------------------------------------|
 | `core/`                               | TypeSpec schemas (source of truth)             |
 | `eng/`                                | NUKE build system                              |
-| `examples/`                           | Demo apps (AgentsGateway)                      |
 | `src/qyl.collector/`                  | Backend API + gRPC + storage                   |
 | `src/qyl.copilot/`                    | GitHub Copilot integration                     |
 | `src/qyl.dashboard/`                  | React 19 SPA                                   |
@@ -50,10 +49,6 @@ dotnet test                                      # Run tests
 | `src/qyl.instrumentation.generators/` | Telemetry source generators                    |
 | `src/qyl.browser/`                    | Browser OTLP SDK (TypeScript, ESM + IIFE)      |
 | `src/qyl.watch/`                      | Live terminal span viewer (dotnet tool)        |
-| `src/qyl.watchdog/`                   | Process anomaly detection daemon (dotnet tool) |
-| `src/qyl.cli/`                        | One-command instrumentation CLI (dotnet tool)  |
-| `src/qyl.Analyzers/`                  | Roslyn analyzers (QYL001-015)                  |
-| `src/qyl.Analyzers.CodeFixes/`        | Code fix providers                             |
 | `tests/`                              | xUnit v3 + MTP tests                           |
 
 ## Tech Stack

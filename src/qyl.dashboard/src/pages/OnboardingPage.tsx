@@ -1,24 +1,30 @@
 import {useCallback, useEffect, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 import {
     ArrowLeft,
     ArrowRight,
     Check,
     CheckCircle2,
     Copy,
+    ExternalLink,
+    Github,
     Loader2,
     Plug,
     Rocket,
+    SkipForward,
     Sparkles,
     Terminal,
+    Unlink,
 } from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Badge} from '@/components/ui/badge';
 import {toast} from 'sonner';
 
-const STEPS = ['Welcome', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
-type Step = (typeof STEPS)[number];
+const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
 
 function StepIndicator({current, steps}: { current: number; steps: readonly string[] }) {
     return (
@@ -111,6 +117,310 @@ function WelcomeStep() {
                     </div>
                 ))}
             </div>
+        </div>
+    );
+}
+
+type GitHubStatus = { configured: boolean; user: { login: string; name: string; avatarUrl: string } | null; authMethod: string };
+
+function GitHubStep({onSkip}: { onSkip: () => void }) {
+    const [patToken, setPatToken] = useState('');
+    const [saving, setSaving] = useState(false);
+    const [deviceCode, setDeviceCode] = useState<{
+        device_code: string; user_code: string; verification_uri: string; expires_in: number; interval: number
+    } | null>(null);
+    const [deviceStatus, setDeviceStatus] = useState<'idle' | 'polling' | 'expired'>('idle');
+    const [disconnecting, setDisconnecting] = useState(false);
+
+    const {data: ghStatus, isLoading, refetch} = useQuery({
+        queryKey: ['github-status'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/github/status');
+            if (!res.ok) return {configured: false, user: null, authMethod: 'none'};
+            return res.json() as Promise<GitHubStatus>;
+        },
+    });
+
+    const {data: deviceAvailable} = useQuery({
+        queryKey: ['github-device-available'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/github/device/available');
+            if (!res.ok) return {available: false};
+            return res.json() as Promise<{ available: boolean }>;
+        },
+    });
+
+    const handleSaveToken = async () => {
+        if (!patToken.trim()) return;
+        setSaving(true);
+        try {
+            const res = await fetch('/api/v1/github/token', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({token: patToken.trim()}),
+            });
+            if (res.ok) {
+                toast.success('GitHub token saved');
+                setPatToken('');
+                await refetch();
+            } else {
+                const data = await res.json().catch(() => null);
+                toast.error(data?.error ?? 'Invalid GitHub token');
+            }
+        } catch {
+            toast.error('Failed to connect to server');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleStartDeviceFlow = async () => {
+        try {
+            const res = await fetch('/api/v1/github/device/start', {method: 'POST'});
+            if (!res.ok) {
+                toast.error('Failed to start device flow');
+                return;
+            }
+            const data = await res.json();
+            setDeviceCode(data);
+            setDeviceStatus('polling');
+        } catch {
+            toast.error('Failed to connect to server');
+        }
+    };
+
+    const handleDisconnect = async () => {
+        setDisconnecting(true);
+        try {
+            await fetch('/api/v1/github/token', {method: 'DELETE'});
+            toast.success('GitHub disconnected');
+            await refetch();
+        } catch {
+            toast.error('Failed to disconnect');
+        } finally {
+            setDisconnecting(false);
+        }
+    };
+
+    // Device flow polling
+    useEffect(() => {
+        if (deviceStatus !== 'polling' || !deviceCode) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`/api/v1/github/device/poll?deviceCode=${encodeURIComponent(deviceCode.device_code)}`);
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.status === 'complete') {
+                    setDeviceStatus('idle');
+                    setDeviceCode(null);
+                    toast.success(`Connected as ${data.user?.login}`);
+                    await refetch();
+                } else if (data.status === 'expired' || data.status === 'denied') {
+                    setDeviceStatus('expired');
+                    toast.error(data.error ?? 'Device flow expired');
+                }
+            } catch {
+                // keep polling
+            }
+        }, (deviceCode.interval || 5) * 1000);
+
+        // Auto-expire
+        const timeout = setTimeout(() => {
+            setDeviceStatus('expired');
+        }, deviceCode.expires_in * 1000);
+
+        return () => {
+            clearInterval(interval);
+            clearTimeout(timeout);
+        };
+    }, [deviceStatus, deviceCode, refetch]);
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-signal-orange"/>
+            </div>
+        );
+    }
+
+    // Connected state
+    if (ghStatus?.configured && ghStatus.user) {
+        return (
+            <div className="space-y-6 max-w-lg mx-auto text-center">
+                <div
+                    className="w-16 h-16 mx-auto bg-signal-green flex items-center justify-center border-2 border-brutal-black overflow-hidden">
+                    {ghStatus.user.avatarUrl ? (
+                        <img src={ghStatus.user.avatarUrl} alt={ghStatus.user.login}
+                             className="w-full h-full object-cover"/>
+                    ) : (
+                        <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
+                    )}
+                </div>
+                <h2 className="text-xl font-bold text-brutal-white tracking-wider">GITHUB CONNECTED</h2>
+                <p className="text-signal-green font-bold tracking-wider">
+                    Connected as {ghStatus.user.login}
+                </p>
+                {ghStatus.user.name && (
+                    <p className="text-brutal-slate text-sm">{ghStatus.user.name}</p>
+                )}
+                <Badge variant="outline" className="text-brutal-slate">
+                    {ghStatus.authMethod === 'device_flow' ? 'Device Flow' : ghStatus.authMethod === 'pat' ? 'Personal Token' : ghStatus.authMethod === 'env' ? 'Environment Variable' : ghStatus.authMethod}
+                </Badge>
+                {ghStatus.authMethod !== 'env' && (
+                    <Button
+                        variant="outline"
+                        className="font-bold tracking-wider text-brutal-slate hover:text-red-400 hover:border-red-400"
+                        onClick={handleDisconnect}
+                        disabled={disconnecting}
+                    >
+                        {disconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> :
+                            <Unlink className="w-4 h-4 mr-2"/>}
+                        DISCONNECT
+                    </Button>
+                )}
+            </div>
+        );
+    }
+
+    // Not connected — show auth tabs
+    return (
+        <div className="space-y-6 max-w-xl mx-auto">
+            <div className="flex items-center gap-3">
+                <div
+                    className="w-12 h-12 bg-brutal-dark flex items-center justify-center border-2 border-brutal-zinc">
+                    <Github className="w-6 h-6 text-brutal-white"/>
+                </div>
+                <div>
+                    <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONNECT GITHUB</h2>
+                    <p className="text-brutal-slate text-xs tracking-wider">OPTIONAL</p>
+                </div>
+            </div>
+            <p className="text-brutal-slate text-sm leading-relaxed">
+                Connecting GitHub enables repository discovery and Copilot integration.
+                OTLP ingestion works without authentication — this step is optional.
+            </p>
+
+            <Tabs defaultValue={deviceAvailable?.available ? 'device' : 'pat'}>
+                <TabsList className={cn('grid w-full', deviceAvailable?.available ? 'grid-cols-3' : 'grid-cols-2')}>
+                    {deviceAvailable?.available && (
+                        <TabsTrigger value="device" className="text-xs font-bold tracking-wider">DEVICE FLOW</TabsTrigger>
+                    )}
+                    <TabsTrigger value="pat" className="text-xs font-bold tracking-wider">PERSONAL TOKEN</TabsTrigger>
+                    <TabsTrigger value="env" className="text-xs font-bold tracking-wider">ENV VARIABLE</TabsTrigger>
+                </TabsList>
+
+                {deviceAvailable?.available && (
+                    <TabsContent value="device" className="space-y-4 mt-4">
+                        <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
+                            {deviceStatus === 'idle' && !deviceCode && (
+                                <Button
+                                    className="w-full bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
+                                    onClick={handleStartDeviceFlow}
+                                >
+                                    <Github className="w-4 h-4 mr-2"/>
+                                    START GITHUB LOGIN
+                                </Button>
+                            )}
+
+                            {deviceStatus === 'polling' && deviceCode && (
+                                <div className="space-y-4 text-center">
+                                    <p className="text-brutal-slate text-sm">
+                                        Enter this code on GitHub:
+                                    </p>
+                                    <div
+                                        className="text-3xl font-mono font-bold text-signal-orange tracking-[0.3em] py-4 bg-slate-900 border-2 border-signal-orange">
+                                        {deviceCode.user_code}
+                                    </div>
+                                    <a
+                                        href={deviceCode.verification_uri}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-signal-orange hover:underline text-sm font-bold"
+                                    >
+                                        Open GitHub <ExternalLink className="w-3.5 h-3.5"/>
+                                    </a>
+                                    <div className="flex items-center justify-center gap-2 text-brutal-slate text-xs">
+                                        <Loader2 className="w-4 h-4 animate-spin"/>
+                                        Waiting for authorization...
+                                    </div>
+                                </div>
+                            )}
+
+                            {deviceStatus === 'expired' && (
+                                <div className="space-y-4 text-center">
+                                    <p className="text-brutal-slate text-sm">Device code expired.</p>
+                                    <Button
+                                        variant="outline"
+                                        className="font-bold tracking-wider"
+                                        onClick={() => {
+                                            setDeviceStatus('idle');
+                                            setDeviceCode(null);
+                                        }}
+                                    >
+                                        TRY AGAIN
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </TabsContent>
+                )}
+
+                <TabsContent value="pat" className="space-y-4 mt-4">
+                    <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
+                        <p className="text-[10px] text-brutal-slate">
+                            Generate a personal access token at{' '}
+                            <a
+                                href="https://github.com/settings/tokens"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-signal-orange hover:underline"
+                            >
+                                github.com/settings/tokens
+                            </a>
+                            {' '}with <span className="text-brutal-white font-mono">repo</span> scope.
+                        </p>
+                        <div className="flex gap-2">
+                            <input
+                                type="password"
+                                value={patToken}
+                                onChange={(e) => setPatToken(e.target.value)}
+                                placeholder="ghp_..."
+                                className="flex-1 bg-slate-900 border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange focus:outline-none"
+                            />
+                            <Button
+                                className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
+                                onClick={handleSaveToken}
+                                disabled={!patToken.trim() || saving}
+                            >
+                                {saving ? <Loader2 className="w-4 h-4 animate-spin"/> : 'SAVE'}
+                            </Button>
+                        </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="env" className="space-y-4 mt-4">
+                    <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-4">
+                        <CodeBlock
+                            code="QYL_GITHUB_TOKEN=ghp_your_token_here"
+                            label="Environment variable"
+                        />
+                        <p className="text-[10px] text-brutal-slate">
+                            Set this before starting the collector. Token persists across restarts.
+                        </p>
+                    </div>
+                </TabsContent>
+            </Tabs>
+
+            <Button
+                variant="outline"
+                className="w-full font-bold tracking-wider text-brutal-slate hover:text-brutal-white"
+                onClick={onSkip}
+            >
+                <SkipForward className="w-4 h-4 mr-2"/>
+                SKIP — I'LL SET UP GITHUB LATER
+            </Button>
         </div>
     );
 }
@@ -241,7 +551,7 @@ sdk.start();`,
     );
 }
 
-function VerifyStep() {
+function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     const [status, setStatus] = useState<'idle' | 'polling' | 'success' | 'timeout'>('idle');
     const [elapsed, setElapsed] = useState(0);
 
@@ -249,6 +559,10 @@ function VerifyStep() {
         setStatus('polling');
         setElapsed(0);
     }, []);
+
+    useEffect(() => {
+        if (status === 'success') onVerified(true);
+    }, [status, onVerified]);
 
     useEffect(() => {
         if (status !== 'polling') return;
@@ -265,10 +579,10 @@ function VerifyStep() {
 
         const poll = setInterval(async () => {
             try {
-                const res = await fetch('/api/v1/spans?limit=1');
+                const res = await fetch('/api/v1/traces?limit=1');
                 if (res.ok) {
                     const data = await res.json();
-                    if (data && ((Array.isArray(data) && data.length > 0) || (data.items && data.items.length > 0))) {
+                    if (data?.items?.length > 0 || data?.total > 0) {
                         setStatus('success');
                     }
                 }
@@ -386,19 +700,34 @@ function DoneStep() {
     );
 }
 
-const stepComponents: Record<Step, () => React.JSX.Element> = {
-    'Welcome': WelcomeStep,
-    'Connect': ConnectStep,
-    'SDK Setup': SdkSetupStep,
-    'Verify': VerifyStep,
-    'Done': DoneStep,
-};
-
 export function OnboardingPage() {
     const [currentStep, setCurrentStep] = useState(0);
-    const StepComponent = stepComponents[STEPS[currentStep]];
+    const [verifyStatus, setVerifyStatus] = useState(false);
     const isFirst = currentStep === 0;
     const isLast = currentStep === STEPS.length - 1;
+    const stepName = STEPS[currentStep];
+
+    const handleSkipGitHub = () => setCurrentStep((s) => s + 1);
+
+    const isVerifyStep = stepName === 'Verify';
+    const canAdvance = !isVerifyStep || verifyStatus;
+
+    const renderStep = () => {
+        switch (stepName) {
+            case 'Welcome':
+                return <WelcomeStep/>;
+            case 'GitHub':
+                return <GitHubStep onSkip={handleSkipGitHub}/>;
+            case 'Connect':
+                return <ConnectStep/>;
+            case 'SDK Setup':
+                return <SdkSetupStep/>;
+            case 'Verify':
+                return <VerifyStep onVerified={setVerifyStatus}/>;
+            case 'Done':
+                return <DoneStep/>;
+        }
+    };
 
     return (
         <div className="p-6 space-y-8 max-w-3xl mx-auto">
@@ -407,7 +736,7 @@ export function OnboardingPage() {
                 <div>
                     <h1 className="text-xs font-bold text-brutal-slate tracking-[0.3em] uppercase">ONBOARDING</h1>
                     <div className="text-lg font-bold text-brutal-white tracking-wider mt-1">
-                        {STEPS[currentStep].toUpperCase()}
+                        {stepName.toUpperCase()}
                     </div>
                 </div>
                 <StepIndicator current={currentStep} steps={STEPS}/>
@@ -416,7 +745,7 @@ export function OnboardingPage() {
             {/* Step content */}
             <Card>
                 <CardContent className="py-10 px-8">
-                    <StepComponent/>
+                    {renderStep()}
                 </CardContent>
             </Card>
 
@@ -431,15 +760,28 @@ export function OnboardingPage() {
                     <ArrowLeft className="w-4 h-4 mr-2"/>
                     BACK
                 </Button>
-                {!isLast && (
-                    <Button
-                        className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
-                        onClick={() => setCurrentStep((s) => s + 1)}
-                    >
-                        {currentStep === STEPS.length - 2 ? 'FINISH' : 'NEXT'}
-                        <ArrowRight className="w-4 h-4 ml-2"/>
-                    </Button>
-                )}
+                <div className="flex gap-2">
+                    {isVerifyStep && !verifyStatus && (
+                        <Button
+                            variant="outline"
+                            className="font-bold tracking-wider text-brutal-slate hover:text-brutal-white"
+                            onClick={() => setCurrentStep((s) => s + 1)}
+                        >
+                            <SkipForward className="w-4 h-4 mr-2"/>
+                            SKIP
+                        </Button>
+                    )}
+                    {!isLast && (
+                        <Button
+                            className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
+                            onClick={() => setCurrentStep((s) => s + 1)}
+                            disabled={isVerifyStep && !canAdvance}
+                        >
+                            {currentStep === STEPS.length - 2 ? 'FINISH' : 'NEXT'}
+                            <ArrowRight className="w-4 h-4 ml-2"/>
+                        </Button>
+                    )}
+                </div>
             </div>
         </div>
     );

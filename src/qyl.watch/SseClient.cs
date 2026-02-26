@@ -89,9 +89,7 @@ internal sealed class SseClient(string baseUrl) : IDisposable
 
         while (!ct.IsCancellationRequested)
         {
-            var line = await reader.ReadLineAsync(ct).ConfigureAwait(false);
-
-            if (line is null)
+            if (await reader.ReadLineAsync(ct).ConfigureAwait(false) is not { } line)
                 return; // Stream closed
 
             if (line.Length == 0)

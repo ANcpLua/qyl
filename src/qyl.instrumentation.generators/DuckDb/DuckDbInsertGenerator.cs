@@ -100,7 +100,7 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
                 continue;
 
             // Check for [DuckDbIgnore]
-            if (prop.GetAttributes().Any(static a => a.AttributeClass?.ToDisplayString() == DuckDbIgnoreAttribute))
+            if (prop.HasAttribute(DuckDbIgnoreAttribute))
                 continue;
 
             var columnInfo = ExtractColumnInfo(prop, ordinal);

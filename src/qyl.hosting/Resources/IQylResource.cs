@@ -112,7 +112,7 @@ public abstract class QylResourceBase<TSelf>(string name, QylAppBuilder builder)
     /// <summary>
     ///     Enables GenAI instrumentation (traces, metrics, cost tracking).
     /// </summary>
-    public TSelf WithGenAi()
+    protected TSelf WithGenAi()
     {
         GenAiEnabled = true;
         CostTrackingEnabled = true;

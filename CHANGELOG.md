@@ -1,48 +1,34 @@
 # Changelog
 
-## 2026-02
+## Unreleased
 
-- feat: @qyl/browser — TypeScript OTLP SDK with Web Vitals, error tracking, SPA navigation (#45)
-- feat: qyl-watch — live terminal observability TUI with Spectre.Console (#50)
-- feat: qyl init — one-command instrumentation CLI for .NET and Docker (#49)
-- feat: service discovery with heartbeat monitoring and health checks (#48)
-- feat: SQL-based alerting engine with threshold/anomaly/composite rules (#47)
-- feat: auto-generated dashboards from telemetry patterns (#46)
-- refactor(build): adopt Nuke.Components 10.1.0, delete hand-rolled BuildCore
-- refactor(build): split BuildTest into BuildTest + BuildCoverage (SRP)
-- chore: update all NuGet packages to latest
-- fix: resolve CI build failures
-- refactor: migrate domains/ to models/, wire GenerateSemconv
+### Added
+- **Browser → Server trace correlation via `session.id`**: every OTLP payload from the browser SDK includes a `session.id` resource attribute (32-char hex, generated once per `init()`), grouping all telemetry from one browser tab without forcing a single mega-trace
+- Per-interaction trace model: each web vital, navigation, click, and fetch gets its own trace; `session.id` on the resource handles session grouping
+- Error logs now include `traceId` and `spanId` for correlation
+- `/v1/logs` added to auth exclusion list for browser log ingestion
+- CORS defaults to `*` when `QYL_OTLP_CORS_ALLOWED_ORIGINS` is not set
+- **ADR-002 GitHub OAuth onboarding**: DuckDB token persistence, GitHub Device Flow + PAT + env var auth, 7 API endpoints, 6-step onboarding wizard, Copilot token bridge, `/health/ui` endpoint
+- ADR documentation (`docs/adrs/ADR-001` through `ADR-005`)
+- Embedding cluster background worker (`EmbeddingClusterWorker`)
+- Bot pages: `BotPage`, `BotConversationDetailPage`, `BotUserJourneyPage`
+- Analytics hook (`use-analytics`)
+- Span clusters DuckDB schema and store
 
-## 2026-01
+### Changed
+- Auth unification: GitHub is now the only identity provider (removed cookie-based login)
+- StartupBanner shows GitHub connect hint instead of login token
+- Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
+- Browser SDK `transport.ts` constructor accepts `sessionId` parameter
 
-- fix: ProtobufReader position not advancing past sub-messages (#22)
-- feat: qyl.watchdog — EMA-based process anomaly detection with launchd auto-start
-- feat: insights materializer — auto-generated system context from telemetry
-- feat: AG-UI backend tool rendering, SDK bump
-- feat: W3C Baggage + Schema URL support, TypeSpec cleanup (#25)
-- chore: relocate semconv generator, remove obsolete config
-
-## 2025-12
-
-- fix: replace banned time APIs with TimeProvider
-- fix(docker): writable directories for non-root user, Railway compatibility
-- feat(generator): Gauge metric support
-- feat: analyzers — qyl.Analyzers with 15 diagnostic rules (QYL001-015)
-- feat: complete P1+P2 roadmap with 22 parallel agents
-- chore: upgrade SDKs, fix corrupted code fix provider
-- feat: use SDK features for generator, remove manual polyfills
-- feat: publish ANcpLua.NET.Sdk 1.0.0 to NuGet
-- refactor: build pipeline restructure (eng/build/)
-
-## 2025-11
-
-- refactor: complete TypeSpec god schema migration
-- feat: vertical slice ADRs, tests, semconv normalization
-- feat: unified qyl.providers with Gemini, OpenAI, Ollama
-- fix: CPM configuration, DuckDB API fixes, namespace corrections
-- feat: AgentsGateway example with A2A support
-
-## 2025-10
-
-- Initial commit: qyl AI observability platform
+### Removed
+- `.codex/` skills directory (unused Codex agent definitions)
+- `examples/` directory (AgentsGateway, qyl.demo)
+- `qyl.cli` project (ADR-004)
+- `qyl.watchdog` project (consolidated into collector)
+- `qyl.Analyzers` + `qyl.Analyzers.CodeFixes` (migrated to ANcpLua.Analyzers)
+- `LoginPage`, `use-auth.ts`, cookie auth endpoints
+- `AuthCheckResponse` record
+- `COMPARISON.md`, `QYL-VS-ENTERPRISE.md`, `ROADMAP.md`, `AGENTS.md` (root)
+- `docs/policies/catalog-format-policy.md`, `docs/prds/observability-enhancements-v1.0-prd.md`
+- `hooks/dotnet-build-capture.sh`, `hooks/install-dotnet-build-capture.sh`

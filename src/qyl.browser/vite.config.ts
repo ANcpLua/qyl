@@ -27,6 +27,6 @@ export default defineConfig({
         terserOptions: {
             compress: {passes: 2, toplevel: true},
             mangle: {toplevel: true},
-        },
+        } as never,
     },
 });

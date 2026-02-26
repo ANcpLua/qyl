@@ -130,7 +130,7 @@ public sealed class DuckDbBuildFailureStore : IBuildFailureStore
         return rows;
     }
 
-    private static BuildFailureRecord Map(IDataReader reader) =>
+    private static BuildFailureRecord Map(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),

@@ -4,7 +4,7 @@ public static class BuildFailureEndpoints
 {
     public static IEndpointRouteBuilder MapBuildFailureEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/api/v1/build-failures", async (
+        endpoints.MapPost("/api/v1/build-failures", static async (
             HttpContext context,
             BuildFailureIngestRequest request,
             IBuildFailureStore store,
@@ -40,7 +40,7 @@ public static class BuildFailureEndpoints
             return Results.Created($"/api/v1/build-failures/{id}", new { id });
         });
 
-        endpoints.MapGet("/api/v1/build-failures", async (
+        endpoints.MapGet("/api/v1/build-failures", static async (
             IBuildFailureStore store,
             int? limit,
             CancellationToken ct) =>
@@ -49,7 +49,7 @@ public static class BuildFailureEndpoints
             return Results.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
         });
 
-        endpoints.MapGet("/api/v1/build-failures/{id}", async (
+        endpoints.MapGet("/api/v1/build-failures/{id}", static async (
             string id,
             IBuildFailureStore store,
             CancellationToken ct) =>
@@ -58,7 +58,7 @@ public static class BuildFailureEndpoints
             return row is null ? Results.NotFound() : Results.Ok(Map(row));
         });
 
-        endpoints.MapGet("/api/v1/build-failures/search", async (
+        endpoints.MapGet("/api/v1/build-failures/search", static async (
             string pattern,
             int? limit,
             IBuildFailureStore store,
@@ -98,7 +98,7 @@ public static class BuildFailureEndpoints
         const string bearerPrefix = "Bearer ";
         var auth = authValues[0];
         if (string.IsNullOrWhiteSpace(auth) ||
-            !auth.StartsWith(bearerPrefix, StringComparison.OrdinalIgnoreCase))
+            !auth.StartsWithIgnoreCase(bearerPrefix))
         {
             return false;
         }

@@ -53,11 +53,7 @@ internal static class GenAiCallSiteAnalyzer
         if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
-        var interceptLocation = context.SemanticModel.GetInterceptableLocation(
-            (InvocationExpressionSyntax)context.Node,
-            cancellationToken);
-
-        if (interceptLocation is null)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
             return null;
 
         var method = invocation.TargetMethod;

@@ -26,8 +26,7 @@ public sealed partial class ErrorLifecycleService(DuckDbStore store, ILogger<Err
     public async Task<bool> TransitionStatusAsync(string issueId, IssueStatus newStatus, string? reason = null,
         CancellationToken ct = default)
     {
-        var existing = await store.GetErrorByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (existing is null)
+        if (await store.GetErrorByIdAsync(issueId, ct).ConfigureAwait(false) is not { } existing)
             return false;
 
         var currentStatus = ParseStatus(existing.Status);

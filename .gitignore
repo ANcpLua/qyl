@@ -46,6 +46,9 @@ packages/
 # Claude Code local files
 .claude/*
 
+# Playwright MCP logs
+.playwright-mcp/
+
 # Node.js / npm
 node_modules/
 npm-debug.log*
@@ -116,3 +119,4 @@ coverage/
 !src/qyl.*/CLAUDE.md
 !core/qyl.*/CLAUDE.md
 .mcp.json
+tmp/

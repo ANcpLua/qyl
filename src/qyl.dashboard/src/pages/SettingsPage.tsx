@@ -1,5 +1,7 @@
 import {useState} from 'react';
-import {Database, Keyboard, LogOut, Monitor, Moon, Palette, Settings, Sun,} from 'lucide-react';
+import {useNavigate} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
+import {Database, Github, Keyboard, Loader2, Monitor, Moon, Palette, Settings, Sun, Unlink,} from 'lucide-react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
@@ -7,6 +9,7 @@ import {Input} from '@/components/ui/input';
 import {Separator} from '@/components/ui/separator';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {toast} from 'sonner';
 
 const keyboardShortcuts = [
     {key: 'G', description: 'Go to Resources'},
@@ -23,13 +26,32 @@ const keyboardShortcuts = [
 ];
 
 export function SettingsPage() {
+    const navigate = useNavigate();
     const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
     const [refreshInterval, setRefreshInterval] = useState('5');
     const [maxLogLines, setMaxLogLines] = useState('1000');
+    const [disconnecting, setDisconnecting] = useState(false);
 
-    const handleLogout = () => {
-        fetch('/api/logout', {method: 'POST'})
-            .then(() => window.location.reload());
+    const {data: ghStatus, isLoading: ghLoading, refetch: refetchGh} = useQuery({
+        queryKey: ['github-status'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/github/status');
+            if (!res.ok) return {configured: false, user: null, authMethod: 'none'};
+            return res.json() as Promise<{ configured: boolean; user: { login: string; name: string; avatarUrl: string } | null; authMethod: string }>;
+        },
+    });
+
+    const handleDisconnectGitHub = async () => {
+        setDisconnecting(true);
+        try {
+            await fetch('/api/v1/github/token', {method: 'DELETE'});
+            toast.success('GitHub disconnected');
+            await refetchGh();
+        } catch {
+            toast.error('Failed to disconnect');
+        } finally {
+            setDisconnecting(false);
+        }
     };
 
     return (
@@ -42,7 +64,7 @@ export function SettingsPage() {
             </div>
 
             <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="general">
                         <Settings className="w-4 h-4 mr-2"/>
                         General
@@ -59,33 +81,14 @@ export function SettingsPage() {
                         <Database className="w-4 h-4 mr-2"/>
                         Data
                     </TabsTrigger>
+                    <TabsTrigger value="integrations">
+                        <Github className="w-4 h-4 mr-2"/>
+                        Integrations
+                    </TabsTrigger>
                 </TabsList>
 
                 {/* General Settings */}
                 <TabsContent value="general" className="space-y-4">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Session</CardTitle>
-                            <CardDescription>
-                                Manage your authentication session
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="font-medium">Logged In</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        Session expires in 3 days
-                                    </p>
-                                </div>
-                                <Button variant="outline" onClick={handleLogout}>
-                                    <LogOut className="w-4 h-4 mr-2"/>
-                                    Logout
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">Notifications</CardTitle>
@@ -200,6 +203,73 @@ export function SettingsPage() {
                                     </div>
                                 ))}
                             </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Integrations */}
+                <TabsContent value="integrations" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">GitHub Integration</CardTitle>
+                            <CardDescription>
+                                Connect GitHub for repository discovery and Copilot integration
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {ghLoading ? (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Loader2 className="w-4 h-4 animate-spin"/>
+                                    Checking connection...
+                                </div>
+                            ) : ghStatus?.configured && ghStatus.user ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            {ghStatus.user.avatarUrl && (
+                                                <img
+                                                    src={ghStatus.user.avatarUrl}
+                                                    alt={ghStatus.user.login}
+                                                    className="w-10 h-10 border-2 border-border"
+                                                />
+                                            )}
+                                            <div>
+                                                <p className="font-medium">{ghStatus.user.login}</p>
+                                                {ghStatus.user.name && (
+                                                    <p className="text-sm text-muted-foreground">{ghStatus.user.name}</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Badge variant="secondary">
+                                            {ghStatus.authMethod === 'device_flow' ? 'Device Flow' : ghStatus.authMethod === 'pat' ? 'Personal Token' : ghStatus.authMethod === 'env' ? 'Environment' : ghStatus.authMethod}
+                                        </Badge>
+                                    </div>
+                                    {ghStatus.authMethod !== 'env' && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleDisconnectGitHub}
+                                            disabled={disconnecting}
+                                        >
+                                            {disconnecting ? <Loader2 className="w-4 h-4 animate-spin mr-2"/> : <Unlink className="w-4 h-4 mr-2"/>}
+                                            Disconnect
+                                        </Button>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="font-medium">Not connected</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            Connect GitHub to enable repository discovery
+                                        </p>
+                                    </div>
+                                    <Button variant="outline" onClick={() => navigate('/onboarding')}>
+                                        <Github className="w-4 h-4 mr-2"/>
+                                        Connect GitHub
+                                    </Button>
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>

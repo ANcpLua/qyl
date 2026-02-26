@@ -46,12 +46,10 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not { } propertySymbol)
             return null;
 
-        var otelAttr = AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeFullName);
-        if (otelAttr is null)
+        if (AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeFullName) is not { } otelAttr)
             return null;
 
-        var containingType = propertySymbol.ContainingType;
-        if (containingType is null)
+        if (propertySymbol.ContainingType is not { } containingType)
             return null;
 
         var (attributeName, skipIfNull) = ExtractAttributeValues(otelAttr);
@@ -80,12 +78,10 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not { } parameterSymbol)
             return null;
 
-        var otelAttr = AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeFullName);
-        if (otelAttr is null)
+        if (AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeFullName) is not { } otelAttr)
             return null;
 
-        var containingType = parameterSymbol.ContainingSymbol?.ContainingType;
-        if (containingType is null)
+        if (parameterSymbol.ContainingSymbol?.ContainingType is not { } containingType)
             return null;
 
         var (attributeName, skipIfNull) = ExtractAttributeValues(otelAttr);

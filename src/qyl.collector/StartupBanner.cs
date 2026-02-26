@@ -13,14 +13,11 @@ public static class StartupBanner
 
     public static void Print(
         string baseUrl,
-        string token,
         int port,
         int grpcPort = 4317,
         OtlpCorsOptions? corsOptions = null,
         OtlpApiKeyOptions? apiKeyOptions = null)
     {
-        var tokenUrl = $"{baseUrl}?t={token}";
-
         Console.WriteLine();
         Console.ForegroundColor = ConsoleColor.Cyan;
         Console.WriteLine(Logo);
@@ -64,31 +61,17 @@ public static class StartupBanner
         Console.WriteLine("  ├───────────────────────────────────────────────────────────────────┤");
         Console.WriteLine("  │                                                                   │");
 
-        Console.ForegroundColor = ConsoleColor.White;
         Console.Write("  │  ");
         Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.Write("Login Token:");
+        Console.Write("Connect GitHub to unlock repo discovery + Copilot");
         Console.ResetColor();
-        Console.WriteLine("                                                  │");
+        Console.WriteLine("              │");
         Console.Write("  │  ");
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write(token);
+        Console.ForegroundColor = ConsoleColor.DarkGray;
+        Console.Write("Open dashboard and follow the onboarding wizard");
         Console.ResetColor();
-        PadLine(token.Length + 2, 68);
-        Console.WriteLine("│");
+        Console.WriteLine("                │");
 
-        Console.WriteLine("  │                                                                   │");
-
-        Console.Write("  │  ");
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write("Click to login: ");
-        Console.ResetColor();
-        Console.WriteLine("                                               │");
-        Console.Write("  │  ");
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        WriteClickableUrl(tokenUrl);
-        Console.ResetColor();
-        Console.WriteLine();
         Console.WriteLine("  │                                                                   │");
 
         Console.WriteLine("  ╰───────────────────────────────────────────────────────────────────╯");
@@ -102,7 +85,6 @@ public static class StartupBanner
             Console.WriteLine($"    gRPC TraceService       - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
         Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
-        Console.WriteLine("    POST /api/login         - Token authentication");
         Console.ResetColor();
         Console.WriteLine();
 

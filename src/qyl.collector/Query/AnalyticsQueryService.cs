@@ -288,24 +288,25 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
 
-        // Find uncertain conversations grouped by span name pattern
+        // Find uncertain conversations grouped by semantic cluster label (only clustered spans)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            WITH uncertain AS (
                                SELECT
                                    {ConversationIdExpr} AS conversation_id,
-                                   name AS span_name,
+                                   sc.cluster_label,
                                    COUNT(*) AS span_count,
-                                   SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS error_count,
-                                   COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS total_tokens,
+                                   SUM(CASE WHEN s.status_code = 2 THEN 1 ELSE 0 END) AS error_count,
+                                   COALESCE(SUM(s.gen_ai_input_tokens + s.gen_ai_output_tokens), 0) AS total_tokens,
                                    MAX({DurationMsExpr}) AS max_duration_ms
-                               FROM spans
+                               FROM spans s
+                               INNER JOIN span_clusters sc ON s.span_id = sc.span_id
                                WHERE {OperationNameExpr} IS NOT NULL
-                                 AND start_time_unix_nano >= $1
-                                 AND start_time_unix_nano < $2
+                                 AND s.start_time_unix_nano >= $1
+                                 AND s.start_time_unix_nano < $2
                                  AND (
-                                     status_code = 2
-                                     OR gen_ai_output_tokens = 0
+                                     s.status_code = 2
+                                     OR s.gen_ai_output_tokens = 0
                                      OR {DurationMsExpr} > (
                                          SELECT COALESCE(percentile_disc(0.95) WITHIN GROUP (ORDER BY {DurationMsExpr}), 999999)
                                          FROM spans
@@ -314,16 +315,16 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                                            AND start_time_unix_nano < $2
                                      )
                                  )
-                               GROUP BY conversation_id, span_name
+                               GROUP BY conversation_id, sc.cluster_label
                            )
                            SELECT
-                               span_name AS topic,
+                               cluster_label AS topic,
                                COUNT(DISTINCT conversation_id) AS conversation_count,
                                array_agg(DISTINCT conversation_id ORDER BY conversation_id) AS sample_ids,
                                SUM(error_count) AS total_errors,
                                MAX(max_duration_ms) AS max_duration_ms
                            FROM uncertain
-                           GROUP BY span_name
+                           GROUP BY cluster_label
                            HAVING COUNT(DISTINCT conversation_id) >= 2
                            ORDER BY conversation_count DESC
                            LIMIT 50
@@ -387,18 +388,19 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
         countCmd.Parameters.Add(new DuckDBParameter { Value = (decimal)endNano });
         var totalConversations = (long)(await countCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) ?? 0L);
 
-        // Group by span name (topic proxy)
+        // Group by semantic cluster label (only clustered spans)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT
-                               name AS topic,
+                               sc.cluster_label AS topic,
                                COUNT(DISTINCT {ConversationIdExpr}) AS conversation_count,
                                array_agg(DISTINCT {ConversationIdExpr} ORDER BY {ConversationIdExpr}) AS sample_ids
-                           FROM spans
+                           FROM spans s
+                           INNER JOIN span_clusters sc ON s.span_id = sc.span_id
                            WHERE {OperationNameExpr} IS NOT NULL
-                             AND start_time_unix_nano >= $1
-                             AND start_time_unix_nano < $2
-                           GROUP BY name
+                             AND s.start_time_unix_nano >= $1
+                             AND s.start_time_unix_nano < $2
+                           GROUP BY sc.cluster_label
                            HAVING COUNT(DISTINCT {ConversationIdExpr}) >= $3
                            ORDER BY conversation_count DESC
                            LIMIT 50
@@ -556,20 +558,21 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             }
         }
 
-        // Satisfaction by topic (span name)
+        // Satisfaction by topic (cluster label)
         await using var topicCmd = lease.Connection.CreateCommand();
         topicCmd.CommandText = """
                                SELECT
-                                   name AS topic,
+                                   sc.cluster_label AS topic,
                                    COUNT(*) AS feedback_count,
-                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
-                                   SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
-                               FROM spans
-                               WHERE attributes_json->>'qyl.feedback.reaction' IS NOT NULL
-                                 AND start_time_unix_nano >= $1
-                                 AND start_time_unix_nano < $2
-                               GROUP BY name
-                               HAVING SUM(CASE WHEN attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
+                                   SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'upvote' THEN 1 ELSE 0 END) AS up,
+                                   SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) AS down
+                               FROM spans s
+                               INNER JOIN span_clusters sc ON s.span_id = sc.span_id
+                               WHERE s.attributes_json->>'qyl.feedback.reaction' IS NOT NULL
+                                 AND s.start_time_unix_nano >= $1
+                                 AND s.start_time_unix_nano < $2
+                               GROUP BY sc.cluster_label
+                               HAVING SUM(CASE WHEN s.attributes_json->>'qyl.feedback.reaction' = 'downvote' THEN 1 ELSE 0 END) > 0
                                ORDER BY down DESC
                                LIMIT 20
                                """;

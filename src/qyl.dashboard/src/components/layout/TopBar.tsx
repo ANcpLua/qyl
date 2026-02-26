@@ -25,6 +25,7 @@ const pageTitle: Record<string, string> = {
     '/metrics': 'METRICS',
     '/genai': 'GENAI TELEMETRY',
     '/settings': 'SETTINGS',
+    '/bot': 'BOT ANALYTICS',
 };
 
 const timeRanges = [

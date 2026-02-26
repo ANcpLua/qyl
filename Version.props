@@ -12,10 +12,6 @@
     <GoogleProtobufVersion>3.33.5</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.78.0</GrpcToolsVersion>
-    <!-- Azure Monitor -->
-    <AzureMonitorVersion>1.4.0</AzureMonitorVersion>
-    <!-- Identity -->
-    <MicrosoftIdentityModelVersion>8.16.0</MicrosoftIdentityModelVersion>
     <!-- Testing -->
     <XunitVersion>3.2.2</XunitVersion>
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
@@ -26,8 +22,6 @@
     <ANcpLuaRoslynUtilitiesVersion>1.40.0</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsVersion>1.0.0-preview.260212.1</MicrosoftAgentsVersion>
-    <MicrosoftAgentsOpenAIVersion>1.0.0-alpha.260209.1</MicrosoftAgentsOpenAIVersion>
-    <MicrosoftAgentsAuthVersion>1.4.66-beta</MicrosoftAgentsAuthVersion>
     <!-- MCP -->
     <ModelContextProtocolVersion>0.8.0-preview.1</ModelContextProtocolVersion>
     <!-- Build Tooling -->
@@ -35,7 +29,6 @@
     <!-- Misc -->
     <YamlDotNetVersion>16.3.0</YamlDotNetVersion>
     <SpectreConsoleVersion>0.54.0</SpectreConsoleVersion>
-    <RabbitMQVersion>7.2.0</RabbitMQVersion>
     <MSBuildStructuredLoggerVersion>2.3.113</MSBuildStructuredLoggerVersion>
     <!-- PackageDownload -->
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>

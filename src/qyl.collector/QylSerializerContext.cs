@@ -1,4 +1,3 @@
-using qyl.collector.Auth;
 using qyl.collector.BuildFailures;
 using qyl.collector.Dashboards;
 using qyl.collector.Insights;
@@ -13,9 +12,6 @@ namespace qyl.collector;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     NumberHandling = JsonNumberHandling.AllowReadingFromString,
     WriteIndented = false)]
-[JsonSerializable(typeof(LoginRequest))]
-[JsonSerializable(typeof(LoginResponse))]
-[JsonSerializable(typeof(AuthCheckResponse))]
 [JsonSerializable(typeof(StorageStats))]
 [JsonSerializable(typeof(GenAiStats))]
 [JsonSerializable(typeof(ConsoleLogEntry))]

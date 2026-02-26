@@ -29,11 +29,7 @@ public sealed class CopilotTools(HttpClient client)
     public Task<string> GetCopilotStatusAsync() =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var status = await client.GetFromJsonAsync<CopilotStatusDto>(
-                "/api/v1/copilot/status",
-                CopilotJsonContext.Default.CopilotStatusDto).ConfigureAwait(false);
-
-            if (status is null)
+            if (await client.GetFromJsonAsync<CopilotStatusDto>("/api/v1/copilot/status", CopilotJsonContext.Default.CopilotStatusDto).ConfigureAwait(false) is not { } status)
                 return "Unable to retrieve Copilot status.";
 
             var sb = new StringBuilder();
@@ -106,9 +102,7 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        var update =
-                            JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
-                        if (update is null) continue;
+                        if (JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
                             update.Content is not null)
@@ -190,9 +184,7 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        var update =
-                            JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto);
-                        if (update is null) continue;
+                        if (JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
                             update.Content is not null)

@@ -11,8 +11,7 @@ public static class AutofixEndpoints
             string issueId, FixRunRequest request,
             AutofixOrchestrator orchestrator, CancellationToken ct) =>
         {
-            var issue = await orchestrator.Store.GetIssueByIdAsync(issueId, ct);
-            if (issue is null)
+            if (await orchestrator.Store.GetIssueByIdAsync(issueId, ct) is not { } issue)
                 return Results.NotFound();
 
             if (!Enum.TryParse<FixPolicy>(request.Policy, true, out var policy))

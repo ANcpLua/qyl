@@ -18,7 +18,7 @@ public sealed partial class PdbSourceResolver
                 continue;
 
             var file = match.Groups["file"].Value;
-            var lineNumber = int.TryParse(match.Groups["line"].Value, out var ln) ? ln : (int?)null;
+            var lineNumber = match.Groups["line"].Value.TryParseInt32();
             return new SourceLocation(file, lineNumber, null, null);
         }
 
@@ -34,8 +34,7 @@ public sealed partial class PdbSourceResolver
         var stackTrace = new StackTrace(true);
         foreach (var frame in stackTrace.GetFrames() ?? [])
         {
-            var method = frame.GetMethod();
-            if (method is null)
+            if (frame.GetMethod() is not { } method)
                 continue;
 
             var fullName = method.DeclaringType is null

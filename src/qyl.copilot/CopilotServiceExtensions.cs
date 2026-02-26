@@ -5,12 +5,14 @@
 // =============================================================================
 
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 using qyl.copilot.Adapters;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
+using qyl.copilot.Providers;
 using qyl.copilot.Workflows;
 using Qyl.ServiceDefaults.Instrumentation;
 
@@ -25,13 +27,16 @@ public static class CopilotServiceExtensions
     ///     Adds qyl Copilot services to the service collection.
     /// </summary>
     /// <param name="services">The service collection.</param>
+    /// <param name="configuration">Application configuration for binding LLM provider options.</param>
     /// <param name="configure">Optional configuration action.</param>
     /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddQylCopilot(
         this IServiceCollection services,
+        IConfiguration configuration,
         Action<CopilotOptions>? configure = null)
     {
         Guard.NotNull(services);
+        Guard.NotNull(configuration);
 
         var options = new CopilotOptions();
         configure?.Invoke(options);
@@ -39,6 +44,22 @@ public static class CopilotServiceExtensions
         // Register options
         services.AddSingleton(options.AuthOptions);
         services.AddSingleton(options);
+
+        // Register LLM provider options and IChatClient
+        var llmOptions = LlmProviderFactory.BindOptions(configuration);
+        services.AddSingleton(llmOptions);
+
+        if (llmOptions.IsConfigured)
+        {
+            services.AddHttpClient("qyl-llm").AddStandardResilienceHandler();
+            services.AddSingleton<IChatClient>(sp =>
+            {
+                var httpFactory = sp.GetRequiredService<IHttpClientFactory>();
+                var httpClient = httpFactory.CreateClient("qyl-llm");
+                return LlmProviderFactory.Create(llmOptions, httpClient)
+                       ?? throw new InvalidOperationException("LLM provider configured but factory returned null.");
+            });
+        }
 
         // Register auth provider
         services.AddSingleton<CopilotAuthProvider>(static sp =>

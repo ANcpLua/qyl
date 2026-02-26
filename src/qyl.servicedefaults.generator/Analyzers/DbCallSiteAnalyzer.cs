@@ -78,11 +78,7 @@ internal static class DbCallSiteAnalyzer
         if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
-        var interceptLocation = context.SemanticModel.GetInterceptableLocation(
-            (InvocationExpressionSyntax)context.Node,
-            cancellationToken);
-
-        if (interceptLocation is null)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
             return null;
 
         return new DbCallSite(
@@ -122,12 +118,10 @@ internal static class DbCallSiteAnalyzer
             return false;
 
         // Phase 2: Symbol-based type inheritance check (requires compilation)
-        var containingType = invocation.TargetMethod.ContainingType;
-        if (containingType is null)
+        if (invocation.TargetMethod.ContainingType is not { } containingType)
             return false;
 
-        var dbCommandType = compilation.GetTypeByMetadataName(DbCommandTypeName);
-        if (dbCommandType is null)
+        if (compilation.GetTypeByMetadataName(DbCommandTypeName) is not { } dbCommandType)
             return false;
 
         if (!containingType.IsOrInheritsFrom(dbCommandType))
@@ -136,7 +130,7 @@ internal static class DbCallSiteAnalyzer
         method = matched.Method;
         isAsync = matched.IsAsync;
 
-        if (!SymbolEqualityComparer.Default.Equals(containingType, dbCommandType))
+        if (!containingType.IsEqualTo(dbCommandType))
             concreteType = containingType.ToDisplayString();
 
         return true;

@@ -87,7 +87,7 @@ internal static class ProviderRegistry
 
         // Custom providers (not in OTel semconv)
         new("ollama", "Ollama", null),
-        new("together", "Together", null),
+        new("together_ai", "Together", null),
         new("replicate", "Replicate", null)
     ];
 }

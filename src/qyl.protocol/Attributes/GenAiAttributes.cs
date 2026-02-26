@@ -241,6 +241,18 @@ public static class GenAiAttributes
 
         /// <summary>text_completion - Text completions operation such as OpenAI Completions API (Legacy).</summary>
         public const string TextCompletion = "text_completion";
+
+        /// <summary>image_generation - Image generation operation (qyl extension).</summary>
+        public const string ImageGeneration = "image_generation";
+
+        /// <summary>audio_transcription - Audio transcription operation (qyl extension).</summary>
+        public const string AudioTranscription = "audio_transcription";
+
+        /// <summary>text_to_speech - Text-to-speech synthesis operation (qyl extension).</summary>
+        public const string TextToSpeech = "text_to_speech";
+
+        /// <summary>rerank - Model reranking operation (qyl extension).</summary>
+        public const string Rerank = "rerank";
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -300,6 +312,35 @@ public static class GenAiAttributes
 
         /// <summary>x_ai - xAI.</summary>
         public const string XAi = "x_ai";
+
+        // QYL Extensions (not in OTel spec)
+
+        /// <summary>meta - Meta / Llama (qyl extension).</summary>
+        public const string Meta = "meta";
+
+        /// <summary>huggingface - Hugging Face (qyl extension).</summary>
+        public const string HuggingFace = "huggingface";
+
+        /// <summary>replicate - Replicate (qyl extension).</summary>
+        public const string Replicate = "replicate";
+
+        /// <summary>together_ai - Together AI (qyl extension).</summary>
+        public const string TogetherAi = "together_ai";
+
+        /// <summary>fireworks - Fireworks AI (qyl extension).</summary>
+        public const string Fireworks = "fireworks";
+
+        /// <summary>anyscale - Anyscale (qyl extension).</summary>
+        public const string Anyscale = "anyscale";
+
+        /// <summary>ollama - Ollama (qyl extension).</summary>
+        public const string Ollama = "ollama";
+
+        /// <summary>local - Local/self-hosted model (qyl extension).</summary>
+        public const string Local = "local";
+
+        /// <summary>custom - Custom/other provider (qyl extension).</summary>
+        public const string Custom = "custom";
     }
 
     // ═══════════════════════════════════════════════════════════════════════

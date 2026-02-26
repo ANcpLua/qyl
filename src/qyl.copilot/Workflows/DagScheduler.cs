@@ -108,7 +108,7 @@ public sealed record DagExecutionResult
 ///     Resolves DAG execution order and runs nodes in parallel where possible.
 ///     Supports fan-out (parallel independent nodes) and fan-in (wait for all dependencies).
 /// </summary>
-public sealed class DagScheduler
+public sealed partial class DagScheduler
 {
     private readonly ILogger _logger;
     private readonly int _maxWorkers;
@@ -245,7 +245,7 @@ public sealed class DagScheduler
                     catch (Exception ex)
                     {
                         failed[capturedNodeId] = ex.Message;
-                        _logger.LogError(ex, "DAG node {NodeId} failed", capturedNodeId);
+                        LogNodeFailed(_logger, capturedNodeId, ex);
                         UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, true);
                     }
                     finally
@@ -278,7 +278,7 @@ public sealed class DagScheduler
                     Timestamp = TimeProvider.System.GetUtcNow()
                 }, ct).ConfigureAwait(false);
 
-        _logger.LogDebug("DAG executing node {NodeId} ({NodeName})", node.Id, node.Name);
+        LogNodeExecuting(_logger, node.Id, node.Name);
 
         object? result = null;
         try
@@ -459,4 +459,10 @@ public sealed class DagScheduler
         visiting.Remove(nodeId);
         visited.Add(nodeId);
     }
+
+    [LoggerMessage(Level = LogLevel.Error, Message = "DAG node {NodeId} failed")]
+    private static partial void LogNodeFailed(ILogger logger, string nodeId, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "DAG executing node {NodeId} ({NodeName})")]
+    private static partial void LogNodeExecuting(ILogger logger, string nodeId, string nodeName);
 }

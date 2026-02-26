@@ -1,91 +1,78 @@
 <Solution>
     <Folder Name="/config/">
-        <File Path=".dockerignore"/>
-        <File Path=".gitignore"/>
-        <File Path="CLAUDE.md"/>
-        <File Path="AGENTS.md"/>
-        <File Path="CHANGELOG.md"/>
-        <File Path="COMPARISON.md"/>
-        <File Path="Directory.Build.props"/>
-        <File Path="Directory.Build.targets"/>
-        <File Path="Directory.Packages.props"/>
-        <File Path="global.json"/>
-        <File Path="nuget.config"/>
-        <File Path="railway.toml"/>
-        <File Path="README.md"/>
-        <File Path="ROADMAP.md"/>
+        <File Path=".dockerignore" />
+        <File Path=".gitignore" />
+        <File Path="CLAUDE.md" />
+
+        <File Path="CHANGELOG.md" />
+        <File Path="Directory.Build.props" />
+        <File Path="Directory.Build.targets" />
+        <File Path="Directory.Packages.props" />
+        <File Path="global.json" />
+        <File Path="nuget.config" />
+        <File Path="railway.toml" />
+        <File Path="README.md" />
     </Folder>
 
-    <Folder Name="/plugin/">
-        <File Path=".claude-plugin/marketplace.json"/>
-        <File Path=".claude-plugin/plugin.json"/>
-    </Folder>
-
-    <!-- Build infrastructure -->
+    <!-- Build infrastructure + schemas -->
     <Folder Name="/eng/">
-        <Project Path="eng/build/build.csproj"/>
-        <File Path="eng/build.cmd"/>
-        <File Path="eng/build.ps1"/>
-        <File Path="eng/build.sh"/>
-        <File Path="eng/compose.yaml"/>
-        <File Path="eng/CLAUDE.md"/>
-        <File Path="eng/MSBuild/Shared.props"/>
-        <File Path="eng/MSBuild/Shared.targets"/>
-        <File Path="eng/MSBuild/Shared.Claude.props"/>
-        <File Path="eng/MSBuild/Shared.Claude.Rules.targets"/>
-        <File Path="eng/MSBuild/Shared.Claude.targets"/>
+        <Project Path="eng/build/build.csproj" />
+        <File Path="eng/build.cmd" />
+        <File Path="eng/build.ps1" />
+        <File Path="eng/build.sh" />
+        <File Path="eng/compose.yaml" />
+        <File Path="eng/CLAUDE.md" />
+        <File Path="eng/MSBuild/Shared.props" />
+        <File Path="eng/MSBuild/Shared.targets" />
+        <File Path="eng/MSBuild/Shared.Claude.props" />
+        <File Path="eng/MSBuild/Shared.Claude.Rules.targets" />
+        <File Path="eng/MSBuild/Shared.Claude.targets" />
+        <File Path="core/CLAUDE.md" />
+        <File Path="core/specs/generated/semconv.g.tsp" />
     </Folder>
 
-    <!-- Core schema (TypeSpec) -->
-    <Folder Name="/core/">
-        <File Path="core/CLAUDE.md"/>
-        <File Path="core/specs/generated/semconv.g.tsp"/>
+    <!-- Platform: collector, protocol, hosting -->
+    <Folder Name="/src/platform/">
+        <Project Path="src/qyl.collector/qyl.collector.csproj" />
+        <Project Path="src/qyl.protocol/qyl.protocol.csproj" />
+        <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
+        <File Path="src/qyl.collector/CLAUDE.md" />
+        <File Path="src/qyl.protocol/CLAUDE.md" />
+        <File Path="src/qyl.hosting/CLAUDE.md" />
     </Folder>
 
-    <!-- Examples -->
-    <Folder Name="/examples/">
-        <File Path="examples/CLAUDE.md"/>
-        <File Path="examples/Directory.Build.props"/>
-        <File Path="examples/Directory.Build.targets"/>
-        <Project Path="examples/qyl.demo/qyl.demo.csproj"/>
+    <!-- SDK: instrumentation + browser telemetry -->
+    <Folder Name="/src/sdk/">
+        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
+        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
+        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
+        <Project Path="src/qyl.browser/qyl.browser.esproj" />
+        <File Path="src/qyl.browser/CLAUDE.md" />
     </Folder>
 
-    <Folder Name="/examples/AgentsGateway/">
-        <Project Path="examples/AgentsGateway/src/AgentGateway/AgentsGateway.csproj"/>
-        <Project Path="examples/AgentsGateway/test/AgentGateway.Tests/AgentGateway.Tests.csproj"/>
+    <!-- AI: copilot + MCP server -->
+    <Folder Name="/src/ai/">
+        <Project Path="src/qyl.copilot/qyl.copilot.csproj" />
+        <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
+        <File Path="src/qyl.copilot/CLAUDE.md" />
+        <File Path="src/qyl.mcp/CLAUDE.md" />
     </Folder>
 
-    <!-- Core libraries -->
-    <Folder Name="/src/">
-        <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>
-        <Project Path="src/qyl.collector/qyl.collector.csproj"/>
-        <Project Path="src/qyl.copilot/qyl.copilot.csproj"/>
-        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
-        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
-        <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
-        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
-        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
-        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
-        <Project Path="src/qyl.browser/qyl.browser.esproj"/>
-        <Project Path="src/qyl.watch/qyl.watch.csproj"/>
-        <Project Path="src/qyl.cli/qyl.cli.csproj"/>
-        <Project Path="src/qyl.watchdog/qyl.watchdog.csproj"/>
-        <Project Path="src/qyl.Analyzers/qyl.Analyzers.csproj"/>
-        <Project Path="src/qyl.Analyzers.CodeFixes/qyl.Analyzers.CodeFixes.csproj"/>
-        <File Path="src/qyl.protocol/CLAUDE.md"/>
-        <File Path="src/qyl.collector/CLAUDE.md"/>
-        <File Path="src/qyl.copilot/CLAUDE.md"/>
-        <File Path="src/qyl.dashboard/CLAUDE.md"/>
-        <File Path="src/qyl.mcp/CLAUDE.md"/>
-        <File Path="src/qyl.hosting/CLAUDE.md"/>
-        <File Path="src/qyl.browser/CLAUDE.md"/>
-        <File Path="src/qyl.watch/CLAUDE.md"/>
-        <File Path="src/qyl.cli/CLAUDE.md"/>
+    <!-- Dashboard: React SPA -->
+    <Folder Name="/src/dashboard/">
+        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
+        <File Path="src/qyl.dashboard/CLAUDE.md" />
+    </Folder>
+
+    <!-- Tools: terminal utilities -->
+    <Folder Name="/src/tools/">
+        <Project Path="src/qyl.watch/qyl.watch.csproj" />
+        <File Path="src/qyl.watch/CLAUDE.md" />
     </Folder>
 
     <!-- Tests -->
     <Folder Name="/tests/">
-        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
-        <File Path="tests/CLAUDE.md"/>
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
+        <File Path="tests/CLAUDE.md" />
     </Folder>
 </Solution>

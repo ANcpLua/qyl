@@ -86,7 +86,6 @@ public static partial class SchemaMigrationGenerator
             var body = tableMatch.Groups["body"].Value;
 
             var columns = ImmutableArray.CreateBuilder<ColumnDefinition>();
-            var constraints = ImmutableArray.CreateBuilder<string>();
 
             foreach (var rawLine in body.Split('\n'))
             {
@@ -99,10 +98,7 @@ public static partial class SchemaMigrationGenerator
                     line.StartsWith("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
                     line.StartsWith("FOREIGN KEY", StringComparison.OrdinalIgnoreCase) ||
                     line.StartsWith("CHECK", StringComparison.OrdinalIgnoreCase))
-                {
-                    constraints.Add(line);
                     continue;
-                }
 
                 var colMatch = ColumnRegex().Match(line);
                 if (colMatch.Success)
@@ -126,7 +122,7 @@ public static partial class SchemaMigrationGenerator
                 }
             }
 
-            tables[tableName] = new TableDefinition(tableName, columns.ToImmutable(), constraints.ToImmutable());
+            tables[tableName] = new TableDefinition(columns.ToImmutable());
         }
 
         // Also parse CREATE INDEX statements
@@ -336,23 +332,9 @@ public static partial class SchemaMigrationGenerator
 // ════════════════════════════════════════════════════════════════════════════════
 
 /// <summary>Parsed DuckDB table definition.</summary>
-public sealed class TableDefinition
+public sealed class TableDefinition(ImmutableArray<ColumnDefinition> columns)
 {
-    public TableDefinition(
-        string name,
-        ImmutableArray<ColumnDefinition> columns,
-        ImmutableArray<string> constraints)
-    {
-        Name = name;
-        Columns = columns;
-        Constraints = constraints;
-    }
-
-    public string Name { get; }
-
-    public ImmutableArray<ColumnDefinition> Columns { get; }
-
-    public ImmutableArray<string> Constraints { get; }
+    public ImmutableArray<ColumnDefinition> Columns { get; } = columns;
 }
 
 /// <summary>Parsed DuckDB column definition.</summary>

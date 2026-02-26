@@ -102,7 +102,7 @@ public sealed partial class DuckDbStore
     // Private Methods - Search Result Mapping
     // ==========================================================================
 
-    private static SearchResult MapSearchResult(IDataReader reader)
+    private static SearchResult MapSearchResult(DbDataReader reader)
     {
         var tsRaw = reader.Col(4);
         var timestamp = tsRaw.AsUInt64 is { } nano

@@ -1,5 +1,7 @@
+using Microsoft.Extensions.AI;
 using qyl.copilot;
 using qyl.copilot.Auth;
+using qyl.copilot.Providers;
 using qyl.protocol.Copilot;
 
 namespace qyl.collector.Copilot;
@@ -15,6 +17,7 @@ internal static class CopilotEndpoints
         var group = app.MapGroup("/api/v1/copilot");
 
         group.MapGet("/status", GetStatusAsync);
+        group.MapGet("/llm/status", GetLlmStatusAsync);
         group.MapPost("/chat", ChatAsync);
         group.MapGet("/workflows", GetWorkflowsAsync);
         group.MapPost("/workflows/{name}/run", RunWorkflowAsync);
@@ -34,12 +37,30 @@ internal static class CopilotEndpoints
         return Results.Ok(status);
     }
 
+    private static IResult GetLlmStatusAsync(LlmProviderOptions options) =>
+        Results.Ok(new LlmProviderStatus
+        {
+            Configured = options.IsConfigured,
+            Provider = options.Provider,
+            Model = options.Model
+        });
+
     private static async Task ChatAsync(
         ChatRequest request,
         CopilotAdapterFactory factory,
         HttpContext ctx,
+        LlmProviderOptions llmOptions,
         CancellationToken ct)
     {
+        if (!llmOptions.IsConfigured)
+        {
+            ctx.Response.StatusCode = 503;
+            await ctx.Response.WriteAsJsonAsync(
+                new { error = "Configure LLM provider to enable AI features. Set QYL_LLM_PROVIDER environment variable." },
+                ct).ConfigureAwait(false);
+            return;
+        }
+
         var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
         await StreamSseAsync(ctx, adapter.ChatAsync(request.Prompt, request.Context, ct), ct);
     }
@@ -175,9 +196,7 @@ internal static class CopilotEndpoints
         try
         {
             var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
-            var execution = await engine.GetExecutionAsync(id, ct).ConfigureAwait(false);
-
-            if (execution is null)
+            if (await engine.GetExecutionAsync(id, ct).ConfigureAwait(false) is not { } execution)
                 return Results.NotFound();
 
             return Results.Ok(new ExecutionDto
@@ -258,4 +277,5 @@ internal sealed record WorkflowListResponse
 [JsonSerializable(typeof(WorkflowListResponse))]
 [JsonSerializable(typeof(ExecutionDto))]
 [JsonSerializable(typeof(ExecutionListResponse))]
+[JsonSerializable(typeof(LlmProviderStatus))]
 internal sealed partial class CopilotSerializerContext : JsonSerializerContext;

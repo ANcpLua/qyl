@@ -15,11 +15,24 @@ using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 namespace qyl.copilot.Adapters;
 
 /// <summary>
+///     Non-disposable serialization contract for thread message persistence.
+///     Allows consumers to borrow the store without owning its lifecycle.
+/// </summary>
+public interface IThreadMessageSerializer
+{
+    /// <summary>Serializes a thread's messages to JSON.</summary>
+    string? SerializeThread(string threadId);
+
+    /// <summary>Restores a thread's messages from JSON.</summary>
+    void DeserializeThread(string threadId, string json);
+}
+
+/// <summary>
 ///     Persistent chat message store backed by qyl collector.
 ///     Uses <see cref="InMemoryChatHistoryProvider" /> for in-process history
 ///     with periodic persistence to the collector API for historical recall.
 /// </summary>
-public sealed class QylChatMessageStore : IDisposable
+public sealed partial class QylChatMessageStore : IThreadMessageSerializer, IDisposable
 {
     private readonly Lock _lock = new();
     private readonly ILogger _logger;
@@ -77,7 +90,7 @@ public sealed class QylChatMessageStore : IDisposable
             {
                 var excess = messages.Count - _maxMessagesPerThread;
                 messages.RemoveRange(0, excess);
-                _logger.LogDebug("Trimmed {Count} messages from thread {ThreadId}", excess, threadId);
+                LogMessagesTrimmed(_logger, excess, threadId);
             }
         }
 
@@ -114,9 +127,8 @@ public sealed class QylChatMessageStore : IDisposable
     ///     The provider implements context bounding via <see cref="InMemoryChatHistoryProvider.ChatReducerTriggerEvent" />.
     /// </summary>
     /// <param name="threadId">The thread to create a provider for.</param>
-    /// <param name="maxTokenEstimate">Approximate max tokens for context window (default: 4000).</param>
     /// <returns>A chat history provider for use with <see cref="ChatClientAgent" />.</returns>
-    public InMemoryChatHistoryProvider CreateHistoryProvider(string threadId, int maxTokenEstimate = 4000)
+    public InMemoryChatHistoryProvider CreateHistoryProvider(string threadId)
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(threadId);
@@ -197,4 +209,7 @@ public sealed class QylChatMessageStore : IDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    [LoggerMessage(Level = LogLevel.Debug, Message = "Trimmed {Count} messages from thread {ThreadId}")]
+    private static partial void LogMessagesTrimmed(ILogger logger, int count, string threadId);
 }

@@ -196,7 +196,7 @@ public sealed partial class DuckDbStore
     // Private Methods - Provisioning Mapping
     // ==========================================================================
 
-    private static ConfigSelectionRecord MapConfigSelection(IDataReader reader)
+    private static ConfigSelectionRecord MapConfigSelection(DbDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
         return new ConfigSelectionRecord(
@@ -206,7 +206,7 @@ public sealed partial class DuckDbStore
             reader.Col(3).AsDateTime ?? fallback);
     }
 
-    private static GenerationJobRecord MapGenerationJob(IDataReader reader)
+    private static GenerationJobRecord MapGenerationJob(DbDataReader reader)
     {
         var fallback = TimeProvider.System.GetUtcNow().UtcDateTime;
         return new GenerationJobRecord(

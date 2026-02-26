@@ -43,7 +43,6 @@
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)"/>
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="$(MicrosoftExtensionsVersion)"/>
@@ -56,10 +55,6 @@
     <PackageVersion Include="Google.Protobuf" Version="$(GoogleProtobufVersion)"/>
     <PackageVersion Include="Grpc.AspNetCore" Version="$(GrpcAspNetCoreVersion)"/>
     <PackageVersion Include="Grpc.Tools" Version="$(GrpcToolsVersion)"/>
-    <!-- Azure Monitor (for AgentsGateway example) -->
-    <PackageVersion Include="Azure.Monitor.OpenTelemetry.AspNetCore" Version="$(AzureMonitorVersion)"/>
-    <!-- Identity -->
-    <PackageVersion Include="Microsoft.IdentityModel.Validators" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- Testing: xUnit v3 with Microsoft Testing Platform (MTP v2) -->
     <PackageVersion Include="xunit.v3.mtp-v2" Version="$(XunitVersion)"/>
     <PackageVersion Include="Microsoft.Testing.Extensions.TrxReport" Version="$(MicrosoftTestingTrxVersion)"/>
@@ -71,21 +66,14 @@
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Polyfills" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="$(ANcpLuaRoslynUtilitiesVersion)"/>
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)"/>
-    <!-- Microsoft.Agents.AI (preview - for AgentsGateway and Copilot) -->
+    <!-- Microsoft.Agents.AI -->
     <PackageVersion Include="Microsoft.Agents.AI" Version="$(MicrosoftAgentsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.A2A" Version="$(MicrosoftAgentsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A" Version="$(MicrosoftAgentsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore" Version="$(MicrosoftAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.DevUI" Version="$(MicrosoftAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Hosting.OpenAI" Version="$(MicrosoftAgentsOpenAIVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.Workflows" Version="$(MicrosoftAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.AI.OpenAI" Version="$(MicrosoftAgentsVersion)"/>
-    <!-- GitHub Copilot SDK -->
     <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="$(MicrosoftAgentsVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.Authentication.Msal" Version="$(MicrosoftAgentsAuthVersion)"/>
-    <PackageVersion Include="Microsoft.Agents.Storage.Blobs" Version="$(MicrosoftAgentsAuthVersion)"/>
     <!-- MCP & AI Clients -->
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)"/>
     <PackageVersion Include="MSBuild.StructuredLogger" Version="$(MSBuildStructuredLoggerVersion)"/>
@@ -96,8 +84,6 @@
     <PackageVersion Include="YamlDotNet" Version="$(YamlDotNetVersion)"/>
     <!-- Terminal UI -->
     <PackageVersion Include="Spectre.Console" Version="$(SpectreConsoleVersion)"/>
-    <!-- Messaging -->
-    <PackageVersion Include="RabbitMQ.Client" Version="$(RabbitMQVersion)"/>
   </ItemGroup>
   <ItemGroup>
     <PackageDownload Include="GitVersion.Tool" Version="[$(GitVersionToolVersion)]"/>

@@ -39,12 +39,12 @@ Status key:
 | ASP-020 | Named references | NOT PRESENT | No named alias API |
 | ASP-021 | Endpoint reference enhancements | NOT PRESENT | Basic endpoint model only |
 | ASP-022 | Network identifiers | NOT PRESENT | No network identifier API |
-| ASP-023 | aspire init command | NOT APPLICABLE | qyl has its own CLI (qyl.cli) |
-| ASP-024 | aspire new curated templates | NOT APPLICABLE | qyl has its own CLI (qyl.cli) |
-| ASP-025 | aspire update / self-update | NOT APPLICABLE | qyl.cli handles own tooling |
-| ASP-026 | CLI channel control | NOT APPLICABLE | qyl.cli has own update model |
+| ASP-023 | aspire init command | NOT APPLICABLE | NOT APPLICABLE — qyl uses standard OTLP env vars + optional NuGet (ADR-003) |
+| ASP-024 | aspire new curated templates | NOT APPLICABLE | NOT APPLICABLE — qyl uses standard OTLP env vars + optional NuGet (ADR-003) |
+| ASP-025 | aspire update / self-update | NOT APPLICABLE | NOT APPLICABLE — qyl uses standard OTLP env vars + optional NuGet (ADR-003) |
+| ASP-026 | CLI channel control | NOT APPLICABLE | NOT APPLICABLE — qyl uses standard OTLP env vars + optional NuGet (ADR-003) |
 | ASP-027 | Auto running-instance detection | NOT PRESENT | QylRunner doesn't check for running instances |
-| ASP-028 | --skip-path install option | NOT APPLICABLE | qyl.cli handles own install |
+| ASP-028 | --skip-path install option | NOT APPLICABLE | NOT APPLICABLE — qyl uses standard OTLP env vars + optional NuGet (ADR-003) |
 | ASP-029 | CLI config model (.aspire/settings.json) | NOT APPLICABLE | qyl uses env vars and QYL_* settings |
 | ASP-030 | aspire config CLI commands | NOT APPLICABLE | qyl uses env vars |
 | ASP-031 | aspire mcp init | EXCEEDS | qyl.mcp is always available; no init step needed |

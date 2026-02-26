@@ -9,8 +9,6 @@ namespace qyl.collector.AgentRuns;
 
 public sealed class AgentInsightsService(DuckDbStore store)
 {
-    private const string BucketExpr =
-        "time_bucket(INTERVAL $bucket, make_timestamp(start_time_unix_nano / 1000))";
     // =========================================================================
     // Time bucketing
     // =========================================================================
@@ -48,7 +46,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         cmd.CommandText = $"""
                            SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                COUNT(*) AS runs,
                                SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS errors,
                                ROUND(SUM(CASE WHEN status_code = 2 THEN 1.0 ELSE 0 END) / COUNT(*) * 100, 2) AS error_rate
@@ -93,7 +91,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         cmd.CommandText = $"""
                            SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                ROUND(AVG(duration_ns / 1000000.0), 2) AS avg_ms,
                                ROUND(quantile_cont(duration_ns / 1000000.0, 0.95), 2) AS p95_ms
                            FROM spans
@@ -180,7 +178,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         cmd.CommandText = $"""
                            SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                COALESCE(gen_ai_request_model, 'unknown') AS model,
                                COUNT(*) AS count
                            FROM spans
@@ -211,7 +209,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
 
         cmd.CommandText = $"""
                            SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                COALESCE(gen_ai_request_model, 'unknown') AS model,
                                COALESCE(SUM(gen_ai_input_tokens + gen_ai_output_tokens), 0) AS count
                            FROM spans
@@ -271,7 +269,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
                            SELECT
-                               time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                               time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                COALESCE(gen_ai_tool_name, 'unknown') AS tool,
                                COUNT(*) AS count
                            FROM spans
@@ -458,7 +456,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var tsCmd = lease.Connection.CreateCommand();
         tsCmd.CommandText = $"""
                              SELECT
-                                 time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                                 time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                  COALESCE(gen_ai_request_model, 'unknown') AS model,
                                  COUNT(*) AS count
                              FROM spans
@@ -524,7 +522,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
         await using var tsCmd = lease.Connection.CreateCommand();
         tsCmd.CommandText = $"""
                              SELECT
-                                 time_bucket(INTERVAL '{interval}', make_timestamp(start_time_unix_nano / 1000)) AS bucket,
+                                 time_bucket(INTERVAL '{interval}', make_timestamp(CAST(start_time_unix_nano / 1000 AS BIGINT))) AS bucket,
                                  COALESCE(gen_ai_tool_name, 'unknown') AS tool,
                                  COUNT(*) AS count
                              FROM spans
@@ -654,12 +652,12 @@ public sealed class AgentInsightsService(DuckDbStore store)
         }
 
         var buckets = bucketMap
-            .Select(kv => new ModelTimeBucket { Time = kv.Key, Models = kv.Value })
+            .Select(static kv => new ModelTimeBucket { Time = kv.Key, Models = kv.Value })
             .ToList();
 
         var legend = totals
-            .OrderByDescending(kv => kv.Value)
-            .Select(kv => new LegendItem { Name = kv.Key, Total = kv.Value })
+            .OrderByDescending(static kv => kv.Value)
+            .Select(static kv => new LegendItem { Name = kv.Key, Total = kv.Value })
             .ToList();
 
         return new ModelTimeseriesResult { Buckets = buckets, Legend = legend };

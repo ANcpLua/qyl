@@ -152,7 +152,7 @@ public sealed partial class DuckDbStore
     // Private Methods - Schema Control Mapping
     // ==========================================================================
 
-    private static SchemaPromotionRecord MapSchemaPromotion(IDataReader reader) =>
+    private static SchemaPromotionRecord MapSchemaPromotion(DbDataReader reader) =>
         new(
             reader.GetString(0),
             reader.Col(1).AsString,

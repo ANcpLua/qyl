@@ -286,7 +286,7 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static WorkflowRunRow MapRun(IDataReader reader) =>
+    private static WorkflowRunRow MapRun(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),
@@ -308,7 +308,7 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static WorkflowNodeRow MapNode(IDataReader reader) =>
+    private static WorkflowNodeRow MapNode(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),
@@ -331,7 +331,7 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static WorkflowEventRow MapEvent(IDataReader reader) =>
+    private static WorkflowEventRow MapEvent(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),

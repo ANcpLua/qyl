@@ -94,11 +94,7 @@ public sealed class WorkflowTools(HttpClient client)
         string runId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var run = await client.GetFromJsonAsync<WorkflowRunDetailDto>(
-                $"/api/v1/workflows/runs/{Uri.EscapeDataString(runId)}",
-                WorkflowJsonContext.Default.WorkflowRunDetailDto).ConfigureAwait(false);
-
-            if (run is null)
+            if (await client.GetFromJsonAsync<WorkflowRunDetailDto>($"/api/v1/workflows/runs/{Uri.EscapeDataString(runId)}", WorkflowJsonContext.Default.WorkflowRunDetailDto).ConfigureAwait(false) is not { } run)
                 return $"Workflow run '{runId}' not found.";
 
             var sb = new StringBuilder();

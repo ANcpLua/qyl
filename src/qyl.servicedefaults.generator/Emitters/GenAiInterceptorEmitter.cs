@@ -293,6 +293,13 @@ internal static class GenAiInterceptorEmitter
             "perplexity" => "GenAiAttributes.Providers.Perplexity",
             "x_ai" => "GenAiAttributes.Providers.XAi",
             "microsoft_agents" => "GenAiAttributes.Providers.MicrosoftAgents",
+            "meta" => "GenAiAttributes.Providers.Meta",
+            "huggingface" => "GenAiAttributes.Providers.HuggingFace",
+            "replicate" => "GenAiAttributes.Providers.Replicate",
+            "together_ai" => "GenAiAttributes.Providers.TogetherAi",
+            "fireworks" => "GenAiAttributes.Providers.Fireworks",
+            "anyscale" => "GenAiAttributes.Providers.Anyscale",
+            "ollama" => "GenAiAttributes.Providers.Ollama",
             _ => $"\"{providerId}\"" // Fallback for custom providers
         };
 
@@ -320,11 +327,13 @@ internal static class GenAiInterceptorEmitter
             // Content generation (defined in GenAiAttributes.Operations)
             "generate_content" => "GenAiAttributes.Operations.GenerateContent",
 
-            // Additional OTel 1.39 operations (use literals until added to protocol)
-            "image_generation" => "\"image_generation\"",
-            "speech" => "\"speech\"",
-            "transcription" => "\"transcription\"",
-            "rerank" => "\"rerank\"",
+            // QYL extension operations (defined in GenAiAttributes.Operations)
+            "image_generation" => "GenAiAttributes.Operations.ImageGeneration",
+            "speech" => "GenAiAttributes.Operations.TextToSpeech",
+            "text_to_speech" => "GenAiAttributes.Operations.TextToSpeech",
+            "transcription" => "GenAiAttributes.Operations.AudioTranscription",
+            "audio_transcription" => "GenAiAttributes.Operations.AudioTranscription",
+            "rerank" => "GenAiAttributes.Operations.Rerank",
 
             _ => $"\"{operationId}\"" // Fallback for custom operations
         };

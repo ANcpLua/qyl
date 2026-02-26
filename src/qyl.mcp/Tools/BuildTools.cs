@@ -58,11 +58,7 @@ public sealed class BuildTools(HttpClient client)
 
         return CollectorHelper.ExecuteAsync(async () =>
         {
-            var item = await client.GetFromJsonAsync<BuildFailureDto>(
-                $"/api/v1/build-failures/{Uri.EscapeDataString(id)}",
-                BuildJsonContext.Default.BuildFailureDto).ConfigureAwait(false);
-
-            if (item is null)
+            if (await client.GetFromJsonAsync<BuildFailureDto>($"/api/v1/build-failures/{Uri.EscapeDataString(id)}", BuildJsonContext.Default.BuildFailureDto).ConfigureAwait(false) is not { } item)
                 return $"Build failure '{id}' was not found.";
 
             var sb = new StringBuilder();

@@ -26,22 +26,18 @@ export function generateSpanId(): string {
     return randomHex(8);
 }
 
+let sessionId: string;
+
+export function initSessionContext(): void {
+    sessionId = generateTraceId(); // reuse 32-char hex, it's just an ID
+}
+
+export function getSessionId(): string { return sessionId; }
+
 /** Format a W3C traceparent header value. */
 export function formatTraceparent(traceId: string, spanId: string, sampled: boolean): string {
     return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
 }
-
-/** Convert nanosecond timestamp string to high-res nano string. */
-export function hrTimeToNano(): string {
-    // performance.timeOrigin + performance.now() gives sub-ms precision
-    const now = performance.timeOrigin + performance.now();
-    // Convert ms to nanoseconds as a string (avoid BigInt for bundle size)
-    const ms = Math.floor(now);
-    const frac = now - ms;
-    const nanos = Math.round(frac * 1_000_000);
-    return `${ms}${String(nanos).padStart(6, '0')}`;
-}
-
 /** Timestamp in OTLP nanosecond format from Date.now(). */
 export function dateNowNano(): string {
     const ms = Date.now();
@@ -63,7 +59,7 @@ export function patchFetch(endpoint: string): void {
         const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
 
         // Don't inject on requests to the collector itself or cross-origin
-        let shouldInject = false;
+        let shouldInject: boolean;
         try {
             const reqOrigin = new URL(url, location.origin).origin;
             shouldInject = reqOrigin === location.origin && reqOrigin !== collectorOrigin;

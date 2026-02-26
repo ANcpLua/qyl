@@ -7,7 +7,7 @@
        - .claude/rules/frontend.md   → applies to specific paths
 
        This target generates rules files from ItemGroups.
-       ======================================================================= -->
+       =================e====================================================== -->
 
   <!--
     ClaudeRule: Define modular rules for specific paths

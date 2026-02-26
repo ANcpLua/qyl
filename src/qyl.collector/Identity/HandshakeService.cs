@@ -60,8 +60,7 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
             return null;
 
         // Validate PKCE: SHA256(code_verifier) must match stored code_challenge
-        var challenge = await store.GetHandshakeChallengeAsync(workspaceId, ct).ConfigureAwait(false);
-        if (challenge is null)
+        if (await store.GetHandshakeChallengeAsync(workspaceId, ct).ConfigureAwait(false) is not { } challenge)
             return null;
 
         // Check expiry
@@ -96,8 +95,7 @@ public sealed partial class HandshakeService(DuckDbStore store, ILogger<Handshak
         string workspaceId,
         CancellationToken ct = default)
     {
-        var existing = await store.GetWorkspaceAsync(workspaceId, ct).ConfigureAwait(false);
-        if (existing is null)
+        if (await store.GetWorkspaceAsync(workspaceId, ct).ConfigureAwait(false) is not { } existing)
             return null;
 
         var updated = existing with { Status = "active" };

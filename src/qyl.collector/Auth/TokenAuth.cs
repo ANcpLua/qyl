@@ -183,10 +183,6 @@ public sealed class TokenAuthMiddleware(RequestDelegate next, TokenAuthOptions o
     }
 }
 
-public sealed record LoginRequest(string Token);
-
-public sealed record LoginResponse(bool Success, string? Error = null);
-
 public static class TokenAuthExtensions
 {
     public static IApplicationBuilder UseTokenAuth(this IApplicationBuilder app,
@@ -196,36 +192,5 @@ public static class TokenAuthExtensions
         configure?.Invoke(options);
 
         return app.UseMiddleware<TokenAuthMiddleware>(options);
-    }
-
-    public static IEndpointRouteBuilder MapLoginEndpoint(this IEndpointRouteBuilder endpoints,
-        TokenAuthMiddleware middleware)
-    {
-        endpoints.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
-        {
-            var options = new TokenAuthOptions();
-            var isValid = CryptographicOperations.FixedTimeEquals(
-                Encoding.UTF8.GetBytes(request.Token),
-                Encoding.UTF8.GetBytes(middleware.GetToken()));
-
-            if (isValid)
-            {
-                context.Response.Cookies.Append(options.CookieName, request.Token,
-                    new CookieOptions
-                    {
-                        HttpOnly = true,
-                        Secure = context.Request.IsHttps,
-                        SameSite = SameSiteMode.Strict,
-                        Expires = TimeProvider.System.GetUtcNow().AddDays(options.CookieExpirationDays),
-                        Path = "/"
-                    });
-
-                return Results.Ok(new LoginResponse(true));
-            }
-
-            return Results.BadRequest(new LoginResponse(false, "Invalid token"));
-        });
-
-        return endpoints;
     }
 }

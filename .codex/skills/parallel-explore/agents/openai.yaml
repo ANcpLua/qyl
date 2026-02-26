@@ -1,4 +1,0 @@
-interface:
-  display_name: "Parallel Explore"
-  short_description: "Comma-separated questions"
-  default_prompt: "Use $parallel-explore to comma-separated questions."

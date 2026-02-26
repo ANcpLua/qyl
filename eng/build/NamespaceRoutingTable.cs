@@ -107,5 +107,5 @@ public static class NamespaceRoutingTable
         s_namespaceToFileName.TryGetValue(ns, out var fileName) ? fileName : ns.Replace(".", "");
 
     /// <summary>One row in the routing table.</summary>
-    public readonly record struct RouteEntry(string Prefix, string Namespace, string FileName);
+    internal readonly record struct RouteEntry(string Prefix, string Namespace, string FileName);
 }

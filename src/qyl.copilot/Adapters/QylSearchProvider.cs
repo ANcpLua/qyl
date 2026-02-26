@@ -16,7 +16,7 @@ namespace qyl.copilot.Adapters;
 ///     Useful for "what happened in my last deployment?" type queries.
 ///     Implements the <see cref="TextSearchProvider" /> search pattern.
 /// </summary>
-public sealed class QylSearchProvider : IDisposable
+public sealed partial class QylSearchProvider : IDisposable
 {
     private readonly string _collectorBaseUrl;
     private readonly HttpClient _httpClient;
@@ -40,7 +40,12 @@ public sealed class QylSearchProvider : IDisposable
     }
 
     /// <inheritdoc />
-    public void Dispose() => _disposed = true;
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _httpClient.Dispose();
+    }
 
     /// <summary>
     ///     Searches spans matching the query text.
@@ -67,7 +72,7 @@ public sealed class QylSearchProvider : IDisposable
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Span search failed with status {StatusCode}", response.StatusCode);
+                LogSpanSearchStatusFailed(_logger, response.StatusCode);
                 return [];
             }
 
@@ -76,7 +81,7 @@ public sealed class QylSearchProvider : IDisposable
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Span search failed for query: {Query}", query);
+            LogSpanSearchFailed(_logger, query, ex);
             return [];
         }
     }
@@ -106,7 +111,7 @@ public sealed class QylSearchProvider : IDisposable
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Log search failed with status {StatusCode}", response.StatusCode);
+                LogLogSearchStatusFailed(_logger, response.StatusCode);
                 return [];
             }
 
@@ -115,7 +120,7 @@ public sealed class QylSearchProvider : IDisposable
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            _logger.LogWarning(ex, "Log search failed for query: {Query}", query);
+            LogLogSearchFailed(_logger, query, ex);
             return [];
         }
     }
@@ -176,7 +181,7 @@ public sealed class QylSearchProvider : IDisposable
     /// </summary>
     /// <param name="maxResults">Maximum search results per query.</param>
     /// <returns>Options for use with <see cref="TextSearchProvider" />.</returns>
-    public TextSearchProviderOptions CreateSearchOptions(int maxResults = 20) =>
+    public static TextSearchProviderOptions CreateSearchOptions(int maxResults = 20) =>
         new()
         {
             SearchTime = TextSearchProviderOptions.TextSearchBehavior.BeforeAIInvoke,
@@ -242,6 +247,18 @@ public sealed class QylSearchProvider : IDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Span search failed with status {StatusCode}")]
+    private static partial void LogSpanSearchStatusFailed(ILogger logger, System.Net.HttpStatusCode statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Span search failed for query: {Query}")]
+    private static partial void LogSpanSearchFailed(ILogger logger, string query, Exception ex);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Log search failed with status {StatusCode}")]
+    private static partial void LogLogSearchStatusFailed(ILogger logger, System.Net.HttpStatusCode statusCode);
+
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Log search failed for query: {Query}")]
+    private static partial void LogLogSearchFailed(ILogger logger, string query, Exception ex);
 }
 
 /// <summary>

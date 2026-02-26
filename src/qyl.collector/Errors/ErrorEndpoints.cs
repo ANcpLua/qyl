@@ -40,8 +40,7 @@ public static class ErrorEndpoints
                 });
             }
 
-            var existing = await store.GetErrorByIdAsync(errorId, ct);
-            if (existing is null)
+            if (await store.GetErrorByIdAsync(errorId, ct) is not { } existing)
                 return Results.NotFound();
 
             await store.UpdateErrorStatusAsync(errorId, status, update.AssignedTo?.Trim(), ct);

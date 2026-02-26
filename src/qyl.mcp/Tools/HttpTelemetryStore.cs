@@ -201,7 +201,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
     private static bool InRange(DateTime? dt, DateTime? since, DateTime? until) =>
         dt.HasValue && (!since.HasValue || dt >= since) && (!until.HasValue || dt <= until);
 
-    private static double Percentile(IReadOnlyList<double> sorted, double p) =>
+    private static double Percentile(List<double> sorted, double p) =>
         sorted.Count is 0 ? 0 : sorted[Math.Clamp((int)Math.Ceiling(p * sorted.Count) - 1, 0, sorted.Count - 1)];
 }
 

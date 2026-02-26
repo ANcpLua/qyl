@@ -188,20 +188,20 @@ interface ICoverage : IQylTest
 [ExcludeFromCodeCoverage(Justification = "Build infrastructure - tested via integration")]
 public sealed record ExclusionRule(
     string Name,
-    string[]? PathContains = null,
-    string[]? FileSuffixes = null,
+    IReadOnlyList<string>? PathContains = null,
+    IReadOnlyList<string>? FileSuffixes = null,
     bool ShouldExclude = true)
 {
     public bool Matches(string normalizedPath) =>
         MatchesPath(normalizedPath) || MatchesSuffix(normalizedPath);
 
     bool MatchesPath(string path) =>
-        PathContains is { Length: > 0 } &&
-        Array.Exists(PathContains, p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
+        PathContains is { Count: > 0 } &&
+        PathContains.Any(p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
 
     bool MatchesSuffix(string path) =>
-        FileSuffixes is { Length: > 0 } suffixes &&
-        Array.Exists(suffixes, s => path.EndsWith(s, StringComparison.OrdinalIgnoreCase));
+        FileSuffixes is { Count: > 0 } &&
+        FileSuffixes.Any(s => path.EndsWith(s, StringComparison.OrdinalIgnoreCase));
 
     public string CreateReasonTag() =>
         ShouldExclude ? $"ExcludedByRule({Name})" : $"TaggedByRule({Name})";
@@ -518,11 +518,8 @@ public static class CoverageSummaryConverter
         if (!int.TryParse(fraction[..slashIdx], NumberStyles.Integer, CultureInfo.InvariantCulture, out var covered))
             return null;
 
-        if (!int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture,
-                out var total))
-            return null;
-
-        return new BranchCoverageInfo(covered, total, percent);
+        return !int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture,
+            out var total) ? null : new BranchCoverageInfo(covered, total, percent);
     }
 
     static CoverageFile GetOrCreateFileIssues(IDictionary<string, CoverageFile> dict, string path) =>

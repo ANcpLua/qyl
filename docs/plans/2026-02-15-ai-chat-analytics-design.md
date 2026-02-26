@@ -615,21 +615,6 @@ specified.
 
 ## Implementation Phases
 
-### Phase 1: Copilot Instrumentation Enhancement
-
-Enrich `CopilotSpanRecorder` to emit the full GenAI semconv attributes on every copilot interaction. The spans already
-flow to DuckDB — this phase ensures they carry enough data for the analytics modules.
-
-**Key additions to `CopilotSpanRecorder`:**
-
-- `gen_ai.conversation.id` (from copilot thread ID)
-- `gen_ai.operation.name` (`"chat"`, `"invoke_agent"`)
-- `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens`
-- `gen_ai.response.finish_reasons`
-- `gen_ai.data_source.id` (when workflows reference knowledge sources)
-- `enduser.id` (from Copilot auth context)
-- `error.type` (on failures)
-
 ### Phase 2: Analytics API Endpoints
 
 Add REST endpoints to qyl.collector. All queries run against existing `spans` table — no schema changes needed.

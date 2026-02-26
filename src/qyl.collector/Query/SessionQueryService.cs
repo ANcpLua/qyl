@@ -182,7 +182,7 @@ public sealed class SessionQueryService(DuckDbStore store)
         await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = sql;
-        cmd.Parameters.Add(new DuckDBParameter { Value = DateTimeToUnixNanoParam(after) });
+        AddAfterParam(cmd, after);
         cmd.Parameters.Add(new DuckDBParameter { Value = limit });
 
         var models = new List<ModelUsage>();
@@ -315,23 +315,23 @@ public sealed class SessionQueryService(DuckDbStore store)
     // Helpers
     // =========================================================================
 
-    /// <summary>
-    ///     Converts a nullable DateTime to a UnixNano UBIGINT parameter value.
-    ///     Cast to ulong BEFORE multiplication to avoid signed overflow.
-    /// </summary>
-    private static object DateTimeToUnixNanoParam(DateTime? dateTime)
+    private static void AddAfterParam(DuckDBCommand cmd, DateTime? after)
     {
-        if (!dateTime.HasValue)
-            return DBNull.Value;
-
-        var ticks = (dateTime.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
-        return (ulong)ticks * 100UL;
+        if (after.HasValue)
+        {
+            var ticks = (after.Value.ToUniversalTime() - DateTime.UnixEpoch).Ticks;
+            cmd.Parameters.Add(new DuckDBParameter { Value = (ulong)ticks * 100UL });
+        }
+        else
+        {
+            cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
+        }
     }
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after)
     {
         cmd.Parameters.Add(new DuckDBParameter { Value = sessionId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = DateTimeToUnixNanoParam(after) });
+        AddAfterParam(cmd, after);
     }
 
     private static void AddParams(DuckDBCommand cmd, string? sessionId, DateTime? after, int limit, int offset)

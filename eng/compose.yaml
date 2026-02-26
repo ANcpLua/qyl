@@ -71,19 +71,6 @@ services:
       - QYL_COLLECTOR_URL=http://qyl-collector:5100
     restart: unless-stopped
 
-  # ============================================================================
-  # qyl.cli - Development CLI (optional)
-  # ============================================================================
-  qyl-cli:
-    build:
-      context: .
-      dockerfile: qyl.cli/Dockerfile
-    container_name: qyl-cli
-    profiles:
-      - cli  # Only start with: docker compose --profile cli up
-    depends_on:
-      - qyl-collector
-
 volumes:
   qyl-data:
     driver: local

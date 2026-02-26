@@ -1,4 +1,0 @@
-interface:
-  display_name: "Ancplua Sdk Specialist"
-  short_description: "Specialized agent for ANcpLua MSBuild SDK - props/targets, au..."
-  default_prompt: "Use $ancplua-sdk-specialist to specialized agent for ancplua msbuild sdk - props/targets, au."

@@ -26,7 +26,7 @@ public sealed partial class ProfileService(DuckDbStore store, ILogger<ProfileSer
     /// <summary>
     ///     Returns all available instrumentation profiles.
     /// </summary>
-    public Task<IReadOnlyList<InstrumentationProfile>> GetProfilesAsync(CancellationToken ct = default)
+    public Task<IReadOnlyList<InstrumentationProfile>> GetProfilesAsync(CancellationToken _ = default)
     {
         IReadOnlyList<InstrumentationProfile> profiles = [.. BuiltInProfiles.Values];
         return Task.FromResult(profiles);

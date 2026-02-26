@@ -21,8 +21,7 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
 
     private void RecordException(Exception ex)
     {
-        var activity = Activity.Current;
-        if (activity is null) return;
+        if (Activity.Current is not { } activity) return;
 
         activity.SetStatus(ActivityStatusCode.Error, ex.Message);
         activity.AddEvent(new ActivityEvent("exception",
@@ -71,9 +70,7 @@ public static class GlobalExceptionHooks
         var activity = Activity.Current;
         if (activity is null)
         {
-            using var fallback =
-                Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default);
-            if (fallback is null) return;
+            if (Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not { } fallback) return;
             TagActivity(fallback, ex, source);
             return;
         }

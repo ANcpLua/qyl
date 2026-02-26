@@ -148,7 +148,7 @@ public sealed class MtpArgumentsBuilder
         return sb.ToString();
     }
 
-    public IReadOnlyList<string> BuildArgs() => _args;
+    public IEnumerable<string> BuildArgs() => _args;
 
     /// <summary>
     ///     Builds a properly-escaped argument string for passthrough after --.
@@ -179,55 +179,37 @@ interface IQylTest : ITest, IHazSourcePaths
     Target UnitTests => d => d
         .Description("Run unit tests only")
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() =>
-        {
-            DotNetTasks.DotNetTest(s => s
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetResultsDirectory(TestResultsDirectory)
-                .CombineWith(TestProjects, (ss, project) =>
-                {
-                    var mtp = MtpExtensions.Mtp()
-                        .ReportTrx($"{project.Name}.Unit.trx")
-                        .IgnoreExitCode(8)
-                        .FilterNamespace("*.Unit.*");
-
-                    if (StopOnFail == true) mtp.StopOnFail();
-                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
-
-                    var projectPath = project.Path ??
-                                      throw new InvalidOperationException($"Project '{project.Name}' has no path");
-                    string[] unitArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
-                    return ss.SetProcessAdditionalArguments(unitArgs);
-                }), completeOnFailure: true);
-        });
+        .Executes(() => RunFilteredTests("*.Unit.*", "Unit", needsTestcontainers: false));
 
     Target IntegrationTests => d => d
         .Description("Run integration tests only")
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() =>
-        {
-            EnsureTestcontainersConfigured();
-            DotNetTasks.DotNetTest(s => s
-                .SetNoBuild(true)
-                .SetNoRestore(true)
-                .SetResultsDirectory(TestResultsDirectory)
-                .CombineWith(TestProjects, (ss, project) =>
-                {
-                    var mtp = MtpExtensions.Mtp()
-                        .ReportTrx($"{project.Name}.Integration.trx")
-                        .IgnoreExitCode(8)
-                        .FilterNamespace("*.Integration.*");
+        .Executes(() => RunFilteredTests("*.Integration.*", "Integration", needsTestcontainers: true));
 
-                    if (StopOnFail == true) mtp.StopOnFail();
-                    if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+    sealed void RunFilteredTests(string namespaceFilter, string trxSuffix, bool needsTestcontainers)
+    {
+        if (needsTestcontainers) EnsureTestcontainersConfigured();
 
-                    var projectPath = project.Path ??
-                                      throw new InvalidOperationException($"Project '{project.Name}' has no path");
-                    string[] integrationArgs = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
-                    return ss.SetProcessAdditionalArguments(integrationArgs);
-                }), completeOnFailure: true);
-        });
+        DotNetTasks.DotNetTest(s => s
+            .SetNoBuild(true)
+            .SetNoRestore(true)
+            .SetResultsDirectory(TestResultsDirectory)
+            .CombineWith(TestProjects, (ss, project) =>
+            {
+                var mtp = MtpExtensions.Mtp()
+                    .ReportTrx($"{project.Name}.{trxSuffix}.trx")
+                    .IgnoreExitCode(8)
+                    .FilterNamespace(namespaceFilter);
+
+                if (StopOnFail == true) mtp.StopOnFail();
+                if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                var projectPath = project.Path ??
+                                  throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                string[] args = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                return ss.SetProcessAdditionalArguments(args);
+            }), completeOnFailure: true);
+    }
 
     // Override test project discovery (tests/ dir, not *.Tests naming)
     IEnumerable<Project> ITest.TestProjects =>

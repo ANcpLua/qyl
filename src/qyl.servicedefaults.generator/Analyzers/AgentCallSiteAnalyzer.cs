@@ -56,10 +56,7 @@ internal static class AgentCallSiteAnalyzer
             return BuildCallSite(context, invocation, kind, cancellationToken);
 
         // Then try [AgentTraced] attribute
-        if (TryGetAgentTracedAttribute(invocation.TargetMethod, context.SemanticModel.Compilation, out var agentName))
-            return BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName);
-
-        return null;
+        return TryGetAgentTracedAttribute(invocation.TargetMethod, context.SemanticModel.Compilation, out var agentName) ? BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName) : null;
     }
 
     private static AgentCallSite? BuildCallSite(
@@ -69,11 +66,7 @@ internal static class AgentCallSiteAnalyzer
         CancellationToken cancellationToken,
         string? agentName = null)
     {
-        var interceptLocation = context.SemanticModel.GetInterceptableLocation(
-            (InvocationExpressionSyntax)context.Node,
-            cancellationToken);
-
-        if (interceptLocation is null)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
             return null;
 
         var method = invocation.TargetMethod;
@@ -114,19 +107,18 @@ internal static class AgentCallSiteAnalyzer
     }
 
     private static bool TryGetAgentTracedAttribute(
-        IMethodSymbol method,
+        ISymbol method,
         Compilation compilation,
         [NotNullWhen(true)] out string? agentName)
     {
         agentName = null;
 
-        var attributeType = compilation.GetTypeByMetadataName(AgentTracedAttributeFullName);
-        if (attributeType is null)
+        if (compilation.GetTypeByMetadataName(AgentTracedAttributeFullName) is not { } attributeType)
             return false;
 
         foreach (var attribute in method.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeType))
+            if (!attribute.AttributeClass.IsEqualTo(attributeType))
                 continue;
 
             // Extract AgentName from named argument
@@ -185,6 +177,6 @@ internal static class AgentCallSiteAnalyzer
             result.Add((matcher, AgentCallKind.BuilderRegistration));
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 }

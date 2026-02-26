@@ -31,9 +31,9 @@ public static class CopilotInstrumentation
     public const string OperationChat = GenAiAttributes.Operations.Chat;
 
     /// <summary>
-    ///     gen_ai.operation.name for workflow operations.
+    ///     gen_ai.operation.name for workflow operations (OTel 1.39 agent span).
     /// </summary>
-    public const string OperationWorkflow = "workflow";
+    public const string OperationWorkflow = "invoke_agent";
 
     /// <summary>
     ///     gen_ai.operation.name for tool execution.
@@ -86,8 +86,7 @@ public static class CopilotInstrumentation
     public static Activity? StartChatSpan()
     {
         // ReSharper disable once ExplicitCallerInfoArgument — intentional OTel GenAI operation name
-        var activity = ActivitySource.StartActivity("gen_ai.chat", ActivityKind.Client);
-        if (activity is null) return null;
+        if (ActivitySource.StartActivity("gen_ai.chat", ActivityKind.Client) is not { } activity) return null;
 
         activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
         activity.SetTag(GenAiAttributes.RequestModel, GenAiSystem);
@@ -106,8 +105,7 @@ public static class CopilotInstrumentation
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartWorkflowSpan(string workflowName, string? executionId = null, string? trigger = null)
     {
-        var activity = ActivitySource.StartActivity($"gen_ai.workflow {workflowName}", ActivityKind.Client);
-        if (activity is null) return null;
+        if (ActivitySource.StartActivity($"invoke_agent {workflowName}", ActivityKind.Client) is not { } activity) return null;
 
         activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
         activity.SetTag(GenAiAttributes.OperationName, OperationWorkflow);
@@ -135,8 +133,7 @@ public static class CopilotInstrumentation
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartToolSpan(string toolName, string? toolCallId = null)
     {
-        var activity = GenAiInstrumentation.StartToolExecutionSpan(toolName, toolCallId);
-        if (activity is null) return null;
+        if (GenAiInstrumentation.StartToolExecutionSpan(toolName, toolCallId) is not { } activity) return null;
 
         activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
 

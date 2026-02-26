@@ -16,6 +16,9 @@ public sealed record CopilotAuthOptions
     /// <summary>Auto-detect token from environment (GH_TOKEN, GITHUB_TOKEN, gh CLI).</summary>
     public bool AutoDetect { get; init; } = true;
 
+    /// <summary>External token provider (e.g., GitHubService from collector). Checked before auto-detect.</summary>
+    public Func<string?>? ExternalTokenProvider { get; init; }
+
     /// <summary>Explicit Personal Access Token (fallback).</summary>
     public string? PersonalAccessToken { get; init; }
 
@@ -126,6 +129,18 @@ public sealed class CopilotAuthProvider
         }
 
         AuthResult result;
+
+        // 0. Try external token provider (e.g., GitHubService from collector — ADR-002 bridge)
+        if (_options.ExternalTokenProvider is { } provider)
+        {
+            var externalToken = provider();
+            if (!string.IsNullOrWhiteSpace(externalToken))
+            {
+                result = AuthResult.Succeeded(externalToken, AuthMethod.OAuth);
+                CacheResult(result);
+                return result;
+            }
+        }
 
         if (_options.AutoDetect)
         {

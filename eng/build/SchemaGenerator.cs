@@ -947,11 +947,11 @@ public sealed partial class GenerationGuard(bool force = false, bool dryRun = fa
     static string NormalizeForComparison(string content)
     {
         content = content.ReplaceLineEndings("\n");
-        return MyRegex().Replace(content, "$1     Generated: [TIMESTAMP]");
+        return TimestampLineRegex().Replace(content, "$1     Generated: [TIMESTAMP]");
     }
 
     [GeneratedRegex(@"^(//|--)\s+Generated:\s+\d{4}-\d{2}-\d{2}T.*$", RegexOptions.Multiline)]
-    private static partial Regex MyRegex();
+    private static partial Regex TimestampLineRegex();
 }
 
 /// <summary>Thread-safe generation statistics.</summary>

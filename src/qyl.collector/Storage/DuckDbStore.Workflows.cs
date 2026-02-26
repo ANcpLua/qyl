@@ -330,7 +330,7 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = record.ErrorMessage ?? (object)DBNull.Value });
     }
 
-    private static WorkflowExecutionRecord MapWorkflowExecution(IDataReader reader) =>
+    private static WorkflowExecutionRecord MapWorkflowExecution(DbDataReader reader) =>
         new()
         {
             ExecutionId = reader.GetString(0),
@@ -351,7 +351,7 @@ public sealed partial class DuckDbStore
             ErrorMessage = reader.Col(15).AsString
         };
 
-    private static WorkflowCheckpointRecord MapCheckpoint(IDataReader reader) =>
+    private static WorkflowCheckpointRecord MapCheckpoint(DbDataReader reader) =>
         new()
         {
             CheckpointId = reader.GetString(0),
@@ -362,7 +362,7 @@ public sealed partial class DuckDbStore
             CreatedAtUnixNano = reader.Col(5).GetInt64(0)
         };
 
-    private static WorkflowEventRecord MapEvent(IDataReader reader) =>
+    private static WorkflowEventRecord MapEvent(DbDataReader reader) =>
         new()
         {
             EventId = reader.GetString(0),

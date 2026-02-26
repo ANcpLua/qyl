@@ -145,9 +145,7 @@ public static class DbInstrumentation
             ? $"{operationName} {collectionName}"
             : operationName;
 
-        var activity = ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext));
-
-        if (activity is null)
+        if (ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext)) is not { } activity)
             return null;
 
         var dbSystem = GetDbSystem(command.Connection);

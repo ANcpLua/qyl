@@ -27,7 +27,7 @@ public sealed record ConditionalEdge
 ///     Evaluates conditional edges to determine which nodes execute next.
 ///     Predicates are evaluated in order; first match wins unless multiple are configured.
 /// </summary>
-public sealed class ConditionalRouter
+public sealed partial class ConditionalRouter
 {
     private readonly ILogger _logger;
 
@@ -60,7 +60,7 @@ public sealed class ConditionalRouter
                 if (selected.Count == 0)
                 {
                     selected.Add(edge.TargetNodeId);
-                    LogBranchSelected(currentNode.Id, edge.TargetNodeId, edge.Label ?? "default");
+                    LogBranchSelected(_logger, currentNode.Id, edge.TargetNodeId, edge.Label ?? "default");
                 }
 
                 continue;
@@ -71,21 +71,21 @@ public sealed class ConditionalRouter
                 if (edge.Predicate(nodeOutput, sharedState))
                 {
                     selected.Add(edge.TargetNodeId);
-                    LogBranchSelected(currentNode.Id, edge.TargetNodeId, edge.Label ?? "predicate");
+                    LogBranchSelected(_logger, currentNode.Id, edge.TargetNodeId, edge.Label ?? "predicate");
                 }
             }
             catch (Exception ex)
             {
-                LogPredicateError(currentNode.Id, edge.TargetNodeId, ex.Message);
+                LogPredicateError(_logger, currentNode.Id, edge.TargetNodeId, ex.Message);
             }
         }
 
         return selected;
     }
 
-    private void LogBranchSelected(string fromNode, string toNode, string label) =>
-        _logger.LogDebug("DAG router: {FromNode} -> {ToNode} via [{Label}]", fromNode, toNode, label);
+    [LoggerMessage(Level = LogLevel.Debug, Message = "DAG router: {FromNode} -> {ToNode} via [{Label}]")]
+    private static partial void LogBranchSelected(ILogger logger, string fromNode, string toNode, string label);
 
-    private void LogPredicateError(string fromNode, string toNode, string error) =>
-        _logger.LogWarning("DAG router: predicate error {FromNode} -> {ToNode}: {Error}", fromNode, toNode, error);
+    [LoggerMessage(Level = LogLevel.Warning, Message = "DAG router: predicate error {FromNode} -> {ToNode}: {Error}")]
+    private static partial void LogPredicateError(ILogger logger, string fromNode, string toNode, string error);
 }

@@ -1,6 +1,17 @@
 # qyl - AI Observability Platform
 
-Question Your Logs — observe everything, judge nothing, document perfectly.
+Polyglot OTLP collector — like Grafana/Jaeger, but for AI. Docker image IS the product.
+
+## Product Position
+
+qyl is a **polyglot OTLP collector**. Any app speaking OpenTelemetry sends telemetry to qyl:
+
+```bash
+docker run -d -p 5100:5100 -p 4317:4317 ghcr.io/ancplua/qyl
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 <your-app>  # Any language
+```
+
+Optional .NET premium: `dotnet add package qyl.servicedefaults` → compile-time auto-instrumentation.
 
 ## Architecture
 
@@ -38,7 +49,6 @@ dotnet test                                      # Run tests
 |---------------------------------------|------------------------------------------------|
 | `core/`                               | TypeSpec schemas (source of truth)             |
 | `eng/`                                | NUKE build system                              |
-| `examples/`                           | Demo apps (AgentsGateway)                      |
 | `src/qyl.collector/`                  | Backend API + gRPC + storage                   |
 | `src/qyl.copilot/`                    | GitHub Copilot integration                     |
 | `src/qyl.dashboard/`                  | React 19 SPA                                   |
@@ -48,12 +58,8 @@ dotnet test                                      # Run tests
 | `src/qyl.servicedefaults/`            | OTel + health + resilience defaults            |
 | `src/qyl.servicedefaults.generator/`  | Roslyn auto-instrumentation                    |
 | `src/qyl.instrumentation.generators/` | Telemetry source generators                    |
-| `src/qyl.browser/`                    | Browser OTLP SDK (TypeScript, ESM + IIFE)      |
+| `src/qyl.browser/`                    | Browser OTLP SDK (TypeScript, ESM + IIFE, session.id correlation) |
 | `src/qyl.watch/`                      | Live terminal span viewer (dotnet tool)        |
-| `src/qyl.watchdog/`                   | Process anomaly detection daemon (dotnet tool) |
-| `src/qyl.cli/`                        | One-command instrumentation CLI (dotnet tool)  |
-| `src/qyl.Analyzers/`                  | Roslyn analyzers (QYL001-015)                  |
-| `src/qyl.Analyzers.CodeFixes/`        | Code fix providers                             |
 | `tests/`                              | xUnit v3 + MTP tests                           |
 
 ## Tech Stack
@@ -140,6 +146,27 @@ Each component has its own `CLAUDE.md` with component-specific patterns.
     - If docs and implementation disagree, treat the implementation (code + tests + recent commits) as more likely to be
       current.
     - Use docs as guidance, then verify behavior in code before finalizing claims.
+
+## ADR Implementation Plan
+
+5 ADRs define the target architecture. Read `docs/adrs/ADR-*.md` for details.
+
+| ADR | Status | Summary |
+|-----|--------|---------|
+| ADR-001 | Accepted | Docker-first distribution (polyglot OTLP collector) |
+| ADR-002 | Done | GitHub OAuth onboarding (Device Flow + PAT + env var, DuckDB persistence, copilot token bridge) |
+| ADR-003 | Accepted | .NET Premium SDK (qyl.servicedefaults, optional) |
+| ADR-004 | Done | Remove qyl.cli (already removed) |
+| ADR-005 | Accepted | Microsoft Agent Framework for qyl.copilot |
+
+Dashboard spec: `docs/prompts/PROMPT-AGENTS-DASHBOARD.md` (Agents Overview with 6 panels, trace list, trace detail).
+Implementation prompt: `docs/prompts/PROMPT-ADR-IMPLEMENTATION.md` (team orchestration for all ADRs).
+
+## Verification Tools
+
+- **Playwright MCP** (`mcp__playwright`): browser automation via Edge (`--browser msedge`)
+- **Claude in Chrome** (`mcp__claude-in-chrome__*`): visual verification in Edge
+- Use for: dashboard rendering, onboarding flow, trace detail panels, responsive checks
 
 ## Observability Enhancements v1.0
 

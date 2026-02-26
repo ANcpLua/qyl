@@ -1,6 +1,6 @@
 # qyl.collector - Backend Service
 
-The kernel of qyl. This IS qyl from the user's perspective — the single binary/Docker image that just works.
+The kernel of qyl. Single Docker image = entire product. Polyglot OTLP collector (ADR-001).
 
 ## Role in Architecture
 
@@ -43,9 +43,18 @@ Priority build to surpass Sentry. Backend engine first, shells light up automati
 
 ## API Endpoints
 
-**OTLP**: `POST /v1/traces` (HTTP JSON), gRPC `:4317` (TraceService/Export)
+**OTLP**: `POST /v1/traces` (HTTP JSON), `POST /v1/logs` (HTTP JSON), gRPC `:4317` (TraceService/Export)
 
 **REST**: `/api/v1/traces`, `/api/v1/sessions`, `/api/v1/logs`, `/api/v1/genai/*`
+
+**Agents Analytics** (ADR implementation — see `PROMPT-AGENTS-DASHBOARD.md`):
+- `GET /api/v1/agents/overview/{traffic,duration,issues,llm-calls,tokens,tool-calls}`
+- `GET /api/v1/agents/traces` (aggregated trace list)
+- `GET /api/v1/agents/models` | `GET /api/v1/agents/tools`
+- Common params: `from`, `to`, `project`, `env`, `search`
+- Time bucketing: auto (< 24h → 1h, < 7d → 6h, < 30d → 1d, else → 1w)
+
+**Auth** (ADR-002): GitHub OAuth + `QYL_GITHUB_TOKEN` env var. OTLP ingestion (`/v1/traces`, `/v1/logs`) has NO auth gate. CORS defaults to `*`.
 
 **SSE**: `GET /api/v1/live` (real-time span updates)
 
@@ -78,8 +87,11 @@ Read path: pooled connections with bounded concurrency.
 ## Structure
 
 ```
-Auth/           # Token + cookie auth
+Analytics/      # Agents dashboard query services (ADR implementation)
+AgentRuns/      # Agent run extraction + tracking
+Auth/           # Token + cookie auth + GitHub OAuth (ADR-002)
 Grpc/           # gRPC service implementations
+Identity/       # GitHub identity resolution
 Ingestion/      # OTLP parsing, buffering, CORS
 Query/          # Query services
 Storage/        # DuckDB access (DuckDbStore.cs, DuckDbSchema.g.cs)
@@ -91,6 +103,21 @@ wwwroot/        # Embedded dashboard
 
 - `qyl.protocol` (ProjectReference)
 - `DuckDB.NET.Data.Full`, `Grpc.AspNetCore`, `Google.Protobuf`, `OTelConventions`
+
+## DuckDB WriteJob Pattern
+
+- Lambdas that don't capture variables must be `static` (AL0025 analyzer)
+- Use `WriteJob<int>` + `_jobs.Writer.WriteAsync` for all writes
+- Use `RentReadAsync` for all reads (pooled connections)
+
+## GitHub Identity (ADR-002)
+
+`GitHubService` holds a mutable token behind `Lock`. Three sources (priority order):
+1. Runtime token (DuckDB-persisted, set via PAT or Device Flow)
+2. Environment variable (`QYL_GITHUB_TOKEN`)
+3. None (degraded mode — OTLP still works)
+
+`InitializeAsync()` runs at startup (after DuckDB schema init, before `app.Run()`).
 
 ## Rules
 

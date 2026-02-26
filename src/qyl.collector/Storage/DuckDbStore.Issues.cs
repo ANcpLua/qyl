@@ -42,8 +42,7 @@ public sealed partial class DuckDbStore
             await using var readCmd = con.CreateCommand();
             readCmd.CommandText = "SELECT status FROM errors WHERE error_id = $1";
             readCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-            var currentStatus = (string?)await readCmd.ExecuteScalarAsync(token).ConfigureAwait(false);
-            if (currentStatus is null) return 0;
+            if ((string? )await readCmd.ExecuteScalarAsync(token).ConfigureAwait(false) is not { } currentStatus) return 0;
 
             // Update error status
             await using var updateCmd = con.CreateCommand();

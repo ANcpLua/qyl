@@ -1,4 +1,0 @@
-interface:
-  display_name: "Impl Reviewer"
-  short_description: "Implementation-focused competitive reviewer."
-  default_prompt: "Use $impl-reviewer to implementation-focused competitive reviewer."

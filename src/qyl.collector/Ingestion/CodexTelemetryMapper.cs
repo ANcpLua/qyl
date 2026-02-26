@@ -142,8 +142,7 @@ public static class CodexTelemetryMapper
     public static SpanStorageRow TransformSpan(SpanStorageRow span)
     {
         // Parse existing attributes
-        var attributes = ParseAttributes(span.AttributesJson);
-        if (attributes is null)
+        if (ParseAttributes(span.AttributesJson) is not { } attributes)
             return span;
 
         // Apply transformations

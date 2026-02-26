@@ -13,8 +13,7 @@ public sealed partial class SchemaExecutor(DuckDbStore store, ILogger<SchemaExec
         string promotionId,
         CancellationToken ct = default)
     {
-        var promotion = await store.GetSchemaPromotionAsync(promotionId, ct).ConfigureAwait(false);
-        if (promotion is null)
+        if (await store.GetSchemaPromotionAsync(promotionId, ct).ConfigureAwait(false) is not { } promotion)
             return null;
 
         if (promotion.Status is not "pending")

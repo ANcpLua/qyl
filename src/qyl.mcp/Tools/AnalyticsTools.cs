@@ -158,11 +158,7 @@ public sealed class AnalyticsTools(HttpClient client)
         int offset = 0) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var response = await client.GetFromJsonAsync<CoverageGapsDto>(
-                $"/api/v1/analytics/coverage-gaps?period={Uri.EscapeDataString(period)}&offset={offset}",
-                AnalyticsJsonContext.Default.CoverageGapsDto).ConfigureAwait(false);
-
-            if (response is null)
+            if (await client.GetFromJsonAsync<CoverageGapsDto>($"/api/v1/analytics/coverage-gaps?period={Uri.EscapeDataString(period)}&offset={offset}", AnalyticsJsonContext.Default.CoverageGapsDto).ConfigureAwait(false) is not { } response)
                 return "No coverage gap data available.";
 
             var sb = new StringBuilder();
@@ -212,11 +208,7 @@ public sealed class AnalyticsTools(HttpClient client)
         int minConversations = 3) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var response = await client.GetFromJsonAsync<TopQuestionsDto>(
-                $"/api/v1/analytics/top-questions?period={Uri.EscapeDataString(period)}&offset={offset}&minConversations={minConversations}",
-                AnalyticsJsonContext.Default.TopQuestionsDto).ConfigureAwait(false);
-
-            if (response is null)
+            if (await client.GetFromJsonAsync<TopQuestionsDto>($"/api/v1/analytics/top-questions?period={Uri.EscapeDataString(period)}&offset={offset}&minConversations={minConversations}", AnalyticsJsonContext.Default.TopQuestionsDto).ConfigureAwait(false) is not { } response)
                 return "No question data available.";
 
             var sb = new StringBuilder();

@@ -54,7 +54,7 @@ import { QylProvider } from '@qyl/browser/react';
 | `navigation.ts`   | on      | Page navigations via Navigation Timing API |
 | `resources.ts`    | off     | Network waterfall (CSS, JS, images, fonts) |
 | `interactions.ts` | off     | Click events with element selectors        |
-| `context.ts`      | on      | W3C traceparent injection on fetch         |
+| `context.ts`      | on      | W3C traceparent injection on fetch + session ID |
 
 ## Files
 
@@ -63,7 +63,7 @@ import { QylProvider } from '@qyl/browser/react';
 | `src/core.ts`         | `init()` — config resolution, collector wiring     |
 | `src/transport.ts`    | OTLP JSON transport, batching, sendBeacon fallback |
 | `src/types.ts`        | All OTLP + config TypeScript interfaces            |
-| `src/context.ts`      | Trace/span ID generation, fetch patching           |
+| `src/context.ts`      | Trace/span ID generation, session ID, fetch patching |
 | `src/web-vitals.ts`   | Core Web Vitals → OTLP spans                       |
 | `src/errors.ts`       | Error/rejection → OTLP logs                        |
 | `src/navigation.ts`   | Navigation Timing → OTLP spans                     |
@@ -75,10 +75,29 @@ import { QylProvider } from '@qyl/browser/react';
 | `vite.config.ts`      | ESM build (index + react entries)                  |
 | `vite.iife.config.ts` | IIFE build (qyl.js script tag bundle)              |
 
+## Session Correlation
+
+Every OTLP payload includes a `session.id` resource attribute (32-char hex, generated once per `init()`).
+This groups all telemetry from one browser tab without forcing a single mega-trace.
+
+- Per-interaction trace model: each web vital, navigation, click, fetch = own trace
+- `session.id` on the resource covers all spans and logs in every payload
+- Error logs get their own `traceId` + `spanId` for correlation
+- Server-side correlation: `patchFetch` injects `traceparent` → server spans share the fetch trace
+
+```
+Session: session.id=XXXX (resource attribute)
+  |-- Trace 1: web-vital.LCP      (browser only)
+  |-- Trace 2: navigation /home   (browser only)
+  |-- Trace 3: fetch /api/data    traceparent → server span correlated
+  \-- Trace 4: JS error           log with own traceId
+```
+
 ## Transport
 
 - Sends to `/v1/traces` (spans) and `/v1/logs` (log records)
 - Standard OTLP HTTP JSON format with `resourceSpans`/`resourceLogs` envelopes
+- `session.id` included in resource attributes on every payload
 - Batches by `batchSize` (default 10) and `flushInterval` (default 5s)
 - Uses `navigator.sendBeacon` on page visibility change for reliable unload
 - Never throws — all transport errors silently dropped

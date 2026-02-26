@@ -841,7 +841,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
     }
 
-    private static WorkflowExecution MapExecution(IDataReader reader)
+    private static WorkflowExecution MapExecution(DbDataReader reader)
     {
         var parametersJson = reader.Col(7).AsString;
         Dictionary<string, string>? parameters = null;
@@ -1166,7 +1166,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static ErrorRow MapErrorRow(IDataReader reader) =>
+    private static ErrorRow MapErrorRow(DbDataReader reader) =>
         new()
         {
             ErrorId = reader.GetString(0),
@@ -1631,6 +1631,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                    {DuckDbSchema.ProjectsDdl}
                                    {DuckDbSchema.ProjectEnvironmentsDdl}
                                    {DuckDbSchema.HandshakeChallengesDdl}
+                                   {DuckDbSchema.GitHubTokensDdl}
                                    """;
         identityCmd.ExecuteNonQuery();
 
@@ -1646,13 +1647,23 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var issueEventsCmd = con.CreateCommand();
         issueEventsCmd.CommandText = IssueEventsDdl;
         issueEventsCmd.ExecuteNonQuery();
+
+        // Agent runs (used by AgentInsightsService trace list)
+        using var agentRunsCmd = con.CreateCommand();
+        agentRunsCmd.CommandText = DuckDbSchema.AgentRunsDdl;
+        agentRunsCmd.ExecuteNonQuery();
+
+        // Semantic span clusters (Phase 5 — EmbeddingClusterWorker)
+        using var spanClustersCmd = con.CreateCommand();
+        spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
+        spanClustersCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static LogStorageRow MapLog(IDataReader reader) =>
+    private static LogStorageRow MapLog(DbDataReader reader) =>
         new()
         {
             LogId = reader.GetString(0),

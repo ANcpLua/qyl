@@ -125,7 +125,7 @@ public sealed partial class DuckDbStore
         return results;
     }
 
-    private static FixRunRecord MapFixRun(IDataReader reader) =>
+    private static FixRunRecord MapFixRun(DbDataReader reader) =>
         new()
         {
             RunId = reader.GetString(0),

@@ -299,7 +299,7 @@ public sealed partial class DuckDbStore
         cmd.Parameters.Add(new DuckDBParameter { Value = call.SequenceNumber });
     }
 
-    private static AgentRunRecord MapAgentRun(IDataReader reader) =>
+    private static AgentRunRecord MapAgentRun(DbDataReader reader) =>
         new()
         {
             RunId = reader.GetString(0),
@@ -321,7 +321,7 @@ public sealed partial class DuckDbStore
             MetadataJson = reader.Col(16).AsString
         };
 
-    private static ToolCallRecord MapToolCall(IDataReader reader) =>
+    private static ToolCallRecord MapToolCall(DbDataReader reader) =>
         new()
         {
             CallId = reader.GetString(0),

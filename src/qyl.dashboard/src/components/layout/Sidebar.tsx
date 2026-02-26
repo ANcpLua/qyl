@@ -3,6 +3,7 @@ import type {LucideIcon} from 'lucide-react';
 import {
     Activity,
     AlertTriangle,
+    BarChart2,
     Bot,
     Brain,
     ChevronLeft,
@@ -40,6 +41,7 @@ const navItems: NavItem[] = [
 
 const aiNavItems: NavItem[] = [
     {to: '/agents', icon: Bot, label: 'AGENTS', shortcut: 'A'},
+    {to: '/bot', icon: BarChart2, label: 'BOT', shortcut: 'B'},
 ];
 
 const dashboardIconMap: Record<string, LucideIcon> = {
@@ -306,9 +308,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {!collapsed && (
                 <div className="px-4 py-2 border-t-3 border-brutal-zinc bg-brutal-dark">
                     <div className="text-[10px] text-brutal-slate tracking-[0.15em] leading-relaxed">
-                        <div>OBSERVE EVERYTHING</div>
-                        <div>JUDGE NOTHING</div>
-                        <div>DOCUMENT PERFECTLY</div>
+                        <div>QUESTION YOUR LOGS</div>
                     </div>
                 </div>
             )}

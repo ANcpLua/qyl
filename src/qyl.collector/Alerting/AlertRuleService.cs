@@ -414,7 +414,7 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static AlertRuleRow MapRule(IDataReader reader) =>
+    private static AlertRuleRow MapRule(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),
@@ -437,7 +437,7 @@ public sealed partial class AlertRuleService(DuckDbStore store, ILogger<AlertRul
         };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static AlertFiringRow MapFiring(IDataReader reader) =>
+    private static AlertFiringRow MapFiring(DbDataReader reader) =>
         new()
         {
             Id = reader.GetString(0),

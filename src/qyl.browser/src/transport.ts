@@ -23,11 +23,12 @@ export class Transport {
     private config: ResolvedConfig;
     private shutdownCalled = false;
 
-    constructor(config: ResolvedConfig) {
+    constructor(config: ResolvedConfig, private sessionId: string) {
         this.config = config;
         this.resource = {
             attributes: [
                 {key: 'service.name', value: {stringValue: config.serviceName}},
+                {key: 'session.id', value: {stringValue: this.sessionId}},
                 {key: 'telemetry.sdk.name', value: {stringValue: SDK_NAME}},
                 {key: 'telemetry.sdk.version', value: {stringValue: SDK_VERSION}},
                 {key: 'telemetry.sdk.language', value: {stringValue: 'webjs'}},

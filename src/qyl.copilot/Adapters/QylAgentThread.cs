@@ -19,7 +19,7 @@ namespace qyl.copilot.Adapters;
 public sealed class QylAgentThread : IDisposable
 {
     private readonly Lock _lock = new();
-    private readonly QylChatMessageStore _messageStore;
+    private readonly IThreadMessageSerializer _messageStore;
     private bool _disposed;
     private AgentSession? _session;
 
@@ -28,11 +28,11 @@ public sealed class QylAgentThread : IDisposable
     /// </summary>
     /// <param name="threadId">Unique thread identifier (typically matches execution ID).</param>
     /// <param name="agentName">Name of the agent this thread is for.</param>
-    /// <param name="messageStore">Backing message store for persistence.</param>
+    /// <param name="messageStore">Backing message serializer for persistence.</param>
     public QylAgentThread(
         string threadId,
         string agentName,
-        QylChatMessageStore messageStore)
+        IThreadMessageSerializer messageStore)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(threadId);
         ArgumentException.ThrowIfNullOrWhiteSpace(agentName);
@@ -171,14 +171,10 @@ public sealed class QylAgentThread : IDisposable
         ArgumentNullException.ThrowIfNull(checkpointManager);
         ArgumentException.ThrowIfNullOrWhiteSpace(executionId);
 
-        var checkpointData = await checkpointManager.LoadLatestCheckpointAsync(executionId, ct)
-            .ConfigureAwait(false);
-
-        if (checkpointData is null)
+        if (await checkpointManager.LoadLatestCheckpointAsync(executionId, ct).ConfigureAwait(false) is not { } checkpointData)
             return false;
 
-        var checkpoint = JsonSerializer.Deserialize<ThreadCheckpoint>(checkpointData.StateJson);
-        if (checkpoint is null)
+        if (JsonSerializer.Deserialize<ThreadCheckpoint>(checkpointData.StateJson) is not { } checkpoint)
             return false;
 
         RestoreFromCheckpoint(checkpoint);

@@ -55,4 +55,15 @@ public static partial class DuckDbSchema
                                                      created_at TIMESTAMP NOT NULL
                                                  );
                                                  """;
+
+    public const string GitHubTokensDdl = """
+                                          CREATE TABLE IF NOT EXISTS github_tokens (
+                                              key VARCHAR PRIMARY KEY,
+                                              token VARCHAR NOT NULL,
+                                              scope VARCHAR,
+                                              github_login VARCHAR,
+                                              auth_method VARCHAR DEFAULT 'pat',
+                                              created_at TIMESTAMP DEFAULT now()
+                                          );
+                                          """;
 }

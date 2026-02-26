@@ -3,7 +3,7 @@
  */
 
 import type {OtlpLogRecord} from './types.js';
-import {dateNowNano} from './context.js';
+import {dateNowNano, generateTraceId, generateSpanId} from './context.js';
 import type {Transport} from './transport.js';
 
 // OTLP severity numbers
@@ -17,6 +17,8 @@ function errorToLog(error: Error | string, source?: string): OtlpLogRecord {
 
     return {
         timeUnixNano: dateNowNano(),
+        traceId: generateTraceId(),
+        spanId: generateSpanId(),
         severityNumber: SEVERITY_ERROR,
         severityText: 'ERROR',
         body: {stringValue: message},

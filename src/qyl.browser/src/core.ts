@@ -9,7 +9,7 @@ import {startErrorCapture, stopErrorCapture} from './errors.js';
 import {startNavigationCapture, stopNavigationCapture} from './navigation.js';
 import {startResourceCapture, stopResourceCapture} from './resources.js';
 import {startInteractionCapture, stopInteractionCapture} from './interactions.js';
-import {patchFetch, unpatchFetch} from './context.js';
+import {patchFetch, unpatchFetch, initSessionContext, getSessionId} from './context.js';
 
 function resolveConfig(config: QylConfig): ResolvedConfig {
     return {
@@ -55,7 +55,8 @@ export function init(config: QylConfig): QylSdk {
         };
     }
 
-    const transport = new Transport(resolved);
+    initSessionContext();
+    const transport = new Transport(resolved, getSessionId());
 
     if (resolved.captureWebVitals) startWebVitals(transport);
     if (resolved.captureErrors) startErrorCapture(transport);
@@ -64,7 +65,7 @@ export function init(config: QylConfig): QylSdk {
     if (resolved.captureInteractions) startInteractionCapture(transport);
     if (resolved.propagateTraceContext) patchFetch(resolved.endpoint);
 
-    const sdk: QylSdk = {
+    return {
         flush: () => transport.flush(),
         shutdown: async () => {
             stopErrorCapture();
@@ -78,6 +79,4 @@ export function init(config: QylConfig): QylSdk {
         addLog: (log) => transport.addLog(log),
         config: resolved,
     };
-
-    return sdk;
 }

@@ -292,7 +292,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         return string.Join(" ", args);
     }
 
-    private static string BuildPostgresArgs(IQylResource postgres)
+    private static string BuildPostgresArgs(PostgresResource postgres)
     {
         var args = new List<string> { "run", "--rm", "--name", postgres.Name };
 
@@ -329,8 +329,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         foreach (var (key, value) in env)
             psi.Environment[key] = value;
 
-        var process = Process.Start(psi);
-        if (process is null)
+        if (Process.Start(psi) is not { } process)
             throw new InvalidOperationException($"Failed to start {name}");
 
         _processes[name] = process;
@@ -567,7 +566,7 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
         var hash = name.GetHashCode(StringComparison.Ordinal);
         ReadOnlySpan<int> colors = [141, 147, 153, 159, 165, 171, 177, 183, 189, 195];
         var color = colors[Math.Abs(hash) % colors.Length];
-        return $"\u001b[38;5;{color}m";
+        return $"\e[38;5;{color}m";
     }
 
     #endregion

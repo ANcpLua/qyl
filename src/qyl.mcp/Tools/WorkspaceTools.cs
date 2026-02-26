@@ -35,10 +35,7 @@ public sealed class WorkspaceTools(HttpClient client)
                 ? "/api/v1/workspace"
                 : $"/api/v1/workspaces/{Uri.EscapeDataString(workspaceId)}";
 
-            var workspace = await client.GetFromJsonAsync<WorkspaceDto>(
-                url, WorkspaceJsonContext.Default.WorkspaceDto).ConfigureAwait(false);
-
-            if (workspace is null)
+            if (await client.GetFromJsonAsync<WorkspaceDto>(url, WorkspaceJsonContext.Default.WorkspaceDto).ConfigureAwait(false) is not { } workspace)
             {
                 return workspaceId is not null
                     ? $"Workspace '{workspaceId}' not found."

@@ -124,6 +124,19 @@ public static class QylServiceDefaultsExtensions
     }
 
     /// <summary>
+    ///     Alias for <see cref="UseQyl{TBuilder}(TBuilder, Action{QylOptions}?)"/>.
+    ///     Adds qyl service defaults including OTel, health checks, and resilience.
+    /// </summary>
+    /// <param name="builder">The host application builder.</param>
+    /// <param name="configure">Optional configuration callback.</param>
+    /// <returns>The builder for chaining.</returns>
+    public static TBuilder AddQylServiceDefaults<TBuilder>(
+        this TBuilder builder,
+        Action<QylOptions>? configure = null)
+        where TBuilder : IHostApplicationBuilder =>
+        builder.UseQyl(configure);
+
+    /// <summary>
     ///     Maps qyl default endpoints (health, OpenAPI).
     /// </summary>
     public static void MapQylEndpoints(this WebApplication app)

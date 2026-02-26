@@ -11,8 +11,7 @@ public sealed partial class ErrorOwnershipService(DuckDbStore store, ILogger<Err
     /// <returns><c>true</c> if the issue was found and assigned; <c>false</c> otherwise.</returns>
     public async Task<bool> AssignOwnerAsync(string issueId, string owner, CancellationToken ct = default)
     {
-        var existing = await store.GetErrorByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (existing is null)
+        if (await store.GetErrorByIdAsync(issueId, ct).ConfigureAwait(false) is not { })
             return false;
 
         await store.AssignIssueOwnerAsync(issueId, owner, ct).ConfigureAwait(false);

@@ -95,9 +95,9 @@ USER qyl
 EXPOSE 5100 4317
 
 # Environment defaults (can be overridden at runtime)
-# Note: QYL_PORT not set - allows Railway's PORT to take effect via fallback in Program.cs
+# QYL_GRPC_PORT=4317 enables gRPC OTLP ingestion by default (ADR-001)
 # QYL_DATA_PATH uses /data for volume mount compatibility
-ENV QYL_GRPC_PORT=0 \
+ENV QYL_GRPC_PORT=4317 \
     QYL_DATA_PATH=/data/qyl.duckdb \
     DOTNET_RUNNING_IN_CONTAINER=true \
     DOTNET_gcServer=1

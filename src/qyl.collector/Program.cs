@@ -14,6 +14,7 @@ using qyl.collector.Dashboards;
 using qyl.collector.Grpc;
 using qyl.collector.Health;
 using qyl.collector.Identity;
+using qyl.collector.Analytics;
 using qyl.collector.Insights;
 using qyl.collector.Meta;
 using qyl.collector.Provisioning;
@@ -95,7 +96,7 @@ builder.Services.AddSingleton(new TokenAuthOptions
     ExcludedPaths =
     [
         "/health", "/ready", "/alive", // Health checks
-        "/v1/traces", // OTLP ingestion
+        "/v1/traces", "/v1/logs", // OTLP ingestion
         "/api/", // Dashboard API (public)
         "/assets/", // Dashboard static assets
         "/favicon.ico" // Favicon
@@ -117,7 +118,7 @@ builder.Services.AddSingleton<IBuildFailureStore>(_ =>
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
 {
-    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
+    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"] ?? "*",
     AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
 };
 
@@ -147,12 +148,19 @@ builder.Services.AddSingleton<IExecutionStore>(static sp =>
 builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
-// GitHub Copilot integration (auto-detect auth, zero config)
-builder.Services.AddQylCopilot(o => { o.AuthOptions = new CopilotAuthOptions { AutoDetect = true }; });
+// GitHub Copilot integration — bridges GitHubService token to Copilot auth (ADR-002)
+builder.Services.AddQylCopilot(builder.Configuration);
+// Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
+builder.Services.AddSingleton(sp => new CopilotAuthOptions
+{
+    AutoDetect = true,
+    ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
+});
 builder.Services.AddQylCopilotTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
+builder.Services.AddHostedService<EmbeddingClusterWorker>();
 
 // SQL alerting: YAML-defined rules, periodic evaluation, webhook/console/SSE notifications
 builder.Services.AddAlertingServices();
@@ -164,6 +172,16 @@ builder.Services.AddSingleton<SchemaExecutor>();
 // Identity + workspace services
 builder.Services.AddSingleton<WorkspaceService>();
 builder.Services.AddSingleton<HandshakeService>();
+
+// GitHub identity integration (ADR-002)
+builder.Services.AddSingleton<GitHubService>();
+builder.Services.AddSingleton<HealthUiService>();
+builder.Services.AddHttpClient("GitHub", client =>
+{
+    client.BaseAddress = new Uri("https://api.github.com/");
+    client.DefaultRequestHeaders.Add("User-Agent", "qyl/1.0");
+    client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
+});
 
 // Provisioning: profiles + code generation
 builder.Services.AddSingleton<ProfileService>();
@@ -229,6 +247,9 @@ var migrationDirectory = Path.Combine(app.Environment.ContentRootPath, "Storage"
 const int collectorSchemaVersion = 20260214;
 migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, collectorSchemaVersion, migrationDirectory);
 
+// Initialize GitHub service: load persisted token from DuckDB (ADR-002)
+app.Services.GetRequiredService<GitHubService>().InitializeAsync().GetAwaiter().GetResult();
+
 // OTLP middleware (before token auth - OTLP has its own auth)
 if (otlpCorsOptions.IsEnabled)
 {
@@ -258,47 +279,6 @@ else
 
 // Map gRPC TraceService for OTLP ingestion on port 4317
 app.MapGrpcService<TraceServiceImpl>();
-
-app.MapPost("/api/login", (LoginRequest request, HttpContext context) =>
-{
-    var isValid = CryptographicOperations.FixedTimeEquals(
-        Encoding.UTF8.GetBytes(request.Token),
-        Encoding.UTF8.GetBytes(token));
-
-    if (isValid)
-    {
-        context.Response.Cookies.Append("qyl_token", request.Token,
-            new CookieOptions
-            {
-                HttpOnly = true,
-                Secure = context.Request.IsHttps,
-                SameSite = SameSiteMode.Strict,
-                Expires = TimeProvider.System.GetUtcNow().AddDays(3),
-                Path = "/"
-            });
-
-        return Results.Ok(new LoginResponse(true));
-    }
-
-    return Results.BadRequest(new LoginResponse(false, "Invalid token"));
-});
-
-app.MapPost("/api/logout", (HttpContext context) =>
-{
-    context.Response.Cookies.Delete("qyl_token");
-    return Results.Ok(new { success = true });
-});
-
-app.MapGet("/api/auth/check", (HttpContext context) =>
-{
-    var cookieToken = context.Request.Cookies["qyl_token"];
-    var isValid = !string.IsNullOrEmpty(cookieToken) &&
-                  CryptographicOperations.FixedTimeEquals(
-                      Encoding.UTF8.GetBytes(cookieToken),
-                      Encoding.UTF8.GetBytes(token));
-
-    return Results.Ok(new AuthCheckResponse(isValid));
-});
 
 app.MapGet("/api/v1/sessions",
     async (SessionQueryService queryService, int? limit, string? serviceName, CancellationToken ct) =>
@@ -478,7 +458,7 @@ app.MapPost("/v1/logs", async (
     {
         var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
             .CreateLogger("OtlpLogsEndpoint");
-        logger.LogWarning(ex, "Failed to process OTLP logs payload");
+        OtlpLogsLog.FailedToProcessPayload(logger, ex);
         return Results.BadRequest(new ErrorResponse("OTLP logs parse error", ex.Message));
     }
 });
@@ -630,12 +610,13 @@ app.MapGet("/api/v1/telemetry/stats", async (DuckDbStore store, CancellationToke
 app.MapGet("/alive", RunHealthCheck("healthy", "live")).WithName("LivenessCheck");
 app.MapGet("/health", RunHealthCheck("healthy", "ready")).WithName("HealthCheck");
 app.MapGet("/ready", RunHealthCheck("ready", "ready")).WithName("ReadyCheck");
+app.MapGet("/health/ui", async (HealthUiService healthUi, CancellationToken ct) =>
+    Results.Ok(await healthUi.GetHealthAsync(ct).ConfigureAwait(false)));
 
 static Func<IServiceProvider, CancellationToken, Task<IResult>> RunHealthCheck(string label, string tag) =>
     async (sp, ct) =>
     {
-        var healthService = sp.GetService<HealthCheckService>();
-        if (healthService is null)
+        if (sp.GetService<HealthCheckService>() is not { } healthService)
             return Results.Ok(new HealthResponse(label));
 
         var result = await healthService.CheckHealthAsync(
@@ -669,6 +650,7 @@ app.MapSearchEndpoints();
 app.MapSearchDocumentEndpoints();
 app.MapErrorEndpoints();
 app.MapIdentityEndpoints();
+app.MapGitHubEndpoints();
 app.MapProvisioningEndpoints();
 app.MapIssueEndpoints();
 app.MapAutofixEndpoints();
@@ -754,10 +736,16 @@ app.MapFallback(context =>
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
 // No need to set app.Urls when using explicit Kestrel configuration
 
-StartupBanner.Print($"http://localhost:{port}", token, port, grpcPort, otlpCorsOptions, otlpApiKeyOptions);
+StartupBanner.Print($"http://localhost:{port}", port, grpcPort, otlpCorsOptions, otlpApiKeyOptions);
 
 // Log when application is ready to accept requests
 app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"[qyl] Application started and listening on port {port}"));
 
 app.Run();
+
+internal static partial class OtlpLogsLog
+{
+    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
+    public static partial void FailedToProcessPayload(ILogger logger, Exception ex);
+}

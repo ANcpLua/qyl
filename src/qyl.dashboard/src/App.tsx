@@ -1,15 +1,17 @@
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
 import {
     AgentRunDetailPage,
     AgentsPage,
+    BotConversationDetailPage,
+    BotPage,
+    BotUserJourneyPage,
     DashboardPage,
     GenAIPage,
     IssueDetailPage,
     IssuesPage,
-    LoginPage,
     LogsPage,
     OnboardingPage,
     ResourcesPage,
@@ -30,17 +32,30 @@ const queryClient = new QueryClient({
     },
 });
 
+function FirstVisitGate() {
+    const {data, isLoading} = useQuery({
+        queryKey: ['github-status'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/github/status');
+            if (!res.ok) return {configured: false};
+            return res.json() as Promise<{ configured: boolean }>;
+        },
+        staleTime: 1000 * 60 * 5,
+    });
+
+    if (isLoading) return null;
+    if (!data?.configured) return <Navigate to="/onboarding" replace/>;
+    return <ResourcesPage/>;
+}
+
 export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <BrowserRouter>
                 <Routes>
-                    {/* Login route - outside layout */}
-                    <Route path="/login" element={<LoginPage/>}/>
-
                     <Route path="/index.html" element={<Navigate to="/" replace/>}/>
                     <Route element={<DashboardLayout/>}>
-                        <Route path="/" element={<ResourcesPage/>}/>
+                        <Route path="/" element={<FirstVisitGate/>}/>
                         <Route path="/traces" element={<TracesPage/>}/>
                         <Route path="/logs" element={<LogsPage/>}/>
                         <Route path="/genai" element={<GenAIPage/>}/>
@@ -54,6 +69,9 @@ export default function App() {
                         <Route path="/workflows" element={<WorkflowRunsPage/>}/>
                         <Route path="/workflows/:runId" element={<WorkflowRunDetailPage/>}/>
                         <Route path="/onboarding" element={<OnboardingPage/>}/>
+                        <Route path="/bot" element={<BotPage/>}/>
+                        <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>
+                        <Route path="/bot/users/:userId/journey" element={<BotUserJourneyPage/>}/>
                     </Route>
                 </Routes>
             </BrowserRouter>

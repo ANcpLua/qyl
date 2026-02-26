@@ -88,11 +88,7 @@ public sealed class IssueTools(HttpClient client)
         string issueId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            var issue = await client.GetFromJsonAsync<IssueDetailDto>(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                IssueJsonContext.Default.IssueDetailDto).ConfigureAwait(false);
-
-            if (issue is null)
+            if (await client.GetFromJsonAsync<IssueDetailDto>($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", IssueJsonContext.Default.IssueDetailDto).ConfigureAwait(false) is not { } issue)
                 return $"Issue '{issueId}' not found.";
 
             var sb = new StringBuilder();

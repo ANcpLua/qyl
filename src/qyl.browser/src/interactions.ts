@@ -11,7 +11,7 @@ import type {Transport} from './transport.js';
 function getSelector(el: Element): string {
     if (el.id) return `#${el.id}`;
     const tag = el.tagName.toLowerCase();
-    const classes = el.className && typeof el.className === 'string'
+    const classes = el.className && true
         ? `.${el.className.trim().split(/\s+/).slice(0, 3).join('.')}`
         : '';
     const text = el.textContent?.trim().slice(0, 30);

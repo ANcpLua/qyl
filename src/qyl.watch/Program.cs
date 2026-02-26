@@ -6,7 +6,7 @@ var config = CliConfig.Parse(args);
 if (config is null)
     return;
 
-var cts = new CancellationTokenSource();
+using var cts = new CancellationTokenSource();
 ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
@@ -64,7 +64,6 @@ catch (OperationCanceledException)
 
 await keyboardTask.ConfigureAwait(false);
 Console.CancelKeyPress -= cancelHandler;
-cts.Dispose();
 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine($"[grey]Disconnected. Total spans received: {spanCount}[/]");

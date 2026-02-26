@@ -44,11 +44,7 @@ internal static class TracedCallSiteAnalyzer
         if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
-        var interceptLocation = context.SemanticModel.GetInterceptableLocation(
-            (InvocationExpressionSyntax)context.Node,
-            cancellationToken);
-
-        if (interceptLocation is null)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
             return null;
 
         var method = invocation.TargetMethod;
@@ -85,15 +81,12 @@ internal static class TracedCallSiteAnalyzer
     {
         tracedInfo = null;
 
-        var tracedAttributeType = compilation.GetTypeByMetadataName(TracedAttributeFullName);
-        if (tracedAttributeType is null)
+        if (compilation.GetTypeByMetadataName(TracedAttributeFullName) is not { } tracedAttributeType)
             return false;
 
         // Check if method has [NoTrace] - opt-out from class-level tracing
         var noTraceAttributeType = compilation.GetTypeByMetadataName(NoTraceAttributeFullName);
-        if (noTraceAttributeType is not null &&
-            method.GetAttributes()
-                .Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, noTraceAttributeType)))
+        if (noTraceAttributeType is not null && method.HasAttribute(noTraceAttributeType))
             return false;
 
         // 1. Check method-level [Traced] first (takes priority)
@@ -192,8 +185,7 @@ internal static class TracedCallSiteAnalyzer
         IMethodSymbol method,
         Compilation compilation)
     {
-        var tracedTagAttributeType = compilation.GetTypeByMetadataName(TracedTagAttributeFullName);
-        if (tracedTagAttributeType is null)
+        if (compilation.GetTypeByMetadataName(TracedTagAttributeFullName) is not { } tracedTagAttributeType)
             return default;
 
         var tags = new List<TracedTagParameter>();

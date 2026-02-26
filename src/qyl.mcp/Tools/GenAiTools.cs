@@ -36,10 +36,7 @@ public sealed class GenAiTools(HttpClient client)
             if (!string.IsNullOrEmpty(sessionId))
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
-            var stats = await client.GetFromJsonAsync<GenAiStatsDto>(
-                url, GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false);
-
-            if (stats is null)
+            if (await client.GetFromJsonAsync<GenAiStatsDto>(url, GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false) is not { } stats)
                 return "No GenAI statistics available.";
 
             var sb = new StringBuilder();
