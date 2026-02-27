@@ -288,11 +288,10 @@ public static partial class WorkflowParser
             {
                 // Try simple comma-separated parse
                 var inner = value[1..^1];
-                return inner
+                return [.. inner
                     .Split(',')
                     .Select(static s => s.Trim().Trim('"', '\''))
-                    .Where(static s => !string.IsNullOrEmpty(s))
-                    .ToList();
+                    .Where(static s => !string.IsNullOrEmpty(s))];
             }
         }
 
@@ -302,10 +301,9 @@ public static partial class WorkflowParser
         var matches = YamlArrayItemRegex().Matches(value);
         if (matches.Count > 0)
         {
-            return matches
+            return [.. matches
                 .Select(static m => m.Groups[1].Value.Trim())
-                .Where(static s => !string.IsNullOrEmpty(s))
-                .ToList();
+                .Where(static s => !string.IsNullOrEmpty(s))];
         }
 
         // Single item

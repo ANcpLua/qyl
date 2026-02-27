@@ -1,5 +1,6 @@
 using System.Text;
 using qyl.collector.Ingestion;
+using Qyl.OTel.Enums;
 
 namespace qyl.collector.tests.Ingestion;
 
@@ -430,7 +431,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Assert
         Assert.Single(spans);
-        Assert.Equal(StatusCode.Ok, spans[0].Status);
+        Assert.Equal(SpanStatusCode.Ok, spans[0].Status);
         Assert.Equal("OK", spans[0].StatusMessage);
     }
 
@@ -446,7 +447,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Assert
         Assert.Single(spans);
-        Assert.Equal(StatusCode.Error, spans[0].Status);
+        Assert.Equal(SpanStatusCode.Error, spans[0].Status);
         Assert.Equal("Connection timeout", spans[0].StatusMessage);
     }
 
@@ -462,7 +463,7 @@ public sealed class OtlpJsonSpanParserTests
 
         // Assert
         Assert.Single(spans);
-        Assert.Equal(StatusCode.Unset, spans[0].Status);
+        Assert.Equal(SpanStatusCode.Unset, spans[0].Status);
         Assert.Null(spans[0].StatusMessage);
     }
 

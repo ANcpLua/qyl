@@ -19,7 +19,7 @@ public sealed class SharedStateStore
     /// <summary>
     ///     Gets all keys currently in the store.
     /// </summary>
-    public IReadOnlyCollection<string> Keys => _entries.Keys.ToList();
+    public IReadOnlyCollection<string> Keys => [.. _entries.Keys];
 
     /// <summary>
     ///     Gets a value by key, returning default if not found.

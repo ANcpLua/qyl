@@ -187,6 +187,6 @@ internal static class GenAiCallSiteAnalyzer
             }
         }
 
-        return result.ToArray();
+        return [.. result];
     }
 }

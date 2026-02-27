@@ -218,7 +218,7 @@ public static class LlmProviderFactory
         private ApiRequest BuildBody(IEnumerable<ChatMessage> messages, ChatOptions? options, bool stream) => new()
         {
             Model = options?.ModelId ?? model,
-            Messages = messages.Select(static m => new ApiMessage { Role = m.Role.Value, Content = m.Text ?? "" }).ToList(),
+            Messages = [.. messages.Select(static m => new ApiMessage { Role = m.Role.Value, Content = m.Text ?? "" })],
             Stream = stream,
             Temperature = options?.Temperature,
             MaxTokens = options?.MaxOutputTokens

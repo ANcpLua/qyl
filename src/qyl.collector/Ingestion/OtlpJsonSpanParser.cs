@@ -311,8 +311,8 @@ public ref struct OtlpJsonSpanParser
                 {
                     _reader.Read();
                     span.Status = _reader.TokenType == JsonTokenType.Number
-                        ? (StatusCode)_reader.GetInt32()
-                        : StatusCode.Unset;
+                        ? (SpanStatusCode)_reader.GetInt32()
+                        : SpanStatusCode.Unset;
                 }
                 else if (_reader.ValueTextEquals("message"u8))
                 {

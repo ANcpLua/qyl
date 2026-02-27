@@ -95,24 +95,22 @@ internal sealed class InMemoryBuildFailureStore : IBuildFailureStore
 
     public Task<IReadOnlyList<BuildFailureRecord>> ListAsync(int limit = 10, CancellationToken ct = default)
     {
-        IReadOnlyList<BuildFailureRecord> result = _records.Values
+        IReadOnlyList<BuildFailureRecord> result = [.. _records.Values
             .OrderByDescending(static r => r.Timestamp)
-            .Take(Math.Clamp(limit, 1, 500))
-            .ToArray();
+            .Take(Math.Clamp(limit, 1, 500))];
         return Task.FromResult(result);
     }
 
     public Task<IReadOnlyList<BuildFailureRecord>> SearchAsync(string pattern, int limit = 50,
         CancellationToken ct = default)
     {
-        IReadOnlyList<BuildFailureRecord> result = _records.Values
+        IReadOnlyList<BuildFailureRecord> result = [.. _records.Values
             .Where(r =>
                 (r.ErrorSummary?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (r.PropertyIssuesJson?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false) ||
                 (r.CallStackJson?.Contains(pattern, StringComparison.OrdinalIgnoreCase) ?? false))
             .OrderByDescending(static r => r.Timestamp)
-            .Take(Math.Clamp(limit, 1, 500))
-            .ToArray();
+            .Take(Math.Clamp(limit, 1, 500))];
         return Task.FromResult(result);
     }
 }

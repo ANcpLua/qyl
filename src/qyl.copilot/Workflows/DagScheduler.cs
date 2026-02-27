@@ -185,7 +185,7 @@ public sealed partial class DagScheduler
 
         return new DagExecutionResult
         {
-            CompletedNodes = completed.Keys.ToList(),
+            CompletedNodes = [.. completed.Keys],
             FailedNodes = failed.ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase),
             SkippedNodes = [.. skipped],
             Output = context.NodeResults.ToDictionary(
@@ -397,10 +397,9 @@ public sealed partial class DagScheduler
         // If conditional routing returned specific next nodes, only unblock those
         var candidates = conditionalNext is { Count: > 0 }
             ? conditionalNext
-            : nodeMap.Values
+            : [.. nodeMap.Values
                 .Where(n => n.Dependencies.Contains(completedNodeId))
-                .Select(static n => n.Id)
-                .ToList();
+                .Select(static n => n.Id)];
 
         foreach (var candidateId in candidates)
         {

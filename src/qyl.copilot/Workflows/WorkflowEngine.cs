@@ -65,7 +65,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
     /// <summary>
     ///     Discovers and loads all workflows from the workflows directory.
     /// </summary>
-    public async Task<IReadOnlyList<CopilotWorkflow>> DiscoverWorkflowsAsync(CancellationToken ct = default)
+    public async Task DiscoverWorkflowsAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
 
@@ -80,8 +80,6 @@ public sealed class WorkflowEngine : IAsyncDisposable
             {
                 _workflows[workflow.Name] = workflow;
             }
-
-            return workflows;
         }
         finally
         {
@@ -95,13 +93,13 @@ public sealed class WorkflowEngine : IAsyncDisposable
     public IReadOnlyList<CopilotWorkflow> GetWorkflows()
     {
         ThrowIfDisposed();
-        return _workflows.Values.ToList();
+        return [.. _workflows.Values];
     }
 
     /// <summary>
     ///     Gets a specific workflow by name.
     /// </summary>
-    public CopilotWorkflow? GetWorkflow(string name)
+    private CopilotWorkflow? GetWorkflow(string name)
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
@@ -153,7 +151,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
     /// <param name="additionalContext">Additional context data.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Stream of execution updates.</returns>
-    public async IAsyncEnumerable<StreamUpdate> ExecuteWorkflowAsync(
+    private async IAsyncEnumerable<StreamUpdate> ExecuteWorkflowAsync(
         CopilotWorkflow workflow,
         IReadOnlyDictionary<string, string>? parameters = null,
         string? additionalContext = null,
@@ -356,7 +354,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         if (status.HasValue)
             query = query.Where(e => e.Status == status.Value);
 
-        return query.OrderByDescending(static e => e.StartedAt).Take(limit).ToList();
+        return [.. query.OrderByDescending(static e => e.StartedAt).Take(limit)];
     }
 
     /// <summary>
@@ -365,7 +363,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
     public IReadOnlyList<WorkflowExecution> GetExecutions()
     {
         ThrowIfDisposed();
-        return _executions.Values.OrderByDescending(static e => e.StartedAt).ToList();
+        return [.. _executions.Values.OrderByDescending(static e => e.StartedAt)];
     }
 
     /// <summary>

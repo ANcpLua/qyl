@@ -398,7 +398,7 @@ public sealed class ParsedSpan
     public SpanKind Kind { get; set; }
     public UnixNano StartTime { get; set; }
     public UnixNano EndTime { get; set; }
-    public StatusCode Status { get; set; }
+    public SpanStatusCode Status { get; set; }
     public string? StatusMessage { get; set; }
 
     // GenAI-specific extracted attributes (OTel 1.40)
@@ -434,33 +434,6 @@ public sealed class ParsedSpan
 
     public long TotalTokens => InputTokens + OutputTokens;
     public bool IsGenAiSpan => ProviderName is not null || RequestModel is not null;
-}
-
-// =============================================================================
-// ENUMS
-// =============================================================================
-
-/// <summary>
-///     OTel span kind enumeration.
-/// </summary>
-public enum SpanKind : byte
-{
-    Unspecified = 0,
-    Internal = 1,
-    Server = 2,
-    Client = 3,
-    Producer = 4,
-    Consumer = 5
-}
-
-/// <summary>
-///     OTel span status code enumeration.
-/// </summary>
-public enum StatusCode : byte
-{
-    Unset = 0,
-    Ok = 1,
-    Error = 2
 }
 
 // =============================================================================

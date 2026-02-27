@@ -30,7 +30,7 @@ public sealed class TraceServiceImpl(DuckDbStore store, ITelemetrySseBroadcaster
             var batch = new SpanBatch(spans).WithCodexTransformations();
 
             // Push to ring buffer for real-time queries
-            _ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord).ToList());
+            _ringBuffer.PushRange([.. batch.Spans.Select(SpanMapper.ToRecord)]);
 
             await _store.EnqueueAsync(batch, context.CancellationToken).ConfigureAwait(false);
             _broadcaster.PublishSpans(batch);

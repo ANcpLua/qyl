@@ -1,5 +1,4 @@
 using qyl.collector.Core;
-using SpanKind = Qyl.OTel.Enums.SpanKind;
 
 namespace qyl.collector.Mapping;
 

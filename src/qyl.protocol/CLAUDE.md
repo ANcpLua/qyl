@@ -13,12 +13,15 @@ kernel speaks this language.
 
 ## Contents
 
-| Directory                 | Content                                           |
-|---------------------------|---------------------------------------------------|
-| `Primitives/Scalars.g.cs` | TraceId, SpanId, SessionId (generated, IParsable) |
-| `Enums/Enums.g.cs`        | SpanKind, StatusCode, SeverityNumber (generated)  |
-| `Models/*.g.cs`           | Record types (generated)                          |
-| `Attributes/*.g.cs`       | GenAI + DB domain facades (generated from `eng/semconv/qyl-extensions.json`) |
+| File                        | Content                                                            |
+|-----------------------------|--------------------------------------------------------------------|
+| `Primitives/Scalars.g.cs`   | TraceId, SpanId, SessionId (generated, IParsable)                  |
+| `Enums/OTelEnums.cs`        | SpanKind, SpanStatusCode (hand-maintained, single source of truth) |
+| `Models/SpanRecord.cs`      | Flattened span record for DuckDB storage                           |
+| `Models/Common.g.cs`        | Attribute, InstrumentationScope (generated)                        |
+| `Attributes/GenAiAttributes.g.cs` | GenAI semconv facades (generated from `eng/semconv/qyl-extensions.json`) |
+| `Attributes/DbAttributes.g.cs`    | DB semconv facades (generated from `eng/semconv/qyl-extensions.json`)    |
+| `Copilot/CopilotTypes.cs`  | Copilot integration DTOs                                           |
 
 ## Time Convention
 

@@ -351,7 +351,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                     ? $"{conversationCount} conversations about '{topic}' had errors or uncertain outcomes"
                     : $"{conversationCount} conversations about '{topic}' had high latency or empty responses",
                 Recommendation = $"Review documentation coverage for '{topic}' and add targeted content",
-                SampleConversationIds = sampleIds.Take(5).ToList()
+                SampleConversationIds = [.. sampleIds.Take(5)]
             });
         }
 
@@ -421,7 +421,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             {
                 Topic = reader.Col(0).AsString ?? "unknown",
                 ConversationCount = reader.Col(1).GetInt64(0),
-                SampleConversationIds = sampleIds.Take(5).ToList()
+                SampleConversationIds = [.. sampleIds.Take(5)]
             });
         }
 
@@ -473,7 +473,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             {
                 SourceId = reader.Col(0).AsString ?? "unknown",
                 CitationCount = reader.Col(1).GetInt64(0),
-                TopQuestions = topQuestions.Take(5).ToList()
+                TopQuestions = [.. topQuestions.Take(5)]
             });
         }
 
@@ -665,7 +665,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                 ConversationCount = reader.Col(1).GetInt64(0),
                 FirstSeen = TimeConversions.UnixNanoToDateTime(firstSeen),
                 LastSeen = TimeConversions.UnixNanoToDateTime(lastSeen),
-                TopTopics = topics.Take(5).ToList()
+                TopTopics = [.. topics.Take(5)]
             });
         }
 

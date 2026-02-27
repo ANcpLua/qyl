@@ -60,7 +60,7 @@ public sealed partial class QylChatMessageStore : IThreadMessageSerializer, IDis
     /// <summary>
     ///     Gets all active thread IDs.
     /// </summary>
-    public IReadOnlyCollection<string> ThreadIds => _messages.Keys.ToList();
+    public IReadOnlyCollection<string> ThreadIds => [.. _messages.Keys];
 
     /// <inheritdoc />
     public void Dispose() => _disposed = true;
