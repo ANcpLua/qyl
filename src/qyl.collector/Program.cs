@@ -178,10 +178,10 @@ builder.Services.AddSingleton<GitHubService>();
 builder.Services.AddSingleton<HealthUiService>();
 builder.Services.AddHttpClient("GitHub", client =>
 {
-    client.BaseAddress = new Uri("https://api.github.com/");
+    client.BaseAddress = new Uri(builder.Configuration.GetValue("GitHub:BaseAddress", "https://api.github.com/")!);
     client.DefaultRequestHeaders.Add("User-Agent", "qyl/1.0");
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-});
+}).AddStandardResilienceHandler();
 
 // Provisioning: profiles + code generation
 builder.Services.AddSingleton<ProfileService>();

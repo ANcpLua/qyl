@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - HTTP Semantic Conventions (OTel v1.39)
+// QYL v2.0 - HTTP Semantic Conventions (OTel v1.40)
 // =============================================================================
 // HTTP client and server telemetry attributes following OTel specifications.
 // =============================================================================
@@ -33,10 +33,10 @@ enum HttpVersions {
 }
 
 // =============================================================================
-// HTTP Span Attributes (Complete OTel v1.39)
+// HTTP Span Attributes (Complete OTel v1.40)
 // =============================================================================
 
-@doc("HTTP span attributes following OTel Semantic Conventions v1.39")
+@doc("HTTP span attributes following OTel Semantic Conventions v1.40")
 model HttpAttributes {
   // ---------------------------------------------------------------------------
   // Common Attributes (Client & Server)

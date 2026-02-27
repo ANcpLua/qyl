@@ -3,18 +3,18 @@ using qyl.collector.Ingestion;
 namespace qyl.collector.tests.Ingestion;
 
 /// <summary>
-///     Unit tests for SchemaNormalizer - OTel 1.39 attribute migration.
-///     Tests VS-01 acceptance criteria: Deprecated attributes migrated to v1.39.
+///     Unit tests for SchemaNormalizer - OTel 1.40 attribute migration.
+///     Tests VS-01 acceptance criteria: Deprecated attributes migrated to v1.40.
 /// </summary>
 public sealed class SchemaNormalizerTests
 {
     #region Schema Version
 
     [Fact]
-    public void SchemaVersion_IsOtel139()
+    public void SchemaVersion_IsOtel140()
     {
-        Assert.Equal("1.39.0", SchemaVersion.Current.Version);
-        Assert.Equal("https://opentelemetry.io/schemas/1.39.0", SchemaVersion.Current.SchemaUrl);
+        Assert.Equal("1.40.0", SchemaVersion.Current.Version);
+        Assert.Equal("https://opentelemetry.io/schemas/1.40.0", SchemaVersion.Current.SchemaUrl);
     }
 
     #endregion
@@ -115,7 +115,7 @@ public sealed class SchemaNormalizerTests
 
     #endregion
 
-    #region Token Usage Migration (v1.39)
+    #region Token Usage Migration (v1.40)
 
     [Fact]
     public void Normalize_PromptTokens_MapsToInputTokens()
@@ -151,7 +151,7 @@ public sealed class SchemaNormalizerTests
 
     #endregion
 
-    #region Legacy Agents.* Migration (OTel 1.39)
+    #region Legacy Agents.* Migration (OTel 1.40)
 
     [Fact]
     public void Normalize_LegacyAgentsAgentId_MapsToGenAiAgentId()

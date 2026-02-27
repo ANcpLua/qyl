@@ -58,7 +58,7 @@ dotnet test                                      # Run tests
 | Runtime  | .NET 10.0 LTS, C# 14                 |
 | Frontend | React 19, Vite 7, Tailwind CSS 4     |
 | Storage  | DuckDB (columnar, glibc required)    |
-| Protocol | OTel Semantic Conventions 1.39       |
+| Protocol | OTel Semantic Conventions 1.40       |
 | Testing  | xUnit v3, Microsoft Testing Platform |
 
 ## TypeSpec-First Design

@@ -27,6 +27,7 @@ enum GenAiVersions {
   v1_37: "1.37.0",
   v1_38: "1.38.0",
   v1_39: "1.39.0",
+  v1_40: "1.40.0",
 }
 
 model GenAiSpanAttributes {

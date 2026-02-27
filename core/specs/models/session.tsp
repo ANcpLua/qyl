@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Session Semantic Conventions (OTel v1.39)
+// QYL v2.0 - Session Semantic Conventions (OTel v1.40)
 // =============================================================================
 // User session telemetry attributes.
 // =============================================================================
@@ -103,7 +103,6 @@ model SessionEntity {
   errorCount: int32;
 
   @doc("Service names observed in this session")
-  @encodedName("application/json", "services")
   services: string[];
 
   @doc("Session state")

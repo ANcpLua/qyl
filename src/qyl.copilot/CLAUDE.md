@@ -36,7 +36,7 @@ QYL_LLM_MODEL=gpt-4o-mini
 - Microsoft Agent Framework (`Microsoft.Agents.AI`) for agent runtime
 - Provider-agnostic: Ollama, OpenAI, Anthropic, any OpenAI-compatible
 - 24 MCP tools from qyl.mcp (search_spans, get_trace, list_errors, etc.)
-- OTel 1.39 GenAI semconv instrumentation
+- OTel 1.40 GenAI semconv instrumentation
 - Declarative workflows (`.qyl/workflows/*.md` with YAML frontmatter)
 - Cascading auth: GH_TOKEN -> gh CLI -> PAT -> OAuth (ADR-002)
 - Streaming via `IAsyncEnumerable`
@@ -59,6 +59,6 @@ Metrics: `gen_ai.client.token.usage`, `gen_ai.client.operation.duration`, `qyl.c
 
 - TimeProvider.System for time, Lock for sync, SemaphoreSlim for async
 - All public APIs async with CancellationToken
-- Follow OTel 1.39 GenAI semantic conventions
+- Follow OTel 1.40 GenAI semantic conventions
 - Microsoft Agent Framework is MIT licensed, pin specific version (preview — handle breaking changes)
 - No Azure requirement — Ollama (local, free) is default recommendation

@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl Codex Telemetry Mapper - Transforms Codex custom events to OTel GenAI
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
+// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 //
 // Codex (OpenAI's CLI) emits custom codex.* prefixed telemetry.
@@ -14,7 +14,7 @@
 // - codex.tool_decision: Tool approval/denial decisions
 // - codex.tool_result: Tool execution results
 //
-// Target GenAI Semconv (OTel 1.39):
+// Target GenAI Semconv (OTel 1.40):
 // - gen_ai.provider.name = "openai"
 // - gen_ai.operation.name = derived from event type
 // - gen_ai.request.model / gen_ai.response.model

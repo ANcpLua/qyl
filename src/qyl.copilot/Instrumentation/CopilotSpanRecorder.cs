@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.copilot - Span Recorder
-// OTel 1.39 GenAI semantic convention attribute recording
+// OTel 1.40 GenAI semantic convention attribute recording
 // =============================================================================
 
 using qyl.protocol.Attributes;
@@ -10,7 +10,7 @@ using Qyl.ServiceDefaults.Instrumentation.GenAi;
 namespace qyl.copilot.Instrumentation;
 
 /// <summary>
-///     Records OTel 1.39 GenAI semantic convention attributes on spans.
+///     Records OTel 1.40 GenAI semantic convention attributes on spans.
 ///     Provides helpers for both standard gen_ai.* and qyl-specific attributes.
 /// </summary>
 public static class CopilotSpanRecorder
@@ -18,7 +18,7 @@ public static class CopilotSpanRecorder
     private static readonly string[] FinishReasonStop = ["stop"];
 
     /// <summary>
-    ///     Records token usage on a span per OTel 1.39.
+    ///     Records token usage on a span per OTel 1.40.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     /// <param name="inputTokens">Input/prompt tokens.</param>
@@ -64,7 +64,7 @@ public static class CopilotSpanRecorder
     // =========================================================================
 
     /// <summary>
-    ///     Records the conversation/thread ID on a span per OTel 1.39.
+    ///     Records the conversation/thread ID on a span per OTel 1.40.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     /// <param name="conversationId">The conversation/session/thread identifier.</param>
@@ -92,7 +92,7 @@ public static class CopilotSpanRecorder
     // =========================================================================
 
     /// <summary>
-    ///     Records the response model on a span per OTel 1.39.
+    ///     Records the response model on a span per OTel 1.40.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     /// <param name="responseModel">The model that generated the response.</param>
@@ -104,7 +104,7 @@ public static class CopilotSpanRecorder
     }
 
     /// <summary>
-    ///     Records the finish reasons on a span per OTel 1.39.
+    ///     Records the finish reasons on a span per OTel 1.40.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>
     /// <param name="finishReasons">Array of reasons the model stopped generating tokens.</param>
@@ -120,7 +120,7 @@ public static class CopilotSpanRecorder
     // =========================================================================
 
     /// <summary>
-    ///     Records the data source ID on a span per OTel 1.39.
+    ///     Records the data source ID on a span per OTel 1.40.
     ///     Used when workflows reference knowledge sources.
     /// </summary>
     /// <param name="activity">The activity to record on.</param>

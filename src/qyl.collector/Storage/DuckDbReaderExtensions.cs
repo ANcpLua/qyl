@@ -277,7 +277,7 @@ public sealed partial record SpanStorageRow
     // Resource attributes
     public string? ServiceName { get; init; }
 
-    // GenAI attributes (OTel 1.39 - gen_ai.system is the provider name)
+    // GenAI attributes (OTel 1.40 - gen_ai.system is the provider name)
     public string? GenAiProviderName { get; init; }
     public string? GenAiRequestModel { get; init; }
     public string? GenAiResponseModel { get; init; }

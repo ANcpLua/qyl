@@ -308,7 +308,7 @@ internal static class GenAiInterceptorEmitter
     ///     Falls back to literal string for unknown operations.
     /// </summary>
     /// <remarks>
-    ///     Operation IDs follow OTel Semantic Conventions v1.39 gen_ai.operation.name values.
+    ///     Operation IDs follow OTel Semantic Conventions v1.40 gen_ai.operation.name values.
     ///     Operations not yet in GenAiAttributes use string literals until protocol is updated.
     /// </remarks>
     private static string GetOperationConstant(string operationId) =>

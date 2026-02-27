@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Workflow Checkpoint Storage Model (OTel v1.39)
+// QYL v2.0 - Workflow Checkpoint Storage Model (OTel v1.40)
 // =============================================================================
 // Checkpoint state persistence for workflow execution recovery.
 // Enables resume-from-checkpoint after failures or cancellations.

@@ -4,6 +4,178 @@
  */
 
 export interface paths {
+    "/api/v1/alerts/firings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List alert firings */
+        get: operations["AlertsApi_listFirings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/fixes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List fix runs */
+        get: operations["AlertsApi_listFixRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/fixes/{fixId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get fix run by ID */
+        get: operations["AlertsApi_getFixRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List alert rules */
+        get: operations["AlertsApi_listRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/alerts/rules/{ruleId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get alert rule by ID */
+        get: operations["AlertsApi_getRule"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Create a generation job */
+        post: operations["ConfiguratorApi_createJob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/jobs/{jobId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get generation job status */
+        get: operations["ConfiguratorApi_getJob"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List generation profiles */
+        get: operations["ConfiguratorApi_listProfiles"];
+        put?: never;
+        /** @description Create generation profile */
+        post: operations["ConfiguratorApi_createProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/profiles/{profileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get generation profile by ID */
+        get: operations["ConfiguratorApi_getProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/configurator/selections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get generation selections for a workspace */
+        get: operations["ConfiguratorApi_getSelections"];
+        put?: never;
+        /** @description Save generation selections */
+        post: operations["ConfiguratorApi_saveSelections"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/deployments": {
         parameters: {
             query?: never;
@@ -126,15 +298,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exceptions": {
+    "/api/v1/issues": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description List exceptions */
-        get: operations["ExceptionsApi_list"];
+        /** @description List error issues */
+        get: operations["IssuesApi_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -143,15 +315,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/exceptions/stats": {
+    "/api/v1/issues/{issueId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get exception statistics */
-        get: operations["ExceptionsApi_getStats"];
+        /** @description Get issue by ID */
+        get: operations["IssuesApi_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description Update issue status */
+        patch: operations["IssuesApi_update"];
+        trace?: never;
+    };
+    "/api/v1/issues/{issueId}/breadcrumbs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get issue breadcrumbs */
+        get: operations["IssuesApi_getBreadcrumbs"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/issues/{issueId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get issue events */
+        get: operations["IssuesApi_getEvents"];
         put?: never;
         post?: never;
         delete?: never;
@@ -296,15 +503,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/pipelines": {
+    "/api/v1/onboarding/handshake": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description List pipeline runs */
-        get: operations["PipelinesApi_list"];
+        get?: never;
+        put?: never;
+        /** @description Start a new handshake session */
+        post: operations["OnboardingApi_startHandshake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/onboarding/handshake/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get handshake session status */
+        get: operations["OnboardingApi_getHandshake"];
         put?: never;
         post?: never;
         delete?: never;
@@ -313,15 +537,49 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/pipelines/stats": {
+    "/api/v1/onboarding/handshake/{sessionId}/verify": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** @description Get pipeline statistics */
-        get: operations["PipelinesApi_getStats"];
+        get?: never;
+        put?: never;
+        /** @description Complete handshake verification */
+        post: operations["OnboardingApi_verifyHandshake"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Unified search across all entity types */
+        post: operations["SearchApi_search"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get search suggestions */
+        get: operations["SearchApi_getSuggestions"];
         put?: never;
         post?: never;
         delete?: never;
@@ -500,23 +758,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/stream/exceptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Stream exceptions in real-time */
-        get: operations["StreamingApi_streamExceptions"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/stream/logs": {
         parameters: {
             query?: never;
@@ -653,6 +894,194 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/workflows/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List workflow runs */
+        get: operations["WorkflowsApi_listRuns"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/runs/{runId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get workflow run by ID */
+        get: operations["WorkflowsApi_getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/runs/{runId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get workflow events */
+        get: operations["WorkflowsApi_getRunEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/runs/{runId}/nodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get workflow run nodes */
+        get: operations["WorkflowsApi_getRunNodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/runs/{runId}/nodes/{nodeId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approve a pending workflow step */
+        post: operations["WorkflowsApi_approveStep"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workflows/runs/{runId}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Resume a paused workflow */
+        post: operations["WorkflowsApi_resumeRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get current workspace envelope */
+        get: operations["WorkspacesApi_getCurrent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/current/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Register workspace heartbeat */
+        post: operations["WorkspacesApi_heartbeat"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List projects */
+        get: operations["WorkspacesApi_listProjects"];
+        put?: never;
+        /** @description Create a new project */
+        post: operations["WorkspacesApi_createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/projects/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Get project by ID */
+        get: operations["WorkspacesApi_getProject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/workspaces/projects/{projectId}/environments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description List environments for a project */
+        get: operations["WorkspacesApi_listEnvironments"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -705,9 +1134,7 @@ export interface paths {
         trace?: never;
     };
 }
-
 export type webhooks = Record<string, never>;
-
 export interface components {
     schemas: {
         /** @enum {string} */
@@ -777,6 +1204,61 @@ export interface components {
             /** @description Issue URL */
             issue_url?: components["schemas"]["Qyl.Common.UrlString"];
         };
+        /** @description Generation job creation request */
+        GenerationJobCreateRequest: {
+            /** @description Workspace ID */
+            workspace_id: string;
+            /** @description Profile ID */
+            profile_id: string;
+            /** @description Job type */
+            job_type: components["schemas"]["Qyl.Domains.Configurator.GenerationJobType"];
+        };
+        /** @description Generation profile creation request */
+        GenerationProfileCreateRequest: {
+            /** @description Profile name */
+            name: string;
+            /** @description Target framework */
+            target_framework: string;
+            /** @description Profile description */
+            description?: string;
+            /** @description Feature flags */
+            features_json?: string;
+        };
+        /** @description Save generation selections request */
+        GenerationSelectionSaveRequest: {
+            /** @description Workspace ID */
+            workspace_id: string;
+            /** @description Profile ID */
+            profile_id: string;
+            /** @description Selected semconv keys */
+            selected_keys_json: string;
+        };
+        /** @description Handshake start request */
+        HandshakeStartRequest: {
+            /** @description PKCE code challenge */
+            code_challenge: string;
+            /** @description Client identifier */
+            client_id: string;
+        };
+        /** @description Handshake verification request */
+        HandshakeVerifyRequest: {
+            /** @description PKCE code verifier */
+            code_verifier: string;
+            /** @description Authorization code */
+            code: string;
+        };
+        /** @description Handshake verification response */
+        HandshakeVerifyResponse: {
+            /** @description Access token */
+            access_token: string;
+            /**
+             * Format: date-time
+             * @description Token expiration
+             */
+            expires_at: string;
+            /** @description Workspace ID */
+            workspace_id: string;
+        };
         /** @description Health check response */
         HealthResponse: {
             /** @description Service status */
@@ -789,10 +1271,21 @@ export interface components {
              */
             uptime_seconds: number;
             /** @description Component health */
-            components?: Record<string, never>;
+            components?: {
+                [key: string]: components["schemas"]["HealthStatus"];
+            };
         };
         /** @enum {string} */
         HealthStatus: "healthy" | "degraded" | "unhealthy";
+        /** @description Issue update request */
+        IssueUpdateRequest: {
+            /** @description New status */
+            status?: components["schemas"]["Qyl.Domains.Issues.IssueStatus"];
+            /** @description New priority */
+            priority?: components["schemas"]["Qyl.Domains.Issues.IssuePriority"];
+            /** @description Assignee */
+            assigned_to?: string;
+        };
         /** @description Log aggregation bucket */
         LogAggregationBucket: {
             /** @description Bucket key (group by value) */
@@ -857,7 +1350,9 @@ export interface components {
             /** @description Metric name */
             metric_name: string;
             /** @description Label filters */
-            filters?: Record<string, never>;
+            filters?: {
+                [key: string]: string;
+            };
             /**
              * Format: date-time
              * @description Start time
@@ -885,7 +1380,9 @@ export interface components {
         /** @description Metric time series */
         MetricTimeSeries: {
             /** @description Labels */
-            labels: Record<string, never>;
+            labels: {
+                [key: string]: string;
+            };
             /** @description Data points */
             points: components["schemas"]["MetricDataPoint"][];
         };
@@ -910,33 +1407,14 @@ export interface components {
              */
             p99_duration_ms: number;
         };
-        /** @description Pipeline statistics */
-        PipelineStats: {
-            /** @description Total runs */
-            total_runs: components["schemas"]["Qyl.Common.Count"];
-            /** @description Success rate */
-            success_rate: components["schemas"]["Qyl.Common.Ratio"];
-            /**
-             * Format: double
-             * @description Average duration in seconds
-             */
-            avg_duration_seconds: number;
-            /**
-             * Format: double
-             * @description P95 duration in seconds
-             */
-            p95_duration_seconds: number;
-            /** @description Runs by status */
-            by_status: components["schemas"]["PipelineStatusStats"][];
-        };
-        /** @description Pipeline status statistics */
-        PipelineStatusStats: {
-            /** @description Status */
-            status: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
-            /** @description Count */
-            count: components["schemas"]["Qyl.Common.Count"];
-            /** @description Percentage */
-            percentage: components["schemas"]["Qyl.Common.Percentage"];
+        /** @description Project creation request */
+        ProjectCreateRequest: {
+            /** @description Project name */
+            name: string;
+            /** @description Project slug (URL-safe) */
+            slug: string;
+            /** @description Project description */
+            description?: string;
         };
         /** @description Key-value attribute pair following OTel conventions */
         "Qyl.Common.Attribute": {
@@ -1140,57 +1618,293 @@ export interface components {
         "Qyl.Common.UserAgent": string;
         /** @description User identifier (pseudonymized for privacy) */
         "Qyl.Common.UserId": string;
-        /** @description Precise source code location for debugging and tracing */
-        "Qyl.Domains.AI.Code.CodeLocation": {
-            /** @description Source file path */
-            filepath: string;
+        /** @description Triggered alert instance */
+        "Qyl.Domains.Alerting.AlertFiringEntity": {
+            /** @description Firing ID */
+            id: string;
+            /** @description Source rule */
+            rule_id: string;
+            /** @description Dedup fingerprint */
+            fingerprint: string;
+            /** @description Alert severity */
+            severity: components["schemas"]["Qyl.Domains.Alerting.AlertSeverity"];
+            /** @description Alert title */
+            title: string;
+            /** @description Alert message */
+            message?: string;
             /**
-             * Format: int32
-             * @description Line number (1-indexed)
+             * Format: double
+             * @description Measured value that triggered the alert
              */
-            line_number: number;
+            trigger_value?: number;
             /**
-             * Format: int32
-             * @description Column number (1-indexed)
+             * Format: double
+             * @description Threshold value
              */
-            column_number?: number;
-            /** @description Function/method name */
-            function_name?: string;
-            /** @description Class/type name */
-            class_name?: string;
-            /** @description Namespace/module */
-            namespace?: string;
+            threshold_value?: number;
+            /** @description Additional context */
+            context_json?: string;
+            /** @description Firing status */
+            status: components["schemas"]["Qyl.Domains.Alerting.AlertFiringStatus"];
+            /**
+             * Format: date-time
+             * @description Acknowledgment timestamp
+             */
+            acknowledged_at?: string;
+            /** @description Acknowledged by */
+            acknowledged_by?: string;
+            /**
+             * Format: date-time
+             * @description Resolution timestamp
+             */
+            resolved_at?: string;
+            /**
+             * Format: date-time
+             * @description Firing timestamp
+             */
+            fired_at: string;
+            /** @description Dedup key for suppressing duplicates */
+            dedup_key?: string;
         };
-        /** @description Single frame in a call stack */
-        "Qyl.Domains.AI.Code.StackFrame": {
+        /**
+         * @description Alert firing status
+         * @enum {string}
+         */
+        "Qyl.Domains.Alerting.AlertFiringStatus": "firing" | "acknowledged" | "resolved" | "suppressed";
+        /** @description Alert rule definition */
+        "Qyl.Domains.Alerting.AlertRuleEntity": {
+            /** @description Rule ID */
+            id: string;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Rule name */
+            name: string;
+            /** @description Rule description */
+            description?: string;
+            /** @description Rule type */
+            rule_type: components["schemas"]["Qyl.Domains.Alerting.AlertRuleType"];
+            /** @description Condition definition */
+            condition_json: string;
+            /** @description Threshold definition */
+            threshold_json?: string;
+            /** @description Target type for evaluation */
+            target_type: string;
+            /** @description Target filter */
+            target_filter_json?: string;
+            /** @description Alert severity */
+            severity: components["schemas"]["Qyl.Domains.Alerting.AlertSeverity"];
             /**
              * Format: int32
-             * @description Frame index (0 = top of stack)
+             * @description Cooldown between firings in seconds
              */
-            index: number;
-            /** @description Source location */
-            location: components["schemas"]["Qyl.Domains.AI.Code.CodeLocation"];
-            /** @description Whether this is user code (not library/framework) */
-            is_user_code?: boolean;
-            /** @description Assembly/module name */
-            module_name?: string;
-            /** @description Assembly/module version */
-            module_version?: components["schemas"]["Qyl.Common.SemVer"];
-            /** @description Native/managed indicator */
-            is_native?: boolean;
+            cooldown_seconds: number;
+            /** @description Notification channels */
+            notification_channels_json?: string;
+            /** @description Whether rule is enabled */
+            enabled: boolean;
+            /**
+             * Format: date-time
+             * @description Last trigger timestamp
+             */
+            last_triggered_at?: string;
+            /**
+             * Format: int64
+             * @description Total trigger count
+             */
+            trigger_count: number;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
         };
-        /** @description Full stack trace */
-        "Qyl.Domains.AI.Code.StackTrace": {
-            /** @description Stack frames (top to bottom) */
-            frames: components["schemas"]["Qyl.Domains.AI.Code.StackFrame"][];
-            /** @description Whether the stack was truncated */
-            truncated?: boolean;
+        /**
+         * @description Alert rule types
+         * @enum {string}
+         */
+        "Qyl.Domains.Alerting.AlertRuleType": "threshold" | "error_rate" | "new_issue" | "regression" | "burn_rate" | "anomaly" | "custom";
+        /**
+         * @description Alert severity levels
+         * @enum {string}
+         */
+        "Qyl.Domains.Alerting.AlertSeverity": "critical" | "warning" | "info";
+        /** @description AI-assisted fix attempt */
+        "Qyl.Domains.Alerting.FixRunEntity": {
+            /** @description Fix run ID */
+            id: string;
+            /** @description Target issue */
+            issue_id: string;
+            /** @description Triggering alert firing */
+            alert_firing_id?: string;
+            /** @description What triggered the fix */
+            trigger_type: components["schemas"]["Qyl.Domains.Alerting.FixTriggerType"];
+            /** @description Fix strategy */
+            strategy: string;
+            /** @description AI model used */
+            model_name?: string;
+            /** @description AI provider */
+            model_provider?: string;
+            /** @description Fix run status */
+            status: components["schemas"]["Qyl.Domains.Alerting.FixRunStatus"];
+            /** @description Error message if failed */
+            error_message?: string;
             /**
              * Format: int32
-             * @description Total frame count before truncation
+             * @description Tokens consumed
              */
-            total_frames?: number;
+            tokens_used?: number;
+            /**
+             * Format: int32
+             * @description Duration in milliseconds
+             */
+            duration_ms?: number;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description Completion timestamp
+             */
+            completed_at?: string;
         };
+        /**
+         * @description Fix run status
+         * @enum {string}
+         */
+        "Qyl.Domains.Alerting.FixRunStatus": "pending" | "running" | "awaiting_approval" | "applied" | "rejected" | "failed";
+        /**
+         * @description Fix trigger types
+         * @enum {string}
+         */
+        "Qyl.Domains.Alerting.FixTriggerType": "alert" | "manual" | "mcp" | "scheduled";
+        /** @description Code generation job entry */
+        "Qyl.Domains.Configurator.GenerationJobEntity": {
+            /** @description Job ID */
+            id: string;
+            /** @description Workspace */
+            workspace_id: string;
+            /** @description Profile */
+            profile_id: string;
+            /** @description Job type */
+            job_type: components["schemas"]["Qyl.Domains.Configurator.GenerationJobType"];
+            /** @description Job status */
+            status: components["schemas"]["Qyl.Domains.Configurator.JobStatus"];
+            /**
+             * Format: int32
+             * @description Priority (higher = more urgent)
+             */
+            priority: number;
+            /** @description Hash of inputs for dedup */
+            input_hash?: string;
+            /** @description Local path where output was written */
+            output_path?: string;
+            /** @description Hash of generated output */
+            output_hash?: string;
+            /** @description Error message if failed */
+            error_message?: string;
+            /**
+             * Format: date-time
+             * @description Queue timestamp
+             */
+            queued_at: string;
+            /**
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description Completion timestamp
+             */
+            completed_at?: string;
+            /**
+             * Format: int32
+             * @description Duration in milliseconds
+             */
+            duration_ms?: number;
+        };
+        /**
+         * @description Generation job types
+         * @enum {string}
+         */
+        "Qyl.Domains.Configurator.GenerationJobType": "full" | "incremental" | "preview";
+        /** @description Named instrumentation profile for code generation */
+        "Qyl.Domains.Configurator.GenerationProfileEntity": {
+            /** @description Profile ID */
+            id: string;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Profile name */
+            name: string;
+            /** @description Profile description */
+            description?: string;
+            /** @description Target framework (e.g. net10.0) */
+            target_framework: string;
+            /** @description Target language */
+            target_language: string;
+            /** @description Semantic conventions version */
+            semconv_version: string;
+            /** @description Enabled features/modules */
+            features_json: string;
+            /** @description Template customizations */
+            template_overrides_json?: string;
+            /** @description Whether this is the default profile */
+            is_default: boolean;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
+        };
+        /** @description Selected semconv/feature per workspace for code generation */
+        "Qyl.Domains.Configurator.GenerationSelectionEntity": {
+            /** @description Selection ID */
+            id: string;
+            /** @description Workspace */
+            workspace_id: string;
+            /** @description Profile */
+            profile_id: string;
+            /** @description Selection type (semconv_group, feature, custom_attribute) */
+            selection_type: string;
+            /** @description Selection key (e.g. http, db, genai) */
+            selection_key: string;
+            /** @description Whether enabled */
+            enabled: boolean;
+            /** @description Selection-specific configuration */
+            config_json?: string;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
+        };
+        /**
+         * @description Job lifecycle status
+         * @enum {string}
+         */
+        "Qyl.Domains.Configurator.JobStatus": "queued" | "running" | "completed" | "failed" | "cancelled";
         /** @description Service dependency map */
         "Qyl.Domains.Identity.ServiceDependency": {
             /** @description Source service */
@@ -1207,6 +1921,173 @@ export interface components {
              */
             avg_latency_ms: number;
         };
+        /**
+         * @description Breadcrumb types
+         * @enum {string}
+         */
+        "Qyl.Domains.Issues.BreadcrumbType": "navigation" | "http" | "query" | "user" | "log" | "error" | "debug" | "default";
+        /** @description Pre-error context breadcrumb */
+        "Qyl.Domains.Issues.ErrorBreadcrumbEntity": {
+            /** @description Breadcrumb ID */
+            id: string;
+            /** @description Parent event */
+            event_id: string;
+            /** @description Breadcrumb type */
+            breadcrumb_type: components["schemas"]["Qyl.Domains.Issues.BreadcrumbType"];
+            /** @description Category (e.g. http, db, ui) */
+            category?: string;
+            /** @description Breadcrumb message */
+            message?: string;
+            /** @description Severity level */
+            level: string;
+            /** @description Breadcrumb data */
+            data_json?: string;
+            /**
+             * Format: date-time
+             * @description Breadcrumb timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Error issue aggregate with lifecycle tracking */
+        "Qyl.Domains.Issues.ErrorIssueEntity": {
+            /** @description Issue ID */
+            id: string;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Error fingerprint for grouping */
+            fingerprint: string;
+            /** @description Issue title */
+            title: string;
+            /** @description Culprit (function/module causing the error) */
+            culprit?: string;
+            /** @description Error type (exception class name or code) */
+            error_type: string;
+            /** @description Error category */
+            category: string;
+            /** @description Severity level */
+            level: components["schemas"]["Qyl.Domains.Issues.IssueLevel"];
+            /** @description Platform (csharp, javascript, python, etc.) */
+            platform?: string;
+            /**
+             * Format: date-time
+             * @description First occurrence
+             */
+            first_seen_at: string;
+            /**
+             * Format: date-time
+             * @description Last occurrence
+             */
+            last_seen_at: string;
+            /**
+             * Format: int64
+             * @description Total occurrence count
+             */
+            occurrence_count: number;
+            /**
+             * Format: int32
+             * @description Affected unique users count
+             */
+            affected_users_count: number;
+            /** @description Issue status */
+            status: components["schemas"]["Qyl.Domains.Issues.IssueStatus"];
+            /** @description Issue substatus */
+            substatus?: string;
+            /** @description Priority level */
+            priority: components["schemas"]["Qyl.Domains.Issues.IssuePriority"];
+            /** @description Assigned team member */
+            assigned_to?: string;
+            /**
+             * Format: date-time
+             * @description Resolution timestamp
+             */
+            resolved_at?: string;
+            /** @description Resolved by */
+            resolved_by?: string;
+            /**
+             * Format: int32
+             * @description Number of regressions
+             */
+            regression_count: number;
+            /** @description Last associated release */
+            last_release?: string;
+            /** @description Issue tags */
+            tags_json?: string;
+            /** @description Issue metadata */
+            metadata_json?: string;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
+        };
+        /** @description Individual error occurrence linked to an issue */
+        "Qyl.Domains.Issues.ErrorIssueEventEntity": {
+            /** @description Event ID */
+            id: string;
+            /** @description Parent issue */
+            issue_id: string;
+            /** @description Associated trace ID */
+            trace_id?: string;
+            /** @description Associated span ID */
+            span_id?: string;
+            /** @description Error message */
+            message?: string;
+            /** @description Stack trace */
+            stack_trace?: string;
+            /** @description Parsed stack frames */
+            stack_frames_json?: string;
+            /** @description Environment (dev, staging, prod) */
+            environment?: string;
+            /** @description Release version */
+            release_version?: string;
+            /** @description Affected user ID */
+            user_id?: string;
+            /** @description Client IP address */
+            user_ip?: string;
+            /** @description Request URL */
+            request_url?: string;
+            /** @description HTTP request method */
+            request_method?: string;
+            /** @description Browser info */
+            browser?: string;
+            /** @description Operating system */
+            os?: string;
+            /** @description Device info */
+            device?: string;
+            /** @description Runtime name */
+            runtime?: string;
+            /** @description Runtime version */
+            runtime_version?: string;
+            /** @description Additional context data */
+            context_json?: string;
+            /** @description Event tags */
+            tags_json?: string;
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /**
+         * @description Issue severity level
+         * @enum {string}
+         */
+        "Qyl.Domains.Issues.IssueLevel": "debug" | "info" | "warning" | "error" | "fatal";
+        /**
+         * @description Issue priority
+         * @enum {string}
+         */
+        "Qyl.Domains.Issues.IssuePriority": "critical" | "high" | "medium" | "low";
+        /**
+         * @description Issue lifecycle status
+         * @enum {string}
+         */
+        "Qyl.Domains.Issues.IssueStatus": "unresolved" | "acknowledged" | "investigating" | "in_progress" | "resolved" | "ignored" | "regressed";
         /** @description Correlated error */
         "Qyl.Domains.Observe.Error.CorrelatedError": {
             /** @description Error ID */
@@ -1339,111 +2220,6 @@ export interface components {
          * @enum {string}
          */
         "Qyl.Domains.Observe.Error.TemporalRelationship": "concurrent" | "precedes" | "follows" | "unrelated";
-        /** @description Enriched exception with parsed stack trace */
-        "Qyl.Domains.Observe.Exceptions.EnrichedException": {
-            /** @description Exception type/class name */
-            exception_type: string;
-            /** @description Exception message */
-            message: string;
-            /** @description Parsed stack trace */
-            stack_trace?: components["schemas"]["Qyl.Domains.AI.Code.StackTrace"];
-            /** @description Exception cause/inner exception */
-            cause?: components["schemas"]["Qyl.Domains.Observe.Exceptions.EnrichedException"];
-            /** @description Additional exception data */
-            data?: components["schemas"]["Qyl.Common.Attribute"][];
-            /** @description Exception fingerprint (for grouping) */
-            fingerprint?: string;
-            /**
-             * Format: date-time
-             * @description First occurrence timestamp
-             */
-            first_seen?: string;
-            /**
-             * Format: date-time
-             * @description Last occurrence timestamp
-             */
-            last_seen?: string;
-            /** @description Occurrence count */
-            occurrence_count?: components["schemas"]["Qyl.Common.Count"];
-            /** @description Affected users count */
-            affected_users?: components["schemas"]["Qyl.Common.Count"];
-            /** @description Status */
-            status?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
-        };
-        /** @description Exception event following OTel spec */
-        "Qyl.Domains.Observe.Exceptions.ExceptionEvent": {
-            /**
-             * @description Event name (always 'exception')
-             * @enum {string}
-             */
-            "event.name": "exception";
-            /** @description Exception type/class name */
-            "exception.type": string;
-            /** @description Exception message */
-            "exception.message": string;
-            /** @description Exception stacktrace */
-            "exception.stacktrace"?: string;
-            /** @description Whether the exception escaped */
-            "exception.escaped": boolean;
-            /**
-             * Format: date-time
-             * @description Event timestamp
-             */
-            timestamp: string;
-            /** @description Associated trace ID */
-            trace_id?: components["schemas"]["Qyl.Common.TraceId"];
-            /** @description Associated span ID */
-            span_id?: components["schemas"]["Qyl.Common.SpanId"];
-        };
-        /** @description Exception stats by service */
-        "Qyl.Domains.Observe.Exceptions.ExceptionServiceStats": {
-            /** @description Service name */
-            service_name: string;
-            /** @description Exception count */
-            count: components["schemas"]["Qyl.Common.Count"];
-            /**
-             * Format: double
-             * @description Exception rate (per minute)
-             */
-            rate_per_minute: number;
-        };
-        /** @description Exception statistics */
-        "Qyl.Domains.Observe.Exceptions.ExceptionStats": {
-            /** @description Total exception count */
-            total_count: components["schemas"]["Qyl.Common.Count"];
-            /**
-             * Format: int32
-             * @description Unique exception types
-             */
-            unique_types: number;
-            /** @description Exceptions by type */
-            by_type: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionTypeStats"][];
-            /** @description Most affected services */
-            by_service?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionServiceStats"][];
-            /** @description Exception trend (up/down/stable) */
-            trend?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionTrend"];
-        };
-        /**
-         * @description Exception status
-         * @enum {string}
-         */
-        "Qyl.Domains.Observe.Exceptions.ExceptionStatus": "new" | "investigating" | "in_progress" | "resolved" | "ignored" | "regressed";
-        /**
-         * @description Exception trend
-         * @enum {string}
-         */
-        "Qyl.Domains.Observe.Exceptions.ExceptionTrend": "up" | "down" | "stable";
-        /** @description Exception stats by type */
-        "Qyl.Domains.Observe.Exceptions.ExceptionTypeStats": {
-            /** @description Exception type */
-            exception_type: string;
-            /** @description Count */
-            count: components["schemas"]["Qyl.Common.Count"];
-            /** @description Percentage of total */
-            percentage: components["schemas"]["Qyl.Common.Percentage"];
-            /** @description Status */
-            status: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
-        };
         /**
          * @description Aggregation functions
          * @enum {string}
@@ -1635,6 +2411,8 @@ export interface components {
              * @description Total error count in session
              */
             error_count: number;
+            /** @description Service names observed in this session */
+            services: string[];
             /** @description Session state */
             state: components["schemas"]["Qyl.Domains.Observe.Session.SessionState"];
             /** @description Client information */
@@ -1708,52 +2486,6 @@ export interface components {
             by_device_type?: components["schemas"]["Qyl.Domains.Observe.Session.SessionDeviceStats"][];
             /** @description Sessions by country */
             by_country?: components["schemas"]["Qyl.Domains.Observe.Session.SessionCountryStats"][];
-        };
-        /**
-         * @description CI/CD event names
-         * @enum {string}
-         */
-        "Qyl.Domains.Ops.Cicd.CicdEventName": "cicd.pipeline.start" | "cicd.pipeline.end" | "cicd.task.start" | "cicd.task.end" | "cicd.deployment.start" | "cicd.deployment.end";
-        /**
-         * @description CI/CD pipeline status
-         * @enum {string}
-         */
-        "Qyl.Domains.Ops.Cicd.CicdPipelineStatus": "pending" | "running" | "success" | "failed" | "cancelled" | "skipped";
-        /**
-         * @description CI/CD systems/providers
-         * @enum {string}
-         */
-        "Qyl.Domains.Ops.Cicd.CicdSystem": "github_actions" | "gitlab_ci" | "jenkins" | "azure_devops" | "circleci" | "travis_ci" | "bitbucket_pipelines" | "teamcity" | "bamboo" | "drone_ci" | "buildkite" | "tekton" | "argocd" | "flux" | "spinnaker" | "other";
-        /**
-         * @description CI/CD trigger types
-         * @enum {string}
-         */
-        "Qyl.Domains.Ops.Cicd.CicdTriggerType": "push" | "pull_request" | "manual" | "schedule" | "api" | "webhook" | "dependency" | "tag" | "release";
-        /** @description Pipeline run event */
-        "Qyl.Domains.Ops.Cicd.PipelineRunEvent": {
-            /** @description Event name */
-            "event.name": components["schemas"]["Qyl.Domains.Ops.Cicd.CicdEventName"];
-            /** @description Pipeline name */
-            "cicd.pipeline.name": string;
-            /** @description Pipeline run ID */
-            "cicd.pipeline.run.id": string;
-            /** @description Pipeline status */
-            status: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
-            /** @description CI/CD system */
-            system: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdSystem"];
-            /** @description Trigger type */
-            trigger_type?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdTriggerType"];
-            /** @description Git branch */
-            "vcs.repository.ref.name"?: string;
-            /** @description Git commit SHA */
-            "vcs.repository.ref.revision"?: string;
-            /** @description Duration in seconds */
-            duration_s?: components["schemas"]["Qyl.Common.DurationS"];
-            /**
-             * Format: date-time
-             * @description Event timestamp
-             */
-            timestamp: string;
         };
         /** @description Complete deployment record */
         "Qyl.Domains.Ops.Deployment.DeploymentEntity": {
@@ -1843,6 +2575,352 @@ export interface components {
          */
         "Qyl.Domains.Ops.Deployment.DeploymentStrategy": "rolling" | "blue_green" | "canary" | "recreate" | "ab_test" | "shadow" | "feature_flag";
         /**
+         * @description Searchable entity types
+         * @enum {string}
+         */
+        "Qyl.Domains.Search.SearchEntityType": "span" | "log" | "issue" | "workflow" | "deployment" | "session" | "alert" | "fix";
+        /** @description Unified search request */
+        "Qyl.Domains.Search.SearchRequest": {
+            /** @description Search query text */
+            query: string;
+            /** @description Entity type filters */
+            entity_types?: components["schemas"]["Qyl.Domains.Search.SearchEntityType"][];
+            /** @description Project scope */
+            project_id?: string;
+            /**
+             * Format: int32
+             * @description Maximum results
+             * @default 20
+             */
+            limit: number;
+            /** @description Cursor for pagination */
+            cursor?: string;
+        };
+        /** @description Unified search response */
+        "Qyl.Domains.Search.SearchResponse": {
+            /** @description Search results */
+            results: components["schemas"]["Qyl.Domains.Search.SearchResult"][];
+            /**
+             * Format: int64
+             * @description Total matching documents
+             */
+            total_count: number;
+            /**
+             * Format: int32
+             * @description Query execution time in ms
+             */
+            duration_ms: number;
+            /** @description Next page cursor */
+            next_cursor?: string;
+            /** @description Search suggestions */
+            suggestions?: string[];
+        };
+        /** @description Individual search result */
+        "Qyl.Domains.Search.SearchResult": {
+            /** @description Document ID */
+            document_id: string;
+            /** @description Entity type */
+            entity_type: components["schemas"]["Qyl.Domains.Search.SearchEntityType"];
+            /** @description Entity ID */
+            entity_id: string;
+            /** @description Result title */
+            title: string;
+            /** @description Result snippet with highlights */
+            snippet?: string;
+            /**
+             * Format: double
+             * @description Relevance score
+             */
+            score: number;
+            /** @description Link to entity */
+            url?: string;
+        };
+        /** @description Append-only workflow event */
+        "Qyl.Domains.Workflow.WorkflowEventEntity": {
+            /** @description Event ID */
+            id: string;
+            /** @description Parent run */
+            run_id: string;
+            /** @description Source node (null for run-level events) */
+            node_id?: string;
+            /** @description Event type */
+            event_type: string;
+            /** @description Event name */
+            event_name: string;
+            /** @description Event payload */
+            payload_json?: string;
+            /**
+             * Format: int64
+             * @description Monotonic sequence number
+             */
+            sequence_number: number;
+            /** @description Event source identifier */
+            source?: string;
+            /** @description Correlation ID */
+            correlation_id?: string;
+            /**
+             * Format: date-time
+             * @description Event timestamp
+             */
+            timestamp: string;
+        };
+        /** @description Individual DAG node execution */
+        "Qyl.Domains.Workflow.WorkflowNodeEntity": {
+            /** @description Execution ID */
+            id: string;
+            /** @description Parent run */
+            run_id: string;
+            /** @description Node definition ID */
+            node_id: string;
+            /** @description Node type */
+            node_type: components["schemas"]["Qyl.Domains.Workflow.WorkflowNodeType"];
+            /** @description Node name */
+            node_name: string;
+            /**
+             * Format: int32
+             * @description Attempt number (1-based)
+             */
+            attempt: number;
+            /** @description Node input data */
+            input_json?: string;
+            /** @description Node output data */
+            output_json?: string;
+            /** @description Node status */
+            status: components["schemas"]["Qyl.Domains.Workflow.WorkflowRunStatus"];
+            /** @description Error message if failed */
+            error_message?: string;
+            /**
+             * Format: int32
+             * @description Retry count
+             */
+            retry_count: number;
+            /**
+             * Format: int32
+             * @description Maximum retries allowed
+             */
+            max_retries: number;
+            /**
+             * Format: int32
+             * @description Timeout in milliseconds
+             */
+            timeout_ms?: number;
+            /**
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description Completion timestamp
+             */
+            completed_at?: string;
+            /**
+             * Format: int32
+             * @description Duration in milliseconds
+             */
+            duration_ms?: number;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+        };
+        /**
+         * @description Workflow node types
+         * @enum {string}
+         */
+        "Qyl.Domains.Workflow.WorkflowNodeType": "agent" | "tool" | "condition" | "fork" | "join" | "approval" | "sub_workflow" | "transform" | "wait";
+        /** @description Top-level workflow execution */
+        "Qyl.Domains.Workflow.WorkflowRunEntity": {
+            /** @description Run ID */
+            id: string;
+            /** @description Workflow definition ID */
+            workflow_id: string;
+            /**
+             * Format: int32
+             * @description Workflow definition version
+             */
+            workflow_version: number;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Trigger type */
+            trigger_type: components["schemas"]["Qyl.Domains.Workflow.WorkflowTriggerType"];
+            /** @description Trigger source identifier */
+            trigger_source?: string;
+            /** @description Run input data */
+            input_json?: string;
+            /** @description Run output data */
+            output_json?: string;
+            /** @description Run status */
+            status: components["schemas"]["Qyl.Domains.Workflow.WorkflowRunStatus"];
+            /** @description Error message if failed */
+            error_message?: string;
+            /** @description Parent run ID for sub-workflows */
+            parent_run_id?: string;
+            /** @description Correlation ID for tracing */
+            correlation_id?: string;
+            /**
+             * Format: date-time
+             * @description Start timestamp
+             */
+            started_at?: string;
+            /**
+             * Format: date-time
+             * @description Completion timestamp
+             */
+            completed_at?: string;
+            /**
+             * Format: int32
+             * @description Duration in milliseconds
+             */
+            duration_ms?: number;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+        };
+        /**
+         * @description Workflow run status
+         * @enum {string}
+         */
+        "Qyl.Domains.Workflow.WorkflowRunStatus": "pending" | "running" | "paused" | "completed" | "failed" | "cancelled" | "timed_out";
+        /**
+         * @description Workflow trigger types
+         * @enum {string}
+         */
+        "Qyl.Domains.Workflow.WorkflowTriggerType": "manual" | "alert" | "schedule" | "event" | "api" | "mcp";
+        /** @description Browser-local handshake session for workspace verification */
+        "Qyl.Domains.Workspace.HandshakeSessionEntity": {
+            /** @description Session ID */
+            id: string;
+            /** @description Target workspace */
+            workspace_id: string;
+            /** @description PKCE-style challenge */
+            challenge: string;
+            /** @description Challenge method */
+            challenge_method: string;
+            /** @description Browser fingerprint */
+            browser_fingerprint?: string;
+            /** @description Origin URL */
+            origin_url?: string;
+            /** @description Handshake state */
+            state: components["schemas"]["Qyl.Domains.Workspace.HandshakeState"];
+            /**
+             * Format: date-time
+             * @description Verification timestamp
+             */
+            verified_at?: string;
+            /**
+             * Format: date-time
+             * @description Expiration timestamp
+             */
+            expires_at: string;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+        };
+        /**
+         * @description Handshake session state
+         * @enum {string}
+         */
+        "Qyl.Domains.Workspace.HandshakeState": "pending" | "verified" | "expired" | "rejected";
+        /** @description Project registry: top-level organizational unit */
+        "Qyl.Domains.Workspace.ProjectEntity": {
+            /** @description Project ID */
+            id: string;
+            /** @description Project name */
+            name: string;
+            /** @description URL-safe slug (unique) */
+            slug: string;
+            /** @description Project description */
+            description?: string;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
+            /**
+             * Format: date-time
+             * @description Archive timestamp (null if active)
+             */
+            archived_at?: string;
+        };
+        /** @description Environment row per project (dev, staging, prod) */
+        "Qyl.Domains.Workspace.ProjectEnvironmentEntity": {
+            /** @description Environment ID */
+            id: string;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Environment name (dev, staging, prod) */
+            name: string;
+            /** @description Display name for UI */
+            display_name: string;
+            /** @description Hex color for UI */
+            color?: string;
+            /**
+             * Format: int32
+             * @description Sort order for display
+             */
+            sort_order: number;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+        };
+        /** @description Workspace envelope: the local-first workspace unit */
+        "Qyl.Domains.Workspace.WorkspaceEnvelopeEntity": {
+            /** @description Workspace ID */
+            id: string;
+            /** @description Owning project */
+            project_id: string;
+            /** @description Environment */
+            environment_id: string;
+            /** @description Host node */
+            node_id: string;
+            /** @description Workspace name */
+            name: string;
+            /** @description Local filesystem root path */
+            root_path: string;
+            /**
+             * Format: date-time
+             * @description Last heartbeat timestamp
+             */
+            heartbeat_at?: string;
+            /**
+             * Format: int32
+             * @description Heartbeat interval in seconds
+             */
+            heartbeat_interval_seconds: number;
+            /** @description Workspace status */
+            status: components["schemas"]["Qyl.Domains.Workspace.WorkspaceStatus"];
+            /** @description Workspace-level configuration overrides */
+            config_json?: string;
+            /**
+             * Format: date-time
+             * @description Creation timestamp
+             */
+            created_at: string;
+            /**
+             * Format: date-time
+             * @description Last update timestamp
+             */
+            updated_at: string;
+        };
+        /**
+         * @description Workspace lifecycle status
+         * @enum {string}
+         */
+        "Qyl.Domains.Workspace.WorkspaceStatus": "active" | "suspended" | "archived";
+        /**
          * @description Aggregation temporality for metrics
          * @enum {number}
          */
@@ -1896,7 +2974,10 @@ export interface components {
         };
         /** @description Binary log body */
         "Qyl.OTel.Logs.LogBodyBytes": {
-            /** @description Binary value (base64 encoded) */
+            /**
+             * Format: byte
+             * @description Binary value (base64 encoded)
+             */
             bytes_value: string;
             /**
              * @description discriminator enum property added by openapi-typescript
@@ -2520,7 +3601,7 @@ export interface components {
             statusMessage?: string;
             /** @description Service name from resource attributes */
             serviceName?: string;
-            /** @description GenAI provider name (e.g., openai, anthropic) - OTel 1.39: gen_ai.provider.name */
+            /** @description GenAI provider name (e.g., openai, anthropic) - OTel 1.40: gen_ai.provider.name */
             genAiProviderName?: string;
             /** @description Requested model name */
             genAiRequestModel?: string;
@@ -2544,6 +3625,10 @@ export interface components {
             attributesJson?: string;
             /** @description Resource attributes as JSON */
             resourceJson?: string;
+            /** @description W3C Baggage key-value pairs as JSON for cross-cutting concern propagation */
+            baggageJson?: string;
+            /** @description OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.40.0) */
+            schemaUrl?: string;
             /**
              * Format: date-time
              * @description Row creation timestamp
@@ -2626,23 +3711,6 @@ export interface components {
              */
             timestamp: string;
         };
-        /** @description Exception stream events */
-        "Streaming.ExceptionEvents": components["schemas"]["Streaming.ExceptionStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
-        /** @description Exception stream event */
-        "Streaming.ExceptionStreamEvent": {
-            /**
-             * @description Event type
-             * @enum {string}
-             */
-            type: "exception";
-            /** @description Exception data */
-            data: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionEvent"];
-            /**
-             * Format: date-time
-             * @description Event timestamp
-             */
-            timestamp: string;
-        };
         /** @description Heartbeat event for connection keep-alive */
         "Streaming.HeartbeatEvent": {
             /**
@@ -2711,7 +3779,7 @@ export interface components {
          * @description Stream event types
          * @enum {string}
          */
-        "Streaming.StreamEventType": "traces" | "spans" | "logs" | "metrics" | "exceptions" | "deployments" | "all";
+        "Streaming.StreamEventType": "traces" | "spans" | "logs" | "metrics" | "deployments" | "all";
         /** @description Stream subscription request */
         "Streaming.StreamSubscription": {
             /** @description Event types to subscribe to */
@@ -2726,7 +3794,9 @@ export interface components {
              */
             min_severity?: number;
             /** @description Attribute filters */
-            filters?: Record<string, never>;
+            filters?: {
+                [key: string]: string;
+            };
             /**
              * Format: double
              * @description Sample rate (0.0-1.0)
@@ -2753,7 +3823,7 @@ export interface components {
             random_rate: number;
         };
         /** @description All possible stream event types */
-        "Streaming.TelemetryStreamEvent": components["schemas"]["Streaming.TraceStreamEvent"] | components["schemas"]["Streaming.SpanStreamEvent"] | components["schemas"]["Streaming.LogStreamEvent"] | components["schemas"]["Streaming.MetricStreamEvent"] | components["schemas"]["Streaming.ExceptionStreamEvent"] | components["schemas"]["Streaming.DeploymentStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
+        "Streaming.TelemetryStreamEvent": components["schemas"]["Streaming.TraceStreamEvent"] | components["schemas"]["Streaming.SpanStreamEvent"] | components["schemas"]["Streaming.LogStreamEvent"] | components["schemas"]["Streaming.MetricStreamEvent"] | components["schemas"]["Streaming.DeploymentStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
         /** @description Trace stream events */
         "Streaming.TraceEvents": components["schemas"]["Streaming.TraceStreamEvent"] | components["schemas"]["Streaming.HeartbeatEvent"];
         /** @description Trace stream event */
@@ -2807,7 +3877,9 @@ export interface components {
              */
             end_time?: string;
             /** @description Tag filters */
-            tags?: Record<string, never>;
+            tags?: {
+                [key: string]: string;
+            };
             /**
              * Format: int32
              * @description Page size
@@ -2824,10 +3896,616 @@ export interface components {
     headers: never;
     pathItems: never;
 }
-
 export type $defs = Record<string, never>;
-
 export interface operations {
+    AlertsApi_listFirings: {
+        parameters: {
+            query?: {
+                /** @description Rule ID filter */
+                ruleId?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Alerting.AlertFiringStatus"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Alerting.AlertFiringEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    AlertsApi_listFixRuns: {
+        parameters: {
+            query?: {
+                /** @description Issue ID filter */
+                issueId?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Alerting.FixRunStatus"];
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Alerting.FixRunEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    AlertsApi_getFixRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fixId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Alerting.FixRunEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    AlertsApi_listRules: {
+        parameters: {
+            query?: {
+                /** @description Project ID filter */
+                projectId?: string;
+                /** @description Enabled filter */
+                enabled?: boolean;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Alerting.AlertRuleEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    AlertsApi_getRule: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ruleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Alerting.AlertRuleEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_createJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationJobCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationJobEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_getJob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                jobId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationJobEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_listProfiles: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Configurator.GenerationProfileEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_createProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationProfileCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationProfileEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profileId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationProfileEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_getSelections: {
+        parameters: {
+            query: {
+                /** @description Workspace ID */
+                workspaceId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationSelectionEntity"][];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    ConfiguratorApi_saveSelections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerationSelectionSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Configurator.GenerationSelectionEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
     DeploymentsApi_list: {
         parameters: {
             query?: {
@@ -3374,15 +5052,17 @@ export interface operations {
             };
         };
     };
-    ExceptionsApi_list: {
+    IssuesApi_list: {
         parameters: {
             query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Exception type filter */
-                exceptionType?: string;
+                /** @description Project ID filter */
+                projectId?: string;
                 /** @description Status filter */
-                status?: components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStatus"];
+                status?: components["schemas"]["Qyl.Domains.Issues.IssueStatus"];
+                /** @description Priority filter */
+                priority?: components["schemas"]["Qyl.Domains.Issues.IssuePriority"];
+                /** @description Level filter */
+                level?: components["schemas"]["Qyl.Domains.Issues.IssueLevel"];
                 /** @description Start time */
                 startTime?: string;
                 /** @description End time */
@@ -3406,7 +5086,7 @@ export interface operations {
                 content: {
                     "application/json": {
                         /** @description List of items in this page */
-                        items: components["schemas"]["Qyl.Domains.Observe.Exceptions.EnrichedException"][];
+                        items: components["schemas"]["Qyl.Domains.Issues.ErrorIssueEntity"][];
                         /** @description Cursor for the next page (null if no more pages) */
                         next_cursor?: string;
                         /** @description Cursor for the previous page (null if first page) */
@@ -3444,18 +5124,13 @@ export interface operations {
             };
         };
     };
-    ExceptionsApi_getStats: {
+    IssuesApi_get: {
         parameters: {
-            query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                issueId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -3466,7 +5141,198 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Qyl.Domains.Observe.Exceptions.ExceptionStats"];
+                    "application/json": components["schemas"]["Qyl.Domains.Issues.ErrorIssueEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    IssuesApi_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Issues.ErrorIssueEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    IssuesApi_getBreadcrumbs: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Issues.ErrorBreadcrumbEntity"][];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    IssuesApi_getEvents: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                issueId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Issues.ErrorIssueEventEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
                 };
             };
             /** @description Internal server error (500) */
@@ -3900,29 +5766,18 @@ export interface operations {
             };
         };
     };
-    PipelinesApi_list: {
+    OnboardingApi_startHandshake: {
         parameters: {
-            query?: {
-                /** @description Pipeline name filter */
-                pipelineName?: string;
-                /** @description Status filter */
-                status?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdPipelineStatus"];
-                /** @description CI/CD system filter */
-                system?: components["schemas"]["Qyl.Domains.Ops.Cicd.CicdSystem"];
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
-                /** @description Page size */
-                limit?: number;
-                /** @description Cursor */
-                cursor?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HandshakeStartRequest"];
+            };
+        };
         responses: {
             /** @description The request has succeeded. */
             200: {
@@ -3930,16 +5785,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        /** @description List of items in this page */
-                        items: components["schemas"]["Qyl.Domains.Ops.Cicd.PipelineRunEvent"][];
-                        /** @description Cursor for the next page (null if no more pages) */
-                        next_cursor?: string;
-                        /** @description Cursor for the previous page (null if first page) */
-                        prev_cursor?: string;
-                        /** @description Whether there are more items available */
-                        has_more: boolean;
-                    };
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.HandshakeSessionEntity"];
                 };
             };
             /** @description Bad request - validation failed (400) */
@@ -3970,15 +5816,176 @@ export interface operations {
             };
         };
     };
-    PipelinesApi_getStats: {
+    OnboardingApi_getHandshake: {
         parameters: {
-            query?: {
-                /** @description Pipeline name filter */
-                pipelineName?: string;
-                /** @description Start time */
-                startTime?: string;
-                /** @description End time */
-                endTime?: string;
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.HandshakeSessionEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    OnboardingApi_verifyHandshake: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HandshakeVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandshakeVerifyResponse"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SearchApi_search: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Qyl.Domains.Search.SearchRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Search.SearchResponse"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    SearchApi_getSuggestions: {
+        parameters: {
+            query: {
+                /** @description Query prefix */
+                query: string;
+                /** @description Maximum suggestions */
+                limit?: number;
             };
             header?: never;
             path?: never;
@@ -3992,7 +5999,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PipelineStats"];
+                    "application/json": string[];
                 };
             };
             /** @description Internal server error (500) */
@@ -4485,31 +6492,6 @@ export interface operations {
             };
         };
     };
-    StreamingApi_streamExceptions: {
-        parameters: {
-            query?: {
-                /** @description Service name filter */
-                serviceName?: string;
-                /** @description Exception type filter */
-                exceptionType?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description The request has succeeded. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "text/event-stream": string;
-                };
-            };
-        };
-    };
     StreamingApi_streamLogs: {
         parameters: {
             query?: {
@@ -4863,6 +6845,647 @@ export interface operations {
             };
         };
     };
+    WorkflowsApi_listRuns: {
+        parameters: {
+            query?: {
+                /** @description Project ID filter */
+                projectId?: string;
+                /** @description Workflow ID filter */
+                workflowId?: string;
+                /** @description Status filter */
+                status?: components["schemas"]["Qyl.Domains.Workflow.WorkflowRunStatus"];
+                /** @description Start time */
+                startTime?: string;
+                /** @description End time */
+                endTime?: string;
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Workflow.WorkflowRunEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkflowsApi_getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workflow.WorkflowRunEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkflowsApi_getRunEvents: {
+        parameters: {
+            query?: {
+                /** @description After sequence number */
+                afterSequence?: number;
+                /** @description Page size */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workflow.WorkflowEventEntity"][];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkflowsApi_getRunNodes: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Workflow.WorkflowNodeEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkflowsApi_approveStep: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+                nodeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workflow.WorkflowNodeEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkflowsApi_resumeRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                runId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workflow.WorkflowRunEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_getCurrent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.WorkspaceEnvelopeEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_heartbeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.WorkspaceEnvelopeEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_listProjects: {
+        parameters: {
+            query?: {
+                /** @description Page size */
+                limit?: number;
+                /** @description Cursor */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description List of items in this page */
+                        items: components["schemas"]["Qyl.Domains.Workspace.ProjectEntity"][];
+                        /** @description Cursor for the next page (null if no more pages) */
+                        next_cursor?: string;
+                        /** @description Cursor for the previous page (null if first page) */
+                        prev_cursor?: string;
+                        /** @description Whether there are more items available */
+                        has_more: boolean;
+                    };
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.ProjectEntity"];
+                };
+            };
+            /** @description Bad request - validation failed (400) */
+            400: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.ValidationError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.ProjectEntity"];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
+    WorkspacesApi_listEnvironments: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The request has succeeded. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Domains.Workspace.ProjectEnvironmentEntity"][];
+                };
+            };
+            /** @description Resource not found (404) */
+            404: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.NotFoundError"];
+                };
+            };
+            /** @description Internal server error (500) */
+            500: {
+                headers: {
+                    /** @description Trace ID for correlation */
+                    "X-Trace-Id"?: string;
+                    /** @description Request ID for support */
+                    "X-Request-Id"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Qyl.Common.Errors.InternalServerError"];
+                };
+            };
+        };
+    };
     health_check: {
         parameters: {
             query?: never;
@@ -4934,7 +7557,6 @@ export interface operations {
         };
     };
 }
-
 type WithRequired<T, K extends keyof T> = T & {
     [P in K]-?: T[P];
 };

@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.copilot - Core Copilot Adapter
 // Wraps Microsoft.Agents.AI GitHubCopilotAgent with qyl-specific features
-// OTel 1.39 GenAI semantic conventions instrumentation
+// OTel 1.40 GenAI semantic conventions instrumentation
 // =============================================================================
 
 using System.Runtime.CompilerServices;
@@ -143,7 +143,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
     /// <summary>
     ///     Executes a chat interaction with streaming responses.
-    ///     Creates OTel spans per 1.39 GenAI semantic conventions.
+    ///     Creates OTel spans per 1.40 GenAI semantic conventions.
     ///     Tool call/result events are interleaved with content updates.
     /// </summary>
     /// <param name="prompt">The user's prompt.</param>
@@ -277,7 +277,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
     /// <summary>
     ///     Executes a chat interaction and returns the complete response.
-    ///     Creates OTel spans per 1.39 GenAI semantic conventions.
+    ///     Creates OTel spans per 1.40 GenAI semantic conventions.
     /// </summary>
     /// <param name="prompt">The user's prompt.</param>
     /// <param name="context">Optional execution context (reserved for future use).</param>

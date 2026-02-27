@@ -61,4 +61,4 @@ main.tsp -> openapi.yaml -> src/qyl.protocol/*.g.cs
 
 - Never edit `openapi.yaml`, `*.g.cs`, or `api.ts` directly
 - All changes go through TypeSpec
-- Follow OTel Semantic Conventions 1.39
+- Follow OTel Semantic Conventions 1.40

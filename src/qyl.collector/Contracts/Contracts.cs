@@ -41,7 +41,7 @@ public sealed record SpanDto
     /// <summary>W3C Baggage key-value pairs for cross-cutting concern propagation</summary>
     public IReadOnlyDictionary<string, string>? Baggage { get; init; }
 
-    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)</summary>
+    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)</summary>
     public string? SchemaUrl { get; init; }
 }
 

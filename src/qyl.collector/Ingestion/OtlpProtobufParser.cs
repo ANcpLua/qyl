@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl OTLP Ingestion - HTTP Protobuf Parser
-// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.39.0
+// Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
 using qyl.collector.Grpc;

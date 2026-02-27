@@ -2,7 +2,7 @@
 // Schema Generator - OpenAPI → C# / DuckDB
 // =============================================================================
 // Single source of truth code generation from TypeSpec-compiled OpenAPI.
-// OTel 1.39 semantic conventions, .NET 10 only.
+// OTel 1.40 semantic conventions, .NET 10 only.
 // =============================================================================
 
 using System;

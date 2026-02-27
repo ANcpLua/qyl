@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.copilot - OpenTelemetry Instrumentation
-// OTel 1.39 GenAI semantic conventions for GitHub Copilot
+// OTel 1.40 GenAI semantic conventions for GitHub Copilot
 // Metrics are auto-generated via CopilotMetrics [Meter] class
 // =============================================================================
 
@@ -11,7 +11,7 @@ namespace qyl.copilot.Instrumentation;
 
 /// <summary>
 ///     OpenTelemetry instrumentation for qyl Copilot integration.
-///     Follows OTel 1.39 GenAI semantic conventions.
+///     Follows OTel 1.40 GenAI semantic conventions.
 ///     Metrics are defined declaratively in <see cref="CopilotMetrics" />.
 /// </summary>
 public static class CopilotInstrumentation
@@ -21,7 +21,7 @@ public static class CopilotInstrumentation
     // =========================================================================
 
     /// <summary>
-    ///     gen_ai.system value for GitHub Copilot (OTel 1.39).
+    ///     gen_ai.system value for GitHub Copilot (OTel 1.40).
     /// </summary>
     public const string GenAiSystem = GenAiAttributes.Providers.GitHubCopilot;
 
@@ -31,7 +31,7 @@ public static class CopilotInstrumentation
     public const string OperationChat = GenAiAttributes.Operations.Chat;
 
     /// <summary>
-    ///     gen_ai.operation.name for workflow operations (OTel 1.39 agent span).
+    ///     gen_ai.operation.name for workflow operations (OTel 1.40 agent span).
     /// </summary>
     public const string OperationWorkflow = "invoke_agent";
 
@@ -80,7 +80,7 @@ public static class CopilotInstrumentation
     // =========================================================================
 
     /// <summary>
-    ///     Starts a chat operation span with OTel 1.39 GenAI attributes.
+    ///     Starts a chat operation span with OTel 1.40 GenAI attributes.
     /// </summary>
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartChatSpan()
@@ -97,7 +97,7 @@ public static class CopilotInstrumentation
     }
 
     /// <summary>
-    ///     Starts a workflow execution span with OTel 1.39 GenAI attributes.
+    ///     Starts a workflow execution span with OTel 1.40 GenAI attributes.
     /// </summary>
     /// <param name="workflowName">The workflow name.</param>
     /// <param name="executionId">The unique execution ID.</param>
@@ -126,7 +126,7 @@ public static class CopilotInstrumentation
     }
 
     /// <summary>
-    ///     Starts a tool execution span with OTel 1.39 GenAI attributes.
+    ///     Starts a tool execution span with OTel 1.40 GenAI attributes.
     /// </summary>
     /// <param name="toolName">The tool/function name.</param>
     /// <param name="toolCallId">The tool call ID.</param>

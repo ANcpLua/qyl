@@ -106,7 +106,7 @@ public sealed class OtlpResourceSpansProto : IProtobufParseable
     public OtlpResourceProto? Resource { get; set; }
     public List<OtlpScopeSpansProto> ScopeSpans { get; } = [];
 
-    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.39.0).</summary>
+    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.40.0).</summary>
     public string? SchemaUrl { get; set; }
 
     public void MergeFrom(ProtobufReader reader, int length)

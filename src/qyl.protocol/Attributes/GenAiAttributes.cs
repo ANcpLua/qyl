@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.protocol - GenAI & MCP Semantic Convention Attributes
-// OTel 1.39+ gen_ai.* and mcp.* attribute constants
+// OTel 1.40+ gen_ai.* and mcp.* attribute constants
 // 100% OTel semconv adherent - no custom extensions
 // Owner: qyl.protocol | Consumers: collector, mcp
 // =============================================================================
@@ -8,7 +8,7 @@
 namespace qyl.protocol.Attributes;
 
 /// <summary>
-///     OTel 1.39+ GenAI semantic convention attribute keys.
+///     OTel 1.40+ GenAI semantic convention attribute keys.
 ///     Status: Development
 ///     https://opentelemetry.io/docs/specs/semconv/gen-ai/
 /// </summary>
@@ -18,8 +18,8 @@ public static class GenAiAttributes
     // Schema & Instrumentation
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>OTel 1.39 schema URL.</summary>
-    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
+    /// <summary>OTel 1.40 schema URL.</summary>
+    public const string SchemaUrl = "https://opentelemetry.io/schemas/1.40.0";
 
     /// <summary>ActivitySource name for GenAI instrumentation.</summary>
     public const string SourceName = "OpenTelemetry.Instrumentation.GenAI";
@@ -94,6 +94,12 @@ public static class GenAiAttributes
     /// <summary>gen_ai.usage.output_tokens - The number of tokens used in the GenAI response (completion).</summary>
     public const string UsageOutputTokens = "gen_ai.usage.output_tokens";
 
+    /// <summary>gen_ai.usage.cache_read.input_tokens - The number of input tokens that were a cache read.</summary>
+    public const string UsageCacheReadInputTokens = "gen_ai.usage.cache_read.input_tokens";
+
+    /// <summary>gen_ai.usage.cache_creation.input_tokens - The number of input tokens that were a cache creation.</summary>
+    public const string UsageCacheCreationInputTokens = "gen_ai.usage.cache_creation.input_tokens";
+
     /// <summary>gen_ai.token.type - The type of token being counted.</summary>
     public const string TokenType = "gen_ai.token.type";
 
@@ -141,6 +147,9 @@ public static class GenAiAttributes
     // ═══════════════════════════════════════════════════════════════════════
     // Conversation/Session
     // ═══════════════════════════════════════════════════════════════════════
+
+    /// <summary>gen_ai.agent.version - The version of the agent.</summary>
+    public const string AgentVersion = "gen_ai.agent.version";
 
     /// <summary>gen_ai.conversation.id - The unique identifier for a conversation (session, thread).</summary>
     public const string ConversationId = "gen_ai.conversation.id";

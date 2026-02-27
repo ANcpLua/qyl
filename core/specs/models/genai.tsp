@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - GenAI Semantic Conventions (OTel v1.39)
+// QYL v2.0 - GenAI Semantic Conventions (OTel v1.40)
 // =============================================================================
 // Comprehensive AI/LLM telemetry following OpenTelemetry GenAI specifications.
 // https://opentelemetry.io/docs/specs/semconv/gen-ai/
@@ -39,15 +39,18 @@ enum GenAiVersions {
   @doc("GenAI.Agent support (OTel 1.38)")
   v1_38: "1.38.0",
 
-  @doc("Current version (OTel 1.39)")
+  @doc("RPC metadata consolidation (OTel 1.39)")
   v1_39: "1.39.0",
+
+  @doc("Current version (OTel 1.40)")
+  v1_40: "1.40.0",
 }
 
 // =============================================================================
-// GenAI Span Attributes (Complete OTel v1.39)
+// GenAI Span Attributes (Complete OTel v1.40)
 // =============================================================================
 
-@doc("GenAI span attributes following OTel Semantic Conventions v1.39")
+@doc("GenAI span attributes following OTel Semantic Conventions v1.40")
 model GenAiSpanAttributes {
   // ---------------------------------------------------------------------------
   // Provider & System (REQUIRED)
@@ -171,6 +174,16 @@ model GenAiSpanAttributes {
   @added(GenAiVersions.v1_38)
   usageOutputTokensReasoning?: TokenCount;
 
+  @doc("Number of cache read input tokens (prompt caching)")
+  @encodedName("application/json", "gen_ai.usage.cache_read.input_tokens")
+  @added(GenAiVersions.v1_40)
+  usageCacheReadInputTokens?: TokenCount;
+
+  @doc("Number of cache creation input tokens")
+  @encodedName("application/json", "gen_ai.usage.cache_creation.input_tokens")
+  @added(GenAiVersions.v1_40)
+  usageCacheCreationInputTokens?: TokenCount;
+
   // ---------------------------------------------------------------------------
   // Deprecated Attributes (for migration)
   // ---------------------------------------------------------------------------
@@ -203,6 +216,11 @@ model GenAiSpanAttributes {
   @encodedName("application/json", "gen_ai.agent.description")
   @added(GenAiVersions.v1_38)
   agentDescription?: string;
+
+  @doc("Version of the AI agent")
+  @encodedName("application/json", "gen_ai.agent.version")
+  @added(GenAiVersions.v1_40)
+  agentVersion?: string;
 
   // ---------------------------------------------------------------------------
   // Conversation & Tool Calling
@@ -237,7 +255,7 @@ model GenAiSpanAttributes {
   errorType?: GenAiErrorType;
 
   // ---------------------------------------------------------------------------
-  // Data Source & Evaluation Attributes (OTel 1.39)
+  // Data Source & Evaluation Attributes (OTel 1.40)
   // ---------------------------------------------------------------------------
 
   @doc("Identifier for the data source being used")
@@ -344,7 +362,7 @@ model GenAiSpanAttributes {
 }
 
 // =============================================================================
-// GenAI Exported Attribute Models (OTel 1.39 compliant)
+// GenAI Exported Attribute Models (OTel 1.40 compliant)
 // =============================================================================
 
 @doc("GenAI request-specific attributes")
@@ -493,13 +511,13 @@ model GenAiCostEstimate {
 // =============================================================================
 
 // =============================================================================
-// GenAI Provider Names (OTel semconv 1.39 compliant)
+// GenAI Provider Names (OTel semconv 1.40 compliant)
 // =============================================================================
 
-@doc("GenAI provider names - OTel semconv 1.39 official values")
+@doc("GenAI provider names - OTel semconv 1.40 official values")
 enum GenAiProvider {
   // ---------------------------------------------------------------------------
-  // OFFICIAL OTel semconv 1.39 values
+  // OFFICIAL OTel semconv 1.40 values
   // ---------------------------------------------------------------------------
 
   @doc("Anthropic / Claude")
@@ -577,13 +595,13 @@ enum GenAiProvider {
 }
 
 // =============================================================================
-// GenAI Operation Types (OTel semconv 1.39 compliant)
+// GenAI Operation Types (OTel semconv 1.40 compliant)
 // =============================================================================
 
-@doc("GenAI operation types - OTel semconv 1.39 official values")
+@doc("GenAI operation types - OTel semconv 1.40 official values")
 enum GenAiOperationType {
   // ---------------------------------------------------------------------------
-  // OFFICIAL OTel semconv 1.39 values
+  // OFFICIAL OTel semconv 1.40 values
   // ---------------------------------------------------------------------------
 
   @doc("Chat/conversation completion")
@@ -778,13 +796,13 @@ enum GenAiErrorType {
 }
 
 // =============================================================================
-// GenAI Token Types (OTel semconv 1.39 compliant)
+// GenAI Token Types (OTel semconv 1.40 compliant)
 // =============================================================================
 
-@doc("Token types for usage tracking - OTel semconv 1.39 official values")
+@doc("Token types for usage tracking - OTel semconv 1.40 official values")
 enum GenAiTokenType {
   // ---------------------------------------------------------------------------
-  // OFFICIAL OTel semconv 1.39 values
+  // OFFICIAL OTel semconv 1.40 values
   // ---------------------------------------------------------------------------
 
   @doc("Input/prompt tokens")
@@ -805,13 +823,13 @@ enum GenAiTokenType {
 }
 
 // =============================================================================
-// GenAI Tool Types (OTel semconv 1.39 compliant)
+// GenAI Tool Types (OTel semconv 1.40 compliant)
 // =============================================================================
 
-@doc("Tool types for GenAI function calling - OTel semconv 1.39 official values")
+@doc("Tool types for GenAI function calling - OTel semconv 1.40 official values")
 enum GenAiToolType {
   // ---------------------------------------------------------------------------
-  // OFFICIAL OTel semconv 1.39 values
+  // OFFICIAL OTel semconv 1.40 values
   // ---------------------------------------------------------------------------
 
   @doc("Function/method call")
@@ -1308,7 +1326,7 @@ model LatencyPercentiles {
 }
 
 // =============================================================================
-// Vendor-Specific Extensions (OTel 1.39)
+// Vendor-Specific Extensions (OTel 1.40)
 // =============================================================================
 
 @doc("OpenAI-specific request attributes")

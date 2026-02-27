@@ -121,7 +121,7 @@ public sealed record SpanRecord
     [JsonPropertyName("baggage_json")]
     public string? BaggageJson { get; init; }
 
-    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)</summary>
+    /// <summary>OTel schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)</summary>
     [JsonPropertyName("schema_url")]
     public string? SchemaUrl { get; init; }
 

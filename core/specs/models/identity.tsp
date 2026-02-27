@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - User/Client/Service Semantic Conventions (OTel v1.39)
+// QYL v2.0 - User/Client/Service Semantic Conventions (OTel v1.40)
 // =============================================================================
 // User, client, service, and app identity attributes.
 // =============================================================================

@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.copilot - Composable Agent Pipeline
 // Builds instrumented agent chains using Microsoft.Agents.AI primitives
-// Auto-instruments with OTel 1.39 GenAI semantic conventions
+// Auto-instruments with OTel 1.40 GenAI semantic conventions
 // =============================================================================
 
 using Microsoft.Agents.AI;

@@ -514,7 +514,7 @@ public readonly struct SpanColumn
     public static SpanColumn ServiceName => new("service_name");
 
     // =========================================================================
-    // GenAI columns (OTel 1.39 semantic conventions)
+    // GenAI columns (OTel 1.40 semantic conventions)
     // =========================================================================
     public static SpanColumn GenAiProviderName => new("gen_ai_provider_name");
     public static SpanColumn GenAiRequestModel => new("gen_ai_request_model");

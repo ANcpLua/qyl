@@ -409,7 +409,7 @@ Output: {
 ## OTel GenAI Semantic Conventions Reference
 
 qyl.bot uses only the generic, business-neutral `gen_ai.*` attributes. No vendor-specific extensions. GenAI conventions
-are in **Development** status (semconv v1.39). Instrumentations on v1.36.0 SHOULD NOT change defaults and SHOULD use
+are in **Development** status (semconv v1.40). Instrumentations on v1.36.0 SHOULD NOT change defaults and SHOULD use
 `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental` to opt into latest.
 
 ### Four Signal Types

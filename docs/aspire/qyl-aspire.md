@@ -241,7 +241,7 @@ sequencing with sequence numbers.
 
 Aspire 13.1 updates its bundled OTel SDK version. qyl.servicedefaults is qyl's equivalent of
 Aspire's OTel defaults — with source-generated compile-time interceptors ([Traced], [GenAi], [Db]),
-GenAI instrumentation, and full OTel SemConv v1.39 compliance.
+GenAI instrumentation, and full OTel SemConv v1.40 compliance.
 
 | qyl Implementation | File |
 |---|---|

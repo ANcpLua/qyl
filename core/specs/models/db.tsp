@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Database Semantic Conventions (OTel v1.39)
+// QYL v2.0 - Database Semantic Conventions (OTel v1.40)
 // =============================================================================
 // Database telemetry attributes with 45+ DBMS types.
 // =============================================================================
@@ -33,10 +33,10 @@ enum DbVersions {
 }
 
 // =============================================================================
-// Database Span Attributes (Complete OTel v1.39)
+// Database Span Attributes (Complete OTel v1.40)
 // =============================================================================
 
-@doc("Database span attributes following OTel Semantic Conventions v1.39")
+@doc("Database span attributes following OTel Semantic Conventions v1.40")
 model DbAttributes {
   // ---------------------------------------------------------------------------
   // System & Connection

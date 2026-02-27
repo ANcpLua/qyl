@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.copilot - Copilot Authentication Provider
 // Cascading auth detection: Environment -> gh CLI -> PAT -> OAuth
-// OTel 1.39 compliant instrumentation
+// OTel 1.40 compliant instrumentation
 // =============================================================================
 
 using qyl.protocol.Copilot;

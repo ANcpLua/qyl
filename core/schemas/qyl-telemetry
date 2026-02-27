@@ -363,7 +363,7 @@
                         },
                         "genAiProviderName": {
                             "type": "string",
-                            "description": "GenAI provider name (e.g., openai, anthropic) - OTel 1.39: gen_ai.provider.name"
+                            "description": "GenAI provider name (e.g., openai, anthropic) - OTel 1.40: gen_ai.provider.name"
                         },
                         "genAiRequestModel": {
                             "type": "string",
@@ -415,7 +415,7 @@
                         },
                         "schemaUrl": {
                             "type": "string",
-                            "description": "OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)"
+                            "description": "OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)"
                         },
                         "createdAt": {
                             "type": "string",

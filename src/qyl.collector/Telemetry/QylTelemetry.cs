@@ -18,12 +18,12 @@ public static class QylTelemetry
     // ==========================================================================
 
     /// <summary>
-    ///     ActivitySource for distributed tracing with OTel 1.39 schema URL.
+    ///     ActivitySource for distributed tracing with OTel 1.40 schema URL.
     /// </summary>
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
         Version = ServiceVersion,
-        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.39.0"
+        TelemetrySchemaUrl = SchemaVersion.Current.ToSchemaUrl().ToString() // "https://opentelemetry.io/schemas/1.40.0"
     });
 
     // ==========================================================================
@@ -31,7 +31,7 @@ public static class QylTelemetry
     // ==========================================================================
 
     /// <summary>
-    ///     Meter for metrics collection with OTel 1.39 schema URL.
+    ///     Meter for metrics collection with OTel 1.40 schema URL.
     /// </summary>
     public static readonly Meter Meter = new(new MeterOptions(ServiceName)
     {

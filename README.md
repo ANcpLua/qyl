@@ -20,7 +20,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 | Runtime  | .NET 10.0 LTS, C# 14                          |
 | Frontend | React 19, Vite 7, Tailwind CSS 4              |
 | Storage  | DuckDB (columnar, upsert-based)               |
-| Protocol | OpenTelemetry 1.39 GenAI Semantic Conventions |
+| Protocol | OpenTelemetry 1.40 GenAI Semantic Conventions |
 | Schema   | TypeSpec → OpenAPI → C#/DuckDB/TypeScript     |
 
 ## Components
@@ -70,7 +70,7 @@ This auto-instruments:
 
 - `IChatClient` calls (Microsoft.Extensions.AI)
 - Token usage, latency, model info
-- Full OTel 1.39 GenAI semantic conventions
+- Full OTel 1.40 GenAI semantic conventions
 
 Set the exporter endpoint:
 
@@ -196,7 +196,7 @@ time.
 
 ## GenAI Telemetry
 
-qyl captures OpenTelemetry 1.39 GenAI semantic conventions:
+qyl captures OpenTelemetry 1.40 GenAI semantic conventions:
 
 | Attribute                        | Description                       |
 |----------------------------------|-----------------------------------|

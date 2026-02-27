@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - OpenTelemetry SDK Semantic Conventions (OTel v1.39)
+// QYL v2.0 - OpenTelemetry SDK Semantic Conventions (OTel v1.40)
 // =============================================================================
 // OTel SDK configuration and telemetry scope attributes.
 // =============================================================================

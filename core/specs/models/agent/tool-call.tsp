@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Tool Call Storage Model (OTel v1.39)
+// QYL v2.0 - Tool Call Storage Model (OTel v1.40)
 // =============================================================================
 // Materialized tool call records extracted from OTLP spans.
 // Maps OTel GenAI tool semantic convention attributes to DuckDB columns.

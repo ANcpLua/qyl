@@ -95,7 +95,7 @@ model SpanRecord {
 
   // === GenAI Promoted Columns (Fast Access) ===
 
-  @doc("GenAI provider name (e.g., openai, anthropic) - OTel 1.39: gen_ai.provider.name")
+  @doc("GenAI provider name (e.g., openai, anthropic) - OTel 1.40: gen_ai.provider.name")
   @TypeSpec.OpenAPI.extension("x-duckdb-column", "gen_ai_provider_name")
   @TypeSpec.OpenAPI.extension("x-duckdb-index", "idx_spans_gen_ai_provider_name")
   @TypeSpec.OpenAPI.extension("x-promoted", true)
@@ -168,7 +168,7 @@ model SpanRecord {
 
   // === Schema URL Tracking ===
 
-  @doc("OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.39.0)")
+  @doc("OTel semantic convention schema URL (e.g., https://opentelemetry.io/schemas/1.40.0)")
   @TypeSpec.OpenAPI.extension("x-duckdb-column", "schema_url")
   @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR(256)")
   schemaUrl?: string;

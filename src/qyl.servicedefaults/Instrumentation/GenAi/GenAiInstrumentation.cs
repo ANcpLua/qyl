@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.servicedefaults - GenAI Instrumentation
 // Leverages Microsoft.Extensions.AI.OpenTelemetryChatClient for OTel compliance
-// Uses qyl.protocol.Attributes for OTel 1.39 semantic conventions
+// Uses qyl.protocol.Attributes for OTel 1.40 semantic conventions
 // =============================================================================
 
 using System.Runtime.CompilerServices;
@@ -19,7 +19,7 @@ public readonly record struct TokenUsage(int InputTokens, int OutputTokens);
 
 /// <summary>
 ///     GenAI instrumentation that leverages Microsoft.Extensions.AI.OpenTelemetryChatClient.
-///     Provides OTel Semantic Conventions v1.39 compliance automatically.
+///     Provides OTel Semantic Conventions v1.40 compliance automatically.
 /// </summary>
 public static class GenAiInstrumentation
 {

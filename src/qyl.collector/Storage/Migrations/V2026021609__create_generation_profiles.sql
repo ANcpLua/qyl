@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS generation_profiles
     NOT
     NULL
     DEFAULT
-    '1.39.0',
+    '1.40.0',
     features_json
     JSON
     NOT

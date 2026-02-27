@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.protocol - Database Semantic Convention Attributes
-// OTel 1.39+ db.* attribute constants
+// OTel 1.40+ db.* attribute constants
 // 100% OTel semconv adherent - no custom extensions
 // Owner: qyl.protocol | Consumers: servicedefaults, collector
 // =============================================================================
@@ -8,7 +8,7 @@
 namespace qyl.protocol.Attributes;
 
 /// <summary>
-///     OTel 1.39+ Database semantic convention attribute keys.
+///     OTel 1.40+ Database semantic convention attribute keys.
 ///     Status: Stable
 ///     https://opentelemetry.io/docs/specs/semconv/database/
 /// </summary>

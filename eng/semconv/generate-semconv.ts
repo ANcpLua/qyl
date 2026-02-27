@@ -71,6 +71,8 @@ const CONFIG = {
         "cicd", "deployment",
         // Vendor AI
         "openai", "azure",
+        // Vendor DB / Cloud
+        "oracle", "oracle_cloud",
     ],
 
     // Output paths (relative to this script) - Direct to final destinations

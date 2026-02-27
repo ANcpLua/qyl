@@ -7,7 +7,7 @@ namespace qyl.collector.Storage;
 ///     DuckDB storage with separated read/write paths for optimal concurrency.
 ///     - Single writer connection (channel-buffered, batched)
 ///     - Pooled read connections (parallel queries, bounded concurrency)
-///     - Schema aligned with generated DuckDbSchema.g.cs (OTel 1.39)
+///     - Schema aligned with generated DuckDbSchema.g.cs (OTel 1.40)
 /// </summary>
 public sealed partial class DuckDbStore : IAsyncDisposable
 {

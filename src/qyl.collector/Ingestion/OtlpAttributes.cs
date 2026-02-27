@@ -1,5 +1,5 @@
 // =============================================================================
-// qyl OTLP Ingestion - OTel GenAI Semantic Conventions v1.39.0
+// qyl OTLP Ingestion - OTel GenAI Semantic Conventions v1.40.0
 // https://opentelemetry.io/docs/specs/semconv/gen-ai/
 // Target: .NET 10 / C# 14
 // =============================================================================
@@ -9,7 +9,7 @@
 namespace qyl.collector.Ingestion;
 
 /// <summary>
-///     OTel GenAI Semantic Conventions v1.39.0 - UTF-8 attribute keys for zero-allocation parsing.
+///     OTel GenAI Semantic Conventions v1.40.0 - UTF-8 attribute keys for zero-allocation parsing.
 ///     Uses direct StartsWith checks for prefix matching (NOT SearchValues which is for substring).
 /// </summary>
 internal static class OtlpGenAiAttributes
@@ -245,13 +245,13 @@ internal static class OtlpGenAiAttributes
 // =============================================================================
 
 /// <summary>
-///     Single source of truth for deprecated OTel attribute mappings (1.39 migration).
+///     Single source of truth for deprecated OTel attribute mappings (1.40 migration).
 /// </summary>
 public static class SchemaNormalizer
 {
 #pragma warning disable QYL0002 // Intentionally references deprecated attributes for migration
     /// <summary>
-    ///     Complete mapping of deprecated attribute names to their 1.39 equivalents.
+    ///     Complete mapping of deprecated attribute names to their 1.40 equivalents.
     /// </summary>
     public static readonly FrozenDictionary<string, string> DeprecatedMappings =
         new Dictionary<string, string>(StringComparer.Ordinal)
@@ -327,7 +327,7 @@ public sealed record OtlpResourceSpans
     public OtlpResource? Resource { get; init; }
     public List<OtlpScopeSpans>? ScopeSpans { get; init; }
 
-    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.39.0).</summary>
+    /// <summary>OTel schema URL for this resource (e.g., https://opentelemetry.io/schemas/1.40.0).</summary>
     public string? SchemaUrl { get; init; }
 }
 
@@ -401,7 +401,7 @@ public sealed class ParsedSpan
     public StatusCode Status { get; set; }
     public string? StatusMessage { get; set; }
 
-    // GenAI-specific extracted attributes (OTel 1.39)
+    // GenAI-specific extracted attributes (OTel 1.40)
     public string? ProviderName { get; set; }
     public string? RequestModel { get; set; }
     public string? ResponseModel { get; set; }

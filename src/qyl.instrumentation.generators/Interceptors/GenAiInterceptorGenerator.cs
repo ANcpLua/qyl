@@ -52,16 +52,16 @@ public sealed class GenAiInterceptorGenerator : IIncrementalGenerator
                                             public const string ActivitySourceName = "qyl.instrumentation.GenAi";
 
                                             /// <summary>OTel schema version.</summary>
-                                            public const string SchemaUrl = "https://opentelemetry.io/schemas/1.39.0";
+                                            public const string SchemaUrl = "https://opentelemetry.io/schemas/1.40.0";
                                         }
                                         """;
 
     // Target methods we know how to instrument
-    // Provider values: OTel semconv 1.39 (see qyl.protocol.Attributes.GenAiAttributes.Providers)
+    // Provider values: OTel semconv 1.40 (see qyl.protocol.Attributes.GenAiAttributes.Providers)
     // QYL extensions: "ollama" (not in OTel semconv)
     private static readonly Dictionary<string, GenAiTarget> KnownTargets = new()
     {
-        // OTel semconv 1.39 providers
+        // OTel semconv 1.40 providers
         ["OpenAI.Chat.ChatClient.CompleteChatAsync"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
         ["OpenAI.Chat.ChatClient.CompleteChat"] = new GenAiTarget("openai", "chat", "chat {gen_ai.request.model}"),
         ["Anthropic.AnthropicClient.CreateMessageAsync"] =

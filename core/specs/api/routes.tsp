@@ -72,7 +72,7 @@ enum ApiVersions {
   @doc("GenAI observability additions")
   v2: "2026-01-15",
 
-  @doc("Full OTel v1.39 compliance")
+  @doc("Full OTel v1.40 compliance")
   v3: "2026-01-26",
 }
 

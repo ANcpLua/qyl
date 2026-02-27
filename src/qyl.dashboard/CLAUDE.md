@@ -8,7 +8,7 @@ One of three shells (browser, terminal, IDE). The dashboard is two things:
 
 1. **Viewer** — telemetry visualization (traces, spans, metrics, errors, GenAI sessions)
 2. **Configurator** — select what to observe, the source generator in the customer's local project generates only what's
-   selected (incremental, strictly typed, OTel 1.39)
+   selected (incremental, strictly typed, OTel 1.40)
 
 ## ADR Implementation: Agents Dashboard
 

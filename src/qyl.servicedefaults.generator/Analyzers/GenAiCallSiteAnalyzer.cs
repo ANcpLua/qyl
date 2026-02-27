@@ -12,7 +12,7 @@ namespace Qyl.ServiceDefaults.Generator.Analyzers;
 ///     Analyzes syntax to find GenAI SDK method invocations to intercept.
 /// </summary>
 /// <remarks>
-///     Patterns cover OTel Semantic Conventions v1.39 operations:
+///     Patterns cover OTel Semantic Conventions v1.40 operations:
 ///     chat, embeddings, text_completion, image_generation, speech, transcription, rerank.
 ///     Uses the <see cref="Invoke" /> DSL from ANcpLua.Roslyn.Utilities for declarative matching.
 /// </remarks>

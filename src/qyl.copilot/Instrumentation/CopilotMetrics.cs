@@ -4,7 +4,7 @@ namespace qyl.copilot.Instrumentation;
 
 /// <summary>
 ///     Metrics for qyl Copilot — auto-generated via [Meter] attributes.
-///     Covers both OTel 1.39 GenAI client metrics and qyl-specific workflow metrics.
+///     Covers both OTel 1.40 GenAI client metrics and qyl-specific workflow metrics.
 /// </summary>
 [Meter("qyl.copilot", Version = "1.0.0")]
 public static partial class CopilotMetrics

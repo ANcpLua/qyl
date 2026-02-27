@@ -10,10 +10,10 @@ internal static class QylHostingTelemetry
     public const string ServiceVersion = "1.0.0";
 
     /// <summary>
-    ///     ActivitySource for distributed tracing with OTel 1.39 schema URL.
+    ///     ActivitySource for distributed tracing with OTel 1.40 schema URL.
     /// </summary>
     public static readonly ActivitySource Source = new(new ActivitySourceOptions(ServiceName)
     {
-        Version = ServiceVersion, TelemetrySchemaUrl = "https://opentelemetry.io/schemas/1.39.0"
+        Version = ServiceVersion, TelemetrySchemaUrl = "https://opentelemetry.io/schemas/1.40.0"
     });
 }

@@ -1,12 +1,12 @@
 // =============================================================================
 // QYL v2.0 - Main TypeSpec Entry Point
 // =============================================================================
-// OpenTelemetry Semantic Conventions v1.39 compliant schema.
+// OpenTelemetry Semantic Conventions v1.40 compliant schema.
 //
 // Structure:
 //   - Common: types, errors, pagination
 //   - OTel Core: enums, span, logs, metrics, resource, storage
-//   - Generated: semconv.g.tsp (OTel 1.39 attribute keys from NPM)
+//   - Generated: semconv.g.tsp (OTel 1.40 attribute keys from NPM)
 //   - Domains: qyl-specific models (stats, entities, etc.)
 //   - API: REST routes, SSE streaming
 //
@@ -48,10 +48,10 @@ import "./otel/metrics.tsp";
 import "./otel/storage.tsp";
 
 // =============================================================================
-// Generated Semantic Conventions (OTel 1.39)
+// Generated Semantic Conventions (OTel 1.40)
 // =============================================================================
 // Type-safe attribute keys from @opentelemetry/semantic-conventions NPM package.
-// Contains Keys.GenAi, Keys.Db, Keys.Http, etc. for all OTel semconv attributes.
+// Contains Keys.GenAi, Keys.Db, Keys.Http, etc. for all OTel semconv attributes (v1.40).
 import "./generated/semconv.g.tsp";
 // =============================================================================
 

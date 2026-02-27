@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Workflow Execution Storage Model (OTel v1.39)
+// QYL v2.0 - Workflow Execution Storage Model (OTel v1.40)
 // =============================================================================
 // Workflow execution tracking for multi-step AI agent workflows.
 // Formalizes the existing manual DuckDB table into TypeSpec.

@@ -1,7 +1,7 @@
 // =============================================================================
 // qyl.servicedefaults - SQL Operation Parser
 // Parses SQL to extract the primary operation (SELECT, INSERT, UPDATE, DELETE, etc.)
-// Per OTel 1.39+ db.operation.name semantic convention
+// Per OTel 1.40+ db.operation.name semantic convention
 // Owner: qyl.servicedefaults
 // =============================================================================
 

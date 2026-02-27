@@ -26,12 +26,12 @@ internal sealed record TokenUsageDefinition(
 /// </summary>
 /// <remarks>
 ///     Provider definitions for compile-time detection in the source generator.
-///     Provider IDs use OTel Semantic Conventions v1.39 gen_ai.provider.name values.
+///     Provider IDs use OTel Semantic Conventions v1.40 gen_ai.provider.name values.
 ///     See: https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-spans/
 /// </remarks>
 internal static class ProviderRegistry
 {
-    // OTel SemConv v1.39 gen_ai.provider.name values (inline for source generator compatibility)
+    // OTel SemConv v1.40 gen_ai.provider.name values (inline for source generator compatibility)
     private const string OpenAi = "openai";
     private const string AzureAiOpenai = "azure.ai.openai";
     private const string AzureAiInference = "azure.ai.inference";

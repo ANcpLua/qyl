@@ -2,7 +2,7 @@
 // QYL v2.0 - Common Types & Scalars
 // =============================================================================
 // Foundational types used across all OTel semantic convention models.
-// OpenTelemetry Semantic Conventions v1.39 compliant.
+// OpenTelemetry Semantic Conventions v1.40 compliant.
 // =============================================================================
 
 import "@typespec/versioning";
@@ -36,8 +36,11 @@ enum OTelVersion {
   @doc("OTel Semconv v1.38 - GenAI.Agent support")
   v1_38: "1.38.0",
 
-  @doc("OTel Semconv v1.39 - Current version (RPC metadata consolidation)")
+  @doc("OTel Semconv v1.39 - RPC metadata consolidation")
   v1_39: "1.39.0",
+
+  @doc("OTel Semconv v1.40 - Current version (Oracle DB split, RPC cleanup, GenAI cache tokens)")
+  v1_40: "1.40.0",
 }
 
 // =============================================================================

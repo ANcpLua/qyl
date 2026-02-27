@@ -63,9 +63,9 @@ public class InstrumentedAgent : AIAgent
 - Composition provides stable API regardless of SDK changes
 - Easier to test and mock
 
-### 3. OTel GenAI Semantic Conventions 1.39
+### 3. OTel GenAI Semantic Conventions 1.40
 
-**Decision**: All Copilot interactions emit OTel traces and metrics following GenAI semconv 1.39.
+**Decision**: All Copilot interactions emit OTel traces and metrics following GenAI semconv 1.40.
 
 **Span Attributes**:
 
