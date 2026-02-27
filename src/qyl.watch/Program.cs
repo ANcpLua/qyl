@@ -67,6 +67,7 @@ Console.CancelKeyPress -= cancelHandler;
 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine($"[grey]Disconnected. Total spans received: {spanCount}[/]");
+return;
 
 static void ProcessSpanEvent(string data, CliConfig config, HeaderRenderer header, ref int spanCount,
     ref DateTimeOffset headerInterval)
@@ -78,15 +79,11 @@ static void ProcessSpanEvent(string data, CliConfig config, HeaderRenderer heade
     {
         using var doc = JsonDocument.Parse(data);
         // Try to parse as TelemetryEventDto wrapper first
-        if (doc.RootElement.TryGetProperty("data", out var dataElement))
-        {
-            batch = JsonSerializer.Deserialize<SpanBatchDto>(dataElement.GetRawText());
-        }
-        else
-        {
+        batch = JsonSerializer.Deserialize<SpanBatchDto>(doc.RootElement.TryGetProperty("data", out var dataElement)
+            ? dataElement.GetRawText()
+            :
             // Fallback: data IS the SpanBatch directly
-            batch = JsonSerializer.Deserialize<SpanBatchDto>(data);
-        }
+            data);
     }
     catch
     {
@@ -149,7 +146,7 @@ static void HandleKeyboard(CliConfig config, HeaderRenderer header, Cancellation
 
             case 'f':
                 var services = header.GetServiceNames();
-                if (services.Count == 0) break;
+                if (services.Count is 0) break;
 
                 if (config.ServiceFilter is null)
                 {

@@ -7,7 +7,7 @@ internal static class Filters
 {
     public static bool ShouldDisplay(SpanDto span, CliConfig config)
     {
-        if (config.ErrorsOnly && !span.IsError && (span.HttpStatusCode is null || span.HttpStatusCode < 400))
+        if (config.ErrorsOnly && span is { IsError: false, HttpStatusCode: null or < 400 })
             return false;
 
         if (config.SlowThresholdMs is { } threshold && span.DurationMs < threshold)
@@ -17,9 +17,6 @@ internal static class Filters
             !string.Equals(span.ServiceName, svc, StringComparison.OrdinalIgnoreCase))
             return false;
 
-        if (config.GenAiOnly && !span.IsGenAi)
-            return false;
-
-        return true;
+        return !config.GenAiOnly || span.IsGenAi;
     }
 }
