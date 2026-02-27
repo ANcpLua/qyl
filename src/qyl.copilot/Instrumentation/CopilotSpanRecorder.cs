@@ -29,6 +29,10 @@ public static class CopilotSpanRecorder
 
         activity.SetTag(GenAiAttributes.UsageInputTokens, inputTokens);
         activity.SetTag(GenAiAttributes.UsageOutputTokens, outputTokens);
+        CopilotMetrics.RecordTokenUsage(inputTokens, CopilotInstrumentation.GenAiProviderName,
+            CopilotInstrumentation.GenAiRequestModel, GenAiAttributes.TokenTypes.Input);
+        CopilotMetrics.RecordTokenUsage(outputTokens, CopilotInstrumentation.GenAiProviderName,
+            CopilotInstrumentation.GenAiRequestModel, GenAiAttributes.TokenTypes.Output);
     }
 
     /// <summary>
@@ -44,7 +48,8 @@ public static class CopilotSpanRecorder
             tags: new ActivityTagsCollection { { "gen_ai.client.time_to_first_token", ttftSeconds } }));
 
         // Also record as metric
-        CopilotMetrics.RecordTimeToFirstToken(ttftSeconds, CopilotInstrumentation.GenAiSystem);
+        CopilotMetrics.RecordTimeToFirstToken(ttftSeconds, CopilotInstrumentation.GenAiProviderName,
+            CopilotInstrumentation.GenAiRequestModel);
     }
 
     /// <summary>

@@ -13,20 +13,23 @@ public static partial class CopilotMetrics
         Description = "Measures the number of tokens used in GenAI operations")]
     public static partial void RecordTokenUsage(
         long value,
-        [Tag("gen_ai.system")] string system,
+        [Tag("gen_ai.provider.name")] string providerName,
+        [Tag("gen_ai.request.model")] string requestModel,
         [Tag("gen_ai.token.type")] string tokenType);
 
     [Histogram("gen_ai.client.operation.duration", Unit = "s", Description = "Duration of GenAI operations in seconds")]
     public static partial void RecordOperationDuration(
         double value,
-        [Tag("gen_ai.system")] string system,
+        [Tag("gen_ai.provider.name")] string providerName,
+        [Tag("gen_ai.request.model")] string requestModel,
         [Tag("gen_ai.operation.name")] string operation);
 
     [Histogram("gen_ai.client.time_to_first_token", Unit = "s",
         Description = "Time to first token in streaming GenAI operations")]
     public static partial void RecordTimeToFirstToken(
         double value,
-        [Tag("gen_ai.system")] string system);
+        [Tag("gen_ai.provider.name")] string providerName,
+        [Tag("gen_ai.request.model")] string requestModel);
 
     [Histogram("qyl.copilot.workflow.duration", Unit = "s",
         Description = "Duration of qyl workflow executions in seconds")]
@@ -45,10 +48,12 @@ public static partial class CopilotMetrics
     public static partial void RecordToolDuration(
         double value,
         [Tag("gen_ai.tool.name")] string toolName,
-        [Tag("gen_ai.system")] string system);
+        [Tag("gen_ai.provider.name")] string providerName,
+        [Tag("gen_ai.request.model")] string requestModel);
 
     [Counter("gen_ai.client.tool.calls", Unit = "{call}", Description = "Number of tool calls")]
     public static partial void RecordToolCall(
         [Tag("gen_ai.tool.name")] string toolName,
-        [Tag("gen_ai.system")] string system);
+        [Tag("gen_ai.provider.name")] string providerName,
+        [Tag("gen_ai.request.model")] string requestModel);
 }

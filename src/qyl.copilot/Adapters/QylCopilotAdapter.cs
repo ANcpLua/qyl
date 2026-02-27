@@ -248,8 +248,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
         // Record operation duration metric
         var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
-            CopilotInstrumentation.OperationChat);
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiProviderName,
+            CopilotInstrumentation.GenAiRequestModel, CopilotInstrumentation.OperationChat);
 
         // Now yield outside try-catch
         foreach (var update in updates)
@@ -307,8 +307,8 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
 
             // Record operation duration
             var duration = (_timeProvider.GetUtcNow() - startTime).TotalSeconds;
-            CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
-                CopilotInstrumentation.OperationChat);
+            CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiProviderName,
+                CopilotInstrumentation.GenAiRequestModel, CopilotInstrumentation.OperationChat);
 
             CopilotSpanRecorder.RecordSuccess(activity);
             return response;

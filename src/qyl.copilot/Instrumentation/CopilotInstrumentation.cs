@@ -21,9 +21,14 @@ public static class CopilotInstrumentation
     // =========================================================================
 
     /// <summary>
-    ///     gen_ai.system value for GitHub Copilot (OTel 1.40).
+    ///     gen_ai.provider.name value for GitHub Copilot (OTel 1.40).
     /// </summary>
-    public const string GenAiSystem = GenAiAttributes.Providers.GitHubCopilot;
+    public const string GenAiProviderName = GenAiAttributes.Providers.GitHubCopilot;
+
+    /// <summary>
+    ///     gen_ai.request.model value for GitHub Copilot chat requests (OTel 1.40).
+    /// </summary>
+    public const string GenAiRequestModel = "github-copilot";
 
     /// <summary>
     ///     gen_ai.operation.name for chat operations.
@@ -33,7 +38,7 @@ public static class CopilotInstrumentation
     /// <summary>
     ///     gen_ai.operation.name for workflow operations (OTel 1.40 agent span).
     /// </summary>
-    public const string OperationWorkflow = "invoke_agent";
+    public const string OperationWorkflow = GenAiAttributes.Operations.InvokeAgent;
 
     /// <summary>
     ///     gen_ai.operation.name for tool execution.
@@ -88,8 +93,8 @@ public static class CopilotInstrumentation
         // ReSharper disable once ExplicitCallerInfoArgument — intentional OTel GenAI operation name
         if (ActivitySource.StartActivity("gen_ai.chat", ActivityKind.Client) is not { } activity) return null;
 
-        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
-        activity.SetTag(GenAiAttributes.RequestModel, GenAiSystem);
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiProviderName);
+        activity.SetTag(GenAiAttributes.RequestModel, GenAiRequestModel);
         activity.SetTag(GenAiAttributes.OperationName, OperationChat);
         activity.SetTag(GenAiAttributes.OutputType, GenAiAttributes.OutputTypes.Text);
 
@@ -105,9 +110,11 @@ public static class CopilotInstrumentation
     /// <returns>The started activity, or null if not sampled.</returns>
     public static Activity? StartWorkflowSpan(string workflowName, string? executionId = null, string? trigger = null)
     {
-        if (ActivitySource.StartActivity($"invoke_agent {workflowName}", ActivityKind.Client) is not { } activity) return null;
+        if (ActivitySource.StartActivity($"{OperationWorkflow} {workflowName}", ActivityKind.Client) is not { } activity)
+            return null;
 
-        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiProviderName);
+        activity.SetTag(GenAiAttributes.RequestModel, GenAiRequestModel);
         activity.SetTag(GenAiAttributes.OperationName, OperationWorkflow);
         activity.SetTag(GenAiAttributes.OutputType, GenAiAttributes.OutputTypes.Text);
         activity.SetTag(AttrWorkflowName, workflowName);
@@ -135,7 +142,8 @@ public static class CopilotInstrumentation
     {
         if (GenAiInstrumentation.StartToolExecutionSpan(toolName, toolCallId) is not { } activity) return null;
 
-        activity.SetTag(GenAiAttributes.ProviderName, GenAiSystem);
+        activity.SetTag(GenAiAttributes.ProviderName, GenAiProviderName);
+        activity.SetTag(GenAiAttributes.RequestModel, GenAiRequestModel);
 
         return activity;
     }

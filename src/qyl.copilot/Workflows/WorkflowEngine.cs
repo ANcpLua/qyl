@@ -321,8 +321,8 @@ public sealed class WorkflowEngine : IAsyncDisposable
         CopilotMetrics.RecordWorkflowDuration(duration, workflow.Name, statusName);
 
         // Record OTel gen_ai operation duration metric
-        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiSystem,
-            CopilotInstrumentation.OperationWorkflow);
+        CopilotMetrics.RecordOperationDuration(duration, CopilotInstrumentation.GenAiProviderName,
+            CopilotInstrumentation.GenAiRequestModel, CopilotInstrumentation.OperationWorkflow);
 
         // Now yield all collected updates outside try-catch
         foreach (var update in collectedUpdates)
