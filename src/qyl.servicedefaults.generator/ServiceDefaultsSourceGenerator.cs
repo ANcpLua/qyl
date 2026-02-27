@@ -3,6 +3,7 @@ using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
@@ -56,13 +57,35 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .Select(IsGenAiRuntimeReferenced)
             .WithTrackingName(PipelineStage.GenAiRuntimeCheck);
 
+        // MSBuild property toggles (default: true when absent)
+        var toggles = context.AnalyzerConfigOptionsProvider
+            .Select(static (options, _) => new PipelineToggles(
+                GenAi: IsPipelineEnabled(options, "QylGenAi"),
+                Database: IsPipelineEnabled(options, "QylDatabase"),
+                Agent: IsPipelineEnabled(options, "QylAgent"),
+                Traced: IsPipelineEnabled(options, "QylTraced"),
+                Meter: IsPipelineEnabled(options, "QylMeter")))
+            .WithTrackingName(PipelineStage.ToggleCheck);
+
+        // Per-pipeline enabled flags: runtime check AND MSBuild toggle
+        var genAiEnabled = genAiRuntimeAvailable.Combine(toggles)
+            .Select(static (pair, _) => pair.Left && pair.Right.GenAi);
+        var dbEnabled = qylRuntimeAvailable.Combine(toggles)
+            .Select(static (pair, _) => pair.Left && pair.Right.Database);
+        var meterEnabled = qylRuntimeAvailable.Combine(toggles)
+            .Select(static (pair, _) => pair.Left && pair.Right.Meter);
+        var tracedEnabled = qylRuntimeAvailable.Combine(toggles)
+            .Select(static (pair, _) => pair.Left && pair.Right.Traced);
+        var agentEnabled = qylRuntimeAvailable.Combine(toggles)
+            .Select(static (pair, _) => pair.Left && pair.Right.Agent);
+
         context.SyntaxProvider
             .CreateSyntaxProvider(
                 GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
                 GenAiCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered)
-            .CombineWithCollected(genAiRuntimeAvailable)
+            .CombineWithCollected(genAiEnabled)
             .SelectAndReportExceptions(static (input, _) =>
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
@@ -84,7 +107,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                 DbCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.DbCallSitesDiscovered)
-            .CombineWithCollected(qylRuntimeAvailable)
+            .CombineWithCollected(dbEnabled)
             .SelectAndReportExceptions(static (input, _) =>
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
@@ -128,7 +151,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                 MeterAnalyzer.ExtractDefinition)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered)
-            .CombineWithCollected(qylRuntimeAvailable)
+            .CombineWithCollected(meterEnabled)
             .SelectAndReportExceptions(static (input, _) =>
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
@@ -150,7 +173,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                 TracedCallSiteAnalyzer.ExtractCallSite)
             .WhereNotNull()
             .WithTrackingName(PipelineStage.TracedCallSitesDiscovered)
-            .CombineWithCollected(qylRuntimeAvailable)
+            .CombineWithCollected(tracedEnabled)
             .SelectAndReportExceptions(static (input, _) =>
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
@@ -159,6 +182,28 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     ? FileWithName.Empty
                     : new FileWithName(GeneratedFile.TracedInterceptors, sourceCode);
             }, context, "QSG005")
+            .AddSource(context);
+
+        // =====================================================================
+        // AGENT INTERCEPTION PIPELINE
+        // Discovers Microsoft.Agents.AI calls and wraps them with agent telemetry.
+        // =====================================================================
+
+        context.SyntaxProvider
+            .CreateSyntaxProvider(
+                AgentCallSiteAnalyzer.CouldBeAgentInvocation,
+                AgentCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.AgentCallSitesDiscovered)
+            .CombineWithCollected(agentEnabled)
+            .SelectAndReportExceptions(static (input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = AgentInterceptorEmitter.Emit(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(GeneratedFile.AgentInterceptors, sourceCode);
+            }, context, "QSG006")
             .AddSource(context);
     }
 
@@ -180,6 +225,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     /// </summary>
     private static bool IsGenAiRuntimeReferenced(Compilation compilation, CancellationToken _) =>
         compilation.GetTypeByMetadataName(WellKnownType.GenAiInstrumentation) is not null;
+
+    /// <summary>
+    ///     Reads an MSBuild toggle property. Returns true if absent or "true".
+    /// </summary>
+    private static bool IsPipelineEnabled(
+        AnalyzerConfigOptionsProvider options,
+        string propertyName) =>
+        !options.GlobalOptions.TryGetValue($"build_property.{propertyName}", out var value)
+        || !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase);
 
     // =========================================================================
     // SYNTACTIC PRE-FILTER
@@ -373,6 +427,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // Traced method pipeline
         public const string TracedCallSitesDiscovered = nameof(TracedCallSitesDiscovered);
+
+        // Agent interception pipeline
+        public const string AgentCallSitesDiscovered = nameof(AgentCallSitesDiscovered);
+
+        // MSBuild property toggle check
+        public const string ToggleCheck = nameof(ToggleCheck);
     }
 
     /// <summary>
@@ -386,7 +446,18 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string OTelTagExtensions = "OTelTagExtensions.g.cs";
         public const string MeterImplementations = "MeterImplementations.g.cs";
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
+        public const string AgentInterceptors = "AgentIntercepts.g.cs";
     }
+
+    /// <summary>
+    ///     MSBuild property toggles for each generator pipeline.
+    /// </summary>
+    private sealed record PipelineToggles(
+        bool GenAi,
+        bool Database,
+        bool Agent,
+        bool Traced,
+        bool Meter);
 
     /// <summary>
     ///     Source code templates for generated output.

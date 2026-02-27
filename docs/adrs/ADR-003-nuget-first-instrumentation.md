@@ -1,6 +1,6 @@
 # ADR-003: .NET Premium SDK (qyl.servicedefaults)
 
-Status: Accepted
+Status: Done
 Date: 2026-02-26
 Depends-On: ADR-001
 

@@ -43,6 +43,15 @@
     <PackageReference Include="OpenTelemetry.Instrumentation.Runtime"/>
   </ItemGroup>
 
+  <!-- MSBuild property toggles for source generator pipelines -->
+  <ItemGroup>
+    <CompilerVisibleProperty Include="QylGenAi" />
+    <CompilerVisibleProperty Include="QylDatabase" />
+    <CompilerVisibleProperty Include="QylAgent" />
+    <CompilerVisibleProperty Include="QylTraced" />
+    <CompilerVisibleProperty Include="QylMeter" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- Shared types -->
     <ProjectReference Include="../qyl.protocol/qyl.protocol.csproj"/>

@@ -24,6 +24,9 @@ public static class ActivitySources
     /// <summary>Traced method operations source name.</summary>
     public const string Traced = "qyl.traced";
 
+    /// <summary>Agent operations source name.</summary>
+    public const string Agent = "qyl.agent";
+
     /// <summary>Assembly containing the instrumentation.</summary>
     internal static readonly Assembly Assembly = typeof(ActivitySources).Assembly;
 
@@ -34,9 +37,11 @@ public static class ActivitySources
     private static ActivitySource? s_genAi;
 
     private static ActivitySource? s_db;
+    private static ActivitySource? s_agent;
 
     // Lazy-initialized Meter instances
     private static Meter? s_genAiMeter;
+    private static Meter? s_agentMeter;
 
     /// <summary>ActivitySource for GenAI instrumentation.</summary>
     public static ActivitySource GenAiSource => s_genAi ??= new ActivitySource(GenAi, Version);
@@ -44,6 +49,12 @@ public static class ActivitySources
     /// <summary>ActivitySource for database instrumentation.</summary>
     public static ActivitySource DbSource => s_db ??= new ActivitySource(Db, Version);
 
+    /// <summary>ActivitySource for agent instrumentation.</summary>
+    public static ActivitySource AgentSource => s_agent ??= new ActivitySource(Agent, Version);
+
     /// <summary>Meter for GenAI metrics.</summary>
     public static Meter GenAiMeter => s_genAiMeter ??= new Meter(GenAi, Version);
+
+    /// <summary>Meter for agent metrics.</summary>
+    public static Meter AgentMeter => s_agentMeter ??= new Meter(Agent, Version);
 }

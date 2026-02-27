@@ -1,4 +1,4 @@
-// =============================================================================
+ // =============================================================================
 // Qyl.ServiceDefaults - Zero-Config Observability for .NET
 // Single entry point: builder.UseQyl() and app.MapQylEndpoints()
 // =============================================================================
@@ -22,9 +22,9 @@ using OpenTelemetry.Metrics;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Qyl.ServiceDefaults.Discovery;
-using Qyl.ServiceDefaults.Instrumentation;
+using Qyl.ServiceDefaults.ErrorCapture;
 
-namespace Qyl.ServiceDefaults;
+namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
 ///     Extension methods to configure qyl service defaults with zero-config observability.
@@ -61,80 +61,79 @@ public static class QylServiceDefaultsExtensions
         "Microsoft.Agents.AI"
     ];
 
-    /// <summary>
-    ///     Adds qyl service defaults with OpenTelemetry, health checks, and resilience.
-    /// </summary>
     /// <param name="builder">The host application builder.</param>
-    /// <param name="configure">Optional configuration callback.</param>
-    /// <returns>The builder for chaining.</returns>
-    /// <example>
-    ///     <code>
-    /// var builder = WebApplication.CreateBuilder(args);
-    /// builder.UseQyl();
-    /// </code>
-    /// </example>
-    public static TBuilder UseQyl<TBuilder>(
-        this TBuilder builder,
-        Action<QylOptions>? configure = null)
-        where TBuilder : IHostApplicationBuilder
+    extension<TBuilder>(TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
-        ArgumentNullException.ThrowIfNull(builder);
-
-        var options = new QylOptions();
-        configure?.Invoke(options);
-
-        // Register options for later use
-        builder.Services.TryAddSingleton(options);
-
-        // Core services
-        ConfigureServiceProvider(builder, options);
-        ConfigureKestrel(builder.Services);
-        ConfigureJson(builder.Services, options);
-
-        // Observability (includes auto-discovery)
-        ConfigureOpenTelemetry(builder, options);
-        ConfigureHealthChecks(builder);
-
-        // Log discovery result once at startup
-        if (options.EnableAutoDiscovery)
+        /// <summary>
+        ///     Adds qyl service defaults with OpenTelemetry, health checks, and resilience.
+        /// </summary>
+        /// <param name="configure">Optional configuration callback.</param>
+        /// <returns>The builder for chaining.</returns>
+        /// <example>
+        ///     <code>
+        /// var builder = WebApplication.CreateBuilder(args);
+        /// builder.UseQyl();
+        /// </code>
+        /// </example>
+        public TBuilder UseQyl(Action<QylOptions>? configure = null)
         {
-            builder.Services.AddHostedService<CollectorDiscoveryLogger>();
-        }
+            ArgumentNullException.ThrowIfNull(builder);
 
-        // Resilience & Discovery
-        ConfigureHttpClients(builder);
+            var options = new QylOptions();
+            configure?.Invoke(options);
 
-        // Optional features
-        if (options.EnableOpenApi)
-            builder.Services.AddOpenApi();
+            // Register options for later use
+            builder.Services.TryAddSingleton(options);
 
-        if (options.EnableAntiforgery)
-            builder.Services.AddAntiforgery();
+            // Core services
+            ConfigureServiceProvider(builder, options);
+            ConfigureKestrel(builder.Services);
+            ConfigureJson(builder.Services, options);
 
-        if (options.EnableValidation)
-        {
+            // Observability (includes auto-discovery)
+            ConfigureOpenTelemetry(builder, options);
+            ConfigureHealthChecks(builder);
+
+            // Log discovery result once at startup
+            if (options.EnableAutoDiscovery)
+            {
+                builder.Services.AddHostedService<CollectorDiscoveryLogger>();
+            }
+
+            // Resilience & Discovery
+            ConfigureHttpClients(builder);
+
+            // Optional features
+            if (options.EnableOpenApi)
+                builder.Services.AddOpenApi();
+
+            if (options.EnableAntiforgery)
+                builder.Services.AddAntiforgery();
+
+            if (options.EnableValidation)
+            {
 #if NET10_0_OR_GREATER
-            builder.Services.AddValidation();
+                builder.Services.AddValidation();
 #endif
+            }
+
+            builder.Services.AddProblemDetails();
+
+            // Exception capture (AppDomain + TaskScheduler hooks)
+            builder.Services.AddHostedService<ExceptionHookRegistrar>();
+
+            return builder;
         }
 
-        builder.Services.AddProblemDetails();
-
-        return builder;
+        /// <summary>
+        ///     Alias for <see cref="UseQyl{TBuilder}(TBuilder, Action{QylOptions}?)"/>.
+        ///     Adds qyl service defaults including OTel, health checks, and resilience.
+        /// </summary>
+        /// <param name="configure">Optional configuration callback.</param>
+        /// <returns>The builder for chaining.</returns>
+        public TBuilder AddQylServiceDefaults(Action<QylOptions>? configure = null) =>
+            builder.UseQyl(configure);
     }
-
-    /// <summary>
-    ///     Alias for <see cref="UseQyl{TBuilder}(TBuilder, Action{QylOptions}?)"/>.
-    ///     Adds qyl service defaults including OTel, health checks, and resilience.
-    /// </summary>
-    /// <param name="builder">The host application builder.</param>
-    /// <param name="configure">Optional configuration callback.</param>
-    /// <returns>The builder for chaining.</returns>
-    public static TBuilder AddQylServiceDefaults<TBuilder>(
-        this TBuilder builder,
-        Action<QylOptions>? configure = null)
-        where TBuilder : IHostApplicationBuilder =>
-        builder.UseQyl(configure);
 
     /// <summary>
     ///     Maps qyl default endpoints (health, OpenAPI).
@@ -151,6 +150,9 @@ public static class QylServiceDefaultsExtensions
 
         app.MapHealthChecks("/alive",
             new HealthCheckOptions { Predicate = static check => check.Tags.Contains("live") });
+
+        // Exception capture middleware
+        app.UseMiddleware<ExceptionCaptureMiddleware>();
 
         // OpenAPI
         if (options.EnableOpenApi)
@@ -182,7 +184,7 @@ public static class QylServiceDefaultsExtensions
 
     private static void ConfigureJson(IServiceCollection services, QylOptions options)
     {
-        var configureJson = (JsonSerializerOptions json) =>
+        void Json(JsonSerializerOptions json)
         {
             json.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             json.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
@@ -193,10 +195,10 @@ public static class QylServiceDefaultsExtensions
             json.RespectRequiredConstructorParameters = true;
 #endif
             options.ConfigureJson?.Invoke(json);
-        };
+        }
 
-        services.Configure<JsonOptions>(opt => configureJson(opt.JsonSerializerOptions));
-        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => configureJson(opt.SerializerOptions));
+        services.Configure<JsonOptions>(opt => Json(opt.JsonSerializerOptions));
+        services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(opt => Json(opt.SerializerOptions));
     }
 
     private static void ConfigureOpenTelemetry<TBuilder>(TBuilder builder, QylOptions options)
@@ -217,7 +219,11 @@ public static class QylServiceDefaultsExtensions
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource =>
             {
-                resource.AddService(serviceName, serviceVersion: serviceVersion);
+                resource
+                    .AddService(serviceName, serviceVersion: serviceVersion)
+                    .AddAttributes([
+                        new KeyValuePair<string, object>("telemetry.schema_url", "https://opentelemetry.io/schemas/1.40.0")
+                    ]);
                 options.ConfigureResource?.Invoke(resource);
             })
             .WithMetrics(metrics =>
@@ -234,6 +240,9 @@ public static class QylServiceDefaultsExtensions
                 // Db meter
                 metrics.AddMeter(ActivitySources.Db);
 
+                // Agent meter
+                metrics.AddMeter(ActivitySources.Agent);
+
                 // Custom meters from options
                 foreach (var meter in options.AdditionalMeterNames)
                     metrics.AddMeter(meter);
@@ -243,6 +252,7 @@ public static class QylServiceDefaultsExtensions
             .WithTracing(tracing =>
             {
                 tracing
+                    .SetSampler(new ParentBasedSampler(new AlwaysOnSampler()))
                     .AddSource(serviceName)
                     .AddAspNetCoreInstrumentation(aspnet =>
                     {
@@ -256,9 +266,10 @@ public static class QylServiceDefaultsExtensions
                 foreach (var source in SGenAiActivitySources)
                     tracing.AddSource(source);
 
-                // Db + traced instrumentation
+                // Db + traced + agent instrumentation
                 tracing.AddSource(ActivitySources.Db);
                 tracing.AddSource(ActivitySources.Traced);
+                tracing.AddSource(ActivitySources.Agent);
 
                 // Custom sources from options
                 foreach (var source in options.AdditionalActivitySources)
