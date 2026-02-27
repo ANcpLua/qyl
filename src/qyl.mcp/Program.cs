@@ -7,7 +7,6 @@ using qyl.mcp;
 using qyl.mcp.Auth;
 using qyl.mcp.Tools;
 using qyl.protocol.Attributes;
-using qyl.protocol.Attributes.Generated;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -29,7 +28,9 @@ builder.Services.AddCollectorToolClient<BuildTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<StorageTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
+builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<ServiceTools>(collectorUrl);
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITelemetryStore>(static sp =>
@@ -47,7 +48,9 @@ jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(StorageJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
 
 builder.Services
     .AddMcpServer()
@@ -67,9 +70,9 @@ builder.Services
 
         if (method is not null)
         {
-            activity?.SetTag(RpcSystemAttributes.System, "jsonrpc");
-            activity?.SetTag(RpcMethodAttributes.Method, method);
-            activity?.SetTag(RpcJsonrpcAttributes.Version, "2.0");
+            activity?.SetTag(Rpc.System, "jsonrpc");
+            activity?.SetTag(Rpc.Method, method);
+            activity?.SetTag(Rpc.JsonrpcVersion, "2.0");
         }
 
         try
@@ -91,12 +94,12 @@ builder.Services
         switch (context.JsonRpcMessage)
         {
             case JsonRpcResponse response:
-                activity?.SetTag(RpcSystemAttributes.System, "jsonrpc");
-                activity?.SetTag(RpcJsonrpcAttributes.RequestId, response.Id.ToString());
+                activity?.SetTag(Rpc.System, "jsonrpc");
+                activity?.SetTag(Rpc.JsonrpcRequestId, response.Id.ToString());
                 break;
             case JsonRpcNotification notification:
-                activity?.SetTag(RpcSystemAttributes.System, "jsonrpc");
-                activity?.SetTag(RpcMethodAttributes.Method, notification.Method);
+                activity?.SetTag(Rpc.System, "jsonrpc");
+                activity?.SetTag(Rpc.Method, notification.Method);
                 break;
         }
 
@@ -114,7 +117,7 @@ builder.Services
         activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
         activity?.SetTag(GenAiAttributes.ToolName, toolName);
         activity?.SetTag(GenAiAttributes.ToolType, GenAiAttributes.ToolTypes.Extension);
-        activity?.SetTag(RpcMethodAttributes.Method, "tools/call");
+        activity?.SetTag(Rpc.Method, "tools/call");
 
         try
         {
@@ -141,6 +144,16 @@ builder.Services
     .WithTools<GenAiTools>(jsonOptions)
     .WithTools<StorageTools>(jsonOptions)
     .WithTools<CopilotTools>(jsonOptions)
-    .WithTools<AnalyticsTools>(jsonOptions);
+    .WithTools<AnalyticsTools>(jsonOptions)
+    .WithTools<ClaudeCodeTools>(jsonOptions)
+    .WithTools<ServiceTools>(jsonOptions);
 
 await builder.Build().RunAsync().ConfigureAwait(false);
+
+file static class Rpc
+{
+    public const string System = "rpc.system";
+    public const string Method = "rpc.method";
+    public const string JsonrpcVersion = "rpc.jsonrpc.version";
+    public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+}

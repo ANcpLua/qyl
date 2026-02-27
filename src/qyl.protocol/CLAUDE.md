@@ -18,7 +18,7 @@ kernel speaks this language.
 | `Primitives/Scalars.g.cs` | TraceId, SpanId, SessionId (generated, IParsable) |
 | `Enums/Enums.g.cs`        | SpanKind, StatusCode, SeverityNumber (generated)  |
 | `Models/*.g.cs`           | Record types (generated)                          |
-| `Attributes/`             | GenAI provider constants (manual)                 |
+| `Attributes/*.g.cs`       | GenAI + DB domain facades (generated from `eng/semconv/qyl-extensions.json`) |
 
 ## Time Convention
 

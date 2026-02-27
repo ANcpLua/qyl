@@ -4,7 +4,6 @@
 // =============================================================================
 
 using qyl.protocol.Attributes;
-using qyl.protocol.Attributes.Generated;
 using Qyl.ServiceDefaults.Instrumentation.GenAi;
 
 namespace qyl.copilot.Instrumentation;
@@ -89,7 +88,7 @@ public static class CopilotSpanRecorder
     {
         if (activity is null || string.IsNullOrEmpty(userId)) return;
 
-        activity.SetTag(EnduserIdAttributes.Id, userId);
+        activity.SetTag(GenAiAttributes.EnduserId, userId);
     }
 
     // =========================================================================
@@ -134,7 +133,7 @@ public static class CopilotSpanRecorder
     {
         if (activity is null || string.IsNullOrEmpty(dataSourceId)) return;
 
-        activity.SetTag(GenAiDataSourceAttributes.Id, dataSourceId);
+        activity.SetTag(GenAiAttributes.DataSourceId, dataSourceId);
     }
 
     // =========================================================================

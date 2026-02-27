@@ -1657,6 +1657,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var spanClustersCmd = con.CreateCommand();
         spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
         spanClustersCmd.ExecuteNonQuery();
+
+        // Service registry (telemetry-derived auto-detection)
+        using var serviceRegistryCmd = con.CreateCommand();
+        serviceRegistryCmd.CommandText = ServiceInstancesDdl;
+        serviceRegistryCmd.ExecuteNonQuery();
+
+        using var servicesViewCmd = con.CreateCommand();
+        servicesViewCmd.CommandText = ServicesViewDdl;
+        servicesViewCmd.ExecuteNonQuery();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -4,6 +4,8 @@
 // =============================================================================
 
 using qyl.collector.Grpc;
+using qyl.collector.Services;
+using qyl.collector.Storage;
 
 namespace qyl.collector.Ingestion;
 
@@ -29,6 +31,10 @@ public static class OtlpConverter
         foreach (var resourceSpan in request.ResourceSpans)
         {
             var serviceName = ExtractServiceNameFromProto(resourceSpan.Resource);
+            var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
+            var resourceJson = resourceAttrs.Count > 0
+                ? JsonSerializer.Serialize(resourceAttrs, QylSerializerContext.Default.DictionaryStringString)
+                : null;
             var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans)
@@ -43,7 +49,7 @@ public static class OtlpConverter
                     var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
                     var baggageJson = ExtractBaggageJson(attributes);
                     var spanRecord =
-                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl);
+                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl, resourceJson);
                     spans.Add(spanRecord);
                 }
             }
@@ -63,6 +69,21 @@ public static class OtlpConverter
         }
 
         return "unknown";
+    }
+
+    private static Dictionary<string, string> ExtractResourceAttributesFromProto(OtlpResourceProto? resource)
+    {
+        var attrs = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (resource?.Attributes is null) return attrs;
+
+        foreach (var attr in resource.Attributes)
+        {
+            if (string.IsNullOrEmpty(attr.Key)) continue;
+            var value = ConvertAnyValueToString(attr.Value);
+            if (value is not null) attrs[attr.Key] = value;
+        }
+
+        return attrs;
     }
 
     private static Dictionary<string, string> ExtractAttributesFromProto(
@@ -113,12 +134,13 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes,
         string? baggageJson,
-        string? schemaUrl) =>
+        string? schemaUrl,
+        string? resourceJson) =>
         CreateStorageRow(
             span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
             span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
             span.Status?.Code, span.Status?.Message,
-            serviceName, attributes, baggageJson, schemaUrl);
+            serviceName, attributes, baggageJson, schemaUrl, resourceJson);
 
     #endregion
 
@@ -137,6 +159,7 @@ public static class OtlpConverter
             var serviceName = resourceSpan.Resource?.Attributes?
                                   .FirstOrDefault(static a => a.Key == "service.name")?.Value?.StringValue
                               ?? "unknown";
+            var resourceJson = SerializeAttributes(resourceSpan.Resource?.Attributes);
             var schemaUrl = resourceSpan.SchemaUrl;
 
             foreach (var scopeSpan in resourceSpan.ScopeSpans ?? [])
@@ -150,7 +173,7 @@ public static class OtlpConverter
                 {
                     var attributes = ExtractAttributesFromJson(span.Attributes, serviceName);
                     var baggageJson = ExtractBaggageJson(attributes);
-                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl));
+                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl, resourceJson));
                 }
             }
         }
@@ -182,12 +205,13 @@ public static class OtlpConverter
         string serviceName,
         Dictionary<string, string> attributes,
         string? baggageJson,
-        string? schemaUrl) =>
+        string? schemaUrl,
+        string? resourceJson) =>
         CreateStorageRow(
             span.SpanId, span.TraceId, span.ParentSpanId, span.Name,
             span.Kind, span.StartTimeUnixNano, span.EndTimeUnixNano,
             span.Status?.Code, span.Status?.Message,
-            serviceName, attributes, baggageJson, schemaUrl);
+            serviceName, attributes, baggageJson, schemaUrl, resourceJson);
 
     #endregion
 
@@ -198,7 +222,7 @@ public static class OtlpConverter
         int? kind, ulong startNano, ulong endNano,
         int? statusCode, string? statusMessage,
         string serviceName, Dictionary<string, string> attributes,
-        string? baggageJson, string? schemaUrl)
+        string? baggageJson, string? schemaUrl, string? resourceJson)
     {
         var durationNs = endNano >= startNano ? endNano - startNano : 0UL;
         var genAi = ExtractGenAiAttributes(attributes);
@@ -229,10 +253,132 @@ public static class OtlpConverter
             GenAiCostUsd = genAi.CostUsd,
             AttributesJson =
                 JsonSerializer.Serialize(attributes, QylSerializerContext.Default.DictionaryStringString),
-            ResourceJson = null,
+            ResourceJson = resourceJson,
             BaggageJson = baggageJson,
             SchemaUrl = schemaUrl
         };
+    }
+
+    /// <summary>
+    ///     Extracts a ServiceInstanceRecord from OTLP resource attributes.
+    ///     Returns null if service.name is "unknown" or missing.
+    /// </summary>
+    public static ServiceInstanceRecord? ExtractServiceInstance(
+        IReadOnlyDictionary<string, string> resourceAttributes,
+        IReadOnlyDictionary<string, string>? spanAttributes,
+        ulong timestampNano)
+    {
+        if (!resourceAttributes.TryGetValue("service.name", out var serviceName) ||
+            serviceName is "unknown" or "")
+            return null;
+
+        var serviceType = ServiceClassifier.Classify(resourceAttributes, spanAttributes);
+
+        return new ServiceInstanceRecord
+        {
+            ServiceNamespace = resourceAttributes.GetValueOrDefault("service.namespace") ?? "",
+            ServiceName = serviceName,
+            ServiceInstanceId = resourceAttributes.GetValueOrDefault("service.instance.id")
+                                ?? Environment.MachineName,
+            ServiceType = serviceType,
+            ServiceVersion = resourceAttributes.GetValueOrDefault("service.version"),
+            DeploymentEnvironment = resourceAttributes.GetValueOrDefault("deployment.environment.name")
+                                    ?? resourceAttributes.GetValueOrDefault("deployment.environment"),
+            OsType = resourceAttributes.GetValueOrDefault("os.type"),
+            HostArch = resourceAttributes.GetValueOrDefault("host.arch"),
+            AgentName = resourceAttributes.GetValueOrDefault("gen_ai.agent.name"),
+            ProviderName = resourceAttributes.GetValueOrDefault("gen_ai.provider.name"),
+            DefaultModel = resourceAttributes.GetValueOrDefault("gen_ai.request.model"),
+            TimestampNano = timestampNano
+        };
+    }
+
+    /// <summary>
+    ///     Extracts service instances from an OTLP JSON trace request.
+    ///     One record per unique resource in the request.
+    /// </summary>
+    public static List<ServiceInstanceRecord> ExtractServiceInstancesFromJson(OtlpExportTraceServiceRequest otlp)
+    {
+        var instances = new List<ServiceInstanceRecord>();
+
+        foreach (var resourceSpan in otlp.ResourceSpans ?? [])
+        {
+            var resourceAttrs = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (resourceSpan.Resource?.Attributes is not null)
+            {
+                foreach (var attr in resourceSpan.Resource.Attributes)
+                {
+                    if (string.IsNullOrEmpty(attr.Key)) continue;
+                    var value = ConvertJsonValueToString(attr.Value);
+                    if (value is not null) resourceAttrs[attr.Key] = value;
+                }
+            }
+
+            // Use first span's attributes for classification
+            var firstSpan = resourceSpan.ScopeSpans?.FirstOrDefault()?.Spans?.FirstOrDefault();
+            Dictionary<string, string>? spanAttrs = null;
+            ulong timestamp = 0;
+
+            if (firstSpan is not null)
+            {
+                spanAttrs = ExtractAttributesFromJson(firstSpan.Attributes,
+                    resourceAttrs.GetValueOrDefault("service.name") ?? "unknown");
+                timestamp = firstSpan.StartTimeUnixNano;
+            }
+
+            if (timestamp is 0)
+                timestamp = (ulong)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds()) * 1_000_000;
+
+            var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
+            if (instance is not null)
+                instances.Add(instance);
+        }
+
+        return instances;
+    }
+
+    /// <summary>
+    ///     Extracts service instances from an OTLP proto trace request.
+    ///     One record per unique resource in the request.
+    /// </summary>
+    public static List<ServiceInstanceRecord> ExtractServiceInstancesFromProto(ExportTraceServiceRequest request)
+    {
+        var instances = new List<ServiceInstanceRecord>();
+
+        foreach (var resourceSpan in request.ResourceSpans)
+        {
+            var resourceAttrs = ExtractResourceAttributesFromProto(resourceSpan.Resource);
+
+            // Use first span's attributes for classification
+            OtlpSpanProto? firstSpan = null;
+            foreach (var scopeSpan in resourceSpan.ScopeSpans)
+            {
+                if (scopeSpan.Spans.Count > 0)
+                {
+                    firstSpan = scopeSpan.Spans[0];
+                    break;
+                }
+            }
+
+            Dictionary<string, string>? spanAttrs = null;
+            ulong timestamp = 0;
+
+            if (firstSpan is not null)
+            {
+                spanAttrs = ExtractAttributesFromProto(firstSpan.Attributes,
+                    resourceAttrs.GetValueOrDefault("service.name") ?? "unknown");
+                timestamp = firstSpan.StartTimeUnixNano;
+            }
+
+            if (timestamp is 0)
+                timestamp = (ulong)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds()) * 1_000_000;
+
+            var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
+            if (instance is not null)
+                instances.Add(instance);
+        }
+
+        return instances;
     }
 
     private static string? ConvertJsonValueToString(OtlpAnyValue? value) =>

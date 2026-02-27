@@ -8,6 +8,8 @@ using qyl.collector.Alerting;
 using qyl.collector.Auth;
 using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
+using qyl.collector.ClaudeCode;
+using qyl.collector.Services;
 using qyl.collector.Copilot;
 using qyl.collector.Dashboard;
 using qyl.collector.Dashboards;
@@ -160,6 +162,7 @@ builder.Services.AddQylCopilotTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
+builder.Services.AddHostedService<ServiceMaterializerService>();
 builder.Services.AddHostedService<EmbeddingClusterWorker>();
 
 // SQL alerting: YAML-defined rules, periodic evaluation, webhook/console/SSE notifications
@@ -300,6 +303,8 @@ app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
 app.MapCopilotEndpoints();
+app.MapClaudeCodeEndpoints();
+app.MapServiceEndpoints();
 app.MapSseEndpoints();
 app.MapSpanMemoryEndpoints();
 app.MapInsightsEndpoints();
@@ -395,6 +400,7 @@ app.MapPost("/v1/traces", async (
         var contentType = context.Request.ContentType;
 
         // Handle protobuf format (application/x-protobuf)
+        List<ServiceInstanceRecord> serviceInstances;
         if (OtlpProtobufParser.IsProtobufContentType(contentType))
         {
             var protoRequest = await OtlpProtobufParser.ParseFromRequestAsync(context.Request, ct);
@@ -402,6 +408,7 @@ app.MapPost("/v1/traces", async (
                 return Results.Accepted();
 
             spans = OtlpConverter.ConvertProtoToStorageRows(protoRequest);
+            serviceInstances = OtlpConverter.ExtractServiceInstancesFromProto(protoRequest);
         }
         // Handle JSON format (application/json or default)
         else
@@ -413,6 +420,7 @@ app.MapPost("/v1/traces", async (
                 return Results.BadRequest(new ErrorResponse("Invalid OTLP format"));
 
             spans = OtlpConverter.ConvertJsonToStorageRows(otlpData);
+            serviceInstances = OtlpConverter.ExtractServiceInstancesFromJson(otlpData);
         }
 
         if (spans.Count is 0) return Results.Accepted();
@@ -424,6 +432,10 @@ app.MapPost("/v1/traces", async (
         ringBuffer.PushRange(batch.Spans.Select(SpanMapper.ToRecord));
 
         await store.EnqueueAsync(batch, ct);
+
+        // Upsert discovered services (idempotent, through write channel)
+        foreach (var si in serviceInstances)
+            await store.UpsertServiceInstanceAsync(si, ct);
 
         broadcaster.PublishSpans(batch);
 
@@ -693,13 +705,6 @@ app.MapGet("/api/v1/pipelines", () =>
 
 app.MapGet("/api/v1/pipelines/stats", () =>
     Results.Ok(new { total_runs = 0, success_rate = 0 }));
-
-app.MapGet("/api/v1/services", () =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapGet("/api/v1/services/{serviceName}", (string serviceName) =>
-    Results.Ok(new { name = serviceName, instance_count = 1 }));
-
 
 app.MapFallback(context =>
 {

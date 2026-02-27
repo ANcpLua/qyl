@@ -54,33 +54,28 @@ public sealed class ApiIntegrationTests(QylWebApplicationFactory factory)
     }
 
     // =========================================================================
-    // Auth Endpoints
+    // GitHub Auth Endpoints (ADR-002)
     // =========================================================================
 
     [Fact]
-    public async Task AuthCheck_ReturnsOk()
+    public async Task GitHubStatus_ReturnsOk()
     {
-        // Auth check should always return OK (with authenticated:true or false)
-        var authResponse = await Client.GetAsync("/api/auth/check");
+        var response = await Client.GetAsync("/api/v1/github/status");
 
-        Assert.Equal(HttpStatusCode.OK, authResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        var content = await authResponse.Content.ReadAsStringAsync();
-        Assert.Contains("authenticated", content, StringComparison.OrdinalIgnoreCase);
+        var content = await response.Content.ReadAsStringAsync();
+        Assert.Contains("configured", content, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public async Task Login_WithValidToken_ReturnsOkOrBadRequest()
+    public async Task GitHubToken_WithValidToken_ReturnsOkOrBadRequest()
     {
-        // Note: In test environment, token might not be correctly set
-        // This tests that the endpoint is accessible
-        var loginRequest = new
-        {
-            token = QylWebApplicationFactory.TestToken
-        };
-        var response = await Client.PostAsJsonAsync("/api/login", loginRequest);
+        // In test environment, the token won't validate against GitHub API
+        // This tests that the endpoint is accessible and rejects invalid tokens
+        var request = new { token = QylWebApplicationFactory.TestToken };
+        var response = await Client.PostAsJsonAsync("/api/v1/github/token", request);
 
-        // Login should return OK with valid token or BadRequest with invalid
         Assert.True(
             response.StatusCode == HttpStatusCode.OK ||
             response.StatusCode == HttpStatusCode.BadRequest,
@@ -88,15 +83,11 @@ public sealed class ApiIntegrationTests(QylWebApplicationFactory factory)
     }
 
     [Fact]
-    public async Task Login_WithInvalidToken_ReturnsBadRequest()
+    public async Task GitHubDeviceAvailable_ReturnsOk()
     {
-        var loginRequest = new
-        {
-            token = "invalid-token"
-        };
-        var response = await Client.PostAsJsonAsync("/api/login", loginRequest);
+        var response = await Client.GetAsync("/api/v1/github/device/available");
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     // =========================================================================

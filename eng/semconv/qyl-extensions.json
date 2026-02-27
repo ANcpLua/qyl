@@ -1,0 +1,231 @@
+{
+  "$comment": "Protocol facade definitions — merged upstream OTel semconv + qyl extensions. Used by generateProtocolFacades() in generate-semconv.ts",
+  "facades": [
+    {
+      "className": "GenAiAttributes",
+      "namespace": "qyl.protocol.Attributes",
+      "output": "../../src/qyl.protocol/Attributes/GenAiAttributes.g.cs",
+      "description": "OTel {version} GenAI semantic convention attribute keys.\nStatus: Development\nhttps://opentelemetry.io/docs/specs/semconv/gen-ai/",
+      "upstreamPrefix": "gen_ai",
+      "metadata": {
+        "SchemaUrl": "https://opentelemetry.io/schemas/{version}",
+        "SourceName": "OpenTelemetry.Instrumentation.GenAI"
+      },
+      "attributes": [
+        "gen_ai.provider.name",
+        "gen_ai.operation.name",
+        "gen_ai.request.model",
+        "gen_ai.request.temperature",
+        "gen_ai.request.max_tokens",
+        "gen_ai.request.top_p",
+        "gen_ai.request.top_k",
+        "gen_ai.request.stop_sequences",
+        "gen_ai.request.frequency_penalty",
+        "gen_ai.request.presence_penalty",
+        "gen_ai.request.choice.count",
+        "gen_ai.request.seed",
+        "gen_ai.request.encoding_formats",
+        "gen_ai.response.model",
+        "gen_ai.response.finish_reasons",
+        "gen_ai.response.id",
+        "gen_ai.usage.input_tokens",
+        "gen_ai.usage.output_tokens",
+        "gen_ai.usage.cache_read.input_tokens",
+        "gen_ai.usage.cache_creation.input_tokens",
+        "gen_ai.token.type",
+        "gen_ai.tool.name",
+        "gen_ai.tool.call.id",
+        "gen_ai.tool.description",
+        "gen_ai.tool.type",
+        "gen_ai.tool.call.arguments",
+        "gen_ai.tool.call.result",
+        "gen_ai.tool.definitions",
+        "gen_ai.input.messages",
+        "gen_ai.output.messages",
+        "gen_ai.output.type",
+        "gen_ai.system_instructions",
+        "gen_ai.agent.version",
+        "gen_ai.conversation.id",
+        "gen_ai.prompt.name",
+        "gen_ai.embeddings.dimension.count",
+        "gen_ai.evaluation.name",
+        "gen_ai.evaluation.score.value",
+        "gen_ai.evaluation.score.label",
+        "gen_ai.evaluation.explanation",
+        "gen_ai.data_source.id"
+      ],
+      "crossCutting": {
+        "EnduserId": "enduser.id",
+        "SessionId": "session.id",
+        "ErrorType": "error.type",
+        "ExceptionType": "exception.type",
+        "ExceptionMessage": "exception.message",
+        "ExceptionStacktrace": "exception.stacktrace",
+        "ServerAddress": "server.address",
+        "ServerPort": "server.port",
+        "ClientAddress": "client.address",
+        "ClientPort": "client.port"
+      },
+      "enums": {
+        "Operations": {
+          "summary": "Well-known operation name values.",
+          "upstream": "GEN_AI_OPERATION_NAME",
+          "extensions": {
+            "ImageGeneration": "image_generation",
+            "AudioTranscription": "audio_transcription",
+            "TextToSpeech": "text_to_speech",
+            "Rerank": "rerank"
+          }
+        },
+        "Providers": {
+          "summary": "Well-known provider name values.",
+          "values": {
+            "Anthropic": "anthropic",
+            "AwsBedrock": "aws.bedrock",
+            "AzureAiInference": "azure.ai.inference",
+            "AzureOpenAi": "azure.ai.openai",
+            "Cohere": "cohere",
+            "DeepSeek": "deepseek",
+            "GcpGemini": "gcp.gemini",
+            "GcpGenAi": "gcp.gen_ai",
+            "GcpVertexAi": "gcp.vertex_ai",
+            "Groq": "groq",
+            "GitHubCopilot": "github_copilot",
+            "IbmWatsonxAi": "ibm.watsonx.ai",
+            "MicrosoftAgents": "microsoft_agents",
+            "MistralAi": "mistral_ai",
+            "OpenAi": "openai",
+            "Perplexity": "perplexity",
+            "XAi": "x_ai",
+            "Meta": "meta",
+            "HuggingFace": "huggingface",
+            "Replicate": "replicate",
+            "TogetherAi": "together_ai",
+            "Fireworks": "fireworks",
+            "Anyscale": "anyscale",
+            "Ollama": "ollama",
+            "Local": "local",
+            "Custom": "custom"
+          }
+        },
+        "TokenTypes": {
+          "summary": "Well-known token type values.",
+          "values": {
+            "Input": "input",
+            "Output": "output"
+          }
+        },
+        "OutputTypes": {
+          "summary": "Well-known output type values.",
+          "upstream": "GEN_AI_OUTPUT_TYPE"
+        },
+        "ToolTypes": {
+          "summary": "Well-known tool type values.",
+          "values": {
+            "Function": "function",
+            "Extension": "extension",
+            "Datastore": "datastore"
+          }
+        }
+      },
+      "customClasses": {
+        "Metrics": {
+          "summary": "GenAI metrics names.",
+          "values": {
+            "ClientTokenUsage": "gen_ai.client.token.usage",
+            "ClientOperationDuration": "gen_ai.client.operation.duration",
+            "ServerRequestDuration": "gen_ai.server.request.duration",
+            "ServerTimePerOutputToken": "gen_ai.server.time_per_output_token",
+            "ServerTimeToFirstToken": "gen_ai.server.time_to_first_token"
+          }
+        },
+        "Events": {
+          "summary": "GenAI event names.",
+          "values": {
+            "ClientInferenceOperationDetails": "gen_ai.client.inference.operation.details",
+            "EvaluationResult": "gen_ai.evaluation.result"
+          }
+        },
+        "Deprecated": {
+          "summary": "Deprecated attribute names for backward compatibility.",
+          "values": {
+            "System": "gen_ai.system",
+            "UsagePromptTokens": "gen_ai.usage.prompt_tokens",
+            "UsageCompletionTokens": "gen_ai.usage.completion_tokens"
+          }
+        }
+      }
+    },
+    {
+      "className": "DbAttributes",
+      "namespace": "qyl.protocol.Attributes",
+      "output": "../../src/qyl.protocol/Attributes/DbAttributes.g.cs",
+      "description": "OTel {version} Database semantic convention attribute keys.\nStatus: Stable\nhttps://opentelemetry.io/docs/specs/semconv/database/",
+      "upstreamPrefix": "db",
+      "attributes": [
+        "db.system.name",
+        "db.operation.name",
+        "db.query.text",
+        "db.query.summary",
+        "db.namespace",
+        "db.collection.name",
+        "db.response.status_code",
+        "db.response.returned_rows",
+        "db.client.connection.pool.name",
+        "db.client.connection.state",
+        "db.operation.batch.size",
+        "db.stored_procedure.name"
+      ],
+      "propertyOverrides": {
+        "db.client.connection.pool.name": "ConnectionPoolName",
+        "db.client.connection.state": "ConnectionState"
+      },
+      "enums": {
+        "Systems": {
+          "summary": "Well-known database system name values.",
+          "values": {
+            "DuckDb": "duckdb",
+            "PostgreSql": "postgresql",
+            "MsSql": "mssql",
+            "Sqlite": "sqlite",
+            "MySql": "mysql",
+            "MariaDb": "mariadb",
+            "Oracle": "oracle",
+            "Firebird": "firebird",
+            "Redis": "redis",
+            "MongoDb": "mongodb",
+            "Elasticsearch": "elasticsearch",
+            "CosmosDb": "cosmosdb",
+            "Cassandra": "cassandra"
+          }
+        },
+        "Operations": {
+          "summary": "Well-known database operation name values.",
+          "values": {
+            "Select": "SELECT",
+            "Insert": "INSERT",
+            "Update": "UPDATE",
+            "Delete": "DELETE",
+            "Create": "CREATE",
+            "Drop": "DROP",
+            "ExecuteReader": "ExecuteReader",
+            "ExecuteNonQuery": "ExecuteNonQuery",
+            "ExecuteScalar": "ExecuteScalar"
+          }
+        }
+      },
+      "customClasses": {
+        "Deprecated": {
+          "summary": "Deprecated attribute names for backward compatibility.",
+          "values": {
+            "System": "db.system",
+            "Name": "db.name",
+            "Statement": "db.statement",
+            "Operation": "db.operation",
+            "User": "db.user"
+          }
+        }
+      }
+    }
+  ]
+}

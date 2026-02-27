@@ -197,6 +197,8 @@ partial interface IPipeline : IHazSourcePaths
             Log.Information("  C# UTF-8: src/qyl.servicedefaults/Instrumentation/SemanticConventions.Utf8.g.cs");
             Log.Information("  TypeScript: src/qyl.dashboard/src/lib/semconv.ts");
             Log.Information("  DuckDB: src/qyl.collector/Storage/promoted-columns.g.sql");
+            Log.Information("  Protocol: src/qyl.protocol/Attributes/GenAiAttributes.g.cs");
+            Log.Information("  Protocol: src/qyl.protocol/Attributes/DbAttributes.g.cs");
         });
 
     // ════════════════════════════════════════════════════════════════════════

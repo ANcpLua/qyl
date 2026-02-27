@@ -21,7 +21,7 @@ internal static class ObservabilityTools
             async (string? serviceName, byte? statusCode, int hours, int limit, CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("search_spans");
-                CopilotMetrics.RecordToolCall("search_spans", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("search_spans", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
@@ -35,7 +35,7 @@ internal static class ObservabilityTools
                     ct: ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "search_spans", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "search_spans", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 if (spans.Count is 0)
                     return "No spans found matching the criteria.";
@@ -66,13 +66,13 @@ internal static class ObservabilityTools
             async (string traceId, CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("get_trace");
-                CopilotMetrics.RecordToolCall("get_trace", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("get_trace", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var spans = await store.GetTraceAsync(traceId, ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "get_trace", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "get_trace", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 if (spans.Count is 0)
                     return $"No spans found for trace {traceId}.";
@@ -102,7 +102,7 @@ internal static class ObservabilityTools
             async (int hours, string? sessionId, CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("get_genai_stats");
-                CopilotMetrics.RecordToolCall("get_genai_stats", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("get_genai_stats", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
@@ -111,7 +111,7 @@ internal static class ObservabilityTools
                 var stats = await store.GetGenAiStatsAsync(sessionId, startAfter, ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "get_genai_stats", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "get_genai_stats", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 return $"""
                         GenAI Statistics (last {hours}h):
@@ -130,7 +130,7 @@ internal static class ObservabilityTools
             async (string? severityLevel, string? body, int hours, int limit, CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("search_logs");
-                CopilotMetrics.RecordToolCall("search_logs", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("search_logs", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
@@ -144,7 +144,7 @@ internal static class ObservabilityTools
                     ct: ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "search_logs", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "search_logs", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 if (logs.Count is 0)
                     return "No logs found matching the criteria.";
@@ -168,13 +168,13 @@ internal static class ObservabilityTools
             async (CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("get_storage_stats");
-                CopilotMetrics.RecordToolCall("get_storage_stats", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("get_storage_stats", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var stats = await store.GetStorageStatsAsync(ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "get_storage_stats", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "get_storage_stats", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 return $"""
                         Storage Statistics:
@@ -192,13 +192,13 @@ internal static class ObservabilityTools
             async (string sessionId, CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("list_sessions");
-                CopilotMetrics.RecordToolCall("list_sessions", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("list_sessions", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "list_sessions", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "list_sessions", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 if (spans.Count is 0)
                     return $"No spans found for session {sessionId}.";
@@ -227,13 +227,13 @@ internal static class ObservabilityTools
             async (CancellationToken ct) =>
             {
                 using var activity = CopilotInstrumentation.StartToolSpan("get_system_context");
-                CopilotMetrics.RecordToolCall("get_system_context", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolCall("get_system_context", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
                 var startTime = timeProvider.GetUtcNow();
 
                 var rows = await store.GetAllInsightsAsync(ct).ConfigureAwait(false);
 
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
-                CopilotMetrics.RecordToolDuration(duration, "get_system_context", CopilotInstrumentation.GenAiSystem);
+                CopilotMetrics.RecordToolDuration(duration, "get_system_context", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
                 if (rows.Count is 0)
                 {

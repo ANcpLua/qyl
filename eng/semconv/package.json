@@ -9,7 +9,8 @@
     "generate:cs": "tsx generate-semconv.ts --cs-only",
     "generate:utf8": "tsx generate-semconv.ts --utf8-only",
     "generate:tsp": "tsx generate-semconv.ts --tsp-only",
-    "generate:sql": "tsx generate-semconv.ts --sql-only"
+    "generate:sql": "tsx generate-semconv.ts --sql-only",
+    "generate:protocol": "tsx generate-semconv.ts --protocol-only"
   },
   "devDependencies": {
     "@opentelemetry/semantic-conventions": "1.40.0",

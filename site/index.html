@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>qyl - AI Observability</title>
-  <meta name="description" content="AI observability in one Docker command. Question your logs.">
+  <title>qyl — AI Observability</title>
+  <meta name="description" content="AI observability in two steps. Question your logs.">
   <meta name="theme-color" content="#1a1a1a">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +23,6 @@
       --green: #50d880;
       --cyan: #60c8d8;
       --violet: #9060e8;
-      --red: #d84040;
     }
 
     body {
@@ -35,10 +34,8 @@
     }
 
     ::selection { background: var(--orange); color: var(--black); }
-
     a { color: var(--orange); text-decoration: none; }
     a:hover { text-decoration: underline; }
-
     .container { max-width: 960px; margin: 0 auto; padding: 0 24px; }
 
     /* SECTIONS */
@@ -55,13 +52,13 @@
     .hero-title { font-size: clamp(3.5rem, 10vw, 7rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1; margin-bottom: 24px; color: var(--white); }
     .hero-title .dot { color: var(--orange); }
     .hero-tagline { font-size: clamp(1rem, 2.5vw, 1.35rem); color: var(--slate); margin-bottom: 8px; max-width: 600px; }
-    .hero-sub { font-size: 13px; color: var(--zinc); margin-bottom: 40px; }
+    .hero-sub { font-size: 13px; color: var(--zinc); margin-bottom: 0; }
 
     /* CODE BLOCK */
     .code-block {
       background: var(--carbon); border: 3px solid var(--zinc);
       padding: 16px 20px; font-size: clamp(11px, 1.8vw, 14px);
-      color: var(--green); overflow-x: auto; white-space: nowrap;
+      color: var(--green); overflow-x: auto; white-space: pre;
       position: relative;
     }
     .code-block code { display: block; padding-right: 80px; }
@@ -76,7 +73,38 @@
     }
     .copy-btn:active { transform: translate(2px, 2px); box-shadow: none; }
 
-    .hero-hint { font-size: 12px; color: var(--zinc); margin-top: 16px; }
+    .hint { font-size: 12px; color: var(--zinc); margin-top: 16px; }
+
+    /* TABS */
+    .tabs {
+      display: flex; border: 3px solid var(--zinc);
+      margin-bottom: 32px; background: var(--dark);
+    }
+    .tab {
+      flex: 1; padding: 12px 16px;
+      font-family: inherit; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.15em; text-transform: uppercase;
+      border: none; cursor: pointer;
+      background: transparent; color: var(--slate);
+      transition: background 0.15s, color 0.15s;
+    }
+    .tab:not(:last-child) { border-right: 3px solid var(--zinc); }
+    .tab.active { background: var(--orange); color: var(--black); }
+
+    /* CALLOUT */
+    .callout {
+      font-size: 12px; color: var(--slate); line-height: 1.7;
+      padding: 16px 20px; border-left: 3px solid var(--orange);
+      background: var(--carbon); margin-top: 32px;
+    }
+    .callout code { color: var(--green); }
+
+    /* STEPS */
+    .step { display: flex; gap: 24px; margin-bottom: 32px; }
+    .step:last-child { margin-bottom: 0; }
+    .step-num { font-size: 1.8rem; font-weight: 700; color: var(--orange); min-width: 48px; }
+    .step-content { flex: 1; min-width: 0; }
+    .step-label { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--white); }
 
     /* FEATURE GRID */
     .features { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -89,13 +117,6 @@
     .feature-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 12px; }
     .feature-desc { font-size: 13px; color: var(--slate); line-height: 1.7; }
     .feature-meta { font-size: 11px; color: var(--zinc); margin-top: 16px; }
-
-    /* STEPS */
-    .step { display: flex; gap: 24px; margin-bottom: 32px; }
-    .step-num { font-size: 1.8rem; font-weight: 700; color: var(--orange); min-width: 48px; }
-    .step-content { flex: 1; min-width: 0; }
-    .step-label { font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--white); }
-    .step-lang { font-size: 11px; color: var(--zinc); letter-spacing: 0.1em; margin-bottom: 4px; }
 
     /* METRICS GRID */
     .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; background: var(--dark); border: 3px solid var(--zinc); }
@@ -116,22 +137,16 @@
     .tool-name { color: var(--green); }
     .tool-desc { color: var(--slate); font-size: 12px; }
 
-    /* TABLE */
-    .compare-table { width: 100%; border: 3px solid var(--zinc); border-collapse: collapse; font-size: 13px; }
-    .compare-table th, .compare-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--zinc); }
-    .compare-table thead { background: var(--dark); }
-    .compare-table th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); font-weight: 400; }
-    .compare-table th.highlight { color: var(--orange); font-weight: 700; }
-    .compare-table .yes { color: var(--green); font-weight: 600; }
-    .compare-table .no { color: var(--red); }
-    .compare-table .meh { color: var(--slate); }
-
-    .config-table { width: 100%; border: 3px solid var(--zinc); border-collapse: collapse; font-size: 13px; }
-    .config-table th, .config-table td { padding: 12px; text-align: left; border-bottom: 1px solid var(--zinc); }
-    .config-table thead { background: var(--dark); }
-    .config-table th { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--slate); font-weight: 400; }
-    .config-table .var { color: var(--green); font-weight: 600; }
-    .config-table .val { color: var(--slate); }
+    /* CUSTOMIZE */
+    .config-inline {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+      background: var(--dark); border: 3px solid var(--zinc);
+      font-size: 12px;
+    }
+    .config-item { padding: 12px 16px; border-bottom: 1px solid var(--zinc); }
+    .config-item:nth-child(odd) { border-right: 1px solid var(--zinc); }
+    .config-var { color: var(--green); font-weight: 600; }
+    .config-val { color: var(--slate); margin-left: 8px; }
 
     /* FOOTER */
     .footer { padding: 48px 0; }
@@ -154,17 +169,16 @@
       .metric:nth-child(odd) { border-right: 1px solid var(--zinc); }
       .step { flex-direction: column; gap: 8px; }
       .step-num { font-size: 1.3rem; }
-      .compare-table { font-size: 11px; }
-      .compare-table th, .compare-table td { padding: 8px; }
       .tool-line { flex-wrap: wrap; }
       .footer-grid { flex-direction: column; }
+      .config-inline { grid-template-columns: 1fr; }
+      .config-item:nth-child(odd) { border-right: none; }
     }
 
     @media (max-width: 480px) {
       .container { padding: 0 16px; }
       .metrics { grid-template-columns: 1fr; }
       .metric { border-right: none; }
-      .compare-table { display: block; overflow-x: auto; }
     }
   </style>
 </head>
@@ -176,14 +190,71 @@
       <div class="hero-badge">AI OBSERVABILITY</div>
       <h1 class="hero-title">QYL<span class="dot">.</span></h1>
       <p class="hero-tagline">Question Your Logs.</p>
-      <p class="hero-sub">GenAI-native telemetry. One Docker command. Your data stays yours.</p>
-      <div class="code-block">
-        <code id="docker-cmd">docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest</code>
-        <button onclick="copyCmd()" class="copy-btn" id="copy-btn">COPY</button>
-      </div>
-      <p class="hero-hint">Then visit <a href="http://localhost:5100">localhost:5100</a></p>
+      <p class="hero-sub">GenAI-native telemetry. Two steps. Your data stays yours.</p>
     </div>
   </header>
+
+  <!-- GET STARTED -->
+  <section class="section">
+    <div class="container">
+      <h2 class="section-label">GET STARTED</h2>
+
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('compose')">YOUR STACK</button>
+        <button class="tab" onclick="switchTab('standalone')">TRY IT</button>
+      </div>
+
+      <!-- COMPOSE TAB -->
+      <div class="tab-panel" id="tab-compose">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-content">
+            <p class="step-label">Add qyl to docker-compose.yml</p>
+            <div class="code-block"><code>services:
+  qyl:
+    image: ghcr.io/ancplua/qyl:latest
+    ports: ["5100:5100", "4317:4317"]
+    volumes: [qyl_data:/data]
+
+  your-app:
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://qyl:4317</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-content">
+            <p class="step-label">Restart</p>
+            <div class="code-block"><code>docker compose up -d</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
+            <p class="hint">Open <a href="http://localhost:5100">localhost:5100</a> &mdash; your telemetry is there.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- STANDALONE TAB -->
+      <div class="tab-panel" id="tab-standalone" style="display:none">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-content">
+            <p class="step-label">Run qyl</p>
+            <div class="code-block"><code>docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-content">
+            <p class="step-label">Point your app</p>
+            <div class="code-block"><code>export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
+            <p class="hint">Open <a href="http://localhost:5100">localhost:5100</a> &mdash; your telemetry is there.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout">
+        One env var. Every language. Python, .NET, Node, Go, Java, Rust &mdash; all OpenTelemetry SDKs respect <code>OTEL_EXPORTER_OTLP_ENDPOINT</code>. No per-language setup.
+      </div>
+    </div>
+  </section>
 
   <!-- WHAT YOU GET -->
   <section class="section">
@@ -214,48 +285,12 @@
     </div>
   </section>
 
-  <!-- QUICK START -->
-  <section class="section">
-    <div class="container">
-      <h2 class="section-label">QUICK START</h2>
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-content">
-          <p class="step-label">Run the container</p>
-          <div class="code-block"><code>docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data ghcr.io/ancplua/qyl:latest</code></div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-content">
-          <p class="step-label">Point your OTLP SDK at qyl</p>
-          <div class="step-lang">PYTHON</div>
-          <div class="code-block" style="margin-bottom: 8px"><code>export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100</code></div>
-          <div class="step-lang">.NET</div>
-          <div class="code-block" style="margin-bottom: 8px"><code>builder.Services.AddOpenTelemetry()
-    .WithTracing(t =&gt; t.AddOtlpExporter(o =&gt;
-        o.Endpoint = new Uri("http://localhost:5100/v1/traces")));</code></div>
-          <div class="step-lang">NODE.JS</div>
-          <div class="code-block"><code>OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100 node app.js</code></div>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-content">
-          <p class="step-label">Open the dashboard</p>
-          <div class="code-block"><code>open http://localhost:5100</code></div>
-          <p class="hero-hint">Your telemetry is there. Real-time. No setup.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
   <!-- GENAI NATIVE -->
   <section class="section">
     <div class="container">
       <h2 class="section-label">GENAI-NATIVE</h2>
       <p style="font-size: 13px; color: var(--slate); margin-bottom: 32px; max-width: 600px;">
-        Other tools bolt GenAI on. qyl was built for it. Every LLM call is captured with full semantic context.
+        Every LLM call is captured with full semantic context. Tokens, costs, latency, models &mdash; structured, queryable, real-time.
       </p>
       <div class="metrics">
         <div class="metric">
@@ -284,10 +319,10 @@
     <div class="container">
       <h2 class="section-label">MCP FOR AI AGENTS</h2>
       <p style="font-size: 13px; color: var(--slate); margin-bottom: 32px; max-width: 600px;">
-        Your agents observe themselves. qyl exposes 30+ MCP tools so Claude, GPT, or any agent can query sessions, analyze errors, and track costs directly.
+        Your agents observe themselves. qyl exposes 30+ MCP tools so Claude, GPT, or any agent can query sessions, analyze errors, and track costs.
       </p>
       <div class="tool-list">
-        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.get_genai_stats</span> <span class="tool-desc">// token usage, costs, latency summary</span></div>
+        <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.get_genai_stats</span> <span class="tool-desc">// token usage, costs, latency</span></div>
         <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.list_sessions</span> <span class="tool-desc">// all AI sessions with error counts</span></div>
         <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.analyze_session_errors</span> <span class="tool-desc">// every error in a session</span></div>
         <div class="tool-line"><span class="tool-prompt">&gt;</span> <span class="tool-name">qyl.get_session_transcript</span> <span class="tool-desc">// human-readable timeline</span></div>
@@ -301,53 +336,27 @@
       "env": { "QYL_COLLECTOR_URL": "http://localhost:5100" }
     }
   }
-}</code></div>
+}</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
     </div>
   </section>
 
-  <!-- VS EVERYTHING ELSE -->
+  <!-- CUSTOMIZE -->
   <section class="section">
     <div class="container">
-      <h2 class="section-label">VS. EVERYTHING ELSE</h2>
-      <table class="compare-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th class="highlight">QYL</th>
-            <th>JAEGER</th>
-            <th>GRAFANA</th>
-            <th>DATADOG</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td style="color:var(--slate)">Setup</td><td class="yes">1 command</td><td class="meh">Cassandra/ES</td><td class="meh">Prometheus stack</td><td class="meh">SaaS account</td></tr>
-          <tr><td style="color:var(--slate)">Storage</td><td class="yes">DuckDB (1 file)</td><td class="meh">External DB</td><td class="meh">External DB</td><td class="meh">Cloud only</td></tr>
-          <tr><td style="color:var(--slate)">GenAI native</td><td class="yes">Yes</td><td class="no">No</td><td class="meh">Add-on</td><td class="meh">Add-on</td></tr>
-          <tr><td style="color:var(--slate)">MCP tools</td><td class="yes">30+</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
-          <tr><td style="color:var(--slate)">Real-time</td><td class="yes">SSE streaming</td><td class="meh">Limited</td><td class="meh">Grafana Live</td><td class="meh">Yes</td></tr>
-          <tr><td style="color:var(--slate)">Cost</td><td class="yes">Free</td><td class="meh">Free</td><td class="meh">Free</td><td class="no">$$$</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- CONFIGURATION -->
-  <section class="section">
-    <div class="container">
-      <h2 class="section-label">CONFIGURATION</h2>
-      <table class="config-table">
-        <thead>
-          <tr><th>Variable</th><th>Default</th><th>Purpose</th></tr>
-        </thead>
-        <tbody>
-          <tr><td class="var">QYL_PORT</td><td class="val">5100</td><td class="val">HTTP API + Dashboard</td></tr>
-          <tr><td class="var">QYL_GRPC_PORT</td><td class="val">4317</td><td class="val">gRPC OTLP ingestion</td></tr>
-          <tr><td class="var">QYL_DATA_PATH</td><td class="val">./qyl.duckdb</td><td class="val">DuckDB file location</td></tr>
-          <tr><td class="var">QYL_TOKEN</td><td class="val">(none)</td><td class="val">Auth token (disabled if unset)</td></tr>
-          <tr><td class="var">QYL_MAX_RETENTION_DAYS</td><td class="val">30</td><td class="val">Days to retain telemetry</td></tr>
-          <tr><td class="var">QYL_MAX_SPAN_COUNT</td><td class="val">1,000,000</td><td class="val">Max spans before cleanup</td></tr>
-        </tbody>
-      </table>
+      <h2 class="section-label">CUSTOMIZE</h2>
+      <p style="font-size: 13px; color: var(--slate); margin-bottom: 32px; max-width: 600px;">
+        Add env vars. Restart. That's the entire configuration model. All settings are optional &mdash; defaults work out of the box.
+      </p>
+      <div class="config-inline">
+        <div class="config-item"><span class="config-var">QYL_PORT</span><span class="config-val"> = 5100</span></div>
+        <div class="config-item"><span class="config-var">QYL_GRPC_PORT</span><span class="config-val"> = 4317</span></div>
+        <div class="config-item"><span class="config-var">QYL_TOKEN</span><span class="config-val"> = (none)</span></div>
+        <div class="config-item"><span class="config-var">QYL_DATA_PATH</span><span class="config-val"> = ./qyl.duckdb</span></div>
+        <div class="config-item"><span class="config-var">QYL_MAX_RETENTION_DAYS</span><span class="config-val"> = 30</span></div>
+        <div class="config-item"><span class="config-var">QYL_MAX_SPAN_COUNT</span><span class="config-val"> = 1,000,000</span></div>
+      </div>
+      <div class="code-block" style="margin-top: 24px"><code># Change anything. Restart. Done.
+docker compose up -d</code><button class="copy-btn" onclick="copyBlock(this)">COPY</button></div>
     </div>
   </section>
 
@@ -370,12 +379,18 @@
   </footer>
 
   <script>
-    function copyCmd() {
-      const cmd = document.getElementById('docker-cmd').textContent;
-      navigator.clipboard.writeText(cmd).then(() => {
-        const btn = document.getElementById('copy-btn');
+    function switchTab(id) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('tab-' + id).style.display = 'block';
+      event.target.classList.add('active');
+    }
+
+    function copyBlock(btn) {
+      const code = btn.closest('.code-block').querySelector('code');
+      navigator.clipboard.writeText(code.textContent).then(() => {
         btn.textContent = 'COPIED';
-        setTimeout(() => { btn.textContent = 'COPY'; }, 2000);
+        setTimeout(() => btn.textContent = 'COPY', 2000);
       });
     }
   </script>
