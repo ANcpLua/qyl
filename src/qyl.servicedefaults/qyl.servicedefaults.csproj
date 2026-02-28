@@ -28,14 +28,11 @@
     <!-- Microsoft.Extensions.AI for IChatClient instrumentation -->
     <PackageReference Include="Microsoft.Extensions.AI"/>
 
-    <!-- .NET 10 Telemetry (Enrichment, Redaction, Sampling) -->
+    <!-- .NET 10 Telemetry (Enrichment, Sampling) -->
     <PackageReference Include="Microsoft.Extensions.Telemetry"/>
     <PackageReference Include="Microsoft.Extensions.Telemetry.Abstractions"/>
-    <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
-    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.Middleware"/>
 
     <!-- OpenTelemetry -->
-    <PackageReference Include="OpenTelemetry.Exporter.Console"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="OpenTelemetry.Extensions.Hosting"/>
     <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore"/>

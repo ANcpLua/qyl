@@ -95,15 +95,11 @@ forbidden:
 
 ## Banned Patterns
 
-| Do not use | Use instead |
-|-----------|-------------|
-| `DateTime.Now` / `DateTime.UtcNow` | `TimeProvider.System.GetUtcNow()` |
-| `object _lock` | `Lock _lock = new()` |
-| `Newtonsoft.Json` | `System.Text.Json` |
+| Do not use                | Use instead |
+|---------------------------|-------------|
 | `#pragma warning disable` | Fix the diagnostic |
-| `[SuppressMessage]` | Fix the diagnostic |
-| Raw `dotnet test` with MTP flags | `nuke Test` with parameters |
-| `dotnet build` in CI | `nuke Ci` or `nuke Full` |
+| `[SuppressMessage]`       | Fix the diagnostic |
+| ` nuke Full`              |
 
 ## Environment Variables
 

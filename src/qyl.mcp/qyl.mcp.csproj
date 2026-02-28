@@ -32,11 +32,6 @@
 
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
-    <PackageReference Include="Microsoft.Agents.AI"/>
-    <PackageReference Include="Microsoft.Agents.AI.A2A"/>
-    <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
-    <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A"/>
-    <PackageReference Include="Microsoft.Agents.AI.Hosting.A2A.AspNetCore"/>
     <PackageReference Include="Microsoft.Extensions.Hosting"/>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="ModelContextProtocol"/>
@@ -44,7 +39,6 @@
     <PackageReference Include="Microsoft.Extensions.Http"/>
     <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
-    <PackageReference Include="MSBuild.StructuredLogger"/>
   </ItemGroup>
 
   <!-- Reference protocol only - communicate with collector via HTTP -->

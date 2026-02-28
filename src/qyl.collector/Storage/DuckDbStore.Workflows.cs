@@ -300,7 +300,7 @@ public sealed partial class DuckDbStore
                               """;
             cmd.Parameters.Add(new DuckDBParameter
             {
-                Value = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L
+                Value = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
             });
             cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);

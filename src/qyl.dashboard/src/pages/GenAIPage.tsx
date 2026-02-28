@@ -87,12 +87,12 @@ function GenAISpanCard({
 
     const providerColor =
         span.genAiProviderName === 'openai'
-            ? 'text-green-500 border-green-500'
+            ? 'text-signal-green border-signal-green'
             : span.genAiProviderName === 'anthropic'
-                ? 'text-orange-500 border-orange-500'
+                ? 'text-signal-orange border-signal-orange'
                 : span.genAiProviderName === 'gcp.gemini'
-                    ? 'text-blue-500 border-blue-500'
-                    : 'text-violet-500 border-violet-500';
+                    ? 'text-signal-cyan border-signal-cyan'
+                    : 'text-signal-violet border-signal-violet';
 
     // Parse attributes if available
     let parsedAttrs: Record<string, unknown> = {};
@@ -111,12 +111,12 @@ function GenAISpanCard({
 
     return (
         <Card className={cn('transition-all', isExpanded && 'ring-1 ring-primary/50')}>
-            <CardHeader className="cursor-pointer hover:bg-muted/50" onClick={onToggle}>
+            <CardHeader className="cursor-pointer hover:bg-brutal-dark" role="button" tabIndex={0} aria-expanded={isExpanded} onClick={onToggle} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}>
                 <div className="flex items-start gap-4">
                     {isExpanded ? (
-                        <ChevronDown className="w-5 h-5 mt-0.5 text-muted-foreground"/>
+                        <ChevronDown className="w-5 h-5 mt-0.5 text-brutal-slate"/>
                     ) : (
-                        <ChevronRight className="w-5 h-5 mt-0.5 text-muted-foreground"/>
+                        <ChevronRight className="w-5 h-5 mt-0.5 text-brutal-slate"/>
                     )}
 
                     <div className="flex-1 min-w-0">
@@ -128,33 +128,33 @@ function GenAISpanCard({
                                 {span.genAiResponseModel ?? span.genAiRequestModel ?? 'unknown'}
                             </Badge>
                             {hasToolData && (
-                                <Badge variant="outline" className="text-cyan-500 border-cyan-500">
+                                <Badge variant="outline" className="text-signal-cyan border-signal-cyan">
                                     <Wrench className="w-3 h-3 mr-1"/>
                                     Tools
                                 </Badge>
                             )}
-                            <span className="text-sm text-muted-foreground">
+                            <span className="text-sm text-brutal-slate">
                                 {span.serviceName ?? 'unknown'}
                             </span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1 truncate">{span.name}</p>
+                        <p className="text-sm text-brutal-slate mt-1 truncate">{span.name}</p>
                     </div>
 
                     <div className="flex items-center gap-6 text-sm">
                         <div className="text-right">
-                            <div className="text-muted-foreground">Tokens</div>
+                            <div className="text-brutal-slate">Tokens</div>
                             <div className="font-mono">
                                 {span.genAiInputTokens?.toLocaleString() ?? '-'} /{' '}
                                 {span.genAiOutputTokens?.toLocaleString() ?? '-'}
                             </div>
                         </div>
                         <div className="text-right">
-                            <div className="text-muted-foreground">Duration</div>
+                            <div className="text-brutal-slate">Duration</div>
                             <div className="font-mono">{formatDuration(durationMs)}</div>
                         </div>
                         <div className="text-right">
-                            <div className="text-muted-foreground">Cost</div>
-                            <div className="font-mono text-green-500">
+                            <div className="text-brutal-slate">Cost</div>
+                            <div className="font-mono text-signal-green">
                                 ${span.genAiCostUsd?.toFixed(4) ?? '0.0000'}
                             </div>
                         </div>
@@ -189,53 +189,53 @@ function GenAISpanCard({
                         <TabsContent value="details" className="mt-4">
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <span className="text-muted-foreground">Provider:</span>
+                                    <span className="text-brutal-slate">Provider:</span>
                                     <span className="ml-2">{span.genAiProviderName ?? '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Request Model:</span>
+                                    <span className="text-brutal-slate">Request Model:</span>
                                     <span className="ml-2">{span.genAiRequestModel ?? '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Response Model:</span>
+                                    <span className="text-brutal-slate">Response Model:</span>
                                     <span className="ml-2">{span.genAiResponseModel ?? '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Temperature:</span>
+                                    <span className="text-brutal-slate">Temperature:</span>
                                     <span className="ml-2">{span.genAiTemperature ?? '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Input Tokens:</span>
+                                    <span className="text-brutal-slate">Input Tokens:</span>
                                     <span className="ml-2 font-mono">
                                         {span.genAiInputTokens?.toLocaleString() ?? '-'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Output Tokens:</span>
+                                    <span className="text-brutal-slate">Output Tokens:</span>
                                     <span className="ml-2 font-mono">
                                         {span.genAiOutputTokens?.toLocaleString() ?? '-'}
                                     </span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Total Tokens:</span>
+                                    <span className="text-brutal-slate">Total Tokens:</span>
                                     <span className="ml-2 font-mono">{totalTokens.toLocaleString()}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Stop Reason:</span>
+                                    <span className="text-brutal-slate">Stop Reason:</span>
                                     <span className="ml-2">{span.genAiStopReason ?? '-'}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Duration:</span>
+                                    <span className="text-brutal-slate">Duration:</span>
                                     <span className="ml-2 font-mono">{formatDuration(durationMs)}</span>
                                 </div>
                                 <div>
-                                    <span className="text-muted-foreground">Cost:</span>
-                                    <span className="ml-2 font-mono text-green-500">
+                                    <span className="text-brutal-slate">Cost:</span>
+                                    <span className="ml-2 font-mono text-signal-green">
                                         ${span.genAiCostUsd?.toFixed(6) ?? '0.000000'}
                                     </span>
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="text-muted-foreground">Trace ID:</span>
+                                    <span className="text-brutal-slate">Trace ID:</span>
                                     <CopyableText
                                         value={span.traceId}
                                         label="Trace ID"
@@ -246,7 +246,7 @@ function GenAISpanCard({
                                     />
                                 </div>
                                 <div className="flex items-center">
-                                    <span className="text-muted-foreground">Span ID:</span>
+                                    <span className="text-brutal-slate">Span ID:</span>
                                     <CopyableText
                                         value={span.spanId}
                                         label="Span ID"
@@ -269,9 +269,9 @@ function GenAISpanCard({
                                 {toolCallInfo.hasToolCall && (
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-2 mb-3">
-                                            <FileJson className="w-4 h-4 text-muted-foreground"/>
+                                            <FileJson className="w-4 h-4 text-brutal-slate"/>
                                             <span
-                                                className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                                                className="text-sm font-medium text-brutal-slate uppercase tracking-wide">
                                                 Tool Call
                                             </span>
                                         </div>
@@ -351,7 +351,7 @@ export function GenAIPage() {
                     <CardContent className="py-12 text-center">
                         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-destructive"/>
                         <p className="text-destructive">Failed to load GenAI telemetry</p>
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-sm text-brutal-slate mt-2">
                             {error instanceof Error ? error.message : 'Unknown error'}
                         </p>
                     </CardContent>
@@ -367,8 +367,8 @@ export function GenAIPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Sparkles className="w-4 h-4 text-violet-500"/>
-                            <span className="text-sm text-muted-foreground">GenAI Calls</span>
+                            <Sparkles className="w-4 h-4 text-signal-violet"/>
+                            <span className="text-sm text-brutal-slate">GenAI Calls</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin"/>
@@ -383,8 +383,8 @@ export function GenAIPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Cpu className="w-4 h-4 text-cyan-500"/>
-                            <span className="text-sm text-muted-foreground">Total Tokens</span>
+                            <Cpu className="w-4 h-4 text-signal-cyan"/>
+                            <span className="text-sm text-brutal-slate">Total Tokens</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin"/>
@@ -399,13 +399,13 @@ export function GenAIPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <DollarSign className="w-4 h-4 text-green-500"/>
-                            <span className="text-sm text-muted-foreground">Total Cost</span>
+                            <DollarSign className="w-4 h-4 text-signal-green"/>
+                            <span className="text-sm text-brutal-slate">Total Cost</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin"/>
                         ) : (
-                            <div className="text-2xl font-bold mt-1 text-green-500">
+                            <div className="text-2xl font-bold mt-1 text-signal-green">
                                 ${stats?.totalCostUsd?.toFixed(4) ?? '0.0000'}
                             </div>
                         )}
@@ -415,8 +415,8 @@ export function GenAIPage() {
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
-                            <Activity className="w-4 h-4 text-yellow-500"/>
-                            <span className="text-sm text-muted-foreground">Input/Output</span>
+                            <Activity className="w-4 h-4 text-signal-yellow"/>
+                            <span className="text-sm text-brutal-slate">Input/Output</span>
                         </div>
                         {isLoading ? (
                             <Loader2 className="w-5 h-5 mt-2 animate-spin"/>
@@ -469,13 +469,13 @@ export function GenAIPage() {
                 {isLoading ? (
                     <Card>
                         <CardContent className="py-12 text-center">
-                            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-muted-foreground"/>
-                            <p className="text-muted-foreground">Loading GenAI telemetry...</p>
+                            <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-brutal-slate"/>
+                            <p className="text-brutal-slate">Loading GenAI telemetry...</p>
                         </CardContent>
                     </Card>
                 ) : !spansData?.spans?.length ? (
                     <Card>
-                        <CardContent className="py-12 text-center text-muted-foreground">
+                        <CardContent className="py-12 text-center text-brutal-slate">
                             <Sparkles className="w-12 h-12 mx-auto mb-4 opacity-50"/>
                             <p>No GenAI telemetry found</p>
                             <p className="text-sm">GenAI spans will appear as your AI calls are traced</p>

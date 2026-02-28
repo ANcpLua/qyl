@@ -13,9 +13,9 @@ internal static class AlertsMaterializer
         sb.AppendLine("## Known Issues (auto-detected)");
 
         var now = timeProvider.GetUtcNow();
-        var oneHourAgoNanos = (decimal)(ulong)(now.AddHours(-1).ToUnixTimeMilliseconds() * 1_000_000);
-        var twoHoursAgoNanos = (decimal)(ulong)(now.AddHours(-2).ToUnixTimeMilliseconds() * 1_000_000);
-        var twentyFourHoursAgoNanos = (decimal)(ulong)(now.AddHours(-24).ToUnixTimeMilliseconds() * 1_000_000);
+        var oneHourAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-1));
+        var twoHoursAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-2));
+        var twentyFourHoursAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddHours(-24));
 
         var hasAlerts = false;
 

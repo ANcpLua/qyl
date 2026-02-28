@@ -502,7 +502,10 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
                     <div
                         key={t.traceId}
                         className="grid grid-cols-[80px_1fr_80px_60px_60px_60px_80px_70px_70px] gap-2 px-4 py-2.5 border-b border-brutal-zinc/50 hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => onSelectTrace(t.traceId)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectTrace(t.traceId); } }}
                     >
                         <div
                             className="font-mono text-xs text-signal-violet group-hover:text-signal-orange transition-colors truncate">
@@ -689,7 +692,10 @@ function TraceSlideIn({
                                                         ? 'bg-signal-orange/10 border-signal-orange'
                                                         : 'border-transparent hover:bg-brutal-dark/50'
                                                 )}
+                                                role="button"
+                                                tabIndex={0}
                                                 onClick={() => setSelectedSpanId(isSelected ? null : span.spanId)}
+                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedSpanId(isSelected ? null : span.spanId); } }}
                                             >
                                                 <div className="w-[140px] flex-shrink-0">
                                                     <p className="text-[11px] text-brutal-white truncate"

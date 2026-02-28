@@ -74,13 +74,13 @@ function CodeBlock({code, label}: { code: string; label?: string }) {
     return (
         <div className="relative group">
             <pre
-                className="bg-slate-900 border-2 border-brutal-zinc p-4 text-sm font-mono text-brutal-white overflow-x-auto">
+                className="bg-brutal-carbon border-2 border-brutal-zinc p-4 text-sm font-mono text-brutal-white overflow-x-auto">
                 {code}
             </pre>
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity text-brutal-slate hover:text-brutal-white"
+                className="absolute top-2 right-2 h-7 w-7 min-h-11 min-w-11 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity text-brutal-slate hover:text-brutal-white"
                 onClick={handleCopy}
                 aria-label={copied ? 'Copied!' : `Copy ${label?.toLowerCase() ?? 'code'}`}
             >
@@ -271,7 +271,7 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
                 {ghStatus.authMethod !== 'env' && (
                     <Button
                         variant="outline"
-                        className="font-bold tracking-wider text-brutal-slate hover:text-red-400 hover:border-red-400"
+                        className="font-bold tracking-wider text-brutal-slate hover:text-signal-red hover:border-signal-red"
                         onClick={handleDisconnect}
                         disabled={disconnecting}
                     >
@@ -330,7 +330,7 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
                                         Enter this code on GitHub:
                                     </p>
                                     <div
-                                        className="text-3xl font-mono font-bold text-signal-orange tracking-[0.3em] py-4 bg-slate-900 border-2 border-signal-orange">
+                                        className="text-3xl font-mono font-bold text-signal-orange tracking-[0.3em] py-4 bg-brutal-carbon border-2 border-signal-orange">
                                         {deviceCode.user_code}
                                     </div>
                                     <a
@@ -382,12 +382,15 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
                             {' '}with <span className="text-brutal-white font-mono">repo</span> scope.
                         </p>
                         <div className="flex gap-2">
+                            <label htmlFor="pat-token-input" className="sr-only">GitHub Personal Access Token</label>
                             <input
+                                id="pat-token-input"
                                 type="password"
                                 value={patToken}
                                 onChange={(e) => setPatToken(e.target.value)}
                                 placeholder="ghp_..."
-                                className="flex-1 bg-slate-900 border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange focus:outline-none"
+                                aria-label="GitHub Personal Access Token"
+                                className="flex-1 bg-brutal-carbon border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange focus:outline-none"
                             />
                             <Button
                                 className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"

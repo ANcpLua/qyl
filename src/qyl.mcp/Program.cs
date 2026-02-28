@@ -55,86 +55,93 @@ jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
 builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
-    .AddIncomingMessageFilter(next => async (context, cancellationToken) =>
+    .WithMessageFilters(filters =>
     {
-        var method = context.JsonRpcMessage switch
+        filters.AddIncomingFilter(next => async (context, cancellationToken) =>
         {
-            JsonRpcRequest req => req.Method,
-            JsonRpcNotification notif => notif.Method,
-            _ => null
-        };
-
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            method is not null ? $"mcp.receive {method}" : "mcp.receive",
-            ActivityKind.Server);
-
-        if (method is not null)
-        {
-            activity?.SetTag(Rpc.System, "jsonrpc");
-            activity?.SetTag(Rpc.Method, method);
-            activity?.SetTag(Rpc.JsonrpcVersion, "2.0");
-        }
-
-        try
-        {
-            await next(context, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddException(ex);
-            throw;
-        }
-    })
-    .AddOutgoingMessageFilter(next => async (context, cancellationToken) =>
-    {
-        using var activity =
-            TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
-
-        switch (context.JsonRpcMessage)
-        {
-            case JsonRpcResponse response:
-                activity?.SetTag(Rpc.System, "jsonrpc");
-                activity?.SetTag(Rpc.JsonrpcRequestId, response.Id.ToString());
-                break;
-            case JsonRpcNotification notification:
-                activity?.SetTag(Rpc.System, "jsonrpc");
-                activity?.SetTag(Rpc.Method, notification.Method);
-                break;
-        }
-
-        await next(context, cancellationToken);
-    })
-    .AddCallToolFilter(next => async (request, cancellationToken) =>
-    {
-        var toolName = request.Params?.Name;
-
-        using var activity = TelemetryConstants.ActivitySource.StartActivity(
-            toolName is not null
-                ? $"{GenAiAttributes.Operations.ExecuteTool} {toolName}"
-                : GenAiAttributes.Operations.ExecuteTool);
-
-        activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
-        activity?.SetTag(GenAiAttributes.ToolName, toolName);
-        activity?.SetTag(GenAiAttributes.ToolType, GenAiAttributes.ToolTypes.Extension);
-        activity?.SetTag(Rpc.Method, "tools/call");
-
-        try
-        {
-            var result = await next(request, cancellationToken);
-            if (result.IsError is true)
+            var method = context.JsonRpcMessage switch
             {
-                activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
+                JsonRpcRequest req => req.Method,
+                JsonRpcNotification notif => notif.Method,
+                _ => null
+            };
+
+            using var activity = TelemetryConstants.ActivitySource.StartActivity(
+                method is not null ? $"mcp.receive {method}" : "mcp.receive",
+                ActivityKind.Server);
+
+            if (method is not null)
+            {
+                activity?.SetTag(Rpc.System, "jsonrpc");
+                activity?.SetTag(Rpc.Method, method);
+                activity?.SetTag(Rpc.JsonrpcVersion, "2.0");
             }
 
-            return result;
-        }
-        catch (Exception ex)
+            try
+            {
+                await next(context, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.AddException(ex);
+                throw;
+            }
+        });
+
+        filters.AddOutgoingFilter(next => async (context, cancellationToken) =>
         {
-            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-            activity?.AddException(ex);
-            throw;
-        }
+            using var activity =
+                TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
+
+            switch (context.JsonRpcMessage)
+            {
+                case JsonRpcResponse response:
+                    activity?.SetTag(Rpc.System, "jsonrpc");
+                    activity?.SetTag(Rpc.JsonrpcRequestId, response.Id.ToString());
+                    break;
+                case JsonRpcNotification notification:
+                    activity?.SetTag(Rpc.System, "jsonrpc");
+                    activity?.SetTag(Rpc.Method, notification.Method);
+                    break;
+            }
+
+            await next(context, cancellationToken);
+        });
+    })
+    .WithRequestFilters(filters =>
+    {
+        filters.AddCallToolFilter(next => async (request, cancellationToken) =>
+        {
+            var toolName = request.Params?.Name;
+
+            using var activity = TelemetryConstants.ActivitySource.StartActivity(
+                toolName is not null
+                    ? $"{GenAiAttributes.Operations.ExecuteTool} {toolName}"
+                    : GenAiAttributes.Operations.ExecuteTool);
+
+            activity?.SetTag(GenAiAttributes.OperationName, GenAiAttributes.Operations.ExecuteTool);
+            activity?.SetTag(GenAiAttributes.ToolName, toolName);
+            activity?.SetTag(GenAiAttributes.ToolType, GenAiAttributes.ToolTypes.Extension);
+            activity?.SetTag(Rpc.Method, "tools/call");
+
+            try
+            {
+                var result = await next(request, cancellationToken);
+                if (result.IsError is true)
+                {
+                    activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+                activity?.AddException(ex);
+                throw;
+            }
+        });
     })
     .WithTools<TelemetryTools>(jsonOptions)
     .WithTools<ReplayTools>(jsonOptions)

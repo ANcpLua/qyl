@@ -11,7 +11,7 @@ export type ExportFormat = 'json' | 'csv';
  * @param format - Export format ('json' or 'csv')
  * @returns Filename with timestamp (e.g., 'logs-2024-01-15T10-30-00.json')
  */
-export function generateFilename(prefix: string, format: ExportFormat): string {
+function generateFilename(prefix: string, format: ExportFormat): string {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     return `${prefix}-${timestamp}.${format}`;
 }
@@ -23,7 +23,7 @@ export function generateFilename(prefix: string, format: ExportFormat): string {
  * @param columns - Optional array of column keys to include (defaults to all keys from first item)
  * @returns CSV string with header row
  */
-export function convertToCSV<T extends Record<string, unknown>>(
+function convertToCSV<T extends Record<string, unknown>>(
     data: T[],
     columns?: string[]
 ): string {
@@ -81,7 +81,7 @@ function escapeCSVValue(value: string): string {
  * @param filename - Name for the downloaded file
  * @param mimeType - MIME type for the file
  */
-export function downloadFile(content: string, filename: string, mimeType: string): void {
+function downloadFile(content: string, filename: string, mimeType: string): void {
     const blob = new Blob([content], {type: mimeType});
     const url = URL.createObjectURL(blob);
 
@@ -103,7 +103,7 @@ export function downloadFile(content: string, filename: string, mimeType: string
  * @param data - Data to export (will be JSON.stringify'd with indentation)
  * @param filenamePrefix - Prefix for the filename
  */
-export function downloadAsJSON<T>(data: T, filenamePrefix: string): void {
+function downloadAsJSON<T>(data: T, filenamePrefix: string): void {
     const content = JSON.stringify(data, null, 2);
     const filename = generateFilename(filenamePrefix, 'json');
     downloadFile(content, filename, 'application/json');
@@ -115,7 +115,7 @@ export function downloadAsJSON<T>(data: T, filenamePrefix: string): void {
  * @param filenamePrefix - Prefix for the filename
  * @param columns - Optional array of column keys to include
  */
-export function downloadAsCSV<T extends Record<string, unknown>>(
+function downloadAsCSV<T extends Record<string, unknown>>(
     data: T[],
     filenamePrefix: string,
     columns?: string[]

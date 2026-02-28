@@ -19,7 +19,10 @@ function formatTokens(n: number): string {
 function ConversationRow({c, onClick}: {c: UserConversation; onClick: () => void}) {
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-32">

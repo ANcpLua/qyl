@@ -169,11 +169,8 @@ internal static class UnifiedQueryEngine
         var endDto = end.HasValue ? new DateTimeOffset(end.Value, TimeSpan.Zero) : now;
         var startDto = start.HasValue ? new DateTimeOffset(start.Value, TimeSpan.Zero) : endDto - DefaultWindow;
 
-        return (ToUnixNano(startDto), ToUnixNano(endDto));
+        return (TimeConversions.ToUnixNanoUnsigned(startDto), TimeConversions.ToUnixNanoUnsigned(endDto));
     }
-
-    private static ulong ToUnixNano(DateTimeOffset dto) =>
-        (ulong)(dto.ToUnixTimeMilliseconds() * 1_000_000L);
 
     private static string EscapeLike(string input) =>
         input.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");

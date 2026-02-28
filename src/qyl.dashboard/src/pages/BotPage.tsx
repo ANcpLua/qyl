@@ -214,7 +214,10 @@ function StatCard({icon: Icon, label, value, color = 'text-brutal-white', loadin
 function ConversationRow({c, onClick}: {c: ConversationSummary; onClick: () => void}) {
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-40 min-w-0">
@@ -705,7 +708,10 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
 function UserRow({user, onClick}: {user: UserSummary; onClick: () => void}) {
     return (
         <div
+            role="button"
+            tabIndex={0}
             onClick={onClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-48 min-w-0">

@@ -5,7 +5,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
 using qyl.collector.AgentRuns;
 using qyl.collector.Observe;
-using qyl.collector.Alerting;
 using qyl.collector.Analytics;
 using qyl.collector.Auth;
 using qyl.collector.Autofix;
@@ -108,7 +107,6 @@ builder.Services.AddSingleton<MigrationRunner>();
 builder.Services.AddSingleton<SourceLocationCache>();
 builder.Services.AddSingleton<PdbSourceResolver>();
 builder.Services.AddSingleton<LogSourceEnricher>();
-builder.Services.AddSingleton<BinlogParser>();
 builder.Services.AddSingleton<IBuildFailureStore>(_ =>
 {
     var maxRetainedFailures = builder.Configuration.GetValue("QYL_MAX_BUILD_FAILURES", 10);
@@ -162,9 +160,6 @@ builder.Services.AddHostedService<InsightsMaterializerService>();
 builder.Services.AddHostedService<ServiceMaterializerService>();
 builder.Services.AddHostedService<EmbeddingClusterWorker>();
 
-// SQL alerting: YAML-defined rules, periodic evaluation, webhook/console/SSE notifications
-builder.Services.AddAlertingServices();
-
 // Schema control: plan and apply additive schema promotions
 builder.Services.AddSingleton<SchemaPlanner>();
 builder.Services.AddSingleton<SchemaExecutor>();
@@ -195,8 +190,8 @@ builder.Services.AddSingleton<AutofixOrchestrator>();
 // Workflow run service
 builder.Services.AddSingleton<WorkflowRunService>();
 
-// Alert rule service
-builder.Services.AddSingleton<AlertRuleService>();
+// Search: document-indexed full-text search with relevance scoring
+builder.Services.AddSingleton<SearchService>();
 
 // Zero-cost-until-observed: dynamic ActivityListener wiring on demand
 builder.Services.AddSingleton<SubscriptionManager>();
@@ -239,9 +234,6 @@ var app = builder.Build();
 // Register storage size callback for metrics (bridges DI-managed store with static metrics)
 var duckDbStore = app.Services.GetRequiredService<DuckDbStore>();
 QylMetrics.RegisterStorageSizeCallback(duckDbStore.GetStorageSizeBytes);
-
-// Initialize alert history schema (must happen after DuckDbStore is resolved)
-duckDbStore.InitializeAlertSchema();
 
 // Apply pending DuckDB schema migrations (after all base DDL has run)
 var migrationRunner = app.Services.GetRequiredService<MigrationRunner>();
@@ -307,7 +299,6 @@ app.MapServiceEndpoints();
 app.MapSseEndpoints();
 app.MapSpanMemoryEndpoints();
 app.MapInsightsEndpoints();
-app.MapAlertEndpoints();
 app.MapDashboardEndpoints();
 app.MapAnalyticsEndpoints();
 app.MapObserveEndpoints();
@@ -332,7 +323,6 @@ app.MapGet("/api/v1/meta", () =>
         {
             Tracing = true,
             Grpc = true,
-            Alerting = true,
             GenAi = true,
             Copilot = true,
             EmbeddedDashboard = hasEmbeddedDashboard
@@ -475,10 +465,6 @@ app.MapPost("/v1/logs", async (
     }
 });
 
-app.MapPost("/api/v1/feedback", () => Results.Accepted());
-app.MapGet("/api/v1/sessions/{sessionId}/feedback", (string sessionId) =>
-    Results.Ok(new { sessionId, feedback = Array.Empty<object>() }));
-
 app.MapPost("/api/v1/console", (ConsoleIngestBatch batch, FrontendConsole console) =>
 {
     foreach (var req in batch.Logs)
@@ -619,25 +605,6 @@ app.MapGet("/api/v1/telemetry/stats", async (DuckDbStore store, CancellationToke
 // Health check endpoints: /alive, /health, /ready (K8s probes) + /health/ui (dashboard)
 app.MapQylHealthChecks();
 
-// =============================================================================
-// API Stubs for OpenAPI Compliance
-// =============================================================================
-
-app.MapGet("/api/v1/traces", (string? serviceName, int? limit) =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapPost("/api/v1/traces/search", () =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapGet("/api/v1/metrics", (string? serviceName) =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapPost("/api/v1/metrics/query", () =>
-    Results.Ok(new { series = Array.Empty<object>() }));
-
-app.MapGet("/api/v1/metrics/{metricName}", (string metricName) =>
-    Results.NotFound());
-
 app.MapSchemaEndpoints();
 app.MapSearchEndpoints();
 app.MapSearchDocumentEndpoints();
@@ -650,7 +617,6 @@ app.MapAutofixEndpoints();
 app.MapWorkflowEndpoints();
 app.MapWorkflowRunEndpoints();
 app.MapWorkflowEventEndpoints();
-app.MapAlertRuleEndpoints();
 app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
@@ -658,34 +624,6 @@ if (buildFailureCaptureEnabled)
 {
     app.MapBuildFailureEndpoints();
 }
-
-app.MapGet("/api/v1/exceptions", (string? serviceName) =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapGet("/api/v1/exceptions/stats", () =>
-    Results.Ok(new { total_count = 0 }));
-
-app.MapGet("/api/v1/deployments", (string? serviceName) =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapPost("/api/v1/deployments", () =>
-    Results.Created("/api/v1/deployments/1", new { id = "1" }));
-
-app.MapGet("/api/v1/deployments/metrics/dora", () =>
-    Results.Ok(new
-    {
-        deployment_frequency = 0,
-        lead_time_hours = 0,
-        change_failure_rate = 0,
-        mttr_hours = 0,
-        performance_level = "low"
-    }));
-
-app.MapGet("/api/v1/pipelines", () =>
-    Results.Ok(new { items = Array.Empty<object>(), total = 0 }));
-
-app.MapGet("/api/v1/pipelines/stats", () =>
-    Results.Ok(new { total_runs = 0, success_rate = 0 }));
 
 app.MapFallback(context =>
 {

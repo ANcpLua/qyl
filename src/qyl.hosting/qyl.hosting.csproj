@@ -13,15 +13,7 @@
     <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
   </PropertyGroup>
 
-  <ItemGroup>
-    <!-- Core hosting -->
-    <PackageReference Include="Microsoft.Extensions.Hosting"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables"/>
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json"/>
-
-    <!-- Health checks -->
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks"/>
-  </ItemGroup>
+  <!-- No direct PackageReferences needed: hosting + config come transitively from qyl.servicedefaults -->
 
   <ItemGroup>
     <!-- Service defaults (attributes + runtime helpers, transitively provides qyl.protocol) -->

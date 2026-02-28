@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+using Qyl.Common;
 
 namespace qyl.mcp.Tools;
 
@@ -211,9 +212,9 @@ public sealed class StorageTools(HttpClient client)
 
         foreach (var span in spans.Take(limit))
         {
-            var durationMs = span.DurationNs / 1_000_000.0;
+            var durationMs = TimeConversions.NanosToMs(span.DurationNs);
             var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
-            var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(span.StartTimeUnixNano / 1_000_000);
+            var timestamp = TimeConversions.NanosToDateTimeOffset((long)span.StartTimeUnixNano);
 
             sb.AppendLine($"**{timestamp:HH:mm:ss}** {span.Name} {statusIcon} ({durationMs:F0}ms)");
 

@@ -2,8 +2,6 @@
 // SessionQueryService - Pure DuckDB queries with SpanQueryBuilder
 // =============================================================================
 
-using qyl.collector.Core;
-
 namespace qyl.collector.Query;
 
 /// <summary>
@@ -364,7 +362,7 @@ public sealed class SessionQueryService(DuckDbStore store)
                 SessionId = reader.GetString(0),
                 StartTime = startTime,
                 LastActivity = lastActivity,
-                DurationMs = (lastActivityNano - startTimeNano) / 1_000_000.0,
+                DurationMs = TimeConversions.NanosToMs(lastActivityNano - startTimeNano),
                 SpanCount = spanCount,
                 TraceCount = reader.Col(4).GetInt64(0),
                 ErrorCount = errorCount,

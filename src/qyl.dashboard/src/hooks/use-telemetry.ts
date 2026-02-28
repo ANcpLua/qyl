@@ -1,11 +1,10 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {SessionEntity, Span, Trace} from '@/types';
-import {flattenTrace, getAttributesRecord, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
+import type {SessionEntity, Span} from '@/types';
+import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
 
 // Alias for backward compatibility
 type SpanRecord = Span;
-type TraceNode = Trace;
 
 // Query keys
 export const telemetryKeys = {
@@ -13,8 +12,6 @@ export const telemetryKeys = {
     sessions: () => [...telemetryKeys.all, 'sessions'] as const,
     session: (id: string) => [...telemetryKeys.sessions(), id] as const,
     sessionSpans: (id: string) => [...telemetryKeys.session(id), 'spans'] as const,
-    traces: () => [...telemetryKeys.all, 'traces'] as const,
-    trace: (id: string) => [...telemetryKeys.traces(), id] as const,
     logs: () => [...telemetryKeys.all, 'logs'] as const,
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
@@ -51,30 +48,12 @@ export function useSessions() {
     });
 }
 
-export function useSession(sessionId: string) {
-    return useQuery({
-        queryKey: telemetryKeys.session(sessionId),
-        queryFn: () => fetchJson<SessionEntity>(`/api/v1/sessions/${sessionId}`),
-        enabled: !!sessionId,
-    });
-}
-
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
         queryFn: () => fetchJson<ApiSpansResponse>(`/api/v1/sessions/${sessionId}/spans`),
         select: (data): SpanRecord[] => data.items,
         enabled: !!sessionId,
-    });
-}
-
-// Traces - return array of SpanRecord from flattened tree
-export function useTrace(traceId: string) {
-    return useQuery({
-        queryKey: telemetryKeys.trace(traceId),
-        queryFn: () => fetchJson<TraceNode>(`/api/v1/traces/${traceId}`),
-        select: (data): SpanRecord[] => flattenTrace(data),
-        enabled: !!traceId,
     });
 }
 
@@ -233,4 +212,4 @@ export function formatTimestamp(iso: string): string {
 }
 
 // Re-export utilities for convenience
-export {getAttributesRecord, isErrorSpan, nanoToIso, nsToMs, STATUS_ERROR};
+export {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR};

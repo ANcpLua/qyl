@@ -4,8 +4,6 @@
 // Target: .NET 10 / C# 14
 // =============================================================================
 
-#pragma warning disable AL0012 // Intentional deprecated attribute references for backward compatibility
-
 namespace qyl.collector.Ingestion;
 
 /// <summary>
@@ -249,7 +247,6 @@ internal static class OtlpGenAiAttributes
 /// </summary>
 public static class SchemaNormalizer
 {
-#pragma warning disable QYL0002 // Intentionally references deprecated attributes for migration
     /// <summary>
     ///     Complete mapping of deprecated attribute names to their 1.40 equivalents.
     /// </summary>
@@ -284,7 +281,6 @@ public static class SchemaNormalizer
             // DB attributes
             ["db.system"] = "db.system.name"
         }.ToFrozenDictionary(StringComparer.Ordinal);
-#pragma warning restore QYL0002
 
     public static Dictionary<string, object?> NormalizeAttributes(IDictionary<string, object?> attributes)
     {

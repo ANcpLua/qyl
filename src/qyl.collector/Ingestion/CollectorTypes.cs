@@ -44,12 +44,3 @@ public readonly record struct SemconvVersion(string Version, string SchemaUrl)
 
     public override string ToString() => Version;
 }
-
-/// <summary>
-///     Result of clearing telemetry data from the database.
-/// </summary>
-public readonly record struct ClearTelemetryResult(int SpansDeleted, int LogsDeleted, int SessionsDeleted)
-{
-    /// <summary>Total number of records deleted across all tables.</summary>
-    public int TotalDeleted => SpansDeleted + LogsDeleted + SessionsDeleted;
-}

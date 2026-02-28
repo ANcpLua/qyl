@@ -100,7 +100,10 @@ function ResultRow({result, onClick}: { result: SearchResult; onClick: () => voi
     return (
         <div
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
+            role="button"
+            tabIndex={0}
             onClick={onClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
         >
             <Icon className={cn('w-5 h-5 flex-shrink-0', style.color.split(' ')[1])}/>
 

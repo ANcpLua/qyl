@@ -2,8 +2,6 @@
 // AnalyticsQueryService - AI chat analytics queries against DuckDB spans
 // =============================================================================
 
-using qyl.collector.Core;
-
 namespace qyl.collector.Query;
 
 /// <summary>
@@ -170,7 +168,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             {
                 ConversationId = reader.GetString(0),
                 StartTime = TimeConversions.UnixNanoToDateTime(startedAt),
-                DurationMs = (endedAt - startedAt) / 1_000_000.0,
+                DurationMs = TimeConversions.NanosToMs(endedAt - startedAt),
                 TurnCount = reader.Col(3).GetInt64(0),
                 ErrorCount = reader.Col(4).GetInt64(0),
                 HasErrors = reader.Col(4).GetInt64(0) > 0,
@@ -241,7 +239,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                 SpanId = reader.GetString(0),
                 Name = reader.GetString(1),
                 Timestamp = TimeConversions.UnixNanoToDateTime(startNano),
-                DurationMs = reader.Col(4).GetUInt64(0) / 1_000_000.0,
+                DurationMs = TimeConversions.NanosToMs(reader.Col(4).GetUInt64(0)),
                 StatusCode = reader.Col(5).GetByte(0),
                 StatusMessage = reader.Col(6).AsString,
                 Provider = reader.Col(7).AsString,

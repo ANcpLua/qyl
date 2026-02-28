@@ -1,5 +1,3 @@
-using qyl.collector.Core;
-
 namespace qyl.collector.Mapping;
 
 public static class SpanMapper
@@ -170,7 +168,7 @@ public static class SpanMapper
             StatusMessage = statusMessage,
             StartTime = startTime.ToString("O"),
             EndTime = endTime.ToString("O"),
-            DurationMs = durationNs / 1_000_000.0,
+            DurationMs = TimeConversions.NanosToMs(durationNs),
             ServiceName = serviceName,
             ServiceVersion = serviceVersion,
             Attributes = ParseAttributes(attributesJson),

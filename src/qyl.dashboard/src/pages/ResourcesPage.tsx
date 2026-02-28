@@ -413,6 +413,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('grid')}
+                        aria-label="Grid view"
+                        aria-pressed={viewMode === 'grid'}
                         className={cn(
                             'border-2 transition-all',
                             viewMode === 'grid'
@@ -426,6 +428,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('list')}
+                        aria-label="List view"
+                        aria-pressed={viewMode === 'list'}
                         className={cn(
                             'border-2 transition-all',
                             viewMode === 'list'
@@ -439,6 +443,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('graph')}
+                        aria-label="Graph view"
+                        aria-pressed={viewMode === 'graph'}
                         className={cn(
                             'border-2 transition-all',
                             viewMode === 'graph'

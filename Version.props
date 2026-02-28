@@ -29,7 +29,6 @@
     <!-- Misc -->
     <YamlDotNetVersion>16.3.0</YamlDotNetVersion>
     <SpectreConsoleVersion>0.54.0</SpectreConsoleVersion>
-    <MSBuildStructuredLoggerVersion>2.3.113</MSBuildStructuredLoggerVersion>
     <!-- PackageDownload -->
     <GitVersionToolVersion>6.5.1</GitVersionToolVersion>
     <ReportGeneratorVersion>5.5.1</ReportGeneratorVersion>

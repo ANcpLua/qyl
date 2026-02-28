@@ -327,7 +327,7 @@ public static class OtlpConverter
             }
 
             if (timestamp is 0)
-                timestamp = (ulong)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds()) * 1_000_000;
+                timestamp = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
 
             var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
             if (instance is not null)
@@ -371,7 +371,7 @@ public static class OtlpConverter
             }
 
             if (timestamp is 0)
-                timestamp = (ulong)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds()) * 1_000_000;
+                timestamp = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow());
 
             var instance = ExtractServiceInstance(resourceAttrs, spanAttrs, timestamp);
             if (instance is not null)
@@ -433,7 +433,6 @@ public static class OtlpConverter
     /// <summary>
     ///     Extracts GenAI attributes with fallback to deprecated OTel 1.38 names.
     /// </summary>
-#pragma warning disable QYL0002 // Fallback to deprecated attributes for backward compatibility
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
         var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
@@ -462,7 +461,6 @@ public static class OtlpConverter
             tokensIn, tokensOut, temperature, stopReason,
             toolName, toolCallId, costUsd);
     }
-#pragma warning restore QYL0002
 
     /// <summary>
     ///     Converts SpanKind int to byte (TINYINT in DuckDB).

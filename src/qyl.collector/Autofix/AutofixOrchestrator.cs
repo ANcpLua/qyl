@@ -32,7 +32,7 @@ public sealed partial class AutofixOrchestrator(DuckDbStore store, ILogger<Autof
                 errorMessage = issue.ErrorMessage,
                 fingerprint = issue.Fingerprint
             }),
-            StartTimeUnixNano = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L
+            StartTimeUnixNano = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
         };
 
         await store.InsertWorkflowExecutionAsync(execution, ct).ConfigureAwait(false);

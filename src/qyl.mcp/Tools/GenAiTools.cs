@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+using Qyl.Common;
 
 namespace qyl.mcp.Tools;
 
@@ -110,9 +111,9 @@ public sealed class GenAiTools(HttpClient client)
 
             foreach (var span in response.Spans)
             {
-                var durationMs = span.DurationNs / 1_000_000.0;
+                var durationMs = TimeConversions.NanosToMs(span.DurationNs);
                 var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
-                var timestamp = DateTimeOffset.FromUnixTimeMilliseconds(span.StartTimeUnixNano / 1_000_000);
+                var timestamp = TimeConversions.NanosToDateTimeOffset((long)span.StartTimeUnixNano);
 
                 sb.AppendLine($"## {span.Name} {statusIcon}");
                 sb.AppendLine($"- Time: {timestamp:HH:mm:ss}");

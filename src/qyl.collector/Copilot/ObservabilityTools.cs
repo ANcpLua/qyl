@@ -25,7 +25,7 @@ internal static class ObservabilityTools
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
-                var startAfter = (ulong)cutoff.ToUnixTimeMilliseconds() * 1_000_000UL;
+                var startAfter = TimeConversions.ToUnixNanoUnsigned(cutoff);
 
                 var spans = await store.GetSpansAsync(
                     providerName: serviceName,
@@ -45,7 +45,7 @@ internal static class ObservabilityTools
                 foreach (var span in spans)
                 {
                     sb.AppendLine(
-                        $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} service={span.ServiceName ?? "unknown"} duration={span.DurationNs / 1_000_000.0:F1}ms");
+                        $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} service={span.ServiceName ?? "unknown"} duration={TimeConversions.NanosToMs(span.DurationNs):F1}ms");
                     if (span.GenAiRequestModel is not null)
                     {
                         sb.AppendLine(
@@ -83,7 +83,7 @@ internal static class ObservabilityTools
                 {
                     var indent = span.ParentSpanId is not null ? "  " : "";
                     sb.AppendLine(
-                        $"{indent}- [{span.Name}] span={span.SpanId} parent={span.ParentSpanId ?? "root"} status={span.StatusCode} duration={span.DurationNs / 1_000_000.0:F1}ms");
+                        $"{indent}- [{span.Name}] span={span.SpanId} parent={span.ParentSpanId ?? "root"} status={span.StatusCode} duration={TimeConversions.NanosToMs(span.DurationNs):F1}ms");
                     if (span.GenAiRequestModel is not null)
                     {
                         sb.AppendLine(
@@ -106,7 +106,7 @@ internal static class ObservabilityTools
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
-                var startAfter = (ulong)cutoff.ToUnixTimeMilliseconds() * 1_000_000UL;
+                var startAfter = TimeConversions.ToUnixNanoUnsigned(cutoff);
 
                 var stats = await store.GetGenAiStatsAsync(sessionId, startAfter, ct).ConfigureAwait(false);
 
@@ -134,7 +134,7 @@ internal static class ObservabilityTools
                 var startTime = timeProvider.GetUtcNow();
 
                 var cutoff = timeProvider.GetUtcNow().AddHours(-Math.Clamp(hours, 1, 720));
-                var after = (ulong)cutoff.ToUnixTimeMilliseconds() * 1_000_000UL;
+                var after = TimeConversions.ToUnixNanoUnsigned(cutoff);
 
                 var logs = await store.GetLogsAsync(
                     severityText: severityLevel,
@@ -208,7 +208,7 @@ internal static class ObservabilityTools
                 foreach (var span in spans)
                 {
                     sb.AppendLine(
-                        $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} duration={span.DurationNs / 1_000_000.0:F1}ms");
+                        $"- [{span.Name}] trace={span.TraceId} status={span.StatusCode} duration={TimeConversions.NanosToMs(span.DurationNs):F1}ms");
                     if (span.GenAiRequestModel is not null)
                     {
                         sb.AppendLine(

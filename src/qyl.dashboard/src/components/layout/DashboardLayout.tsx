@@ -63,7 +63,7 @@ export function DashboardLayout() {
                         onTimeRangeChange={setTimeRange}
                     />
 
-                    <main className="flex-1 overflow-auto bg-brutal-black">
+                    <main className="flex-1 overflow-auto bg-brutal-black bg-grid-overlay">
                         <Outlet context={{isLive, timeRange, recentSpans, reconnect}}/>
                     </main>
                 </div>

@@ -114,21 +114,25 @@ function SpanRow({
     return (
         <div
             className={cn(
-                'flex items-center gap-2 px-4 py-2 hover:bg-muted/50 border-b border-border cursor-pointer',
-                isError && 'bg-red-500/5',
+                'flex items-center gap-2 px-4 py-2 hover:bg-brutal-dark border-b border-border cursor-pointer',
+                isError && 'bg-signal-red/5',
                 isSelected && 'bg-primary/10'
             )}
+            role="button"
+            tabIndex={0}
+            aria-label={`${span.name} span, ${getServiceName(span)}`}
             onClick={handleClick}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(e as unknown as React.MouseEvent); } }}
         >
             {/* Expand/collapse and indentation */}
             <div style={{paddingLeft: depth * 16}} className="flex items-center">
                 {hasChildren ? (
-                    <button onClick={handleToggle} className="p-0.5 hover:bg-muted rounded"
+                    <button onClick={handleToggle} className="p-0.5 hover:bg-brutal-dark"
                             aria-label={isExpanded ? 'Collapse span' : 'Expand span'} aria-expanded={isExpanded}>
                         {isExpanded ? (
-                            <ChevronDown className="w-4 h-4 text-muted-foreground"/>
+                            <ChevronDown className="w-4 h-4 text-brutal-slate"/>
                         ) : (
-                            <ChevronRight className="w-4 h-4 text-muted-foreground"/>
+                            <ChevronRight className="w-4 h-4 text-brutal-slate"/>
                         )}
                     </button>
                 ) : (
@@ -145,16 +149,16 @@ function SpanRow({
 
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-          <span className={cn('truncate font-mono text-sm', isError && 'text-red-500')}>
+          <span className={cn('truncate font-mono text-sm', isError && 'text-signal-red')}>
             {span.name}
           </span>
-                    {isError && <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0"/>}
+                    {isError && <AlertCircle className="w-4 h-4 text-signal-red flex-shrink-0"/>}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">{getServiceName(span)}</div>
+                <div className="text-xs text-brutal-slate truncate">{getServiceName(span)}</div>
             </div>
 
             {/* Waterfall visualization */}
-            <div className="w-80 h-6 relative bg-muted/30 rounded overflow-hidden">
+            <div className="w-80 h-6 relative bg-brutal-dark/30 overflow-hidden">
                 <div
                     className="waterfall-bar absolute top-0.5"
                     style={{
@@ -166,7 +170,7 @@ function SpanRow({
             </div>
 
             {/* Duration */}
-            <div className="w-20 text-right font-mono text-sm text-muted-foreground">
+            <div className="w-20 text-right font-mono text-sm text-brutal-slate">
                 {formatDuration(nsToMs(getDurationNs(span)))}
             </div>
         </div>
@@ -194,7 +198,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     </Badge>
                 </div>
                 <h3 className="text-lg font-semibold mt-2 font-mono">{span.name}</h3>
-                <p className="text-sm text-muted-foreground">{getServiceName(span)}</p>
+                <p className="text-sm text-brutal-slate">{getServiceName(span)}</p>
             </div>
 
             <Separator/>
@@ -204,19 +208,19 @@ function SpanDetails({span}: { span: SpanRecord }) {
                 <h4 className="text-sm font-medium mb-2">Timing</h4>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <span className="text-muted-foreground">Start:</span>
+                        <span className="text-brutal-slate">Start:</span>
                         <span className="ml-2 font-mono">
               {formatTimestamp(nanoToIso(span.start_time_unix_nano))}
             </span>
                     </div>
                     <div>
-                        <span className="text-muted-foreground">End:</span>
+                        <span className="text-brutal-slate">End:</span>
                         <span className="ml-2 font-mono">
               {formatTimestamp(nanoToIso(span.end_time_unix_nano))}
             </span>
                     </div>
                     <div>
-                        <span className="text-muted-foreground">Duration:</span>
+                        <span className="text-brutal-slate">Duration:</span>
                         <span className="ml-2 font-mono">{formatDuration(nsToMs(getDurationNs(span)))}</span>
                     </div>
                 </div>
@@ -229,7 +233,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                 <h4 className="text-sm font-medium mb-2">IDs</h4>
                 <div className="space-y-1 text-sm">
                     <div className="flex items-center">
-                        <span className="text-muted-foreground w-16">Trace:</span>
+                        <span className="text-brutal-slate w-16">Trace:</span>
                         <CopyableText
                             value={span.trace_id}
                             label="Trace ID"
@@ -239,7 +243,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                         />
                     </div>
                     <div className="flex items-center">
-                        <span className="text-muted-foreground w-16">Span:</span>
+                        <span className="text-brutal-slate w-16">Span:</span>
                         <CopyableText
                             value={span.span_id}
                             label="Span ID"
@@ -249,7 +253,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                     </div>
                     {span.parent_span_id && (
                         <div className="flex items-center">
-                            <span className="text-muted-foreground w-16">Parent:</span>
+                            <span className="text-brutal-slate w-16">Parent:</span>
                             <CopyableText
                                 value={span.parent_span_id}
                                 label="Parent Span ID"
@@ -274,7 +278,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
                         if (isStructured) {
                             return (
                                 <div key={key}>
-                                    <span className="text-muted-foreground block mb-1">{key}:</span>
+                                    <span className="text-brutal-slate block mb-1">{key}:</span>
                                     <TextVisualizer
                                         content={stringValue}
                                         label={key}
@@ -288,13 +292,13 @@ function SpanDetails({span}: { span: SpanRecord }) {
 
                         return (
                             <div key={key} className="flex">
-                                <span className="text-muted-foreground min-w-32">{key}:</span>
+                                <span className="text-brutal-slate min-w-32">{key}:</span>
                                 <span className="font-mono break-all">{stringValue}</span>
                             </div>
                         );
                     })}
                     {Object.keys(attributes).length === 0 && (
-                        <p className="text-muted-foreground">No attributes</p>
+                        <p className="text-brutal-slate">No attributes</p>
                     )}
                 </div>
             </div>
@@ -307,31 +311,31 @@ function SpanDetails({span}: { span: SpanRecord }) {
                         <h4 className="text-sm font-medium mb-2">GenAI Details</h4>
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
-                                <span className="text-muted-foreground">Provider:</span>
+                                <span className="text-brutal-slate">Provider:</span>
                                 <span className="ml-2">{genai.system}</span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground">Model:</span>
+                                <span className="text-brutal-slate">Model:</span>
                                 <span className="ml-2">{genai.requestModel}</span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground">Tokens In:</span>
+                                <span className="text-brutal-slate">Tokens In:</span>
                                 <span className="ml-2 font-mono">{genai.inputTokens?.toLocaleString()}</span>
                             </div>
                             <div>
-                                <span className="text-muted-foreground">Tokens Out:</span>
+                                <span className="text-brutal-slate">Tokens Out:</span>
                                 <span className="ml-2 font-mono">{genai.outputTokens?.toLocaleString()}</span>
                             </div>
                             {totalTokens && (
                                 <div>
-                                    <span className="text-muted-foreground">Total Tokens:</span>
+                                    <span className="text-brutal-slate">Total Tokens:</span>
                                     <span className="ml-2 font-mono">{totalTokens.toLocaleString()}</span>
                                 </div>
                             )}
                             {genai.costUsd && (
                                 <div>
-                                    <span className="text-muted-foreground">Cost:</span>
-                                    <span className="ml-2 font-mono text-green-500">
+                                    <span className="text-brutal-slate">Cost:</span>
+                                    <span className="ml-2 font-mono text-signal-green">
                     ${genai.costUsd.toFixed(6)}
                   </span>
                                 </div>
@@ -475,7 +479,7 @@ export function TracesPage() {
                 {/* Toolbar */}
                 <div className="flex items-center gap-4 p-4 border-b border-border">
                     <div className="relative flex-1 max-w-sm">
-                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                         <Input
                             placeholder="Filter spans..."
                             value={filterText}
@@ -485,7 +489,7 @@ export function TracesPage() {
                         />
                     </div>
 
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-sm text-brutal-slate">
                         {flattenedSpans.length} / {spans.length} spans
                     </div>
 
@@ -529,10 +533,10 @@ export function TracesPage() {
                 <div ref={parentRef} className="flex-1 overflow-auto" style={{contain: 'strict'}}>
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"/>
+                            <div className="animate-spin h-8 w-8 border-b-2 border-primary"/>
                         </div>
                     ) : spans.length === 0 ? (
-                        <div className="py-12 text-center text-muted-foreground">
+                        <div className="py-12 text-center text-brutal-slate">
                             <Network className="w-12 h-12 mx-auto mb-4 opacity-50"/>
                             <p>No traces found</p>
                             <p className="text-sm">Select a session or wait for telemetry data</p>
@@ -580,7 +584,7 @@ export function TracesPage() {
 
             {/* Details panel */}
             {selectedSpan && (
-                <div className="w-96 border-l border-border bg-card">
+                <div className="w-96 border-l border-border bg-brutal-dark">
                     <div className="flex items-center justify-between px-4 py-2 border-b border-border">
                         <span className="font-medium">Span Details</span>
                         <Button variant="ghost" size="icon" onClick={() => setSelectedSpan(null)}

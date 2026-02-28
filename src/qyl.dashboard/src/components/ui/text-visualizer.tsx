@@ -283,7 +283,8 @@ export function TextVisualizer({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6"
+                                    className="h-6 w-6 min-h-11 min-w-11"
+                                    aria-label={viewMode === "tree" ? "Show formatted" : "Show tree view"}
                                     onClick={() => setViewMode(viewMode === "tree" ? "formatted" : "tree")}
                                 >
                                     {viewMode === "tree" ? (
@@ -306,7 +307,8 @@ export function TextVisualizer({
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6"
+                                    className="h-6 w-6 min-h-11 min-w-11"
+                                    aria-label={isExpanded ? "Collapse content" : "Expand content"}
                                     onClick={() => setIsExpanded(!isExpanded)}
                                 >
                                     {isExpanded ? (
@@ -328,7 +330,8 @@ export function TextVisualizer({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6"
+                                className="h-6 w-6 min-h-11 min-w-11"
+                                aria-label={copied ? "Copied!" : "Copy raw content"}
                                 onClick={handleCopy}
                             >
                                 {copied ? (

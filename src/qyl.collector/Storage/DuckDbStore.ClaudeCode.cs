@@ -63,8 +63,8 @@ public sealed partial class DuckDbStore
             sessions.Add(new ClaudeCodeSession
             {
                 SessionId = reader.GetString(0),
-                StartTime = DateTimeOffset.FromUnixTimeMilliseconds(startNano / 1_000_000),
-                LastActivityTime = DateTimeOffset.FromUnixTimeMilliseconds(endNano / 1_000_000),
+                StartTime = TimeConversions.NanosToDateTimeOffset(startNano),
+                LastActivityTime = TimeConversions.NanosToDateTimeOffset(endNano),
                 TotalPrompts = reader.Col(3).GetInt32(0),
                 TotalApiCalls = reader.Col(4).GetInt32(0),
                 TotalToolCalls = reader.Col(5).GetInt32(0),
@@ -122,7 +122,7 @@ public sealed partial class DuckDbStore
             {
                 EventName = reader.Col(0).GetString("unknown"),
                 PromptId = reader.Col(1).AsString,
-                Timestamp = DateTimeOffset.FromUnixTimeMilliseconds(timeNano / 1_000_000),
+                Timestamp = TimeConversions.NanosToDateTimeOffset(timeNano),
                 ToolName = reader.Col(3).AsString,
                 Model = reader.Col(4).AsString,
                 CostUsd = reader.Col(5).AsDouble,

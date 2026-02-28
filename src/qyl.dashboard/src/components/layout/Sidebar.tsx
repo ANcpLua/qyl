@@ -66,7 +66,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     return (
         <aside
             className={cn(
-                'flex flex-col bg-brutal-carbon border-r-3 border-brutal-zinc transition-all duration-200',
+                'relative flex flex-col bg-brutal-carbon border-r-3 border-brutal-zinc transition-all duration-200 scan-lines',
                 collapsed ? 'w-16' : 'w-56'
             )}
         >
@@ -80,7 +80,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     {!collapsed && (
                         <div className="flex flex-col">
                             <span className="font-bold text-lg text-signal-orange tracking-wider">QYL.</span>
-                            <span className="text-[10px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
+                            <span className="text-[11px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
                         </div>
                     )}
                 </NavLink>
@@ -121,7 +121,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">{item.label}</span>
-                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -134,7 +134,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
-                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
                                 </TooltipContent>
                             </Tooltip>
                         );
@@ -147,7 +147,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {/* AI Section */}
             <div className="px-2 space-y-1">
                 {!collapsed && (
-                    <div className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                    <div className="px-3 pt-2 pb-1 text-[11px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
                         AI
                     </div>
                 )}
@@ -170,7 +170,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">{item.label}</span>
-                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -183,7 +183,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
-                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
                                 </TooltipContent>
                             </Tooltip>
                         );
@@ -198,7 +198,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 <div className="px-2 space-y-1">
                     {!collapsed && (
                         <div
-                            className="px-3 pt-2 pb-1 text-[10px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
+                            className="px-3 pt-2 pb-1 text-[11px] font-bold text-brutal-slate tracking-[0.3em] uppercase">
                             DASHBOARDS
                         </div>
                     )}
@@ -264,7 +264,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">SETTINGS</span>
-                                    <kbd className="kbd text-[10px]">,</kbd>
+                                    <kbd className="kbd text-[11px]">,</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -277,7 +277,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     SETTINGS
-                                    <kbd className="kbd text-[10px]">,</kbd>
+                                    <kbd className="kbd text-[11px]">,</kbd>
                                 </TooltipContent>
                             </Tooltip>
                         );
@@ -307,7 +307,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {/* Footer */}
             {!collapsed && (
                 <div className="px-4 py-2 border-t-3 border-brutal-zinc bg-brutal-dark">
-                    <div className="text-[10px] text-brutal-slate tracking-[0.15em] leading-relaxed">
+                    <div className="text-[11px] text-brutal-slate tracking-[0.15em] leading-relaxed">
                         <div>QUESTION YOUR LOGS</div>
                     </div>
                 </div>

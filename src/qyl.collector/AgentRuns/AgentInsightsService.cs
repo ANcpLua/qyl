@@ -3,8 +3,6 @@
 // 6 overview panels + trace list + model/tool breakdowns
 // =============================================================================
 
-using qyl.collector.Core;
-
 namespace qyl.collector.AgentRuns;
 
 public sealed class AgentInsightsService(DuckDbStore store)
@@ -375,7 +373,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
             {
                 TraceId = reader.GetString(0),
                 Timestamp = TimeConversions.UnixNanoToDateTime(startNano).ToString("o"),
-                RootDurationMs = (endNano - startNano) / 1_000_000.0,
+                RootDurationMs = TimeConversions.NanosToMs(endNano - startNano),
                 Errors = reader.Col(3).GetInt64(0),
                 LlmCalls = reader.Col(4).GetInt64(0),
                 ToolCalls = reader.Col(5).GetInt64(0),
@@ -607,7 +605,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
                 ParentSpanId = reader.Col(1).AsString,
                 Name = reader.GetString(2),
                 Timestamp = TimeConversions.UnixNanoToDateTime(startNano).ToString("o"),
-                DurationMs = reader.Col(5).GetUInt64(0) / 1_000_000.0,
+                DurationMs = TimeConversions.NanosToMs(reader.Col(5).GetUInt64(0)),
                 StatusCode = (int)reader.Col(6).GetDouble(0),
                 StatusMessage = reader.Col(7).AsString,
                 Provider = reader.Col(8).AsString,

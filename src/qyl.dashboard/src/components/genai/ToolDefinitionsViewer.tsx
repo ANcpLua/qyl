@@ -122,7 +122,8 @@ function JsonSchemaViewer({schema}: JsonSchemaViewerProps) {
             <Button
                 variant="ghost"
                 size="icon"
-                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 z-10"
+                className="absolute top-2 right-2 h-6 w-6 min-h-11 min-w-11 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity z-10"
+                aria-label="Copy to clipboard"
                 onClick={copySchema}
             >
                 {copiedSchema ? (
@@ -268,7 +269,8 @@ export function ToolCallViewer({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 z-10"
+                                className="absolute top-2 right-2 h-6 w-6 min-h-11 min-w-11 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity z-10"
+                aria-label="Copy to clipboard"
                                 onClick={() => copyToClipboard(parsedArgs, setCopiedArgs)}
                             >
                                 {copiedArgs ? (
@@ -305,7 +307,8 @@ export function ToolCallViewer({
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 z-10"
+                                className="absolute top-2 right-2 h-6 w-6 min-h-11 min-w-11 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus:opacity-100 transition-opacity z-10"
+                aria-label="Copy to clipboard"
                                 onClick={() => copyToClipboard(parsedResult, setCopiedResult)}
                             >
                                 {copiedResult ? (

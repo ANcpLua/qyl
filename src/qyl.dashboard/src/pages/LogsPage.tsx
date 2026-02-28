@@ -35,12 +35,12 @@ const LOG_LEVEL_CONFIG: Record<
     LogLevel,
     { icon: typeof Info; className: string; color: string }
 > = {
-    trace: {icon: Bug, className: 'log-level-trace', color: 'text-gray-400'},
-    debug: {icon: Bug, className: 'log-level-debug', color: 'text-blue-400'},
-    info: {icon: Info, className: 'log-level-info', color: 'text-cyan-400'},
-    warn: {icon: AlertTriangle, className: 'log-level-warn', color: 'text-yellow-400'},
-    error: {icon: AlertCircle, className: 'log-level-error', color: 'text-red-400'},
-    fatal: {icon: Skull, className: 'log-level-fatal', color: 'text-red-300'},
+    trace: {icon: Bug, className: 'log-level-trace', color: 'text-brutal-slate'},
+    debug: {icon: Bug, className: 'log-level-debug', color: 'text-signal-cyan'},
+    info: {icon: Info, className: 'log-level-info', color: 'text-signal-cyan'},
+    warn: {icon: AlertTriangle, className: 'log-level-warn', color: 'text-signal-yellow'},
+    error: {icon: AlertCircle, className: 'log-level-error', color: 'text-signal-red'},
+    fatal: {icon: Skull, className: 'log-level-fatal', color: 'text-signal-red'},
 };
 
 const LOG_LEVELS: LogLevel[] = ['trace', 'debug', 'info', 'warn', 'error', 'fatal'];
@@ -63,24 +63,28 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
         <div className="border-b border-border">
             <div
                 className={cn(
-                    'flex items-start gap-3 px-4 py-2 hover:bg-muted/50 cursor-pointer',
-                    log.severityText === 'error' && 'bg-red-500/5',
-                    log.severityText === 'fatal' && 'bg-red-500/10',
-                    log.severityText === 'warn' && 'bg-yellow-500/5'
+                    'flex items-start gap-3 px-4 py-2 hover:bg-brutal-dark cursor-pointer',
+                    log.severityText === 'error' && 'bg-signal-red/5',
+                    log.severityText === 'fatal' && 'bg-signal-red/10',
+                    log.severityText === 'warn' && 'bg-signal-yellow/5'
                 )}
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
                 onClick={onToggle}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
             >
                 {/* Expand icon */}
                 <div className="pt-0.5">
                     {isExpanded ? (
-                        <ChevronDown className="w-4 h-4 text-muted-foreground"/>
+                        <ChevronDown className="w-4 h-4 text-brutal-slate"/>
                     ) : (
-                        <ChevronRight className="w-4 h-4 text-muted-foreground"/>
+                        <ChevronRight className="w-4 h-4 text-brutal-slate"/>
                     )}
                 </div>
 
                 {/* Timestamp */}
-                <span className="font-mono text-xs text-muted-foreground w-24 flex-shrink-0">
+                <span className="font-mono text-xs text-brutal-slate w-24 flex-shrink-0">
           {formatTimestamp(log.timestamp)}
         </span>
 
@@ -91,7 +95,7 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                 </Badge>
 
                 {/* Service */}
-                <span className="text-sm text-muted-foreground w-28 truncate flex-shrink-0">
+                <span className="text-sm text-brutal-slate w-28 truncate flex-shrink-0">
           {log.serviceName}
         </span>
 
@@ -101,11 +105,11 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
 
             {/* Expanded details */}
             {isExpanded && (
-                <div className="px-4 py-3 bg-muted/30 border-t border-border">
+                <div className="px-4 py-3 bg-brutal-dark/30 border-t border-border">
                     <div className="pl-8 space-y-3">
                         {/* Full message */}
                         <div>
-                            <h4 className="text-xs font-medium text-muted-foreground mb-1">Message</h4>
+                            <h4 className="text-xs font-medium text-brutal-slate mb-1">Message</h4>
                             {isStructuredContent(log.body) ? (
                                 <TextVisualizer
                                     content={log.body}
@@ -115,7 +119,7 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                                     showTreeView={true}
                                 />
                             ) : (
-                                <pre className="text-sm font-mono whitespace-pre-wrap bg-background p-2 rounded">
+                                <pre className="text-sm font-mono whitespace-pre-wrap bg-background p-2">
                                     {log.body}
                                 </pre>
                             )}
@@ -125,7 +129,7 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                         {log.traceId && (
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <h4 className="text-xs font-medium text-muted-foreground mb-1">Trace ID</h4>
+                                    <h4 className="text-xs font-medium text-brutal-slate mb-1">Trace ID</h4>
                                     <CopyableText
                                         value={log.traceId}
                                         label="Trace ID"
@@ -136,7 +140,7 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                                 </div>
                                 {log.spanId && (
                                     <div>
-                                        <h4 className="text-xs font-medium text-muted-foreground mb-1">Span ID</h4>
+                                        <h4 className="text-xs font-medium text-brutal-slate mb-1">Span ID</h4>
                                         <CopyableText
                                             value={log.spanId}
                                             label="Span ID"
@@ -151,11 +155,11 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                         {/* Attributes */}
                         {Object.keys(log.attributes).length > 0 && (
                             <div>
-                                <h4 className="text-xs font-medium text-muted-foreground mb-1">Attributes</h4>
+                                <h4 className="text-xs font-medium text-brutal-slate mb-1">Attributes</h4>
                                 <div className="grid grid-cols-2 gap-2">
                                     {Object.entries(log.attributes).map(([key, value]) => (
                                         <div key={key} className="flex items-center text-sm">
-                                            <span className="text-muted-foreground">{key}:</span>
+                                            <span className="text-brutal-slate">{key}:</span>
                                             <CopyableText
                                                 value={String(value)}
                                                 label={key}
@@ -513,7 +517,7 @@ export function LogsPage() {
             <div className="flex items-center gap-4 p-4 border-b border-border">
                 {/* Search */}
                 <div className="relative flex-1 max-w-sm">
-                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"/>
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
                         placeholder="Search logs..."
                         value={filterText}
@@ -554,14 +558,14 @@ export function LogsPage() {
 
                 {/* Stats */}
                 <div className="flex items-center gap-4 text-sm">
-          <span className="text-muted-foreground">
+          <span className="text-brutal-slate">
             {filteredLogs.length.toLocaleString()} / {stats.total.toLocaleString()} logs
           </span>
                     {stats.errors > 0 && (
                         <Badge variant="destructive">{stats.errors} errors</Badge>
                     )}
                     {stats.warnings > 0 && (
-                        <Badge variant="outline" className="border-yellow-500 text-yellow-500">
+                        <Badge variant="outline" className="border-signal-yellow text-signal-yellow">
                             {stats.warnings} warnings
                         </Badge>
                     )}
@@ -593,12 +597,12 @@ export function LogsPage() {
                     variant={isLive ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setIsLive(!isLive)}
-                    className={cn(isLive && isConnected && 'bg-green-600 hover:bg-green-700')}
+                    className={cn(isLive && isConnected && 'bg-signal-green hover:bg-signal-green/80')}
                 >
           <span
               className={cn(
-                  'w-2 h-2 rounded-full mr-2',
-                  isLive && isConnected ? 'bg-green-300 animate-pulse' : 'bg-gray-400'
+                  'w-2 h-2 mr-2',
+                  isLive && isConnected ? 'bg-signal-green animate-pulse-live' : 'bg-brutal-slate'
               )}
           />
                     {isLive ? (isConnected ? 'Live' : 'Connecting...') : 'Paused'}
@@ -608,13 +612,13 @@ export function LogsPage() {
             {/* Active Filters */}
             {(filterText || minLevel !== 'trace' || selectedService !== 'all') && (
                 <div className="flex items-center gap-2 px-4 pb-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">Active filters:</span>
+                    <span className="text-xs text-brutal-slate">Active filters:</span>
                     {filterText && (
                         <Badge variant="secondary" className="gap-1 pr-1">
                             search: {filterText}
                             <button
                                 onClick={() => setFilterText('')}
-                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                className="ml-1 hover:bg-brutal-dark p-0.5"
                                 aria-label="Clear search filter"
                             >
                                 <X className="h-3 w-3"/>
@@ -626,7 +630,7 @@ export function LogsPage() {
                             min level: {minLevel}
                             <button
                                 onClick={() => setMinLevel('trace')}
-                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                className="ml-1 hover:bg-brutal-dark p-0.5"
                                 aria-label="Clear minimum level filter"
                             >
                                 <X className="h-3 w-3"/>
@@ -638,7 +642,7 @@ export function LogsPage() {
                             service: {selectedService}
                             <button
                                 onClick={() => setSelectedService('all')}
-                                className="ml-1 rounded-full hover:bg-muted p-0.5"
+                                className="ml-1 hover:bg-brutal-dark p-0.5"
                                 aria-label="Clear service filter"
                             >
                                 <X className="h-3 w-3"/>
@@ -667,7 +671,7 @@ export function LogsPage() {
                 style={{contain: 'strict'}}
             >
                 {filteredLogs.length === 0 ? (
-                    <div className="py-12 text-center text-muted-foreground">
+                    <div className="py-12 text-center text-brutal-slate">
                         <FileText className="w-12 h-12 mx-auto mb-4 opacity-50"/>
                         <p>No logs found</p>
                         <p className="text-sm">Adjust filters or wait for new logs</p>
@@ -710,7 +714,7 @@ export function LogsPage() {
                 {/* Jump to bottom button (shown when scrolled away from bottom) */}
                 {!isAutoScroll && filteredLogs.length > 0 && (
                     <Button
-                        className="absolute bottom-4 right-4 shadow-lg"
+                        className="absolute bottom-4 right-4 shadow-brutal"
                         onClick={jumpToBottom}
                     >
                         <ArrowDown className="w-4 h-4 mr-2"/>

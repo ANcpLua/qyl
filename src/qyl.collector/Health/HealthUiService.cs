@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 
 namespace qyl.collector.Health;
 
@@ -8,8 +7,6 @@ namespace qyl.collector.Health;
 /// </summary>
 public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer, IConfiguration configuration)
 {
-    private static readonly DateTimeOffset StartTime = TimeProvider.System.GetUtcNow();
-    private static readonly string Version = GetVersion();
 
     private readonly string _dataPath = configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
 
@@ -31,15 +28,15 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         var overallStatus = DetermineOverallStatus(components);
 
         string? lastIngestionTime = latest.Length > 0
-            ? DateTimeOffset.FromUnixTimeMilliseconds(latest[0].StartTimeUnixNano / 1_000_000).ToString("o")
+            ? TimeConversions.NanosToDateTimeOffset((long)latest[0].StartTimeUnixNano).ToString("o")
             : null;
 
         return new HealthUiResponse
         {
             Status = overallStatus,
             Components = components,
-            UptimeSeconds = (long)(now - StartTime).TotalSeconds,
-            Version = Version,
+            UptimeSeconds = (long)(now - HealthExtensions.StartTime).TotalSeconds,
+            Version = HealthExtensions.AppVersion,
             LastIngestionTime = lastIngestionTime,
             CheckedAt = now.ToString("o")
         };
@@ -202,9 +199,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
 
         if (latest.Length > 0)
         {
-            var nanos = latest[0].StartTimeUnixNano;
-            var ms = nanos / 1_000_000;
-            var lastTime = DateTimeOffset.FromUnixTimeMilliseconds(ms);
+            var lastTime = TimeConversions.NanosToDateTimeOffset((long)latest[0].StartTimeUnixNano);
             var now = TimeProvider.System.GetUtcNow();
             secondsSinceLastIngestion = (long)(now - lastTime).TotalSeconds;
             hasRecentData = secondsSinceLastIngestion < 300; // 5 minutes
@@ -242,14 +237,4 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         return HealthStatus.Healthy;
     }
 
-    private static string GetVersion()
-    {
-        var assembly = Assembly.GetExecutingAssembly();
-        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                      ?? assembly.GetName().Version?.ToString()
-                      ?? "unknown";
-
-        var plusIndex = version.IndexOf('+');
-        return plusIndex > 0 ? version[..plusIndex] : version;
-    }
 }

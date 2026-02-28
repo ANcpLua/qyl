@@ -180,13 +180,3 @@ export function useNavigationShortcuts(navigate: (path: string) => void) {
         return () => unsubscribes.forEach((fn) => fn());
     }, [navigate, registerShortcut]);
 }
-
-// Format shortcut for display
-export function formatShortcut(shortcut: ShortcutHandler): string {
-    const parts: string[] = [];
-    if (shortcut.ctrl) parts.push('Ctrl');
-    if (shortcut.alt) parts.push('Alt');
-    if (shortcut.shift) parts.push('Shift');
-    parts.push(shortcut.key.toUpperCase());
-    return parts.join(' + ');
-}

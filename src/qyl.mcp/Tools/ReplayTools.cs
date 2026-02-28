@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+using Qyl.Common;
 
 namespace qyl.mcp.Tools;
 
@@ -107,7 +108,7 @@ public sealed class ReplayTools(HttpClient client)
 
             foreach (var span in sortedSpans)
             {
-                var durationMs = span.DurationNs / 1_000_000.0;
+                var durationMs = TimeConversions.NanosToMs(span.DurationNs);
                 var isGenAi = !string.IsNullOrEmpty(span.GenAiProviderName);
 
                 sb.AppendLine($"## {span.Name}");
@@ -133,7 +134,7 @@ public sealed class ReplayTools(HttpClient client)
             var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0L);
             var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0L);
             var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0d);
-            var totalDurationMs = sortedSpans.Sum(static s => s.DurationNs) / 1_000_000.0;
+            var totalDurationMs = TimeConversions.NanosToMs(sortedSpans.Sum(static s => s.DurationNs));
 
             sb.AppendLine("---");
             sb.AppendLine("## Summary");
@@ -185,7 +186,7 @@ public sealed class ReplayTools(HttpClient client)
                 foreach (var span in response.Spans.OrderBy(static s => s.StartTimeUnixNano))
                 {
                     var indent = string.IsNullOrEmpty(span.ParentSpanId) ? "" : "  ";
-                    var durationMs = span.DurationNs / 1_000_000.0;
+                    var durationMs = TimeConversions.NanosToMs(span.DurationNs);
                     sb.AppendLine($"{indent}- **{span.Name}** ({durationMs:F1}ms)");
 
                     if (!string.IsNullOrEmpty(span.GenAiProviderName))
@@ -236,7 +237,7 @@ public sealed class ReplayTools(HttpClient client)
 
             foreach (var span in errorSpans)
             {
-                var durationMs = span.DurationNs / 1_000_000.0;
+                var durationMs = TimeConversions.NanosToMs(span.DurationNs);
 
                 sb.AppendLine($"## Error: {span.Name}");
                 sb.AppendLine($"- Span ID: {span.SpanId}");

@@ -15,9 +15,9 @@ namespace qyl.collector.Health;
 /// </summary>
 public static class HealthExtensions
 {
-    private static readonly DateTimeOffset StartTime = TimeProvider.System.GetUtcNow();
+    internal static readonly DateTimeOffset StartTime = TimeProvider.System.GetUtcNow();
 
-    private static readonly SemVer AppVersion = GetVersion();
+    internal static readonly SemVer AppVersion = GetVersion();
 
     // ── IServiceCollection: DI registration ────────────────────────────────
 

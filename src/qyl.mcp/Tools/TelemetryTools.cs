@@ -25,7 +25,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Returns: List of agent runs with tokens, costs, and status
                  """)]
-    public async Task<ToolResult<AgentRun[]>> SearchAgentRunsAsync(
+    public Task<ToolResult<AgentRun[]>> SearchAgentRunsAsync(
         [Description("Filter by AI provider (e.g., 'anthropic', 'openai', 'google')")]
         string? provider = null,
         [Description("Filter by model name (partial match, e.g., 'claude-3')")]
@@ -33,22 +33,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         [Description("Filter by error type (e.g., 'RateLimitError', 'TimeoutError')")]
         string? errorType = null,
         [Description("Only include runs since this ISO timestamp")]
-        DateTime? since = null)
-    {
-        try
-        {
-            var result = await store.SearchRunsAsync(provider, model, errorType, since).ConfigureAwait(false);
-            return ToolResult.Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return ToolResult.Error<AgentRun[]>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Error<AgentRun[]>($"Search failed: {ex.Message}");
-        }
-    }
+        DateTime? since = null) =>
+        ToolResult.ExecuteAsync(() => store.SearchRunsAsync(provider, model, errorType, since), "Search");
 
     [McpServerTool(Name = "qyl.get_agent_run")]
     [Description("""
@@ -63,24 +49,10 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  The run_id can be obtained from search_agent_runs.
                  """)]
-    public async Task<ToolResult<AgentRun?>> GetAgentRunAsync(
+    public Task<ToolResult<AgentRun?>> GetAgentRunAsync(
         [Description("The unique run ID from search_agent_runs")]
-        string runId)
-    {
-        try
-        {
-            var result = await store.GetRunAsync(runId).ConfigureAwait(false);
-            return ToolResult.Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return ToolResult.Error<AgentRun?>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Error<AgentRun?>($"Get run failed: {ex.Message}");
-        }
-    }
+        string runId) =>
+        ToolResult.ExecuteAsync(() => store.GetRunAsync(runId), "Get run");
 
     [McpServerTool(Name = "qyl.get_token_usage")]
     [Description("""
@@ -94,28 +66,14 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                  Returns input/output tokens, run counts, and time ranges.
                  Use this for cost analysis and usage monitoring.
                  """)]
-    public async Task<ToolResult<TokenUsageSummary[]>> GetTokenUsageAsync(
+    public Task<ToolResult<TokenUsageSummary[]>> GetTokenUsageAsync(
         [Description("Start of time range (ISO timestamp)")]
         DateTime? since = null,
         [Description("End of time range (ISO timestamp)")]
         DateTime? until = null,
         [Description("Group by: 'agent', 'model', or 'hour' (default: agent)")]
-        string groupBy = "agent")
-    {
-        try
-        {
-            var result = await store.GetTokenUsageAsync(since, until, groupBy).ConfigureAwait(false);
-            return ToolResult.Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return ToolResult.Error<TokenUsageSummary[]>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Error<TokenUsageSummary[]>($"Get token usage failed: {ex.Message}");
-        }
-    }
+        string groupBy = "agent") =>
+        ToolResult.ExecuteAsync(() => store.GetTokenUsageAsync(since, until, groupBy), "Get token usage");
 
     [McpServerTool(Name = "qyl.list_errors")]
     [Description("""
@@ -129,26 +87,12 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Use this to quickly identify and diagnose failures.
                  """)]
-    public async Task<ToolResult<AgentError[]>> ListErrorsAsync(
+    public Task<ToolResult<AgentError[]>> ListErrorsAsync(
         [Description("Maximum errors to return (default: 50)")]
         int limit = 50,
         [Description("Filter by agent/service name")]
-        string? agentName = null)
-    {
-        try
-        {
-            var result = await store.ListErrorsAsync(limit, agentName).ConfigureAwait(false);
-            return ToolResult.Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return ToolResult.Error<AgentError[]>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Error<AgentError[]>($"List errors failed: {ex.Message}");
-        }
-    }
+        string? agentName = null) =>
+        ToolResult.ExecuteAsync(() => store.ListErrorsAsync(limit, agentName), "List errors");
 
     [McpServerTool(Name = "qyl.get_latency_stats")]
     [Description("""
@@ -161,26 +105,12 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Use this to monitor performance and identify slow operations.
                  """)]
-    public async Task<ToolResult<LatencyStats>> GetLatencyStatsAsync(
+    public Task<ToolResult<LatencyStats>> GetLatencyStatsAsync(
         [Description("Filter by agent/service name")]
         string? agentName = null,
         [Description("Time window in hours (default: 24)")]
-        int hours = 24)
-    {
-        try
-        {
-            var result = await store.GetLatencyStatsAsync(agentName, hours).ConfigureAwait(false);
-            return ToolResult.Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return ToolResult.Error<LatencyStats>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return ToolResult.Error<LatencyStats>($"Get latency stats failed: {ex.Message}");
-        }
-    }
+        int hours = 24) =>
+        ToolResult.ExecuteAsync(() => store.GetLatencyStatsAsync(agentName, hours), "Get latency stats");
 }
 
 /// <summary>
@@ -195,6 +125,27 @@ public static class ToolResult
 {
     public static ToolResult<T> Ok<T>(T data) => new(true, data, null);
     public static ToolResult<T> Error<T>(string message) => new(false, default, message);
+
+    /// <summary>
+    ///     Executes a store operation with standard error handling for MCP tools.
+    /// </summary>
+    public static async Task<ToolResult<T>> ExecuteAsync<T>(
+        Func<ValueTask<T>> operation, string operationName)
+    {
+        try
+        {
+            var result = await operation().ConfigureAwait(false);
+            return Ok(result);
+        }
+        catch (HttpRequestException ex)
+        {
+            return Error<T>($"Failed to connect to qyl collector: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            return Error<T>($"{operationName} failed: {ex.Message}");
+        }
+    }
 }
 
 #region Data Models

@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
+using Qyl.Common;
 
 namespace qyl.mcp.Tools;
 
@@ -240,7 +241,7 @@ public sealed class StructuredLogTools(HttpClient client)
     private static string FormatTimestamp(long? unixNano)
     {
         if (unixNano is null or 0) return "??:??:??";
-        var dt = DateTimeOffset.FromUnixTimeMilliseconds(unixNano.Value / 1_000_000);
+        var dt = TimeConversions.NanosToDateTimeOffset(unixNano.Value);
         return dt.ToString("HH:mm:ss.fff");
     }
 }

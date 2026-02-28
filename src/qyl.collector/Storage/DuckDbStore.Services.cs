@@ -67,7 +67,7 @@ public sealed partial class DuckDbStore
         """;
 
     private static DateTime NanoToDateTime(ulong nanos) =>
-        DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / 1_000_000)).UtcDateTime;
+        TimeConversions.UnixNanoToDateTime(nanos);
 
     private const string ServiceInstanceUpsertSql = """
         INSERT INTO service_instances (

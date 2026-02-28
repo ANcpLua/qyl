@@ -14,8 +14,8 @@ internal static class ProfileMaterializer
         sb.AppendLine("## Performance Profile (last 7d)");
 
         var now = timeProvider.GetUtcNow();
-        var sevenDaysAgoNanos = (decimal)(ulong)(now.AddDays(-7).ToUnixTimeMilliseconds() * 1_000_000);
-        var fourteenDaysAgoNanos = (decimal)(ulong)(now.AddDays(-14).ToUnixTimeMilliseconds() * 1_000_000);
+        var sevenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-7));
+        var fourteenDaysAgoNanos = (decimal)TimeConversions.ToUnixNanoUnsigned(now.AddDays(-14));
 
         // Latency percentiles
         await using (var cmd = lease.Connection.CreateCommand())

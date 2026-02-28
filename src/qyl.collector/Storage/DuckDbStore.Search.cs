@@ -106,7 +106,7 @@ public sealed partial class DuckDbStore
     {
         var tsRaw = reader.Col(4);
         var timestamp = tsRaw.AsUInt64 is { } nano
-            ? DateTimeOffset.FromUnixTimeMilliseconds((long)(nano / 1_000_000)).UtcDateTime
+            ? TimeConversions.UnixNanoToDateTime(nano)
             : TimeProvider.System.GetUtcNow().UtcDateTime;
 
         return new SearchResult(

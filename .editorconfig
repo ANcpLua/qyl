@@ -125,6 +125,20 @@ dotnet_naming_rule.namespaces_should_be_pascal_case.style = pascal_case
 dotnet_naming_symbols.namespaces.applicable_kinds = namespace
 
 # =============================================================================
+# SOURCE GENERATORS (netstandard2.0 Roslyn components)
+# =============================================================================
+
+[src/{qyl.servicedefaults.generator,qyl.instrumentation.generators}/**/*.cs]
+dotnet_diagnostic.RS1038.severity = none # Transitive Workspaces reference via ANcpLua.Roslyn.Utilities — upstream fix needed
+
+# =============================================================================
+# PROTOCOL (BCL-only leaf project — intentional lowercase namespaces)
+# =============================================================================
+
+[src/qyl.protocol/**/*.cs]
+dotnet_diagnostic.IDE1006.severity = none # Lowercase 'qyl' namespace is intentional brand decision
+
+# =============================================================================
 # GENERATED CODE EXCLUSIONS
 # =============================================================================
 
@@ -213,6 +227,13 @@ dotnet_diagnostic.CA1819.severity = none # Arrays for protobuf
 
 [src/**/Ingestion/**/*.cs]
 dotnet_diagnostic.CA1002.severity = none # OTLP wire format
+
+[src/**/Ingestion/OtlpAttributes.cs]
+dotnet_diagnostic.AL0012.severity = none # File defines deprecated OTel attribute keys for migration — false positive
+dotnet_diagnostic.QYL0002.severity = none # SchemaNormalizer.DeprecatedMappings IS the migration dictionary
+
+[src/**/Ingestion/OtlpConverter.cs]
+dotnet_diagnostic.QYL0002.severity = none # ExtractGenAiAttributes falls back to deprecated names for backward compat
 
 # =============================================================================
 # STORAGE (recursive)

@@ -37,7 +37,7 @@ public static class WorkflowEventEndpoints
                 EventId = "connected",
                 ExecutionId = runId,
                 EventType = "connected",
-                CreatedAtUnixNano = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L
+                CreatedAtUnixNano = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
             },
             "connected"
         );
@@ -66,7 +66,7 @@ public static class WorkflowEventEndpoints
                         ExecutionId = runId,
                         EventType = "done",
                         PayloadJson = $"{{\"finalStatus\":\"{run.Status}\"}}",
-                        CreatedAtUnixNano = TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L
+                        CreatedAtUnixNano = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
                     },
                     "done"
                 );
