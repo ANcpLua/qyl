@@ -17,13 +17,13 @@
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
     <MicrosoftTestingCodeCoverageVersion>18.4.1</MicrosoftTestingCodeCoverageVersion>
     <!-- Analyzers -->
-    <MicrosoftCodeAnalysisAnalyzersVersion>4.14.0</MicrosoftCodeAnalysisAnalyzersVersion>
+    <MicrosoftCodeAnalysisAnalyzersVersion>3.11.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.40.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.41.0</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsVersion>1.0.0-preview.260212.1</MicrosoftAgentsVersion>
     <!-- MCP -->
-    <ModelContextProtocolVersion>0.8.0-preview.1</ModelContextProtocolVersion>
+    <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
     <!-- Build Tooling -->
     <NukeVersion>10.1.0</NukeVersion>
     <!-- Misc -->

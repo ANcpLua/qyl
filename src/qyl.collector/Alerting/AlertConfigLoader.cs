@@ -1,3 +1,5 @@
+using System.Collections.Immutable;
+using ANcpLua.Roslyn.Utilities;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -11,8 +13,10 @@ public sealed partial class AlertConfigLoader : IDisposable
     private readonly string _configPath;
     private readonly IDeserializer _deserializer;
     private readonly ILogger<AlertConfigLoader> _logger;
+    private readonly CancellationTokenSource _cts = new();
     private volatile AlertConfiguration _current = new([]);
     private Action<AlertConfiguration>? _onChanged;
+    private AsyncBatchingWorkQueue? _debounceQueue;
     private FileSystemWatcher? _watcher;
 
     public AlertConfigLoader(ILogger<AlertConfigLoader> logger, string? configPath = null)
@@ -30,7 +34,13 @@ public sealed partial class AlertConfigLoader : IDisposable
 
     public AlertConfiguration Current => _current;
 
-    public void Dispose() => _watcher?.Dispose();
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _debounceQueue?.Dispose();
+        _watcher?.Dispose();
+        _cts.Dispose();
+    }
 
     /// <summary>Registers a callback invoked when the YAML configuration is reloaded.</summary>
     public void OnConfigurationChanged(Action<AlertConfiguration> callback) =>
@@ -158,6 +168,11 @@ public sealed partial class AlertConfigLoader : IDisposable
                 EnableRaisingEvents = true
             };
 
+            _debounceQueue = new AsyncBatchingWorkQueue(
+                TimeSpan.FromMilliseconds(250),
+                ProcessReloadAsync,
+                _cts.Token);
+
             _watcher.Changed += OnFileChanged;
             _watcher.Created += OnFileChanged;
             _watcher.Deleted += OnFileChanged;
@@ -168,12 +183,16 @@ public sealed partial class AlertConfigLoader : IDisposable
         }
     }
 
-    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    private void OnFileChanged(object sender, FileSystemEventArgs e) =>
+        _debounceQueue?.AddWork();
+
+    private ValueTask ProcessReloadAsync(ImmutableArray<AsyncBatchingWorkQueue.VoidResult> _, CancellationToken ct)
     {
+        if (ct.IsCancellationRequested)
+            return default;
+
         try
         {
-            // Debounce: wait briefly for file to stabilize
-            Thread.Sleep(250);
             var newConfig = LoadConfiguration();
             _current = newConfig;
             _onChanged?.Invoke(newConfig);
@@ -183,6 +202,8 @@ public sealed partial class AlertConfigLoader : IDisposable
         {
             LogConfigReloadError(_logger, ex);
         }
+
+        return default;
     }
 
     // ==========================================================================
