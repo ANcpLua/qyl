@@ -20,8 +20,6 @@ using Nuke.Common.IO;
 using Serilog;
 using YamlDotNet.RepresentationModel;
 
-namespace Domain.CodeGen;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // SCHEMA GENERATOR - One button, entire schema translated
 // ════════════════════════════════════════════════════════════════════════════════
@@ -69,7 +67,7 @@ public static class SchemaGenerator
             var fileName = NamespaceRoutingTable.GetFileNameFromNamespace(group.Key);
             files.Add(new GeneratedFile(
                 protocolDir / "Models" / $"{fileName}.g.cs",
-                GenerateModels(group.Key, group)));
+                GenerateModels(group.Key, group, schema)));
         }
 
         // DuckDB Schema
@@ -389,7 +387,7 @@ public static class SchemaGenerator
     // C# MODELS - Record types with JSON serialization
     // ════════════════════════════════════════════════════════════════════════════
 
-    static string GenerateModels(string ns, IEnumerable<SchemaDefinition> models)
+    static string GenerateModels(string ns, IEnumerable<SchemaDefinition> models, OpenApiSchema schema)
     {
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, $"Models for {ns}");
@@ -412,7 +410,7 @@ public static class SchemaGenerator
             foreach (var prop in model.Properties)
             {
                 var propName = ToPascalCase(prop.Name);
-                var propType = ResolveCSharpType(prop);
+                var propType = ResolveCSharpType(prop, schema);
                 var isNullable = !prop.IsRequired;
 
                 AppendXmlDoc(sb, prop.Description, "    ");
@@ -434,9 +432,9 @@ public static class SchemaGenerator
         return sb.ToString();
     }
 
-    static string ResolveCSharpType(SchemaProperty prop)
+    static string ResolveCSharpType(SchemaProperty prop, OpenApiSchema schema)
     {
-        // Check for x-csharp-type override
+        // Check for x-csharp-type override on the property itself
         if (prop.Extensions.TryGetValue("x-csharp-type", out var csType))
             return csType;
 
@@ -449,6 +447,11 @@ public static class SchemaGenerator
                 refTypeName == "AttributeValue")
                 return "global::System.Text.Json.Nodes.JsonNode";
 
+            // Check if the referenced scalar has an x-csharp-type override (e.g. Temperature, CostUsd → double)
+            var refSchema = schema.Schemas.FirstOrDefault(s => s.Name == refTypeName);
+            if (refSchema is not null && refSchema.Extensions.TryGetValue("x-csharp-type", out var refCsType))
+                return refCsType;
+
             // Map namespace-qualified refs to C# types (TypeSpec-style with Qyl.* prefix)
             var ns = NamespaceRoutingTable.GetCSharpNamespace(refTypeName);
             var typeName = refTypeName[(refTypeName.LastIndexOf('.') + 1)..];
@@ -460,7 +463,7 @@ public static class SchemaGenerator
         {
             var itemType = prop.ItemsRef is not null
                 ? ResolveCSharpType(
-                    new SchemaProperty(prop.Name, null, null, null, prop.ItemsRef, null, null, true, []))
+                    new SchemaProperty(prop.Name, null, null, null, prop.ItemsRef, null, null, true, []), schema)
                 : TypeMappingTable.GetCSharpType(prop.ItemsType, null);
             return $"IReadOnlyList<{itemType}>";
         }

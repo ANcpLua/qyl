@@ -249,7 +249,7 @@ public ref struct OtlpJsonSpanParser
                 _reader.Read();
                 span.Kind = _reader.TokenType == JsonTokenType.Number
                     ? (SpanKind)_reader.GetInt32()
-                    : SpanKind.Unspecified;
+                    : (SpanKind)0;
             }
             else if (propName.SequenceEqual("startTimeUnixNano"u8))
             {
@@ -312,7 +312,7 @@ public ref struct OtlpJsonSpanParser
                     _reader.Read();
                     span.Status = _reader.TokenType == JsonTokenType.Number
                         ? (SpanStatusCode)_reader.GetInt32()
-                        : SpanStatusCode.Unset;
+                        : (SpanStatusCode)0;
                 }
                 else if (_reader.ValueTextEquals("message"u8))
                 {

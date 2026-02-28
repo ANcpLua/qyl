@@ -6,7 +6,7 @@ namespace qyl.collector.Health;
 public sealed record HealthUiResponse
 {
     /// <summary>Overall health status: healthy, degraded, or unhealthy.</summary>
-    public required string Status { get; init; }
+    public required HealthStatus Status { get; init; }
 
     /// <summary>Individual component health checks.</summary>
     public required IReadOnlyList<ComponentHealth> Components { get; init; }
@@ -33,7 +33,7 @@ public sealed record ComponentHealth
     public required string Name { get; init; }
 
     /// <summary>Component status: healthy, degraded, or unhealthy.</summary>
-    public required string Status { get; init; }
+    public required HealthStatus Status { get; init; }
 
     /// <summary>Human-readable status message.</summary>
     public string? Message { get; init; }

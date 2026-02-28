@@ -131,7 +131,7 @@ internal static class SqlOperationParser
             else if (sql[i] == '*' && sql[i + 1] == '/')
             {
                 depth--;
-                if (depth == 0)
+                if (depth is 0)
                     return i;
                 i++; // Skip the '/'
             }
@@ -245,7 +245,7 @@ internal static class SqlOperationParser
                     break;
                 case ')':
                     depth--;
-                    if (depth == 0)
+                    if (depth is 0)
                         return sql[(i + 1)..];
                     break;
                 case '\'': // Skip string literals

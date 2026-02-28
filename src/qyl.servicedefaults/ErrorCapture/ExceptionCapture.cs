@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Qyl.ServiceDefaults.Instrumentation;
 
 namespace Qyl.ServiceDefaults.ErrorCapture;
 
@@ -27,10 +28,10 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
         activity.AddEvent(new ActivityEvent("exception",
             tags: new ActivityTagsCollection
             {
-                { "exception.type", ex.GetType().FullName },
-                { "exception.message", ex.Message },
-                { "exception.stacktrace", ex.ToString() },
-                { "exception.escaped", "true" }
+                { ExceptionTypeAttributes.Type, ex.GetType().FullName },
+                { ExceptionMessageAttributes.Message, ex.Message },
+                { ExceptionStacktraceAttributes.Stacktrace, ex.ToString() },
+                { ExceptionEscapedAttributes.Escaped, "true" }
             }));
 
         logger.LogExceptionCaptured(ex.GetType().Name, ex.Message);
@@ -39,13 +40,13 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
 
 public static class GlobalExceptionHooks
 {
-    private static int _registered;
+    private static int s_registered;
 
     private static readonly ActivitySource Source = new("Qyl.ServiceDefaults.ErrorCapture");
 
     public static void Register(ILoggerFactory loggerFactory)
     {
-        if (Interlocked.Exchange(ref _registered, 1) != 0) return;
+        if (Interlocked.Exchange(ref s_registered, 1) is not 0) return;
 
         var logger = loggerFactory.CreateLogger("Qyl.ServiceDefaults.ErrorCapture");
 
@@ -70,7 +71,8 @@ public static class GlobalExceptionHooks
         var activity = Activity.Current;
         if (activity is null)
         {
-            if (Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not { } fallback) return;
+            if (Source.StartActivity("UnhandledException", ActivityKind.Internal, parentContext: default) is not
+                { } fallback) return;
             TagActivity(fallback, ex, source);
             return;
         }
@@ -84,10 +86,10 @@ public static class GlobalExceptionHooks
         activity.AddEvent(new ActivityEvent("exception",
             tags: new ActivityTagsCollection
             {
-                { "exception.type", ex.GetType().FullName },
-                { "exception.message", ex.Message },
-                { "exception.stacktrace", ex.ToString() },
-                { "exception.escaped", "true" },
+                { ExceptionTypeAttributes.Type, ex.GetType().FullName },
+                { ExceptionMessageAttributes.Message, ex.Message },
+                { ExceptionStacktraceAttributes.Stacktrace, ex.ToString() },
+                { ExceptionEscapedAttributes.Escaped, "true" },
                 { "exception.source", source }
             }));
     }

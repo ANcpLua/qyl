@@ -49,4 +49,16 @@ public sealed class TracedTagAttribute : Attribute
     /// </summary>
     /// <value>Defaults to <see langword="true" />.</value>
     public bool SkipIfNull { get; set; } = true;
+
+    /// <summary>
+    ///     Gets or sets a value indicating whether this tag should be skipped when the value
+    ///     equals <see langword="default" /> for its type.
+    /// </summary>
+    /// <remarks>
+    ///     Useful for value types such as <see cref="int" />, <see cref="System.Guid" />, and
+    ///     <see cref="bool" /> where recording <c>0</c>, <c>Guid.Empty</c>, or <c>false</c>
+    ///     is typically noise rather than signal.
+    /// </remarks>
+    /// <value>Defaults to <see langword="false" />.</value>
+    public bool SkipIfDefault { get; set; }
 }

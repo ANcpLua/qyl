@@ -12,38 +12,41 @@ namespace Qyl.ServiceDefaults.Internal;
 /// </summary>
 internal static class AssemblyVersionExtensions
 {
-    /// <summary>
-    ///     Gets the package version from the assembly's informational version attribute.
-    /// </summary>
-    /// <remarks>
-    ///     Strips the git SHA after the '+' sign for cleaner version strings in telemetry.
-    ///     Ex: 1.5.0-alpha.1.40+807f703e1b4d9874a92bd86d9f2d4ebe5b5d52e4 -> 1.5.0-alpha.1.40
-    /// </remarks>
-    public static string GetPackageVersion(this Assembly assembly)
+    extension(Assembly assembly)
     {
-        Debug.Assert(assembly is not null, "assembly was null");
-        var informationalVersion =
-            assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        Debug.Assert(!string.IsNullOrEmpty(informationalVersion),
-            "AssemblyInformationalVersionAttribute was not found");
-        return ParsePackageVersion(informationalVersion);
-    }
-
-    /// <summary>
-    ///     Tries to get the package version from the assembly's informational version attribute.
-    /// </summary>
-    public static bool TryGetPackageVersion(this Assembly assembly, [NotNullWhen(true)] out string? packageVersion)
-    {
-        var informationalVersion =
-            assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (string.IsNullOrEmpty(informationalVersion))
+        /// <summary>
+        ///     Gets the package version from the assembly's informational version attribute.
+        /// </summary>
+        /// <remarks>
+        ///     Strips the git SHA after the '+' sign for cleaner version strings in telemetry.
+        ///     Ex: 1.5.0-alpha.1.40+807f703e1b4d9874a92bd86d9f2d4ebe5b5d52e4 -> 1.5.0-alpha.1.40
+        /// </remarks>
+        public string GetPackageVersion()
         {
-            packageVersion = null;
-            return false;
+            Debug.Assert(assembly is not null, "assembly was null");
+            var informationalVersion =
+                assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            Debug.Assert(!string.IsNullOrEmpty(informationalVersion),
+                "AssemblyInformationalVersionAttribute was not found");
+            return ParsePackageVersion(informationalVersion);
         }
 
-        packageVersion = ParsePackageVersion(informationalVersion);
-        return true;
+        /// <summary>
+        ///     Tries to get the package version from the assembly's informational version attribute.
+        /// </summary>
+        public bool TryGetPackageVersion([NotNullWhen(true)] out string? packageVersion)
+        {
+            var informationalVersion =
+                assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (string.IsNullOrEmpty(informationalVersion))
+            {
+                packageVersion = null;
+                return false;
+            }
+
+            packageVersion = ParsePackageVersion(informationalVersion);
+            return true;
+        }
     }
 
     private static string ParsePackageVersion(string informationalVersion)

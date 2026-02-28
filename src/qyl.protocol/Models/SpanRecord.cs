@@ -7,9 +7,9 @@
 
 using System.Text.Json.Serialization;
 using Qyl.Common;
-using Qyl.OTel.Enums;
+using qyl.protocol.Enums;
 
-namespace Qyl.Models;
+namespace qyl.protocol.Models;
 
 /// <summary>
 ///     Span record for storage and query operations.

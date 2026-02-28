@@ -92,7 +92,7 @@ internal sealed class SseClient(string baseUrl) : IDisposable
             if (await reader.ReadLineAsync(ct).ConfigureAwait(false) is not { } line)
                 return; // Stream closed
 
-            if (line.Length == 0)
+            if (line.Length is 0)
             {
                 if (dataLines.Count > 0)
                 {

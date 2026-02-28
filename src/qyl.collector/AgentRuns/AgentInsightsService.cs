@@ -295,7 +295,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
             var key = topSet.Contains(tool) ? tool : "Other";
             if (!bucketMap.TryGetValue(time, out var entry))
             {
-                entry = new Dictionary<string, long>();
+                entry = [];
                 bucketMap[time] = entry;
             }
 

@@ -101,7 +101,7 @@ public sealed record DagExecutionResult
     public required IReadOnlyDictionary<string, object?> Output { get; init; }
 
     /// <summary>Whether all nodes completed successfully.</summary>
-    public bool Success => FailedNodes.Count == 0 && SkippedNodes.Count == 0;
+    public bool Success => FailedNodes.Count is 0 && SkippedNodes.Count is 0;
 }
 
 /// <summary>
@@ -156,15 +156,13 @@ public sealed partial class DagScheduler
         var readyQueue = new ConcurrentQueue<string>();
         foreach (var node in workflow.Nodes)
         {
-            if (node.Dependencies.Count == 0)
+            if (node.Dependencies.Count is 0)
                 readyQueue.Enqueue(node.Id);
         }
 
         using var semaphore = new SemaphoreSlim(_maxWorkers, _maxWorkers);
         var pendingTasks = new ConcurrentDictionary<string, Task>(StringComparer.OrdinalIgnoreCase);
-        var allDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var totalNodes = workflow.Nodes.Count;
         var processedCount = 0;
 
         // Process nodes as they become ready
@@ -202,15 +200,7 @@ public sealed partial class DagScheduler
                     continue;
 
                 // Skip if any dependency failed
-                var hasFailedDep = false;
-                foreach (var dep in node.Dependencies)
-                {
-                    if (failed.ContainsKey(dep))
-                    {
-                        hasFailedDep = true;
-                        break;
-                    }
-                }
+                var hasFailedDep = node.Dependencies.Any(failed.ContainsKey);
 
                 if (hasFailedDep)
                 {
@@ -223,17 +213,16 @@ public sealed partial class DagScheduler
                 await semaphore.WaitAsync(ct).ConfigureAwait(false);
 
                 var capturedNodeId = nodeId;
-                var capturedNode = node;
                 var task = Task.Run(async () =>
                 {
                     try
                     {
-                        await ExecuteNodeAsync(capturedNode, context, ct).ConfigureAwait(false);
+                        await ExecuteNodeAsync(node, context, ct).ConfigureAwait(false);
                         completed[capturedNodeId] = true;
 
                         // Resolve conditional routing
                         context.NodeResults.TryGetValue(capturedNodeId, out var output);
-                        var nextNodes = _router.ResolveNextNodes(capturedNode, output, context.SharedState.Snapshot());
+                        var nextNodes = _router.ResolveNextNodes(node, output, context.SharedState.Snapshot());
 
                         UnblockDependents(capturedNodeId, nodeMap, inDegree, readyQueue, false, nextNodes);
                     }

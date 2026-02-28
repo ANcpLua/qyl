@@ -92,7 +92,7 @@ public static class BuildFailureEndpoints
             return true;
         }
 
-        if (!context.Request.Headers.TryGetValue("Authorization", out var authValues) || authValues.Count == 0)
+        if (!context.Request.Headers.TryGetValue("Authorization", out var authValues) || authValues.Count is 0)
             return false;
 
         const string bearerPrefix = "Bearer ";

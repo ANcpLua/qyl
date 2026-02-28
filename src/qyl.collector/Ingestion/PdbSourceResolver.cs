@@ -50,7 +50,7 @@ public sealed partial class PdbSourceResolver
             var fileName = frame.GetFileName();
             var line = frame.GetFileLineNumber();
             var column = frame.GetFileColumnNumber();
-            if (string.IsNullOrWhiteSpace(fileName) && line == 0 && column == 0)
+            if (string.IsNullOrWhiteSpace(fileName) && line is 0 && column is 0)
                 return null;
 
             return new SourceLocation(fileName, line > 0 ? line : null, column > 0 ? column : null, fullName);
@@ -70,7 +70,7 @@ public sealed partial class PdbSourceResolver
         var entry = peReader.ReadDebugDirectory()
             .FirstOrDefault(static d => d.Type == DebugDirectoryEntryType.CodeView);
 
-        if (entry.DataSize == 0)
+        if (entry.DataSize is 0)
             return false;
 
         var data = peReader.ReadCodeViewDebugDirectoryData(entry);

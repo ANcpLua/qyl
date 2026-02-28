@@ -113,7 +113,7 @@ internal static class CopilotEndpoints
 
         try
         {
-            await foreach (var update in updates.ConfigureAwait(false))
+            await foreach (var update in updates.ConfigureAwait(false).WithCancellation(ct))
             {
                 var json = JsonSerializer.Serialize(update, CopilotSerializerContext.Default.StreamUpdate);
                 var eventName = MapEventName(update.Kind);
@@ -255,7 +255,7 @@ internal sealed record WorkflowDto
     public required string Name { get; init; }
     public string? Description { get; init; }
     public string? Trigger { get; init; }
-    public IReadOnlyList<string>? Tools { get; init; }
+    public IEnumerable<string> Tools { get; init; } = [];
 }
 
 /// <summary>

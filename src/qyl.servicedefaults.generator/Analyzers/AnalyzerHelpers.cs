@@ -75,13 +75,7 @@ internal static class AnalyzerHelpers
         ImmutableArray<AttributeData> attributes,
         string fullMetadataName)
     {
-        foreach (var attr in attributes)
-        {
-            if (attr.AttributeClass?.ToDisplayString() == fullMetadataName)
-                return attr;
-        }
-
-        return null;
+        return Enumerable.FirstOrDefault(attributes, attr => attr.AttributeClass?.ToDisplayString() == fullMetadataName);
     }
 
     /// <summary>

@@ -9,8 +9,6 @@ using System;
 using System.Collections.Frozen;
 using System.Linq;
 
-namespace Domain.CodeGen;
-
 /// <summary>
 ///     Single routing table that maps TypeSpec schema prefixes to C# namespaces and file names.
 ///     Replaces the manually-synchronized <c>GetCSharpNamespace</c> / <c>GetFileNameFromNamespace</c> pair.

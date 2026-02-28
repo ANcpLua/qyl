@@ -285,15 +285,23 @@ internal sealed record TracedCallSite(
     string ActivitySourceName,
     string SpanName,
     string SpanKind,
+    /// <summary>T-001: When true the span is created without a parent (root span).</summary>
+    bool RootSpan,
     string ContainingTypeName,
     string MethodName,
     bool IsStatic,
     bool IsAsync,
+    /// <summary>T-002: True when return type is IAsyncEnumerable&lt;T&gt;.</summary>
+    bool IsAsyncEnumerable,
     string ReturnTypeName,
     EquatableArray<string> ParameterTypes,
     EquatableArray<string> ParameterNames,
     EquatableArray<TracedTagParameter> TracedTags,
+    /// <summary>T-004: Properties on the containing type decorated with [TracedTag].</summary>
+    EquatableArray<TracedTagProperty> TracedTagProperties,
     EquatableArray<TypeParameterConstraint> TypeParameters,
+    /// <summary>T-007: Return-value capture descriptor, or null if not requested.</summary>
+    TracedReturnInfo? ReturnCapture,
     InterceptableLocation Location);
 
 /// <summary>
@@ -301,9 +309,32 @@ internal sealed record TracedCallSite(
 /// </summary>
 internal sealed record TracedTagParameter(
     string ParameterName,
+    /// <summary>Fully-qualified type name — needed for T-006 SkipIfDefault EqualityComparer.</summary>
+    string TypeName,
     string TagName,
     bool SkipIfNull,
-    bool IsNullable);
+    /// <summary>T-006: Skip tag when value equals default(T).</summary>
+    bool SkipIfDefault,
+    bool IsNullable,
+    bool IsValueType);
+
+/// <summary>
+///     T-004: A [TracedTag]-decorated property on the containing type.
+/// </summary>
+internal sealed record TracedTagProperty(
+    string PropertyName,
+    string TagName,
+    bool SkipIfNull,
+    bool IsNullable,
+    bool IsStatic);
+
+/// <summary>
+///     T-007: Captures the return value as a span attribute.
+/// </summary>
+internal sealed record TracedReturnInfo(
+    string TagName,
+    /// <summary>Optional dotted member path e.g. "Usage.InputTokens". Null → ToString().</summary>
+    string? PropertyPath);
 
 /// <summary>
 ///     Type parameter with its constraints for generic method interception.

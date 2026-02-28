@@ -66,18 +66,15 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         string? tableName = null;
         string? onConflict = null;
 
-        foreach (var attr in typeSymbol.GetAttributes())
+        var tableAttr = typeSymbol.GetAttribute(DuckDbTableAttribute);
+        if (tableAttr is not null)
         {
-            if (attr.AttributeClass?.ToDisplayString() == DuckDbTableAttribute)
-            {
-                if (attr.ConstructorArguments.Length > 0)
-                    tableName = attr.ConstructorArguments[0].Value as string;
+            if (tableAttr.ConstructorArguments.Length > 0)
+                tableName = tableAttr.ConstructorArguments[0].Value as string;
 
-                foreach (var named in attr.NamedArguments)
-                {
-                    if (named.Key == "OnConflict")
-                        onConflict = named.Value.Value as string;
-                }
+            foreach (var named in tableAttr.NamedArguments.Where(static named => named.Key == "OnConflict"))
+            {
+                onConflict = named.Value.Value as string;
             }
         }
 
@@ -128,28 +125,26 @@ public sealed class DuckDbInsertGenerator : IIncrementalGenerator
         var excludeFromInsert = false;
         var ordinal = defaultOrdinal;
 
-        foreach (var attr in prop.GetAttributes())
+        var colAttr = prop.GetAttribute(DuckDbColumnAttribute);
+        if (colAttr is not null)
         {
-            if (attr.AttributeClass?.ToDisplayString() == DuckDbColumnAttribute)
-            {
-                if (attr.ConstructorArguments.Length > 0)
-                    columnName = attr.ConstructorArguments[0].Value as string;
+            if (colAttr.ConstructorArguments.Length > 0)
+                columnName = colAttr.ConstructorArguments[0].Value as string;
 
-                foreach (var named in attr.NamedArguments)
+            foreach (var named in colAttr.NamedArguments)
+            {
+                switch (named.Key)
                 {
-                    switch (named.Key)
-                    {
-                        case "IsUBigInt":
-                            isUBigInt = named.Value.Value is true;
-                            break;
-                        case "ExcludeFromInsert":
-                            excludeFromInsert = named.Value.Value is true;
-                            break;
-                        case "Ordinal":
-                            if (named.Value.Value is int o)
-                                ordinal = o;
-                            break;
-                    }
+                    case "IsUBigInt":
+                        isUBigInt = named.Value.Value is true;
+                        break;
+                    case "ExcludeFromInsert":
+                        excludeFromInsert = named.Value.Value is true;
+                        break;
+                    case "Ordinal":
+                        if (named.Value.Value is int o)
+                            ordinal = o;
+                        break;
                 }
             }
         }

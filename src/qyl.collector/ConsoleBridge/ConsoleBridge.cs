@@ -84,7 +84,7 @@ public record ConsoleLogEntry(
     string Msg,
     DateTime At,
     string? Session = null,
-    string? Url = null,
+    Uri? Url = null,
     string? Stack = null);
 
-public record ConsoleIngestRequest(string? Level, string? Message, string? SessionId, string? Url, string? Stack);
+public record ConsoleIngestRequest(string? Level, string? Message, string? SessionId, Uri? Url, string? Stack);

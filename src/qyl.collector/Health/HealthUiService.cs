@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 
 namespace qyl.collector.Health;
@@ -15,33 +16,23 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
     public async Task<HealthUiResponse> GetHealthAsync(CancellationToken ct = default)
     {
         var now = TimeProvider.System.GetUtcNow();
+
+        // Get latest span first — used by both ingestion health and last-ingestion-time
+        var latest = ringBuffer.GetLatest(1, out _);
+
         var components = new List<ComponentHealth>
         {
-            // DuckDB health
             await GetDuckDbHealthAsync(ct).ConfigureAwait(false),
-
-            // Disk space health
             GetDiskHealth(),
-
-            // Memory health
             GetMemoryHealth(),
-
-            // Ring buffer / ingestion health
-            GetIngestionHealth()
+            GetIngestionHealth(latest)
         };
 
-        // Determine overall status
         var overallStatus = DetermineOverallStatus(components);
 
-        // Get last ingestion time from ring buffer
-        string? lastIngestionTime = null;
-        var latest = ringBuffer.GetLatest(1, out _);
-        if (latest.Length > 0)
-        {
-            var nanos = latest[0].StartTimeUnixNano;
-            var ms = nanos / 1_000_000;
-            lastIngestionTime = DateTimeOffset.FromUnixTimeMilliseconds(ms).ToString("o");
-        }
+        string? lastIngestionTime = latest.Length > 0
+            ? DateTimeOffset.FromUnixTimeMilliseconds(latest[0].StartTimeUnixNano / 1_000_000).ToString("o")
+            : null;
 
         return new HealthUiResponse
         {
@@ -64,7 +55,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             return new ComponentHealth
             {
                 Name = "duckdb",
-                Status = "healthy",
+                Status = HealthStatus.Healthy,
                 Message = "Database connection is healthy",
                 Data = new Dictionary<string, object>
                 {
@@ -80,7 +71,9 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "duckdb", Status = "unhealthy", Message = $"Database connection failed: {ex.Message}"
+                Name = "duckdb",
+                Status = HealthStatus.Unhealthy,
+                Message = $"Database connection failed: {ex.Message}"
             };
         }
     }
@@ -91,8 +84,6 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             var path = Path.GetFullPath(_dataPath);
             var directory = Path.GetDirectoryName(path) ?? ".";
-
-            // Get drive info for the directory
             var driveInfo = new DriveInfo(Path.GetPathRoot(directory) ?? directory);
 
             var totalBytes = driveInfo.TotalSize;
@@ -103,15 +94,15 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
 
             var status = usedPercent switch
             {
-                >= 95 => "unhealthy",
-                >= 85 => "degraded",
-                _ => "healthy"
+                >= 95 => HealthStatus.Unhealthy,
+                >= 85 => HealthStatus.Degraded,
+                _ => HealthStatus.Healthy
             };
 
             var message = status switch
             {
-                "unhealthy" => $"Disk space critical: {usedPercent}% used",
-                "degraded" => $"Disk space low: {usedPercent}% used",
+                HealthStatus.Unhealthy => $"Disk space critical: {usedPercent}% used",
+                HealthStatus.Degraded => $"Disk space low: {usedPercent}% used",
                 _ => $"Disk space OK: {usedPercent}% used"
             };
 
@@ -134,7 +125,9 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "disk", Status = "degraded", Message = $"Could not determine disk space: {ex.Message}"
+                Name = "disk",
+                Status = HealthStatus.Degraded,
+                Message = $"Could not determine disk space: {ex.Message}"
             };
         }
     }
@@ -147,7 +140,6 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             var workingSetBytes = process.WorkingSet64;
             var privateMemoryBytes = process.PrivateMemorySize64;
 
-            // Get GC memory info
             var gcInfo = GC.GetGCMemoryInfo();
             var heapSizeBytes = gcInfo.HeapSizeBytes;
             var totalAvailableBytes = gcInfo.TotalAvailableMemoryBytes;
@@ -158,15 +150,15 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
 
             var status = memoryPressure switch
             {
-                >= 90 => "unhealthy",
-                >= 75 => "degraded",
-                _ => "healthy"
+                >= 90 => HealthStatus.Unhealthy,
+                >= 75 => HealthStatus.Degraded,
+                _ => HealthStatus.Healthy
             };
 
             var message = status switch
             {
-                "unhealthy" => $"Memory pressure critical: {memoryPressure}%",
-                "degraded" => $"Memory pressure elevated: {memoryPressure}%",
+                HealthStatus.Unhealthy => $"Memory pressure critical: {memoryPressure}%",
+                HealthStatus.Degraded => $"Memory pressure elevated: {memoryPressure}%",
                 _ => $"Memory usage OK: {memoryPressure}%"
             };
 
@@ -192,19 +184,19 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         {
             return new ComponentHealth
             {
-                Name = "memory", Status = "degraded", Message = $"Could not determine memory usage: {ex.Message}"
+                Name = "memory",
+                Status = HealthStatus.Degraded,
+                Message = $"Could not determine memory usage: {ex.Message}"
             };
         }
     }
 
-    private ComponentHealth GetIngestionHealth()
+    private ComponentHealth GetIngestionHealth(SpanRecord[] latest)
     {
         var bufferCount = ringBuffer.Count;
         var bufferCapacity = ringBuffer.Capacity;
         var fillPercent = Math.Round((double)bufferCount / bufferCapacity * 100, 1);
 
-        // Check if we have recent ingestion
-        var latest = ringBuffer.GetLatest(1, out _);
         var hasRecentData = false;
         var secondsSinceLastIngestion = -1L;
 
@@ -218,8 +210,8 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             hasRecentData = secondsSinceLastIngestion < 300; // 5 minutes
         }
 
-        var status = hasRecentData || bufferCount == 0 ? "healthy" : "degraded";
-        var message = bufferCount == 0
+        var status = hasRecentData || bufferCount is 0 ? HealthStatus.Healthy : HealthStatus.Degraded;
+        var message = bufferCount is 0
             ? "No data ingested yet"
             : hasRecentData
                 ? $"Ingestion active, buffer {fillPercent}% full"
@@ -241,13 +233,13 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         return new ComponentHealth { Name = "ingestion", Status = status, Message = message, Data = data };
     }
 
-    private static string DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)
+    private static HealthStatus DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)
     {
-        if (components.Any(static c => c.Status == "unhealthy"))
-            return "unhealthy";
-        if (components.Any(static c => c.Status == "degraded"))
-            return "degraded";
-        return "healthy";
+        if (components.Any(static c => c.Status == HealthStatus.Unhealthy))
+            return HealthStatus.Unhealthy;
+        if (components.Any(static c => c.Status == HealthStatus.Degraded))
+            return HealthStatus.Degraded;
+        return HealthStatus.Healthy;
     }
 
     private static string GetVersion()
@@ -257,7 +249,6 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
                       ?? assembly.GetName().Version?.ToString()
                       ?? "unknown";
 
-        // Trim the commit hash suffix if present (e.g., "1.0.0+abc123")
         var plusIndex = version.IndexOf('+');
         return plusIndex > 0 ? version[..plusIndex] : version;
     }

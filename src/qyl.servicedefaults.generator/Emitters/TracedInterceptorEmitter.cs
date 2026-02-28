@@ -5,361 +5,268 @@ using Qyl.ServiceDefaults.Generator.Models;
 
 namespace Qyl.ServiceDefaults.Generator.Emitters;
 
-/// <summary>
-///     Emits interceptor source code for methods decorated with [Traced] attribute.
-/// </summary>
 internal static class TracedInterceptorEmitter
 {
-    // Note: Field name mapping is now computed per-Emit call instead of using ThreadStatic,
-    // which avoids potential race conditions during parallel compilation.
-
-    /// <summary>
-    ///     Emits the interceptor source code for all traced invocations.
-    /// </summary>
     public static string Emit(ImmutableArray<TracedCallSite> invocations)
     {
         if (invocations.IsEmpty)
             return string.Empty;
 
+        var fieldNames = BuildFieldNameMap(invocations);
         var sb = new StringBuilder();
 
-        // Build ActivitySource name mapping for this emit operation
-        var activitySourceFieldNames = BuildActivitySourceFieldNameMapping(invocations);
-
-        EmitterHelpers.AppendFileHeader(sb, true);
-        AppendUsings(sb);
+        EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
+        sb.AppendLine("using System.Diagnostics;");
+        sb.AppendLine();
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
-        AppendActivitySourcesClass(sb, activitySourceFieldNames);
-        AppendClassOpen(sb);
-        AppendInterceptorMethods(sb, invocations, activitySourceFieldNames);
-        EmitterHelpers.AppendClassClose(sb);
+        AppendActivitySourcesClass(sb, fieldNames);
 
+        sb.AppendLine("namespace Qyl.ServiceDefaults.Generator");
+        sb.AppendLine("{");
+        sb.AppendLine("    file static class TracedInterceptors");
+        sb.AppendLine("    {");
+
+        var index = 0;
+        foreach (var cs in invocations.OrderBy(static cs => cs.SortKey, StringComparer.Ordinal))
+            AppendInterceptor(sb, cs, index++, fieldNames);
+
+        EmitterHelpers.AppendClassClose(sb);
         return sb.ToString();
     }
 
-    /// <summary>
-    ///     Builds a mapping from ActivitySource names to unique field names.
-    ///     This is computed per-Emit call to avoid thread-safety issues.
-    /// </summary>
-    private static Dictionary<string, string> BuildActivitySourceFieldNameMapping(
-        ImmutableArray<TracedCallSite> invocations)
+    // ── ActivitySource field map ──────────────────────────────────────────────
+
+    private static Dictionary<string, string> BuildFieldNameMap(ImmutableArray<TracedCallSite> invocations)
     {
-        var activitySourceNames = invocations
-            .Select(static i => i.ActivitySourceName)
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(static n => n, StringComparer.Ordinal)
-            .ToList();
-
-        var fieldNames = new Dictionary<string, string>(StringComparer.Ordinal);
-        var usedFieldNames = new HashSet<string>(StringComparer.Ordinal);
-
-        foreach (var name in activitySourceNames)
+        var map = new Dictionary<string, string>(StringComparer.Ordinal);
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var name in invocations.Select(static i => i.ActivitySourceName).Distinct(StringComparer.Ordinal).OrderBy(static n => n, StringComparer.Ordinal))
         {
-            var baseFieldName = SanitizeFieldName(name);
-            var fieldName = baseFieldName;
-            var counter = 1;
-
-            // Ensure uniqueness
-            while (!usedFieldNames.Add(fieldName))
-                fieldName = $"{baseFieldName}_{counter++}";
-
-            fieldNames[name] = fieldName;
+            var field = Sanitize(name);
+            var candidate = field;
+            var n = 1;
+            while (!used.Add(candidate)) candidate = $"{field}_{n++}";
+            map[name] = candidate;
         }
-
-        return fieldNames;
+        return map;
     }
 
-
-    private static void AppendUsings(StringBuilder sb)
+    private static string Sanitize(string name)
     {
-        sb.AppendLine("using System.Diagnostics;");
-        sb.AppendLine("using qyl.protocol.Attributes;");
-        sb.AppendLine();
+        var sb = new StringBuilder(name.Length);
+        foreach (var c in name) sb.Append(char.IsLetterOrDigit(c) ? c : '_');
+        return sb.ToString();
     }
 
-    private static void AppendActivitySourcesClass(
-        StringBuilder sb,
-        IReadOnlyDictionary<string, string> activitySourceFieldNames)
+    private static void AppendActivitySourcesClass(StringBuilder sb, Dictionary<string, string> fieldNames)
     {
-        var activitySourceNames = activitySourceFieldNames.Keys
-            .OrderBy(static n => n, StringComparer.Ordinal)
-            .ToList();
-
         sb.AppendLine("namespace Qyl.ServiceDefaults.Generator");
         sb.AppendLine("{");
         sb.AppendLine("    file static class TracedActivitySources");
         sb.AppendLine("    {");
-
-        foreach (var name in activitySourceNames)
+        foreach (var kv in fieldNames.OrderBy(static kv => kv.Key, StringComparer.Ordinal))
         {
-            var fieldName = activitySourceFieldNames[name];
-            sb.AppendLine(
-                $"        internal static readonly global::System.Diagnostics.ActivitySource {fieldName} = new(\"{name}\");");
+            var (name, field) = (kv.Key, kv.Value);
+            sb.AppendLine($"        internal static readonly global::System.Diagnostics.ActivitySource {field} = new(\"{name}\");");
         }
-
         sb.AppendLine("    }");
         sb.AppendLine("}");
         sb.AppendLine();
     }
 
-    private static string GetActivitySourceFieldName(
-        string activitySourceName,
-        IReadOnlyDictionary<string, string> activitySourceFieldNames) =>
-        activitySourceFieldNames.TryGetValue(activitySourceName, out var fieldName)
-            ? fieldName
-            : SanitizeFieldName(activitySourceName);
+    // ── Per-call-site interceptor ─────────────────────────────────────────────
 
-    private static string SanitizeFieldName(string activitySourceName)
-    {
-        // Convert "MyApp.Orders" to "MyApp_Orders"
-        var sanitized = new StringBuilder();
-        foreach (var c in activitySourceName) sanitized.Append(char.IsLetterOrDigit(c) ? c : '_');
-        return sanitized.ToString();
-    }
-
-    private static void AppendClassOpen(StringBuilder sb) =>
-        sb.AppendLine("""
-                      namespace Qyl.ServiceDefaults.Generator
-                      {
-                          file static class TracedInterceptors
-                          {
-                      """);
-
-    private static void AppendInterceptorMethods(
+    private static void AppendInterceptor(
         StringBuilder sb,
-        ImmutableArray<TracedCallSite> invocations,
-        IReadOnlyDictionary<string, string> activitySourceFieldNames)
-    {
-        var orderedCallSites = invocations
-            .OrderBy(static cs => cs.SortKey, StringComparer.Ordinal);
-
-        var index = 0;
-        foreach (var callSite in orderedCallSites)
-        {
-            AppendSingleInterceptor(sb, callSite, index, activitySourceFieldNames);
-            index++;
-        }
-    }
-
-    private static void AppendSingleInterceptor(
-        StringBuilder sb,
-        TracedCallSite callSite,
+        TracedCallSite cs,
         int index,
-        IReadOnlyDictionary<string, string> activitySourceFieldNames)
+        Dictionary<string, string> fieldNames)
     {
-        var displayLocation = callSite.Location.GetDisplayLocation();
-        var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
+        var typeParamNames = cs.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
+        var returnType = cs.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
+        var typeParams = cs.TypeParameters.Length is 0 ? "" : "<" + string.Join(", ", cs.TypeParameters.Select(static tp => tp.Name)) + ">";
+        var constraints = cs.TypeParameters.Length is 0 ? "" : " " + string.Join(" ", cs.TypeParameters.Where(static tp => tp.Constraints is not null).Select(static tp => tp.Constraints!));
+        var parameters = EmitterHelpers.BuildParameterList(cs.ContainingTypeName, cs.ParameterTypes, cs.ParameterNames, cs.IsStatic, typeParamNames);
+        var arguments = EmitterHelpers.BuildArgumentList(cs.ParameterNames);
+        var field = fieldNames.TryGetValue(cs.ActivitySourceName, out var f) ? f : Sanitize(cs.ActivitySourceName);
+        var call = cs.IsStatic
+            ? $"global::{cs.ContainingTypeName}.{cs.MethodName}{typeParams}({arguments})"
+            : $"@this.{cs.MethodName}{typeParams}({arguments})";
 
-        var methodName = $"Intercept_Traced_{index}";
-        var typeParamNames = GetTypeParameterNames(callSite);
-        var returnType =
-            callSite.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty
-                ? null
-                : typeParamNames.AsImmutableArray());
-        var containingType = callSite.ContainingTypeName;
-        var originalMethod = callSite.MethodName;
-        var activitySourceField = GetActivitySourceFieldName(callSite.ActivitySourceName, activitySourceFieldNames);
+        var display = cs.Location.GetDisplayLocation();
+        var intercept = cs.Location.GetInterceptsLocationAttributeSyntax();
 
-        var typeParams = BuildTypeParameterList(callSite);
-        var constraints = BuildConstraintClauses(callSite);
-        var parameters = EmitterHelpers.BuildParameterList(
-            containingType, callSite.ParameterTypes, callSite.ParameterNames, callSite.IsStatic, typeParamNames);
-        var arguments = EmitterHelpers.BuildArgumentList(callSite.ParameterNames);
-        var tagSetters = BuildTagSetters(callSite);
-        var methodCall = callSite.IsStatic
-            ? $"global::{containingType}.{originalMethod}{typeParams}({arguments})"
-            : $"@this.{originalMethod}{typeParams}({arguments})";
+        if (cs.IsAsyncEnumerable)
+            AppendAsyncEnumerableInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+        else if (cs.IsAsync)
+            AppendAsyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+        else
+            AppendSyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+    }
 
-        if (callSite.IsAsync)
+    // ── Sync interceptor ──────────────────────────────────────────────────────
+
+    private static void AppendSyncInterceptor(
+        StringBuilder sb, TracedCallSite cs, int index,
+        string typeParams, string constraints, string returnType, string parameters,
+        string field, string call, string display, string intercept)
+    {
+        var hasReturn = returnType != "void";
+        var startActivity = BuildStartActivity(field, cs);
+        var tagSetters = BuildAllTagSetters(cs);
+        var returnCapture = BuildReturnCaptureExpr(cs.ReturnCapture, "result");
+
+        sb.AppendLine($$"""
+                                // {{display}}
+                                {{intercept}}
+                                public static {{returnType}} Intercept_Traced_{{index}}{{typeParams}}({{parameters}}){{constraints}}
+                                {
+                                    {{startActivity}}
+                        {{tagSetters}}
+                                    try
+                                    {
+                        """);
+
+        if (hasReturn)
         {
-            EmitAsyncInterceptor(sb, callSite, methodName, typeParams, constraints, returnType, parameters,
-                displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
+            sb.AppendLine($"                var result = {call};");
+            if (returnCapture is not null)
+                sb.AppendLine($"                activity?.SetTag({returnCapture});");
+            sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);");
+            sb.AppendLine("                return result;");
         }
         else
         {
-            EmitSyncInterceptor(sb, callSite, methodName, typeParams, constraints, returnType, parameters,
-                displayLocation, interceptAttribute, activitySourceField, tagSetters, methodCall);
+            sb.AppendLine($"                {call};");
+            sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);");
         }
-    }
-
-    private static void EmitAsyncInterceptor(
-        StringBuilder sb,
-        TracedCallSite callSite,
-        string methodName,
-        string typeParams,
-        string constraints,
-        string returnType,
-        string parameters,
-        string displayLocation,
-        string interceptAttribute,
-        string activitySourceField,
-        string tagSetters,
-        string methodCall)
-    {
-        var hasReturnValue = !returnType.EndsWithOrdinal("Task") &&
-                             !returnType.EndsWithOrdinal("ValueTask");
 
         sb.AppendLine($$"""
-                                // Intercepted call at {{displayLocation}}
-                                {{interceptAttribute}}
-                                public static async {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
-                                {
-                                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
-                                        "{{callSite.SpanName}}",
-                                        global::System.Diagnostics.ActivityKind.{{callSite.SpanKind}});
+                                    }
+                                    catch (global::System.Exception ex)
+                                    {
+                        {{ExceptionBlock}}
+                                    }
+                                }
+
                         """);
-
-        if (!string.IsNullOrEmpty(tagSetters))
-        {
-            sb.AppendLine();
-            sb.AppendLine("            if (activity is not null)");
-            sb.AppendLine("            {");
-            sb.Append(tagSetters);
-            sb.AppendLine("            }");
-        }
-
-        sb.AppendLine();
-
-        sb.AppendLine(hasReturnValue
-            ? $$"""
-                            try
-                            {
-                                var result = await {{methodCall}};
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);
-                                return result;
-                            }
-                            catch (global::System.Exception ex)
-                            {
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
-                                throw;
-                            }
-                        }
-
-                """
-            : $$"""
-                            try
-                            {
-                                await {{methodCall}};
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);
-                            }
-                            catch (global::System.Exception ex)
-                            {
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
-                                throw;
-                            }
-                        }
-
-                """);
     }
 
-    private static void EmitSyncInterceptor(
-        StringBuilder sb,
-        TracedCallSite callSite,
-        string methodName,
-        string typeParams,
-        string constraints,
-        string returnType,
-        string parameters,
-        string displayLocation,
-        string interceptAttribute,
-        string activitySourceField,
-        string tagSetters,
-        string methodCall)
+    // ── Async (Task/ValueTask) interceptor ────────────────────────────────────
+
+    private static void AppendAsyncInterceptor(
+        StringBuilder sb, TracedCallSite cs, int index,
+        string typeParams, string constraints, string returnType, string parameters,
+        string field, string call, string display, string intercept)
     {
-        var hasReturnValue = returnType != "void";
+        var hasReturn = !returnType.EndsWithOrdinal("Task") && !returnType.EndsWithOrdinal("ValueTask");
+        var startActivity = BuildStartActivity(field, cs);
+        var tagSetters = BuildAllTagSetters(cs);
+        var returnCapture = BuildReturnCaptureExpr(cs.ReturnCapture, "result");
 
         sb.AppendLine($$"""
-                                // Intercepted call at {{displayLocation}}
-                                {{interceptAttribute}}
-                                public static {{returnType}} {{methodName}}{{typeParams}}({{parameters}}){{constraints}}
+                                // {{display}}
+                                {{intercept}}
+                                public static async {{returnType}} Intercept_Traced_{{index}}{{typeParams}}({{parameters}}){{constraints}}
                                 {
-                                    using var activity = TracedActivitySources.{{activitySourceField}}.StartActivity(
-                                        "{{callSite.SpanName}}",
-                                        global::System.Diagnostics.ActivityKind.{{callSite.SpanKind}});
+                                    {{startActivity}}
+                        {{tagSetters}}
+                                    try
+                                    {
                         """);
 
-        if (!string.IsNullOrEmpty(tagSetters))
+        if (hasReturn)
         {
-            sb.AppendLine();
-            sb.AppendLine("            if (activity is not null)");
-            sb.AppendLine("            {");
-            sb.Append(tagSetters);
-            sb.AppendLine("            }");
+            sb.AppendLine($"                var result = await {call};");
+            if (returnCapture is not null)
+                sb.AppendLine($"                activity?.SetTag({returnCapture});");
+            sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);");
+            sb.AppendLine("                return result;");
+        }
+        else
+        {
+            sb.AppendLine($"                await {call};");
+            sb.AppendLine("                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);");
         }
 
-        sb.AppendLine();
+        sb.AppendLine($$"""
+                                    }
+                                    catch (global::System.Exception ex)
+                                    {
+                        {{ExceptionBlock}}
+                                    }
+                                }
 
-        sb.AppendLine(hasReturnValue
-            ? $$"""
-                            try
-                            {
-                                var result = {{methodCall}};
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);
-                                return result;
-                            }
-                            catch (global::System.Exception ex)
-                            {
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
-                                throw;
-                            }
-                        }
-
-                """
-            : $$"""
-                            try
-                            {
-                                {{methodCall}};
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);
-                            }
-                            catch (global::System.Exception ex)
-                            {
-                                activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                activity?.AddEvent(new global::System.Diagnostics.ActivityEvent("exception", tags: new global::System.Diagnostics.ActivityTagsCollection { { GenAiAttributes.ExceptionType, ex.GetType().FullName }, { GenAiAttributes.ExceptionMessage, ex.Message } }));
-                                throw;
-                            }
-                        }
-
-                """);
+                        """);
     }
 
+    // ── IAsyncEnumerable interceptor (T-002) ──────────────────────────────────
 
-    private static string BuildTypeParameterList(TracedCallSite callSite)
+    private static void AppendAsyncEnumerableInterceptor(
+        StringBuilder sb, TracedCallSite cs, int index,
+        string typeParams, string constraints, string returnType, string parameters,
+        string field, string call, string display, string intercept)
     {
-        if (callSite.TypeParameters.Length is 0)
-            return "";
+        var startActivity = BuildStartActivity(field, cs);
+        var tagSetters = BuildAllTagSetters(cs);
 
-        return "<" + string.Join(", ", callSite.TypeParameters.Select(static tp => tp.Name)) + ">";
+        sb.AppendLine($$"""
+                                // {{display}}
+                                {{intercept}}
+                                public static async {{returnType}} Intercept_Traced_{{index}}{{typeParams}}({{parameters}}){{constraints}}
+                                {
+                                    {{startActivity}}
+                        {{tagSetters}}
+                                    try
+                                    {
+                                        await foreach (var __item in {{call}})
+                                            yield return __item;
+                                        activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Ok);
+                                    }
+                                    catch (global::System.Exception ex)
+                                    {
+                        {{ExceptionBlock}}
+                                    }
+                                }
+
+                        """);
     }
 
-    private static string BuildConstraintClauses(TracedCallSite callSite)
+    // ── Building blocks ───────────────────────────────────────────────────────
+
+    // T-001: parentContext: default breaks context inheritance for root spans.
+    private static string BuildStartActivity(string field, TracedCallSite cs) =>
+        cs.RootSpan
+            ? $"""using var activity = TracedActivitySources.{field}.StartActivity("{cs.SpanName}", global::System.Diagnostics.ActivityKind.{cs.SpanKind}, parentContext: default);"""
+            : $"""using var activity = TracedActivitySources.{field}.StartActivity("{cs.SpanName}", global::System.Diagnostics.ActivityKind.{cs.SpanKind});""";
+
+    private static string BuildAllTagSetters(TracedCallSite cs)
     {
-        var clauseList = new List<string>();
-        foreach (var tp in callSite.TypeParameters)
-        {
-            if (tp.Constraints is not null)
-                clauseList.Add(tp.Constraints);
-        }
-
-        return clauseList.Count > 0 ? " " + string.Join(" ", clauseList) : "";
-    }
-
-    private static EquatableArray<string> GetTypeParameterNames(TracedCallSite callSite) =>
-        callSite.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
-
-
-    private static string BuildTagSetters(TracedCallSite callSite)
-    {
-        if (callSite.TracedTags.Length is 0)
-            return string.Empty;
-
         var sb = new StringBuilder();
+        AppendParameterTagSetters(sb, cs);
+        AppendPropertyTagSetters(sb, cs);
+        if (sb.Length is 0) return string.Empty;
 
-        foreach (var tag in callSite.TracedTags)
+        var wrapped = new StringBuilder();
+        wrapped.AppendLine("            if (activity is not null)");
+        wrapped.AppendLine("            {");
+        wrapped.Append(sb);
+        wrapped.AppendLine("            }");
+        return wrapped.ToString();
+    }
+
+    private static void AppendParameterTagSetters(StringBuilder sb, TracedCallSite cs)
+    {
+        foreach (var tag in cs.TracedTags)
         {
-            if (tag.SkipIfNull && tag.IsNullable)
+            // T-006: value types with SkipIfDefault
+            if (tag is { SkipIfDefault: true, IsValueType: true })
+            {
+                var globalType = tag.TypeName.ToGlobalTypeName(null);
+                sb.AppendLine($"                if (!global::System.Collections.Generic.EqualityComparer<{globalType}>.Default.Equals({tag.ParameterName}, default))");
+                sb.AppendLine($"                    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
+            }
+            else if (tag is { SkipIfNull: true, IsNullable: true })
             {
                 sb.AppendLine($"                if ({tag.ParameterName} is not null)");
                 sb.AppendLine($"                    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
@@ -369,7 +276,51 @@ internal static class TracedInterceptorEmitter
                 sb.AppendLine($"                activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
             }
         }
-
-        return sb.ToString();
     }
+
+    // T-004: property-level tag setters
+    private static void AppendPropertyTagSetters(StringBuilder sb, TracedCallSite cs)
+    {
+        foreach (var prop in cs.TracedTagProperties)
+        {
+            var accessor = prop.IsStatic
+                ? $"global::{cs.ContainingTypeName}.{prop.PropertyName}"
+                : $"@this.{prop.PropertyName}";
+
+            if (prop is { SkipIfNull: true, IsNullable: true })
+            {
+                sb.AppendLine($"                if ({accessor} is not null)");
+                sb.AppendLine($"                    activity.SetTag(\"{prop.TagName}\", {accessor});");
+            }
+            else
+            {
+                sb.AppendLine($"                activity.SetTag(\"{prop.TagName}\", {accessor});");
+            }
+        }
+    }
+
+    // T-007: build the SetTag expression for the return value, or null if not applicable.
+    private static string? BuildReturnCaptureExpr(TracedReturnInfo? capture, string resultVar)
+    {
+        if (capture is null) return null;
+        var accessor = capture.PropertyPath is { Length: > 0 }
+            ? resultVar + "?." + string.Join("?.", capture.PropertyPath.Split('.'))
+            : $"{resultVar}?.ToString()";
+        return $"\"{capture.TagName}\", {accessor}";
+    }
+
+    // T-003: OTel standard exception semconv (exception.type / message / stacktrace / escaped).
+    private const string ExceptionBlock = """
+                            activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
+                            activity?.AddEvent(new global::System.Diagnostics.ActivityEvent(
+                                "exception",
+                                tags: new global::System.Diagnostics.ActivityTagsCollection
+                                {
+                                    { "exception.type",       ex.GetType().FullName },
+                                    { "exception.message",    ex.Message },
+                                    { "exception.stacktrace", ex.ToString() },
+                                    { "exception.escaped",    true },
+                                }));
+                            throw;
+                    """;
 }

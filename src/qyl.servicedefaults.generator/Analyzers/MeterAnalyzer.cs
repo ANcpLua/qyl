@@ -44,7 +44,8 @@ internal static class MeterAnalyzer
         if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName) is not { } meterAttr)
+        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName) is not
+            { } meterAttr)
             return null;
 
         // Must be partial and static
@@ -125,13 +126,11 @@ internal static class MeterAnalyzer
                 (metricName, unit, description) = ExtractMetricAttributeValues(histogramAttr);
 
                 // First non-tagged parameter is the value for histogram
-                foreach (var param in method.Parameters)
+                foreach (var param in method.Parameters.Where(static param =>
+                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
                 {
-                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
-                    {
-                        valueTypeName = param.Type.ToDisplayString();
-                        break;
-                    }
+                    valueTypeName = param.Type.ToDisplayString();
+                    break;
                 }
             }
             else if (gaugeAttr is not null)
@@ -140,13 +139,11 @@ internal static class MeterAnalyzer
                 (metricName, unit, description) = ExtractMetricAttributeValues(gaugeAttr);
 
                 // First non-tagged parameter is the value for gauge
-                foreach (var param in method.Parameters)
+                foreach (var param in method.Parameters.Where(static param =>
+                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
                 {
-                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
-                    {
-                        valueTypeName = param.Type.ToDisplayString();
-                        break;
-                    }
+                    valueTypeName = param.Type.ToDisplayString();
+                    break;
                 }
             }
             else if (upDownCounterAttr is not null)
@@ -155,13 +152,11 @@ internal static class MeterAnalyzer
                 (metricName, unit, description) = ExtractMetricAttributeValues(upDownCounterAttr);
 
                 // First non-tagged parameter is the delta value for up-down counter
-                foreach (var param in method.Parameters)
+                foreach (var param in method.Parameters.Where(static param =>
+                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
                 {
-                    if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null)
-                    {
-                        valueTypeName = param.Type.ToDisplayString();
-                        break;
-                    }
+                    valueTypeName = param.Type.ToDisplayString();
+                    break;
                 }
             }
             else

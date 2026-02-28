@@ -207,6 +207,7 @@ file sealed class SpanIdJsonConverter : System.Text.Json.Serialization.JsonConve
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SpanId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
+
 /// <summary>Token count (for LLM operations)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TokenCountJsonConverter))]
 public readonly partial record struct TokenCount(long Value)

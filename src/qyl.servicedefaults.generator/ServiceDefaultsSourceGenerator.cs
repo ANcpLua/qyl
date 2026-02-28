@@ -382,7 +382,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string WebApplication = "Microsoft.AspNetCore.Builder.WebApplication";
 
         // Qyl runtime types that enable codegen
-        public const string QylServiceDefaults = "Qyl.ServiceDefaults.AspNetCore.ServiceDefaults.QylServiceDefaults";
+        public const string QylServiceDefaults = "Qyl.ServiceDefaults.QylServiceDefaults";
         public const string GenAiInstrumentation = "Qyl.ServiceDefaults.Instrumentation.GenAi.GenAiInstrumentation";
     }
 
@@ -478,7 +478,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string InterceptorsNamespaceOpen = """
                                                         namespace Qyl.ServiceDefaults.Generator
                                                         {
-                                                            using Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
+                                                            using Qyl.ServiceDefaults;
 
                                                             file static partial class Interceptors
                                                             {

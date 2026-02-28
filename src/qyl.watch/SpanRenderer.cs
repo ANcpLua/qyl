@@ -66,13 +66,13 @@ internal static class SpanRenderer
         bool isLast,
         IReadOnlyDictionary<string, List<SpanDto>> childMap)
     {
-        var connector = prefix.Length == 0 ? "" : isLast ? " [grey]\\-[/] " : " [grey]|-[/] ";
+        var connector = prefix.Length is 0 ? "" : isLast ? " [grey]\\-[/] " : " [grey]|-[/] ";
         var line = FormatSpanLine(span);
         AnsiConsole.MarkupLine($"{prefix}{connector}{line}");
 
         if (span.SpanId is not null && childMap.TryGetValue(span.SpanId, out var children))
         {
-            var childPrefix = prefix + (prefix.Length == 0 ? "" : isLast ? "   " : " [grey]|[/]  ");
+            var childPrefix = prefix + (prefix.Length is 0 ? "" : isLast ? "   " : " [grey]|[/]  ");
             for (var i = 0; i < children.Count; i++)
             {
                 RenderSpan(children[i], childPrefix, i == children.Count - 1, childMap);

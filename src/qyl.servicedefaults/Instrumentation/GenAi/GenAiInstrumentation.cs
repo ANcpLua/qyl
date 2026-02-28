@@ -138,15 +138,13 @@ public static class GenAiInstrumentation
     #region Execute Methods (for source generator interception)
 
     // Lazy-initialized metrics
-    private static Histogram<long>? s_tokenUsage;
-    private static Histogram<double>? s_operationDuration;
 
     private static Histogram<long> TokenUsageHistogram =>
-        s_tokenUsage ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
+        field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
             GenAiAttributes.Metrics.ClientTokenUsage, "{token}", "Token usage");
 
     private static Histogram<double> OperationDurationHistogram =>
-        s_operationDuration ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
+        field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
             GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
 
     /// <summary>
@@ -184,78 +182,6 @@ public static class GenAiInstrumentation
         try
         {
             var result = await execute().ConfigureAwait(false);
-
-            sw.Stop();
-            var duration = sw.Elapsed.TotalSeconds;
-
-            if (activity is not null)
-            {
-                if (extractUsage is not null)
-                {
-                    try
-                    {
-                        var usage = extractUsage(result);
-                        RecordUsageAndDuration(activity, provider, operation, usage.InputTokens, usage.OutputTokens,
-                            duration);
-                    }
-                    catch
-                    {
-                        // Ignore usage extraction failures
-                        RecordDuration(provider, operation, duration);
-                    }
-                }
-                else
-                {
-                    RecordDuration(provider, operation, duration);
-                }
-            }
-
-            return result;
-        }
-        catch (Exception ex)
-        {
-            sw.Stop();
-            if (activity is not null)
-                RecordError(activity, ex, provider, operation, sw.Elapsed.TotalSeconds);
-            throw;
-        }
-    }
-
-    /// <summary>
-    ///     Executes a synchronous GenAI operation with full OTel instrumentation.
-    ///     Called by generated interceptor code for direct SDK calls.
-    /// </summary>
-    /// <typeparam name="T">The result type.</typeparam>
-    /// <param name="provider">Provider identifier (e.g., "openai", "anthropic").</param>
-    /// <param name="operation">Operation name (e.g., "chat", "embeddings").</param>
-    /// <param name="model">Optional model name.</param>
-    /// <param name="execute">The operation to execute.</param>
-    /// <param name="extractUsage">Optional function to extract token usage from result.</param>
-    /// <returns>The operation result.</returns>
-    public static T Execute<T>(
-        string provider,
-        string operation,
-        string? model,
-        Func<T> execute,
-        Func<T, TokenUsage>? extractUsage = null)
-    {
-        var spanName = model is not null ? $"{operation} {model}" : operation;
-        using var activity = ActivitySources.GenAiSource.StartActivity(spanName, ActivityKind.Client);
-
-        var sw = Stopwatch.StartNew();
-
-        if (activity is not null)
-        {
-            activity.SetTag(GenAiAttributes.OperationName, operation);
-            activity.SetTag(GenAiAttributes.ProviderName, provider);
-            if (model is not null)
-                activity.SetTag(GenAiAttributes.RequestModel, model);
-            ApplyDefaultOutputType(activity, operation);
-        }
-
-        try
-        {
-            var result = execute();
 
             sw.Stop();
             var duration = sw.Elapsed.TotalSeconds;

@@ -77,7 +77,7 @@ public static class SpanMapper
             record.TraceId.Value, record.SpanId.Value, record.ParentSpanId?.Value, record.SessionId?.Value,
             record.Name, record.Kind.ToString().ToLowerInvariant(), record.StatusCode.ToString().ToLowerInvariant(),
             record.StatusMessage,
-            (ulong)record.StartTimeUnixNano, (ulong)record.EndTimeUnixNano, (ulong)record.DurationNs,
+            (ulong)record.StartTimeUnixNano, (ulong)record.EndTimeUnixNano, (ulong)(long)record.DurationNs,
             serviceName, serviceVersion,
             record.AttributesJson, record.BaggageJson, record.SchemaUrl,
             record.GenAiInputTokens, record.GenAiOutputTokens, record.GenAiProviderName,

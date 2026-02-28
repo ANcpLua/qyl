@@ -11,7 +11,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using Domain.CodeGen;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;

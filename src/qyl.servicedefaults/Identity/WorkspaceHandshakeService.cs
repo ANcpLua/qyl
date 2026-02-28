@@ -133,7 +133,7 @@ internal sealed partial class WorkspaceHandshakeService(
             {
                 var client = httpClientFactory.CreateClient("qyl-handshake");
                 var response = await client.PostAsync(
-                    $"/api/v1/workspaces/{context.WorkspaceId}/heartbeat", null, ct).ConfigureAwait(false);
+                    new Uri($"/api/v1/workspaces/{context.WorkspaceId}/heartbeat", UriKind.Relative), null, ct).ConfigureAwait(false);
 
                 if (!response.IsSuccessStatusCode)
                 {

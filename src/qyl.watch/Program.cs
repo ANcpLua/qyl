@@ -7,10 +7,12 @@ if (config is null)
     return;
 
 using var cts = new CancellationTokenSource();
+var token = cts.Token;
+Action cancel = cts.Cancel;
 ConsoleCancelEventHandler cancelHandler = (_, e) =>
 {
     e.Cancel = true;
-    cts.Cancel();
+    cancel();
 };
 Console.CancelKeyPress += cancelHandler;
 
@@ -35,14 +37,14 @@ var header = new HeaderRenderer();
 using var client = new SseClient(config.CollectorUrl);
 
 // Start keyboard handler on a background thread
-var keyboardTask = Task.Run(() => HandleKeyboard(config, header, cts.Token, cts.Cancel), CancellationToken.None);
+var keyboardTask = Task.Run(() => HandleKeyboard(config, header, token, cancel), CancellationToken.None);
 
 var headerInterval = TimeProvider.System.GetUtcNow();
 var spanCount = 0;
 
 try
 {
-    await foreach (var evt in client.StreamAsync(config.Session, cts.Token))
+    await foreach (var evt in client.StreamAsync(config.Session, token))
     {
         switch (evt.Type)
         {
@@ -61,9 +63,12 @@ catch (OperationCanceledException)
 {
     // Normal shutdown
 }
-
-await keyboardTask.ConfigureAwait(false);
-Console.CancelKeyPress -= cancelHandler;
+finally
+{
+    await cts.CancelAsync();
+    await keyboardTask.ConfigureAwait(false);
+    Console.CancelKeyPress -= cancelHandler;
+}
 
 AnsiConsole.WriteLine();
 AnsiConsole.MarkupLine($"[grey]Disconnected. Total spans received: {spanCount}[/]");

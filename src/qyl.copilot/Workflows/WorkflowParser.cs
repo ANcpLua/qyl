@@ -30,7 +30,7 @@ public static partial class WorkflowParser
     /// <summary>
     ///     Regex pattern for YAML array items.
     /// </summary>
-    [GeneratedRegex(@"^\s*-\s*['""]?([^'""]+)['""]?\s*$", RegexOptions.Multiline)]
+    [GeneratedRegex("""^\s*-\s*['"]?([^'"]+)['"]?\s*$""", RegexOptions.Multiline)]
     private static partial Regex YamlArrayItemRegex();
 
     /// <summary>
@@ -80,7 +80,7 @@ public static partial class WorkflowParser
         }
 
         // Parse tools list
-        IReadOnlyList<string> tools = [];
+        IEnumerable<string> tools = [];
         if (yaml.TryGetValue("tools", out var toolsStr))
         {
             tools = ParseYamlArray(toolsStr);
@@ -270,7 +270,7 @@ public static partial class WorkflowParser
         return result;
     }
 
-    private static IReadOnlyList<string> ParseYamlArray(string value)
+    private static IEnumerable<string> ParseYamlArray(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
@@ -282,7 +282,7 @@ public static partial class WorkflowParser
         {
             try
             {
-                return JsonSerializer.Deserialize(value, CopilotJsonContext.Default.StringArray) ?? [];
+                return JsonSerializer.Deserialize(value, CopilotJsonContext.Default.StringArray).OrEmpty();
             }
             catch
             {

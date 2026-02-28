@@ -150,10 +150,13 @@ builder.Services
 
 await builder.Build().RunAsync().ConfigureAwait(false);
 
-file static class Rpc
+namespace qyl.mcp
 {
-    public const string System = "rpc.system";
-    public const string Method = "rpc.method";
-    public const string JsonrpcVersion = "rpc.jsonrpc.version";
-    public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+    file static class Rpc
+    {
+        public const string System = "rpc.system";
+        public const string Method = "rpc.method";
+        public const string JsonrpcVersion = "rpc.jsonrpc.version";
+        public const string JsonrpcRequestId = "rpc.jsonrpc.request_id";
+    }
 }

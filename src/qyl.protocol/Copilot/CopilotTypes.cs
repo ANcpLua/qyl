@@ -102,7 +102,7 @@ public sealed record CopilotWorkflow
     public string? Description { get; init; }
 
     /// <summary>List of tool names this workflow can use.</summary>
-    public IReadOnlyList<string> Tools { get; init; } = [];
+    public IEnumerable<string> Tools { get; init; } = [];
 
     /// <summary>How this workflow is triggered.</summary>
     public WorkflowTrigger Trigger { get; init; } = WorkflowTrigger.Manual;

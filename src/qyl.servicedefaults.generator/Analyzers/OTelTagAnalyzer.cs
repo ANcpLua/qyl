@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -57,9 +58,9 @@ internal static class OTelTagAnalyzer
             return null;
 
         return new OTelTagBinding(
-            containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            containingType.GetFullyQualifiedName(),
             propertySymbol.Name,
-            propertySymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            propertySymbol.Type.GetFullyQualifiedName(),
             attributeName,
             skipIfNull,
             propertySymbol.Type.NullableAnnotation == NullableAnnotation.Annotated ||
@@ -89,9 +90,9 @@ internal static class OTelTagAnalyzer
             return null;
 
         return new OTelTagBinding(
-            containingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            containingType.GetFullyQualifiedName(),
             parameterSymbol.Name,
-            parameterSymbol.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
+            parameterSymbol.Type.GetFullyQualifiedName(),
             attributeName,
             skipIfNull,
             parameterSymbol.Type.NullableAnnotation == NullableAnnotation.Annotated ||

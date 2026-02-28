@@ -113,6 +113,23 @@ internal static class AgentCallSiteAnalyzer
     {
         agentName = null;
 
+        if (!method.HasAttribute(AgentTracedAttributeFullName))
+            return false;
+
+        if (!TryFindAttributeData(method, compilation, out var attribute))
+            return false;
+
+        agentName = ExtractAgentName(attribute, fallback: method.Name);
+        return true;
+    }
+
+    private static bool TryFindAttributeData(
+        ISymbol method,
+        Compilation compilation,
+        [NotNullWhen(true)] out AttributeData? result)
+    {
+        result = null;
+
         if (compilation.GetTypeByMetadataName(AgentTracedAttributeFullName) is not { } attributeType)
             return false;
 
@@ -121,18 +138,22 @@ internal static class AgentCallSiteAnalyzer
             if (!attribute.AttributeClass.IsEqualTo(attributeType))
                 continue;
 
-            // Extract AgentName from named argument
-            agentName = method.Name; // Default to method name
-            foreach (var namedArg in attribute.NamedArguments)
-            {
-                if (namedArg is { Key: "AgentName", Value.Value: string name })
-                    agentName = name;
-            }
-
+            result = attribute;
             return true;
         }
 
         return false;
+    }
+
+    private static string ExtractAgentName(AttributeData attribute, string fallback)
+    {
+        foreach (var namedArg in attribute.NamedArguments)
+        {
+            if (namedArg is { Key: "AgentName", Value.Value: string name })
+                return name;
+        }
+
+        return fallback;
     }
 
     /// <summary>

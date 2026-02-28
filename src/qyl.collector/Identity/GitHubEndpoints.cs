@@ -28,8 +28,7 @@ public static class GitHubEndpoints
             if (string.IsNullOrWhiteSpace(request.Token))
                 return Results.BadRequest(new { error = "Token is required" });
 
-            var user = await service.SetTokenAsync(request.Token, "pat", ct);
-            if (user is null)
+            if (await service.SetTokenAsync(request.Token, "pat", ct) is not { } user)
                 return Results.BadRequest(new { error = "Invalid GitHub token" });
 
             return Results.Json(

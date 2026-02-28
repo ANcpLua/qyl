@@ -53,7 +53,7 @@ public sealed class SharedStateStore
                 return Task.FromResult(true);
             }
 
-            if (expectedVersion != 0)
+            if (expectedVersion is not 0)
                 return Task.FromResult(false);
 
             _entries[key] = new VersionedEntry(value, 1);

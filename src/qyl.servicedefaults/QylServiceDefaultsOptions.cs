@@ -5,7 +5,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
+namespace Qyl.ServiceDefaults;
 
 /// <summary>
 ///     Options for configuring ANcpSdk default conventions and behaviors.

@@ -60,7 +60,7 @@ internal sealed class HeaderRenderer
                 p95 = durations[Math.Max(0, idx)];
             }
 
-            var serviceText = _services.Count == 0
+            var serviceText = _services.Count is 0
                 ? "[grey]no services[/]"
                 : string.Join(" ", _services.Select(kvp => $"[cyan]{Markup.Escape(kvp.Key)}[/]([grey]{kvp.Value}[/])"));
 

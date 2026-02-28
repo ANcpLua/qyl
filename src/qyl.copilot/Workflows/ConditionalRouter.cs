@@ -57,7 +57,7 @@ public sealed partial class ConditionalRouter
             if (edge.Predicate is null)
             {
                 // Default/fallback edge — selected only if no other edge matched
-                if (selected.Count == 0)
+                if (selected.Count is 0)
                 {
                     selected.Add(edge.TargetNodeId);
                     LogBranchSelected(_logger, currentNode.Id, edge.TargetNodeId, edge.Label ?? "default");

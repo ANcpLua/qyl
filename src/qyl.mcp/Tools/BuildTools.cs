@@ -19,7 +19,7 @@ public sealed class BuildTools(HttpClient client)
                 $"/api/v1/build-failures?limit={Math.Clamp(limit, 1, 100)}",
                 BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
 
-            if (response?.Items is null || response.Items.Count == 0)
+            if (response?.Items is null || response.Items.Count is 0)
                 return "No captured build failures.";
 
             var sb = new StringBuilder();
@@ -115,7 +115,7 @@ public sealed class BuildTools(HttpClient client)
                 $"/api/v1/build-failures/search?pattern={Uri.EscapeDataString(pattern)}&limit={Math.Clamp(limit, 1, 100)}",
                 BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
 
-            if (response?.Items is null || response.Items.Count == 0)
+            if (response?.Items is null || response.Items.Count is 0)
                 return $"No build failures matched '{pattern}'.";
 
             var sb = new StringBuilder();

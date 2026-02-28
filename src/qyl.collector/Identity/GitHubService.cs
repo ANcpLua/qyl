@@ -154,10 +154,8 @@ public sealed partial class GitHubService(
             ["scope"] = "repo"
         });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/device/code")
-        {
-            Content = content
-        };
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/device/code");
+        request.Content = content;
         request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);

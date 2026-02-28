@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace qyl.collector.ClaudeCode;
 
 internal static class ClaudeCodeEndpoints

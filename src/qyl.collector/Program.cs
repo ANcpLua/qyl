@@ -4,33 +4,31 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using qyl.collector;
 using qyl.collector.AgentRuns;
+using qyl.collector.Observe;
 using qyl.collector.Alerting;
+using qyl.collector.Analytics;
 using qyl.collector.Auth;
 using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
 using qyl.collector.ClaudeCode;
-using qyl.collector.Services;
 using qyl.collector.Copilot;
 using qyl.collector.Dashboard;
 using qyl.collector.Dashboards;
 using qyl.collector.Grpc;
 using qyl.collector.Health;
 using qyl.collector.Identity;
-using qyl.collector.Analytics;
 using qyl.collector.Insights;
 using qyl.collector.Meta;
 using qyl.collector.Provisioning;
 using qyl.collector.SchemaControl;
 using qyl.collector.Search;
+using qyl.collector.Services;
 using qyl.collector.Telemetry;
 using qyl.collector.Workflow;
 using qyl.copilot;
 using qyl.copilot.Auth;
 using qyl.copilot.Workflows;
-using Qyl.ServiceDefaults;
-using HealthResponse = qyl.collector.HealthResponse;
-using HealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
-
+using Qyl.ServiceDefaults.Instrumentation;
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -155,8 +153,7 @@ builder.Services.AddQylCopilot(builder.Configuration);
 // Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
 builder.Services.AddSingleton(sp => new CopilotAuthOptions
 {
-    AutoDetect = true,
-    ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
+    AutoDetect = true, ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
 });
 builder.Services.AddQylCopilotTelemetry();
 
@@ -178,10 +175,9 @@ builder.Services.AddSingleton<HandshakeService>();
 
 // GitHub identity integration (ADR-002)
 builder.Services.AddSingleton<GitHubService>();
-builder.Services.AddSingleton<HealthUiService>();
 builder.Services.AddHttpClient("GitHub", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration.GetValue("GitHub:BaseAddress", "https://api.github.com/")!);
+    client.BaseAddress = new Uri(builder.Configuration.GetValue("GitHub:BaseAddress", "https://api.github.com/"));
     client.DefaultRequestHeaders.Add("User-Agent", "qyl/1.0");
     client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
 }).AddStandardResilienceHandler();
@@ -201,6 +197,9 @@ builder.Services.AddSingleton<WorkflowRunService>();
 
 // Alert rule service
 builder.Services.AddSingleton<AlertRuleService>();
+
+// Zero-cost-until-observed: dynamic ActivityListener wiring on demand
+builder.Services.AddSingleton<SubscriptionManager>();
 
 // Auto-generated dashboards: telemetry detection, dynamic widgets
 builder.Services.AddDashboardServices();
@@ -247,8 +246,8 @@ duckDbStore.InitializeAlertSchema();
 // Apply pending DuckDB schema migrations (after all base DDL has run)
 var migrationRunner = app.Services.GetRequiredService<MigrationRunner>();
 var migrationDirectory = Path.Combine(app.Environment.ContentRootPath, "Storage", "Migrations");
-const int collectorSchemaVersion = 20260214;
-migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, collectorSchemaVersion, migrationDirectory);
+const int CollectorSchemaVersion = 20260214;
+migrationRunner.ApplyPendingMigrations(duckDbStore.Connection, CollectorSchemaVersion, migrationDirectory);
 
 // Initialize GitHub service: load persisted token from DuckDB (ADR-002)
 app.Services.GetRequiredService<GitHubService>().InitializeAsync().GetAwaiter().GetResult();
@@ -311,6 +310,7 @@ app.MapInsightsEndpoints();
 app.MapAlertEndpoints();
 app.MapDashboardEndpoints();
 app.MapAnalyticsEndpoints();
+app.MapObserveEndpoints();
 
 app.MapGet("/api/v1/meta", () =>
 {
@@ -616,27 +616,8 @@ app.MapGet("/api/v1/telemetry/stats", async (DuckDbStore store, CancellationToke
 });
 
 
-// Health check endpoints (Aspire standard)
-// /alive = Liveness (is the process running?) - only "live" tagged checks
-// /health = Readiness (is the service ready for traffic?) - only "ready" tagged checks
-app.MapGet("/alive", RunHealthCheck("healthy", "live")).WithName("LivenessCheck");
-app.MapGet("/health", RunHealthCheck("healthy", "ready")).WithName("HealthCheck");
-app.MapGet("/ready", RunHealthCheck("ready", "ready")).WithName("ReadyCheck");
-app.MapGet("/health/ui", async (HealthUiService healthUi, CancellationToken ct) =>
-    Results.Ok(await healthUi.GetHealthAsync(ct).ConfigureAwait(false)));
-
-static Func<IServiceProvider, CancellationToken, Task<IResult>> RunHealthCheck(string label, string tag) =>
-    async (sp, ct) =>
-    {
-        if (sp.GetService<HealthCheckService>() is not { } healthService)
-            return Results.Ok(new HealthResponse(label));
-
-        var result = await healthService.CheckHealthAsync(
-            c => c.Tags.Contains(tag), ct).ConfigureAwait(false);
-        return result.Status == HealthStatus.Healthy
-            ? Results.Ok(new HealthResponse(label))
-            : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-    };
+// Health check endpoints: /alive, /health, /ready (K8s probes) + /health/ui (dashboard)
+app.MapQylHealthChecks();
 
 // =============================================================================
 // API Stubs for OpenAPI Compliance
@@ -749,8 +730,11 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
 app.Run();
 
-internal static partial class OtlpLogsLog
+namespace qyl.collector
 {
-    [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
-    public static partial void FailedToProcessPayload(ILogger logger, Exception ex);
+    internal static partial class OtlpLogsLog
+    {
+        [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
+        public static partial void FailedToProcessPayload(ILogger logger, Exception ex);
+    }
 }

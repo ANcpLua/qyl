@@ -731,7 +731,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
                 Date = TimeConversions.UnixNanoToDateTime(startedAt),
                 Topic = reader.Col(2).AsString,
                 TurnCount = reader.Col(3).GetInt64(0),
-                Satisfied = reader.Col(4).GetInt64(0) == 0
+                Satisfied = reader.Col(4).GetInt64(0) is 0
             });
         }
 

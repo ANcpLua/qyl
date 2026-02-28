@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
+namespace Qyl.ServiceDefaults;
 
 internal sealed class ValidationStartupFilter : IStartupFilter
 {

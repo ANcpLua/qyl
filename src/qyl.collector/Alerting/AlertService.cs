@@ -37,7 +37,7 @@ public sealed partial class AlertService : BackgroundService
         var config = _configLoader.LoadAndWatch();
         LogServiceStarted(_logger, config.Alerts.Count);
 
-        if (config.Alerts.Count == 0)
+        if (config.Alerts.Count is 0)
         {
             // No alerts configured — wait for config change
             await WaitForConfigChangeAsync(stoppingToken).ConfigureAwait(false);
@@ -46,17 +46,15 @@ public sealed partial class AlertService : BackgroundService
 
         // Start evaluation loops for each rule
         var tasks = new List<Task>(config.Alerts.Count);
-        foreach (var rule in config.Alerts)
-        {
-            tasks.Add(RunRuleLoopAsync(rule, stoppingToken));
-        }
+        tasks.AddRange(config.Alerts.Select(rule => RunRuleLoopAsync(rule, stoppingToken)));
 
         // Listen for config changes and restart when needed
         _configLoader.OnConfigurationChanged(OnConfigChanged);
 
-        void OnConfigChanged(AlertConfiguration _) => LogConfigChanged(_logger);
-
         await Task.WhenAll(tasks).ConfigureAwait(false);
+        return;
+
+        void OnConfigChanged(AlertConfiguration _) => LogConfigChanged(_logger);
     }
 
     private async Task RunRuleLoopAsync(AlertRule rule, CancellationToken ct)

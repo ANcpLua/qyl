@@ -170,7 +170,7 @@ public sealed partial class QylChatMessageStore : IThreadMessageSerializer, IDis
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(threadId);
 
-        if (!_messages.TryGetValue(threadId, out var messages) || messages.Count == 0)
+        if (!_messages.TryGetValue(threadId, out var messages) || messages.Count is 0)
             return null;
 
         using (_lock.EnterScope())

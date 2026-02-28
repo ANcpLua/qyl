@@ -148,7 +148,7 @@ public sealed partial class EmbeddingClusterWorker(
                 var updated = new float[old.Length];
                 var factor = 1f / (count + 1);
                 for (var k = 0; k < old.Length; k++)
-                    updated[k] = old[k] * (count * factor) + vec[k] * factor;
+                    updated[k] = (old[k] * (count * factor)) + (vec[k] * factor);
                 centroids[bestIdx] = (updated, label, count + 1);
             }
             else
@@ -195,7 +195,7 @@ public sealed partial class EmbeddingClusterWorker(
     ///     Extracts the first user-role message text from a
     ///     <c>gen_ai.input.messages</c> JSON array.
     /// </summary>
-    internal static string? ExtractFirstUserMessage(string? messagesJson)
+    private static string? ExtractFirstUserMessage(string? messagesJson)
     {
         if (string.IsNullOrEmpty(messagesJson)) return null;
 

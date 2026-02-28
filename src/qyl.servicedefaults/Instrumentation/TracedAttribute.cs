@@ -48,4 +48,15 @@ public sealed class TracedAttribute(string activitySourceName) : Attribute
     /// </summary>
     /// <value>Defaults to <see cref="ActivityKind.Internal" />.</value>
     public ActivityKind Kind { get; set; } = ActivityKind.Internal;
+
+    /// <summary>
+    ///     Gets or sets a value indicating whether the span is created without a parent context.
+    /// </summary>
+    /// <remarks>
+    ///     When <see langword="true" />, the generated span will not be parented to any existing
+    ///     ambient <see cref="Activity" />, creating an isolated root span. Useful for background
+    ///     jobs or queue consumers that should be traced independently of the caller.
+    /// </remarks>
+    /// <value>Defaults to <see langword="false" /> (inherits ambient context).</value>
+    public bool RootSpan { get; set; }
 }

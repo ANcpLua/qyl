@@ -261,19 +261,18 @@ public static class StateMachinePatterns
     const string StateMachineMarker = "+<";
     const string StateMachineSuffix = ">d__";
 
-    public static bool TryExtractStateMachineMethod(string className, out string? methodName)
+    public static void TryExtractStateMachineMethod(string className, out string? methodName)
     {
         methodName = null;
 
         var plusIndex = className.IndexOf(StateMachineMarker, StringComparison.Ordinal);
-        if (plusIndex < 0) return false;
+        if (plusIndex < 0) return;
 
         var methodStart = plusIndex + 2;
         var methodEnd = className.IndexOf(StateMachineSuffix, methodStart, StringComparison.Ordinal);
-        if (methodEnd <= methodStart) return false;
+        if (methodEnd <= methodStart) return;
 
         methodName = className[methodStart..methodEnd];
-        return methodName.Length > 0;
     }
 
     public static bool IsStateMachineClass(string className) =>
@@ -401,8 +400,6 @@ public static class CoverageSummaryConverter
         DateTime generatedAtUtc,
         string sourceName)
     {
-        var jsonSummary = new CoverageSummary(projectName, sourceName, generatedAtUtc);
-
         XElement xmlSummary = new("coverage-summary",
             new XAttribute("project", projectName),
             new XAttribute("generatedAtUtc", generatedAtUtc.ToString("O", CultureInfo.InvariantCulture)),
@@ -414,7 +411,6 @@ public static class CoverageSummaryConverter
         {
             if (file.LineDict.Count is 0 && file.BranchDict.Count is 0) continue;
 
-            jsonSummary.Files.Add(new CoverageFileDto(filePath, [.. file.Lines], [.. file.Branches]));
 
             XElement xmlFile = new("file", new XAttribute("path", filePath));
 
@@ -445,7 +441,7 @@ public static class CoverageSummaryConverter
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(jsonSummary, JsonOptions));
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(JsonOptions));
 
         Log.Information("Coverage summary: {XmlPath} + {JsonPath} ({FileCount} files with issues)",
             outputPath, jsonPath, filesWithIssues);
@@ -519,7 +515,9 @@ public static class CoverageSummaryConverter
             return null;
 
         return !int.TryParse(fraction[(slashIdx + 1)..], NumberStyles.Integer, CultureInfo.InvariantCulture,
-            out var total) ? null : new BranchCoverageInfo(covered, total, percent);
+            out var total)
+            ? null
+            : new BranchCoverageInfo(covered, total, percent);
     }
 
     static CoverageFile GetOrCreateFileIssues(IDictionary<string, CoverageFile> dict, string path) =>
@@ -551,21 +549,5 @@ public static class CoverageSummaryConverter
 
         public IEnumerable<CoverageLine> Lines => LineDict.Values.OrderBy(static l => l.Line);
         public IEnumerable<CoverageBranch> Branches => BranchDict.Values.OrderBy(static b => b.Line);
-    }
-
-    sealed class CoverageSummary(string project, string source, DateTime generatedAtUtc)
-    {
-        public string Project { get; } = project;
-        public string Source { get; } = source;
-        public DateTime GeneratedAtUtc { get; } = generatedAtUtc;
-        public List<CoverageFileDto> Files { get; } = [];
-        public int FileCount => Files.Count; // Used for serialization
-    }
-
-    sealed class CoverageFileDto(string path, List<CoverageLine> lines, List<CoverageBranch> branches)
-    {
-        public string Path { get; } = path;
-        public List<CoverageLine> Lines { get; } = lines;
-        public List<CoverageBranch> Branches { get; } = branches;
     }
 }

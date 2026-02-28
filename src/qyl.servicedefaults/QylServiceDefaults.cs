@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Qyl.ServiceDefaults.Instrumentation;
 
-namespace Qyl.ServiceDefaults.AspNetCore.ServiceDefaults;
+namespace Qyl.ServiceDefaults;
 
 /// <summary>
 ///     Thin wrappers for generator compatibility.
@@ -48,10 +48,7 @@ public static partial class QylServiceDefaults
     /// <summary>
     ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.MapQylEndpoints" />.
     /// </summary>
-    public static void MapQylDefaultEndpoints(this WebApplication app)
-    {
-        app.MapQylEndpoints();
-    }
+    public static void MapQylDefaultEndpoints(this WebApplication app) => app.MapQylEndpoints();
 
     /// <summary>
     ///     Maps the DevLogs frontend logging bridge endpoint.

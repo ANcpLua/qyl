@@ -58,9 +58,7 @@ public static class CopilotSpanRecorder
     /// <param name="status">The workflow status (completed, failed, cancelled).</param>
     public static void RecordWorkflowStatus(Activity? activity, string status)
     {
-        if (activity is null) return;
-
-        activity.SetTag(CopilotInstrumentation.AttrWorkflowStatus, status);
+        activity?.SetTag(CopilotInstrumentation.AttrWorkflowStatus, status);
     }
 
     // =========================================================================

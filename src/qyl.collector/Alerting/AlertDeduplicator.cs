@@ -75,18 +75,9 @@ public sealed partial class AlertDeduplicator
     public int PurgeExpired()
     {
         var now = _timeProvider.GetUtcNow();
-        var purged = 0;
 
-        foreach (var kvp in _entries)
-        {
-            if (now - kvp.Value.LastSeen > _defaultWindow * 2)
-            {
-                if (_entries.TryRemove(kvp.Key, out _))
-                    purged++;
-            }
-        }
-
-        return purged;
+        return _entries.Where(kvp => now - kvp.Value.LastSeen > _defaultWindow * 2)
+            .Count(kvp => _entries.TryRemove(kvp.Key, out _));
     }
 
     private static string BuildKey(string ruleName, string condition, double queryResult) =>
