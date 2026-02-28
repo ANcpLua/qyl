@@ -18,13 +18,11 @@ internal sealed class SubscriptionManager : IDisposable
     private readonly ConcurrentDictionary<string, ObservationSubscription> _subscriptions = new(StringComparer.Ordinal);
 
     /// <summary>
-    /// Creates a new subscription for the given source name filter and OTLP endpoint.
-    /// If an identical (filter + endpoint) subscription already exists, returns the existing id
-    /// without creating a duplicate pipeline (idempotent).
+    /// Creates a new subscription with optional schema version declaration.
     /// </summary>
-    public ObservationSubscription Subscribe(string filter, string endpoint)
+    public ObservationSubscription Subscribe(string filter, string endpoint, string? schemaVersion)
     {
-        // Idempotency: reuse if same filter+endpoint already active
+        // Idempotency: reuse if same filter+endpoint already active (schemaVersion is metadata, not identity)
         foreach (var existing in _subscriptions.Values)
         {
             if (string.Equals(existing.Filter, filter, StringComparison.Ordinal) &&
@@ -33,10 +31,9 @@ internal sealed class SubscriptionManager : IDisposable
         }
 
         var id = Guid.NewGuid().ToString("N");
+        var contractHash = ResolveContractHash(filter);
         var pipeline = new ExportPipeline(endpoint);
 
-        // Wire the ActivityListener: subscribes to sources matching the filter.
-        // ActivityStopped routes completed activities through the batch processor.
         var listener = new ActivityListener
         {
             ShouldListenTo = source => MatchesFilter(source.Name, filter),
@@ -46,10 +43,17 @@ internal sealed class SubscriptionManager : IDisposable
 
         ActivitySource.AddActivityListener(listener);
 
-        var subscription = new ObservationSubscription(id, filter, endpoint, listener, pipeline);
+        var subscription = new ObservationSubscription(
+            id, filter, endpoint, listener, pipeline, contractHash, schemaVersion);
         _subscriptions[id] = subscription;
         return subscription;
     }
+
+    /// <summary>
+    /// Creates a new subscription (backward-compatible overload without schema version).
+    /// </summary>
+    public ObservationSubscription Subscribe(string filter, string endpoint)
+        => Subscribe(filter, endpoint, schemaVersion: null);
 
     /// <summary>
     /// Removes and disposes the subscription with the given id.
@@ -93,6 +97,31 @@ internal sealed class SubscriptionManager : IDisposable
         }
 
         return string.Equals(sourceName, filter, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// Resolves the contract hash for the given filter by matching against known domain sources.
+    /// Returns null if the filter matches zero or multiple domains (wildcard = no single contract).
+    /// </summary>
+    private static string? ResolveContractHash(string filter)
+    {
+        ReadOnlySpan<string> sources = ["qyl.genai", "qyl.db", "qyl.traced", "qyl.agent"];
+
+        string? matchedSource = null;
+        foreach (var source in sources)
+        {
+            if (!MatchesFilter(source, filter))
+                continue;
+
+            if (matchedSource is not null)
+                return null; // Multiple matches (e.g., wildcard "qyl.*") → no single contract
+
+            matchedSource = source;
+        }
+
+        return matchedSource is not null
+            ? ObserveCatalog.GetDomainHash(matchedSource)
+            : null;
     }
 
     // ── Export pipeline ───────────────────────────────────────────────────────

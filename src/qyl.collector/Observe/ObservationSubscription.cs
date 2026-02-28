@@ -17,17 +17,23 @@ internal sealed class ObservationSubscription : IDisposable
     public string Filter { get; }
     public string Endpoint { get; }
     public DateTimeOffset CreatedAt { get; }
+    public string? ContractHash { get; }
+    public string? SchemaVersion { get; }
 
     internal ObservationSubscription(
         string id,
         string filter,
         string endpoint,
         ActivityListener listener,
-        IDisposable pipeline)
+        IDisposable pipeline,
+        string? contractHash = null,
+        string? schemaVersion = null)
     {
         Id = id;
         Filter = filter;
         Endpoint = endpoint;
+        ContractHash = contractHash;
+        SchemaVersion = schemaVersion;
         CreatedAt = TimeProvider.System.GetUtcNow();
         _listener = listener;
         _pipeline = pipeline;

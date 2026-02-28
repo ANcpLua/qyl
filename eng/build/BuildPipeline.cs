@@ -201,6 +201,30 @@ partial interface IPipeline : IHazSourcePaths
         });
 
     // ════════════════════════════════════════════════════════════════════════
+    // Contract Generation Targets
+    // ════════════════════════════════════════════════════════════════════════
+
+    Target GenerateContracts => d => d
+        .Description("Generate DomainContracts.g.cs into both Roslyn generator projects")
+        .DependsOn(GenerateSemconv)
+        .Executes(() =>
+        {
+            var paths = CodegenPaths.From(this);
+            var extensionsJson = SemconvDirectory / "qyl-extensions.json";
+            var guard = IsServerBuild
+                ? GenerationGuard.ForCi()
+                : (DryRunGenerate ?? false)
+                    ? new GenerationGuard(dryRun: true)
+                    : GenerationGuard.ForLocal(ForceGenerate ?? false);
+
+            ContractGenerator.Generate(
+                extensionsJson,
+                paths.ServiceDefaultsGenerator,
+                paths.InstrumentationGenerators,
+                guard);
+        });
+
+    // ════════════════════════════════════════════════════════════════════════
     // Frontend Targets
     // ════════════════════════════════════════════════════════════════════════
 
@@ -350,10 +374,11 @@ partial interface IPipeline : IHazSourcePaths
     ///     TypeSpec → OpenAPI → C#/DuckDB/TypeScript + OTel Semconv
     /// </summary>
     Target Generate => d => d
-        .Description("Generate ALL code from TypeSpec God Schema (C# + DuckDB + TypeScript + Semconv)")
+        .Description("Generate ALL code from TypeSpec God Schema (C# + DuckDB + TypeScript + Semconv + Contracts)")
         .DependsOn(TypeSpecCompile)
         .DependsOn(GenerateTypeScript)
         .DependsOn(GenerateSemconv)
+        .DependsOn(GenerateContracts)
         .Executes(() =>
         {
             var force = ForceGenerate ?? false;
@@ -393,6 +418,8 @@ partial interface IPipeline : IHazSourcePaths
             Log.Information("  C# Records: protocol/*.g.cs");
             Log.Information("  DuckDB DDL: collector/Storage/DuckDbSchema.g.cs");
             Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
+            Log.Information("  Contracts:   servicedefaults.generator/Generated/DomainContracts.g.cs");
+            Log.Information("  Contracts:   instrumentation.generators/Generated/DomainContracts.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 
