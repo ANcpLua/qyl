@@ -215,6 +215,23 @@ public static class QylServiceDefaultsExtensions
             options.ConfigureLogging?.Invoke(logging);
         });
 
+        // Resolve exporter destination before wiring tracing.
+        // Sources are only registered when a collector is reachable — without them
+        // HasListeners() returns false and StartActivity() returns null at zero cost.
+        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (string.IsNullOrWhiteSpace(otlpEndpoint) && options.EnableAutoDiscovery)
+        {
+            var discovered = CollectorDiscovery.DiscoverEndpoint();
+            if (discovered is not null)
+            {
+                // Set env var so UseOtlpExporter() picks it up
+                Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", discovered.ToString());
+                otlpEndpoint = discovered.ToString();
+            }
+        }
+
+        var hasExporter = !string.IsNullOrWhiteSpace(otlpEndpoint);
+
         // OpenTelemetry SDK
         builder.Services.AddOpenTelemetry()
             .ConfigureResource(resource =>
@@ -251,50 +268,49 @@ public static class QylServiceDefaultsExtensions
             })
             .WithTracing(tracing =>
             {
-                tracing
-                    .SetSampler(new ParentBasedSampler(new AlwaysOnSampler()))
-                    .AddSource(serviceName)
-                    .AddAspNetCoreInstrumentation(aspnet =>
-                    {
-                        aspnet.Filter = static ctx =>
-                            ctx.Request.Path != "/health" &&
-                            ctx.Request.Path != "/alive";
-                    })
-                    .AddHttpClientInstrumentation();
+                tracing.SetSampler(options.ObservabilityMode switch
+                {
+                    ObservabilityMode.OnDemand => new AlwaysOffSampler(),
+                    ObservabilityMode.Warm     => new ParentBasedSampler(new AlwaysOffSampler()),
+                    _                          => new ParentBasedSampler(new AlwaysOnSampler())
+                });
 
-                // GenAI activity sources (qyl + SDK providers)
-                foreach (var source in SGenAiActivitySources)
-                    tracing.AddSource(source);
+                // Only register sources when there is an exporter to consume them.
+                // Without sources the OTel ActivityListener's ShouldListenTo returns false
+                // for every ActivitySource → HasListeners() = false → StartActivity() = null
+                // → zero allocation. Sources are registered dynamically when a collector
+                // connects (Phase 1 of zero-cost-until-observed).
+                if (hasExporter)
+                {
+                    tracing
+                        .AddSource(serviceName)
+                        .AddAspNetCoreInstrumentation(aspnet =>
+                        {
+                            aspnet.Filter = static ctx =>
+                                ctx.Request.Path != "/health" &&
+                                ctx.Request.Path != "/alive";
+                        })
+                        .AddHttpClientInstrumentation();
 
-                // Db + traced + agent instrumentation
-                tracing.AddSource(ActivitySources.Db);
-                tracing.AddSource(ActivitySources.Traced);
-                tracing.AddSource(ActivitySources.Agent);
+                    // GenAI activity sources (qyl + SDK providers)
+                    foreach (var source in SGenAiActivitySources)
+                        tracing.AddSource(source);
 
-                // Custom sources from options
-                foreach (var source in options.AdditionalActivitySources)
-                    tracing.AddSource(source);
+                    // Db + traced + agent instrumentation
+                    tracing.AddSource(ActivitySources.Db);
+                    tracing.AddSource(ActivitySources.Traced);
+                    tracing.AddSource(ActivitySources.Agent);
+
+                    // Custom sources from options
+                    foreach (var source in options.AdditionalActivitySources)
+                        tracing.AddSource(source);
+                }
 
                 options.ConfigureTracing?.Invoke(tracing);
             });
 
-        // OTLP exporter: auto-discover collector if no explicit endpoint
-        var otlpEndpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
-        {
-            // Explicit env var — use directly, skip discovery
+        if (hasExporter)
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
-        }
-        else if (options.EnableAutoDiscovery)
-        {
-            var discovered = CollectorDiscovery.DiscoverEndpoint();
-            if (discovered is not null)
-            {
-                // Set env var so UseOtlpExporter() picks it up
-                Environment.SetEnvironmentVariable("OTEL_EXPORTER_OTLP_ENDPOINT", discovered.ToString());
-                builder.Services.AddOpenTelemetry().UseOtlpExporter();
-            }
-        }
     }
 
     private static void ConfigureHealthChecks<TBuilder>(TBuilder builder)
@@ -387,4 +403,37 @@ public sealed class QylOptions
     ///     Custom OpenTelemetry tracing configuration.
     /// </summary>
     public Action<TracerProviderBuilder>? ConfigureTracing { get; set; }
+
+    /// <summary>
+    ///     Controls the default sampling strategy for all ActivitySources.
+    ///     <value>The default is <see cref="ObservabilityMode.AlwaysOn" />.</value>
+    /// </summary>
+    public ObservabilityMode ObservabilityMode { get; set; } = ObservabilityMode.AlwaysOn;
+}
+
+/// <summary>
+///     Controls the default sampling strategy used by <c>UseQyl()</c>.
+/// </summary>
+public enum ObservabilityMode
+{
+    /// <summary>
+    ///     All spans are created and exported. Equivalent to <c>ParentBasedSampler(AlwaysOnSampler)</c>.
+    ///     Use in development, staging, or small-scale production where full visibility outweighs overhead.
+    /// </summary>
+    AlwaysOn,
+
+    /// <summary>
+    ///     All ActivitySources are dormant until a subscription activates them via <c>POST /api/v1/observe</c>.
+    ///     Root <c>StartActivity()</c> calls return <see langword="null" /> — zero allocation.
+    ///     Use in production environments where services are instrumented comprehensively but observed selectively.
+    /// </summary>
+    OnDemand,
+
+    /// <summary>
+    ///     Root spans are zero-cost, but child spans with a propagated W3C trace context create a minimal
+    ///     <see cref="System.Diagnostics.Activity" /> to preserve the trace ID chain across service boundaries.
+    ///     Equivalent to <c>ParentBasedSampler(AlwaysOffSampler)</c>.
+    ///     Use in distributed systems where trace continuity matters but most services should not actively export.
+    /// </summary>
+    Warm,
 }
