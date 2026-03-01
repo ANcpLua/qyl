@@ -1,0 +1,27 @@
+# .aiexclude — JetBrains AI Assistant (Rider) ignore file
+# Syntax: .gitignore patterns
+
+# .NET build artifacts
+**/bin/
+**/obj/
+
+# Frontend
+**/node_modules/
+**/dist/
+**/.vite/
+
+# Agent scan artifacts — not source code
+.eight-gates/artifacts/
+
+# Binary data files
+**/*.db
+**/*.duckdb
+**/*.duckdb.wal
+**/*.parquet
+
+# Test results
+**/TestResults/
+**/coverage/
+
+# OS noise
+**/.DS_Store

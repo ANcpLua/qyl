@@ -1,0 +1,38 @@
+# .claudeignore — tells Claude Code which files/directories to never read or index
+# Syntax is identical to .gitignore
+
+# ── .NET build artifacts ──────────────────────────────────────────────────────
+**/bin/
+**/obj/
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+**/node_modules/
+**/.next/
+**/dist/
+**/.vite/
+
+# ── Test results & coverage ───────────────────────────────────────────────────
+**/TestResults/
+**/coverage/
+**/*.trx
+**/*.coverage
+
+# ── IDE / OS noise ────────────────────────────────────────────────────────────
+**/.DS_Store
+**/.vs/
+**/.idea/
+**/.rider/
+**/Thumbs.db
+
+# ── NUKE / build caches ───────────────────────────────────────────────────────
+.nuke/temp/
+artifacts/
+
+# ── Large generated / data files ─────────────────────────────────────────────
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.parquet
+
+# ── Eight-gates agent artifacts (scope scans, findings raw data) ──────────────
+.eight-gates/artifacts/
