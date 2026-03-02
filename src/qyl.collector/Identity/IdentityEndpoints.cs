@@ -122,7 +122,7 @@ public static class IdentityEndpoints
         });
 
         group.MapDelete("/{workspaceId}/projects/{projectId}/environments/{environmentId}", static async (
-            string _, string _, string environmentId,
+            string workspaceId, string projectId, string environmentId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteEnvironmentAsync(environmentId, ct);
