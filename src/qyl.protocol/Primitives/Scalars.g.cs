@@ -22,7 +22,7 @@ public readonly partial record struct Count(long Value)
     public bool IsValid => true;
 }
 
-file sealed class CountJsonConverter : System.Text.Json.Serialization.JsonConverter<Count>
+public sealed class CountJsonConverter : System.Text.Json.Serialization.JsonConverter<Count>
 {
     public override Count Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetInt64());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Count value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -38,7 +38,7 @@ public readonly partial record struct DurationMs(double Value)
     public bool IsValid => true;
 }
 
-file sealed class DurationMsJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationMs>
+public sealed class DurationMsJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationMs>
 {
     public override DurationMs Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationMs value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -54,7 +54,7 @@ public readonly partial record struct DurationNs(long Value)
     public bool IsValid => true;
 }
 
-file sealed class DurationNsJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationNs>
+public sealed class DurationNsJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationNs>
 {
     public override DurationNs Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetInt64());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationNs value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -70,7 +70,7 @@ public readonly partial record struct DurationS(double Value)
     public bool IsValid => true;
 }
 
-file sealed class DurationSJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationS>
+public sealed class DurationSJsonConverter : System.Text.Json.Serialization.JsonConverter<DurationS>
 {
     public override DurationS Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, DurationS value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -86,7 +86,7 @@ public readonly partial record struct IpAddress(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class IpAddressJsonConverter : System.Text.Json.Serialization.JsonConverter<IpAddress>
+public sealed class IpAddressJsonConverter : System.Text.Json.Serialization.JsonConverter<IpAddress>
 {
     public override IpAddress Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, IpAddress value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -102,7 +102,7 @@ public readonly partial record struct Percentage(double Value)
     public bool IsValid => true;
 }
 
-file sealed class PercentageJsonConverter : System.Text.Json.Serialization.JsonConverter<Percentage>
+public sealed class PercentageJsonConverter : System.Text.Json.Serialization.JsonConverter<Percentage>
 {
     public override Percentage Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Percentage value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -118,7 +118,7 @@ public readonly partial record struct Ratio(double Value)
     public bool IsValid => true;
 }
 
-file sealed class RatioJsonConverter : System.Text.Json.Serialization.JsonConverter<Ratio>
+public sealed class RatioJsonConverter : System.Text.Json.Serialization.JsonConverter<Ratio>
 {
     public override Ratio Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, Ratio value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -135,7 +135,7 @@ public readonly partial record struct SemVer(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value) && s_pattern.IsMatch(Value);
 }
 
-file sealed class SemVerJsonConverter : System.Text.Json.Serialization.JsonConverter<SemVer>
+public sealed class SemVerJsonConverter : System.Text.Json.Serialization.JsonConverter<SemVer>
 {
     public override SemVer Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SemVer value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -151,7 +151,7 @@ public readonly partial record struct SessionId(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class SessionIdJsonConverter : System.Text.Json.Serialization.JsonConverter<SessionId>
+public sealed class SessionIdJsonConverter : System.Text.Json.Serialization.JsonConverter<SessionId>
 {
     public override SessionId Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SessionId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -201,7 +201,7 @@ public readonly partial record struct SpanId(string Value) : System.IParsable<Sp
     static bool IsValidHexUtf8(ReadOnlySpan<byte> s) { foreach (var b in s) if (!((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F'))) return false; return true; }
 }
 
-file sealed class SpanIdJsonConverter : System.Text.Json.Serialization.JsonConverter<SpanId>
+public sealed class SpanIdJsonConverter : System.Text.Json.Serialization.JsonConverter<SpanId>
 {
     public override SpanId Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SpanId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -218,7 +218,7 @@ public readonly partial record struct TokenCount(long Value)
     public bool IsValid => true;
 }
 
-file sealed class TokenCountJsonConverter : System.Text.Json.Serialization.JsonConverter<TokenCount>
+public sealed class TokenCountJsonConverter : System.Text.Json.Serialization.JsonConverter<TokenCount>
 {
     public override TokenCount Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetInt64());
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TokenCount value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
@@ -268,7 +268,7 @@ public readonly partial record struct TraceId(string Value) : System.IParsable<T
     static bool IsValidHexUtf8(ReadOnlySpan<byte> s) { foreach (var b in s) if (!((b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F'))) return false; return true; }
 }
 
-file sealed class TraceIdJsonConverter : System.Text.Json.Serialization.JsonConverter<TraceId>
+public sealed class TraceIdJsonConverter : System.Text.Json.Serialization.JsonConverter<TraceId>
 {
     public override TraceId Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TraceId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -284,7 +284,7 @@ public readonly partial record struct TraceState(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class TraceStateJsonConverter : System.Text.Json.Serialization.JsonConverter<TraceState>
+public sealed class TraceStateJsonConverter : System.Text.Json.Serialization.JsonConverter<TraceState>
 {
     public override TraceState Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, TraceState value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -300,7 +300,7 @@ public readonly partial record struct UrlString(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class UrlStringJsonConverter : System.Text.Json.Serialization.JsonConverter<UrlString>
+public sealed class UrlStringJsonConverter : System.Text.Json.Serialization.JsonConverter<UrlString>
 {
     public override UrlString Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, UrlString value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -316,7 +316,7 @@ public readonly partial record struct UserAgent(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class UserAgentJsonConverter : System.Text.Json.Serialization.JsonConverter<UserAgent>
+public sealed class UserAgentJsonConverter : System.Text.Json.Serialization.JsonConverter<UserAgent>
 {
     public override UserAgent Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, UserAgent value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
@@ -332,7 +332,7 @@ public readonly partial record struct UserId(string Value)
     public bool IsValid => !string.IsNullOrEmpty(Value);
 }
 
-file sealed class UserIdJsonConverter : System.Text.Json.Serialization.JsonConverter<UserId>
+public sealed class UserIdJsonConverter : System.Text.Json.Serialization.JsonConverter<UserId>
 {
     public override UserId Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetString() ?? string.Empty);
     public override void Write(System.Text.Json.Utf8JsonWriter writer, UserId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);

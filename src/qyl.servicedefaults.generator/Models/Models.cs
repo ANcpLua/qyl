@@ -285,22 +285,22 @@ internal sealed record TracedCallSite(
     string ActivitySourceName,
     string SpanName,
     string SpanKind,
-    /// <summary>T-001: When true the span is created without a parent (root span).</summary>
+    // T-001: When true the span is created without a parent (root span).
     bool RootSpan,
     string ContainingTypeName,
     string MethodName,
     bool IsStatic,
     bool IsAsync,
-    /// <summary>T-002: True when return type is IAsyncEnumerable&lt;T&gt;.</summary>
+    // T-002: True when return type is IAsyncEnumerable<T>.
     bool IsAsyncEnumerable,
     string ReturnTypeName,
     EquatableArray<string> ParameterTypes,
     EquatableArray<string> ParameterNames,
     EquatableArray<TracedTagParameter> TracedTags,
-    /// <summary>T-004: Properties on the containing type decorated with [TracedTag].</summary>
+    // T-004: Properties on the containing type decorated with [TracedTag].
     EquatableArray<TracedTagProperty> TracedTagProperties,
     EquatableArray<TypeParameterConstraint> TypeParameters,
-    /// <summary>T-007: Return-value capture descriptor, or null if not requested.</summary>
+    // T-007: Return-value capture descriptor, or null if not requested.
     TracedReturnInfo? ReturnCapture,
     InterceptableLocation Location);
 
@@ -309,11 +309,11 @@ internal sealed record TracedCallSite(
 /// </summary>
 internal sealed record TracedTagParameter(
     string ParameterName,
-    /// <summary>Fully-qualified type name — needed for T-006 SkipIfDefault EqualityComparer.</summary>
+    // Fully-qualified type name — needed for T-006 SkipIfDefault EqualityComparer.
     string TypeName,
     string TagName,
     bool SkipIfNull,
-    /// <summary>T-006: Skip tag when value equals default(T).</summary>
+    // T-006: Skip tag when value equals default(T).
     bool SkipIfDefault,
     bool IsNullable,
     bool IsValueType);
@@ -333,7 +333,7 @@ internal sealed record TracedTagProperty(
 /// </summary>
 internal sealed record TracedReturnInfo(
     string TagName,
-    /// <summary>Optional dotted member path e.g. "Usage.InputTokens". Null → ToString().</summary>
+    // Optional dotted member path e.g. "Usage.InputTokens". Null → ToString().
     string? PropertyPath);
 
 /// <summary>

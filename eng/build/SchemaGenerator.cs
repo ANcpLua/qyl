@@ -157,7 +157,7 @@ public static class SchemaGenerator
 
                 // JSON Converter
                 sb.AppendLine(CultureInfo.InvariantCulture,
-                    $"file sealed class {typeName}JsonConverter : System.Text.Json.Serialization.JsonConverter<{typeName}>");
+                    $"public sealed class {typeName}JsonConverter : System.Text.Json.Serialization.JsonConverter<{typeName}>");
                 sb.AppendLine("{");
                 sb.AppendLine(CultureInfo.InvariantCulture,
                     $"    public override {typeName} Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new({jsonRead});");
