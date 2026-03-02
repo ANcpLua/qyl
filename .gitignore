@@ -120,3 +120,6 @@ coverage/
 !core/qyl.*/CLAUDE.md
 .mcp.json
 tmp/
+
+# Q&A session documents
+QA*.md
