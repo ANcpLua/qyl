@@ -439,13 +439,17 @@ function ConnectStep() {
         staleTime: 1000 * 60 * 5,
     });
 
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const httpPort = meta?.ports?.otlpHttp || 4318;
     const grpcPort = meta?.ports?.grpc || 4317;
     const dashPort = meta?.ports?.http || 5100;
 
+    const otlpEndpoint = isLocal ? `http://localhost:${httpPort}` : window.location.origin;
+    const grpcEndpoint = isLocal ? `http://localhost:${grpcPort}` : window.location.origin;
+
     return (
         <div className="space-y-6 max-w-xl mx-auto">
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONNECT TO QYL</h2>
+            <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONFIGURE OTLP ENDPOINT</h2>
 
             <div className="border-2 border-signal-green/30 bg-signal-green/5 p-4 space-y-2">
                 <div className="text-xs font-bold text-signal-green tracking-wider">ALREADY USING OPENTELEMETRY?</div>
@@ -453,45 +457,70 @@ function ConnectStep() {
                     Set this env var and you're done. Works with any OTel SDK in any language.
                 </p>
                 <CodeBlock
-                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:${httpPort}`}
+                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=${otlpEndpoint}`}
                     label="OTLP Endpoint"
                 />
-                <p className="text-[10px] text-brutal-slate">
-                    Most SDKs default to gRPC. For HTTP, also set{' '}
-                    <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span>
-                </p>
+                {isLocal && (
+                    <p className="text-[10px] text-brutal-slate">
+                        Most SDKs default to gRPC. For HTTP, also set{' '}
+                        <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span>
+                    </p>
+                )}
+                {!isLocal && (
+                    <p className="text-[10px] text-brutal-slate">
+                        Set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span> for
+                        HTTP transport (recommended for cloud deployments).
+                    </p>
+                )}
             </div>
 
-            <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
-                <div className="text-xs font-bold text-brutal-slate tracking-wider">PORTS</div>
-                <div className="space-y-2 text-sm font-mono">
-                    <div className="flex justify-between">
-                        <span className="text-brutal-slate">Dashboard</span>
-                        <span className="text-brutal-white">:{dashPort}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-brutal-slate">OTLP HTTP</span>
-                        <span className="text-signal-green">:{httpPort}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-brutal-slate">OTLP gRPC</span>
-                        <span className="text-signal-green">:{grpcPort}</span>
+            {isLocal ? (
+                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
+                    <div className="text-xs font-bold text-brutal-slate tracking-wider">PORTS</div>
+                    <div className="space-y-2 text-sm font-mono">
+                        <div className="flex justify-between">
+                            <span className="text-brutal-slate">Dashboard</span>
+                            <span className="text-brutal-white">:{dashPort}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-brutal-slate">OTLP HTTP</span>
+                            <span className="text-signal-green">:{httpPort}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-brutal-slate">OTLP gRPC</span>
+                            <span className="text-signal-green">:{grpcPort}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
+                    <div className="text-xs font-bold text-brutal-slate tracking-wider">ENDPOINT</div>
+                    <code className="text-sm text-signal-green font-mono">{window.location.origin}</code>
+                    <p className="text-[10px] text-brutal-slate">
+                        All OTLP traffic routes through this URL. Use HTTP/protobuf protocol.
+                    </p>
+                </div>
+            )}
 
-            <p className="text-[10px] text-brutal-slate tracking-wider">
-                For gRPC transport, use{' '}
-                <span className="text-brutal-white font-mono">
-                    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:{grpcPort}
-                </span>
-            </p>
+            {isLocal && (
+                <p className="text-[10px] text-brutal-slate tracking-wider">
+                    For gRPC transport, use{' '}
+                    <span className="text-brutal-white font-mono">
+                        OTEL_EXPORTER_OTLP_ENDPOINT={grpcEndpoint}
+                    </span>
+                </p>
+            )}
         </div>
     );
 }
 
 function SdkSetupStep() {
     const [activeTab, setActiveTab] = useState<'.NET' | 'Python' | 'Go' | 'Node.js'>('.NET');
+
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const endpoint = isLocal ? 'http://localhost:4318' : window.location.origin;
+    const grpcEndpoint = isLocal ? 'http://localhost:4317' : window.location.origin;
+    const grpcHost = isLocal ? 'localhost:4317' : window.location.host;
 
     const snippets: Record<string, string> = {
         '.NET': `// Web application
@@ -510,7 +539,7 @@ var app = builder.Build();
 await app.RunAsync();`,
 
         'Python': `# Option 1: Environment variable (recommended)
-# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint}
 # python your_app.py
 
 # Option 2: Programmatic
@@ -518,31 +547,30 @@ await app.RunAsync();`,
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
+from opentelemetry.exporter.otlp.proto.${isLocal ? 'grpc' : 'http'}.trace_exporter import (
     OTLPSpanExporter,
 )
 
 provider = TracerProvider()
 processor = BatchSpanProcessor(
-    OTLPSpanExporter(endpoint="http://localhost:4317")
+    OTLPSpanExporter(endpoint="${isLocal ? grpcEndpoint : endpoint}")
 )
 provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)`,
 
         'Go': `// Option 1: Environment variable (recommended)
-// OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 go run .
+// OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} go run .
 
 // Option 2: Programmatic
-// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${isLocal ? 'grpc' : 'http'}
 import (
     "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${isLocal ? 'grpc' : 'http'}"
     sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-exp, _ := otlptracegrpc.New(ctx,
-    otlptracegrpc.WithEndpoint("localhost:4317"),
-    otlptracegrpc.WithInsecure(),
+exp, _ := otlptrace${isLocal ? 'grpc' : 'http'}.New(ctx,
+    otlptrace${isLocal ? 'grpc' : 'http'}.WithEndpoint("${grpcHost}"),${isLocal ? '\n    otlptracegrpc.WithInsecure(),' : ''}
 )
 tp := sdktrace.NewTracerProvider(
     sdktrace.WithBatcher(exp),
@@ -550,18 +578,18 @@ tp := sdktrace.NewTracerProvider(
 otel.SetTracerProvider(tp)`,
 
         'Node.js': `// Option 1: Environment variable (recommended)
-// OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node app.js
+// OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} node app.js
 
 // Option 2: Programmatic
-// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-grpc
+// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-${isLocal ? 'grpc' : 'proto'}
 const { NodeSDK } = require("@opentelemetry/sdk-node");
 const {
   OTLPTraceExporter,
-} = require("@opentelemetry/exporter-trace-otlp-grpc");
+} = require("@opentelemetry/exporter-trace-otlp-${isLocal ? 'grpc' : 'proto'}");
 
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter({
-    url: "http://localhost:4317",
+    url: "${isLocal ? grpcEndpoint : endpoint}",
   }),
 });
 sdk.start();`,
@@ -576,7 +604,7 @@ sdk.start();`,
             <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 space-y-2">
                 <div className="text-xs font-bold text-signal-orange tracking-wider">ALREADY USING OPENTELEMETRY?</div>
                 <p className="text-brutal-slate text-sm">
-                    Just set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318</span> and
+                    Just set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={endpoint}</span> and
                     skip this step. The snippets below are for new projects.
                 </p>
             </div>
