@@ -608,10 +608,14 @@ sdk.start();`,
 function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     const [status, setStatus] = useState<'idle' | 'polling' | 'success' | 'timeout'>('idle');
     const [elapsed, setElapsed] = useState(0);
+    const [attempts, setAttempts] = useState(0);
+
+    const collectorUrl = window.location.origin;
 
     const startPolling = useCallback(() => {
         setStatus('polling');
         setElapsed(0);
+        setAttempts((a) => a + 1);
     }, []);
 
     useEffect(() => {
@@ -621,7 +625,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     useEffect(() => {
         if (status !== 'polling') return;
 
-        const interval = setInterval(() => {
+        const timer = setInterval(() => {
             setElapsed((prev) => {
                 if (prev >= 30) {
                     setStatus('timeout');
@@ -633,12 +637,15 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
 
         const poll = setInterval(async () => {
             try {
-                const res = await fetch('/api/v1/traces?limit=1');
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data?.items?.length > 0 || data?.total > 0) {
-                        setStatus('success');
-                    }
+                const [tracesRes, logsRes] = await Promise.all([
+                    fetch('/api/v1/traces?limit=1').catch(() => null),
+                    fetch('/api/v1/logs?limit=1').catch(() => null),
+                ]);
+                const traces = tracesRes?.ok ? await tracesRes.json() : null;
+                const logs = logsRes?.ok ? await logsRes.json() : null;
+                if ((traces?.items?.length > 0 || traces?.total > 0) ||
+                    (logs?.items?.length > 0 || logs?.total > 0)) {
+                    setStatus('success');
                 }
             } catch {
                 // keep polling
@@ -646,75 +653,130 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
         }, 3000);
 
         return () => {
-            clearInterval(interval);
+            clearInterval(timer);
             clearInterval(poll);
         };
     }, [status]);
 
     return (
         <div className="space-y-6 max-w-lg mx-auto text-center">
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">VERIFY CONNECTION</h2>
+            {/* Icon — matches other steps */}
+            <div
+                className={cn(
+                    'w-16 h-16 mx-auto flex items-center justify-center border-2 border-brutal-black transition-colors',
+                    status === 'success' ? 'bg-signal-green' :
+                        status === 'timeout' ? 'bg-brutal-dark border-signal-orange' :
+                            status === 'polling' ? 'bg-signal-orange' :
+                                'bg-brutal-dark border-brutal-zinc'
+                )}
+            >
+                {status === 'success' ? (
+                    <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
+                ) : status === 'polling' ? (
+                    <Loader2 className="w-8 h-8 text-brutal-black animate-spin"/>
+                ) : status === 'timeout' ? (
+                    <Unlink className="w-8 h-8 text-signal-orange"/>
+                ) : (
+                    <Plug className="w-8 h-8 text-brutal-slate"/>
+                )}
+            </div>
+
+            {/* Title — changes per state */}
+            <h2 className="text-xl font-bold text-brutal-white tracking-wider">
+                {status === 'success' ? 'DATA RECEIVED' :
+                    status === 'timeout' ? 'NO DATA YET' :
+                        status === 'polling' ? 'LISTENING...' :
+                            'VERIFY CONNECTION'}
+            </h2>
+
+            {/* Subtitle */}
             <p className="text-brutal-slate text-sm">
-                Run your instrumented application, then click below to check if telemetry data is flowing.
+                {status === 'success'
+                    ? 'Telemetry is flowing into qyl. You\'re all set!'
+                    : status === 'timeout'
+                        ? 'No telemetry received within 30 seconds.'
+                        : status === 'polling'
+                            ? `Checking for traces and logs… (${elapsed}s)`
+                            : 'Run your instrumented application, then check if telemetry data is flowing.'}
             </p>
 
+            {/* Progress bar — visible during polling AND timeout */}
+            {(status === 'polling' || status === 'timeout') && (
+                <div className="w-full bg-brutal-dark border-2 border-brutal-zinc h-2">
+                    <div
+                        className={cn(
+                            'h-full transition-all duration-500',
+                            status === 'timeout' ? 'bg-signal-orange/50' : 'bg-signal-orange'
+                        )}
+                        style={{width: `${Math.min((elapsed / 30) * 100, 100)}%`}}
+                    />
+                </div>
+            )}
+
+            {/* Success bar */}
+            {status === 'success' && (
+                <div className="w-full bg-brutal-dark border-2 border-signal-green h-2">
+                    <div className="h-full bg-signal-green w-full"/>
+                </div>
+            )}
+
+            {/* Actions */}
             {status === 'idle' && (
                 <Button
                     className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
                     onClick={startPolling}
                 >
+                    <Plug className="w-4 h-4 mr-2"/>
                     CHECK FOR DATA
                 </Button>
             )}
 
-            {status === 'polling' && (
-                <div className="space-y-4">
-                    <Loader2 className="w-10 h-10 mx-auto animate-spin text-signal-orange"/>
-                    <p className="text-brutal-slate text-sm">
-                        Waiting for spans… ({elapsed}s)
-                    </p>
-                    <div className="w-full bg-brutal-dark border-2 border-brutal-zinc h-2">
-                        <div
-                            className="h-full bg-signal-orange transition-all"
-                            style={{width: `${Math.min((elapsed / 30) * 100, 100)}%`}}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {status === 'success' && (
-                <div className="space-y-4">
-                    <CheckCircle2 className="w-12 h-12 mx-auto text-signal-green"/>
-                    <p className="text-signal-green font-bold tracking-wider">DATA RECEIVED</p>
-                    <p className="text-brutal-slate text-sm">
-                        Telemetry is flowing into qyl. You're all set!
-                    </p>
-                </div>
-            )}
-
             {status === 'timeout' && (
-                <div className="space-y-4">
-                    <p className="text-brutal-slate text-sm">
-                        No data received yet. Make sure your application is running and configured correctly.
-                    </p>
+                <div className="flex items-center justify-center gap-3">
                     <Button
-                        variant="outline"
-                        className="font-bold tracking-wider"
+                        className="bg-signal-orange hover:bg-signal-orange/80 text-brutal-black font-bold tracking-wider border-2 border-signal-orange"
                         onClick={startPolling}
                     >
+                        <Loader2 className="w-4 h-4 mr-2"/>
                         TRY AGAIN
                     </Button>
+                    {attempts > 1 && (
+                        <span className="text-[10px] text-brutal-slate">Attempt {attempts}</span>
+                    )}
                 </div>
             )}
 
-            <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark text-left">
-                <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">TROUBLESHOOTING</div>
-                <ul className="text-xs text-brutal-slate space-y-1 list-disc list-inside">
-                    <li>Ensure the collector is running (dashboard: http://localhost:5100)</li>
-                    <li>Check your OTEL_EXPORTER_OTLP_ENDPOINT (should be http://localhost:4318 or :4317)</li>
-                    <li>Verify no firewall is blocking ports 4317, 4318, or 5100</li>
-                </ul>
-            </div>
+            {/* Troubleshooting — only on timeout */}
+            {status === 'timeout' && (
+                <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 text-left space-y-3">
+                    <div className="text-[10px] font-bold text-signal-orange tracking-wider">TROUBLESHOOTING</div>
+                    <ul className="text-xs text-brutal-slate space-y-2">
+                        <li className="flex items-start gap-2">
+                            <span className="text-signal-orange mt-0.5">1.</span>
+                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={collectorUrl}</span></span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-signal-orange mt-0.5">2.</span>
+                            <span>Confirm your app is running and producing telemetry</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                            <span className="text-signal-orange mt-0.5">3.</span>
+                            <span>Check that no firewall or proxy blocks OTLP traffic to this host</span>
+                        </li>
+                    </ul>
+                </div>
+            )}
+
+            {/* Endpoint info — shown on idle to help setup */}
+            {status === 'idle' && (
+                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark text-left">
+                    <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">EXPECTED ENDPOINT</div>
+                    <code className="text-xs text-signal-green font-mono">{collectorUrl}</code>
+                    <p className="text-[10px] text-brutal-slate mt-2">
+                        qyl checks for incoming traces and logs every 3 seconds for up to 30 seconds.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
