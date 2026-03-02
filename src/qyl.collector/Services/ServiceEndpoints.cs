@@ -24,11 +24,7 @@ internal static class ServiceEndpoints
         var services = await store.GetServicesAsync(
             type, status, limit ?? 100, ct).ConfigureAwait(false);
 
-        return Results.Ok(new ServicesResponse
-        {
-            Services = services,
-            Total = services.Count
-        });
+        return Results.Ok(new ServicesResponse { Services = services, Total = services.Count });
     }
 
     private static async Task<IResult> GetServiceDetailAsync(
@@ -37,12 +33,9 @@ internal static class ServiceEndpoints
         string? type,
         CancellationToken ct)
     {
-        var detail = await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false);
-
-        if (detail is null)
-            return Results.NotFound();
-
-        return Results.Ok(detail);
+        return await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false) is not { } detail
+            ? Results.NotFound()
+            : Results.Ok(detail);
     }
 }
 

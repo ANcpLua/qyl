@@ -75,21 +75,17 @@ export function DashboardLayout() {
                 onOpenChange={setModalOpen}
             />
 
-            {/* Copilot - only shown when authenticated */}
-            {copilotStatus?.isAuthenticated && (
-                <>
-                    <CopilotPanel
-                        open={copilotOpen}
-                        onClose={() => setCopilotOpen(false)}
-                        username={copilotStatus.username}
-                    />
-                    <CopilotButton
-                        onClick={() => setCopilotOpen(prev => !prev)}
-                        isOpen={copilotOpen}
-                        username={copilotStatus.username}
-                    />
-                </>
-            )}
+            {/* Copilot - always available (BYOK works without GitHub auth) */}
+            <CopilotPanel
+                open={copilotOpen}
+                onClose={() => setCopilotOpen(false)}
+                username={copilotStatus?.username}
+            />
+            <CopilotButton
+                onClick={() => setCopilotOpen(prev => !prev)}
+                isOpen={copilotOpen}
+                username={copilotStatus?.username}
+            />
         </TooltipProvider>
     );
 }

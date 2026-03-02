@@ -1,4 +1,5 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {fetchJson, postJson} from '@/lib/api';
 
 export interface Issue {
     issue_id: string;
@@ -33,23 +34,6 @@ interface IssuesResponse {
 interface IssueEventsResponse {
     items: IssueEvent[];
     total: number;
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {credentials: 'include'});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
-}
-
-async function postJson<T>(url: string, body: unknown): Promise<T> {
-    const res = await fetch(url, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(body),
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
 }
 
 export const issueKeys = {

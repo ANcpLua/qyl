@@ -14,8 +14,10 @@ internal static partial class CollectorDiscovery
 
     private static readonly (string Host, int Port)[] SProbeTargets =
     [
-        ("localhost", 4317),
-        ("qyl", 4317)
+        ("localhost", 4317),   // gRPC (standard)
+        ("localhost", 4318),   // HTTP OTLP (standard)
+        ("qyl", 4317),         // Docker service name (gRPC)
+        ("qyl", 4318)          // Docker service name (HTTP)
     ];
 
     /// <summary>

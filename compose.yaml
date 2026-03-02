@@ -7,11 +7,13 @@ services:
         container_name: qyl
         image: ancplua/qyl:${QYL_VERSION:-latest}
         ports:
-            - "${QYL_PORT:-5100}:5100"      # Dashboard + REST API + SSE
-            - "${QYL_GRPC_PORT:-4317}:4317" # OTLP gRPC
+            - "${QYL_PORT:-5100}:5100"        # Dashboard + REST API + SSE
+            - "${QYL_GRPC_PORT:-4317}:4317"   # OTLP gRPC
+            - "${QYL_OTLP_PORT:-4318}:4318"   # OTLP HTTP
         environment:
             QYL_PORT: 5100
             QYL_GRPC_PORT: 4317
+            QYL_OTLP_PORT: 4318
             QYL_DATA_PATH: /data/qyl.duckdb
             TZ: ${TZ:-UTC}
         healthcheck:

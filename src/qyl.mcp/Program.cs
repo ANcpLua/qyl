@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
 using qyl.mcp;
+using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Tools;
 using qyl.protocol.Attributes;
@@ -32,6 +33,20 @@ builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<ServiceTools>(collectorUrl);
 
+// Agent provider: proxies to collector's /api/v1/copilot/chat for embedded LLM investigation
+builder.Services.AddHttpClient(nameof(HttpAgentProvider), client =>
+{
+    client.BaseAddress = new Uri(collectorUrl);
+    client.Timeout = TimeSpan.FromSeconds(120); // Agent calls may take longer due to tool-calling
+}).AddStandardResilienceHandler();
+builder.Services.AddSingleton<IAgentProvider>(static sp =>
+    new HttpAgentProvider(
+        sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpAgentProvider)),
+        sp.GetRequiredService<ILogger<HttpAgentProvider>>()));
+
+// McpToolRegistry: discovers all [McpServerTool] methods for use_qyl meta-agent
+builder.Services.AddSingleton<McpToolRegistry>();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<ITelemetryStore>(static sp =>
     new HttpTelemetryStore(
@@ -51,6 +66,7 @@ jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
 
 builder.Services
     .AddMcpServer()
@@ -153,7 +169,9 @@ builder.Services
     .WithTools<CopilotTools>(jsonOptions)
     .WithTools<AnalyticsTools>(jsonOptions)
     .WithTools<ClaudeCodeTools>(jsonOptions)
-    .WithTools<ServiceTools>(jsonOptions);
+    .WithTools<ServiceTools>(jsonOptions)
+    .WithTools<InvestigateTools>(jsonOptions)
+    .WithTools<UseQylTools>(jsonOptions);
 
 await builder.Build().RunAsync().ConfigureAwait(false);
 

@@ -238,12 +238,7 @@ public sealed class CopilotAuthProvider
 
         // Fall back to GITHUB_TOKEN (common in CI/CD)
         token = Environment.GetEnvironmentVariable("GITHUB_TOKEN");
-        if (!string.IsNullOrWhiteSpace(token))
-        {
-            return AuthResult.Succeeded(token, AuthMethod.EnvironmentVariable);
-        }
-
-        return AuthResult.Failed("No GH_TOKEN or GITHUB_TOKEN environment variable found.");
+        return !string.IsNullOrWhiteSpace(token) ? AuthResult.Succeeded(token, AuthMethod.EnvironmentVariable) : AuthResult.Failed("No GH_TOKEN or GITHUB_TOKEN environment variable found.");
     }
 
     private static async ValueTask<AuthResult> TryGitHubCliAsync(CancellationToken ct)

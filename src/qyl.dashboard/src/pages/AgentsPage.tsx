@@ -3,19 +3,24 @@ import {useSearchParams} from 'react-router-dom';
 import {
     AlertTriangle,
     Bot,
+    Brain,
     ChevronLeft,
     ChevronRight,
     Clock,
     Coins,
     Cpu,
+    DollarSign,
     ExternalLink,
     Hash,
     Search,
+    TrendingUp,
     Wrench,
     X,
     Zap,
 } from 'lucide-react';
 import {
+    Area,
+    AreaChart,
     Bar,
     BarChart,
     CartesianGrid,
@@ -76,7 +81,8 @@ function formatDurationHuman(ms: number): string {
 
 function formatCost(usd: number): string {
     if (usd === 0) return '\u2014';
-    return `$${usd.toFixed(4)}`;
+    if (usd < 0.01) return `$${usd.toFixed(4)}`;
+    return `$${usd.toFixed(2)}`;
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -95,6 +101,10 @@ function formatRelativeTime(isoString: string): string {
 function formatBucketTime(iso: string): string {
     const d = new Date(iso);
     return d.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'});
+}
+
+function formatPercent(rate: number): string {
+    return `${(rate * 100).toFixed(1)}%`;
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -165,6 +175,15 @@ function TableRowSkeleton() {
     );
 }
 
+function StatCardSkeleton() {
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 animate-pulse">
+            <div className="h-2.5 w-16 bg-brutal-zinc/40 mb-3"/>
+            <div className="h-6 w-20 bg-brutal-zinc/40"/>
+        </div>
+    );
+}
+
 // ── Panel header ───────────────────────────────────────────────────────────────
 
 function PanelHeader({title, icon: Icon}: { title: string; icon: React.ComponentType<{ className?: string }> }) {
@@ -187,6 +206,76 @@ function FadeIn({delay = 0, children}: { delay?: number; children: React.ReactNo
             style={{animationDelay: `${delay}ms`}}
         >
             {children}
+        </div>
+    );
+}
+
+// ── Summary stat cards (always visible above tabs) ────────────────────────────
+
+interface SummaryStats {
+    totalRuns: number;
+    totalCost: number;
+    avgDurationMs: number;
+    errorRate: number;
+}
+
+function SummaryCards({stats, isLoading}: { stats: SummaryStats | null; isLoading: boolean }) {
+    if (isLoading || !stats) {
+        return (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Array.from({length: 4}).map((_, i) => <StatCardSkeleton key={i}/>)}
+            </div>
+        );
+    }
+
+    const cards = [
+        {
+            label: 'AGENT RUNS',
+            value: formatCompact(stats.totalRuns),
+            icon: Zap,
+            color: 'text-signal-orange',
+            borderColor: 'border-signal-orange/30',
+        },
+        {
+            label: 'TOTAL COST',
+            value: stats.totalCost > 0 ? formatCost(stats.totalCost) : '\u2014',
+            icon: DollarSign,
+            color: 'text-signal-green',
+            borderColor: 'border-signal-green/30',
+        },
+        {
+            label: 'AVG DURATION',
+            value: stats.avgDurationMs > 0 ? formatDurationHuman(stats.avgDurationMs) : '\u2014',
+            icon: Clock,
+            color: 'text-signal-cyan',
+            borderColor: 'border-signal-cyan/30',
+        },
+        {
+            label: 'ERROR RATE',
+            value: formatPercent(stats.errorRate),
+            icon: AlertTriangle,
+            color: stats.errorRate > 0.05 ? 'text-signal-red' : 'text-brutal-slate',
+            borderColor: stats.errorRate > 0.05 ? 'border-signal-red/30' : 'border-brutal-zinc',
+        },
+    ];
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {cards.map((card) => (
+                <FadeIn key={card.label} delay={0}>
+                    <div className={cn('bg-brutal-carbon border-2 p-4', card.borderColor)}>
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <card.icon className={cn('w-3 h-3', card.color)}/>
+                            <span className="text-[9px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                                {card.label}
+                            </span>
+                        </div>
+                        <div className={cn('text-xl font-bold font-mono', card.color)}>
+                            {card.value}
+                        </div>
+                    </div>
+                </FadeIn>
+            ))}
         </div>
     );
 }
@@ -369,12 +458,12 @@ interface StackedBarPanelProps {
     legend: LegendEntry[] | undefined;
     nameKey: 'models' | 'tools';
     isLoading: boolean;
+    className?: string;
 }
 
-function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading}: StackedBarPanelProps) {
-    if (isLoading || !buckets || !legend) return <ChartSkeleton className="h-64"/>;
+function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading, className}: StackedBarPanelProps) {
+    if (isLoading || !buckets || !legend) return <ChartSkeleton className={cn('h-64', className)}/>;
 
-    // Flatten bucket data for recharts: each bucket needs a flat object with keys per model/tool
     const names = legend.map(l => l.name);
     const chartData = buckets.map((b) => {
         const point: Record<string, string | number> = {time: b.time};
@@ -388,7 +477,7 @@ function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading}: Sta
     });
 
     return (
-        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col">
+        <div className={cn('bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col', className)}>
             <PanelHeader title={title} icon={icon}/>
             <div className="flex-1 min-h-0">
                 <ResponsiveContainer width="100%" height="100%">
@@ -425,7 +514,6 @@ function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading}: Sta
                     </BarChart>
                 </ResponsiveContainer>
             </div>
-            {/* Legend strip */}
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                 {legend.map((entry, i) => (
                     <div key={entry.name} className="flex items-center gap-1.5">
@@ -441,6 +529,265 @@ function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading}: Sta
                         </span>
                     </div>
                 ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Model Cost stacked area chart ──────────────────────────────────────────────
+
+function ModelCostChart({models, timeseries, legend, isLoading}: {
+    models: ModelSummary[] | undefined;
+    timeseries: ModelBucket[] | undefined;
+    legend: LegendEntry[] | undefined;
+    isLoading: boolean;
+}) {
+    const chartData = useMemo(() => {
+        if (!models || !timeseries || !legend) return [];
+
+        // Compute cost-per-call for each model to distribute cost across time buckets
+        const costPerCall: Record<string, number> = {};
+        for (const m of models) {
+            costPerCall[m.name] = m.calls > 0 ? m.cost / m.calls : 0;
+        }
+
+        const names = legend.map(l => l.name);
+        return timeseries.map((b) => {
+            const point: Record<string, string | number> = {time: b.time};
+            for (const name of names) {
+                const calls = b.models[name] ?? 0;
+                point[name] = Number((calls * (costPerCall[name] ?? 0)).toFixed(6));
+            }
+            return point;
+        });
+    }, [models, timeseries, legend]);
+
+    if (isLoading || !legend || chartData.length === 0) return <ChartSkeleton className="h-72"/>;
+
+    const names = legend.map(l => l.name);
+    const totalCost = models?.reduce((s, m) => s + m.cost, 0) ?? 0;
+
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-72 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <DollarSign className="w-3.5 h-3.5 text-signal-green"/>
+                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                        Model Cost
+                    </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-signal-green">
+                    {formatCost(totalCost)}
+                </span>
+            </div>
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
+                        <XAxis
+                            dataKey="time"
+                            tickFormatter={formatBucketTime}
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            width={50}
+                            tickFormatter={(v: number) => formatCost(v)}
+                        />
+                        <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={((value: number, name: string) => [formatCost(value), name]) as never}
+                            labelFormatter={((label: string) => formatBucketTime(label)) as never}
+                        />
+                        {names.map((name, i) => (
+                            <Area
+                                key={name}
+                                type="monotone"
+                                dataKey={name}
+                                stackId="cost"
+                                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                                fillOpacity={0.6}
+                                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                                strokeWidth={1}
+                                name={name}
+                            />
+                        ))}
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                {models?.filter(m => m.cost > 0).map((m, i) => (
+                    <div key={m.name} className="flex items-center gap-1.5">
+                        <div
+                            className="w-2 h-2"
+                            style={{backgroundColor: CHART_COLORS[i % CHART_COLORS.length]}}
+                        />
+                        <span className="text-[10px] text-brutal-slate truncate max-w-[120px]" title={m.name}>
+                            {m.name}
+                        </span>
+                        <span className="text-[10px] text-signal-green font-bold">
+                            {formatCost(m.cost)}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── Token Types breakdown (input vs output per model) ──────────────────────────
+
+function TokenTypesChart({models, isLoading}: { models: ModelSummary[] | undefined; isLoading: boolean }) {
+    if (isLoading || !models || models.length === 0) return <ChartSkeleton className="h-64"/>;
+
+    const INPUT_COLOR = 'oklch(0.80 0.15 210)';   // cyan
+    const OUTPUT_COLOR = 'oklch(0.70 0.20 45)';    // orange
+
+    const chartData = models
+        .filter(m => m.inputTokens > 0 || m.outputTokens > 0)
+        .map(m => ({
+            name: m.name,
+            input: m.inputTokens,
+            output: m.outputTokens,
+        }));
+
+    if (chartData.length === 0) {
+        return (
+            <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col">
+                <PanelHeader title="Token Types" icon={Hash}/>
+                <div className="flex-1 flex items-center justify-center">
+                    <span className="text-xs text-brutal-slate">No token data</span>
+                </div>
+            </div>
+        );
+    }
+
+    const totalInput = models.reduce((s, m) => s + m.inputTokens, 0);
+    const totalOutput = models.reduce((s, m) => s + m.outputTokens, 0);
+
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Hash className="w-3.5 h-3.5 text-brutal-slate"/>
+                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                        Token Types
+                    </span>
+                </div>
+                <div className="flex gap-3">
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2" style={{backgroundColor: INPUT_COLOR}}/>
+                        <span className="text-[10px] text-brutal-slate">Input {formatCompact(totalInput)}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                        <div className="w-2 h-2" style={{backgroundColor: OUTPUT_COLOR}}/>
+                        <span className="text-[10px] text-brutal-slate">Output {formatCompact(totalOutput)}</span>
+                    </div>
+                </div>
+            </div>
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{top: 4, right: 8, bottom: 0, left: 0}}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} horizontal={false}/>
+                        <XAxis
+                            type="number"
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            tickFormatter={formatCompact}
+                        />
+                        <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            width={100}
+                        />
+                        <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={((value: number, name: string) => [
+                                formatCompact(value),
+                                name === 'input' ? 'Input Tokens' : 'Output Tokens',
+                            ]) as never}
+                        />
+                        <Bar dataKey="input" stackId="tokens" fill={INPUT_COLOR} name="input"/>
+                        <Bar dataKey="output" stackId="tokens" fill={OUTPUT_COLOR} name="output"/>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+    );
+}
+
+// ── Tool Errors chart ──────────────────────────────────────────────────────────
+
+function ToolErrorsChart({tools, isLoading}: { tools: ToolSummary[] | undefined; isLoading: boolean }) {
+    if (isLoading || !tools) return <ChartSkeleton className="h-56"/>;
+
+    const errorTools = tools.filter(t => t.errorRate > 0).sort((a, b) => b.errorRate - a.errorRate);
+
+    if (errorTools.length === 0) {
+        return (
+            <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-56 flex flex-col">
+                <PanelHeader title="Tool Errors" icon={AlertTriangle}/>
+                <div className="flex-1 flex items-center justify-center">
+                    <span className="text-xs text-signal-green">No tool errors detected</span>
+                </div>
+            </div>
+        );
+    }
+
+    const chartData = errorTools.slice(0, 8).map(t => ({
+        name: t.name,
+        errorRate: Number((t.errorRate * 100).toFixed(1)),
+        calls: t.calls,
+    }));
+
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-56 flex flex-col">
+            <PanelHeader title="Tool Errors" icon={AlertTriangle}/>
+            <div className="flex-1 min-h-0">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                        data={chartData}
+                        layout="vertical"
+                        margin={{top: 4, right: 8, bottom: 0, left: 0}}
+                    >
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE} horizontal={false}/>
+                        <XAxis
+                            type="number"
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            tickFormatter={(v: number) => `${v}%`}
+                        />
+                        <YAxis
+                            type="category"
+                            dataKey="name"
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            width={100}
+                        />
+                        <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={((value: number, name: string) => [
+                                name === 'errorRate' ? `${value}%` : formatCompact(value),
+                                name === 'errorRate' ? 'Error Rate' : 'Total Calls',
+                            ]) as never}
+                        />
+                        <Bar dataKey="errorRate" fill="oklch(0.65 0.25 25)" name="errorRate"/>
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );
@@ -464,7 +811,6 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
 
     return (
         <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-            {/* Header */}
             <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-brutal-zinc">
                 <Bot className="w-3.5 h-3.5 text-signal-orange"/>
                 <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
@@ -475,7 +821,6 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
                 </span>
             </div>
 
-            {/* Column headers */}
             <div
                 className="grid grid-cols-[80px_1fr_80px_60px_60px_60px_80px_70px_70px] gap-2 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider uppercase">
                 <div>TRACE</div>
@@ -489,7 +834,6 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
                 <div className="text-right">WHEN</div>
             </div>
 
-            {/* Rows */}
             {isLoading ? (
                 Array.from({length: 5}).map((_, i) => <TableRowSkeleton key={i}/>)
             ) : !traces || traces.length === 0 ? (
@@ -505,7 +849,12 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
                         role="button"
                         tabIndex={0}
                         onClick={() => onSelectTrace(t.traceId)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectTrace(t.traceId); } }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                onSelectTrace(t.traceId);
+                            }
+                        }}
                     >
                         <div
                             className="font-mono text-xs text-signal-violet group-hover:text-signal-orange transition-colors truncate">
@@ -548,7 +897,6 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
                 ))
             )}
 
-            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-2 border-t-2 border-brutal-zinc">
                     <span className="text-[10px] text-brutal-slate">
@@ -580,27 +928,36 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
     );
 }
 
+// ── Span type icon helper ──────────────────────────────────────────────────────
+
+function SpanTypeIcon({span}: { span: { provider?: string | null; model?: string | null; toolName?: string | null; name: string } }) {
+    if (span.toolName) {
+        return <Wrench className="w-3.5 h-3.5 text-signal-cyan flex-shrink-0"/>;
+    }
+    if (span.model || span.provider) {
+        return <Brain className="w-3.5 h-3.5 text-signal-violet flex-shrink-0"/>;
+    }
+    const name = span.name.toLowerCase();
+    if (name.includes('agent') || name.includes('invoke') || name.includes('orchestrat')) {
+        return <Bot className="w-3.5 h-3.5 text-signal-orange flex-shrink-0"/>;
+    }
+    return <Zap className="w-3 h-3 text-brutal-zinc flex-shrink-0"/>;
+}
+
 // ── Trace detail slide-in ──────────────────────────────────────────────────────
 
-function TraceSlideIn({
-                          traceId,
-                          onClose,
-                      }: {
-    traceId: string;
-    onClose: () => void;
-}) {
+function TraceSlideIn({traceId, onClose}: { traceId: string; onClose: () => void }) {
     const {data, isLoading} = useTraceSpans(traceId);
     const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
     const spans = data?.spans ?? [];
 
-    // Find root span (no parentSpanId) to determine trace start time
     const rootSpan = spans.find(s => !s.parentSpanId);
     const traceStart = rootSpan ? new Date(rootSpan.timestamp).getTime() : 0;
     const traceEnd = rootSpan ? traceStart + rootSpan.durationMs : 0;
     const traceDuration = traceEnd - traceStart;
 
-    // Filter to AI-relevant spans (gen_ai.* and tool spans)
+    // Filter to AI-relevant spans
     const aiSpans = spans.filter(s => {
         const name = s.name.toLowerCase();
         return s.provider || s.model || s.toolName
@@ -614,14 +971,16 @@ function TraceSlideIn({
         ? spans.find(s => s.spanId === selectedSpanId) ?? null
         : null;
 
+    // Compute trace-level stats
+    const traceCost = spans.reduce((s, sp) => s + (sp.cost ?? 0), 0);
+    const traceTokens = spans.reduce((s, sp) => s + (sp.inputTokens ?? 0) + (sp.outputTokens ?? 0), 0);
+
     return (
         <>
-            {/* Overlay */}
             <div
                 className="fixed inset-0 bg-brutal-black/60 z-40"
                 onClick={onClose}
             />
-            {/* Panel */}
             <div
                 className="fixed top-0 right-0 bottom-0 w-[clamp(600px,55vw,900px)] z-50 bg-brutal-carbon border-l-3 border-brutal-zinc flex flex-col shadow-brutal-lg animate-data-stream">
                 {/* Header */}
@@ -644,13 +1003,25 @@ function TraceSlideIn({
                             <ExternalLink className="w-3.5 h-3.5"/>
                         </a>
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="text-brutal-slate hover:text-signal-orange transition-colors p-1"
-                        aria-label="Close trace detail"
-                    >
-                        <X className="w-5 h-5"/>
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {traceCost > 0 && (
+                            <span className="text-[10px] font-mono text-signal-green">
+                                {formatCost(traceCost)}
+                            </span>
+                        )}
+                        {traceTokens > 0 && (
+                            <span className="text-[10px] font-mono text-brutal-slate">
+                                {formatCompact(traceTokens)} tok
+                            </span>
+                        )}
+                        <button
+                            onClick={onClose}
+                            className="text-brutal-slate hover:text-signal-orange transition-colors p-1"
+                            aria-label="Close trace detail"
+                        >
+                            <X className="w-5 h-5"/>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body */}
@@ -681,7 +1052,9 @@ function TraceSlideIn({
                                             ? 'oklch(0.65 0.25 25)'
                                             : span.toolName
                                                 ? 'oklch(0.80 0.15 210)'
-                                                : 'oklch(0.60 0.25 300)';
+                                                : span.model || span.provider
+                                                    ? 'oklch(0.60 0.25 300)'
+                                                    : 'oklch(0.45 0.18 280)';
 
                                         return (
                                             <div
@@ -695,16 +1068,36 @@ function TraceSlideIn({
                                                 role="button"
                                                 tabIndex={0}
                                                 onClick={() => setSelectedSpanId(isSelected ? null : span.spanId)}
-                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedSpanId(isSelected ? null : span.spanId); } }}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter' || e.key === ' ') {
+                                                        e.preventDefault();
+                                                        setSelectedSpanId(isSelected ? null : span.spanId);
+                                                    }
+                                                }}
                                             >
-                                                <div className="w-[140px] flex-shrink-0">
-                                                    <p className="text-[11px] text-brutal-white truncate"
-                                                       title={span.name}>
+                                                <SpanTypeIcon span={span}/>
+                                                <div className="w-[130px] flex-shrink-0">
+                                                    <p className={cn(
+                                                        'text-[11px] truncate',
+                                                        isError ? 'text-signal-red' : 'text-brutal-white'
+                                                    )} title={span.name}>
                                                         {span.name}
                                                     </p>
-                                                    <p className="text-[10px] text-brutal-zinc">
-                                                        {formatDurationHuman(span.durationMs)}
-                                                    </p>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] text-brutal-zinc">
+                                                            {formatDurationHuman(span.durationMs)}
+                                                        </span>
+                                                        {span.cost != null && span.cost > 0 && (
+                                                            <span className="text-[9px] text-signal-green">
+                                                                {formatCost(span.cost)}
+                                                            </span>
+                                                        )}
+                                                        {(span.inputTokens != null || span.outputTokens != null) && (
+                                                            <span className="text-[9px] text-brutal-zinc">
+                                                                {formatCompact((span.inputTokens ?? 0) + (span.outputTokens ?? 0))}t
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 <div className="flex-1 h-5 bg-brutal-black relative">
                                                     <div
@@ -806,41 +1199,27 @@ function ModelsTab({filter}: { filter: TimeFilter }) {
 
     return (
         <div className="space-y-6">
-            {/* Table */}
-            <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-brutal-zinc">
-                    <Cpu className="w-3.5 h-3.5 text-signal-violet"/>
-                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
-                        Model Breakdown
-                    </span>
-                </div>
-                <div
-                    className="grid grid-cols-[1fr_80px_90px_90px_80px_90px_80px] gap-2 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider uppercase">
-                    <div>MODEL</div>
-                    <div className="text-right">CALLS</div>
-                    <div className="text-right">INPUT TOK</div>
-                    <div className="text-right">OUTPUT TOK</div>
-                    <div className="text-right">COST</div>
-                    <div className="text-right">AVG LATENCY</div>
-                    <div className="text-right">ERR RATE</div>
-                </div>
-                {isLoading ? (
-                    Array.from({length: 4}).map((_, i) => <TableRowSkeleton key={i}/>)
-                ) : !data?.models?.length ? (
-                    <div className="py-10 text-center text-xs text-brutal-slate">No model data found</div>
-                ) : (
-                    data.models.map((m) => (
-                        <ModelRow key={m.name} model={m}/>
-                    ))
-                )}
+            {/* Model Cost + Token Types side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <FadeIn delay={0}>
+                    <ModelCostChart
+                        models={data?.models}
+                        timeseries={data?.timeseries}
+                        legend={data?.legend}
+                        isLoading={isLoading}
+                    />
+                </FadeIn>
+                <FadeIn delay={50}>
+                    <TokenTypesChart models={data?.models} isLoading={isLoading}/>
+                </FadeIn>
             </div>
 
-            {/* Time-series chart */}
+            {/* Tokens used timeseries */}
             {data?.timeseries && data.legend && (
                 <FadeIn delay={100}>
                     <StackedBarPanel
-                        title="Model Usage Over Time"
-                        icon={Cpu}
+                        title="Tokens Over Time"
+                        icon={Coins}
                         buckets={data.timeseries}
                         legend={data.legend}
                         nameKey="models"
@@ -848,6 +1227,37 @@ function ModelsTab({filter}: { filter: TimeFilter }) {
                     />
                 </FadeIn>
             )}
+
+            {/* Models table */}
+            <FadeIn delay={150}>
+                <div className="border-2 border-brutal-zinc bg-brutal-carbon">
+                    <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-brutal-zinc">
+                        <Cpu className="w-3.5 h-3.5 text-signal-violet"/>
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                            Model Breakdown
+                        </span>
+                    </div>
+                    <div
+                        className="grid grid-cols-[1fr_80px_90px_90px_80px_90px_80px] gap-2 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider uppercase">
+                        <div>MODEL</div>
+                        <div className="text-right">CALLS</div>
+                        <div className="text-right">INPUT TOK</div>
+                        <div className="text-right">OUTPUT TOK</div>
+                        <div className="text-right">COST</div>
+                        <div className="text-right">AVG LATENCY</div>
+                        <div className="text-right">ERR RATE</div>
+                    </div>
+                    {isLoading ? (
+                        Array.from({length: 4}).map((_, i) => <TableRowSkeleton key={i}/>)
+                    ) : !data?.models?.length ? (
+                        <div className="py-10 text-center text-xs text-brutal-slate">No model data found</div>
+                    ) : (
+                        data.models.map((m) => (
+                            <ModelRow key={m.name} model={m}/>
+                        ))
+                    )}
+                </div>
+            </FadeIn>
         </div>
     );
 }
@@ -889,45 +1299,52 @@ function ToolsTab({filter}: { filter: TimeFilter }) {
 
     return (
         <div className="space-y-6">
-            {/* Table */}
-            <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-brutal-zinc">
-                    <Wrench className="w-3.5 h-3.5 text-signal-cyan"/>
-                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
-                        Tool Breakdown
-                    </span>
-                </div>
-                <div
-                    className="grid grid-cols-[1fr_100px_100px_100px] gap-2 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider uppercase">
-                    <div>TOOL</div>
-                    <div className="text-right">CALLS</div>
-                    <div className="text-right">AVG LATENCY</div>
-                    <div className="text-right">ERR RATE</div>
-                </div>
-                {isLoading ? (
-                    Array.from({length: 4}).map((_, i) => <TableRowSkeleton key={i}/>)
-                ) : !data?.tools?.length ? (
-                    <div className="py-10 text-center text-xs text-brutal-slate">No tool data found</div>
-                ) : (
-                    data.tools.map((t) => (
-                        <ToolRow key={t.name} tool={t}/>
-                    ))
+            {/* Tool Calls timeseries + Tool Errors side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {data?.timeseries && data.legend && (
+                    <FadeIn delay={0}>
+                        <StackedBarPanel
+                            title="Tool Usage Over Time"
+                            icon={Wrench}
+                            buckets={data.timeseries}
+                            legend={data.legend}
+                            nameKey="tools"
+                            isLoading={false}
+                        />
+                    </FadeIn>
                 )}
+                <FadeIn delay={50}>
+                    <ToolErrorsChart tools={data?.tools} isLoading={isLoading}/>
+                </FadeIn>
             </div>
 
-            {/* Time-series chart */}
-            {data?.timeseries && data.legend && (
-                <FadeIn delay={100}>
-                    <StackedBarPanel
-                        title="Tool Usage Over Time"
-                        icon={Wrench}
-                        buckets={data.timeseries}
-                        legend={data.legend}
-                        nameKey="tools"
-                        isLoading={false}
-                    />
-                </FadeIn>
-            )}
+            {/* Tools table */}
+            <FadeIn delay={100}>
+                <div className="border-2 border-brutal-zinc bg-brutal-carbon">
+                    <div className="flex items-center gap-2 px-4 py-2 border-b-2 border-brutal-zinc">
+                        <Wrench className="w-3.5 h-3.5 text-signal-cyan"/>
+                        <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                            Tool Breakdown
+                        </span>
+                    </div>
+                    <div
+                        className="grid grid-cols-[1fr_100px_100px_100px] gap-2 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider uppercase">
+                        <div>TOOL</div>
+                        <div className="text-right">CALLS</div>
+                        <div className="text-right">AVG LATENCY</div>
+                        <div className="text-right">ERR RATE</div>
+                    </div>
+                    {isLoading ? (
+                        Array.from({length: 4}).map((_, i) => <TableRowSkeleton key={i}/>)
+                    ) : !data?.tools?.length ? (
+                        <div className="py-10 text-center text-xs text-brutal-slate">No tool data found</div>
+                    ) : (
+                        data.tools.map((t) => (
+                            <ToolRow key={t.name} tool={t}/>
+                        ))
+                    )}
+                </div>
+            </FadeIn>
         </div>
     );
 }
@@ -953,7 +1370,7 @@ function ToolRow({tool}: { tool: ToolSummary }) {
     );
 }
 
-// ── Overview tab (6 panels + trace table) ──────────────────────────────────────
+// ── Overview tab (3x2 chart grid + trace table) ─────────────────────────────────
 
 function OverviewTab({filter}: { filter: TimeFilter }) {
     const traffic = useAgentTraffic(filter);
@@ -971,8 +1388,8 @@ function OverviewTab({filter}: { filter: TimeFilter }) {
 
     return (
         <div className="space-y-6">
-            {/* 6-panel chart grid */}
-            <div className="grid grid-cols-3 gap-4">
+            {/* 3x2 chart grid — responsive: 3-col (xl), 2-col (md), 1-col (sm) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                 <FadeIn delay={0}>
                     <TrafficPanel data={traffic.data?.buckets} isLoading={traffic.isLoading}/>
                 </FadeIn>
@@ -1027,7 +1444,6 @@ function OverviewTab({filter}: { filter: TimeFilter }) {
                 />
             </FadeIn>
 
-            {/* Trace detail slide-in */}
             {selectedTraceId && (
                 <TraceSlideIn
                     traceId={selectedTraceId}
@@ -1043,7 +1459,6 @@ function OverviewTab({filter}: { filter: TimeFilter }) {
 export function AgentsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
-    // Tab state from URL
     const activeTab = searchParams.get('tab') ?? 'overview';
     const setActiveTab = useCallback((tab: string) => {
         setSearchParams(prev => {
@@ -1053,7 +1468,6 @@ export function AgentsPage() {
         }, {replace: true});
     }, [setSearchParams]);
 
-    // Time range from URL with default 24h
     const presetMs = Number(searchParams.get('range')) || PRESETS[0].ms;
     const filter: TimeFilter = useMemo(() => {
         const to = Date.now();
@@ -1069,8 +1483,34 @@ export function AgentsPage() {
         }, {replace: true});
     }, [setSearchParams]);
 
-    // Search filter (local state, not URL for performance)
     const [search, setSearch] = useState('');
+
+    // Summary card data — React Query deduplicates with OverviewTab's calls
+    const trafficQuery = useAgentTraffic(filter);
+    const modelsQuery = useAgentModels(filter);
+    const durationQuery = useAgentDuration(filter);
+
+    const summaryStats = useMemo<SummaryStats | null>(() => {
+        const buckets = trafficQuery.data?.buckets;
+        const models = modelsQuery.data?.models;
+        const durBuckets = durationQuery.data?.buckets;
+
+        if (!buckets) return null;
+
+        const totalRuns = buckets.reduce((s, b) => s + b.runs, 0);
+        const totalErrors = buckets.reduce((s, b) => s + b.errors, 0);
+        const errorRate = totalRuns > 0 ? totalErrors / totalRuns : 0;
+        const totalCost = models?.reduce((s, m) => s + m.cost, 0) ?? 0;
+
+        let avgDurationMs = 0;
+        if (durBuckets && durBuckets.length > 0) {
+            avgDurationMs = durBuckets.reduce((s, b) => s + b.avgMs, 0) / durBuckets.length;
+        }
+
+        return {totalRuns, totalCost, avgDurationMs, errorRate};
+    }, [trafficQuery.data, modelsQuery.data, durationQuery.data]);
+
+    const summaryLoading = trafficQuery.isLoading || modelsQuery.isLoading || durationQuery.isLoading;
 
     return (
         <div className="p-6 space-y-5">
@@ -1084,7 +1524,6 @@ export function AgentsPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Search */}
                     <div className="relative">
                         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brutal-slate"/>
                         <Input
@@ -1096,7 +1535,6 @@ export function AgentsPage() {
                         />
                     </div>
 
-                    {/* Time range presets */}
                     <div className="flex border-2 border-brutal-zinc">
                         {PRESETS.map(p => (
                             <button
@@ -1116,6 +1554,9 @@ export function AgentsPage() {
                 </div>
             </div>
 
+            {/* Summary stat cards — always visible */}
+            <SummaryCards stats={summaryStats} isLoading={summaryLoading}/>
+
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="bg-brutal-dark border-2 border-brutal-zinc p-0 h-auto">
@@ -1123,7 +1564,7 @@ export function AgentsPage() {
                         value="overview"
                         className="text-[10px] font-bold tracking-[0.15em] uppercase px-4 py-2 data-[state=active]:bg-signal-orange/20 data-[state=active]:text-signal-orange data-[state=active]:border-b-2 data-[state=active]:border-signal-orange text-brutal-slate hover:text-brutal-white transition-colors"
                     >
-                        <Hash className="w-3.5 h-3.5 mr-1.5"/>
+                        <TrendingUp className="w-3.5 h-3.5 mr-1.5"/>
                         Overview
                     </TabsTrigger>
                     <TabsTrigger

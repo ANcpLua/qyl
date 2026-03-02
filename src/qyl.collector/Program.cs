@@ -54,11 +54,13 @@ var port = builder.Configuration.GetValue<int?>("QYL_PORT")
            ?? builder.Configuration.GetValue<int?>("PORT")
            ?? 5100;
 var grpcPort = builder.Configuration.GetValue("QYL_GRPC_PORT", 4317);
+var otlpHttpPort = builder.Configuration.GetValue("QYL_OTLP_PORT", 4318);
 
 // Startup diagnostics for Railway debugging
 Console.WriteLine(
     $"[qyl] Starting on port {port} (QYL_PORT={Environment.GetEnvironmentVariable("QYL_PORT")}, PORT={Environment.GetEnvironmentVariable("PORT")})");
 Console.WriteLine($"[qyl] gRPC port: {grpcPort} (0=disabled)");
+Console.WriteLine($"[qyl] OTLP HTTP port: {otlpHttpPort} (0=disabled, falls back to {port})");
 var token = builder.Configuration["QYL_TOKEN"] ?? TokenGenerator.Generate();
 var dataPath = builder.Configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
 
@@ -67,12 +69,18 @@ var dataDir = Path.GetDirectoryName(dataPath);
 if (!string.IsNullOrEmpty(dataDir))
     Directory.CreateDirectory(dataDir);
 
-// Configure Kestrel for HTTP (Dashboard/API) and optional gRPC (OTLP) endpoints
-// Set QYL_GRPC_PORT=0 to disable gRPC endpoint (useful on Railway/single-port platforms)
+// Configure Kestrel for Dashboard/API, OTLP HTTP (standard 4318), and gRPC (standard 4317)
+// Set QYL_GRPC_PORT=0 or QYL_OTLP_PORT=0 to disable individual listeners
 builder.WebHost.ConfigureKestrel(options =>
 {
-    // HTTP endpoint for Dashboard, REST API, and OTLP HTTP (/v1/traces)
+    // HTTP endpoint for Dashboard, REST API, and SSE streaming
     options.ListenAnyIP(port, listenOptions => { listenOptions.Protocols = HttpProtocols.Http1AndHttp2; });
+
+    // OTLP HTTP endpoint (standard port 4318) — dedicated listener for /v1/traces, /v1/logs
+    if (otlpHttpPort > 0 && otlpHttpPort != port)
+    {
+        options.ListenAnyIP(otlpHttpPort, listenOptions => { listenOptions.Protocols = HttpProtocols.Http1AndHttp2; });
+    }
 
     // gRPC endpoint for OTLP gRPC (TraceService.Export) - disabled when grpcPort <= 0
     if (grpcPort > 0)
@@ -106,7 +114,6 @@ builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<MigrationRunner>();
 builder.Services.AddSingleton<SourceLocationCache>();
 builder.Services.AddSingleton<PdbSourceResolver>();
-builder.Services.AddSingleton<LogSourceEnricher>();
 builder.Services.AddSingleton<IBuildFailureStore>(_ =>
 {
     var maxRetainedFailures = builder.Configuration.GetValue("QYL_MAX_BUILD_FAILURES", 10);
@@ -335,10 +342,12 @@ app.MapGet("/api/v1/meta", () =>
         Links = new MetaLinks
         {
             Dashboard = hasEmbeddedDashboard ? $"http://localhost:{port}" : null,
-            OtlpHttp = $"http://localhost:{port}/v1/traces",
+            OtlpHttp = otlpHttpPort > 0
+                ? $"http://localhost:{otlpHttpPort}/v1/traces"
+                : $"http://localhost:{port}/v1/traces",
             OtlpGrpc = grpcPort > 0 ? $"http://localhost:{grpcPort}" : null
         },
-        Ports = new MetaPorts { Http = port, Grpc = grpcPort }
+        Ports = new MetaPorts { Http = port, Grpc = grpcPort, OtlpHttp = otlpHttpPort }
     });
 });
 
@@ -660,7 +669,7 @@ app.MapFallback(context =>
 // Note: Kestrel endpoints are configured via ConfigureKestrel above
 // No need to set app.Urls when using explicit Kestrel configuration
 
-StartupBanner.Print($"http://localhost:{port}", port, grpcPort, otlpCorsOptions, otlpApiKeyOptions);
+StartupBanner.Print($"http://localhost:{port}", port, grpcPort, otlpHttpPort, otlpCorsOptions, otlpApiKeyOptions);
 
 // Log when application is ready to accept requests
 app.Lifetime.ApplicationStarted.Register(() =>

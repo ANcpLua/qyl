@@ -49,6 +49,12 @@ public static class CopilotServiceExtensions
         var llmOptions = LlmProviderFactory.BindOptions(configuration);
         services.AddSingleton(llmOptions);
 
+        // BYOK client — always registered so visitors can provide their own API key
+        services.AddHttpClient("qyl-llm-byok");
+
+        // GitHub Models client — automatic free fallback using user's GitHub token
+        services.AddHttpClient("qyl-llm-github-models");
+
         if (llmOptions.IsConfigured)
         {
             services.AddHttpClient("qyl-llm").AddStandardResilienceHandler();
@@ -124,7 +130,7 @@ public static class CopilotServiceExtensions
     ///     <code>
     /// // Simple registration:
     /// builder.Services.AddQylCopilotTelemetry();
-    /// 
+    ///
     /// // Or with explicit builder configuration:
     /// builder.Services.AddOpenTelemetry()
     ///     .WithTracing(t => t.AddQylCopilotInstrumentation())
@@ -201,12 +207,7 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
 
         _lock.Dispose();
 
-        if (_adapter is not null)
-        {
-            return _adapter.DisposeAsync();
-        }
-
-        return default;
+        return _adapter?.DisposeAsync() ?? default;
     }
 
     /// <summary>
@@ -282,12 +283,7 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
 
         _lock.Dispose();
 
-        if (_engine is not null)
-        {
-            return _engine.DisposeAsync();
-        }
-
-        return default;
+        return _engine?.DisposeAsync() ?? default;
     }
 
     /// <summary>

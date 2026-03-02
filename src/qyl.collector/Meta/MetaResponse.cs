@@ -63,4 +63,5 @@ public sealed record MetaPorts
 {
     public int Http { get; init; }
     public int Grpc { get; init; }
+    public int OtlpHttp { get; init; }
 }

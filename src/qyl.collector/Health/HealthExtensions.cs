@@ -1,7 +1,5 @@
 using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using Qyl.Common;
-using Qyl.Models;
 using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace qyl.collector.Health;
@@ -65,11 +63,20 @@ public static class HealthExtensions
     /// </summary>
     public static IEndpointRouteBuilder MapQylHealthChecks(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/alive", RunProbe("live")).WithName("LivenessCheck");
-        app.MapGet("/health", RunProbe("ready")).WithName("HealthCheck");
-        app.MapGet("/ready", RunProbe("ready")).WithName("ReadyCheck");
+        var health = app.MapGroup("")
+            .AddEndpointFilter(static async (context, next) =>
+            {
+                var result = await next(context);
+                context.HttpContext.Response.Headers.CacheControl = "no-store";
+                context.HttpContext.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                return result;
+            });
 
-        app.MapGet("/health/ui", static async (HealthUiService healthUi, CancellationToken ct) =>
+        health.MapGet("/alive", RunProbe("live")).WithName("LivenessCheck");
+        health.MapGet("/health", RunProbe("ready")).WithName("HealthCheck");
+        health.MapGet("/ready", RunProbe("ready")).WithName("ReadyCheck");
+
+        health.MapGet("/health/ui", static async (HealthUiService healthUi, CancellationToken ct) =>
             Results.Ok(await healthUi.GetHealthAsync(ct).ConfigureAwait(false)));
 
         return app;

@@ -358,15 +358,6 @@ public sealed class WorkflowEngine : IAsyncDisposable
     }
 
     /// <summary>
-    ///     Gets all workflow executions (sync convenience for backward compat).
-    /// </summary>
-    public IReadOnlyList<WorkflowExecution> GetExecutions()
-    {
-        ThrowIfDisposed();
-        return [.. _executions.Values.OrderByDescending(static e => e.StartedAt)];
-    }
-
-    /// <summary>
     ///     Gets a specific execution by ID. Falls back to persistent store if not in cache.
     /// </summary>
     public async Task<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken ct = default)
@@ -381,17 +372,6 @@ public sealed class WorkflowEngine : IAsyncDisposable
             return await _executionStore.GetExecutionAsync(executionId, ct).ConfigureAwait(false);
 
         return null;
-    }
-
-    /// <summary>
-    ///     Gets a specific execution by ID (sync, in-memory only).
-    /// </summary>
-    public WorkflowExecution? GetExecution(string executionId)
-    {
-        ThrowIfDisposed();
-        ArgumentException.ThrowIfNullOrWhiteSpace(executionId);
-
-        return _executions.GetValueOrDefault(executionId);
     }
 
     /// <summary>

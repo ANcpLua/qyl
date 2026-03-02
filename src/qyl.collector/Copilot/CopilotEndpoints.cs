@@ -1,8 +1,11 @@
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using qyl.copilot;
 using qyl.copilot.Auth;
 using qyl.copilot.Providers;
 using qyl.protocol.Copilot;
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace qyl.collector.Copilot;
 
@@ -37,32 +40,205 @@ internal static class CopilotEndpoints
         return Results.Ok(status);
     }
 
-    private static IResult GetLlmStatusAsync(LlmProviderOptions options) =>
-        Results.Ok(new LlmProviderStatus
+    private static async Task<IResult> GetLlmStatusAsync(
+        LlmProviderOptions options,
+        CopilotAuthProvider authProvider,
+        CancellationToken ct)
+    {
+        var authStatus = await authProvider.GetStatusAsync(ct).ConfigureAwait(false);
+        return Results.Ok(new LlmProviderStatus
         {
-            Configured = options.IsConfigured,
-            Provider = options.Provider,
-            Model = options.Model
+            Configured = options.IsConfigured || authStatus.IsAuthenticated,
+            Provider = options.IsConfigured ? options.Provider
+                     : authStatus.IsAuthenticated ? "github-models" : null,
+            Model = options.IsConfigured ? options.Model
+                  : authStatus.IsAuthenticated ? "gpt-4o-mini" : null
         });
+    }
 
     private static async Task ChatAsync(
         ChatRequest request,
         CopilotAdapterFactory factory,
         HttpContext ctx,
+        CopilotAuthProvider authProvider,
         LlmProviderOptions llmOptions,
+        IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
-        if (!llmOptions.IsConfigured)
+        var hasGitHubAuth = false;
+
+        // 1. Copilot adapter (free via GitHub auth) — try first
+        if ((await authProvider.GetStatusAsync(ct).ConfigureAwait(false)).IsAuthenticated)
         {
-            ctx.Response.StatusCode = 503;
-            await ctx.Response.WriteAsJsonAsync(
-                new { error = "Configure LLM provider to enable AI features. Set QYL_LLM_PROVIDER environment variable." },
-                ct).ConfigureAwait(false);
+            hasGitHubAuth = true;
+            try
+            {
+                var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
+                // Thread system prompt through context if provided
+                var context = request.Context;
+                if (request.SystemPrompt is not null)
+                {
+                    context = (context ?? new CopilotContext()) with
+                    {
+                        AdditionalContext = request.SystemPrompt +
+                            (context?.AdditionalContext is not null ? "\n\n" + context.AdditionalContext : "")
+                    };
+                }
+                await StreamSseAsync(ctx, adapter.ChatAsync(request.Prompt, context, ct), ct);
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                // Auth expired or Copilot SDK failed — fall through to GitHub Models
+            }
+        }
+
+        // 1.5. GitHub Models (free for all GitHub users — automatic fallback)
+        if (hasGitHubAuth)
+        {
+            try
+            {
+                var authResult = await authProvider.GetTokenAsync(ct).ConfigureAwait(false);
+                if (authResult is { Success: true, Token: { Length: > 0 } ghToken })
+                {
+                    var ghModelsOptions = new LlmProviderOptions
+                    {
+                        Provider = "github-models",
+                        ApiKey = ghToken,
+                        Model = "gpt-4o-mini"
+                    };
+                    var httpClient = httpClientFactory.CreateClient("qyl-llm-github-models");
+                    using var client = LlmProviderFactory.Create(ghModelsOptions, httpClient);
+                    if (client is not null)
+                    {
+                        await StreamSseAsync(ctx,
+                            StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+                        return;
+                    }
+                }
+            }
+            catch (HttpRequestException)
+            {
+                // GitHub Models unavailable (rate limit, scope issue) — fall through
+            }
+            catch (InvalidOperationException)
+            {
+                // Provider creation failed — fall through
+            }
+        }
+
+        // 2. Server-configured LLM (QYL_LLM_PROVIDER)
+        if (llmOptions.IsConfigured)
+        {
+            var httpClient = httpClientFactory.CreateClient("qyl-llm");
+            using var client = LlmProviderFactory.Create(llmOptions, httpClient);
+            if (client is not null)
+            {
+                await StreamSseAsync(ctx, StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+                return;
+            }
+        }
+
+        // 3. BYOK: visitor provides their own key per-request
+        if (request.Llm is { Provider: { Length: > 0 } } byok)
+        {
+            var byokOptions = new LlmProviderOptions
+            {
+                Provider = byok.Provider,
+                ApiKey = byok.ApiKey,
+                Model = byok.Model,
+                Endpoint = byok.Endpoint
+            };
+
+            IChatClient? client = null;
+            try
+            {
+                var httpClient = httpClientFactory.CreateClient("qyl-llm-byok");
+                client = LlmProviderFactory.Create(byokOptions, httpClient);
+                if (client is null)
+                {
+                    ctx.Response.StatusCode = 400;
+                    await ctx.Response.WriteAsJsonAsync(
+                        new { error = $"Unsupported BYOK provider: {byok.Provider}" }, ct).ConfigureAwait(false);
+                    return;
+                }
+
+                await StreamSseAsync(ctx, StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+            }
+            catch (InvalidOperationException ex)
+            {
+                ctx.Response.StatusCode = 400;
+                await ctx.Response.WriteAsJsonAsync(new { error = ex.Message }, ct).ConfigureAwait(false);
+            }
+            finally
+            {
+                client?.Dispose();
+            }
+
             return;
         }
 
-        var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
-        await StreamSseAsync(ctx, adapter.ChatAsync(request.Prompt, request.Context, ct), ct);
+        // 4. Nothing available — provide actionable guidance
+        ctx.Response.StatusCode = 503;
+        var errorMessage = hasGitHubAuth
+            ? "GitHub connected but all automatic providers failed. " +
+              "Configure an LLM (QYL_LLM_PROVIDER=ollama|openai|anthropic|github-models) or provide an API key in Settings."
+            : "No LLM configured. Options: (1) Connect GitHub for free GitHub Models access, " +
+              "(2) set QYL_LLM_PROVIDER + QYL_LLM_API_KEY, or (3) provide an API key in Settings.";
+
+        await ctx.Response.WriteAsJsonAsync(new
+        {
+            error = errorMessage,
+            byokSupported = true,
+            gitHubAuthenticated = hasGitHubAuth
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     Streams chat responses from a BYOK IChatClient as StreamUpdate events.
+    ///     No GitHub Copilot SDK required — uses Microsoft.Extensions.AI directly.
+    /// </summary>
+    private static async IAsyncEnumerable<StreamUpdate> StreamByokChatAsync(
+        IChatClient client,
+        string prompt,
+        string? systemPrompt = null,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        IAsyncEnumerable<ChatResponseUpdate> streaming;
+        if (systemPrompt is not null)
+        {
+            var messages = new List<AiChatMessage>
+            {
+                new(AiChatRole.System, systemPrompt),
+                new(AiChatRole.User, prompt)
+            };
+            streaming = client.GetStreamingResponseAsync(messages, cancellationToken: ct);
+        }
+        else
+        {
+            streaming = client.GetStreamingResponseAsync(prompt, cancellationToken: ct);
+        }
+
+        await foreach (var update in streaming.ConfigureAwait(false))
+        {
+            var now = TimeProvider.System.GetUtcNow();
+            var text = update.Text;
+            if (!string.IsNullOrEmpty(text))
+            {
+                yield return new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.Content,
+                    Content = text,
+                    Timestamp = now
+                };
+            }
+        }
+
+        yield return new StreamUpdate
+        {
+            Kind = StreamUpdateKind.Completed,
+            Timestamp = TimeProvider.System.GetUtcNow()
+        };
     }
 
     private static async Task<IResult> GetWorkflowsAsync(
@@ -271,6 +447,7 @@ internal sealed record WorkflowListResponse
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(ChatRequest))]
+[JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(StreamUpdate))]
 [JsonSerializable(typeof(WorkflowDto))]

@@ -1,12 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
-
-// ── Fetch utility ──────────────────────────────────────────────────────────────
-
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {credentials: 'include'});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
-}
+import {fetchJson} from '@/lib/api';
 
 // ── Shared filter types ────────────────────────────────────────────────────────
 

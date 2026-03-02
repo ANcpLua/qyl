@@ -25,7 +25,7 @@ Polyglot OTLP collector — like Grafana/Jaeger, but for AI. Docker image IS the
 ## Quick Start
 
 ```bash
-dotnet run --project src/qyl.collector          # Backend (5100/4317)
+dotnet run --project src/qyl.collector          # Backend (5100/4317/4318)
 cd src/qyl.dashboard && npm run dev             # Frontend (5173)
 nuke Full                                        # Full build
 nuke Generate --force-generate                   # Regenerate types
@@ -84,18 +84,20 @@ forbidden:
 
 ## Ports
 
-| Port | Protocol | Purpose                  |
-|------|----------|--------------------------|
-| 5100 | HTTP     | REST API, SSE, Dashboard |
-| 4317 | gRPC     | OTLP traces/logs/metrics |
-| 5173 | HTTP     | Dashboard dev server     |
+| Port | Protocol | Purpose                              |
+|------|----------|--------------------------------------|
+| 5100 | HTTP     | Dashboard, REST API, SSE             |
+| 4317 | gRPC     | OTLP traces/logs/metrics (standard)  |
+| 4318 | HTTP     | OTLP HTTP traces/logs (standard)     |
+| 5173 | HTTP     | Dashboard dev server (Vite)          |
 
 ## Environment Variables
 
-| Variable                        | Default      | Purpose                    |
-|---------------------------------|--------------|----------------------------|
-| `QYL_PORT`                      | 5100         | HTTP API port              |
+| Variable                        | Default      | Purpose                     |
+|---------------------------------|--------------|-----------------------------|
+| `QYL_PORT`                      | 5100         | Dashboard + REST API port   |
 | `QYL_GRPC_PORT`                 | 4317         | gRPC OTLP port (0=disable) |
+| `QYL_OTLP_PORT`                 | 4318         | HTTP OTLP port (0=disable) |
 | `QYL_DATA_PATH`                 | ./qyl.duckdb | DuckDB file location       |
 | `QYL_TOKEN`                     | (none)       | Auth token                 |
 | `QYL_MAX_RETENTION_DAYS`        | 30           | Telemetry retention        |

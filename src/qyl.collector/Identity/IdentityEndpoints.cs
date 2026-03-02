@@ -100,7 +100,7 @@ public static class IdentityEndpoints
         // --- Environment sub-routes under project ---
 
         group.MapGet("/{workspaceId}/projects/{projectId}/environments", static async (
-            string workspaceId, string projectId,
+            string _, string projectId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var envs = await service.ListEnvironmentsAsync(projectId, ct);
@@ -122,7 +122,7 @@ public static class IdentityEndpoints
         });
 
         group.MapDelete("/{workspaceId}/projects/{projectId}/environments/{environmentId}", static async (
-            string workspaceId, string projectId, string environmentId,
+            string _, string _, string environmentId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteEnvironmentAsync(environmentId, ct);

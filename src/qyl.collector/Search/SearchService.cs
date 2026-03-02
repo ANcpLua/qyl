@@ -61,10 +61,10 @@ public sealed partial class SearchService(DuckDbStore store, ILogger<SearchServi
                            LEFT JOIN (
                                SELECT document_id, SUM(term_frequency) AS score
                                FROM search_terms
-                               WHERE term ILIKE $1 ESCAPE '\\'
+                               WHERE term ILIKE $1 ESCAPE '\'
                                GROUP BY document_id
                            ) t ON t.document_id = d.id
-                           WHERE (d.title ILIKE $1 ESCAPE '\\' OR d.body ILIKE $1 ESCAPE '\\' OR t.score IS NOT NULL)
+                           WHERE (d.title ILIKE $1 ESCAPE '\' OR d.body ILIKE $1 ESCAPE '\' OR t.score IS NOT NULL)
                            {additionalWhere}
                            ORDER BY relevance_score DESC, d.updated_at DESC
                            LIMIT ${paramIndex}

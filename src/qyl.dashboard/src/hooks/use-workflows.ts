@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {fetchJson} from '@/lib/api';
 
 export interface WorkflowRun {
     run_id: string;
@@ -49,12 +50,6 @@ interface WorkflowEventsResponse {
 interface WorkflowCheckpointsResponse {
     items: WorkflowCheckpoint[];
     total: number;
-}
-
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {credentials: 'include'});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
 }
 
 export const workflowKeys = {

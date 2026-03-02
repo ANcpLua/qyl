@@ -6,13 +6,15 @@ services:
       dockerfile: src/qyl.collector/Dockerfile
     container_name: qyl-collector
     ports:
-      - "5100:5100"    # REST API + SSE + Dashboard
+      - "5100:5100"    # Dashboard + REST API + SSE
       - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
     volumes:
       - qyl-data:/data
     environment:
       - QYL_PORT=5100
-      - QYL_GRPC_PORT=4317  # Enable gRPC locally
+      - QYL_GRPC_PORT=4317
+      - QYL_OTLP_PORT=4318
       - QYL_DATA_PATH=/data/qyl.duckdb
     restart: unless-stopped
     healthcheck:

@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Playwright E2E tests**: smoke test suite (`e2e/smoke.spec.ts`) covering health endpoint, sidebar navigation, time range selector, theme toggle, search input, and settings page; `npm run e2e` / `npm run e2e:ui` scripts
 - **Browser → Server trace correlation via `session.id`**: every OTLP payload from the browser SDK includes a `session.id` resource attribute (32-char hex, generated once per `init()`), grouping all telemetry from one browser tab without forcing a single mega-trace
 - Per-interaction trace model: each web vital, navigation, click, and fetch gets its own trace; `session.id` on the resource handles session grouping
 - Error logs now include `traceId` and `spanId` for correlation
@@ -16,12 +17,15 @@
 - Span clusters DuckDB schema and store
 
 ### Changed
+- **Microsoft.Agents.AI upgrade**: `Microsoft.Agents.AI.Abstractions` → `1.0.0-rc2`, `Microsoft.Agents.AI.GitHub.Copilot` → `1.0.0-preview.260225.1` (split version variable for independent cadence)
+- **Anthropic default model**: `claude-sonnet-4-20250514` → `claude-sonnet-4-6` in `LlmProviderFactory`
 - Auth unification: GitHub is now the only identity provider (removed cookie-based login)
 - StartupBanner shows GitHub connect hint instead of login token
 - Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
 - Browser SDK `transport.ts` constructor accepts `sessionId` parameter
 
 ### Removed
+- `WorkflowEngine.GetExecutions()` and `GetExecution(string)` sync methods (backward-compat shims — only async variants remain)
 - `.codex/` skills directory (unused Codex agent definitions)
 - `examples/` directory (AgentsGateway, qyl.demo)
 - `qyl.cli` project (ADR-004)

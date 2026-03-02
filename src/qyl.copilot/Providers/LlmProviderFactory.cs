@@ -19,7 +19,7 @@ namespace qyl.copilot.Providers;
 /// </summary>
 public sealed record LlmProviderOptions
 {
-    /// <summary>Provider name: "ollama", "openai", "anthropic", "openai-compatible".</summary>
+    /// <summary>Provider name: "ollama", "openai", "anthropic", "openai-compatible", "github-models".</summary>
     public string? Provider { get; init; }
 
     /// <summary>API endpoint URL.</summary>
@@ -84,54 +84,68 @@ public static class LlmProviderFactory
 
         if (!options.IsConfigured) return null;
 
-        var (endpoint, model, headers) = ResolveProvider(options);
-        return new OpenAiCompatibleChatClient(httpClient, endpoint, model, headers);
+        var (chatUrl, model, headers) = ResolveProvider(options);
+        return new OpenAiCompatibleChatClient(httpClient, chatUrl, model, headers);
     }
 
-    private static (Uri endpoint, string model, Dictionary<string, string>? headers) ResolveProvider(
+    /// <summary>
+    ///     Resolves provider config into a full chat completions URL, model, and auth headers.
+    ///     Returns the complete POST URL (not just base endpoint) because providers use different paths:
+    ///     OpenAI/Ollama use /v1/chat/completions, GitHub Models uses /chat/completions.
+    /// </summary>
+    private static (Uri chatUrl, string model, Dictionary<string, string>? headers) ResolveProvider(
         LlmProviderOptions options)
     {
         return options.Provider!.ToLowerInvariant() switch
         {
             "ollama" => (
-                new Uri(options.Endpoint ?? "http://localhost:11434"),
+                ChatUrl(options.Endpoint ?? "http://localhost:11434"),
                 options.Model ?? "llama3",
                 null),
             "openai" => (
-                new Uri(options.Endpoint ?? "https://api.openai.com"),
+                ChatUrl(options.Endpoint ?? "https://api.openai.com"),
                 options.Model ?? "gpt-4o-mini",
                 BuildAuthHeaders(options.ApiKey ?? throw new InvalidOperationException(
                     "QYL_LLM_API_KEY is required for OpenAI provider."))),
             "anthropic" => (
-                new Uri(options.Endpoint ?? "https://api.anthropic.com"),
-                options.Model ?? "claude-sonnet-4-20250514",
+                ChatUrl(options.Endpoint ?? "https://api.anthropic.com"),
+                options.Model ?? "claude-sonnet-4-6",
                 new Dictionary<string, string>
                 {
                     ["x-api-key"] = options.ApiKey ?? throw new InvalidOperationException(
                         "QYL_LLM_API_KEY is required for Anthropic provider."),
                     ["anthropic-version"] = "2023-06-01"
                 }),
+            "github-models" => (
+                new Uri($"{(options.Endpoint ?? "https://models.github.ai/inference").TrimEnd('/')}/chat/completions"),
+                options.Model ?? "gpt-4o-mini",
+                BuildAuthHeaders(options.ApiKey ?? throw new InvalidOperationException(
+                    "GitHub token is required for GitHub Models provider."))),
             "openai-compatible" => (
-                new Uri(options.Endpoint ?? throw new InvalidOperationException(
+                ChatUrl(options.Endpoint ?? throw new InvalidOperationException(
                     "QYL_LLM_ENDPOINT is required for openai-compatible provider.")),
                 options.Model ?? throw new InvalidOperationException(
                     "QYL_LLM_MODEL is required for openai-compatible provider."),
                 options.ApiKey is not null ? BuildAuthHeaders(options.ApiKey) : null),
             _ => throw new InvalidOperationException(
-                $"Unknown LLM provider '{options.Provider}'. Supported: ollama, openai, anthropic, openai-compatible.")
+                $"Unknown LLM provider '{options.Provider}'. Supported: ollama, openai, anthropic, github-models, openai-compatible.")
         };
     }
+
+    /// <summary>Builds the standard /v1/chat/completions URL from a base endpoint.</summary>
+    private static Uri ChatUrl(string baseEndpoint) =>
+        new($"{baseEndpoint.TrimEnd('/')}/v1/chat/completions");
 
     private static Dictionary<string, string> BuildAuthHeaders(string apiKey) =>
         new() { ["Authorization"] = $"Bearer {apiKey}" };
 
     /// <summary>
-    ///     IChatClient implementation that speaks the OpenAI-compatible /v1/chat/completions API.
-    ///     Works with Ollama, OpenAI, Anthropic, and any compatible endpoint.
+    ///     IChatClient implementation that speaks the OpenAI-compatible chat/completions API.
+    ///     Works with Ollama, OpenAI, Anthropic, GitHub Models, and any compatible endpoint.
     /// </summary>
     private sealed class OpenAiCompatibleChatClient(
         HttpClient httpClient,
-        Uri endpoint,
+        Uri chatUrl,
         string model,
         Dictionary<string, string>? headers) : IChatClient
     {
@@ -141,9 +155,9 @@ public static class LlmProviderFactory
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
 
-        private readonly Uri _chatUrl = new($"{endpoint.ToString().TrimEnd('/')}/v1/chat/completions");
+        private readonly Uri _chatUrl = chatUrl;
 
-        public ChatClientMetadata Metadata => new(nameof(OpenAiCompatibleChatClient), endpoint, model);
+        public ChatClientMetadata Metadata => new(nameof(OpenAiCompatibleChatClient), _chatUrl, model);
 
         public void Dispose() { }
 
@@ -211,8 +225,7 @@ public static class LlmProviderFactory
 
         public object? GetService(Type serviceType, object? serviceKey = null)
         {
-            if (serviceType == typeof(OpenAiCompatibleChatClient)) return this;
-            return null;
+            return serviceType == typeof(OpenAiCompatibleChatClient) ? this : null;
         }
 
         private ApiRequest BuildBody(IEnumerable<ChatMessage> messages, ChatOptions? options, bool stream) => new()

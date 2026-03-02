@@ -118,8 +118,9 @@ interface IDocker : IHazSourcePaths
             RunDockerCompose(args);
 
             Log.Information("qyl stack started successfully");
-            Log.Information("  Collector:  http://localhost:5100 (REST API + SSE)");
-            Log.Information("  MCP:        http://localhost:5100/mcp (AI agent queries)");
+            Log.Information("  Dashboard:  http://localhost:5100");
+            Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
+            Log.Information("  OTLP gRPC:  http://localhost:4317");
             Log.Information("  Dashboard:  Run 'nuke FrontendDev' for Vite dev server");
         });
 

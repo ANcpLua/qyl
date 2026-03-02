@@ -104,15 +104,25 @@ forbidden:
 ## Environment Variables
 
 Only one agent variable: `export COPILOT_AGENT=true` (enables Copilot SDK test harness).
-All other env vars are runtime config for the collector.
+
+Collector runtime config:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `QYL_PORT` | 5100 | Dashboard + REST API port |
+| `QYL_GRPC_PORT` | 4317 | gRPC OTLP port (0=disable) |
+| `QYL_OTLP_PORT` | 4318 | HTTP OTLP port (0=disable) |
+| `QYL_DATA_PATH` | qyl.duckdb | DuckDB file path |
+| `PORT` | — | Railway/PaaS fallback for QYL_PORT |
 
 ## Ports
 
 | Port | Protocol | Purpose |
 |------|----------|---------|
-| 5100 | HTTP | REST API, SSE, Dashboard |
-| 4317 | gRPC | OTLP traces/logs/metrics |
-| 5173 | HTTP | Dashboard dev server |
+| 5100 | HTTP | Dashboard, REST API, SSE |
+| 4317 | gRPC | OTLP traces/logs/metrics (standard) |
+| 4318 | HTTP | OTLP HTTP traces/logs (standard) |
+| 5173 | HTTP | Dashboard dev server (Vite) |
 
 ## CI
 

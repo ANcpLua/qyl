@@ -254,10 +254,7 @@ public sealed class AnalyticsQueryService(DuckDbStore store)
             });
         }
 
-        if (turns.Count is 0)
-            return null;
-
-        return new ConversationDetail { ConversationId = conversationId, Turns = turns };
+        return turns.Count is 0 ? null : new ConversationDetail { ConversationId = conversationId, Turns = turns };
     }
 
     // =========================================================================

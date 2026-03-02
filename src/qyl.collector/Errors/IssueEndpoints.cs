@@ -122,7 +122,7 @@ public static class IssueEndpoints
         // --- Breadcrumbs ---
 
         group.MapGet("/{issueId}/events/{eventId}/breadcrumbs", static async (
-                string issueId, string eventId,
+                string _, string eventId,
                 [FromServices] IssueService service, int? limit, CancellationToken ct) =>
             {
                 var breadcrumbs = await service.GetBreadcrumbsAsync(

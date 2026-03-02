@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {fetchJson} from '@/lib/api';
 
 // =============================================================================
 // Domain Interfaces (match AnalyticsQueryService C# DTOs, camelCase from .NET)
@@ -137,11 +138,6 @@ export interface UserJourneyResult {
 // Fetch helper
 // =============================================================================
 
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {credentials: 'include'});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
-}
 
 // =============================================================================
 // Query key factory

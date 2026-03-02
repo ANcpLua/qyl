@@ -15,6 +15,7 @@ public static class StartupBanner
         string baseUrl,
         int port,
         int grpcPort = 4317,
+        int otlpHttpPort = 4318,
         OtlpCorsOptions? corsOptions = null,
         OtlpApiKeyOptions? apiKeyOptions = null)
     {
@@ -49,6 +50,14 @@ public static class StartupBanner
         PadLine(port.ToString().Length + 13, 68);
         Console.WriteLine("│");
 
+        Console.Write("  │  OTLP HTTP:  ");
+        Console.ForegroundColor = otlpHttpPort > 0 ? ConsoleColor.Yellow : ConsoleColor.DarkGray;
+        var otlpText = otlpHttpPort > 0 ? otlpHttpPort.ToString() : "disabled";
+        Console.Write(otlpText);
+        Console.ResetColor();
+        PadLine(otlpText.Length + 13, 68);
+        Console.WriteLine("│");
+
         Console.Write("  │  gRPC Port:  ");
         Console.ForegroundColor = grpcPort > 0 ? ConsoleColor.Yellow : ConsoleColor.DarkGray;
         var grpcText = grpcPort > 0 ? grpcPort.ToString() : "disabled";
@@ -79,14 +88,29 @@ public static class StartupBanner
 
         Console.ForegroundColor = ConsoleColor.DarkGray;
         Console.WriteLine("  Endpoints:");
-        Console.WriteLine("    POST /api/v1/ingest     - qyl. native protocol (primary)");
-        Console.WriteLine("    POST /v1/traces         - OTLP HTTP compatibility shim");
+        Console.WriteLine("    POST /api/v1/ingest     - qyl native protocol (primary)");
+        Console.WriteLine(otlpHttpPort > 0
+            ? $"    POST /v1/traces         - OTLP HTTP (port {otlpHttpPort}, also on {port})"
+            : $"    POST /v1/traces         - OTLP HTTP (port {port})");
         if (grpcPort > 0)
             Console.WriteLine($"    gRPC TraceService       - OTLP gRPC (port {grpcPort})");
         Console.WriteLine("    GET  /api/v1/sessions   - Query sessions");
         Console.WriteLine("    GET  /api/v1/live       - SSE live tail");
         Console.ResetColor();
         Console.WriteLine();
+
+        // Protocol hint for OTLP HTTP users
+        if (otlpHttpPort > 0)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write("  Hint: ");
+            Console.ResetColor();
+            Console.WriteLine($"For HTTP OTLP, set OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:{otlpHttpPort}");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("        and OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf");
+            Console.ResetColor();
+            Console.WriteLine();
+        }
 
         // OTLP CORS/Auth status
         if (corsOptions?.IsEnabled == true)

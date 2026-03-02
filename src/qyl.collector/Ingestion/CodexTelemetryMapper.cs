@@ -371,11 +371,9 @@ public static class CodexTelemetryMapper
 
     private static bool HasCodexAttributesFromJson(string? attributesJson)
     {
-        if (string.IsNullOrEmpty(attributesJson))
-            return false;
-
-        // Quick string check before parsing
-        return attributesJson.ContainsOrdinal("codex.");
+        return !string.IsNullOrEmpty(attributesJson) &&
+               // Quick string check before parsing
+               attributesJson.ContainsOrdinal("codex.");
     }
 
     private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes) =>
@@ -393,9 +391,7 @@ public static class CodexTelemetryMapper
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static long? ParseNullableLong(string? value)
     {
-        if (string.IsNullOrEmpty(value))
-            return null;
-        return value.TryParseInt64();
+        return string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
     }
 
     private readonly record struct GenAiFields(
@@ -421,15 +417,7 @@ public static class CodexTelemetryExtensions
     public static SpanBatch WithCodexTransformations(this SpanBatch batch)
     {
         // Quick check: if no spans need transformation, return original
-        var needsTransform = false;
-        foreach (var span in batch.Spans)
-        {
-            if (CodexTelemetryMapper.IsCodexSpan(span.Name))
-            {
-                needsTransform = true;
-                break;
-            }
-        }
+        var needsTransform = batch.Spans.Any(static span => CodexTelemetryMapper.IsCodexSpan(span.Name));
 
         if (!needsTransform)
             return batch;

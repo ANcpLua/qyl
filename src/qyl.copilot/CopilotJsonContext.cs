@@ -24,6 +24,7 @@ namespace qyl.copilot;
 [JsonSerializable(typeof(CopilotContext))]
 [JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(ChatRequest))]
+[JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSourceGenerationOptions(

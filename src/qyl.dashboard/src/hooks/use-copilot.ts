@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import type {LlmConfig} from './use-llm-config';
 
 // Types
 export interface CopilotAuthStatus {
@@ -66,7 +67,7 @@ export function useCopilotChat() {
 
     const nextId = () => `msg-${++messageIdCounter.current}`;
 
-    const send = useCallback(async (prompt: string) => {
+    const send = useCallback(async (prompt: string, llmConfig?: LlmConfig | null) => {
         if (isStreaming || !prompt.trim()) return;
 
         // Add user message
@@ -84,16 +85,35 @@ export function useCopilotChat() {
         abortRef.current = abortController;
 
         try {
+            const body: Record<string, unknown> = {prompt};
+            if (llmConfig) {
+                body.llm = {
+                    provider: llmConfig.provider,
+                    apiKey: llmConfig.apiKey,
+                    model: llmConfig.model,
+                    endpoint: llmConfig.endpoint,
+                };
+            }
+
             const response = await fetch('/api/v1/copilot/chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 credentials: 'include',
-                body: JSON.stringify({prompt}),
+                body: JSON.stringify(body),
                 signal: abortController.signal,
             });
 
-            if (!response.ok || !response.body) {
-                throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                // Read error body for helpful message (e.g., 503 returns setup guidance)
+                let errorDetail = `HTTP ${response.status}`;
+                try {
+                    const errBody = await response.json();
+                    if (errBody?.error) errorDetail = errBody.error;
+                } catch { /* ignore parse failures */ }
+                throw new Error(errorDetail);
+            }
+            if (!response.body) {
+                throw new Error('No response body');
             }
 
             const reader = response.body.getReader();

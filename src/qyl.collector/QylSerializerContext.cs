@@ -82,6 +82,7 @@ namespace qyl.collector;
 [JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
 // Copilot types (for request body deserialization)
 [JsonSerializable(typeof(ChatRequest))]
+[JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(StreamUpdate))]

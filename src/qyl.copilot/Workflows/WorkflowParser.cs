@@ -312,7 +312,6 @@ public static partial class WorkflowParser
 
     private static string GetDefaultName(string? filePath)
     {
-        if (filePath is null) return "unnamed-workflow";
-        return Path.GetFileNameWithoutExtension(filePath);
+        return filePath is null ? "unnamed-workflow" : Path.GetFileNameWithoutExtension(filePath);
     }
 }

@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
-import {Database, Github, Keyboard, Loader2, Monitor, Moon, Palette, Settings, Sun, Unlink,} from 'lucide-react';
+import {Bot, Database, Github, Keyboard, Loader2, Monitor, Moon, Palette, Settings, Sun, Trash2, Unlink,} from 'lucide-react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
@@ -10,6 +10,8 @@ import {Separator} from '@/components/ui/separator';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
 import {toast} from 'sonner';
+import {type LlmProvider, LLM_PROVIDERS, useLlmConfig} from '@/hooks/use-llm-config';
+import {useLlmStatus} from '@/hooks/use-llm-status';
 
 const keyboardShortcuts = [
     {key: 'G', description: 'Go to Resources'},
@@ -24,6 +26,153 @@ const keyboardShortcuts = [
     {key: 'R', description: 'Refresh data'},
     {key: 'Space', description: 'Toggle live mode'},
 ];
+
+function AiSettingsTab() {
+    const {config, setConfig, isConfigured} = useLlmConfig();
+    const {data: llmStatus} = useLlmStatus();
+    const [provider, setProvider] = useState<LlmProvider>(config?.provider ?? 'openai');
+    const [apiKey, setApiKey] = useState(config?.apiKey ?? '');
+    const [model, setModel] = useState(config?.model ?? '');
+    const [endpoint, setEndpoint] = useState(config?.endpoint ?? '');
+
+    const providerInfo = LLM_PROVIDERS.find(p => p.value === provider)!;
+
+    const handleSave = () => {
+        if (providerInfo.needsKey && !apiKey.trim()) {
+            toast.error('API key is required');
+            return;
+        }
+        setConfig({
+            provider,
+            apiKey: apiKey.trim() || undefined,
+            model: model.trim() || providerInfo.defaultModel || undefined,
+            endpoint: endpoint.trim() || providerInfo.defaultEndpoint,
+        });
+        toast.success('AI provider saved');
+    };
+
+    const handleClear = () => {
+        setConfig(null);
+        setProvider('openai');
+        setApiKey('');
+        setModel('');
+        setEndpoint('');
+        toast.success('AI provider cleared');
+    };
+
+    return (
+        <>
+            {/* Server status */}
+            {llmStatus?.configured && (
+                <Card>
+                    <CardContent className="py-4">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="font-medium">
+                                    {llmStatus.provider === 'github-models'
+                                        ? 'GitHub Models (free)'
+                                        : 'Server AI configured'}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    {llmStatus.provider === 'github-models'
+                                        ? llmStatus.model ?? 'gpt-4o-mini'
+                                        : `${llmStatus.provider}${llmStatus.model ? ` / ${llmStatus.model}` : ''}`}
+                                </p>
+                            </div>
+                            <Badge>{llmStatus.provider === 'github-models' ? 'Auto' : 'Active'}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {llmStatus.provider === 'github-models'
+                                ? 'Using your GitHub account for free AI inference. Rate-limited but zero-config.'
+                                : 'The server has a built-in LLM. BYOK config below is optional and will be used as fallback.'}
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* BYOK config */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-base">Bring Your Own Key (BYOK)</CardTitle>
+                    <CardDescription>
+                        Use your own API key for AI chat. Keys stay in your browser only.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Provider</label>
+                        <Select value={provider} onValueChange={(v) => setProvider(v as LlmProvider)}>
+                            <SelectTrigger aria-label="AI provider">
+                                <SelectValue/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {LLM_PROVIDERS.map(p => (
+                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {providerInfo.needsKey && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">API Key</label>
+                            <Input
+                                type="password"
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                                placeholder={`${providerInfo.label} API key`}
+                                aria-label="API key"
+                            />
+                        </div>
+                    )}
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Model</label>
+                        <Input
+                            value={model}
+                            onChange={(e) => setModel(e.target.value)}
+                            placeholder={providerInfo.defaultModel || 'Model name'}
+                            aria-label="Model name"
+                        />
+                    </div>
+
+                    {(provider === 'ollama' || provider === 'openai-compatible') && (
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Endpoint</label>
+                            <Input
+                                value={endpoint}
+                                onChange={(e) => setEndpoint(e.target.value)}
+                                placeholder={providerInfo.defaultEndpoint ?? 'https://...'}
+                                aria-label="API endpoint"
+                            />
+                        </div>
+                    )}
+
+                    <Separator/>
+
+                    <div className="flex gap-2">
+                        <Button onClick={handleSave} size="sm">
+                            Save
+                        </Button>
+                        {isConfigured && (
+                            <Button variant="outline" size="sm" onClick={handleClear}>
+                                <Trash2 className="w-4 h-4 mr-2"/>
+                                Clear
+                            </Button>
+                        )}
+                    </div>
+
+                    {isConfigured && (
+                        <div className="flex items-center gap-2 text-sm">
+                            <Badge variant="secondary">{config!.provider}</Badge>
+                            {config!.model && <span className="text-muted-foreground">{config!.model}</span>}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+        </>
+    );
+}
 
 export function SettingsPage() {
     const navigate = useNavigate();
@@ -64,10 +213,14 @@ export function SettingsPage() {
             </div>
 
             <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-5">
+                <TabsList className="grid w-full grid-cols-6">
                     <TabsTrigger value="general">
                         <Settings className="w-4 h-4 mr-2"/>
                         General
+                    </TabsTrigger>
+                    <TabsTrigger value="ai">
+                        <Bot className="w-4 h-4 mr-2"/>
+                        AI
                     </TabsTrigger>
                     <TabsTrigger value="appearance">
                         <Palette className="w-4 h-4 mr-2"/>
@@ -118,6 +271,11 @@ export function SettingsPage() {
                             </div>
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                {/* AI Provider */}
+                <TabsContent value="ai" className="space-y-4">
+                    <AiSettingsTab/>
                 </TabsContent>
 
                 {/* Appearance */}

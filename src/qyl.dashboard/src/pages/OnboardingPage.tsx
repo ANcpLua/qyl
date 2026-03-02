@@ -429,32 +429,62 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
 }
 
 function ConnectStep() {
+    const {data: meta} = useQuery({
+        queryKey: ['meta'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/meta');
+            if (!res.ok) return null;
+            return res.json() as Promise<{ ports: { http: number; grpc: number; otlpHttp: number } }>;
+        },
+        staleTime: 1000 * 60 * 5,
+    });
+
+    const httpPort = meta?.ports?.otlpHttp || 4318;
+    const grpcPort = meta?.ports?.grpc || 4317;
+    const dashPort = meta?.ports?.http || 5100;
+
     return (
         <div className="space-y-6 max-w-xl mx-auto">
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONFIGURE OTLP ENDPOINT</h2>
-            <p className="text-brutal-slate text-sm">
-                Point your OpenTelemetry SDK to the qyl collector. Set this environment variable in your application:
-            </p>
-            <CodeBlock
-                code="OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:5100"
-                label="Endpoint"
-            />
+            <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONNECT TO QYL</h2>
+
+            <div className="border-2 border-signal-green/30 bg-signal-green/5 p-4 space-y-2">
+                <div className="text-xs font-bold text-signal-green tracking-wider">ALREADY USING OPENTELEMETRY?</div>
+                <p className="text-brutal-slate text-sm">
+                    Set this env var and you're done. Works with any OTel SDK in any language.
+                </p>
+                <CodeBlock
+                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:${httpPort}`}
+                    label="OTLP Endpoint"
+                />
+                <p className="text-[10px] text-brutal-slate">
+                    Most SDKs default to gRPC. For HTTP, also set{' '}
+                    <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span>
+                </p>
+            </div>
+
             <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
                 <div className="text-xs font-bold text-brutal-slate tracking-wider">PORTS</div>
                 <div className="space-y-2 text-sm font-mono">
                     <div className="flex justify-between">
-                        <span className="text-brutal-slate">HTTP / REST API</span>
-                        <span className="text-brutal-white">:5100</span>
+                        <span className="text-brutal-slate">Dashboard</span>
+                        <span className="text-brutal-white">:{dashPort}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-brutal-slate">gRPC OTLP</span>
-                        <span className="text-brutal-white">:4317</span>
+                        <span className="text-brutal-slate">OTLP HTTP</span>
+                        <span className="text-signal-green">:{httpPort}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-brutal-slate">OTLP gRPC</span>
+                        <span className="text-signal-green">:{grpcPort}</span>
                     </div>
                 </div>
             </div>
+
             <p className="text-[10px] text-brutal-slate tracking-wider">
-                For gRPC transport, use <span
-                className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317</span>
+                For gRPC transport, use{' '}
+                <span className="text-brutal-white font-mono">
+                    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:{grpcPort}
+                </span>
             </p>
         </div>
     );
@@ -464,19 +494,27 @@ function SdkSetupStep() {
     const [activeTab, setActiveTab] = useState<'.NET' | 'Python' | 'Go' | 'Node.js'>('.NET');
 
     const snippets: Record<string, string> = {
-        '.NET': `// Program.cs
+        '.NET': `// Web application
 var builder = WebApplication.CreateBuilder(args);
-
-// One-line instrumentation with qyl defaults
 builder.AddQylServiceDefaults();
-
 var app = builder.Build();
-app.MapDefaultEndpoints();
-app.Run();`,
+app.MapQylEndpoints();
+app.Run();
 
-        'Python': `# pip install opentelemetry-api opentelemetry-sdk \\
-#   opentelemetry-exporter-otlp
+// --- OR ---
 
+// Worker / Console application
+var builder = Host.CreateApplicationBuilder(args);
+builder.AddQylServiceDefaults();
+var app = builder.Build();
+await app.RunAsync();`,
+
+        'Python': `# Option 1: Environment variable (recommended)
+# OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# python your_app.py
+
+# Option 2: Programmatic
+# pip install opentelemetry-sdk opentelemetry-exporter-otlp
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -491,9 +529,11 @@ processor = BatchSpanProcessor(
 provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)`,
 
-        'Go': `// go get go.opentelemetry.io/otel \\
-//   go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+        'Go': `// Option 1: Environment variable (recommended)
+// OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 go run .
 
+// Option 2: Programmatic
+// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
 import (
     "go.opentelemetry.io/otel"
     "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -509,9 +549,11 @@ tp := sdktrace.NewTracerProvider(
 )
 otel.SetTracerProvider(tp)`,
 
-        'Node.js': `// npm install @opentelemetry/api @opentelemetry/sdk-node \\
-//   @opentelemetry/exporter-trace-otlp-grpc
+        'Node.js': `// Option 1: Environment variable (recommended)
+// OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node app.js
 
+// Option 2: Programmatic
+// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-grpc
 const { NodeSDK } = require("@opentelemetry/sdk-node");
 const {
   OTLPTraceExporter,
@@ -530,8 +572,17 @@ sdk.start();`,
     return (
         <div className="space-y-6 max-w-xl mx-auto">
             <h2 className="text-xl font-bold text-brutal-white tracking-wider">SDK SETUP</h2>
+
+            <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 space-y-2">
+                <div className="text-xs font-bold text-signal-orange tracking-wider">ALREADY USING OPENTELEMETRY?</div>
+                <p className="text-brutal-slate text-sm">
+                    Just set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318</span> and
+                    skip this step. The snippets below are for new projects.
+                </p>
+            </div>
+
             <p className="text-brutal-slate text-sm">
-                Add OpenTelemetry instrumentation to your application. Choose your language:
+                Choose your language for instrumentation setup:
             </p>
             <div className="flex gap-1 border-b-2 border-brutal-zinc">
                 {tabs.map((tab) => (
@@ -659,16 +710,16 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
             <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark text-left">
                 <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">TROUBLESHOOTING</div>
                 <ul className="text-xs text-brutal-slate space-y-1 list-disc list-inside">
-                    <li>Ensure the collector is running on port 5100</li>
-                    <li>Check your OTEL_EXPORTER_OTLP_ENDPOINT variable</li>
-                    <li>Verify no firewall is blocking the connection</li>
+                    <li>Ensure the collector is running (dashboard: http://localhost:5100)</li>
+                    <li>Check your OTEL_EXPORTER_OTLP_ENDPOINT (should be http://localhost:4318 or :4317)</li>
+                    <li>Verify no firewall is blocking ports 4317, 4318, or 5100</li>
                 </ul>
             </div>
         </div>
     );
 }
 
-function DoneStep() {
+function DoneStep({verified}: { verified: boolean }) {
     const navigate = useNavigate();
 
     const links = [
@@ -680,12 +731,22 @@ function DoneStep() {
     return (
         <div className="space-y-6 max-w-lg mx-auto text-center">
             <div
-                className="w-16 h-16 mx-auto bg-signal-green flex items-center justify-center border-2 border-brutal-black">
-                <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
+                className={cn(
+                    'w-16 h-16 mx-auto flex items-center justify-center border-2 border-brutal-black',
+                    verified ? 'bg-signal-green' : 'bg-signal-orange'
+                )}>
+                {verified
+                    ? <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
+                    : <Rocket className="w-8 h-8 text-brutal-black"/>
+                }
             </div>
-            <h2 className="text-2xl font-bold text-brutal-white tracking-wider">YOU'RE ALL SET</h2>
+            <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
+                {verified ? "YOU'RE ALL SET" : 'SETUP COMPLETE'}
+            </h2>
             <p className="text-brutal-slate text-sm">
-                qyl is now receiving telemetry from your application. Explore your data:
+                {verified
+                    ? 'qyl is now receiving telemetry from your application. Explore your data:'
+                    : 'Verification was skipped — send telemetry when ready. Explore qyl:'}
             </p>
             <div className="grid grid-cols-3 gap-4 pt-2">
                 {links.map(({to, label, desc}) => (
@@ -728,7 +789,7 @@ export function OnboardingPage() {
             case 'Verify':
                 return <VerifyStep onVerified={setVerifyStatus}/>;
             case 'Done':
-                return <DoneStep/>;
+                return <DoneStep verified={verifyStatus}/>;
         }
     };
 

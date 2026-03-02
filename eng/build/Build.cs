@@ -86,9 +86,10 @@ sealed class Build : NukeBuild,
         .Executes(static () =>
         {
             Log.Information("Development environment ready");
-            Log.Information("  Collector:  http://localhost:5100 (REST API + SSE)");
-            Log.Information("  Dashboard:  http://localhost:5173 (Vite dev server)");
-            Log.Information("  MCP:        http://localhost:5100/mcp (AI agent queries)");
+            Log.Information("  Dashboard:  http://localhost:5100");
+            Log.Information("  OTLP HTTP:  http://localhost:4318/v1/traces");
+            Log.Information("  OTLP gRPC:  http://localhost:4317");
+            Log.Information("  Vite Dev:   http://localhost:5173");
             Log.Information("  Run 'nuke FrontendDev' in another terminal for hot reload");
         });
 

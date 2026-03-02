@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {fetchJson} from '@/lib/api';
 
 export interface SearchResult {
     entity_type: string;
@@ -12,12 +13,6 @@ export interface SearchResult {
 interface SearchResponse {
     items: SearchResult[];
     total: number;
-}
-
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-    const res = await fetch(url, {credentials: 'include', ...init});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
 }
 
 export const searchKeys = {

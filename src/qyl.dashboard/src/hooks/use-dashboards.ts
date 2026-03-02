@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {fetchJson} from '@/lib/api';
 
 // Dashboard types (inline, not from api.ts)
 export interface DashboardDefinition {
@@ -51,12 +52,6 @@ export const dashboardKeys = {
     list: () => [...dashboardKeys.all, 'list'] as const,
     detail: (id: string) => [...dashboardKeys.all, id] as const,
 };
-
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {credentials: 'include'});
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    return res.json();
-}
 
 interface DashboardListResponse {
     items: DashboardDefinition[];

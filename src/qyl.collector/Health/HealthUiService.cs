@@ -1,14 +1,16 @@
-using System.Diagnostics;
-
 namespace qyl.collector.Health;
 
 /// <summary>
 ///     Service for gathering detailed health information for the UI dashboard.
 /// </summary>
-public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer, IConfiguration configuration)
+public sealed class HealthUiService(
+    DuckDbStore store,
+    SpanRingBuffer ringBuffer,
+    IConfiguration configuration,
+    IHostEnvironment environment)
 {
-
     private readonly string _dataPath = configuration["QYL_DATA_PATH"] ?? "qyl.duckdb";
+    private readonly bool _isDevelopment = environment.IsDevelopment();
 
     public async Task<HealthUiResponse> GetHealthAsync(CancellationToken ct = default)
     {
@@ -70,7 +72,9 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             {
                 Name = "duckdb",
                 Status = HealthStatus.Unhealthy,
-                Message = $"Database connection failed: {ex.Message}"
+                Message = _isDevelopment
+                    ? $"Database connection failed: {ex.Message}"
+                    : "Database connection failed"
             };
         }
     }
@@ -124,12 +128,14 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             {
                 Name = "disk",
                 Status = HealthStatus.Degraded,
-                Message = $"Could not determine disk space: {ex.Message}"
+                Message = _isDevelopment
+                    ? $"Could not determine disk space: {ex.Message}"
+                    : "Could not determine disk space"
             };
         }
     }
 
-    private static ComponentHealth GetMemoryHealth()
+    private ComponentHealth GetMemoryHealth()
     {
         try
         {
@@ -183,7 +189,9 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
             {
                 Name = "memory",
                 Status = HealthStatus.Degraded,
-                Message = $"Could not determine memory usage: {ex.Message}"
+                Message = _isDevelopment
+                    ? $"Could not determine memory usage: {ex.Message}"
+                    : "Could not determine memory usage"
             };
         }
     }
@@ -228,7 +236,7 @@ public sealed class HealthUiService(DuckDbStore store, SpanRingBuffer ringBuffer
         return new ComponentHealth { Name = "ingestion", Status = status, Message = message, Data = data };
     }
 
-    private static HealthStatus DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)
+    internal static HealthStatus DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)
     {
         if (components.Any(static c => c.Status == HealthStatus.Unhealthy))
             return HealthStatus.Unhealthy;

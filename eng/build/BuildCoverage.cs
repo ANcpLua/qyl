@@ -441,7 +441,7 @@ public static class CoverageSummaryConverter
         var jsonPath = Path.Combine(
             Path.GetDirectoryName(outputPath) ?? string.Empty,
             Path.GetFileNameWithoutExtension(outputPath) + ".json");
-        File.WriteAllText(jsonPath, JsonSerializer.Serialize(JsonOptions));
+        File.WriteAllText(jsonPath, JsonSerializer.Serialize(fileIssues, JsonOptions));
 
         Log.Information("Coverage summary: {XmlPath} + {JsonPath} ({FileCount} files with issues)",
             outputPath, jsonPath, filesWithIssues);

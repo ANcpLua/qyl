@@ -2,6 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {SessionEntity, Span} from '@/types';
 import {getAttributesRecord, nanoToIso, nsToMs, STATUS_ERROR,} from '@/types';
+import {fetchJson} from '@/lib/api';
 
 // Alias for backward compatibility
 type SpanRecord = Span;
@@ -25,17 +26,6 @@ interface ApiSessionsResponse {
 interface ApiSpansResponse {
     items: SpanRecord[];
     total?: number;
-}
-
-// API functions
-async function fetchJson<T>(url: string): Promise<T> {
-    const res = await fetch(url, {
-        credentials: 'include',
-    });
-    if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    }
-    return res.json();
 }
 
 // Sessions - return array directly for components

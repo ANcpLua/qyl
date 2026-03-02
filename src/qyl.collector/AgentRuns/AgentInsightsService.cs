@@ -301,7 +301,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
         }
 
         var buckets = bucketMap
-            .Select(kv => new ToolTimeBucket { Time = kv.Key, Tools = kv.Value })
+            .Select(kv => new ToolTimeBucket { Time = kv.Key, Tools = new Dictionary<string, long>(kv.Value) })
             .ToList();
 
         var legend = topTools
@@ -670,8 +670,7 @@ public sealed class AgentInsightsService(DuckDbStore store)
         if (value is Array arr)
         {
             var result = new List<string>(arr.Length);
-            foreach (var item in arr)
-                result.Add(item?.ToString() ?? "");
+            result.AddRange(from object? item in arr select item?.ToString() ?? "");
             return result;
         }
 

@@ -229,8 +229,7 @@ internal static class OtlpGenAiAttributes
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsGenAiAttribute(ReadOnlySpan<byte> key)
     {
-        if (key.Length < 7) return false;
-        return key[..7].SequenceEqual("gen_ai."u8);
+        return key.Length >= 7 && key[..7].SequenceEqual("gen_ai."u8);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -421,10 +420,9 @@ public sealed class ParsedSpan
         get
         {
             // Guard against clock skew where EndTime < StartTime
-            if (EndTime.Value < StartTime.Value)
-                return TimeSpan.Zero;
-            // Safe: duration in nanoseconds / 100 = ticks, fits in long for any reasonable duration
-            return TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
+            return EndTime.Value < StartTime.Value ? TimeSpan.Zero :
+                // Safe: duration in nanoseconds / 100 = ticks, fits in long for any reasonable duration
+                TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
         }
     }
 

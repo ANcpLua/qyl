@@ -15,22 +15,22 @@ internal sealed class TracedDiagnosticAnalyzer : DiagnosticAnalyzerBase
 
     private static readonly DiagnosticDescriptor QSD001 = new(
         "QSD001", "Orphaned [TracedTag]",
-        "[TracedTag] on '{0}' has no effect — neither the method nor its declaring type has [Traced].",
+        "[TracedTag] on '{0}' has no effect because neither the method nor its declaring type has [Traced]",
         "Qyl.Tracing", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor QSD002 = new(
         "QSD002", "Redundant [NoTrace]",
-        "[NoTrace] on '{0}' has no effect — the declaring type has no class-level [Traced].",
+        "[NoTrace] on '{0}' has no effect because the declaring type has no class-level [Traced]",
         "Qyl.Tracing", DiagnosticSeverity.Info, isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor QSD003 = new(
         "QSD003", "Non-interceptable [Traced]",
-        "[Traced] on '{0}' will be ignored — abstract, extern, and partial methods cannot be intercepted.",
+        "[Traced] on '{0}' will be ignored because abstract, extern, and partial methods cannot be intercepted",
         "Qyl.Tracing", DiagnosticSeverity.Warning, isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor QSD005 = new(
         "QSD005", "[TracedTag] on out/ref parameter",
-        "[TracedTag] on '{0}' is not supported for out or ref parameters.",
+        "[TracedTag] on '{0}' is not supported for out or ref parameters",
         "Qyl.Tracing", DiagnosticSeverity.Error, isEnabledByDefault: true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>

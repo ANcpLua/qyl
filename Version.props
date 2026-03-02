@@ -21,7 +21,10 @@
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
     <ANcpLuaRoslynUtilitiesVersion>1.42.0</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
-    <MicrosoftAgentsVersion>1.0.0-preview.260212.1</MicrosoftAgentsVersion>
+    <MicrosoftAgentsAbstractionsVersion>1.0.0-rc2</MicrosoftAgentsAbstractionsVersion>
+    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260225.1</MicrosoftAgentsCopilotVersion>
+    <!-- OpenAI SDK -->
+    <OpenAIVersion>2.9.0</OpenAIVersion>
     <!-- MCP -->
     <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
     <!-- Build Tooling -->

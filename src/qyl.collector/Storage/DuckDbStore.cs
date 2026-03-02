@@ -421,7 +421,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.CommandText = """
                           SELECT
                               (SELECT COUNT(*) FROM spans) as span_count,
-                              (SELECT COUNT(*) FROM session_entities) as session_count,
+                              (SELECT COUNT(DISTINCT COALESCE(session_id, trace_id)) FROM spans) as session_count,
                               (SELECT COUNT(*) FROM logs) as log_count,
                               (SELECT MIN(start_time_unix_nano) FROM spans) as oldest_span,
                               (SELECT MAX(start_time_unix_nano) FROM spans) as newest_span
@@ -1110,7 +1110,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         if (!string.IsNullOrEmpty(serviceName))
         {
             var escaped = serviceName.Replace("%", "\\%").Replace("_", "\\_");
-            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\\'", $"%,{escaped},%");
+            qb.Add("',' || affected_services || ',' LIKE $N ESCAPE '\'", $"%,{escaped},%");
         }
 
         await using var cmd = lease.Connection.CreateCommand();

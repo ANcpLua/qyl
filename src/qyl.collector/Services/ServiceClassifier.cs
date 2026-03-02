@@ -48,30 +48,14 @@ public static class ServiceClassifier
             meterName == "com.anthropic.claude_code")
             return true;
 
-        if (span is null) return false;
-
-        foreach (var kvp in span)
-        {
-            if (kvp.Key.StartsWithOrdinal("claude_code."))
-                return true;
-        }
-
-        return false;
+        return span is not null && span.Any(static kvp => kvp.Key.StartsWithOrdinal("claude_code."));
     }
 
     private static bool HasPrefixKey(
         IReadOnlyDictionary<string, string>? attrs,
         string prefix)
     {
-        if (attrs is null) return false;
-
-        foreach (var kvp in attrs)
-        {
-            if (kvp.Key.StartsWithOrdinal(prefix))
-                return true;
-        }
-
-        return false;
+        return attrs is not null && attrs.Any(kvp => kvp.Key.StartsWithOrdinal(prefix));
     }
 
     private static bool HasKey(
