@@ -109,6 +109,29 @@ builder.Services.AddSingleton(new TokenAuthOptions
         "/favicon.ico" // Favicon
     ]
 });
+
+// Keycloak JWKS validator: validates Bearer JWTs from qyl.mcp (client-credentials flow).
+// NullKeycloakJwksValidator is registered when QYL_KEYCLOAK_AUTHORITY is not set,
+// preserving existing auth behaviour unchanged.
+var keycloakAuthority = builder.Configuration["QYL_KEYCLOAK_AUTHORITY"]
+    ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUTHORITY");
+var keycloakAudience = builder.Configuration["QYL_KEYCLOAK_AUDIENCE"]
+    ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUDIENCE");
+
+if (!string.IsNullOrWhiteSpace(keycloakAuthority))
+{
+    builder.Services.AddHttpClient("Keycloak").AddStandardResilienceHandler();
+    builder.Services.AddSingleton<IKeycloakJwksValidator>(sp =>
+        new KeycloakJwksValidator(
+            keycloakAuthority,
+            keycloakAudience,
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient("Keycloak"),
+            sp.GetRequiredService<ILogger<KeycloakJwksValidator>>()));
+}
+else
+{
+    builder.Services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
+}
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<MigrationRunner>();

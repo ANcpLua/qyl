@@ -27,6 +27,8 @@
     <OpenAIVersion>2.9.0</OpenAIVersion>
     <!-- MCP -->
     <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
+    <!-- Microsoft.IdentityModel (JWT/JWKS validation for Keycloak) -->
+    <MicrosoftIdentityModelVersion>8.16.0</MicrosoftIdentityModelVersion>
     <!-- Build Tooling -->
     <NukeVersion>10.1.0</NukeVersion>
     <!-- Misc -->

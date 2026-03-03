@@ -35,6 +35,7 @@
     <PackageVersion Include="Microsoft.Extensions.AsyncState" Version="$(MicrosoftExtensionsVersion)"/>
     <!-- ASP.NET Core -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="$(DotNetRuntimeVersion)"/>
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="$(DotNetRuntimeVersion)"/>
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(DotNetRuntimeVersion)"/>
     <!-- Service Discovery & Resilience -->
     <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="$(DotNetRuntimeVersion)"/>
@@ -62,6 +63,8 @@
     <!-- Microsoft.Agents.AI -->
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsAbstractionsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="$(MicrosoftAgentsCopilotVersion)"/>
+    <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- MCP & AI Clients -->
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)"/>
     <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)"/>

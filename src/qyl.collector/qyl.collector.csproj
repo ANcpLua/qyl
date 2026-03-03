@@ -77,6 +77,12 @@
     <PackageReference Include="Microsoft.Extensions.AsyncState"/>
   </ItemGroup>
 
+  <!-- Auth: Keycloak JWT validation via JWKS -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens"/>
+  </ItemGroup>
+
   <!-- Core dependencies -->
   <ItemGroup>
     <ProjectReference Include="..\qyl.copilot\qyl.copilot.csproj"/>
