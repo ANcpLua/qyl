@@ -1676,6 +1676,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
         triageCmd.ExecuteNonQuery();
 
+        // Autofix step tracking (within fix runs)
+        using var autofixStepsCmd = con.CreateCommand();
+        autofixStepsCmd.CommandText = DuckDbSchema.AutofixStepsDdl;
+        autofixStepsCmd.ExecuteNonQuery();
+
         // Service registry (telemetry-derived auto-detection)
         using var serviceRegistryCmd = con.CreateCommand();
         serviceRegistryCmd.CommandText = ServiceInstancesDdl;

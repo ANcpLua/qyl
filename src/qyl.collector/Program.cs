@@ -199,6 +199,10 @@ builder.Services.AddHostedService<EmbeddingClusterWorker>();
 builder.Services.AddSingleton<TriagePipelineService>();
 builder.Services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
 
+// Seer autofix agent: autonomously processes pending fix runs through the LLM pipeline
+builder.Services.AddSingleton<AutofixAgentService>();
+builder.Services.AddHostedService(static sp => sp.GetRequiredService<AutofixAgentService>());
+
 // Schema control: plan and apply additive schema promotions
 builder.Services.AddSingleton<SchemaPlanner>();
 builder.Services.AddSingleton<SchemaExecutor>();

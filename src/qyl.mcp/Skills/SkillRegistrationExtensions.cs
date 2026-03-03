@@ -85,7 +85,8 @@ internal static class SkillRegistrationExtensions
             mcpBuilder
                 .WithTools<TriageTools>(jsonOptions)
                 .WithTools<ExportForAgentTools>(jsonOptions)
-                .WithTools<FixTools>(jsonOptions);
+                .WithTools<FixTools>(jsonOptions)
+                .WithTools<AutofixMcpTools>(jsonOptions);
         }
 
         return mcpBuilder;

@@ -81,6 +81,7 @@ if (skills.IsEnabled(QylSkillKind.Seer))
     builder.Services.AddCollectorToolClient<TriageTools>(collectorUrl);
     builder.Services.AddCollectorToolClient<ExportForAgentTools>(collectorUrl);
     builder.Services.AddCollectorToolClient<FixTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<AutofixMcpTools>(collectorUrl);
 }
 
 // Always registered — used by ITelemetryStore and agent infrastructure

@@ -75,6 +75,53 @@ public static class AutofixEndpoints
 
             return Results.NoContent();
         });
+
+        // ── Steps ────────────────────────────────────────────────────────────
+
+        app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}/steps", static async (
+            string issueId, string runId, DuckDbStore store, CancellationToken ct) =>
+        {
+            var run = await store.GetFixRunAsync(runId, ct);
+            if (run is null || run.IssueId != issueId)
+                return Results.NotFound();
+
+            var steps = await store.GetAutofixStepsAsync(runId, ct);
+            return Results.Ok(new { items = steps, total = steps.Count });
+        });
+
+        // ── Approve / Reject ─────────────────────────────────────────────────
+
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/approve", static async (
+            string issueId, string runId,
+            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+        {
+            var run = await store.GetFixRunAsync(runId, ct);
+            if (run is null || run.IssueId != issueId)
+                return Results.NotFound();
+
+            if (run.Status is not "review")
+                return Results.BadRequest(new { error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'." });
+
+            await orchestrator.UpdateFixRunStatusAsync(runId, "applied", ct: ct);
+            return Results.Ok(new { status = "applied", runId });
+        });
+
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/reject", static async (
+            string issueId, string runId,
+            FixRunRejectRequest? request,
+            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+        {
+            var run = await store.GetFixRunAsync(runId, ct);
+            if (run is null || run.IssueId != issueId)
+                return Results.NotFound();
+
+            if (run.Status is not "review")
+                return Results.BadRequest(new { error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'." });
+
+            await orchestrator.UpdateFixRunStatusAsync(
+                runId, "rejected", description: request?.Reason, ct: ct);
+            return Results.Ok(new { status = "rejected", runId });
+        });
     }
 }
 
@@ -92,3 +139,6 @@ public sealed record FixRunPatchRequest(
     string? Description = null,
     double? Confidence = null,
     string? ChangesJson = null);
+
+/// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs/{runId}/reject.</summary>
+public sealed record FixRunRejectRequest(string? Reason = null);
