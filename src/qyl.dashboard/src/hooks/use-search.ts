@@ -2,11 +2,11 @@ import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
 export interface SearchResult {
-    entity_type: string;
-    entity_id: string;
+    entityType: string;
+    entityId: string;
     title: string;
     snippet: string;
-    timestamp?: number;
+    timestamp?: string;
     score: number;
 }
 
@@ -28,11 +28,17 @@ export function useSearch(query: string, entityTypes: string[] = [], limit = 50)
             fetchJson<SearchResponse>('/api/v1/search/query', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({query, entity_types: entityTypes, limit}),
+                body: JSON.stringify({
+                    text: query,
+                    entityTypes,
+                    limit,
+                    // Backward-compatible aliases.
+                    query,
+                    entity_types: entityTypes,
+                }),
             }),
         select: (data) => data.items,
         enabled: query.length >= 2,
         staleTime: 30_000,
     });
 }
-

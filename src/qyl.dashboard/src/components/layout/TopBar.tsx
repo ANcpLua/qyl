@@ -11,6 +11,7 @@ import {ClearTelemetryDialog} from '@/components/ClearTelemetryDialog';
 
 interface TopBarProps {
     isLive: boolean;
+    streamConnected: boolean;
     onLiveToggle: () => void;
     onRefresh: () => void;
     timeRange: string;
@@ -42,6 +43,7 @@ const timeRanges = [
 
 export function TopBar({
                            isLive,
+                           streamConnected,
                            onLiveToggle,
                            onRefresh,
                            timeRange,
@@ -58,7 +60,10 @@ export function TopBar({
         return () => clearInterval(interval);
     }, []);
 
-    const title = pageTitle[location.pathname] ?? 'QYL.';
+    const title = pageTitle[location.pathname]
+        ?? (location.pathname.startsWith('/dashboards/')
+            ? (location.pathname.split('/').pop() ?? 'dashboard').replace(/-/g, ' ').toUpperCase()
+            : 'QYL.');
 
     const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -143,14 +148,16 @@ export function TopBar({
                 className={cn(
                     'border text-xs font-semibold tracking-[0.08em] transition-colors',
                     isLive
-                        ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
+                        ? (streamConnected
+                            ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
+                            : 'bg-signal-yellow/20 border-signal-yellow text-signal-yellow hover:bg-signal-yellow/30')
                         : 'bg-brutal-dark/85 border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'
                 )}
             >
                 {isLive ? (
                     <>
                         <Pause className="w-4 h-4 mr-2"/>
-                        LIVE
+                        {streamConnected ? 'LIVE' : 'CONNECTING'}
                     </>
                 ) : (
                     <>

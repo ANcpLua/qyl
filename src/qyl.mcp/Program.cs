@@ -76,6 +76,13 @@ if (skills.IsEnabled(QylSkillKind.ClaudeCode))
     builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
 }
 
+if (skills.IsEnabled(QylSkillKind.Seer))
+{
+    builder.Services.AddCollectorToolClient<TriageTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<ExportForAgentTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<FixTools>(collectorUrl);
+}
+
 // Always registered — used by ITelemetryStore and agent infrastructure
 builder.Services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
 builder.Services.AddSingleton<RcaTools>();
@@ -118,6 +125,7 @@ jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(FixToolsJsonContext.Default);
 
 // Captured after builder.Build() below; valid when any tool filter lambda runs.
 IServiceProvider? sp = null;

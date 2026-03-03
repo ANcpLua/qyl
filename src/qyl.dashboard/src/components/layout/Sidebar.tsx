@@ -95,7 +95,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         : 'border-brutal-zinc/70 bg-brutal-dark/80 text-brutal-slate'
                 )}>
                     <Radio className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
-                    <span>{isLive ? 'CONNECTED' : 'DISCONNECTED'}</span>
+                    <span>{isLive ? 'STREAMING LIVE' : 'STREAM OFFLINE'}</span>
                     {isLive && <span className="animate-cursor-blink">_</span>}
                 </div>
             )}
@@ -290,7 +290,13 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-start text-xs font-semibold tracking-[0.08em] text-brutal-slate hover:text-brutal-white hover:bg-brutal-dark border border-transparent hover:border-brutal-zinc/70"
+                    aria-pressed={collapsed}
+                    className={cn(
+                        'w-full justify-start text-xs font-semibold tracking-[0.08em] border',
+                        collapsed
+                            ? 'text-signal-orange border-signal-orange/45 bg-signal-orange/10 hover:bg-signal-orange/20'
+                            : 'text-brutal-slate border-transparent hover:text-brutal-white hover:bg-brutal-dark hover:border-brutal-zinc/70'
+                    )}
                     onClick={() => onCollapsedChange(!collapsed)}
                 >
                     {collapsed ? (

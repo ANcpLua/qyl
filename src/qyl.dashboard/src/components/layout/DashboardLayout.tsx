@@ -60,7 +60,8 @@ export function DashboardLayout() {
 
                 <div className="flex-1 flex flex-col min-w-0">
                     <TopBar
-                        isLive={isLive && isConnected}
+                        isLive={isLive}
+                        streamConnected={isConnected}
                         onLiveToggle={handleLiveToggle}
                         onRefresh={handleRefresh}
                         timeRange={timeRange}

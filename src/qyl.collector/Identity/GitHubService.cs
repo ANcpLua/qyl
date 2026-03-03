@@ -139,6 +139,118 @@ public sealed partial class GitHubService(
     }
 
     // ==========================================================================
+    // Pull Requests
+    // ==========================================================================
+
+    /// <summary>Gets the SHA of the HEAD commit on a branch.</summary>
+    public async Task<string?> GetBranchShaAsync(string repoFullName, string branch, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+        using var client = CreateClient();
+        var response = await client
+            .GetAsync($"repos/{repoFullName}/git/refs/heads/{Uri.EscapeDataString(branch)}", ct)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            LogGitHubApiFailed($"repos/{repoFullName}/git/refs/heads/{branch}", (int)response.StatusCode);
+            return null;
+        }
+
+        var refObj = await response.Content
+            .ReadFromJsonAsync(GitHubJsonContext.Default.GitHubRef, ct)
+            .ConfigureAwait(false);
+        return refObj?.Object?.Sha;
+    }
+
+    /// <summary>Creates a new branch from a base SHA.</summary>
+    public async Task<bool> CreateBranchAsync(
+        string repoFullName, string branchName, string baseSha, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return false;
+        using var client = CreateClient();
+        var body = new GitHubCreateRefRequest($"refs/heads/{branchName}", baseSha);
+        var response = await client
+            .PostAsJsonAsync($"repos/{repoFullName}/git/refs", body, GitHubJsonContext.Default.GitHubCreateRefRequest, ct)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+            LogGitHubApiFailed($"repos/{repoFullName}/git/refs (create branch)", (int)response.StatusCode);
+
+        return response.IsSuccessStatusCode;
+    }
+
+    /// <summary>Gets a file's content and current SHA from a repo.</summary>
+    public async Task<GitHubFileContent?> GetFileContentAsync(
+        string repoFullName, string filePath, string branch, CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+        using var client = CreateClient();
+        var response = await client
+            .GetAsync($"repos/{repoFullName}/contents/{Uri.EscapeDataString(filePath)}?ref={Uri.EscapeDataString(branch)}", ct)
+            .ConfigureAwait(false);
+
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+
+        if (!response.IsSuccessStatusCode)
+        {
+            LogGitHubApiFailed($"repos/{repoFullName}/contents/{filePath}", (int)response.StatusCode);
+            return null;
+        }
+
+        return await response.Content
+            .ReadFromJsonAsync(GitHubJsonContext.Default.GitHubFileContent, ct)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>Creates or updates a file in a repo, committing the change to <paramref name="branch"/>.</summary>
+    public async Task<bool> CreateOrUpdateFileAsync(
+        string repoFullName, string filePath, string contentBase64,
+        string commitMessage, string branch, string? existingSha,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured) return false;
+        using var client = CreateClient();
+
+        var body = new GitHubPutFileRequest(commitMessage, contentBase64, branch, existingSha);
+        var response = await client
+            .PutAsJsonAsync($"repos/{repoFullName}/contents/{Uri.EscapeDataString(filePath)}",
+                body, GitHubJsonContext.Default.GitHubPutFileRequest, ct)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+            LogGitHubApiFailed($"repos/{repoFullName}/contents/{filePath} (put)", (int)response.StatusCode);
+
+        return response.IsSuccessStatusCode;
+    }
+
+    /// <summary>Opens a pull request and returns the PR URL, or null on failure.</summary>
+    public async Task<string?> CreatePullRequestAsync(
+        string repoFullName, string title, string body,
+        string headBranch, string baseBranch,
+        CancellationToken ct = default)
+    {
+        if (!IsConfigured) return null;
+        using var client = CreateClient();
+
+        var request = new GitHubCreatePrRequest(title, headBranch, baseBranch, body);
+        var response = await client
+            .PostAsJsonAsync($"repos/{repoFullName}/pulls", request, GitHubJsonContext.Default.GitHubCreatePrRequest, ct)
+            .ConfigureAwait(false);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            LogGitHubApiFailed($"repos/{repoFullName}/pulls", (int)response.StatusCode);
+            return null;
+        }
+
+        var pr = await response.Content
+            .ReadFromJsonAsync(GitHubJsonContext.Default.GitHubPrResponse, ct)
+            .ConfigureAwait(false);
+        return pr?.HtmlUrl;
+    }
+
+    // ==========================================================================
     // Device Flow
     // ==========================================================================
 
@@ -333,6 +445,40 @@ public sealed record DevicePollResponse(
 public sealed record DeviceAvailableResponse(
     [property: JsonPropertyName("available")] bool Available);
 
+// Pull-request DTOs ──────────────────────────────────────────────────────────
+
+public sealed record GitHubRefObject(
+    [property: JsonPropertyName("sha")] string Sha);
+
+public sealed record GitHubRef(
+    [property: JsonPropertyName("ref")] string Ref,
+    [property: JsonPropertyName("object")] GitHubRefObject? Object);
+
+public sealed record GitHubCreateRefRequest(
+    [property: JsonPropertyName("ref")] string Ref,
+    [property: JsonPropertyName("sha")] string Sha);
+
+public sealed record GitHubFileContent(
+    [property: JsonPropertyName("sha")] string Sha,
+    [property: JsonPropertyName("content")] string? Content,
+    [property: JsonPropertyName("encoding")] string? Encoding);
+
+public sealed record GitHubPutFileRequest(
+    [property: JsonPropertyName("message")] string Message,
+    [property: JsonPropertyName("content")] string Content,
+    [property: JsonPropertyName("branch")] string Branch,
+    [property: JsonPropertyName("sha")] string? Sha);
+
+public sealed record GitHubCreatePrRequest(
+    [property: JsonPropertyName("title")] string Title,
+    [property: JsonPropertyName("head")] string Head,
+    [property: JsonPropertyName("base")] string Base,
+    [property: JsonPropertyName("body")] string Body);
+
+public sealed record GitHubPrResponse(
+    [property: JsonPropertyName("number")] int Number,
+    [property: JsonPropertyName("html_url")] string HtmlUrl);
+
 // =============================================================================
 // Source-generated JSON context for GitHub types
 // =============================================================================
@@ -349,4 +495,11 @@ public sealed record DeviceAvailableResponse(
 [JsonSerializable(typeof(DeviceTokenResponse))]
 [JsonSerializable(typeof(DevicePollResponse))]
 [JsonSerializable(typeof(DeviceAvailableResponse))]
+[JsonSerializable(typeof(GitHubRef))]
+[JsonSerializable(typeof(GitHubRefObject))]
+[JsonSerializable(typeof(GitHubCreateRefRequest))]
+[JsonSerializable(typeof(GitHubFileContent))]
+[JsonSerializable(typeof(GitHubPutFileRequest))]
+[JsonSerializable(typeof(GitHubCreatePrRequest))]
+[JsonSerializable(typeof(GitHubPrResponse))]
 internal partial class GitHubJsonContext : JsonSerializerContext;

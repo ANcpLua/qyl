@@ -29,4 +29,7 @@ public enum QylSkillKind
 
     /// <summary>Claude Code session telemetry: sessions, timelines, tool usage</summary>
     ClaudeCode,
+
+    /// <summary>Seer AI debugging: triage, autofix, code review, agent handoff</summary>
+    Seer,
 }

@@ -648,7 +648,18 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     const [elapsed, setElapsed] = useState(0);
     const [attempts, setAttempts] = useState(0);
 
-    const collectorUrl = window.location.origin;
+    const {data: meta} = useQuery({
+        queryKey: ['meta'],
+        queryFn: async () => {
+            const res = await fetch('/api/v1/meta');
+            if (!res.ok) return null;
+            return res.json() as Promise<{ ports: { http: number; grpc: number; otlpHttp: number } }>;
+        },
+        staleTime: 1000 * 60 * 5,
+    });
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const otlpHttpPort = meta?.ports?.otlpHttp || 4318;
+    const expectedEndpoint = isLocal ? `http://localhost:${otlpHttpPort}` : `${window.location.origin}/v1/traces`;
 
     const startPolling = useCallback(() => {
         setStatus('polling');
@@ -785,7 +796,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                     <ul className="text-xs text-brutal-slate space-y-2">
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">1.</span>
-                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={collectorUrl}</span></span>
+                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={expectedEndpoint}</span></span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">2.</span>
@@ -802,7 +813,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
             {status === 'idle' && (
                 <div className="border border-brutal-zinc p-4 bg-brutal-dark/85 text-left">
                     <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">EXPECTED ENDPOINT</div>
-                    <code className="text-xs text-signal-green font-mono">{collectorUrl}</code>
+                    <code className="text-xs text-signal-green font-mono">{expectedEndpoint}</code>
                     <p className="text-[10px] text-brutal-slate mt-2">
                         qyl checks for incoming traces and logs every 3 seconds for up to 30 seconds.
                     </p>

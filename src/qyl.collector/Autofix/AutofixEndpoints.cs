@@ -37,8 +37,58 @@ public static class AutofixEndpoints
 
             return Results.Ok(run);
         });
+
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/pr", static async (
+            string issueId, string runId,
+            PrCreationRequest request,
+            PrCreationService prService, DuckDbStore store, CancellationToken ct) =>
+        {
+            var run = await store.GetFixRunAsync(runId, ct);
+            if (run is null || run.IssueId != issueId)
+                return Results.NotFound();
+
+            if (string.IsNullOrWhiteSpace(request.Repo))
+                return Results.BadRequest(new { error = "repo is required (e.g. 'owner/my-repo')" });
+
+            var result = await prService.CreatePrAsync(runId, request.Repo, request.BaseBranch, ct);
+            return result.Success
+                ? Results.Ok(new { prUrl = result.PrUrl })
+                : Results.UnprocessableEntity(new { error = result.Error });
+        });
+
+        app.MapPatch("/api/v1/issues/{issueId}/fix-runs/{runId}", static async (
+            string issueId, string runId,
+            FixRunPatchRequest request,
+            AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
+        {
+            var run = await store.GetFixRunAsync(runId, ct);
+            if (run is null || run.IssueId != issueId)
+                return Results.NotFound();
+
+            await orchestrator.UpdateFixRunStatusAsync(
+                runId,
+                request.Status ?? run.Status,
+                request.Description,
+                request.Confidence,
+                request.ChangesJson,
+                ct);
+
+            return Results.NoContent();
+        });
     }
 }
 
 /// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs.</summary>
 public sealed record FixRunRequest(string? Policy = null);
+
+/// <summary>Request body for POST /api/v1/issues/{issueId}/fix-runs/{runId}/pr.</summary>
+public sealed record PrCreationRequest(
+    string Repo,
+    string? BaseBranch = null);
+
+/// <summary>Request body for PATCH /api/v1/issues/{issueId}/fix-runs/{runId}.</summary>
+public sealed record FixRunPatchRequest(
+    string? Status = null,
+    string? Description = null,
+    double? Confidence = null,
+    string? ChangesJson = null);
