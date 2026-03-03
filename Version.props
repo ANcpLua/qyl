@@ -9,7 +9,7 @@
     <!-- DuckDB -->
     <DuckDBVersion>1.4.4</DuckDBVersion>
     <!-- gRPC & Protobuf -->
-    <GoogleProtobufVersion>3.33.5</GoogleProtobufVersion>
+    <GoogleProtobufVersion>3.34.0</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
     <GrpcToolsVersion>2.78.0</GrpcToolsVersion>
     <!-- Testing -->
