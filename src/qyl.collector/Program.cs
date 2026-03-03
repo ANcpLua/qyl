@@ -10,7 +10,9 @@ using qyl.collector.Auth;
 using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
 using qyl.collector.ClaudeCode;
+using Microsoft.Agents.AI;
 using qyl.collector.Copilot;
+using qyl.copilot.Agents;
 using qyl.collector.Dashboard;
 using qyl.collector.Dashboards;
 using qyl.collector.Grpc;
@@ -178,6 +180,8 @@ builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
 
 // GitHub Copilot integration — bridges GitHubService token to Copilot auth (ADR-002)
 builder.Services.AddQylCopilot(builder.Configuration);
+// AG-UI SSE infrastructure (CopilotKit-compatible protocol)
+builder.Services.AddQylAgui();
 // Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
 builder.Services.AddSingleton(sp => new CopilotAuthOptions
 {
@@ -328,6 +332,11 @@ app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
 app.MapCopilotEndpoints();
+// AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
+if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
+{
+    app.MapQylAguiChat(QylAgentBuilder.FromChatClient(aguiChatClient, agentName: "qyl-llm"));
+}
 app.MapClaudeCodeEndpoints();
 app.MapServiceEndpoints();
 app.MapSseEndpoints();

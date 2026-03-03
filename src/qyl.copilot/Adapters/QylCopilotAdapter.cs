@@ -133,6 +133,12 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     }
 
     /// <summary>
+    ///     Exposes the inner <see cref="AIAgent"/> for AG-UI endpoint registration.
+    ///     Called by <c>QylAgentBuilder.FromCopilotAdapter()</c> after the adapter is initialized.
+    /// </summary>
+    internal AIAgent GetInnerAgent() => _agent;
+
+    /// <summary>
     ///     Gets the current authentication status.
     /// </summary>
     public ValueTask<CopilotAuthStatus> GetAuthStatusAsync(CancellationToken ct = default)

@@ -23,6 +23,9 @@
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsAbstractionsVersion>1.0.0-rc2</MicrosoftAgentsAbstractionsVersion>
     <MicrosoftAgentsCopilotVersion>1.0.0-preview.260225.1</MicrosoftAgentsCopilotVersion>
+    <MicrosoftAgentsHostingVersion>1.0.0-preview.260225.1</MicrosoftAgentsHostingVersion>
+    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260225.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
+    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc2</MicrosoftAgentsWorkflowsDeclarativeVersion>
     <!-- OpenAI SDK -->
     <OpenAIVersion>2.9.0</OpenAIVersion>
     <!-- MCP -->

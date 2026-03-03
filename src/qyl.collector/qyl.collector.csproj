@@ -47,6 +47,11 @@
     <PackageReference Include="Microsoft.Extensions.AI"/>
   </ItemGroup>
 
+  <!-- AG-UI endpoint (CopilotKit-compatible SSE protocol) -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore"/>
+  </ItemGroup>
+
 
   <!-- OTLP protobuf ingestion -->
   <ItemGroup>

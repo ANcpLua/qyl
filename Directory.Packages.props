@@ -63,6 +63,9 @@
     <!-- Microsoft.Agents.AI -->
     <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="$(MicrosoftAgentsAbstractionsVersion)"/>
     <PackageVersion Include="Microsoft.Agents.AI.GitHub.Copilot" Version="$(MicrosoftAgentsCopilotVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting" Version="$(MicrosoftAgentsHostingVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" Version="$(MicrosoftAgentsHostingAguiAspNetCoreVersion)"/>
+    <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="$(MicrosoftAgentsWorkflowsDeclarativeVersion)"/>
     <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)"/>
     <!-- MCP & AI Clients -->
