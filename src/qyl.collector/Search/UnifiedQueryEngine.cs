@@ -82,15 +82,15 @@ internal static class UnifiedQueryEngine
                                                 execution_id AS entity_id,
                                                 COALESCE(workflow_name, 'Workflow') AS title,
                                                 COALESCE(status, '') AS snippet,
-                                                COALESCE(start_time_unix_nano, 0) AS ts,
+                                                COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) AS ts,
                                                 CASE WHEN COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\' THEN 2.0
                                                      WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\' THEN 1.5
                                                      ELSE 1.0 END AS score
                                             FROM workflow_executions
                                             WHERE (COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\'
                                                 OR COALESCE(status, '') ILIKE $1 ESCAPE '\')
-                                              AND COALESCE(start_time_unix_nano, 0) >= $2
-                                              AND COALESCE(start_time_unix_nano, 0) <= $3
+                                              AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) >= $2
+                                              AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) <= $3
                                             """;
 
     /// <summary>Default time window when no explicit range is specified (24 hours).</summary>

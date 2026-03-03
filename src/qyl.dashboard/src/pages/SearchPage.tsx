@@ -9,28 +9,28 @@ import {useSearch} from '@/hooks/use-search';
 
 const entityTypes = [
     {key: '', label: 'All'},
-    {key: 'span', label: 'Spans'},
-    {key: 'log', label: 'Logs'},
-    {key: 'error', label: 'Errors'},
-    {key: 'agent_run', label: 'Agent Runs'},
-    {key: 'workflow', label: 'Workflows'},
+    {key: 'spans', label: 'Spans'},
+    {key: 'logs', label: 'Logs'},
+    {key: 'errors', label: 'Errors'},
+    {key: 'agent_runs', label: 'Agent Runs'},
+    {key: 'workflows', label: 'Workflows'},
 ] as const;
 
 const entityStyles: Record<string, { color: string; icon: typeof Search }> = {
-    span: {color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: Network},
-    log: {color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: FileText},
-    error: {color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle},
-    agent_run: {color: 'bg-purple-500/20 text-purple-400 border-purple-500/40', icon: Bot},
-    workflow: {color: 'bg-amber-500/20 text-amber-400 border-amber-500/40', icon: Workflow},
+    spans: {color: 'bg-blue-500/20 text-blue-400 border-blue-500/40', icon: Network},
+    logs: {color: 'bg-green-500/20 text-green-400 border-green-500/40', icon: FileText},
+    errors: {color: 'bg-red-500/20 text-red-400 border-red-500/40', icon: AlertCircle},
+    agent_runs: {color: 'bg-purple-500/20 text-purple-400 border-purple-500/40', icon: Bot},
+    workflows: {color: 'bg-amber-500/20 text-amber-400 border-amber-500/40', icon: Workflow},
 };
 
 const pillStyles: Record<string, string> = {
     '': 'bg-brutal-zinc/40 text-brutal-white border-brutal-zinc',
-    span: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
-    log: 'bg-green-500/20 text-green-400 border-green-500/40',
-    error: 'bg-red-500/20 text-red-400 border-red-500/40',
-    agent_run: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
-    workflow: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
+    spans: 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+    logs: 'bg-green-500/20 text-green-400 border-green-500/40',
+    errors: 'bg-red-500/20 text-red-400 border-red-500/40',
+    agent_runs: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
+    workflows: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
 };
 
 function formatTimestamp(value?: string): string {
@@ -49,15 +49,15 @@ function formatTimestamp(value?: string): string {
 
 function entityRoute(result: SearchResult): string {
     switch (result.entityType) {
-        case 'span':
+        case 'spans':
             return `/traces`;
-        case 'log':
+        case 'logs':
             return `/logs`;
-        case 'error':
+        case 'errors':
             return `/issues/${result.entityId}`;
-        case 'agent_run':
+        case 'agent_runs':
             return `/agents/${result.entityId}`;
-        case 'workflow':
+        case 'workflows':
             return `/workflows/${result.entityId}`;
         default:
             return '/';
@@ -96,7 +96,7 @@ function SkeletonRow() {
 }
 
 function ResultRow({result, onClick}: { result: SearchResult; onClick: () => void }) {
-    const style = entityStyles[result.entityType] ?? entityStyles.span;
+    const style = entityStyles[result.entityType] ?? entityStyles.spans;
     const Icon = style.icon;
 
     return (

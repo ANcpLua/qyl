@@ -25,6 +25,7 @@ const pageTitle: Record<string, string> = {
     '/logs': 'STRUCTURED LOGS',
     '/metrics': 'METRICS',
     '/genai': 'GENAI TELEMETRY',
+    '/search': 'SEARCH',
     '/settings': 'SETTINGS',
     '/bot': 'BOT ANALYTICS',
 };
