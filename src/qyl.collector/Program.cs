@@ -197,6 +197,7 @@ builder.Services.AddSingleton<SchemaExecutor>();
 // Identity + workspace services
 builder.Services.AddSingleton<WorkspaceService>();
 builder.Services.AddSingleton<HandshakeService>();
+builder.Services.AddSingleton<ProjectService>();
 
 // GitHub identity integration (ADR-002)
 builder.Services.AddSingleton<GitHubService>();

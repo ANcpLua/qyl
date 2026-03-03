@@ -138,7 +138,7 @@ public sealed class QylAppBuilder
     /// <summary>
     ///     Builds and runs the distributed application asynchronously.
     /// </summary>
-    public async Task RunAsync(CancellationToken ct = default)
+    private async Task RunAsync(CancellationToken ct = default)
     {
         using var runner = new QylRunner(this);
         await runner.RunAsync(ct);

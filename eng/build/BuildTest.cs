@@ -92,18 +92,6 @@ public sealed class MtpArgumentsBuilder
         return AddOption("--report-trx-filename", filename);
     }
 
-    public MtpArgumentsBuilder ReportXunit(string filename)
-    {
-        _args.Add("--report-xunit");
-        return AddOption("--report-xunit-filename", filename);
-    }
-
-    public MtpArgumentsBuilder ReportJunit(string filename)
-    {
-        _args.Add("--report-junit");
-        return AddOption("--report-junit-filename", filename);
-    }
-
     // ─── Execution Options ──────────────────────────────────────────────────
     public MtpArgumentsBuilder StopOnFail() => AddFlag("--stop-on-fail");
 
