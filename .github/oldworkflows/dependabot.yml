@@ -1,0 +1,54 @@
+version: 2
+updates:
+  # .NET SDK version updates
+  - package-ecosystem: "dotnet-sdk"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+
+  # NuGet package updates
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    groups:
+      # Group all ANcpLua SDK packages together to avoid version mismatches
+      ancplua-sdk:
+        patterns:
+          - "ANcpLua.NET.Sdk"
+          - "ANcpLua.NET.Sdk.Test"
+          - "ANcpLua.NET.Sdk.Web"
+          - "ANcpSdk.AspNetCore.ServiceDefaults*"
+      # Group ANcpLua utilities
+      ancplua-utilities:
+        patterns:
+          - "ANcpLua.Roslyn.Utilities*"
+          - "ANcpLua.Analyzers"
+      # Group OpenTelemetry packages
+      opentelemetry:
+        patterns:
+          - "OpenTelemetry*"
+      # Group Microsoft.Extensions packages
+      microsoft-extensions:
+        patterns:
+          - "Microsoft.Extensions.*"
+      # Group testing packages
+      testing:
+        patterns:
+          - "xunit*"
+          - "Microsoft.Testing.*"
+          - "AwesomeAssertions"
+      # Group gRPC packages
+      grpc:
+        patterns:
+          - "Grpc.*"
+          - "Google.Protobuf"
+
+  # GitHub Actions updates
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"

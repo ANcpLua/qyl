@@ -1,16 +1,10 @@
-# =============================================================================
-# Auto-merge for Trusted PRs
-# -----------------------------------------------------------------------------
-# Tiers:
-#   1a. Dependabot: Auto-approve + auto-merge patch/minor; Claude review major
-#   1b. Renovate: Auto-approve + auto-merge
-#   2.  AI Agents (copilot/jules/claude): Auto-merge when CI passes
-#   3.  CodeRabbit approved: Auto-merge when CI passes
-#   4.  Governance bot: Auto-merge action version governance PRs
+# Auto-merge workflow for trusted PRs
 #
-# Uses pull_request_target for security (runs in base branch context).
-# All merges wait for required status checks before completing.
-# =============================================================================
+# Tiers:
+# 1a. Dependabot PRs: Auto-approve + auto-merge for patch/minor
+# 1b. Renovate PRs: Auto-approve + auto-merge
+# 2.  AI Agent fix PRs (copilot/, jules/, claude/): Auto-merge when CI passes
+# 3.  CodeRabbit approved PRs: Auto-merge when CI passes
 
 name: Auto-merge
 
@@ -24,17 +18,11 @@ permissions:
   contents: write
   pull-requests: write
 
-concurrency:
-  group: auto-merge-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
-
 jobs:
   dependabot-auto-merge:
     name: Dependabot auto-merge
     runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'dependabot[bot]' &&
-      github.event.pull_request.draft == false
+    if: github.actor == 'dependabot[bot]'
 
     steps:
       - name: Fetch Dependabot metadata
@@ -79,9 +67,7 @@ jobs:
   renovate-auto-merge:
     name: Renovate auto-merge
     runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'renovate[bot]' &&
-      github.event.pull_request.draft == false
+    if: github.actor == 'renovate[bot]'
 
     steps:
       - name: Auto-approve Renovate PRs
@@ -146,40 +132,6 @@ jobs:
 
     steps:
       - name: Enable auto-merge for CodeRabbit approved PRs
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr merge --auto --squash "$PR_URL"
-
-  governance-auto-merge:
-    name: Governance bot auto-merge
-    runs-on: ubuntu-latest
-    if: >
-      github.event.pull_request.user.login == 'github-actions[bot]' &&
-      github.event.pull_request.head.ref == 'chore/action-governance' &&
-      github.event.pull_request.draft == false
-
-    steps:
-      - name: Verify only .github files changed
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          files=$(gh pr diff "$PR_URL" --name-only)
-          if echo "$files" | grep -qvE '^\.github/'; then
-            echo "PR contains changes outside .github/ — skipping auto-merge"
-            exit 0
-          fi
-          echo "All changes scoped to .github/ — safe to auto-merge"
-
-      - name: Auto-approve governance PR
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL" --body "✅ Auto-approved: action governance update (scoped to .github/)"
-
-      - name: Enable auto-merge
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

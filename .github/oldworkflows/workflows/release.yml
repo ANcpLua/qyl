@@ -1,21 +1,13 @@
-# =============================================================================
-# Release Pipeline
-# -----------------------------------------------------------------------------
-# Builds, tests, packages, and publishes qyl on tag push or manual dispatch.
-# Produces GitHub Release with collector + dashboard tarballs and Docker images
-# pushed to Docker Hub and GitHub Container Registry.
-# =============================================================================
-
 name: Release
 
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
   workflow_dispatch:
     inputs:
       version:
-        description: "Version to release (e.g., v1.0.0)"
+        description: 'Version to release (e.g., v1.0.0)'
         required: true
         type: string
 
@@ -23,15 +15,11 @@ permissions:
   contents: write
   packages: write
 
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
-  DOTNET_VERSION: "10.0.x"
+  DOTNET_VERSION: '10.0.x'
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
-  NODE_VERSION: "22"
+  NODE_VERSION: '22'
 
 jobs:
   build-and-release:
@@ -52,7 +40,7 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
+          cache: 'npm'
           cache-dependency-path: src/qyl.dashboard/package-lock.json
 
       - name: Get version
@@ -94,12 +82,7 @@ jobs:
 
       - name: Run frontend tests
         working-directory: src/qyl.dashboard
-        run: |
-          if find src -name "*.test.ts" -o -name "*.spec.ts" 2>/dev/null | grep -q .; then
-            npm run test -- --run
-          else
-            echo "No test files found, skipping"
-          fi
+        run: npm run test -- --run
 
       - name: Build frontend
         working-directory: src/qyl.dashboard
@@ -122,10 +105,12 @@ jobs:
         run: |
           mkdir -p ./release
 
+          # Package collector
           cd ./publish/collector
           tar -czvf ../../release/qyl-collector-linux-x64-${{ steps.version.outputs.version }}.tar.gz .
           cd ../..
 
+          # Package dashboard
           cd ./src/qyl.dashboard/dist
           tar -czvf ../../../release/qyl-dashboard-${{ steps.version.outputs.version }}.tar.gz .
           cd ../../..

@@ -1,9 +1,15 @@
+# =============================================================================
+# Deploy Landing Page to GitHub Pages
+# -----------------------------------------------------------------------------
+# Deploys static content from site/ to GitHub Pages on push to main.
+# =============================================================================
+
 name: Deploy Landing Page
 
 on:
   push:
     branches: [main]
-    paths: ['site/**']
+    paths: ["site/**"]
   workflow_dispatch:
 
 permissions:
@@ -21,11 +27,19 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
           path: site
-      - id: deployment
+
+      - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
