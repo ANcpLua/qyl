@@ -12,7 +12,9 @@ import {
     DollarSign,
     ExternalLink,
     Hash,
+    Link2,
     Search,
+    ShieldCheck,
     TrendingUp,
     Wrench,
     X,
@@ -62,6 +64,7 @@ import {
     useAgentTraffic,
     useTraceSpans,
 } from '@/hooks/use-agent-insights';
+import {useAgentRuns} from '@/hooks/use-agent-runs';
 
 // ── Formatting helpers ─────────────────────────────────────────────────────────
 
@@ -1454,6 +1457,154 @@ function OverviewTab({filter}: { filter: TimeFilter }) {
     );
 }
 
+function RunsTab({search}: { search: string }) {
+    const [trackMode, setTrackMode] = useState('all');
+    const [approvalStatus, setApprovalStatus] = useState('all');
+
+    const {data: runs = [], isLoading, error} = useAgentRuns({
+        trackMode: trackMode === 'all' ? undefined : trackMode,
+        approvalStatus: approvalStatus === 'all' ? undefined : approvalStatus,
+    });
+
+    const visibleRuns = useMemo(() => {
+        const needle = search.trim().toLowerCase();
+        if (!needle) return runs;
+
+        return runs.filter((run) =>
+            run.run_id.toLowerCase().includes(needle)
+            || (run.trace_id?.toLowerCase().includes(needle) ?? false)
+            || (run.agent_name?.toLowerCase().includes(needle) ?? false)
+            || (run.track_mode?.toLowerCase().includes(needle) ?? false)
+            || (run.approval_status?.toLowerCase().includes(needle) ?? false),
+        );
+    }, [runs, search]);
+
+    if (isLoading) {
+        return (
+            <div className="space-y-3">
+                <ChartSkeleton className="h-24"/>
+                <ChartSkeleton className="h-24"/>
+                <ChartSkeleton className="h-24"/>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="bg-brutal-carbon border-2 border-red-500/30 p-4">
+                <div className="text-sm text-red-400">Failed to load agent runs.</div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">Track</span>
+                    {['all', 'auto', 'creative', 'reasoning', 'enterprise'].map((mode) => (
+                        <button
+                            key={mode}
+                            onClick={() => setTrackMode(mode)}
+                            className={cn(
+                                'px-2.5 py-1 border text-[10px] font-bold uppercase tracking-wider transition-colors',
+                                trackMode === mode
+                                    ? 'border-signal-cyan bg-signal-cyan/20 text-signal-cyan'
+                                    : 'border-brutal-zinc text-brutal-slate hover:text-brutal-white',
+                            )}
+                        >
+                            {mode}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">Approval</span>
+                    {['all', 'not_required', 'awaiting_approval', 'approved', 'denied'].map((value) => (
+                        <button
+                            key={value}
+                            onClick={() => setApprovalStatus(value)}
+                            className={cn(
+                                'px-2.5 py-1 border text-[10px] font-bold uppercase tracking-wider transition-colors',
+                                approvalStatus === value
+                                    ? 'border-signal-orange bg-signal-orange/20 text-signal-orange'
+                                    : 'border-brutal-zinc text-brutal-slate hover:text-brutal-white',
+                            )}
+                        >
+                            {value}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="bg-brutal-carbon border-2 border-brutal-zinc">
+                <div className="grid grid-cols-[1.7fr_1.4fr_0.9fr_1fr_0.9fr_0.8fr_0.8fr_1fr] gap-2 px-4 py-2 border-b border-brutal-zinc text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">
+                    <span>Run</span>
+                    <span>Agent</span>
+                    <span>Track</span>
+                    <span>Approval</span>
+                    <span>Tokens</span>
+                    <span>Cost</span>
+                    <span>Duration</span>
+                    <span>Evidence</span>
+                </div>
+
+                <ScrollArea className="h-[520px]">
+                    {visibleRuns.length === 0 ? (
+                        <div className="px-4 py-8 text-sm text-brutal-slate text-center">No agent runs found.</div>
+                    ) : (
+                        visibleRuns.map((run) => (
+                            <div
+                                key={run.run_id}
+                                className="grid grid-cols-[1.7fr_1.4fr_0.9fr_1fr_0.9fr_0.8fr_0.8fr_1fr] gap-2 px-4 py-3 border-b border-brutal-zinc/70 text-xs hover:bg-brutal-dark/30"
+                            >
+                                <a
+                                    href={`/agents/${run.run_id}`}
+                                    className="font-mono text-primary hover:underline truncate"
+                                    title={run.run_id}
+                                >
+                                    {run.run_id}
+                                </a>
+                                <span className="truncate text-brutal-white">{run.agent_name ?? 'qyl.copilot'}</span>
+                                <Badge variant="outline"
+                                       className="w-fit text-[10px] text-signal-cyan border-signal-cyan/40">
+                                    {run.track_mode ?? 'auto'}
+                                </Badge>
+                                <div className="flex items-center gap-1">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-signal-orange"/>
+                                    <span className="font-mono uppercase text-[10px]">
+                                        {run.approval_status ?? 'not_required'}
+                                    </span>
+                                </div>
+                                <span className="font-mono text-brutal-slate">
+                                    {formatCompact((run.input_tokens ?? 0) + (run.output_tokens ?? 0))}
+                                </span>
+                                <span className="font-mono text-signal-green">{formatCost(run.total_cost ?? 0)}</span>
+                                <span className="font-mono text-brutal-slate">
+                                    {run.duration_ns ? formatDurationHuman(run.duration_ns / 1_000_000) : '—'}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-mono text-brutal-slate">{run.evidence_count ?? 0}</span>
+                                    {run.trace_id && (
+                                        <a
+                                            href={`/traces/${run.trace_id}`}
+                                            className="inline-flex items-center gap-1 text-signal-cyan hover:underline"
+                                            title={run.trace_id}
+                                        >
+                                            <Link2 className="w-3 h-3"/>
+                                            trace
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </ScrollArea>
+            </div>
+        </div>
+    );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export function AgentsPage() {
@@ -1581,6 +1732,13 @@ export function AgentsPage() {
                         <Wrench className="w-3.5 h-3.5 mr-1.5"/>
                         Tools
                     </TabsTrigger>
+                    <TabsTrigger
+                        value="runs"
+                        className="text-[10px] font-bold tracking-[0.15em] uppercase px-4 py-2 data-[state=active]:bg-signal-orange/20 data-[state=active]:text-signal-orange data-[state=active]:border-b-2 data-[state=active]:border-signal-orange text-brutal-slate hover:text-brutal-white transition-colors"
+                    >
+                        <ShieldCheck className="w-3.5 h-3.5 mr-1.5"/>
+                        Runs
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview" className="mt-4">
@@ -1591,6 +1749,9 @@ export function AgentsPage() {
                 </TabsContent>
                 <TabsContent value="tools" className="mt-4">
                     <ToolsTab filter={filter}/>
+                </TabsContent>
+                <TabsContent value="runs" className="mt-4">
+                    <RunsTab search={search}/>
                 </TabsContent>
             </Tabs>
         </div>

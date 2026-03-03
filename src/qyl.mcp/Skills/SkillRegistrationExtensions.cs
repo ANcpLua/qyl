@@ -86,7 +86,12 @@ internal static class SkillRegistrationExtensions
                 .WithTools<TriageTools>(jsonOptions)
                 .WithTools<ExportForAgentTools>(jsonOptions)
                 .WithTools<FixTools>(jsonOptions)
-                .WithTools<AutofixMcpTools>(jsonOptions);
+                .WithTools<AutofixMcpTools>(jsonOptions)
+                .WithTools<RegressionTools>(jsonOptions)
+                .WithTools<GitHubMcpTools>(jsonOptions)
+                .WithTools<AgentHandoffTools>(jsonOptions)
+                .WithTools<AssistedQueryTools>(jsonOptions)
+                .WithTools<TestGenerationTools>(jsonOptions);
         }
 
         return mcpBuilder;

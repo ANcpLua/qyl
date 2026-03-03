@@ -15,3 +15,7 @@ export {OnboardingPage} from './OnboardingPage';
 export {BotPage} from './BotPage';
 export {BotConversationDetailPage} from './BotConversationDetailPage';
 export {BotUserJourneyPage} from './BotUserJourneyPage';
+export {SeerDashboardPage} from './SeerDashboardPage';
+export {IssueTriagePage} from './IssueTriagePage';
+export {IssueFixRunsPage} from './IssueFixRunsPage';
+export {CodeReviewPage} from './CodeReviewPage';

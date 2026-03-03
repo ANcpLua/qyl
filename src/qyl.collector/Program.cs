@@ -234,6 +234,10 @@ builder.Services.AddSingleton<IssueService>();
 builder.Services.AddSingleton<ErrorLifecycleService>();
 builder.Services.AddSingleton<AutofixOrchestrator>();
 builder.Services.AddSingleton<PrCreationService>();
+builder.Services.AddSingleton<AgentHandoffService>();
+
+// Seer code review: LLM-powered PR diff analysis
+builder.Services.AddSingleton<CodeReviewService>();
 
 // Workflow run service
 builder.Services.AddSingleton<WorkflowRunService>();
@@ -857,7 +861,10 @@ app.MapIssueEndpoints();
 app.MapIssueAnalyticsEndpoints();
 app.MapAnomalyEndpoints();
 app.MapAutofixEndpoints();
+app.MapAgentHandoffEndpoints();
+app.MapCodeReviewEndpoints();
 app.MapCodingAgentEndpoints();
+app.MapGitHubWebhookEndpoints();
 app.MapSeerSettingsEndpoints();
 app.MapTriageEndpoints();
 app.MapWorkflowEndpoints();
@@ -865,6 +872,7 @@ app.MapWorkflowRunEndpoints();
 app.MapWorkflowEventEndpoints();
 app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
+app.MapQueryEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {
@@ -892,7 +900,14 @@ app.MapFallback(context =>
     }
 
     // Physical files mode: serve index.html for SPA client-side routing
-    var indexPath = Path.Combine(app.Environment.WebRootPath, "index.html");
+    var webRootPath = app.Environment.WebRootPath;
+    if (string.IsNullOrWhiteSpace(webRootPath))
+    {
+        context.Response.StatusCode = 404;
+        return context.Response.WriteAsync("Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
+    }
+
+    var indexPath = Path.Combine(webRootPath, "index.html");
     if (File.Exists(indexPath))
     {
         context.Response.ContentType = "text/html";

@@ -151,7 +151,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         return TokenHandler.ValidateTokenAsync(token, parameters);
     }
 
-    private static IReadOnlyDictionary<string, string> ExtractClaims(TokenValidationResult result)
+    private static FrozenDictionary<string, string> ExtractClaims(TokenValidationResult result)
     {
         Dictionary<string, string> claims = new(StringComparer.OrdinalIgnoreCase);
         foreach (Claim claim in result.ClaimsIdentity.Claims)

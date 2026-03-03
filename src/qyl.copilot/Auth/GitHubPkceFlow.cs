@@ -30,8 +30,7 @@ public static partial class GitHubPkceFlow
 
     /// <summary>
     ///     Starts the PKCE flow. Returns the authorization URL to redirect the user to,
-    ///     plus the opaque <paramref name="state" /> and <paramref name="codeVerifier" />
-    ///     that must be stored for the callback.
+    ///     plus the opaque state token and code verifier that must be stored for the callback.
     /// </summary>
     /// <param name="options">Auth options with ClientId and CallbackUrl.</param>
     /// <param name="scopes">OAuth scopes (defaults to "read:user copilot").</param>
@@ -60,7 +59,7 @@ public static partial class GitHubPkceFlow
         };
 
         var url = AuthorizeEndpoint + "?" + string.Join("&",
-            query.Select(kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
+            query.Select(static kvp => $"{Uri.EscapeDataString(kvp.Key)}={Uri.EscapeDataString(kvp.Value)}"));
 
         return (url, state, codeVerifier);
     }
@@ -101,11 +100,16 @@ public static partial class GitHubPkceFlow
 
         ArgumentException.ThrowIfNullOrWhiteSpace(options.OAuthClientId, nameof(options.OAuthClientId));
 
-        var ownedClient = httpClient is null;
-        httpClient ??= CreateDefaultHttpClient();
+        HttpClient? ownedHttpClient = null;
 
         try
         {
+            if (httpClient is null)
+            {
+                ownedHttpClient = CreateDefaultHttpClient();
+                httpClient = ownedHttpClient;
+            }
+
             // ── Exchange code + verifier for access token ──
             var tokenResponse = await FetchAccessTokenAsync(
                 httpClient, code, codeVerifier, options, ct).ConfigureAwait(false);
@@ -140,7 +144,7 @@ public static partial class GitHubPkceFlow
         }
         finally
         {
-            if (ownedClient) httpClient.Dispose();
+            ownedHttpClient?.Dispose();
         }
     }
 

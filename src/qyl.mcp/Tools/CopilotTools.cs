@@ -73,12 +73,15 @@ public sealed class CopilotTools(HttpClient client)
         [Description("The prompt to send to Copilot")]
         string prompt,
         [Description("Additional context to include (e.g., telemetry data)")]
-        string? context = null) =>
+        string? context = null,
+        [Description("Track mode: auto, creative, reasoning, or enterprise")]
+        string mode = "auto") =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotChatRequestDto
             {
                 Prompt = prompt,
+                Mode = mode,
                 Context = context is not null ? new CopilotContextDto { AdditionalContext = context } : null
             };
 
@@ -157,12 +160,15 @@ public sealed class CopilotTools(HttpClient client)
         [Description("Name of the workflow to execute")]
         string name,
         [Description("Additional context for the workflow")]
-        string? context = null) =>
+        string? context = null,
+        [Description("Track mode: auto, creative, reasoning, or enterprise")]
+        string mode = "auto") =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new CopilotWorkflowRunDto
             {
                 WorkflowName = name,
+                Mode = mode,
                 Context = context is not null ? new CopilotContextDto { AdditionalContext = context } : null
             };
 
@@ -230,6 +236,8 @@ internal sealed record CopilotChatRequestDto
 {
     [JsonPropertyName("prompt")] public required string Prompt { get; init; }
 
+    [JsonPropertyName("mode")] public string? Mode { get; init; }
+
     [JsonPropertyName("context")] public CopilotContextDto? Context { get; init; }
 }
 
@@ -253,6 +261,8 @@ internal sealed record CopilotStreamUpdateDto
 internal sealed record CopilotWorkflowRunDto
 {
     [JsonPropertyName("workflowName")] public required string WorkflowName { get; init; }
+
+    [JsonPropertyName("mode")] public string? Mode { get; init; }
 
     [JsonPropertyName("context")] public CopilotContextDto? Context { get; init; }
 }

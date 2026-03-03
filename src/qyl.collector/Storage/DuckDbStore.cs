@@ -1648,9 +1648,13 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         issueEventsCmd.CommandText = IssueEventsDdl;
         issueEventsCmd.ExecuteNonQuery();
 
-        // Agent runs (used by AgentInsightsService trace list)
+        // Agent audit tables: runs, tool calls, and decision events
         using var agentRunsCmd = con.CreateCommand();
-        agentRunsCmd.CommandText = DuckDbSchema.AgentRunsDdl;
+        agentRunsCmd.CommandText = $"""
+                                    {DuckDbSchema.AgentRunsDdl}
+                                    {DuckDbSchema.ToolCallsDdl}
+                                    {DuckDbSchema.AgentDecisionsDdl}
+                                    """;
         agentRunsCmd.ExecuteNonQuery();
 
         // Semantic span clusters (Phase 5 — EmbeddingClusterWorker)

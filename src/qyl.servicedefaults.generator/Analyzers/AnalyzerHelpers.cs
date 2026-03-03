@@ -20,6 +20,27 @@ internal static class AnalyzerHelpers
         node.IsKind(SyntaxKind.InvocationExpression);
 
     /// <summary>
+    ///     Tries to extract the invoked method name directly from invocation syntax.
+    ///     Returns null when the invocation shape is not recognized.
+    /// </summary>
+    public static string? GetInvokedMethodName(SyntaxNode node)
+    {
+        if (node is not InvocationExpressionSyntax invocation)
+            return null;
+
+        return invocation.Expression switch
+        {
+            MemberAccessExpressionSyntax { Name: IdentifierNameSyntax id } => id.Identifier.ValueText,
+            MemberAccessExpressionSyntax { Name: GenericNameSyntax generic } => generic.Identifier.ValueText,
+            MemberBindingExpressionSyntax { Name: IdentifierNameSyntax id } => id.Identifier.ValueText,
+            MemberBindingExpressionSyntax { Name: GenericNameSyntax generic } => generic.Identifier.ValueText,
+            IdentifierNameSyntax id => id.Identifier.ValueText,
+            GenericNameSyntax generic => generic.Identifier.ValueText,
+            _ => null
+        };
+    }
+
+    /// <summary>
     ///     Checks if a file is generated code based on its file path.
     /// </summary>
     public static bool IsGeneratedFile(string filePath) =>

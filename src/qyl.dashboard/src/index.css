@@ -22,7 +22,7 @@
     --color-brutal-carbon: oklch(0.18 0 0);
     --color-brutal-dark: oklch(0.20 0 0);
     --color-brutal-zinc: oklch(0.60 0 0);
-    --color-brutal-slate: oklch(0.65 0 0);
+    --color-brutal-slate: oklch(0.78 0 0);
     --color-brutal-white: oklch(0.97 0 0);
 
     /* Semantic color mappings */
@@ -41,7 +41,7 @@
     --color-secondary: var(--color-brutal-zinc);
     --color-secondary-foreground: var(--color-brutal-white);
 
-    --color-muted: var(--color-brutal-zinc);
+    --color-muted: var(--color-brutal-carbon);
     --color-muted-foreground: var(--color-brutal-slate);
 
     --color-accent: var(--color-signal-violet);
@@ -184,7 +184,7 @@
         --color-brutal-carbon: oklch(0.94 0 0);
         --color-brutal-dark: oklch(0.90 0 0);
         --color-brutal-zinc: oklch(0.80 0 0);
-        --color-brutal-slate: oklch(0.50 0 0);
+        --color-brutal-slate: oklch(0.38 0 0);
         --color-brutal-white: oklch(0.15 0 0);
 
         /* Adjusted signal colors for light mode contrast */

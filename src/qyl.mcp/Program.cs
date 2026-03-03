@@ -82,6 +82,11 @@ if (skills.IsEnabled(QylSkillKind.Seer))
     builder.Services.AddCollectorToolClient<ExportForAgentTools>(collectorUrl);
     builder.Services.AddCollectorToolClient<FixTools>(collectorUrl);
     builder.Services.AddCollectorToolClient<AutofixMcpTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<RegressionTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<GitHubMcpTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<AgentHandoffTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<AssistedQueryTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<TestGenerationTools>(collectorUrl);
 }
 
 // Always registered — used by ITelemetryStore and agent infrastructure

@@ -1,5 +1,6 @@
 import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
 import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
+import {IconContext} from '@phosphor-icons/react';
 import {Toaster} from '@/components/ui/sonner';
 import {DashboardLayout} from '@/components/layout';
 import {
@@ -20,6 +21,10 @@ import {
     TracesPage,
     WorkflowRunDetailPage,
     WorkflowRunsPage,
+    SeerDashboardPage,
+    IssueTriagePage,
+    IssueFixRunsPage,
+    CodeReviewPage,
 } from '@/pages';
 
 const queryClient = new QueryClient({
@@ -50,32 +55,38 @@ function FirstVisitGate() {
 
 export default function App() {
     return (
-        <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/index.html" element={<Navigate to="/" replace/>}/>
-                    <Route element={<DashboardLayout/>}>
-                        <Route path="/" element={<FirstVisitGate/>}/>
-                        <Route path="/traces" element={<TracesPage/>}/>
-                        <Route path="/logs" element={<LogsPage/>}/>
-                        <Route path="/genai" element={<GenAIPage/>}/>
-                        <Route path="/dashboards/:id" element={<DashboardPage/>}/>
-                        <Route path="/search" element={<SearchPage/>}/>
-                        <Route path="/settings" element={<SettingsPage/>}/>
-                        <Route path="/agents" element={<AgentsPage/>}/>
-                        <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
-                        <Route path="/issues" element={<IssuesPage/>}/>
-                        <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                        <Route path="/workflows" element={<WorkflowRunsPage/>}/>
-                        <Route path="/workflows/:runId" element={<WorkflowRunDetailPage/>}/>
-                        <Route path="/onboarding" element={<OnboardingPage/>}/>
-                        <Route path="/bot" element={<BotPage/>}/>
-                        <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>
-                        <Route path="/bot/users/:userId/journey" element={<BotUserJourneyPage/>}/>
-                    </Route>
-                </Routes>
-            </BrowserRouter>
-            <Toaster richColors position="bottom-right"/>
-        </QueryClientProvider>
+        <IconContext.Provider value={{weight: 'bold'}}>
+            <QueryClientProvider client={queryClient}>
+                <BrowserRouter>
+                    <Routes>
+                        <Route path="/index.html" element={<Navigate to="/" replace/>}/>
+                        <Route element={<DashboardLayout/>}>
+                            <Route path="/" element={<FirstVisitGate/>}/>
+                            <Route path="/traces" element={<TracesPage/>}/>
+                            <Route path="/logs" element={<LogsPage/>}/>
+                            <Route path="/genai" element={<GenAIPage/>}/>
+                            <Route path="/dashboards/:id" element={<DashboardPage/>}/>
+                            <Route path="/search" element={<SearchPage/>}/>
+                            <Route path="/settings" element={<SettingsPage/>}/>
+                            <Route path="/agents" element={<AgentsPage/>}/>
+                            <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
+                            <Route path="/issues" element={<IssuesPage/>}/>
+                            <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
+                            <Route path="/workflows" element={<WorkflowRunsPage/>}/>
+                            <Route path="/workflows/:runId" element={<WorkflowRunDetailPage/>}/>
+                            <Route path="/onboarding" element={<OnboardingPage/>}/>
+                            <Route path="/bot" element={<BotPage/>}/>
+                            <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>
+                            <Route path="/bot/users/:userId/journey" element={<BotUserJourneyPage/>}/>
+                            <Route path="/seer" element={<SeerDashboardPage/>}/>
+                            <Route path="/seer/code-review" element={<CodeReviewPage/>}/>
+                            <Route path="/issues/:issueId/triage" element={<IssueTriagePage/>}/>
+                            <Route path="/issues/:issueId/fix-runs" element={<IssueFixRunsPage/>}/>
+                        </Route>
+                    </Routes>
+                </BrowserRouter>
+                <Toaster richColors position="bottom-right"/>
+            </QueryClientProvider>
+        </IconContext.Provider>
     );
 }

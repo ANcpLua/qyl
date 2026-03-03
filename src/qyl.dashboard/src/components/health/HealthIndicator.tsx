@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {Activity, AlertTriangle, CheckCircle, Database, HardDrive, MemoryStick, Server, XCircle} from 'lucide-react';
+import {CheckCircle, ComputerTower, Cpu, Database, HardDrives, Pulse, Warning, XCircle} from '@phosphor-icons/react';
 import {cn} from '@/lib/utils';
 import {
     Dialog,
@@ -66,11 +66,11 @@ function StatusIcon({status}: { status: string }) {
         case 'healthy':
             return <CheckCircle className="w-4 h-4 text-signal-green"/>;
         case 'degraded':
-            return <AlertTriangle className="w-4 h-4 text-signal-yellow"/>;
+            return <Warning className="w-4 h-4 text-signal-yellow"/>;
         case 'unhealthy':
             return <XCircle className="w-4 h-4 text-signal-red"/>;
         default:
-            return <Activity className="w-4 h-4 text-brutal-slate"/>;
+            return <Pulse className="w-4 h-4 text-brutal-slate"/>;
     }
 }
 
@@ -79,13 +79,13 @@ function ComponentIcon({name}: { name: string }) {
         case 'duckdb':
             return <Database className="w-4 h-4"/>;
         case 'disk':
-            return <HardDrive className="w-4 h-4"/>;
+            return <HardDrives className="w-4 h-4"/>;
         case 'memory':
-            return <MemoryStick className="w-4 h-4"/>;
+            return <Cpu className="w-4 h-4"/>;
         case 'ingestion':
-            return <Activity className="w-4 h-4"/>;
+            return <Pulse className="w-4 h-4"/>;
         default:
-            return <Server className="w-4 h-4"/>;
+            return <ComputerTower className="w-4 h-4"/>;
     }
 }
 
@@ -238,7 +238,7 @@ export function HealthIndicator() {
                 className="bg-brutal-carbon border-2 border-brutal-zinc max-w-lg max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-3 text-brutal-white">
-                        <Server className="w-5 h-5"/>
+                        <ComputerTower className="w-5 h-5"/>
                         <span className="font-bold tracking-wider">SYSTEM HEALTH</span>
                         <div className={cn(
                             'ml-auto px-2 py-0.5 text-xs font-bold tracking-wider uppercase',

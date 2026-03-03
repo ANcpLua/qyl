@@ -38,7 +38,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Step 2: Discover Build() call sites eligible for interception
         var builderCallSites = context.SyntaxProvider
             .CreateSyntaxProvider(
-                CouldBeInvocation, // Fast syntactic pre-filter
+                CouldBeBuildInvocation, // Fast syntactic pre-filter
                 ExtractBuilderCallSite) // Semantic analysis
             .WhereNotNull()
             .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered);
@@ -89,13 +89,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             PipelineStage.DbCallSitesDiscovered, dbEnabled,
             DbInterceptorEmitter.Emit, GeneratedFile.DbInterceptors, "QSG002");
 
-        RegisterEmitterPipeline(context,
-            OTelTagAnalyzer.CouldHaveOTelAttribute, OTelTagAnalyzer.ExtractTagBinding,
+        RegisterAttributeEmitterPipeline(context,
+            OTelTagAnalyzer.OTelAttributeMetadataName,
+            OTelTagAnalyzer.CouldHaveOTelAttribute, OTelTagAnalyzer.ExtractTagBindingFromAttribute,
             PipelineStage.OTelTagBindingsDiscovered, qylRuntimeAvailable,
             OTelTagsEmitter.Emit, GeneratedFile.OTelTagExtensions, "QSG003");
 
-        RegisterEmitterPipeline(context,
-            MeterAnalyzer.CouldBeMeterClass, MeterAnalyzer.ExtractDefinition,
+        RegisterAttributeEmitterPipeline(context,
+            MeterAnalyzer.MeterAttributeMetadataName,
+            MeterAnalyzer.CouldBeMeterClass, MeterAnalyzer.ExtractDefinitionFromAttribute,
             PipelineStage.MeterDefinitionsDiscovered, meterEnabled,
             MeterEmitter.Emit, GeneratedFile.MeterImplementations, "QSG004");
 
@@ -128,6 +130,37 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     {
         context.SyntaxProvider
             .CreateSyntaxProvider(syntacticPredicate, semanticTransform)
+            .WhereNotNull()
+            .WithTrackingName(trackingName)
+            .CombineWithCollected(enabledFlag)
+            .SelectAndReportExceptions((input, _) =>
+            {
+                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                var sourceCode = emitter(input.Left.AsImmutableArray());
+                return string.IsNullOrEmpty(sourceCode)
+                    ? FileWithName.Empty
+                    : new FileWithName(generatedFileName, sourceCode);
+            }, context, diagnosticId)
+            .AddSource(context);
+    }
+
+    private static void RegisterAttributeEmitterPipeline<T>(
+        IncrementalGeneratorInitializationContext context,
+        string attributeMetadataName,
+        Func<SyntaxNode, CancellationToken, bool> syntacticPredicate,
+        Func<GeneratorAttributeSyntaxContext, CancellationToken, T?> semanticTransform,
+        string trackingName,
+        IncrementalValueProvider<bool> enabledFlag,
+        Func<ImmutableArray<T>, string> emitter,
+        string generatedFileName,
+        string diagnosticId)
+        where T : class, IEquatable<T>
+    {
+        context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                attributeMetadataName,
+                syntacticPredicate,
+                semanticTransform)
             .WhereNotNull()
             .WithTrackingName(trackingName)
             .CombineWithCollected(enabledFlag)
@@ -176,11 +209,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     // =========================================================================
 
     /// <summary>
-    ///     Fast syntactic check: could this node be a method invocation?
-    ///     This casts a wide net; semantic analysis narrows it down.
+    ///     Fast syntactic check for candidate <c>Build()</c> invocations.
     /// </summary>
-    private static bool CouldBeInvocation(SyntaxNode node, CancellationToken _) =>
-        node.IsKind(SyntaxKind.InvocationExpression);
+    private static bool CouldBeBuildInvocation(SyntaxNode node, CancellationToken _) =>
+        string.Equals(AnalyzerHelpers.GetInvokedMethodName(node), MethodName.Build, StringComparison.Ordinal);
 
     // =========================================================================
     // BUILDER CALL SITE EXTRACTION

@@ -34,7 +34,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
     /// </summary>
     /// <param name="inner">The <see cref="IChatClient" /> to delegate to.</param>
     /// <param name="agentName">Optional agent name recorded as <c>gen_ai.agent.name</c>.</param>
-    /// <param name="timeProvider">Time provider for measuring operation duration. Defaults to <see cref="TimeProvider.System" />.</param>
+    /// <param name="timeProvider">Time provider for measuring operation duration. Defaults to <c>TimeProvider.System</c>.</param>
     public InstrumentedChatClient(
         IChatClient inner,
         string? agentName = null,

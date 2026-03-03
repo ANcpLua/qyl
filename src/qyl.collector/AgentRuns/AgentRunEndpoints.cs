@@ -9,6 +9,7 @@ public static class AgentRunEndpoints
     {
         app.MapGet("/api/v1/agent-runs", static async (
             DuckDbStore store, int? limit, int? offset, string? agentName, string? status,
+            string? trackMode, string? approvalStatus,
             CancellationToken ct) =>
         {
             var runs = await store.GetAgentRunsAsync(
@@ -16,6 +17,8 @@ public static class AgentRunEndpoints
                 Math.Max(offset ?? 0, 0),
                 agentName,
                 status,
+                trackMode,
+                approvalStatus,
                 ct);
             return Results.Ok(new { items = runs, total = runs.Count });
         });
@@ -32,6 +35,13 @@ public static class AgentRunEndpoints
         {
             var calls = await store.GetToolCallsAsync(runId, ct);
             return Results.Ok(new { items = calls, total = calls.Count });
+        });
+
+        app.MapGet("/api/v1/agent-runs/{runId}/decisions", static async (
+            string runId, DuckDbStore store, CancellationToken ct) =>
+        {
+            var decisions = await store.GetAgentDecisionsAsync(runId, ct);
+            return Results.Ok(new { items = decisions, total = decisions.Count });
         });
 
         app.MapGet("/api/v1/agent-runs/by-trace/{traceId}", static async (

@@ -8,6 +8,7 @@ using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using qyl.copilot.Adapters;
 using qyl.copilot.Instrumentation;
+using qyl.copilot.Routing;
 using qyl.protocol.Copilot;
 
 namespace qyl.copilot.Workflows;
@@ -115,28 +116,50 @@ public sealed class WorkflowEngine : IAsyncDisposable
     /// <param name="additionalContext">Additional context data.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>Stream of execution updates.</returns>
-    public async IAsyncEnumerable<StreamUpdate> ExecuteAsync(
+    public IAsyncEnumerable<StreamUpdate> ExecuteAsync(
         string workflowName,
         IReadOnlyDictionary<string, string>? parameters = null,
         string? additionalContext = null,
+        CancellationToken ct = default) =>
+        ExecuteAsync(workflowName, parameters, additionalContext, TrackMode.Auto, ct);
+
+    /// <summary>
+    ///     Executes a workflow by name with mode-aware routing and streaming updates.
+    /// </summary>
+    /// <param name="workflowName">Name of the workflow to execute.</param>
+    /// <param name="parameters">Template parameters to substitute.</param>
+    /// <param name="additionalContext">Additional context data.</param>
+    /// <param name="mode">Track routing mode.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>Stream of execution updates.</returns>
+    public async IAsyncEnumerable<StreamUpdate> ExecuteAsync(
+        string workflowName,
+        IReadOnlyDictionary<string, string>? parameters,
+        string? additionalContext,
+        TrackMode mode,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
         ThrowIfDisposed();
         ArgumentException.ThrowIfNullOrWhiteSpace(workflowName);
 
-        var workflow = GetWorkflow(workflowName);
+        var routing = TrackModeRouter.Resolve(mode, workflowName, additionalContext);
+        var workflow = ResolveWorkflowByTrack(workflowName, routing.EffectiveMode);
         if (workflow is null)
         {
+            var modeName = TrackModeRouter.ToWireValue(routing.EffectiveMode);
             yield return new StreamUpdate
             {
                 Kind = StreamUpdateKind.Error,
-                Error = $"Workflow not found: {workflowName}",
+                Error = routing.EffectiveMode is TrackMode.Auto
+                    ? $"Workflow not found: {workflowName}"
+                    : $"Workflow not found for mode '{modeName}': {workflowName}",
                 Timestamp = _timeProvider.GetUtcNow()
             };
             yield break;
         }
 
-        await foreach (var update in ExecuteWorkflowAsync(workflow, parameters, additionalContext, ct)
+        var routedContext = MergeRoutingContext(additionalContext, routing);
+        await foreach (var update in ExecuteWorkflowAsync(workflow, parameters, routedContext, ct)
                            .ConfigureAwait(false))
         {
             yield return update;
@@ -402,6 +425,49 @@ public sealed class WorkflowEngine : IAsyncDisposable
                 _executions.TryRemove(key, out _);
             }
         }
+    }
+
+    private CopilotWorkflow? ResolveWorkflowByTrack(string workflowName, TrackMode effectiveMode)
+    {
+        foreach (var candidate in TrackModeRouter.GetWorkflowCandidates(workflowName, effectiveMode))
+        {
+            if (GetWorkflow(candidate) is { } workflow)
+            {
+                return workflow;
+            }
+        }
+
+        return null;
+    }
+
+    private static string? MergeRoutingContext(string? additionalContext, TrackRouteDecision routing)
+    {
+        var modePrompt = TrackModeRouter.BuildModeSystemPrompt(routing.EffectiveMode);
+        var routeContext = TrackModeRouter.BuildRoutingContext(routing);
+
+        if (string.IsNullOrWhiteSpace(modePrompt) &&
+            string.IsNullOrWhiteSpace(routeContext))
+        {
+            return additionalContext;
+        }
+
+        var segments = new List<string>(3);
+        if (!string.IsNullOrWhiteSpace(modePrompt))
+        {
+            segments.Add(modePrompt);
+        }
+
+        if (!string.IsNullOrWhiteSpace(routeContext))
+        {
+            segments.Add(routeContext);
+        }
+
+        if (!string.IsNullOrWhiteSpace(additionalContext))
+        {
+            segments.Add(additionalContext);
+        }
+
+        return string.Join("\n\n", segments);
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

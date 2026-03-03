@@ -11,7 +11,7 @@ namespace Qyl.ServiceDefaults.Generator.Analyzers;
 /// </summary>
 internal static class MeterAnalyzer
 {
-    private const string MeterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.MeterAttribute";
+    internal const string MeterAttributeMetadataName = "Qyl.ServiceDefaults.Instrumentation.MeterAttribute";
     private const string CounterAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.CounterAttribute";
     private const string HistogramAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.HistogramAttribute";
     private const string GaugeAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.GaugeAttribute";
@@ -44,10 +44,42 @@ internal static class MeterAnalyzer
         if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeFullName) is not
+        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeMetadataName) is not
             { } meterAttr)
             return null;
 
+        return BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.Node));
+    }
+
+    /// <summary>
+    ///     Extracts a meter definition from a targeted attribute context.
+    ///     This is used with <c>ForAttributeWithMetadataName</c> for incremental performance.
+    /// </summary>
+    public static MeterDefinition? ExtractDefinitionFromAttribute(
+        GeneratorAttributeSyntaxContext context,
+        CancellationToken _)
+    {
+        if (context.TargetNode is not ClassDeclarationSyntax classSyntax)
+            return null;
+
+        if (AnalyzerHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
+            return null;
+
+        if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
+            return null;
+
+        if (AnalyzerHelpers.FindAttributeByName(context.Attributes, MeterAttributeMetadataName) is not { } meterAttr)
+            return null;
+
+        return BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.TargetNode));
+    }
+
+    private static MeterDefinition? BuildDefinition(
+        ClassDeclarationSyntax classSyntax,
+        INamedTypeSymbol classSymbol,
+        AttributeData meterAttr,
+        string sortKey)
+    {
         // Must be partial and static
         if (!classSyntax.Modifiers.Any(SyntaxKind.PartialKeyword) ||
             !classSyntax.Modifiers.Any(SyntaxKind.StaticKeyword))
@@ -62,7 +94,7 @@ internal static class MeterAnalyzer
             return null;
 
         return new MeterDefinition(
-            AnalyzerHelpers.FormatSortKey(context.Node),
+            sortKey,
             classSymbol.ContainingNamespace.ToDisplayString(),
             classSymbol.Name,
             meterName,

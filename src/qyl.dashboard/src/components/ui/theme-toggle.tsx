@@ -1,4 +1,4 @@
-import {Monitor, Moon, Sun} from 'lucide-react';
+import {Monitor, Moon, Sun} from '@phosphor-icons/react';
 import {Button} from '@/components/ui/button';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from '@/components/ui/dropdown-menu';
 import {useTheme} from '@/hooks/use-theme';

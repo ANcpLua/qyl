@@ -4,6 +4,8 @@
 // Owner: qyl.protocol | Consumers: copilot, collector, dashboard
 // =============================================================================
 
+using System.Text.Json.Serialization;
+
 namespace qyl.protocol.Copilot;
 
 /// <summary>
@@ -43,6 +45,25 @@ public enum WorkflowStatus
 
     /// <summary>Workflow was cancelled by user or system.</summary>
     Cancelled
+}
+
+/// <summary>
+///     Execution mode for unified tri-track routing.
+/// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter<TrackMode>))]
+public enum TrackMode
+{
+    /// <summary>Automatically classify from intent and context.</summary>
+    Auto,
+
+    /// <summary>Creative generation and narrative-oriented outputs.</summary>
+    Creative,
+
+    /// <summary>Reasoning-heavy investigation and verification workflows.</summary>
+    Reasoning,
+
+    /// <summary>Enterprise policy/compliance and controlled-action workflows.</summary>
+    Enterprise
 }
 
 /// <summary>
@@ -273,6 +294,12 @@ public sealed record ChatRequest
     public required string Prompt { get; init; }
 
     /// <summary>
+    ///     Track routing mode for this request.
+    ///     Defaults to <see cref="TrackMode.Auto"/>.
+    /// </summary>
+    public TrackMode Mode { get; init; } = TrackMode.Auto;
+
+    /// <summary>
     ///     Optional system prompt override.
     ///     When set, replaces the default system instructions for this request.
     ///     Used by the MCP investigate tool to inject observability-specific instructions.
@@ -316,6 +343,12 @@ public sealed record WorkflowRunRequest
 {
     /// <summary>Workflow name to execute.</summary>
     public required string WorkflowName { get; init; }
+
+    /// <summary>
+    ///     Track routing mode for this execution.
+    ///     Defaults to <see cref="TrackMode.Auto"/>.
+    /// </summary>
+    public TrackMode Mode { get; init; } = TrackMode.Auto;
 
     /// <summary>Template parameters.</summary>
     public IReadOnlyDictionary<string, string>? Parameters { get; init; }

@@ -37,24 +37,30 @@ internal static class DbCallSiteAnalyzer
     ///         because it requires the <see cref="Compilation" /> to resolve the DbCommand symbol.
     ///     </para>
     /// </remarks>
-    private static readonly (InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[] Matchers =
+    private static readonly (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[] Matchers =
     [
-        (Invoke.Method("ExecuteReader"), DbCommandMethod.ExecuteReader, false),
-        (Invoke.Method("ExecuteReaderAsync"), DbCommandMethod.ExecuteReader, true),
-        (Invoke.Method("ExecuteNonQuery"), DbCommandMethod.ExecuteNonQuery, false),
-        (Invoke.Method("ExecuteNonQueryAsync"), DbCommandMethod.ExecuteNonQuery, true),
-        (Invoke.Method("ExecuteScalar"), DbCommandMethod.ExecuteScalar, false),
-        (Invoke.Method("ExecuteScalarAsync"), DbCommandMethod.ExecuteScalar, true),
+        ("ExecuteReader", Invoke.Method("ExecuteReader"), DbCommandMethod.ExecuteReader, false),
+        ("ExecuteReaderAsync", Invoke.Method("ExecuteReaderAsync"), DbCommandMethod.ExecuteReader, true),
+        ("ExecuteNonQuery", Invoke.Method("ExecuteNonQuery"), DbCommandMethod.ExecuteNonQuery, false),
+        ("ExecuteNonQueryAsync", Invoke.Method("ExecuteNonQueryAsync"), DbCommandMethod.ExecuteNonQuery, true),
+        ("ExecuteScalar", Invoke.Method("ExecuteScalar"), DbCommandMethod.ExecuteScalar, false),
+        ("ExecuteScalarAsync", Invoke.Method("ExecuteScalarAsync"), DbCommandMethod.ExecuteScalar, true),
         // Protected virtual method exposed by some providers
-        (Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
+        ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
+    ];
+
+    private static readonly HashSet<string> CandidateMethodNames =
+    [
+        ..Matchers.Select(static matcher => matcher.MethodName)
     ];
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be a database invocation?
     ///     Delegates to <see cref="AnalyzerHelpers.CouldBeInvocation" />.
     /// </summary>
-    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken ct) =>
-        AnalyzerHelpers.CouldBeInvocation(node, ct);
+    public static bool CouldBeDbInvocation(SyntaxNode node, CancellationToken _) =>
+        AnalyzerHelpers.GetInvokedMethodName(node) is { } methodName &&
+        CandidateMethodNames.Contains(methodName);
 
     /// <summary>
     ///     Extracts a database call site from a syntax context if it matches DbCommand patterns.
@@ -101,7 +107,7 @@ internal static class DbCallSiteAnalyzer
         concreteType = null;
 
         // Phase 1: DSL-based method name matching
-        (InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync) matched = default;
+        (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync) matched = default;
         var found = false;
 
         foreach (var entry in Matchers)

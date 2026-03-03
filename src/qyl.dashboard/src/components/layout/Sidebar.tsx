@@ -1,24 +1,25 @@
 import {NavLink, useLocation} from 'react-router-dom';
-import type {LucideIcon} from 'lucide-react';
+import type {Icon as PhosphorIcon} from '@phosphor-icons/react';
 import {
-    Activity,
-    AlertTriangle,
-    BarChart2,
-    Bot,
-    Brain,
-    ChevronLeft,
-    ChevronRight,
+    Broadcast,
+    CaretLeft,
+    CaretRight,
+    ChartBar,
+    ChatDots,
     Database,
+    Eye,
     FileText,
     Globe,
-    MessageSquare,
-    Network,
-    Radio,
-    Search,
-    Settings,
-    Sparkles,
+    Lightning,
+    MagnifyingGlass,
+    Pulse,
+    Robot,
+    Sparkle,
     Terminal,
-} from 'lucide-react';
+    TreeStructure,
+    Warning,
+    GearSix,
+} from '@phosphor-icons/react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
@@ -26,31 +27,32 @@ import {useDashboards} from '@/hooks/use-dashboards';
 
 interface NavItem {
     to: string;
-    icon: typeof Activity;
+    icon: PhosphorIcon;
     label: string;
     shortcut: string;
 }
 
 const navItems: NavItem[] = [
-    {to: '/', icon: Activity, label: 'RESOURCES', shortcut: 'R'},
-    {to: '/traces', icon: Network, label: 'TRACES', shortcut: 'T'},
+    {to: '/', icon: Pulse, label: 'RESOURCES', shortcut: 'R'},
+    {to: '/traces', icon: TreeStructure, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
-    {to: '/genai', icon: Sparkles, label: 'GENAI', shortcut: 'M'},
-    {to: '/search', icon: Search, label: 'SEARCH', shortcut: '/'},
+    {to: '/genai', icon: Sparkle, label: 'GENAI', shortcut: 'M'},
+    {to: '/search', icon: MagnifyingGlass, label: 'SEARCH', shortcut: '/'},
 ];
 
 const aiNavItems: NavItem[] = [
-    {to: '/agents', icon: Bot, label: 'AGENTS', shortcut: 'A'},
-    {to: '/bot', icon: BarChart2, label: 'BOT', shortcut: 'B'},
+    {to: '/agents', icon: Robot, label: 'AGENTS', shortcut: 'A'},
+    {to: '/bot', icon: ChartBar, label: 'BOT', shortcut: 'B'},
+    {to: '/seer', icon: Eye, label: 'SEER', shortcut: 'S'},
 ];
 
-const dashboardIconMap: Record<string, LucideIcon> = {
-    'activity': Activity,
+const dashboardIconMap: Record<string, PhosphorIcon> = {
+    'activity': Pulse,
     'globe': Globe,
-    'brain': Brain,
+    'brain': Lightning,
     'database': Database,
-    'alert-triangle': AlertTriangle,
-    'message-square': MessageSquare,
+    'alert-triangle': Warning,
+    'message-square': ChatDots,
 };
 
 interface SidebarProps {
@@ -94,7 +96,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         ? 'border-signal-green bg-signal-green/10 text-signal-green'
                         : 'border-brutal-zinc/70 bg-brutal-dark/80 text-brutal-slate'
                 )}>
-                    <Radio className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
+                    <Broadcast className={cn('w-3 h-3', isLive && 'animate-pulse-live')}/>
                     <span>{isLive ? 'STREAMING LIVE' : 'STREAM OFFLINE'}</span>
                     {isLive && <span className="animate-cursor-blink">_</span>}
                 </div>
@@ -203,7 +205,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         </div>
                     )}
                     {dashboards.map((db) => {
-                        const Icon = dashboardIconMap[db.icon] ?? Activity;
+                        const Icon = dashboardIconMap[db.icon] ?? Pulse;
                         const to = `/dashboards/${db.id}`;
                         const isActive = location.pathname === to;
 
@@ -260,7 +262,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                             )}
                         >
-                            <Settings className="w-5 h-5 flex-shrink-0"/>
+                            <GearSix className="w-5 h-5 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">SETTINGS</span>
@@ -300,10 +302,10 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                     onClick={() => onCollapsedChange(!collapsed)}
                 >
                     {collapsed ? (
-                        <ChevronRight className="w-5 h-5"/>
+                        <CaretRight className="w-5 h-5"/>
                     ) : (
                         <>
-                            <ChevronLeft className="w-5 h-5"/>
+                            <CaretLeft className="w-5 h-5"/>
                             <span className="ml-3">COLLAPSE</span>
                         </>
                     )}

@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import {useLocation} from 'react-router-dom';
-import {Clock, Pause, Play, RefreshCw, Search, Zap} from 'lucide-react';
+import {ArrowsClockwise, Clock, Lightning, MagnifyingGlass, Pause, Play} from '@phosphor-icons/react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
@@ -90,7 +90,7 @@ export function TopBar({
         <header className="h-14 md:h-16 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-4 gap-3 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
             {/* Page title - BRUTALIST style */}
             <div className="flex items-center gap-2.5 shrink-0">
-                <Zap className="w-4.5 h-4.5 text-signal-orange"/>
+                <Lightning className="w-4.5 h-4.5 text-signal-orange"/>
                 <h1 className="text-xs md:text-sm font-semibold tracking-[0.14em] text-brutal-white">{title}</h1>
             </div>
 
@@ -100,7 +100,7 @@ export function TopBar({
             {/* Search - BRUTALIST input */}
             <form onSubmit={handleSearch} className="flex-1 min-w-[12rem] md:min-w-[16rem] max-w-xl">
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
+                    <MagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
                         data-search-input
                         type="text"
@@ -185,7 +185,7 @@ export function TopBar({
                 className="border border-brutal-zinc bg-brutal-dark/85 text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
                 aria-label="Refresh data"
             >
-                <RefreshCw className="w-4 h-4"/>
+                <ArrowsClockwise className="w-4 h-4"/>
             </Button>
         </header>
     );

@@ -1,12 +1,24 @@
 import {useNavigate, useParams} from 'react-router-dom';
-import {AlertCircle, ArrowLeft, Bot, Clock, Cpu, DollarSign, Loader2, Wrench,} from 'lucide-react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    Bot,
+    Clock,
+    Cpu,
+    DollarSign,
+    GitBranch,
+    Link2,
+    Loader2,
+    ShieldCheck,
+    Wrench,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {CopyableText} from '@/components/ui';
+import {CopyableText, TextVisualizer} from '@/components/ui';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
-import {useAgentRun, useToolCalls} from '@/hooks/use-agent-runs';
+import {useAgentDecisions, useAgentRun, useToolCalls} from '@/hooks/use-agent-runs';
 import {AgentTraceTree} from '@/components/agents';
 
 function StatusBadge({status}: { status: string }) {
@@ -40,6 +52,7 @@ export function AgentRunDetailPage() {
 
     const {data: run, isLoading: runLoading, error: runError} = useAgentRun(runId ?? '');
     const {data: toolCalls = [], isLoading: toolsLoading} = useToolCalls(runId ?? '');
+    const {data: decisions = [], isLoading: decisionsLoading} = useAgentDecisions(runId ?? '');
 
     if (runError) {
         return (
@@ -94,14 +107,25 @@ export function AgentRunDetailPage() {
                                 {run.provider}
                             </Badge>
                         )}
+                        {run.track_mode && (
+                            <Badge variant="outline" className="text-xs text-signal-cyan border-signal-cyan/40">
+                                mode:{run.track_mode}
+                            </Badge>
+                        )}
+                        {run.approval_status && (
+                            <Badge variant="outline" className="text-xs text-signal-orange border-signal-orange/40">
+                                approval:{run.approval_status}
+                            </Badge>
+                        )}
                     </div>
                 ) : null}
             </div>
 
             {/* Stats cards */}
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
                 {isLoading ? (
                     <>
+                        <SkeletonCard/>
                         <SkeletonCard/>
                         <SkeletonCard/>
                         <SkeletonCard/>
@@ -172,6 +196,18 @@ export function AgentRunDetailPage() {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        <Card>
+                            <CardContent className="pt-4">
+                                <div className="flex items-center gap-2">
+                                    <ShieldCheck className="w-4 h-4 text-signal-orange"/>
+                                    <span className="text-[10px] font-bold text-brutal-slate tracking-wider">APPROVAL</span>
+                                </div>
+                                <div className="text-base font-bold mt-1 text-brutal-white font-mono uppercase">
+                                    {run.approval_status ?? 'not_required'}
+                                </div>
+                            </CardContent>
+                        </Card>
                     </>
                 ) : null}
             </div>
@@ -202,6 +238,70 @@ export function AgentRunDetailPage() {
                         toolCalls={toolCalls}
                         isLoading={toolsLoading}
                     />
+                </div>
+            )}
+
+            {/* Decisions / Evidence */}
+            {run && (
+                <div>
+                    <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em] mb-3">DECISIONS</h2>
+                    <Card>
+                        <CardContent className="pt-4">
+                            {decisionsLoading ? (
+                                <div className="flex items-center gap-2 text-sm text-brutal-slate">
+                                    <Loader2 className="w-4 h-4 animate-spin"/>
+                                    Loading decisions…
+                                </div>
+                            ) : decisions.length === 0 ? (
+                                <div className="text-sm text-brutal-slate">No decision events recorded for this run.</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {decisions.map((decision) => (
+                                        <div
+                                            key={decision.decision_id}
+                                            className="border border-brutal-zinc rounded p-3 bg-brutal-dark/30"
+                                        >
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <GitBranch className="w-3.5 h-3.5 text-signal-cyan"/>
+                                                <span
+                                                    className="text-xs font-bold uppercase tracking-wider text-brutal-white">
+                                                    {decision.decision_type ?? 'decision'}
+                                                </span>
+                                                <Badge variant="outline"
+                                                       className="text-[10px] border-brutal-zinc text-brutal-slate">
+                                                    {decision.outcome ?? 'unknown'}
+                                                </Badge>
+                                                <Badge variant="outline"
+                                                       className="text-[10px] border-signal-orange/40 text-signal-orange">
+                                                    {decision.approval_status ?? 'not_required'}
+                                                </Badge>
+                                            </div>
+
+                                            {decision.reason && (
+                                                <p className="text-sm text-brutal-slate mb-2">{decision.reason}</p>
+                                            )}
+
+                                            {decision.evidence_json && (
+                                                <div className="text-xs text-brutal-slate font-mono">
+                                                    <div className="flex items-center gap-1 mb-1">
+                                                        <Link2 className="w-3 h-3"/>
+                                                        evidence
+                                                    </div>
+                                                    <TextVisualizer
+                                                        content={decision.evidence_json}
+                                                        label="Evidence Links"
+                                                        defaultExpanded={false}
+                                                        maxCollapsedHeight={80}
+                                                        showTreeView={true}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
             )}
 

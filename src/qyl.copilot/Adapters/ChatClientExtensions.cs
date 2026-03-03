@@ -22,7 +22,7 @@ public static class ChatClientExtensions
     /// </summary>
     /// <param name="client">The <see cref="IChatClient" /> to instrument.</param>
     /// <param name="agentName">Optional agent name recorded as <c>gen_ai.agent.name</c>.</param>
-    /// <param name="timeProvider">Time provider for duration measurement. Defaults to <see cref="TimeProvider.System" />.</param>
+    /// <param name="timeProvider">Time provider for duration measurement. Defaults to <c>TimeProvider.System</c>.</param>
     /// <returns>An <see cref="InstrumentedChatClient" /> wrapping <paramref name="client" />.</returns>
     public static IChatClient UseQylInstrumentation(
         this IChatClient client,

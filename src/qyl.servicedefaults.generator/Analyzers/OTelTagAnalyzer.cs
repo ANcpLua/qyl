@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -11,7 +12,7 @@ namespace Qyl.ServiceDefaults.Generator.Analyzers;
 /// </summary>
 internal static class OTelTagAnalyzer
 {
-    private const string OTelAttributeFullName = "Qyl.ServiceDefaults.Instrumentation.OTelAttribute";
+    internal const string OTelAttributeMetadataName = "Qyl.ServiceDefaults.Instrumentation.OTelAttribute";
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node have an [OTel] attribute?
@@ -39,6 +40,25 @@ internal static class OTelTagAnalyzer
         };
     }
 
+    /// <summary>
+    ///     Extracts an OTel tag binding from a targeted attribute context.
+    ///     This is used with <c>ForAttributeWithMetadataName</c> for incremental performance.
+    /// </summary>
+    public static OTelTagBinding? ExtractTagBindingFromAttribute(
+        GeneratorAttributeSyntaxContext context,
+        CancellationToken _)
+    {
+        if (AnalyzerHelpers.IsGeneratedFile(context.TargetNode.SyntaxTree.FilePath))
+            return null;
+
+        return context.TargetSymbol switch
+        {
+            IPropertySymbol propertySymbol => AnalyzeProperty(propertySymbol, context.Attributes),
+            IParameterSymbol parameterSymbol => AnalyzeParameter(parameterSymbol, context.Attributes),
+            _ => null
+        };
+    }
+
     private static OTelTagBinding? AnalyzeProperty(
         PropertyDeclarationSyntax property,
         SemanticModel semanticModel,
@@ -47,9 +67,26 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not { } propertySymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeFullName) is not { } otelAttr)
+        if (AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr)
             return null;
 
+        return AnalyzeProperty(propertySymbol, otelAttr);
+    }
+
+    private static OTelTagBinding? AnalyzeProperty(
+        IPropertySymbol propertySymbol,
+        ImmutableArray<AttributeData> attributes)
+    {
+        if (AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr)
+            return null;
+
+        return AnalyzeProperty(propertySymbol, otelAttr);
+    }
+
+    private static OTelTagBinding? AnalyzeProperty(
+        IPropertySymbol propertySymbol,
+        AttributeData otelAttr)
+    {
         if (propertySymbol.ContainingType is not { } containingType)
             return null;
 
@@ -79,9 +116,26 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not { } parameterSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeFullName) is not { } otelAttr)
+        if (AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr)
             return null;
 
+        return AnalyzeParameter(parameterSymbol, otelAttr);
+    }
+
+    private static OTelTagBinding? AnalyzeParameter(
+        IParameterSymbol parameterSymbol,
+        ImmutableArray<AttributeData> attributes)
+    {
+        if (AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr)
+            return null;
+
+        return AnalyzeParameter(parameterSymbol, otelAttr);
+    }
+
+    private static OTelTagBinding? AnalyzeParameter(
+        IParameterSymbol parameterSymbol,
+        AttributeData otelAttr)
+    {
         if (parameterSymbol.ContainingSymbol?.ContainingType is not { } containingType)
             return null;
 

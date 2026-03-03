@@ -57,13 +57,22 @@ public static class QylAgentBuilder
     {
         Guard.NotNull(chatClient);
 
-        // Wrap with OTel instrumentation at IChatClient level (gen_ai.* spans + metrics)
-        IChatClient instrumented = chatClient.UseQylInstrumentation(agentName, timeProvider);
-
-        return instrumented.AsAIAgent(
-            name: agentName,
-            description: description,
-            instructions: instructions,
-            tools: tools is null ? null : [.. tools]);
+        // Wrap with OTel instrumentation at IChatClient level (gen_ai.* spans + metrics).
+        // Ownership of the InstrumentedChatClient transfers to the returned AIAgent.
+        InstrumentedChatClient? instrumented = new(chatClient, agentName, timeProvider);
+        try
+        {
+            var agent = instrumented.AsAIAgent(
+                name: agentName,
+                description: description,
+                instructions: instructions,
+                tools: tools is null ? null : [.. tools]);
+            instrumented = null; // ownership transferred to agent
+            return agent;
+        }
+        finally
+        {
+            instrumented?.Dispose();
+        }
     }
 }

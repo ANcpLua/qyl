@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using qyl.copilot;
 using qyl.copilot.Auth;
 using qyl.copilot.Providers;
+using qyl.copilot.Routing;
 using qyl.protocol.Copilot;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -58,12 +60,34 @@ internal static class CopilotEndpoints
     private static async Task ChatAsync(
         ChatRequest request,
         CopilotAdapterFactory factory,
+        DuckDbStore store,
         HttpContext ctx,
         CopilotAuthProvider authProvider,
         LlmProviderOptions llmOptions,
         IHttpClientFactory httpClientFactory,
         CancellationToken ct)
     {
+        var routing = TrackModeRouter.Resolve(request.Mode, request.Prompt, request.Context?.AdditionalContext);
+        var routeContext = TrackModeRouter.BuildRoutingContext(routing);
+        var routedSystemPrompt = TrackModeRouter.MergeSystemPrompt(request.SystemPrompt, routing.EffectiveMode);
+        var routedContext = BuildAdapterContext(request.Context, routedSystemPrompt, routeContext);
+        var routeMode = TrackModeRouter.ToWireValue(routing.EffectiveMode);
+        var requestMode = TrackModeRouter.ToWireValue(request.Mode);
+        var traceId = Activity.Current?.TraceId.ToString();
+        var runBaseContext = new AgentRunAuditContext
+        {
+            RunId = Guid.NewGuid().ToString("N"),
+            TraceId = traceId,
+            AgentType = "chat",
+            AgentName = "qyl.copilot.chat",
+            RequestedMode = requestMode,
+            TrackMode = routeMode,
+            RouterReason = routing.Reason,
+            StartTimeUnixNano = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow())
+        };
+
+        ctx.Response.Headers["x-qyl-track-mode"] = routeMode;
+
         var hasGitHubAuth = false;
 
         // 1. Copilot adapter (free via GitHub auth) — try first
@@ -73,17 +97,11 @@ internal static class CopilotEndpoints
             try
             {
                 var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
-                // Thread system prompt through context if provided
-                var context = request.Context;
-                if (request.SystemPrompt is not null)
-                {
-                    context = (context ?? new CopilotContext()) with
-                    {
-                        AdditionalContext = request.SystemPrompt +
-                            (context?.AdditionalContext is not null ? "\n\n" + context.AdditionalContext : "")
-                    };
-                }
-                await StreamSseAsync(ctx, adapter.ChatAsync(request.Prompt, context, ct), ct);
+                await StreamSseWithAuditAsync(ctx,
+                    adapter.ChatAsync(request.Prompt, routedContext, ct),
+                    store,
+                    runBaseContext with { Provider = "copilot", Model = "github-copilot" },
+                    ct);
                 return;
             }
             catch (InvalidOperationException)
@@ -110,8 +128,15 @@ internal static class CopilotEndpoints
                     using var client = LlmProviderFactory.Create(ghModelsOptions, httpClient);
                     if (client is not null)
                     {
-                        await StreamSseAsync(ctx,
-                            StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+                        await StreamSseWithAuditAsync(ctx,
+                            StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                            store,
+                            runBaseContext with
+                            {
+                                Provider = ghModelsOptions.Provider,
+                                Model = ghModelsOptions.Model
+                            },
+                            ct);
                         return;
                     }
                 }
@@ -133,7 +158,15 @@ internal static class CopilotEndpoints
             using var client = LlmProviderFactory.Create(llmOptions, httpClient);
             if (client is not null)
             {
-                await StreamSseAsync(ctx, StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+                await StreamSseWithAuditAsync(ctx,
+                    StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                    store,
+                    runBaseContext with
+                    {
+                        Provider = llmOptions.Provider,
+                        Model = llmOptions.Model
+                    },
+                    ct);
                 return;
             }
         }
@@ -162,7 +195,15 @@ internal static class CopilotEndpoints
                     return;
                 }
 
-                await StreamSseAsync(ctx, StreamByokChatAsync(client, request.Prompt, request.SystemPrompt, ct), ct);
+                await StreamSseWithAuditAsync(ctx,
+                    StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                    store,
+                    runBaseContext with
+                    {
+                        Provider = byok.Provider,
+                        Model = byok.Model
+                    },
+                    ct);
             }
             catch (InvalidOperationException ex)
             {
@@ -191,6 +232,34 @@ internal static class CopilotEndpoints
             byokSupported = true,
             gitHubAuthenticated = hasGitHubAuth
         }, ct).ConfigureAwait(false);
+    }
+
+    private static CopilotContext? BuildAdapterContext(
+        CopilotContext? baseContext,
+        string? routedSystemPrompt,
+        string? routeContext)
+    {
+        var mergedAdditionalContext = MergeContextSegments(
+            routedSystemPrompt,
+            routeContext,
+            baseContext?.AdditionalContext);
+
+        if (mergedAdditionalContext is null)
+        {
+            return baseContext;
+        }
+
+        return (baseContext ?? new CopilotContext()) with { AdditionalContext = mergedAdditionalContext };
+    }
+
+    private static string? MergeContextSegments(params string?[] segments)
+    {
+        var values = segments
+            .Where(static s => !string.IsNullOrWhiteSpace(s))
+            .Select(static s => s!.Trim())
+            .ToArray();
+
+        return values.Length is 0 ? null : string.Join("\n\n", values);
     }
 
     /// <summary>
@@ -269,49 +338,506 @@ internal static class CopilotEndpoints
         string name,
         WorkflowRunRequest? request,
         WorkflowEngineFactory engineFactory,
+        DuckDbStore store,
         HttpContext ctx,
         CancellationToken ct)
     {
-        var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
-        await StreamSseAsync(ctx,
-            engine.ExecuteAsync(name, request?.Parameters, request?.Context?.AdditionalContext, ct), ct);
+        var requestedMode = request?.Mode ?? TrackMode.Auto;
+        var routing = TrackModeRouter.Resolve(requestedMode, name, request?.Context?.AdditionalContext);
+        var routeMode = TrackModeRouter.ToWireValue(routing.EffectiveMode);
+        var traceId = Activity.Current?.TraceId.ToString();
+        var auditContext = new AgentRunAuditContext
+        {
+            RunId = Guid.NewGuid().ToString("N"),
+            TraceId = traceId,
+            AgentType = "workflow",
+            AgentName = $"qyl.copilot.workflow:{name}",
+            Provider = "copilot",
+            Model = "github-copilot",
+            RequestedMode = TrackModeRouter.ToWireValue(requestedMode),
+            TrackMode = routeMode,
+            RouterReason = routing.Reason,
+            StartTimeUnixNano = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow())
+        };
+        ctx.Response.Headers["x-qyl-track-mode"] = routeMode;
+
+        IAsyncEnumerable<StreamUpdate> stream;
+        try
+        {
+            var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
+            stream = engine.ExecuteAsync(name,
+                request?.Parameters,
+                request?.Context?.AdditionalContext,
+                requestedMode,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            stream = StreamEngineFailureAsync(ex.Message, ct);
+        }
+
+        await StreamSseWithAuditAsync(ctx,
+            stream,
+            store,
+            auditContext,
+            ct);
     }
 
-    private static async Task StreamSseAsync(
+    private static readonly string[] s_sensitiveToolKeywords =
+    [
+        "apply", "delete", "deploy", "exec", "git", "migrate", "open_fix_pr", "patch", "pr", "rollback", "shell",
+        "write"
+    ];
+
+    private static readonly string[] s_deniedKeywords =
+    [
+        "approval", "denied", "forbidden", "not allowed", "permission", "unauthorized"
+    ];
+
+    private static async Task StreamSseWithAuditAsync(
         HttpContext ctx,
         IAsyncEnumerable<StreamUpdate> updates,
+        DuckDbStore store,
+        AgentRunAuditContext auditContext,
         CancellationToken ct)
     {
         ctx.Response.ContentType = "text/event-stream";
         ctx.Response.Headers.CacheControl = "no-cache";
         ctx.Response.Headers.Connection = "keep-alive";
 
+        var inputTokens = 0L;
+        var outputTokens = 0L;
+        var status = "running";
+        string? error = null;
+        var toolStates = new List<ToolAuditState>();
+        var pendingToolStates = new Queue<int>();
+        var decisionRecords = new List<AgentDecisionRecord> { CreateRouterDecision(auditContext) };
+        var sequence = 0;
+
         try
         {
             await foreach (var update in updates.ConfigureAwait(false).WithCancellation(ct))
             {
-                var json = JsonSerializer.Serialize(update, CopilotSerializerContext.Default.StreamUpdate);
-                var eventName = MapEventName(update.Kind);
-                await ctx.Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", ct).ConfigureAwait(false);
-                await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+                ObserveStreamUpdate(update, auditContext, toolStates, pendingToolStates, ref sequence,
+                    ref inputTokens, ref outputTokens, ref status, ref error);
+                await WriteSseEventAsync(ctx, update, ct).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Client disconnected - expected for SSE streams
+            status = "cancelled";
+            error ??= "Request cancelled";
         }
         catch (InvalidOperationException ex) when (ex.Message.ContainsOrdinal("Authentication failed"))
         {
-            var error = new StreamUpdate
-            {
-                Kind = StreamUpdateKind.Error,
-                Error = "Copilot authentication not available",
-                Timestamp = TimeProvider.System.GetUtcNow()
-            };
-            var json = JsonSerializer.Serialize(error, CopilotSerializerContext.Default.StreamUpdate);
-            await ctx.Response.WriteAsync($"event: error\ndata: {json}\n\n", ct).ConfigureAwait(false);
-            await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+            status = "failed";
+            error = "Copilot authentication not available";
+            await WriteSseEventAsync(ctx,
+                new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.Error,
+                    Error = error,
+                    Timestamp = TimeProvider.System.GetUtcNow()
+                },
+                ct).ConfigureAwait(false);
         }
+        catch (Exception ex)
+        {
+            status = "failed";
+            error = ex.Message;
+            await WriteSseEventAsync(ctx,
+                new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.Error,
+                    Error = error,
+                    Timestamp = TimeProvider.System.GetUtcNow()
+                },
+                ct).ConfigureAwait(false);
+        }
+        finally
+        {
+            await PersistAuditAsync(store, auditContext, toolStates, decisionRecords,
+                inputTokens, outputTokens, status, error).ConfigureAwait(false);
+        }
+    }
+
+    private static async Task PersistAuditAsync(
+        DuckDbStore store,
+        AgentRunAuditContext auditContext,
+        List<ToolAuditState> toolStates,
+        List<AgentDecisionRecord> decisionRecords,
+        long inputTokens,
+        long outputTokens,
+        string status,
+        string? error)
+    {
+        var endTime = TimeProvider.System.GetUtcNow();
+        var endTimeUnixNano = TimeConversions.ToUnixNanoUnsigned(endTime);
+        var durationNs = (long)(endTimeUnixNano - auditContext.StartTimeUnixNano);
+        if (status is "running")
+        {
+            status = string.IsNullOrWhiteSpace(error) ? "completed" : "failed";
+        }
+
+        foreach (var state in toolStates.Where(static s => s.Call.EndTime is null))
+        {
+            state.Call = state.Call with
+            {
+                EndTime = endTimeUnixNano,
+                DurationNs = state.Call.StartTime.HasValue ? (long)(endTimeUnixNano - state.Call.StartTime.Value) : null,
+                Status = status is "completed" ? "completed" : "failed",
+                ErrorMessage = state.Call.ErrorMessage ?? (status is "completed" ? null : "Run ended before tool completed")
+            };
+
+            if (state.Decision.RequiresApproval &&
+                string.Equals(state.Decision.ApprovalStatus, "awaiting_approval", StringComparison.OrdinalIgnoreCase))
+            {
+                state.Decision = state.Decision with { Outcome = "awaiting_approval" };
+            }
+            else if (string.Equals(state.Decision.Outcome, "executing", StringComparison.OrdinalIgnoreCase))
+            {
+                state.Decision = state.Decision with { Outcome = status is "completed" ? "executed" : "failed" };
+            }
+        }
+
+        decisionRecords.AddRange(toolStates.Select(static s => s.Decision));
+        var approvalStatus = ComputeRunApprovalStatus(decisionRecords);
+        var evidenceCount = decisionRecords.Sum(static d => CountEvidenceLinks(d.EvidenceJson));
+
+        var auditSummary = new AgentRunAudit
+        {
+            RunId = auditContext.RunId,
+            TraceId = auditContext.TraceId,
+            TrackMode = auditContext.TrackMode,
+            ApprovalStatus = approvalStatus,
+            DecisionCount = decisionRecords.Count,
+            EvidenceCount = evidenceCount
+        };
+
+        var runRecord = new AgentRunRecord
+        {
+            RunId = auditContext.RunId,
+            TraceId = auditContext.TraceId,
+            AgentName = auditContext.AgentName,
+            AgentType = auditContext.AgentType,
+            Provider = auditContext.Provider,
+            Model = auditContext.Model,
+            Status = status,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            TotalCost = 0,
+            ToolCallCount = toolStates.Count,
+            StartTime = auditContext.StartTimeUnixNano,
+            EndTime = endTimeUnixNano,
+            DurationNs = durationNs,
+            ErrorMessage = error,
+            MetadataJson = JsonSerializer.Serialize(auditSummary),
+            TrackMode = auditContext.TrackMode,
+            ApprovalStatus = approvalStatus,
+            EvidenceCount = evidenceCount
+        };
+
+        await store.InsertAgentRunAsync(runRecord, CancellationToken.None).ConfigureAwait(false);
+
+        foreach (var state in toolStates)
+        {
+            await store.InsertToolCallAsync(state.Call, CancellationToken.None).ConfigureAwait(false);
+        }
+
+        foreach (var decision in decisionRecords)
+        {
+            await store.InsertAgentDecisionAsync(decision, CancellationToken.None).ConfigureAwait(false);
+        }
+    }
+
+    private static void ObserveStreamUpdate(
+        StreamUpdate update,
+        AgentRunAuditContext auditContext,
+        List<ToolAuditState> toolStates,
+        Queue<int> pendingToolStates,
+        ref int sequence,
+        ref long inputTokens,
+        ref long outputTokens,
+        ref string status,
+        ref string? error)
+    {
+        if (update.InputTokens.HasValue)
+        {
+            inputTokens = update.InputTokens.Value;
+        }
+
+        if (update.OutputTokens.HasValue)
+        {
+            outputTokens = update.OutputTokens.Value;
+        }
+
+        switch (update.Kind)
+        {
+            case StreamUpdateKind.ToolCall:
+            {
+                sequence++;
+                var callId = $"{auditContext.RunId}-tool-{sequence:D4}";
+                var eventTime = ToUnixNano(update.Timestamp);
+                var requiresApproval = IsApprovalRequiredTool(update.ToolName);
+
+                toolStates.Add(new ToolAuditState
+                {
+                    Call = new ToolCallRecord
+                    {
+                        CallId = callId,
+                        RunId = auditContext.RunId,
+                        TraceId = auditContext.TraceId,
+                        ToolName = update.ToolName,
+                        ToolType = "mcp",
+                        ArgumentsJson = update.ToolArguments,
+                        Status = "running",
+                        StartTime = eventTime,
+                        SequenceNumber = sequence
+                    },
+                    Decision = new AgentDecisionRecord
+                    {
+                        DecisionId = $"{callId}-decision",
+                        RunId = auditContext.RunId,
+                        TraceId = auditContext.TraceId,
+                        DecisionType = requiresApproval ? "approval" : "tool",
+                        Outcome = requiresApproval ? "awaiting_approval" : "executing",
+                        RequiresApproval = requiresApproval,
+                        ApprovalStatus = requiresApproval ? "awaiting_approval" : "not_required",
+                        Reason = requiresApproval
+                            ? $"Tool '{update.ToolName}' requires approval policy evaluation."
+                            : $"Tool '{update.ToolName}' invocation started.",
+                        EvidenceJson = BuildEvidenceJson(auditContext.TraceId, auditContext.RunId, update.ToolName),
+                        CreatedAtUnixNano = eventTime
+                    }
+                });
+                pendingToolStates.Enqueue(toolStates.Count - 1);
+                break;
+            }
+            case StreamUpdateKind.ToolResult:
+            {
+                if (!pendingToolStates.TryDequeue(out var index))
+                {
+                    break;
+                }
+
+                var state = toolStates[index];
+                var eventTime = ToUnixNano(update.Timestamp);
+                var denied = IsDeniedToolResult(update);
+                var failed = !string.IsNullOrWhiteSpace(update.Error) || denied;
+
+                state.Call = state.Call with
+                {
+                    ResultJson = update.ToolResult,
+                    EndTime = eventTime,
+                    DurationNs = state.Call.StartTime.HasValue ? (long)(eventTime - state.Call.StartTime.Value) : null,
+                    ErrorMessage = update.Error,
+                    Status = failed ? "failed" : "completed"
+                };
+
+                var outcome = denied
+                    ? "denied"
+                    : failed
+                        ? "failed"
+                        : state.Decision.RequiresApproval ? "approved" : "executed";
+                var approvalStatus = state.Decision.RequiresApproval
+                    ? denied ? "denied" : "approved"
+                    : "not_required";
+
+                state.Decision = state.Decision with
+                {
+                    Outcome = outcome,
+                    ApprovalStatus = approvalStatus,
+                    Reason = BuildToolDecisionReason(state.Call.ToolName, update, outcome),
+                    EvidenceJson = BuildEvidenceJson(auditContext.TraceId, auditContext.RunId, state.Call.ToolName),
+                    CreatedAtUnixNano = eventTime
+                };
+
+                toolStates[index] = state;
+                break;
+            }
+            case StreamUpdateKind.Completed:
+                if (!string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    status = "completed";
+                }
+
+                break;
+            case StreamUpdateKind.Error:
+                if (!string.IsNullOrWhiteSpace(update.Error))
+                {
+                    status = "failed";
+                    error = update.Error;
+                }
+
+                break;
+        }
+
+        if (string.Equals(status, "failed", StringComparison.OrdinalIgnoreCase) && string.IsNullOrWhiteSpace(error))
+        {
+            error = "Execution failed";
+        }
+    }
+
+    private static async Task WriteSseEventAsync(HttpContext ctx, StreamUpdate update, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(update, CopilotSerializerContext.Default.StreamUpdate);
+        var eventName = MapEventName(update.Kind);
+        await ctx.Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", ct).ConfigureAwait(false);
+        await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+    }
+
+    private static async IAsyncEnumerable<StreamUpdate> StreamEngineFailureAsync(
+        string errorMessage,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var message = string.IsNullOrWhiteSpace(errorMessage)
+            ? "Workflow engine initialization failed."
+            : errorMessage;
+
+        yield return new StreamUpdate
+        {
+            Kind = StreamUpdateKind.Error,
+            Error = message,
+            Timestamp = TimeProvider.System.GetUtcNow()
+        };
+
+        await Task.CompletedTask;
+    }
+
+    private static AgentDecisionRecord CreateRouterDecision(AgentRunAuditContext context) =>
+        new()
+        {
+            DecisionId = $"{context.RunId}-routing",
+            RunId = context.RunId,
+            TraceId = context.TraceId,
+            DecisionType = "routing",
+            Outcome = "selected",
+            RequiresApproval = false,
+            ApprovalStatus = "not_required",
+            Reason = context.RouterReason,
+            EvidenceJson = BuildEvidenceJson(context.TraceId, context.RunId),
+            MetadataJson = JsonSerializer.Serialize(new
+            {
+                requested_mode = context.RequestedMode,
+                effective_mode = context.TrackMode
+            }),
+            CreatedAtUnixNano = context.StartTimeUnixNano
+        };
+
+    private static string ComputeRunApprovalStatus(IEnumerable<AgentDecisionRecord> decisions)
+    {
+        var approvalDecisions = decisions
+            .Where(static d => d.RequiresApproval)
+            .ToArray();
+
+        if (approvalDecisions.Length is 0)
+        {
+            return "not_required";
+        }
+
+        if (approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "denied", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "denied";
+        }
+
+        if (approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "awaiting_approval", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "awaiting_approval";
+        }
+
+        return "approved";
+    }
+
+    private static ulong ToUnixNano(DateTimeOffset timestamp)
+    {
+        var value = timestamp == default ? TimeProvider.System.GetUtcNow() : timestamp;
+        return TimeConversions.ToUnixNanoUnsigned(value);
+    }
+
+    private static bool IsApprovalRequiredTool(string? toolName)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+        {
+            return false;
+        }
+
+        return s_sensitiveToolKeywords.Any(k => toolName.Contains(k, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsDeniedToolResult(StreamUpdate update)
+    {
+        var text = $"{update.Error} {update.ToolResult}";
+        return s_deniedKeywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string BuildToolDecisionReason(string? toolName, StreamUpdate update, string outcome)
+    {
+        if (!string.IsNullOrWhiteSpace(update.Error))
+        {
+            return $"Tool '{toolName}' ended with error: {update.Error}";
+        }
+
+        return $"Tool '{toolName}' outcome: {outcome}.";
+    }
+
+    private static string? BuildEvidenceJson(string? traceId, string runId, string? toolName = null)
+    {
+        var links = new List<AgentEvidenceLink>();
+        if (!string.IsNullOrWhiteSpace(traceId))
+        {
+            links.Add(new AgentEvidenceLink { Label = "Trace", Href = $"/traces/{traceId}" });
+        }
+
+        links.Add(new AgentEvidenceLink { Label = "Agent Run", Href = $"/agents/{runId}" });
+
+        if (!string.IsNullOrWhiteSpace(toolName))
+        {
+            links.Add(new AgentEvidenceLink { Label = $"Tool: {toolName}", Href = $"/agents/{runId}" });
+        }
+
+        return JsonSerializer.Serialize(links);
+    }
+
+    private static int CountEvidenceLinks(string? evidenceJson)
+    {
+        if (string.IsNullOrWhiteSpace(evidenceJson))
+        {
+            return 0;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(evidenceJson);
+            return document.RootElement.ValueKind is JsonValueKind.Array
+                ? document.RootElement.GetArrayLength()
+                : 0;
+        }
+        catch (JsonException)
+        {
+            return 0;
+        }
+    }
+
+    private sealed record AgentRunAuditContext
+    {
+        public required string RunId { get; init; }
+        public string? TraceId { get; init; }
+        public required string AgentName { get; init; }
+        public required string AgentType { get; init; }
+        public string? Provider { get; init; }
+        public string? Model { get; init; }
+        public required string RequestedMode { get; init; }
+        public required string TrackMode { get; init; }
+        public string? RouterReason { get; init; }
+        public required ulong StartTimeUnixNano { get; init; }
+    }
+
+    private sealed class ToolAuditState
+    {
+        public required ToolCallRecord Call { get; set; }
+        public required AgentDecisionRecord Decision { get; set; }
     }
 
     /// <summary>
@@ -445,10 +971,15 @@ internal sealed record WorkflowListResponse
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(CopilotAuthStatus))]
+[JsonSerializable(typeof(TrackMode))]
 [JsonSerializable(typeof(ChatRequest))]
 [JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(StreamUpdate))]
+[JsonSerializable(typeof(AgentRunAudit))]
+[JsonSerializable(typeof(AgentDecision))]
+[JsonSerializable(typeof(AgentEvidenceLink))]
+[JsonSerializable(typeof(List<AgentEvidenceLink>))]
 [JsonSerializable(typeof(WorkflowDto))]
 [JsonSerializable(typeof(WorkflowListResponse))]
 [JsonSerializable(typeof(ExecutionDto))]

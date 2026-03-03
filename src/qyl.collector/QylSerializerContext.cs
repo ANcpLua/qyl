@@ -86,6 +86,16 @@ namespace qyl.collector;
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(StreamUpdate))]
+[JsonSerializable(typeof(AgentRunAudit))]
+[JsonSerializable(typeof(AgentDecision))]
+[JsonSerializable(typeof(AgentEvidenceLink))]
+// Agent run endpoint payloads
+[JsonSerializable(typeof(AgentRunRecord))]
+[JsonSerializable(typeof(ToolCallRecord))]
+[JsonSerializable(typeof(AgentDecisionRecord))]
+[JsonSerializable(typeof(List<AgentRunRecord>))]
+[JsonSerializable(typeof(List<ToolCallRecord>))]
+[JsonSerializable(typeof(List<AgentDecisionRecord>))]
 // Meta endpoint types
 [JsonSerializable(typeof(MetaResponse))]
 [JsonSerializable(typeof(MetaBuild))]

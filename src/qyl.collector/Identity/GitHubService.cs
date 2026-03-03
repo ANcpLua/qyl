@@ -160,7 +160,7 @@ public sealed partial class GitHubService(
         var refObj = await response.Content
             .ReadFromJsonAsync(GitHubJsonContext.Default.GitHubRef, ct)
             .ConfigureAwait(false);
-        return refObj?.Object?.Sha;
+        return refObj?.Target?.Sha;
     }
 
     /// <summary>Creates a new branch from a base SHA.</summary>
@@ -452,7 +452,7 @@ public sealed record GitHubRefObject(
 
 public sealed record GitHubRef(
     [property: JsonPropertyName("ref")] string Ref,
-    [property: JsonPropertyName("object")] GitHubRefObject? Object);
+    [property: JsonPropertyName("object")] GitHubRefObject? Target);
 
 public sealed record GitHubCreateRefRequest(
     [property: JsonPropertyName("ref")] string Ref,
