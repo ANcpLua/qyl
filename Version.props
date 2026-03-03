@@ -19,7 +19,7 @@
     <!-- Analyzers -->
     <MicrosoftCodeAnalysisAnalyzersVersion>3.11.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
-    <ANcpLuaRoslynUtilitiesVersion>1.42.0</ANcpLuaRoslynUtilitiesVersion>
+    <ANcpLuaRoslynUtilitiesVersion>1.43.0</ANcpLuaRoslynUtilitiesVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsAbstractionsVersion>1.0.0-rc2</MicrosoftAgentsAbstractionsVersion>
     <MicrosoftAgentsCopilotVersion>1.0.0-preview.260225.1</MicrosoftAgentsCopilotVersion>
