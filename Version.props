@@ -27,7 +27,7 @@
     <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260225.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
     <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc2</MicrosoftAgentsWorkflowsDeclarativeVersion>
     <!-- OpenAI SDK -->
-    <OpenAIVersion>2.9.0</OpenAIVersion>
+    <OpenAIVersion>2.9.1</OpenAIVersion>
     <!-- MCP -->
     <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
     <!-- Microsoft.IdentityModel (JWT/JWKS validation for Keycloak) -->
