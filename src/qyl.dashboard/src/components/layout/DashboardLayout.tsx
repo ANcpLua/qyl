@@ -1,5 +1,5 @@
 import {useCallback, useState} from 'react';
-import {Outlet, useNavigate, useOutletContext} from 'react-router-dom';
+import {Outlet, useLocation, useNavigate, useOutletContext} from 'react-router-dom';
 import {useQueryClient} from '@tanstack/react-query';
 import {TooltipProvider} from '@/components/ui/tooltip';
 import {Sidebar} from './Sidebar';
@@ -11,8 +11,10 @@ import {CopilotPanel} from '@/components/copilot/CopilotPanel';
 import {useKeyboardShortcuts, useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
 import {KeyboardShortcutsModal} from '@/components/KeyboardShortcutsModal';
 import type {Span} from '@/types';
+import {cn} from '@/lib/utils';
 
 export function DashboardLayout() {
+    const location = useLocation();
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -45,6 +47,8 @@ export function DashboardLayout() {
         setIsLive((prev) => !prev);
     }, []);
 
+    const isOnboardingRoute = location.pathname === '/onboarding';
+
     return (
         <TooltipProvider>
             <div className="flex h-screen bg-brutal-black">
@@ -63,7 +67,10 @@ export function DashboardLayout() {
                         onTimeRangeChange={setTimeRange}
                     />
 
-                    <main className="flex-1 overflow-auto bg-brutal-black bg-grid-overlay">
+                    <main className={cn(
+                        'flex-1 overflow-auto bg-brutal-black',
+                        isOnboardingRoute ? 'bg-onboarding-canvas' : 'bg-grid-overlay'
+                    )}>
                         <Outlet context={{isLive, timeRange, recentSpans, reconnect}}/>
                     </main>
                 </div>

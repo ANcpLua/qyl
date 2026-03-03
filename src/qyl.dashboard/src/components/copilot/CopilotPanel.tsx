@@ -58,12 +58,12 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
 
     return (
         <div
-            className="fixed bottom-20 right-4 w-96 h-[32rem] flex flex-col border-3 border-signal-purple bg-brutal-carbon z-50 shadow-[4px_4px_0_0_rgba(139,92,246,0.3)]">
+            className="fixed bottom-20 right-3 sm:right-4 w-[min(26rem,calc(100vw-1.5rem))] h-[min(72vh,38rem)] flex flex-col border-2 border-brutal-zinc bg-brutal-carbon/95 backdrop-blur-sm z-50 shadow-[0_20px_50px_-28px_rgba(0,0,0,0.85)]">
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b-3 border-brutal-zinc bg-brutal-dark">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-brutal-zinc bg-brutal-dark/90">
                 <div className="flex items-center gap-2">
-                    <Bot className="w-4 h-4 text-signal-purple"/>
-                    <span className="text-xs font-bold tracking-[0.15em] text-signal-purple">
+                    <Bot className="w-4 h-4 text-signal-violet"/>
+                    <span className="text-xs font-bold tracking-[0.14em] text-brutal-white">
                         COPILOT
                     </span>
                     {username && (
@@ -78,7 +78,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         variant="ghost"
                         size="icon"
                         onClick={clear}
-                        className="h-6 w-6 text-brutal-slate hover:text-signal-orange"
+                        className="h-7 w-7 text-brutal-slate hover:text-signal-orange"
                         aria-label="Clear conversation"
                     >
                         <Trash2 className="w-3.5 h-3.5"/>
@@ -87,7 +87,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         variant="ghost"
                         size="icon"
                         onClick={onClose}
-                        className="h-6 w-6 text-brutal-slate hover:text-brutal-white"
+                        className="h-7 w-7 text-brutal-slate hover:text-brutal-white"
                         aria-label="Close Copilot panel"
                     >
                         <X className="w-3.5 h-3.5"/>
@@ -96,7 +96,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {needsSetup && messages.length === 0 && !isStreaming ? (
                     <InlineLlmSetup onSave={setLlmConfig}/>
                 ) : (
@@ -120,12 +120,12 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
 
                         {/* Streaming indicator */}
                         {isStreaming && streamingContent && (
-                            <div className="bg-brutal-dark border-2 border-brutal-zinc p-3">
+                            <div className="bg-brutal-dark/85 border border-brutal-zinc p-3">
                                 <div className="text-xs text-brutal-white whitespace-pre-wrap break-words">
                                     {streamingContent}
                                 </div>
                                 <div className="flex items-center gap-1.5 mt-2">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-signal-purple animate-pulse"/>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-signal-violet animate-pulse"/>
                                     <span className="text-[10px] text-brutal-slate">
                                         {activeToolCalls.some(tc => tc.status === 'calling')
                                             ? `Calling ${activeToolCalls.find(tc => tc.status === 'calling')?.name}...`
@@ -137,7 +137,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
 
                         {isStreaming && !streamingContent && (
                             <div className="flex items-center gap-2 p-3">
-                                <div className="w-1.5 h-1.5 rounded-full bg-signal-purple animate-pulse"/>
+                                <div className="w-1.5 h-1.5 rounded-full bg-signal-violet animate-pulse"/>
                                 <span className="text-xs text-brutal-slate">
                                     {activeToolCalls.some(tc => tc.status === 'calling')
                                         ? `Calling ${activeToolCalls.find(tc => tc.status === 'calling')?.name}...`
@@ -152,7 +152,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
             </div>
 
             {/* Input */}
-            <div className="border-t-3 border-brutal-zinc p-3">
+            <div className="border-t border-brutal-zinc p-3 bg-brutal-dark/70">
                 <div className="flex gap-2">
                     <Input
                         value={input}
@@ -160,7 +160,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                         onKeyDown={handleKeyDown}
                         placeholder={needsSetup ? 'Configure AI above to start...' : 'Ask Copilot...'}
                         disabled={isStreaming || needsSetup}
-                        className="flex-1 bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs font-bold tracking-wider focus:border-signal-purple"
+                        className="flex-1 bg-brutal-dark/90 border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-wide focus:border-signal-violet"
                         aria-label="Message to Copilot"
                     />
                     {isStreaming ? (
@@ -168,7 +168,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                             variant="outline"
                             size="icon"
                             onClick={stop}
-                            className="border-2 border-signal-red text-signal-red hover:bg-signal-red/10"
+                            className="border border-signal-red text-signal-red hover:bg-signal-red/10"
                             aria-label="Stop streaming"
                         >
                             <Square className="w-3.5 h-3.5"/>
@@ -179,7 +179,7 @@ export function CopilotPanel({open, onClose, username}: CopilotPanelProps) {
                             size="icon"
                             onClick={handleSend}
                             disabled={!input.trim() || needsSetup}
-                            className="border-2 border-signal-purple text-signal-purple hover:bg-signal-purple/10 disabled:opacity-30"
+                            className="border border-signal-violet text-signal-violet hover:bg-signal-violet/10 disabled:opacity-30"
                             aria-label="Send message"
                         >
                             <Send className="w-3.5 h-3.5"/>
@@ -226,7 +226,7 @@ function InlineLlmSetup({onSave}: { onSave: (config: { provider: LlmProvider; ap
             <div className="space-y-3">
                 <Select value={provider} onValueChange={(v) => setProvider(v as LlmProvider)}>
                     <SelectTrigger
-                        className="bg-brutal-dark border-2 border-brutal-zinc text-brutal-white text-xs"
+                        className="bg-brutal-dark border border-brutal-zinc text-brutal-white text-xs"
                         aria-label="AI provider"
                     >
                         <SelectValue/>
@@ -244,7 +244,7 @@ function InlineLlmSetup({onSave}: { onSave: (config: { provider: LlmProvider; ap
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
                         placeholder={`${providerInfo.label} API key`}
-                        className="bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs"
+                        className="bg-brutal-dark border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs"
                         aria-label="API key"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') handleSave();
@@ -255,7 +255,7 @@ function InlineLlmSetup({onSave}: { onSave: (config: { provider: LlmProvider; ap
                 <Button
                     onClick={handleSave}
                     disabled={providerInfo.needsKey && !apiKey.trim()}
-                    className="w-full bg-signal-purple text-brutal-white border-2 border-signal-purple hover:bg-signal-purple/80 text-xs font-bold tracking-wider disabled:opacity-30"
+                    className="w-full bg-signal-violet text-brutal-white border border-signal-violet hover:bg-signal-violet/80 text-xs font-bold tracking-wider disabled:opacity-30"
                 >
                     Connect
                 </Button>
@@ -288,8 +288,8 @@ function MessageBubble({message}: { message: CopilotMessage }) {
             <div
                 className={`max-w-[85%] p-3 text-xs ${
                     isUser
-                        ? 'bg-signal-purple/20 border-2 border-signal-purple text-brutal-white'
-                        : 'bg-brutal-dark border-2 border-brutal-zinc text-brutal-white'
+                        ? 'bg-signal-violet/12 border border-signal-violet/50 text-brutal-white'
+                        : 'bg-brutal-dark/85 border border-brutal-zinc text-brutal-white'
                 }`}
             >
                 <div className="whitespace-pre-wrap break-words">{message.content}</div>

@@ -81,18 +81,18 @@ export function TopBar({
     };
 
     return (
-        <header className="h-14 border-b-3 border-brutal-zinc bg-brutal-carbon flex items-center px-4 gap-4">
+        <header className="h-14 md:h-16 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-4 gap-3 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
             {/* Page title - BRUTALIST style */}
-            <div className="flex items-center gap-3">
-                <Zap className="w-5 h-5 text-signal-orange"/>
-                <h1 className="text-sm font-bold tracking-[0.2em] text-brutal-white">{title}</h1>
+            <div className="flex items-center gap-2.5 shrink-0">
+                <Zap className="w-4.5 h-4.5 text-signal-orange"/>
+                <h1 className="text-xs md:text-sm font-semibold tracking-[0.14em] text-brutal-white">{title}</h1>
             </div>
 
             {/* Separator */}
-            <div className="w-px h-6 bg-brutal-zinc"/>
+            <div className="hidden md:block w-px h-6 bg-brutal-zinc/70"/>
 
             {/* Search - BRUTALIST input */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-md">
+            <form onSubmit={handleSearch} className="flex-1 min-w-[12rem] md:min-w-[16rem] max-w-xl">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brutal-slate"/>
                     <Input
@@ -101,17 +101,17 @@ export function TopBar({
                         placeholder="SEARCH... (CTRL+/)"
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
-                        className="pl-9 bg-brutal-dark border-2 border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-wider font-bold focus:border-signal-orange"
+                        className="pl-9 bg-brutal-dark/85 border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-[0.08em] focus:border-signal-orange"
                         aria-label="Search"
                     />
                 </div>
             </form>
 
             {/* Spacer */}
-            <div className="flex-1"/>
+            <div className="hidden xl:block flex-1"/>
 
             {/* Current time display */}
-            <div className="flex items-center gap-2 px-3 py-1 bg-brutal-dark border-2 border-brutal-zinc">
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-brutal-dark/85 border border-brutal-zinc">
                 <Clock className="w-4 h-4 text-signal-cyan"/>
                 <span className="font-mono text-sm text-signal-cyan">{formatTime(currentTime)}</span>
             </div>
@@ -119,15 +119,15 @@ export function TopBar({
             {/* Time range selector - BRUTALIST */}
             <Select value={timeRange} onValueChange={onTimeRangeChange}>
                 <SelectTrigger
-                    className="w-32 bg-brutal-dark border-2 border-brutal-zinc text-xs font-bold tracking-wider text-brutal-white hover:border-signal-orange">
+                    className="w-28 md:w-32 bg-brutal-dark/85 border border-brutal-zinc text-xs font-semibold tracking-[0.08em] text-brutal-white hover:border-signal-orange">
                     <SelectValue/>
                 </SelectTrigger>
-                <SelectContent className="bg-brutal-carbon border-2 border-brutal-zinc">
+                <SelectContent className="bg-brutal-carbon border border-brutal-zinc">
                     {timeRanges.map((range) => (
                         <SelectItem
                             key={range.value}
                             value={range.value}
-                            className="text-xs font-bold tracking-wider text-brutal-white hover:bg-brutal-dark focus:bg-signal-orange/20 focus:text-signal-orange"
+                            className="text-xs font-semibold tracking-[0.08em] text-brutal-white hover:bg-brutal-dark focus:bg-signal-orange/20 focus:text-signal-orange"
                         >
                             {range.label}
                         </SelectItem>
@@ -141,10 +141,10 @@ export function TopBar({
                 size="sm"
                 onClick={onLiveToggle}
                 className={cn(
-                    'border-2 text-xs font-bold tracking-wider transition-colors',
+                    'border text-xs font-semibold tracking-[0.08em] transition-colors',
                     isLive
                         ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
-                        : 'bg-brutal-dark border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'
+                        : 'bg-brutal-dark/85 border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'
                 )}
             >
                 {isLive ? (
@@ -174,7 +174,7 @@ export function TopBar({
                 variant="outline"
                 size="icon"
                 onClick={onRefresh}
-                className="border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
+                className="border border-brutal-zinc bg-brutal-dark/85 text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
                 aria-label="Refresh data"
             >
                 <RefreshCw className="w-4 h-4"/>

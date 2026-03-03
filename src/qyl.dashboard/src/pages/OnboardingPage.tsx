@@ -38,12 +38,12 @@ const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as
 
 function StepIndicator({current, steps}: { current: number; steps: readonly string[] }) {
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-1.5 md:gap-2 flex-wrap">
             {steps.map((label, i) => (
-                <div key={label} className="flex items-center gap-2">
+                <div key={label} className="flex items-center gap-1.5 md:gap-2">
                     <div
                         className={cn(
-                            'w-8 h-8 flex items-center justify-center border-2 text-xs font-bold transition-colors',
+                            'w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border-2 text-[11px] font-bold transition-colors',
                             i < current
                                 ? 'bg-signal-green border-signal-green text-brutal-black'
                                 : i === current
@@ -56,7 +56,7 @@ function StepIndicator({current, steps}: { current: number; steps: readonly stri
                     {i < steps.length - 1 && (
                         <div
                             className={cn(
-                                'w-8 h-0.5',
+                                'w-5 md:w-8 h-0.5',
                                 i < current ? 'bg-signal-green' : 'bg-brutal-zinc'
                             )}
                         />
@@ -697,8 +697,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     }, [status]);
 
     return (
-        <div className="space-y-6 max-w-lg mx-auto text-center">
-            {/* Icon — matches other steps */}
+        <div className="space-y-5 max-w-xl mx-auto text-center">
             <div
                 className={cn(
                     'w-16 h-16 mx-auto flex items-center justify-center border-2 border-brutal-black transition-colors',
@@ -719,46 +718,42 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                 )}
             </div>
 
-            {/* Title — changes per state */}
-            <h2 className="text-xl font-bold text-brutal-white tracking-wider">
-                {status === 'success' ? 'DATA RECEIVED' :
-                    status === 'timeout' ? 'NO DATA YET' :
-                        status === 'polling' ? 'LISTENING...' :
-                            'VERIFY CONNECTION'}
-            </h2>
+            <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-brutal-white tracking-wide">
+                    {status === 'success' ? 'DATA RECEIVED' :
+                        status === 'timeout' ? 'NO DATA YET' :
+                            status === 'polling' ? 'LISTENING FOR TELEMETRY' :
+                                'VERIFY CONNECTION'}
+                </h2>
+                <p className="text-brutal-slate text-sm leading-relaxed">
+                    {status === 'success'
+                        ? 'Telemetry is flowing into qyl. You are ready to proceed.'
+                        : status === 'timeout'
+                            ? 'No telemetry was received within 30 seconds.'
+                            : status === 'polling'
+                                ? `Checking for traces and logs... (${elapsed}s)`
+                                : 'Run your instrumented application, then verify telemetry flow.'}
+                </p>
+            </div>
 
-            {/* Subtitle */}
-            <p className="text-brutal-slate text-sm">
-                {status === 'success'
-                    ? 'Telemetry is flowing into qyl. You\'re all set!'
-                    : status === 'timeout'
-                        ? 'No telemetry received within 30 seconds.'
-                        : status === 'polling'
-                            ? `Checking for traces and logs… (${elapsed}s)`
-                            : 'Run your instrumented application, then check if telemetry data is flowing.'}
-            </p>
-
-            {/* Progress bar — visible during polling AND timeout */}
             {(status === 'polling' || status === 'timeout') && (
-                <div className="w-full bg-brutal-dark border-2 border-brutal-zinc h-2">
+                <div className="w-full bg-brutal-dark/70 border border-brutal-zinc h-2">
                     <div
                         className={cn(
                             'h-full transition-[width] duration-500',
-                            status === 'timeout' ? 'bg-signal-orange/50' : 'bg-signal-orange'
+                            status === 'timeout' ? 'bg-signal-orange/45' : 'bg-signal-orange'
                         )}
                         style={{width: `${Math.min((elapsed / 30) * 100, 100)}%`}}
                     />
                 </div>
             )}
 
-            {/* Success bar */}
             {status === 'success' && (
-                <div className="w-full bg-brutal-dark border-2 border-signal-green h-2">
+                <div className="w-full bg-brutal-dark/70 border border-signal-green h-2">
                     <div className="h-full bg-signal-green w-full"/>
                 </div>
             )}
 
-            {/* Actions */}
             {status === 'idle' && (
                 <Button
                     className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
@@ -784,9 +779,8 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                 </div>
             )}
 
-            {/* Troubleshooting — only on timeout */}
             {status === 'timeout' && (
-                <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 text-left space-y-3">
+                <div className="border border-signal-orange/35 bg-gradient-to-b from-signal-orange/10 to-signal-orange/2 p-4 text-left space-y-3">
                     <div className="text-[10px] font-bold text-signal-orange tracking-wider">TROUBLESHOOTING</div>
                     <ul className="text-xs text-brutal-slate space-y-2">
                         <li className="flex items-start gap-2">
@@ -805,9 +799,8 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                 </div>
             )}
 
-            {/* Endpoint info — shown on idle to help setup */}
             {status === 'idle' && (
-                <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark text-left">
+                <div className="border border-brutal-zinc p-4 bg-brutal-dark/85 text-left">
                     <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">EXPECTED ENDPOINT</div>
                     <code className="text-xs text-signal-green font-mono">{collectorUrl}</code>
                     <p className="text-[10px] text-brutal-slate mt-2">
@@ -894,9 +887,9 @@ export function OnboardingPage() {
     };
 
     return (
-        <div className="p-6 space-y-8 max-w-3xl mx-auto">
+        <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
                     <h1 className="text-xs font-bold text-brutal-slate tracking-[0.3em] uppercase">ONBOARDING</h1>
                     <div className="text-lg font-bold text-brutal-white tracking-wider mt-1">
@@ -907,8 +900,8 @@ export function OnboardingPage() {
             </div>
 
             {/* Step content */}
-            <Card>
-                <CardContent className="py-10 px-8">
+            <Card className="border-2 border-brutal-zinc/80 bg-brutal-carbon/95 shadow-[0_18px_42px_-28px_rgba(0,0,0,0.8)]">
+                <CardContent className="py-8 px-5 sm:px-8 md:px-10">
                     {renderStep()}
                 </CardContent>
             </Card>

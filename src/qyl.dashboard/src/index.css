@@ -96,6 +96,10 @@
     --shadow-glow-violet: 0 0 8px var(--color-signal-violet);
     --shadow-glow-yellow: 0 0 8px var(--color-signal-yellow);
 
+    /* Canvas surface utilities */
+    --color-grid-line: color-mix(in oklch, var(--color-brutal-zinc) 18%, transparent);
+    --color-grid-line-strong: color-mix(in oklch, var(--color-brutal-zinc) 30%, transparent);
+
     /* ============================================
        EASING - Industrial motion
        ============================================ */
@@ -196,6 +200,9 @@
         --shadow-brutal: 4px 4px 0 oklch(0.75 0 0);
         --shadow-brutal-sm: 2px 2px 0 oklch(0.75 0 0);
         --shadow-brutal-lg: 6px 6px 0 oklch(0.75 0 0);
+
+        --color-grid-line: color-mix(in oklch, var(--color-brutal-zinc) 20%, transparent);
+        --color-grid-line-strong: color-mix(in oklch, var(--color-brutal-zinc) 34%, transparent);
     }
 
     /* BRUTALIST scrollbar */
@@ -356,16 +363,33 @@
     /* Keyboard shortcut hints - brutalist */
     .kbd {
         @apply inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-mono;
-        @apply bg-brutal-carbon border-2 border-brutal-zinc;
+        @apply bg-brutal-dark border border-brutal-zinc;
         @apply text-brutal-slate;
         min-width: 1.5rem;
     }
 
     /* Grid overlay background */
     .bg-grid-overlay {
-        background-image: linear-gradient(to right, var(--color-brutal-zinc) 1px, transparent 1px),
-        linear-gradient(to bottom, var(--color-brutal-zinc) 1px, transparent 1px);
-        background-size: 20px 20px;
+        background-image:
+            linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
+            radial-gradient(circle at 20% 0%, color-mix(in oklch, var(--color-signal-cyan) 14%, transparent), transparent 55%),
+            radial-gradient(circle at 80% 100%, color-mix(in oklch, var(--color-signal-violet) 12%, transparent), transparent 52%);
+        background-size: 28px 28px, 28px 28px, auto, auto;
+        background-position: -1px -1px;
+    }
+
+    .bg-onboarding-canvas {
+        background-image:
+            linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+            linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
+            radial-gradient(circle at 50% -10%, color-mix(in oklch, var(--color-signal-orange) 18%, transparent), transparent 46%),
+            linear-gradient(
+                180deg,
+                color-mix(in oklch, var(--color-brutal-carbon) 84%, transparent) 0%,
+                color-mix(in oklch, var(--color-brutal-black) 100%, transparent) 100%
+            );
+        background-size: 32px 32px, 32px 32px, auto, auto;
         background-position: -1px -1px;
     }
 
@@ -385,7 +409,7 @@
             rgba(0, 0, 0, 0.1) 4px
         );
         pointer-events: none;
-        opacity: 0.3;
+        opacity: 0.14;
     }
 }
 

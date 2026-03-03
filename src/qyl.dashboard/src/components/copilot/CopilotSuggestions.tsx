@@ -38,17 +38,17 @@ export function CopilotSuggestions({onSelect}: CopilotSuggestionsProps) {
     const suggestions = routeSuggestions[location.pathname] ?? defaultSuggestions;
 
     return (
-        <div className="flex flex-col gap-2 p-3">
-            <span className="text-[10px] font-bold tracking-[0.15em] text-brutal-slate uppercase">
-                Suggested
+        <div className="flex flex-col gap-2 p-2">
+            <span className="text-[10px] font-bold tracking-[0.14em] text-brutal-slate uppercase">
+                Suggested prompts
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
                 {suggestions.map((q) => (
                     <button
                         key={q}
                         type="button"
                         onClick={() => onSelect(q)}
-                        className="px-2.5 py-1.5 text-xs font-bold tracking-wider border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-purple hover:text-signal-purple hover:bg-signal-purple/10 transition-colors"
+                        className="px-2.5 py-1.5 text-xs tracking-wide border border-brutal-zinc bg-brutal-dark/85 text-brutal-slate hover:border-signal-violet hover:text-brutal-white hover:bg-signal-violet/10 transition-colors"
                     >
                         {q}
                     </button>

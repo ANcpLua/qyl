@@ -14,10 +14,10 @@ export function CopilotButton({onClick, isOpen, isStreaming, username}: CopilotB
         <Button
             onClick={onClick}
             className={cn(
-                'fixed bottom-4 right-4 z-50 h-12 gap-2 border-3 font-bold tracking-[0.1em] text-xs shadow-[3px_3px_0_0_rgba(0,0,0,0.5)] transition-colors',
+                'fixed bottom-4 right-3 sm:right-4 z-50 h-11 gap-2 border-2 font-semibold tracking-[0.08em] text-xs shadow-[0_14px_28px_-14px_rgba(0,0,0,0.8)] transition-colors',
                 isOpen
-                    ? 'bg-signal-purple border-signal-purple text-brutal-white hover:bg-signal-purple/90'
-                    : 'bg-brutal-carbon border-signal-purple text-signal-purple hover:bg-signal-purple/10',
+                    ? 'bg-signal-violet border-signal-violet text-brutal-white hover:bg-signal-violet/90'
+                    : 'bg-brutal-carbon/95 border-brutal-zinc text-signal-violet hover:bg-signal-violet/10 hover:border-signal-violet',
                 isStreaming && 'animate-pulse',
             )}
         >
