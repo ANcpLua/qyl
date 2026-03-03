@@ -93,7 +93,6 @@
         <File Path="docs/copy.preferences.md" />
         <File Path="docs/verify-catalog-docs.sh" />
         <File Path="docs/PRINCIPLES.md" />
-        <File Path="docs\seer-design-specification.md" />
     </Folder>
 
     <!-- GitHub config -->

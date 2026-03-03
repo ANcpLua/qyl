@@ -1,134 +1,178 @@
-# qyl — AI Observability Platform
+# CLAUDE.md
 
-OTLP-native observability: ingest traces/logs/metrics, store in DuckDB, query via API/MCP/Copilot.
-Docker image IS the product.
+The role of this file is to describe common mistakes and confusion points that agents might encounter as they work in
+this project. If you ever encounter something in the project that surprises you, please alert the developer working with
+you and indicate that this is the case in the AgentMD file to help prevent future agents from having the same issue.
 
-## Core Rules
+## GitHub Integration
 
-- When you learn something new about the codebase, update this file. This is YOUR FILE.
-- If something doesn't make sense architecturally or product-wise, add it to `Requests to Humans` below.
-- Always follow established coding patterns and conventions in the codebase.
+<if-github-work scope="PRs, issues, repos, Actions, releases, code search, notifications">
 
-## Behavioral Contract
+**Rule: Always use `gh` CLI for GitHub operations. No MCP tools, no manual WebFetch to api.github.com, no scraping —
+just `gh`.**
 
-**Be opinionated.** Suggest the right solution, not the quick one. If you see a bad assumption or a better route, say it plainly instead of agreeing with my framing.
+The `gh` CLI is authenticated, fast, and covers the entire GitHub API. Know the commands — don't blindly run `gh --help`
+each time.
 
-**Think whole-system.** Every change touches the whole platform. If a collector change affects protocol types, fix protocol too. If a schema change affects DuckDB DDL, update the migration. Never scope to "only this file."
+### Quick reference
 
-**Checkpoints, not partial completions.** For work spanning more than 2-3 files: propose a plan first, ask where to pause, execute in segments. Never half-finish and call it done.
+| Task            | Command                                                                                         |
+|-----------------|-------------------------------------------------------------------------------------------------|
+| **PRs**         | `gh pr create`, `gh pr list`, `gh pr view`, `gh pr checkout 123`, `gh pr merge`, `gh pr checks` |
+| **Issues**      | `gh issue create`, `gh issue list`, `gh issue view`                                             |
+| **CI/Actions**  | `gh run list`, `gh run view`, `gh run watch`, `gh run rerun <id>`                               |
+| **Code search** | `gh search code "query"`, `gh search repos "query"`                                             |
+| **Releases**    | `gh release create`, `gh release list`                                                          |
+| **Raw API**     | `gh api repos/{owner}/{repo}/...` (any REST/GraphQL endpoint, auth handled)                     |
+| **Misc**        | `gh browse`, `gh status`, `gh repo clone`, `gh secret set`                                      |
 
-**No suppression.** If you cannot root-fix a diagnostic, stop. No `#pragma warning disable`, no `[SuppressMessage]`, no `<NoWarn>`. If the diagnostic is wrong, explain why and we decide together.
+### Anti-patterns
 
-**Map before changing.** Before modifying any pipeline or data flow: map current state, map proposed state, highlight the delta. If workflow stays the same, say so explicitly.
+- Do NOT use WebFetch to hit `https://api.github.com/...` — use `gh api` instead.
+- Do NOT use MCP GitHub tools when `gh` can do it.
+- Do NOT run `gh --help` to rediscover commands you should already know from this table.
 
-## Dependency Chain
+</if-github-work>
 
-```text
-core/specs/*.tsp → qyl.protocol → qyl.collector → qyl.dashboard
-                                 → qyl.mcp
-                                 → qyl.servicedefaults → qyl.servicedefaults.generator
-eng/build/ → orchestrates everything above
-```
+## Tool Preferences
 
-## Architecture
+<tool-routing>
 
-```text
-              +------------------+
-              |   qyl.dashboard  |
-              |    (React 19)    |
-              +--------+---------+
-                       | HTTP
-                       v
-+----------+  +------------------+  +------+
-| qyl.mcp  |->|  qyl.collector   |<-| OTLP |
-| (stdio)  |  |  (ASP.NET Core)  |  |Clients|
-+----------+  +--------+---------+  +------+
-                       |
-                       v
-              +------------------+
-              |     DuckDB       |
-              +------------------+
-```
+**Rule: Prefer semantic/IDE tools over shell commands whenever possible.**
 
-## Project Map
+- Use `mcp__rider__*` as the default for code search, edits, refactoring, build, and diagnostics.
+- Use `mcp__playwright__*` for all UI testing/verification.
+- Use shell only when no Rider/Playwright tool covers the task.
 
-| Directory | Purpose |
-|-----------|---------|
-| `core/specs/` | TypeSpec schemas (source of truth — never edit `*.g.cs`) |
-| `eng/build/` | NUKE build system (11 files) |
-| `src/qyl.collector/` | Backend: REST API, gRPC OTLP, SSE, DuckDB storage |
-| `src/qyl.protocol/` | Shared types (BCL-only, zero dependencies) |
-| `src/qyl.servicedefaults/` | OTel instrumentation SDK ([Traced], [GenAi], [Db]) |
-| `src/qyl.servicedefaults.generator/` | Roslyn source generator for instrumentation |
-| `src/qyl.instrumentation.generators/` | DuckDB schema + GenAI interceptor generators |
-| `src/qyl.dashboard/` | React 19 + Vite 7 + Tailwind 4 + shadcn/ui |
-| `src/qyl.browser/` | Browser OTLP SDK (TypeScript, ESM + IIFE) |
-| `src/qyl.mcp/` | MCP server for AI agent queries |
-| `src/qyl.copilot/` | GitHub Copilot extensibility |
-| `src/qyl.hosting/` | .NET Aspire-style hosting |
-| `src/qyl.watch/` | Terminal SSE span viewer |
-| `tests/` | xUnit v3 + MTP (E2E via Copilot SDK harness) |
+### Rider MCP — code operations
 
-## Dependency Rules
+| Intent               | Tool                                                               |
+|----------------------|--------------------------------------------------------------------|
+| Find file by name    | `mcp__rider__find_files_by_name_keyword`                           |
+| Find file by glob    | `mcp__rider__search_file`                                          |
+| Search text          | `mcp__rider__search_text`                                          |
+| Search regex         | `mcp__rider__search_regex`                                         |
+| Search symbol        | `mcp__rider__search_symbol`                                        |
+| Read file (windowed) | `mcp__rider__read_file`                                            |
+| Read file (full)     | `mcp__rider__get_file_text_by_path`                                |
+| List directory tree  | `mcp__rider__list_directory_tree`                                  |
+| Targeted edit        | `mcp__rider__replace_text_in_file`                                 |
+| Create file          | `mcp__rider__create_new_file`                                      |
+| Semantic rename      | `mcp__rider__rename_refactoring`                                   |
+| Format file          | `mcp__rider__reformat_file`                                        |
+| Symbol docs          | `mcp__rider__get_symbol_info`                                      |
+| Build/verify         | `mcp__rider__build_project`                                        |
+| Inspect file         | `mcp__rider__get_file_problems`                                    |
+| Run configurations   | `mcp__rider__get_run_configurations` / `execute_run_configuration` |
+| Shell fallback       | `mcp__rider__execute_terminal_command`                             |
 
-```yaml
-allowed:
-  collector -> protocol (ProjectReference)
-  mcp -> protocol (ProjectReference)
-  dashboard -> collector (HTTP at runtime)
-  mcp -> collector (HTTP at runtime)
-forbidden:
-  mcp -> collector (ProjectReference)    # must use HTTP
-  protocol -> any-package                # must stay BCL-only
-```
+### Playwright MCP — UI operations
 
-## Tech Stack
+| Intent           | Tool                                        |
+|------------------|---------------------------------------------|
+| Navigate         | `mcp__playwright__browser_navigate`         |
+| Inspect state    | `mcp__playwright__browser_snapshot`         |
+| Click            | `mcp__playwright__browser_click`            |
+| Type             | `mcp__playwright__browser_type`             |
+| Fill form        | `mcp__playwright__browser_fill_form`        |
+| Select option    | `mcp__playwright__browser_select_option`    |
+| Wait for state   | `mcp__playwright__browser_wait_for`         |
+| Screenshot       | `mcp__playwright__browser_take_screenshot`  |
+| Console errors   | `mcp__playwright__browser_console_messages` |
+| Network requests | `mcp__playwright__browser_network_requests` |
+| Advanced flow    | `mcp__playwright__browser_run_code`         |
+| Tabs             | `mcp__playwright__browser_tabs`             |
+| Close            | `mcp__playwright__browser_close`            |
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | .NET 10.0 LTS, C# 14, net10.0 |
-| Frontend | React 19, Vite 7, Tailwind CSS 4 |
-| Storage | DuckDB (columnar, glibc required) |
-| Protocol | OTel Semantic Conventions 1.40 |
-| Testing | xUnit v3, Microsoft Testing Platform |
-| Build | NUKE |
+### Default workflows
 
-## Banned Patterns
+<after-code-change>
 
-| Do not use                | Use instead |
-|---------------------------|-------------|
-| `#pragma warning disable` | Fix the diagnostic |
-| `[SuppressMessage]`       | Fix the diagnostic |
-| ` nuke Full`              |
+1. Apply targeted/semantic edit with Rider MCP.
+2. Run `mcp__rider__build_project`.
+3. Run `mcp__rider__get_file_problems` for touched files.
 
-## Environment Variables
+</after-code-change>
 
-Only one agent variable: `export COPILOT_AGENT=true` (enables Copilot SDK test harness).
+<ui-verification>
 
-Collector runtime config:
+1. Navigate with Playwright.
+2. Snapshot before each interaction.
+3. Perform actions (click/type/fill/select).
+4. Wait using text/textGone (avoid fixed sleeps).
+5. Re-snapshot to assert state.
+6. Check console errors (level=error).
+7. Check network requests (includeStatic=false).
+8. Take screenshot when visual proof is needed.
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `QYL_PORT` | 5100 | Dashboard + REST API port |
-| `QYL_GRPC_PORT` | 4317 | gRPC OTLP port (0=disable) |
-| `QYL_OTLP_PORT` | 4318 | HTTP OTLP port (0=disable) |
-| `QYL_DATA_PATH` | qyl.duckdb | DuckDB file path |
-| `PORT` | — | Railway/PaaS fallback for QYL_PORT |
+</ui-verification>
 
-## Ports
+<investigate-symbol>
 
-| Port | Protocol | Purpose |
-|------|----------|---------|
-| 5100 | HTTP | Dashboard, REST API, SSE |
-| 4317 | gRPC | OTLP traces/logs/metrics (standard) |
-| 4318 | HTTP | OTLP HTTP traces/logs (standard) |
-| 5173 | HTTP | Dashboard dev server (Vite) |
+1. Use `search_symbol`.
+2. Use `get_symbol_info`.
+3. Use `search_text` for usages.
 
-## CI
+</investigate-symbol>
 
-GitHub Actions (`ci.yml`): backend (.NET) + frontend (React) + coverage + dependency audit.
-Locally, `nuke Ci` replicates the backend pipeline. `nuke Full` adds frontend + codegen + verify.
+### Decision heuristics
 
-## Requests to Humans
+- Semantic search (`search_symbol`) before regex when intent is code-structure aware.
+- Targeted replace/refactor before whole-file rewrites.
+- Always re-snapshot after navigation or major DOM changes.
+- For UI checks, console + network validation is mandatory.
+- Use shell only when no Rider/Playwright tool covers the task.
 
-- [ ] ...
+</tool-routing>
+
+## Docker
+
+<if-docker-work scope="build, run, compose, images, cleanup, deploy">
+
+**Rule: Know the commands — don't guess flags or invent subcommands.**
+
+### Quick reference
+
+| Task                   | Command                            |
+|------------------------|------------------------------------|
+| **Build image**        | `docker build -t name:tag .`       |
+| **Run disposable**     | `docker run --rm <image>`          |
+| **Run detached**       | `docker run -d --name <n> <image>` |
+| **List running**       | `docker ps`                        |
+| **List all**           | `docker ps -a`                     |
+| **Stop container**     | `docker stop <container>`          |
+| **Stop all**           | `docker stop $(docker ps -q)`      |
+| **Remove container**   | `docker rm <container>`            |
+| **Remove all stopped** | `docker rm $(docker ps -aq)`       |
+| **View logs**          | `docker logs <container>`          |
+| **Follow logs**        | `docker logs -f <container>`       |
+| **List images**        | `docker images`                    |
+| **Remove image**       | `docker rmi <image>`               |
+| **Disk usage**         | `docker system df`                 |
+| **Clean everything**   | `docker system prune -a --volumes` |
+| **Compose up**         | `docker compose up -d`             |
+| **Compose down**       | `docker compose down`              |
+| **Compose logs**       | `docker compose logs -f <service>` |
+
+### Anti-patterns
+
+- `docker --rm` does NOT exist — `--rm` is a flag for `docker run`.
+- `docker prune all` does NOT exist — use `docker system prune -a`.
+- Do NOT guess Docker subcommands. If unsure, check the table above.
+
+</if-docker-work>
+
+## C# Code Style
+
+- C# 14 with preview features enabled
+- File-scoped namespaces, primary constructors, required init properties
+- Pattern matching, switch cases instead of if else functional style
+- Roslyn generators: always IIncrementalGenerator, ForAttributeWithMetadataName, value-equatable models, raw strings
+  over SyntaxFactory, test with ANcpLua.Roslyn.Utilities test infrastructure
+- Never: ISourceGenerator, SyntaxFactory.NormalizeWhitespace(), store ISymbol in models, runtime reflection,
+  dynamic/ExpandoObject, blocking async (.Result/.Wait()), any analyzer besides ANcpLua.Analyzers, suppressing analyzers
+  that are fixable, suppressing null "!" eventho the code can be rewritten.
+
+## A Note To The Agent
+
+We are building this together. When you learn something non-obvious, add it here so future changes go faster.
