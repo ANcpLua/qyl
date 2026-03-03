@@ -19,7 +19,7 @@ namespace qyl.copilot.Auth;
 ///     GitHub OAuth PKCE flow (RFC 7636).
 ///     Completes the <c>AuthMethod.OAuth</c> path in <see cref="CopilotAuthProvider" />.
 /// </summary>
-public static class GitHubPkceFlow
+public static partial class GitHubPkceFlow
 {
     private const string AuthorizeEndpoint = "https://github.com/login/oauth/authorize";
     private const string TokenEndpoint = "https://github.com/login/oauth/access_token";

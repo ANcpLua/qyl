@@ -8,7 +8,7 @@
 // making both engines interchangeable from the collector layer's perspective.
 //
 // Usage:
-//   var engine = new DeclarativeEngine(chatClient, agentName: "daily-qa");
+//   var engine = new DeclarativeEngine(chatClient);
 //   await engine.LoadAsync(".qyl/workflows/daily-qa.yaml");
 //   await foreach (var update in engine.ExecuteAsync(input, ct)) { ... }
 // =============================================================================
@@ -19,6 +19,8 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Agents.AI.Workflows.Declarative;
 using Microsoft.Extensions.AI;
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 using qyl.protocol.Copilot;
 
 namespace qyl.copilot.Workflows;
@@ -30,17 +32,14 @@ namespace qyl.copilot.Workflows;
 /// </summary>
 public sealed class DeclarativeEngine
 {
-    private readonly string _agentName;
     private readonly IChatClient _chatClient;
     private Workflow? _workflow;
 
     /// <summary>Creates a new engine.</summary>
     /// <param name="chatClient">The chat client used by the agent provider.</param>
-    /// <param name="agentName">Identifies the agent in OTel spans.</param>
-    public DeclarativeEngine(IChatClient chatClient, string agentName = "declarative-agent")
+    public DeclarativeEngine(IChatClient chatClient)
     {
         _chatClient = Guard.NotNull(chatClient);
-        _agentName = Guard.NotNullOrWhiteSpace(agentName);
     }
 
     /// <summary>
@@ -151,8 +150,8 @@ public sealed class DeclarativeEngine
     private sealed class ChatClientResponseAgentProvider(IChatClient chatClient)
         : ResponseAgentProvider
     {
-        private readonly ConcurrentDictionary<string, List<ChatMessage>> _conversations = new();
-        private readonly ConcurrentDictionary<string, ChatMessage> _messages = new();
+        private readonly ConcurrentDictionary<string, List<AiChatMessage>> _conversations = new();
+        private readonly ConcurrentDictionary<string, AiChatMessage> _messages = new();
 
         public override Task<string> CreateConversationAsync(
             CancellationToken cancellationToken = default)
@@ -162,58 +161,58 @@ public sealed class DeclarativeEngine
             return Task.FromResult(id);
         }
 
-        public override Task<ChatMessage> CreateMessageAsync(
+        public override Task<AiChatMessage> CreateMessageAsync(
             string conversationId,
-            ChatMessage conversationMessage,
+            AiChatMessage conversationMessage,
             CancellationToken cancellationToken = default)
         {
-            ChatMessage stored = new(conversationMessage.Role, conversationMessage.Contents)
+            AiChatMessage stored = new(conversationMessage.Role, conversationMessage.Contents)
             {
                 MessageId = Guid.NewGuid().ToString("N")
             };
             _messages[stored.MessageId] = stored;
-            if (_conversations.TryGetValue(conversationId, out List<ChatMessage>? history))
+            if (_conversations.TryGetValue(conversationId, out List<AiChatMessage>? history))
                 history.Add(stored);
             return Task.FromResult(stored);
         }
 
-        public override Task<ChatMessage> GetMessageAsync(
+        public override Task<AiChatMessage> GetMessageAsync(
             string conversationId,
             string messageId,
             CancellationToken cancellationToken = default) =>
-            _messages.TryGetValue(messageId, out ChatMessage? msg)
+            _messages.TryGetValue(messageId, out AiChatMessage? msg)
                 ? Task.FromResult(msg)
-                : Task.FromException<ChatMessage>(
+                : Task.FromException<AiChatMessage>(
                     new KeyNotFoundException($"Message {messageId} not found."));
 
         public override async IAsyncEnumerable<AgentResponseUpdate> InvokeAgentAsync(
             string agentId,
             string? agentVersion,
             string? conversationId,
-            IEnumerable<ChatMessage>? messages,
+            IEnumerable<AiChatMessage>? messages,
             IDictionary<string, object?>? inputArguments,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            List<ChatMessage> history = [];
+            List<AiChatMessage> history = [];
             if (conversationId is not null &&
-                _conversations.TryGetValue(conversationId, out List<ChatMessage>? stored))
+                _conversations.TryGetValue(conversationId, out List<AiChatMessage>? stored))
             {
                 history.AddRange(stored);
             }
             if (messages is not null)
                 history.AddRange(messages);
 
-            await foreach (StreamingChatCompletionUpdate update in chatClient
+            await foreach (ChatResponseUpdate update in chatClient
                 .GetStreamingResponseAsync(history, cancellationToken: cancellationToken)
                 .ConfigureAwait(false))
             {
                 string text = update.Text ?? string.Empty;
                 if (text.Length > 0)
-                    yield return new AgentResponseUpdate(ChatRole.Assistant, text);
+                    yield return new AgentResponseUpdate(AiChatRole.Assistant, text);
             }
         }
 
-        public override async IAsyncEnumerable<ChatMessage> GetMessagesAsync(
+        public override async IAsyncEnumerable<AiChatMessage> GetMessagesAsync(
             string conversationId,
             int? limit = null,
             string? after = null,
@@ -221,17 +220,17 @@ public sealed class DeclarativeEngine
             bool newestFirst = false,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            if (!_conversations.TryGetValue(conversationId, out List<ChatMessage>? history))
+            if (!_conversations.TryGetValue(conversationId, out List<AiChatMessage>? history))
                 yield break;
 
-            IEnumerable<ChatMessage> items = newestFirst
-                ? ((IEnumerable<ChatMessage>)history).Reverse()
+            IEnumerable<AiChatMessage> items = newestFirst
+                ? ((IEnumerable<AiChatMessage>)history).Reverse()
                 : history;
 
             if (limit.HasValue)
                 items = items.Take(limit.Value);
 
-            foreach (ChatMessage message in items)
+            foreach (AiChatMessage message in items)
                 yield return message;
 
             await Task.CompletedTask.ConfigureAwait(false);

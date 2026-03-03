@@ -53,8 +53,9 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        var model = options?.ModelId ?? Metadata.DefaultModelId ?? "unknown";
-        var provider = Metadata.ProviderName ?? "unknown";
+        ChatClientMetadata? meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
+        string model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
+        string provider = meta?.ProviderName ?? "unknown";
 
         using var activity = StartChatActivity(model, provider);
         var startTime = _timeProvider.GetUtcNow();
@@ -93,8 +94,9 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        var model = options?.ModelId ?? Metadata.DefaultModelId ?? "unknown";
-        var provider = Metadata.ProviderName ?? "unknown";
+        ChatClientMetadata? meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
+        string model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
+        string provider = meta?.ProviderName ?? "unknown";
 
         using var activity = StartChatActivity(model, provider);
         var startTime = _timeProvider.GetUtcNow();

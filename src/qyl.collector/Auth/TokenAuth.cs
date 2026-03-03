@@ -116,7 +116,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         {
             string json = await _httpClient.GetStringAsync(jwksUri, ct).ConfigureAwait(false);
             JsonWebKeySet jwks = new(json);
-            IReadOnlyList<SecurityKey> keys = jwks.GetSigningKeys();
+            IReadOnlyList<SecurityKey> keys = (IReadOnlyList<SecurityKey>)jwks.GetSigningKeys();
             _cachedKeys = keys;
             _keysExpiry = TimeProvider.System.GetUtcNow().Add(KeysCacheDuration);
             LogKeysRefreshed(keys.Count);
