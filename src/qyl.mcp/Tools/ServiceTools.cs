@@ -9,7 +9,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ServiceTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_services")]
+    [McpServerTool(Name = "qyl.list_services", Title = "List Services",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List all detected services with type, status, instance count, and aggregated telemetry stats")]
     public Task<string> ListServicesAsync(
         [Description("Filter by service type: ai_agent, llm_provider, mcp_server, traditional")] string? type = null,

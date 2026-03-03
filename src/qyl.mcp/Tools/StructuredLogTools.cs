@@ -13,7 +13,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class StructuredLogTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_structured_logs")]
+    [McpServerTool(Name = "qyl.list_structured_logs", Title = "List Structured Logs",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List OTLP structured log records captured by qyl.
 
@@ -104,7 +105,8 @@ public sealed class StructuredLogTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.list_trace_logs")]
+    [McpServerTool(Name = "qyl.list_trace_logs", Title = "List Trace Logs",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get all structured logs associated with a distributed trace.
 
@@ -161,7 +163,8 @@ public sealed class StructuredLogTools(HttpClient client)
         });
     }
 
-    [McpServerTool(Name = "qyl.search_logs")]
+    [McpServerTool(Name = "qyl.search_logs", Title = "Search Logs",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Search structured logs by text pattern.
 

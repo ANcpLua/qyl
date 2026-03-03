@@ -12,7 +12,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ConsoleTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_console_logs")]
+    [McpServerTool(Name = "qyl.list_console_logs", Title = "List Console Logs",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List frontend console.log messages captured by qyl.
 
@@ -88,7 +89,8 @@ public sealed class ConsoleTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.list_console_errors")]
+    [McpServerTool(Name = "qyl.list_console_errors", Title = "List Console Errors",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List frontend console errors and warnings.
 

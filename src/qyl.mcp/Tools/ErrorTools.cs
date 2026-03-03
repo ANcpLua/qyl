@@ -12,7 +12,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ErrorTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_error_issues")]
+    [McpServerTool(Name = "qyl.list_error_issues", Title = "List Error Issues",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List fingerprinted error groups (issues) with optional filtering.
 
@@ -65,7 +66,8 @@ public sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.get_error_issue")]
+    [McpServerTool(Name = "qyl.get_error_issue", Title = "Get Error Issue",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get detailed information about a specific error issue, optionally with recent events.
 
@@ -155,7 +157,8 @@ public sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.find_similar_errors")]
+    [McpServerTool(Name = "qyl.find_similar_errors", Title = "Find Similar Errors",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Find errors similar to a given span using embedding clusters.
 
@@ -193,7 +196,8 @@ public sealed class ErrorTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.get_error_timeline")]
+    [McpServerTool(Name = "qyl.get_error_timeline", Title = "Get Error Timeline",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get error occurrence frequency over time for trend analysis.
 

@@ -11,7 +11,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ClaudeCodeTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.claude_code_sessions")]
+    [McpServerTool(Name = "qyl.claude_code_sessions", Title = "Claude Code Sessions",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List Claude Code sessions with usage statistics.
 
@@ -56,7 +57,8 @@ public sealed class ClaudeCodeTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.claude_code_timeline")]
+    [McpServerTool(Name = "qyl.claude_code_timeline", Title = "Claude Code Timeline",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get the event timeline for a Claude Code session.
 
@@ -119,7 +121,8 @@ public sealed class ClaudeCodeTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.claude_code_tools")]
+    [McpServerTool(Name = "qyl.claude_code_tools", Title = "Claude Code Tools",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get tool usage breakdown for a Claude Code session.
 

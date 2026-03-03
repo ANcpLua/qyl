@@ -10,7 +10,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 internal sealed class TelemetryTools(ITelemetryStore store)
 {
-    [McpServerTool(Name = "qyl.search_agent_runs")]
+    [McpServerTool(Name = "qyl.search_agent_runs", Title = "Search Agent Runs",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Search for AI agent run records.
 
@@ -36,7 +37,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         DateTime? since = null) =>
         ToolResult.ExecuteAsync(() => store.SearchRunsAsync(provider, model, errorType, since), "Search");
 
-    [McpServerTool(Name = "qyl.get_agent_run")]
+    [McpServerTool(Name = "qyl.get_agent_run", Title = "Get Agent Run",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get detailed information about a specific agent run.
 
@@ -54,7 +56,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         string runId) =>
         ToolResult.ExecuteAsync(() => store.GetRunAsync(runId), "Get run");
 
-    [McpServerTool(Name = "qyl.get_token_usage")]
+    [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get aggregated token usage statistics.
 
@@ -75,7 +78,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         string groupBy = "agent") =>
         ToolResult.ExecuteAsync(() => store.GetTokenUsageAsync(since, until, groupBy), "Get token usage");
 
-    [McpServerTool(Name = "qyl.list_errors")]
+    [McpServerTool(Name = "qyl.list_errors", Title = "List Errors",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List recent errors from agent runs.
 
@@ -94,7 +98,8 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         string? agentName = null) =>
         ToolResult.ExecuteAsync(() => store.ListErrorsAsync(limit, agentName), "List errors");
 
-    [McpServerTool(Name = "qyl.get_latency_stats")]
+    [McpServerTool(Name = "qyl.get_latency_stats", Title = "Get Latency Stats",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get latency percentiles for agent operations.
 

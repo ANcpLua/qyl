@@ -12,7 +12,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class AnomalyTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.detect_anomalies")]
+    [McpServerTool(Name = "qyl.detect_anomalies", Title = "Detect Anomalies",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Detect anomalous metric spikes or drops using z-score analysis.
 
@@ -76,7 +77,8 @@ public sealed class AnomalyTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.get_metric_baseline")]
+    [McpServerTool(Name = "qyl.get_metric_baseline", Title = "Get Metric Baseline",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get baseline statistics (mean, percentiles) for a metric.
 
@@ -122,7 +124,8 @@ public sealed class AnomalyTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.compare_periods")]
+    [McpServerTool(Name = "qyl.compare_periods", Title = "Compare Periods",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Compare metrics between two time periods (e.g., before/after deploy).
 

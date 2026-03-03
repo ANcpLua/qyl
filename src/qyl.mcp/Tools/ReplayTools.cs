@@ -13,7 +13,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class ReplayTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_sessions")]
+    [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List AI sessions captured by qyl for replay or analysis.
 
@@ -69,7 +70,8 @@ public sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching sessions");
 
-    [McpServerTool(Name = "qyl.get_session_transcript")]
+    [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get a human-readable transcript of an AI session.
 
@@ -147,7 +149,8 @@ public sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching session");
 
-    [McpServerTool(Name = "qyl.get_trace")]
+    [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get the complete span tree for a distributed trace.
 
@@ -197,7 +200,8 @@ public sealed class ReplayTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching trace");
 
-    [McpServerTool(Name = "qyl.analyze_session_errors")]
+    [McpServerTool(Name = "qyl.analyze_session_errors", Title = "Analyze Session Errors",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Analyze all errors in a session.
 

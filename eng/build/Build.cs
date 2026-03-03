@@ -27,7 +27,8 @@ sealed class Build : NukeBuild,
     IVersionize,
     IDocker,
     IPipeline,
-    IVerify
+    IVerify,
+    IApiDiff
 {
     // ── GitVersion (net10.0, not net8.0) ────────────────────────────────────────
     // NOT exposed via IHazGitVersion — NUKE's ICompile.ReportSummary NREs when

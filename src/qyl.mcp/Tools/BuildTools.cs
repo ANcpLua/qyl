@@ -8,7 +8,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class BuildTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_build_failures")]
+    [McpServerTool(Name = "qyl.list_build_failures", Title = "List Build Failures",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List captured build failures with summary, property issues, and source hints.")]
     public Task<string> ListBuildFailuresAsync(
         [Description("Maximum number of failures to return (default: 10)")]
@@ -48,7 +49,8 @@ public sealed class BuildTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.get_build_failure")]
+    [McpServerTool(Name = "qyl.get_build_failure", Title = "Get Build Failure",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Get full details for a single captured build failure by id.")]
     public Task<string> GetBuildFailureAsync(
         [Description("Build failure id")] string id)
@@ -99,7 +101,8 @@ public sealed class BuildTools(HttpClient client)
         });
     }
 
-    [McpServerTool(Name = "qyl.search_build_failures")]
+    [McpServerTool(Name = "qyl.search_build_failures", Title = "Search Build Failures",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Search captured build failures by error text, property tracking details, or call stack text.")]
     public Task<string> SearchBuildFailuresAsync(
         [Description("Search pattern")] string pattern,

@@ -18,7 +18,8 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
-    [McpServerTool(Name = "qyl.summarize_error")]
+    [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Generate an AI-powered summary of an error issue.
 
@@ -84,7 +85,8 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             return response.Text ?? "Summary generation produced no output.";
         });
 
-    [McpServerTool(Name = "qyl.summarize_trace")]
+    [McpServerTool(Name = "qyl.summarize_trace", Title = "Summarize Trace",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Generate an AI-powered summary of a distributed trace.
 
@@ -154,7 +156,8 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             return response.Text ?? "Summary generation produced no output.";
         });
 
-    [McpServerTool(Name = "qyl.summarize_session")]
+    [McpServerTool(Name = "qyl.summarize_session", Title = "Summarize Session",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Generate an AI-powered summary of a session.
 

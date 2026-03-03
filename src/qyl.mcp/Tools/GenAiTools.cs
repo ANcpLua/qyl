@@ -13,7 +13,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class GenAiTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.get_genai_stats")]
+    [McpServerTool(Name = "qyl.get_genai_stats", Title = "Get GenAI Stats",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get GenAI usage statistics: total requests, tokens, and costs.
 
@@ -59,7 +60,8 @@ public sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.list_genai_spans")]
+    [McpServerTool(Name = "qyl.list_genai_spans", Title = "List GenAI Spans",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List GenAI spans (LLM calls) with filtering.
 
@@ -137,7 +139,8 @@ public sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.list_models")]
+    [McpServerTool(Name = "qyl.list_models", Title = "List Models",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get usage breakdown by AI model.
 
@@ -176,7 +179,8 @@ public sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.get_token_timeseries")]
+    [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get token usage over time for trend analysis.
 

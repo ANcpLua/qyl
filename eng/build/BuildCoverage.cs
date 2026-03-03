@@ -69,6 +69,7 @@ interface ICoverage : IQylTest
             GenerateCoverageReports();
             GenerateAiCoverageSummary();
             GenerateDetailedCoverageSummaries();
+            WriteGitHubTestSummary();
         });
 
     private void GenerateCoverageReports()

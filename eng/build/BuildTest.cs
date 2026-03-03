@@ -12,8 +12,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
@@ -243,6 +245,11 @@ interface IQylTest : ITest, IHazSourcePaths
         return s.ClearLoggers().ResetProjectFile().SetProcessAdditionalArguments(additionalArgs);
     };
 
+    Target TestSummary => d => d
+        .Description("Generate Markdown test summary from MTP TRX reports")
+        .After<IQylTest>(static x => x.Test)
+        .Executes(WriteGitHubTestSummary);
+
     sealed void EnsureTestcontainersConfigured()
     {
         if (IsServerBuild)
@@ -252,4 +259,129 @@ interface IQylTest : ITest, IHazSourcePaths
             Log.Information("Testcontainers: Configured for CI");
         }
     }
+
+    /// <summary>
+    ///     Parses MTP-produced TRX files and writes a Markdown summary.
+    ///     Writes to <c>$GITHUB_STEP_SUMMARY</c> when running in GitHub Actions,
+    ///     and always writes <c>Artifacts/test-summary.md</c>.
+    /// </summary>
+    sealed void WriteGitHubTestSummary()
+    {
+        var trxFiles = TestResultsDirectory.GlobFiles("**/*.trx");
+        if (trxFiles.Count is 0)
+        {
+            Log.Debug("No TRX files found for summary generation");
+            return;
+        }
+
+        Log.Information("Generating test summary from {Count} MTP TRX report(s)", trxFiles.Count);
+
+        var sb = new StringBuilder();
+        sb.AppendLine("## Test Results");
+        sb.AppendLine();
+        sb.AppendLine("| Project | Passed | Failed | Skipped | Duration |");
+        sb.AppendLine("|---------|-------:|-------:|--------:|---------:|");
+
+        var totalPassed = 0;
+        var totalFailed = 0;
+        var totalSkipped = 0;
+        var totalDuration = TimeSpan.Zero;
+        var failures = new List<(string Project, string Test, string? Message, string? StackTrace)>();
+
+        foreach (var trxFile in trxFiles.OrderBy(static f => f.Name))
+        {
+            var doc = XDocument.Load(trxFile);
+            var ns = doc.Root?.Name.Namespace ?? XNamespace.None;
+
+            var counters = doc.Descendants(ns + "Counters").FirstOrDefault();
+            if (counters is null) continue;
+
+            var passed = int.Parse(counters.Attribute("passed")?.Value ?? "0", CultureInfo.InvariantCulture);
+            var failed = int.Parse(counters.Attribute("failed")?.Value ?? "0", CultureInfo.InvariantCulture);
+            var skipped = int.Parse(
+                counters.Attribute("notExecuted")?.Value ?? counters.Attribute("inconclusive")?.Value ?? "0",
+                CultureInfo.InvariantCulture);
+
+            // Sum durations from individual test results (more accurate than wall-clock)
+            var projectDuration = TimeSpan.Zero;
+            foreach (var result in doc.Descendants(ns + "UnitTestResult"))
+            {
+                if (TimeSpan.TryParse(result.Attribute("duration")?.Value, CultureInfo.InvariantCulture, out var d))
+                    projectDuration += d;
+
+                var outcome = result.Attribute("outcome")?.Value;
+                if (string.Equals(outcome, "Failed", StringComparison.OrdinalIgnoreCase))
+                {
+                    var testName = result.Attribute("testName")?.Value ?? "Unknown";
+                    var errorInfo = result.Descendants(ns + "ErrorInfo").FirstOrDefault();
+                    var message = errorInfo?.Element(ns + "Message")?.Value;
+                    var stackTrace = errorInfo?.Element(ns + "StackTrace")?.Value;
+                    failures.Add((Path.GetFileNameWithoutExtension(trxFile), testName, message, stackTrace));
+                }
+            }
+
+            var projectName = Path.GetFileNameWithoutExtension(trxFile);
+            var failedStr = failed > 0 ? $"**{failed}**" : "0";
+            sb.AppendLine(CultureInfo.InvariantCulture,
+                $"| {projectName} | {passed} | {failedStr} | {skipped} | {FormatDuration(projectDuration)} |");
+
+            totalPassed += passed;
+            totalFailed += failed;
+            totalSkipped += skipped;
+            totalDuration += projectDuration;
+        }
+
+        var totalFailedStr = totalFailed > 0 ? $"**{totalFailed}**" : "0";
+        sb.AppendLine(CultureInfo.InvariantCulture,
+            $"| **Total** | **{totalPassed}** | {totalFailedStr} | **{totalSkipped}** | **{FormatDuration(totalDuration)}** |");
+
+        if (failures.Count > 0)
+        {
+            sb.AppendLine();
+            sb.AppendLine("### Failures");
+            sb.AppendLine();
+            foreach (var (project, test, message, stackTrace) in failures)
+            {
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<details>");
+                sb.AppendLine(CultureInfo.InvariantCulture, $"<summary><b>{project}</b>: {test}</summary>");
+                sb.AppendLine();
+                if (message is { Length: > 0 })
+                {
+                    sb.AppendLine("```");
+                    sb.AppendLine(message.Length > 500 ? string.Concat(message.AsSpan(0, 500), "...") : message);
+                    sb.AppendLine("```");
+                }
+                if (stackTrace is { Length: > 0 })
+                {
+                    sb.AppendLine("```");
+                    sb.AppendLine(stackTrace.Length > 1000
+                        ? string.Concat(stackTrace.AsSpan(0, 1000), "...")
+                        : stackTrace);
+                    sb.AppendLine("```");
+                }
+                sb.AppendLine("</details>");
+                sb.AppendLine();
+            }
+        }
+
+        var markdown = sb.ToString();
+
+        // Always write to artifacts
+        var artifactPath = ((IHazSourcePaths)this).ArtifactsDirectory / "test-summary.md";
+        artifactPath.Parent.CreateDirectory();
+        File.WriteAllText(artifactPath, markdown);
+        Log.Information("Test summary: {Path}", artifactPath);
+
+        // Write to GitHub step summary when available
+        var stepSummaryPath = Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY");
+        if (stepSummaryPath is { Length: > 0 })
+        {
+            File.AppendAllText(stepSummaryPath, markdown);
+            Log.Information("Test summary written to $GITHUB_STEP_SUMMARY");
+        }
+    }
+
+    private static string FormatDuration(TimeSpan duration) => duration.TotalMinutes >= 1
+        ? $"{duration.TotalMinutes:F1}m"
+        : $"{duration.TotalSeconds:F1}s";
 }

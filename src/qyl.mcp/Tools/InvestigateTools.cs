@@ -17,7 +17,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 internal sealed class InvestigateTools(IAgentProvider agent)
 {
-    [McpServerTool(Name = "qyl.investigate")]
+    [McpServerTool(Name = "qyl.investigate", Title = "Investigate",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Investigate observability data using natural language.
 

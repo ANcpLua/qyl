@@ -12,7 +12,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class CopilotTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.copilot_status")]
+    [McpServerTool(Name = "qyl.copilot_status", Title = "Copilot Status",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Check if GitHub Copilot authentication is available.
 
@@ -54,7 +55,8 @@ public sealed class CopilotTools(HttpClient client)
             return sb.ToString();
         });
 
-    [McpServerTool(Name = "qyl.copilot_chat")]
+    [McpServerTool(Name = "qyl.copilot_chat", Title = "Copilot Chat",
+        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Send a chat message to GitHub Copilot and return the response.
 
@@ -135,7 +137,8 @@ public sealed class CopilotTools(HttpClient client)
             return result;
         });
 
-    [McpServerTool(Name = "qyl.copilot_run_workflow")]
+    [McpServerTool(Name = "qyl.copilot_run_workflow", Title = "Run Copilot Workflow",
+        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Execute a named Copilot workflow.
 

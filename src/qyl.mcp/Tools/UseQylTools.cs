@@ -17,7 +17,8 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
 {
     private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 
-    [McpServerTool(Name = "qyl.use_qyl")]
+    [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Ask qyl's AI agent to answer complex observability questions.
                  The agent has access to ALL qyl tools and will autonomously

@@ -13,7 +13,8 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 public sealed class AnalyticsTools(HttpClient client)
 {
-    [McpServerTool(Name = "qyl.list_conversations")]
+    [McpServerTool(Name = "qyl.list_conversations", Title = "List Conversations",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List AI conversations captured by qyl.
 
@@ -80,7 +81,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching conversations");
 
-    [McpServerTool(Name = "qyl.get_conversation")]
+    [McpServerTool(Name = "qyl.get_conversation", Title = "Get Conversation",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get the full detail of a single AI conversation.
 
@@ -135,7 +137,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching conversation");
 
-    [McpServerTool(Name = "qyl.get_coverage_gaps")]
+    [McpServerTool(Name = "qyl.get_coverage_gaps", Title = "Get Coverage Gaps",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Identify topics where the AI assistant fails to help users.
 
@@ -188,7 +191,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching coverage gaps");
 
-    [McpServerTool(Name = "qyl.get_top_questions")]
+    [McpServerTool(Name = "qyl.get_top_questions", Title = "Get Top Questions",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Identify the most common topics users ask about.
 
@@ -234,7 +238,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching top questions");
 
-    [McpServerTool(Name = "qyl.get_source_analytics")]
+    [McpServerTool(Name = "qyl.get_source_analytics", Title = "Get Source Analytics",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Show which knowledge sources are most cited by the AI.
 
@@ -276,7 +281,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching source analytics");
 
-    [McpServerTool(Name = "qyl.get_satisfaction")]
+    [McpServerTool(Name = "qyl.get_satisfaction", Title = "Get Satisfaction",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Track user satisfaction with AI answers.
 
@@ -333,7 +339,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching satisfaction data");
 
-    [McpServerTool(Name = "qyl.list_users")]
+    [McpServerTool(Name = "qyl.list_users", Title = "List Users",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  List users who have interacted with the AI assistant.
 
@@ -380,7 +387,8 @@ public sealed class AnalyticsTools(HttpClient client)
             return sb.ToString();
         }, "Error fetching users");
 
-    [McpServerTool(Name = "qyl.get_user_journey")]
+    [McpServerTool(Name = "qyl.get_user_journey", Title = "Get User Journey",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get an individual user's conversation history and journey.
 

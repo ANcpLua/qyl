@@ -21,6 +21,7 @@ using DuckDB.NET.Data;
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
+using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
@@ -230,6 +231,47 @@ interface IVerify : IHazSourcePaths
         });
 
     /// <summary>
+    ///     CI gate: verifies no generated files diverged from HEAD after regeneration.
+    ///     Belt-and-suspenders on top of <see cref="GenerationGuard" /> — catches any
+    ///     generated file that bypasses the guard (e.g. semconv, TypeScript, SQL).
+    /// </summary>
+    Target VerifyGeneratedFilesClean => d => d
+        .Description("CI gate: verify generated files match HEAD after regeneration")
+        .DependsOn<IPipeline>(static x => x.Generate)
+        .OnlyWhenDynamic(() => SkipVerify != true)
+        .Executes(() =>
+        {
+            Log.Information("Checking for uncommitted generated file changes...");
+
+            IReadOnlyCollection<Output> diffOutput = GitTasks.Git(
+                "diff --name-only",
+                RootDirectory, logOutput: false, logInvocation: false);
+
+            string[] generatedSuffixes = [".g.cs", ".g.sql", ".g.tsp", ".g.ts"];
+
+            var dirtyFiles = diffOutput
+                .Select(static o => o.Text.Trim())
+                .Where(static f => f.Length > 0)
+                .Where(f =>
+                    generatedSuffixes.Any(s => f.EndsWith(s, StringComparison.OrdinalIgnoreCase)) ||
+                    f.Contains("core/openapi/", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (dirtyFiles.Count is 0)
+            {
+                Log.Information("All generated files match HEAD");
+                return;
+            }
+
+            foreach (var file in dirtyFiles)
+                Log.Error("  Generated file changed: {File}", file);
+
+            throw new InvalidOperationException(
+                $"{dirtyFiles.Count} generated file(s) changed after regeneration. " +
+                "Run 'nuke Generate' and commit the output.");
+        });
+
+    /// <summary>
     ///     Run all verification checks.
     /// </summary>
     Target Verify => d => d
@@ -238,15 +280,17 @@ interface IVerify : IHazSourcePaths
         .DependsOn(VerifyDuckDbSchema)
         .DependsOn(VerifySchemaConventions)
         .DependsOn(VerifyFrontendTypes)
+        .DependsOn(VerifyGeneratedFilesClean)
         .Executes(() =>
         {
             Log.Information("═══════════════════════════════════════════════════════════════");
             Log.Information("  Verification Complete");
             Log.Information("═══════════════════════════════════════════════════════════════");
-            Log.Information("  ✓ Generated C# code compiles");
-            Log.Information("  ✓ DuckDB schema is valid");
-            Log.Information("  ✓ OTel snake_case conventions enforced");
-            Log.Information("  ✓ Frontend TypeScript types compile");
+            Log.Information("  Generated C# code compiles");
+            Log.Information("  DuckDB schema is valid");
+            Log.Information("  OTel snake_case conventions enforced");
+            Log.Information("  Frontend TypeScript types compile");
+            Log.Information("  Generated files match HEAD");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 

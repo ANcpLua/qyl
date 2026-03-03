@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using qyl.mcp.Auth;
+using qyl.mcp.Scoping;
 
 namespace qyl.mcp;
 
@@ -27,6 +28,7 @@ internal static class McpCollectorHttpClientExtensions
                 client.Timeout = timeout ?? DefaultTimeout;
             })
             .AddMcpAuthHandler()
+            .AddHttpMessageHandler(static sp => new ScopingDelegatingHandler(sp.GetRequiredService<QylScope>()))
             .AddExtendedHttpClientLogging();
 
         httpClientBuilder.AddStandardResilienceHandler();
