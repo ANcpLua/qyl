@@ -64,10 +64,36 @@ public sealed partial class AutofixOrchestrator(DuckDbStore store, ILogger<Autof
         LogFixRunUpdated(runId, status);
     }
 
+    /// <summary>
+    ///     Launches a coding agent run for a completed fix run.
+    /// </summary>
+    public async Task<CodingAgent.CodingAgentRunRecord> LaunchCodingAgentAsync(
+        string fixRunId, CodingAgent.CodingAgentProvider provider,
+        string? repoFullName = null, CancellationToken ct = default)
+    {
+        var record = new CodingAgent.CodingAgentRunRecord
+        {
+            Id = Guid.NewGuid().ToString("N"),
+            FixRunId = fixRunId,
+            Provider = provider.ToString().ToLowerInvariant(),
+            Status = "pending",
+            RepoFullName = repoFullName
+        };
+
+        await store.InsertCodingAgentRunAsync(record, ct).ConfigureAwait(false);
+        LogCodingAgentLaunched(record.Id, fixRunId, provider);
+        return record;
+    }
+
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Fix run {RunId} created for issue {IssueId} with policy {Policy}")]
     private partial void LogFixRunCreated(string runId, string issueId, FixPolicy policy);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Fix run {RunId} status updated to {Status}")]
     private partial void LogFixRunUpdated(string runId, string status);
+
+    [LoggerMessage(Level = LogLevel.Information,
+        Message = "Coding agent {AgentRunId} launched for fix run {FixRunId} with provider {Provider}")]
+    private partial void LogCodingAgentLaunched(
+        string agentRunId, string fixRunId, CodingAgent.CodingAgentProvider provider);
 }

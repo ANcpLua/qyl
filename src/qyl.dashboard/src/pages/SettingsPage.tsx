@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
-import {Bot, Database, Keyboard, Loader2, Monitor, Moon, Palette, Settings, Sun, Trash2, Unlink,} from 'lucide-react';
+import {Bot, BrainCircuit, Database, Keyboard, Loader2, Monitor, Moon, Palette, Settings, Sun, Trash2, Unlink,} from 'lucide-react';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -23,19 +23,21 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/
 import {toast} from 'sonner';
 import {type LlmProvider, LLM_PROVIDERS, useLlmConfig} from '@/hooks/use-llm-config';
 import {useLlmStatus} from '@/hooks/use-llm-status';
+import {SeerSettingsSection} from '@/components/coding-agents/SeerSettingsSection';
 
 const keyboardShortcuts = [
-    {key: 'G', description: 'Go to Resources'},
+    {key: 'R', description: 'Go to Resources'},
     {key: 'T', description: 'Go to Traces'},
-    {key: 'L', description: 'Go to Logs'},
-    {key: 'M', description: 'Go to Metrics'},
-    {key: 'A', description: 'Go to GenAI'},
+    {key: 'C', description: 'Go to Console / Logs'},
+    {key: 'S', description: 'Go to Structured logs'},
+    {key: 'M', description: 'Go to Metrics / GenAI'},
+    {key: '/', description: 'Go to Search'},
+    {key: 'A', description: 'Go to Agents'},
+    {key: 'B', description: 'Go to Bot'},
     {key: ',', description: 'Open Settings'},
     {key: '?', description: 'Show keyboard shortcuts'},
     {key: 'Ctrl + /', description: 'Focus search'},
     {key: 'Escape', description: 'Close panel / Clear selection'},
-    {key: 'R', description: 'Refresh data'},
-    {key: 'Space', description: 'Toggle live mode'},
 ];
 
 function AiSettingsTab() {
@@ -224,7 +226,7 @@ export function SettingsPage() {
             </div>
 
             <Tabs defaultValue="general" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-6">
+                <TabsList className="grid w-full grid-cols-7">
                     <TabsTrigger value="general">
                         <Settings className="w-4 h-4 mr-2"/>
                         General
@@ -232,6 +234,10 @@ export function SettingsPage() {
                     <TabsTrigger value="ai">
                         <Bot className="w-4 h-4 mr-2"/>
                         AI
+                    </TabsTrigger>
+                    <TabsTrigger value="seer">
+                        <BrainCircuit className="w-4 h-4 mr-2"/>
+                        Seer
                     </TabsTrigger>
                     <TabsTrigger value="appearance">
                         <Palette className="w-4 h-4 mr-2"/>
@@ -287,6 +293,11 @@ export function SettingsPage() {
                 {/* AI Provider */}
                 <TabsContent value="ai" className="space-y-4">
                     <AiSettingsTab/>
+                </TabsContent>
+
+                {/* Seer */}
+                <TabsContent value="seer" className="space-y-4">
+                    <SeerSettingsSection/>
                 </TabsContent>
 
                 {/* Appearance */}

@@ -1658,6 +1658,24 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
         spanClustersCmd.ExecuteNonQuery();
 
+        // Autofix: fix runs
+        using var fixRunsCmd = con.CreateCommand();
+        fixRunsCmd.CommandText = DuckDbSchema.FixRunsDdl;
+        fixRunsCmd.ExecuteNonQuery();
+
+        // Coding agent runs + Seer settings
+        using var codingAgentCmd = con.CreateCommand();
+        codingAgentCmd.CommandText = $"""
+                                      {DuckDbSchema.CodingAgentRunsDdl}
+                                      {DuckDbSchema.SeerSettingsDdl}
+                                      """;
+        codingAgentCmd.ExecuteNonQuery();
+
+        // Seer triage pipeline
+        using var triageCmd = con.CreateCommand();
+        triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
+        triageCmd.ExecuteNonQuery();
+
         // Service registry (telemetry-derived auto-detection)
         using var serviceRegistryCmd = con.CreateCommand();
         serviceRegistryCmd.CommandText = ServiceInstancesDdl;

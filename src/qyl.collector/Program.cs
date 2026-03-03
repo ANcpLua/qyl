@@ -9,6 +9,7 @@ using qyl.collector.Analytics;
 using qyl.collector.Auth;
 using qyl.collector.Autofix;
 using qyl.collector.BuildFailures;
+using qyl.collector.CodingAgent;
 using qyl.collector.ClaudeCode;
 using Microsoft.Agents.AI;
 using qyl.collector.Copilot;
@@ -194,6 +195,10 @@ builder.Services.AddHostedService<InsightsMaterializerService>();
 builder.Services.AddHostedService<ServiceMaterializerService>();
 builder.Services.AddHostedService<EmbeddingClusterWorker>();
 
+// Seer triage pipeline: auto-score and route untriaged error issues
+builder.Services.AddSingleton<TriagePipelineService>();
+builder.Services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
+
 // Schema control: plan and apply additive schema promotions
 builder.Services.AddSingleton<SchemaPlanner>();
 builder.Services.AddSingleton<SchemaExecutor>();
@@ -224,6 +229,7 @@ builder.Services.AddSingleton<AnomalyService>();
 builder.Services.AddSingleton<IssueService>();
 builder.Services.AddSingleton<ErrorLifecycleService>();
 builder.Services.AddSingleton<AutofixOrchestrator>();
+builder.Services.AddSingleton<PrCreationService>();
 
 // Workflow run service
 builder.Services.AddSingleton<WorkflowRunService>();
@@ -327,6 +333,16 @@ app.MapGet("/api/v1/sessions/{sessionId}",
             : Results.Ok(SessionMapper.ToDto(session)));
 
 app.MapGet("/api/v1/sessions/{sessionId}/spans", SpanEndpoints.GetSessionSpansAsync);
+
+app.MapGet("/api/v1/traces", async (
+    DuckDbStore store,
+    int? limit,
+    CancellationToken ct) =>
+{
+    var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
+    var spans = await store.GetSpansAsync(limit: boundedLimit, ct: ct).ConfigureAwait(false);
+    return Results.Ok(new { items = spans, total = spans.Count });
+});
 
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
@@ -540,6 +556,182 @@ app.MapGet("/api/v1/logs", async (
     return Results.Ok(new { logs, total = logs.Count, has_more = logs.Count >= (limit ?? 500) });
 });
 
+app.MapGet("/api/v1/logs/live", async (
+    HttpContext ctx,
+    DuckDbStore store,
+    string? session,
+    string? trace,
+    CancellationToken ct) =>
+{
+    ctx.Response.Headers.ContentType = "text/event-stream";
+    ctx.Response.Headers.CacheControl = "no-cache";
+    ctx.Response.Headers.Connection = "keep-alive";
+
+    static string MapSeverity(string? severityText, byte severityNumber)
+    {
+        var normalized = severityText?.Trim().ToLowerInvariant();
+        if (normalized is "trace" or "debug" or "info" or "warn" or "error" or "fatal")
+            return normalized;
+        if (normalized is "warning") return "warn";
+        if (normalized is "log") return "info";
+
+        return severityNumber switch
+        {
+            >= 21 => "fatal",
+            >= 17 => "error",
+            >= 13 => "warn",
+            >= 9 => "info",
+            >= 5 => "debug",
+            _ => "trace"
+        };
+    }
+
+    static IReadOnlyDictionary<string, object> ParseAttributes(string? attributesJson)
+    {
+        if (string.IsNullOrWhiteSpace(attributesJson))
+            return new Dictionary<string, object>();
+
+        try
+        {
+            using var document = JsonDocument.Parse(attributesJson);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return new Dictionary<string, object>();
+
+            var result = new Dictionary<string, object>(StringComparer.Ordinal);
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                result[property.Name] = property.Value.ValueKind switch
+                {
+                    JsonValueKind.String => property.Value.GetString() ?? string.Empty,
+                    JsonValueKind.Number => property.Value.TryGetInt64(out var i) ? i : property.Value.GetDouble(),
+                    JsonValueKind.True => true,
+                    JsonValueKind.False => false,
+                    _ => property.Value.GetRawText()
+                };
+            }
+
+            return result;
+        }
+        catch
+        {
+            return new Dictionary<string, object>();
+        }
+    }
+
+    static object ToLiveLog(LogStorageRow log)
+    {
+        var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano).ToString("O");
+        var observedTimestamp = log.ObservedTimeUnixNano.HasValue
+            ? TimeConversions.UnixNanoToDateTime(log.ObservedTimeUnixNano.Value).ToString("O")
+            : timestamp;
+
+        return new
+        {
+            timestamp,
+            observedTimestamp,
+            traceId = log.TraceId,
+            spanId = log.SpanId,
+            severityNumber = (int)log.SeverityNumber,
+            severityText = MapSeverity(log.SeverityText, log.SeverityNumber),
+            body = log.Body ?? string.Empty,
+            attributes = ParseAttributes(log.AttributesJson),
+            serviceName = log.ServiceName ?? "unknown"
+        };
+    }
+
+    await ctx.Response.WriteAsync("event: connected\ndata: {\"status\":\"ok\"}\n\n", ct).ConfigureAwait(false);
+    await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+
+    ulong? after = null;
+    try
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            var rows = await store.GetLogsAsync(
+                sessionId: session,
+                traceId: trace,
+                after: after,
+                limit: 250,
+                ct: ct).ConfigureAwait(false);
+
+            if (rows.Count > 0)
+            {
+                var ordered = rows.OrderBy(static l => l.TimeUnixNano).ToArray();
+                after = ordered[^1].TimeUnixNano;
+
+                var payload = ordered.Select(ToLiveLog).ToArray();
+                var json = JsonSerializer.Serialize(new { logs = payload });
+                await ctx.Response.WriteAsync($"event: logs\ndata: {json}\n\n", ct).ConfigureAwait(false);
+                await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(1), ct).ConfigureAwait(false);
+        }
+    }
+    catch (OperationCanceledException)
+    {
+        // Client disconnected.
+    }
+});
+
+app.MapGet("/api/v1/genai/stats", async (
+    SessionQueryService queryService,
+    int? hours,
+    string? session_id,
+    CancellationToken ct) =>
+{
+    DateTime? after = null;
+    if (hours is > 0)
+        after = TimeProvider.System.GetUtcNow().UtcDateTime.AddHours(-hours.Value);
+
+    var stats = await queryService.GetGenAiStatsAsync(session_id, after, ct).ConfigureAwait(false);
+    return Results.Ok(new
+    {
+        requestCount = stats.RequestCount,
+        totalInputTokens = stats.InputTokens,
+        totalOutputTokens = stats.OutputTokens,
+        totalCostUsd = stats.TotalCostUsd,
+        averageEvalScore = (double?)null
+    });
+});
+
+app.MapGet("/api/v1/genai/spans", async (
+    SessionQueryService queryService,
+    string? session_id,
+    int? limit,
+    CancellationToken ct) =>
+{
+    var boundedLimit = Math.Clamp(limit ?? 100, 1, 500);
+    var spans = await queryService.GetGenAiSpansAsync(session_id, boundedLimit, ct).ConfigureAwait(false);
+
+    var items = spans.Select(span => new
+    {
+        spanId = span.SpanId,
+        traceId = span.TraceId,
+        name = span.Name,
+        kind = span.Kind,
+        startTimeUnixNano = span.StartTimeUnixNano,
+        endTimeUnixNano = span.EndTimeUnixNano,
+        durationNs = span.DurationNs,
+        statusCode = span.StatusCode,
+        statusMessage = span.StatusMessage,
+        serviceName = span.ServiceName,
+        genAiProviderName = span.GenAiProviderName,
+        genAiRequestModel = span.GenAiRequestModel,
+        genAiResponseModel = span.GenAiResponseModel,
+        genAiInputTokens = span.GenAiInputTokens,
+        genAiOutputTokens = span.GenAiOutputTokens,
+        genAiTemperature = span.GenAiTemperature,
+        genAiStopReason = span.GenAiStopReason,
+        genAiToolName = span.GenAiToolName,
+        genAiToolCallId = span.GenAiToolCallId,
+        genAiCostUsd = span.GenAiCostUsd,
+        attributesJson = span.AttributesJson
+    });
+
+    return Results.Ok(new { spans = items, total = spans.Count });
+});
+
 app.MapGet("/api/v1/console", (FrontendConsole console, string? session, string? level, int? limit) =>
 {
     var minLevel = level?.ToLowerInvariant() switch
@@ -661,6 +853,9 @@ app.MapIssueEndpoints();
 app.MapIssueAnalyticsEndpoints();
 app.MapAnomalyEndpoints();
 app.MapAutofixEndpoints();
+app.MapCodingAgentEndpoints();
+app.MapSeerSettingsEndpoints();
+app.MapTriageEndpoints();
 app.MapWorkflowEndpoints();
 app.MapWorkflowRunEndpoints();
 app.MapWorkflowEventEndpoints();

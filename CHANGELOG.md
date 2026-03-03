@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Coding Agent Provider system**: Pluggable coding agent backends for autofix pipeline (Seer, Cursor, GitHub Copilot, Claude Code). Enum, DuckDB schema (`coding_agent_runs`, `seer_settings` tables), REST endpoints (`/api/v1/fix-runs/{id}/coding-agents`, `/api/v1/seer/settings`), React Query hooks, 3 UI components (`ClaudeCodeIntegrationCta`, `CodingAgentResultCard`, `SeerSettingsSection`), Seer tab in Settings, coding agent section in Issue Detail page. No `branch_name` display, provider-aware button text ("Open in Cursor" / "Open in Claude Code")
 - **Playwright E2E tests**: smoke test suite (`e2e/smoke.spec.ts`) covering health endpoint, sidebar navigation, time range selector, theme toggle, search input, and settings page; `npm run e2e` / `npm run e2e:ui` scripts
 - **Browser → Server trace correlation via `session.id`**: every OTLP payload from the browser SDK includes a `session.id` resource attribute (32-char hex, generated once per `init()`), grouping all telemetry from one browser tab without forcing a single mega-trace
 - Per-interaction trace model: each web vital, navigation, click, and fetch gets its own trace; `session.id` on the resource handles session grouping
