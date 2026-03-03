@@ -7,6 +7,11 @@ namespace qyl.collector.tests.Health;
 /// <summary>
 ///     Unit tests for <see cref="HealthUiService.DetermineOverallStatus" />.
 /// </summary>
+
+
+/// <summary>
+/// Unit tests for <see cref="HealthUiService.DetermineOverallStatus" />
+/// </summary>
 public sealed class HealthUiServiceTests
 {
     [Fact]

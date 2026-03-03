@@ -430,7 +430,7 @@ Target:
 
 ### ADR Cross-References
 
-**File:** `docs/adrs/ADR-003-nuget-first-instrumentation.md`
+**File:** `docs/decisions/ADR-003-nuget-first-instrumentation.md`
 
 Line 85-88: Update the "Without NuGet Package" example:
 

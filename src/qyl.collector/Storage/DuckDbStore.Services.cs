@@ -348,8 +348,8 @@ public sealed partial class DuckDbStore
                     s.service_name,
                     'unknown' AS service_instance_id,
                     'traditional' AS service_type,
-                    make_timestamp(MIN(s.start_time_unix_nano) / 1000) AS first_seen,
-                    make_timestamp(MAX(s.start_time_unix_nano) / 1000) AS last_seen,
+                    make_timestamp((MIN(s.start_time_unix_nano) / 1000)::BIGINT) AS first_seen,
+                    make_timestamp((MAX(s.start_time_unix_nano) / 1000)::BIGINT) AS last_seen,
                     'active' AS status
                 FROM spans s
                 WHERE s.service_name IS NOT NULL

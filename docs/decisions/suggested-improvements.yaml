@@ -1,0 +1,199 @@
+# suggested-improvements.yaml
+# AI-native spec: each item is self-contained, zero ambiguity.
+# type: ADDITIVE = adds new thing | DESTRUCTIVE = replaces/removes existing thing
+# effort: XS (<15min) | S (<1h) | M (<half-day)
+# status: OPEN
+
+---
+
+- id: ci-sha-pin-actions
+  title: Pin GitHub Actions to commit SHAs
+  type: DESTRUCTIVE
+  effort: XS
+  target: .github/workflows/ci.yml
+  status: OPEN
+
+  current:
+    # Every `uses:` reference uses a mutable version tag.
+    # A compromised tag can silently swap in malicious code.
+    lines:
+      - "uses: actions/checkout@v6"
+      - "uses: actions/setup-dotnet@v5"
+      - "uses: actions/setup-node@v6"
+      - "uses: actions/upload-artifact@v6"
+
+  improved:
+    # Replace each tag with the exact SHA of that tag at time of pinning.
+    # Format: uses: actions/checkout@<40-char-sha>  # v6
+    # Lookup SHAs: gh api repos/actions/checkout/git/ref/tags/v6
+    example:
+      - "uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v6"
+      - "uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25  # v5"
+      - "uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af  # v6"
+      - "uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08  # v6"
+    note: >
+      Apply the same pattern to all five workflow files:
+      ci.yml, release.yml, pages.yml, auto-merge.yml, claude.yml.
+      Run: gh api repos/actions/{action}/git/ref/tags/{tag}
+      to get the SHA for each action at the desired tag.
+
+  pro:
+    - Supply-chain attack surface eliminated: a hijacked tag cannot affect pinned workflow.
+    - Fully deterministic builds — runner code is frozen to a known-good commit.
+
+  con:
+    - Must manually bump SHAs when updating action versions.
+    - Adds ~5 lines of maintenance per action per update.
+
+
+- id: ci-enable-analyzers
+  title: Enable Roslyn analyzers in CI build
+  type: DESTRUCTIVE
+  effort: S
+  target: .github/workflows/ci.yml
+  status: OPEN
+
+  current:
+    # Build step explicitly disables all analyzers and warnings-as-errors.
+    # Roslyn/ANcpLua.Analyzers diagnostics are completely invisible in CI.
+    lines:
+      - "-p:RunAnalyzers=false"
+      - "-p:RunAnalyzersDuringBuild=false"
+      - "-p:TreatWarningsAsErrors=false"
+      - "-p:WarningsAsErrors="
+
+  improved:
+    # Remove all four flags. Build becomes:
+    #   dotnet build --configuration Release --no-restore
+    # This surfaces analyzer errors and treats warnings as errors,
+    # matching local dev behavior (which uses project-level settings).
+    remove_flags:
+      - "-p:RunAnalyzers=false"
+      - "-p:RunAnalyzersDuringBuild=false"
+      - "-p:TreatWarningsAsErrors=false"
+      - "-p:WarningsAsErrors="
+    note: >
+      Before removing: run `dotnet build` locally with no overrides and
+      confirm zero warnings/errors. If there are existing violations,
+      fix them first (or move them to a tracked suppression file) —
+      do not suppress inline.
+
+  pro:
+    - ANcpLua.Analyzers, BannedApiAnalyzers, nullable, and all Roslyn rules
+      enforced on every PR — not just locally.
+    - Prevents regressions that only show up in local dev.
+
+  con:
+    - CI will fail if any existing suppressed warnings surface.
+      Prerequisite: clean local build with no override flags.
+
+
+- id: ci-vulnerability-audit-fail
+  title: Make vulnerability audit block CI on high severity findings
+  type: DESTRUCTIVE
+  effort: XS
+  target: .github/workflows/ci.yml
+  status: OPEN
+
+  current:
+    # Both audit steps are continue-on-error: true.
+    # High severity CVEs are reported but never block merging.
+    lines:
+      - "run: npm audit --audit-level=high"
+      - "continue-on-error: true   # npm audit"
+      - "run: dotnet list package --vulnerable --include-transitive"
+      - "continue-on-error: true   # dotnet"
+
+  improved:
+    # Remove both continue-on-error: true lines.
+    # npm audit --audit-level=high already exits non-zero on high findings.
+    # For dotnet: replace the list command with a script that exits non-zero
+    # if any vulnerable packages are found:
+    dotnet_step: |
+      - name: Audit .NET dependencies
+        run: |
+          output=$(dotnet list package --vulnerable --include-transitive 2>&1)
+          echo "$output"
+          if echo "$output" | grep -q "has the following vulnerable packages"; then
+            echo "::error::Vulnerable NuGet packages found"
+            exit 1
+          fi
+    remove: "continue-on-error: true"
+
+  pro:
+    - High severity CVEs block the PR — not just reported.
+    - nuget.config already restricts to nuget.org so sources are trusted.
+
+  con:
+    - If a dependency has a known CVE with no fix yet, CI is blocked.
+      Mitigation: add a NuGet audit suppress entry in Directory.Build.props
+      with a tracked justification comment.
+
+
+- id: ci-duckdb-schema-drift
+  title: Add CI check that DuckDbSchema.g.cs matches TypeSpec output
+  type: ADDITIVE
+  effort: S
+  target: .github/workflows/ci.yml
+  status: DONE
+
+  context: >
+    DuckDbSchema.g.cs is generated from TypeSpec via `nuke Generate`.
+    The file contains a Version constant (e.g. 20260123).
+    If someone edits the .g.cs directly without regenerating, the file
+    drifts silently from the TypeSpec source of truth.
+
+  current:
+    # No CI step verifies the generated file matches what nuke Generate produces.
+    # TypeSpec compile step only runs locally via qyl-verify.sh.
+    note: "typespec verify exists in qyl-verify.sh but not in ci.yml"
+
+  improved:
+    # Add a new job to ci.yml after the backend job:
+    new_job: |
+      schema-drift:
+        name: Schema Drift (TypeSpec → DuckDB)
+        runs-on: ubuntu-latest
+        needs: backend
+
+        steps:
+          - name: Checkout
+            uses: actions/checkout@<SHA>  # pin same SHA as other steps
+
+          - name: Setup Node.js
+            uses: actions/setup-node@<SHA>
+            with:
+              node-version: ${{ env.NODE_VERSION }}
+
+          - name: Install TypeSpec deps
+            working-directory: core
+            run: npm ci
+
+          - name: Snapshot generated files before regeneration
+            run: |
+              cp src/qyl.collector/Storage/DuckDbSchema.g.cs /tmp/DuckDbSchema.before.cs
+
+          - name: Regenerate from TypeSpec
+            working-directory: core
+            run: npm run compile
+
+          - name: Assert no drift
+            run: |
+              if ! diff -q /tmp/DuckDbSchema.before.cs src/qyl.collector/Storage/DuckDbSchema.g.cs; then
+                echo "::error::DuckDbSchema.g.cs has drifted from TypeSpec source."
+                echo "Run: nuke Generate  and commit the result."
+                diff /tmp/DuckDbSchema.before.cs src/qyl.collector/Storage/DuckDbSchema.g.cs
+                exit 1
+              fi
+
+  pro:
+    - Guarantees the C# schema constants always reflect the TypeSpec definition.
+    - Catches the "edited .g.cs directly" mistake before it reaches main.
+
+  con:
+    - Adds ~1 min to CI (npm ci in core/).
+    - Requires the TypeSpec compile to be fully deterministic (no timestamps in output).
+    note: >
+      DuckDbSchema.g.cs currently has a Generated timestamp comment on line 5.
+      Either strip that line from the diff or update the TypeSpec emitter to
+      omit the timestamp (use a stable hash of the input instead).

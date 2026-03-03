@@ -10,7 +10,7 @@
 - `/v1/logs` added to auth exclusion list for browser log ingestion
 - CORS defaults to `*` when `QYL_OTLP_CORS_ALLOWED_ORIGINS` is not set
 - **ADR-002 GitHub OAuth onboarding**: DuckDB token persistence, GitHub Device Flow + PAT + env var auth, 7 API endpoints, 6-step onboarding wizard, Copilot token bridge, `/health/ui` endpoint
-- ADR documentation (`docs/adrs/ADR-001` through `ADR-005`)
+- ADR documentation (`docs/decisions/ADR-001` through `ADR-005`)
 - Embedding cluster background worker (`EmbeddingClusterWorker`)
 - Bot pages: `BotPage`, `BotConversationDetailPage`, `BotUserJourneyPage`
 - Analytics hook (`use-analytics`)
