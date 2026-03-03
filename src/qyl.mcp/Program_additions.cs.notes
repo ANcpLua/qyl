@@ -1,0 +1,36 @@
+// ══════════════════════════════════════════════════════════════════════════════
+// Program.cs — ADDITIONS for qyl integration
+// Add the lines below to the existing Program.cs in the marked sections.
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── 1. Usings (top of file, with existing usings) ─────────────────────────────
+// using qyl.mcp.qyl;   ← add this
+
+// ── 2. HttpClient registrations (after existing AddCollectorToolClient calls) ──
+
+builder.Services.AddqylToolClient<qylOrgTools>(builder.Configuration);
+builder.Services.AddqylToolClient<qylIssueTools>(builder.Configuration);
+builder.Services.AddqylToolClient<qylEventTools>(builder.Configuration);
+
+// ── 3. JsonSerializerOptions chain (after existing TypeInfoResolverChain adds) ─
+
+jsonOptions.TypeInfoResolverChain.Add(qylOrgJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(qylIssueJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(qylEventJsonContext.Default);
+
+// ── 4. WithTools registrations (after existing .WithTools<...> calls) ──────────
+
+//  .WithTools<qylOrgTools>(jsonOptions)
+//  .WithTools<qylIssueTools>(jsonOptions)
+//  .WithTools<qylEventTools>(jsonOptions)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Environment variables (no code changes needed)
+// ══════════════════════════════════════════════════════════════════════════════
+//
+//   qyl_AUTH_TOKEN   User Auth Token — required scopes: org:read event:read
+//                       event:write (for update_issue) project:read
+//   qyl_HOST         Override for self-hosted (default: qyl.io)
+//   qyl_ORG          Optional single-org constraint
+//
+// ══════════════════════════════════════════════════════════════════════════════
