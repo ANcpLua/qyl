@@ -18,7 +18,8 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 {
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
-    [McpServerTool(Name = "qyl.root_cause_analysis")]
+    [McpServerTool(Name = "qyl.root_cause_analysis", Title = "Root Cause Analysis",
+        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
                  Perform AI-powered root cause analysis on an error issue.
 
@@ -49,7 +50,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
         List<AIFunction> tools = DiscoverToolsFrom(
             typeof(ErrorTools),
             typeof(AnomalyTools),
-            typeof(StorageTools),
+            typeof(SpanQueryTools),
             typeof(StructuredLogTools));
 
         IChatClient agent = new ChatClientBuilder(_llm)

@@ -7,7 +7,12 @@ using qyl.mcp;
 using qyl.mcp.Agents;
 using qyl.mcp.Auth;
 using qyl.mcp.Tools;
+using qyl.mcp.Scoping;
+using qyl.mcp.Skills;
 using qyl.protocol.Attributes;
+
+var skills = SkillConfiguration.FromEnvironment();
+var scope = QylScope.FromEnvironment();
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -17,24 +22,62 @@ builder.Logging.AddConsole(static o => o.LogToStandardErrorThreshold = LogLevel.
 // If no token configured, auth is disabled (dev mode)
 builder.Services.AddMcpAuth(builder.Configuration);
 
+// Scope narrowing: QYL_SERVICE and QYL_SESSION env vars auto-append to all collector requests
+builder.Services.AddSingleton(scope);
+
 // HTTP client for collector API with resilience (retry, circuit breaker)
 // Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY
 var collectorUrl = builder.Configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
 
-builder.Services.AddCollectorToolClient<ReplayTools>(collectorUrl);
+// DI registrations gated by skill config — matches WithSkillTools MCP exposure
+if (skills.IsEnabled(QylSkillKind.Inspect))
+{
+    builder.Services.AddCollectorToolClient<ReplayTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<ConsoleTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<ErrorTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<ServiceTools>(collectorUrl);
+    builder.Services.AddCollectorToolClient<SpanQueryTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Health))
+{
+    builder.Services.AddCollectorToolClient<StorageHealthTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Analytics))
+{
+    builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Agent))
+{
+    builder.Services.AddCollectorToolClient<SummaryTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Build))
+{
+    builder.Services.AddCollectorToolClient<BuildTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Anomaly))
+{
+    builder.Services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
+}
+
+if (skills.IsEnabled(QylSkillKind.Copilot))
+{
+    builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
+}
+
+if (skills.IsEnabled(QylSkillKind.ClaudeCode))
+{
+    builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
+}
+
+// Always registered — used by ITelemetryStore and agent infrastructure
 builder.Services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
-builder.Services.AddCollectorToolClient<ConsoleTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<StructuredLogTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<BuildTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<GenAiTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<StorageTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
-builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<ServiceTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<ErrorTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
-builder.Services.AddCollectorToolClient<SummaryTools>(collectorUrl);
 builder.Services.AddSingleton<RcaTools>();
 
 // Agent provider: proxies to collector's /api/v1/copilot/chat for embedded LLM investigation
@@ -64,7 +107,8 @@ jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(BuildJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(GenAiJsonContext.Default);
-jsonOptions.TypeInfoResolverChain.Add(StorageJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(StorageHealthJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(SpanQueryJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
@@ -74,6 +118,9 @@ jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
+
+// Captured after builder.Build() below; valid when any tool filter lambda runs.
+IServiceProvider? sp = null;
 
 builder.Services
     .AddMcpServer()
@@ -136,7 +183,14 @@ builder.Services
     {
         filters.AddCallToolFilter(next => async (request, cancellationToken) =>
         {
-            var toolName = request.Params?.Name;
+            string? toolName = request.Params?.Name;
+
+            // Admin role gate — blocks destructive tools when Keycloak is active and role is absent
+            if (toolName is not null)
+            {
+                CallToolResult? denied = sp!.GetRequiredService<McpAdminToolFilter>().CheckAccess(toolName);
+                if (denied is not null) return denied;
+            }
 
             using var activity = TelemetryConstants.ActivitySource.StartActivity(
                 toolName is not null
@@ -166,25 +220,11 @@ builder.Services
             }
         });
     })
-    .WithTools<TelemetryTools>(jsonOptions)
-    .WithTools<ReplayTools>(jsonOptions)
-    .WithTools<ConsoleTools>(jsonOptions)
-    .WithTools<StructuredLogTools>(jsonOptions)
-    .WithTools<BuildTools>(jsonOptions)
-    .WithTools<GenAiTools>(jsonOptions)
-    .WithTools<StorageTools>(jsonOptions)
-    .WithTools<CopilotTools>(jsonOptions)
-    .WithTools<AnalyticsTools>(jsonOptions)
-    .WithTools<ClaudeCodeTools>(jsonOptions)
-    .WithTools<ServiceTools>(jsonOptions)
-    .WithTools<ErrorTools>(jsonOptions)
-    .WithTools<AnomalyTools>(jsonOptions)
-    .WithTools<SummaryTools>(jsonOptions)
-    .WithTools<RcaTools>(jsonOptions)
-    .WithTools<InvestigateTools>(jsonOptions)
-    .WithTools<UseQylTools>(jsonOptions);
+    .WithSkillTools(skills, jsonOptions);
 
-await builder.Build().RunAsync().ConfigureAwait(false);
+IHost host = builder.Build();
+sp = host.Services;
+await host.RunAsync().ConfigureAwait(false);
 
 namespace qyl.mcp
 {
