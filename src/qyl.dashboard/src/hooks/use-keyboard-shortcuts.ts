@@ -143,6 +143,24 @@ export function useNavigationShortcuts(navigate: (path: string) => void) {
                 description: 'Go to Metrics / GenAI',
                 handler: () => navigate('/genai'),
             }),
+            // / = Search page
+            registerShortcut({
+                key: '/',
+                description: 'Go to Search',
+                handler: () => navigate('/search'),
+            }),
+            // A = Agents
+            registerShortcut({
+                key: 'a',
+                description: 'Go to Agents',
+                handler: () => navigate('/agents'),
+            }),
+            // B = Bot
+            registerShortcut({
+                key: 'b',
+                description: 'Go to Bot',
+                handler: () => navigate('/bot'),
+            }),
             // , = Settings (common convention)
             registerShortcut({
                 key: ',',

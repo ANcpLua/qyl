@@ -33,9 +33,11 @@ const pillStyles: Record<string, string> = {
     workflow: 'bg-amber-500/20 text-amber-400 border-amber-500/40',
 };
 
-function formatTimestamp(nanos?: number): string {
-    if (!nanos) return '';
-    return new Date(nanos / 1_000_000).toLocaleString('en-US', {
+function formatTimestamp(value?: string): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
@@ -46,17 +48,17 @@ function formatTimestamp(nanos?: number): string {
 }
 
 function entityRoute(result: SearchResult): string {
-    switch (result.entity_type) {
+    switch (result.entityType) {
         case 'span':
             return `/traces`;
         case 'log':
             return `/logs`;
         case 'error':
-            return `/issues/${result.entity_id}`;
+            return `/issues/${result.entityId}`;
         case 'agent_run':
-            return `/agents/${result.entity_id}`;
+            return `/agents/${result.entityId}`;
         case 'workflow':
-            return `/workflows/${result.entity_id}`;
+            return `/workflows/${result.entityId}`;
         default:
             return '/';
     }
@@ -94,7 +96,7 @@ function SkeletonRow() {
 }
 
 function ResultRow({result, onClick}: { result: SearchResult; onClick: () => void }) {
-    const style = entityStyles[result.entity_type] ?? entityStyles.span;
+    const style = entityStyles[result.entityType] ?? entityStyles.span;
     const Icon = style.icon;
 
     return (
@@ -113,7 +115,7 @@ function ResultRow({result, onClick}: { result: SearchResult; onClick: () => voi
                         {result.title}
                     </span>
                     <Badge variant="outline" className={cn('text-[10px] uppercase tracking-wider', style.color)}>
-                        {result.entity_type.replace('_', ' ')}
+                        {result.entityType.replace('_', ' ')}
                     </Badge>
                 </div>
                 {result.snippet && (
@@ -240,7 +242,7 @@ export function SearchPage() {
                         </div>
                         {results.map((result) => (
                             <ResultRow
-                                key={`${result.entity_type}-${result.entity_id}`}
+                                key={`${result.entityType}-${result.entityId}`}
                                 result={result}
                                 onClick={() => navigate(entityRoute(result))}
                             />
