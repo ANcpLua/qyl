@@ -53,10 +53,17 @@ public static class IssueAnalyticsEndpoints
         cmd.Parameters.Add(new DuckDBParameter { Value = cutoff.UtcDateTime });
 
         List<TimelineBucket> buckets = [];
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        try
         {
-            buckets.Add(new TimelineBucket(reader.GetDateTime(0), (int)reader.GetInt64(1)));
+            await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            {
+                buckets.Add(new TimelineBucket(reader.GetDateTime(0), (int)reader.GetInt64(1)));
+            }
+        }
+        catch (DuckDB.NET.Data.DuckDBException ex) when (ex.Message.Contains("does not exist"))
+        {
+            return Results.Ok(new { items = buckets, total = 0 });
         }
 
         return Results.Ok(new { items = buckets, total = buckets.Count });
