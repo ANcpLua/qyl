@@ -143,7 +143,7 @@ function PeriodControls({period, offset, onPeriodChange, onOffsetChange}: Period
                     key={p}
                     onClick={() => {onPeriodChange(p); onOffsetChange(0);}}
                     className={cn(
-                        'px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                        'px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                         period === p
                             ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                             : 'text-brutal-slate border-brutal-zinc hover:border-brutal-slate hover:text-brutal-white bg-brutal-dark',
@@ -155,7 +155,7 @@ function PeriodControls({period, offset, onPeriodChange, onOffsetChange}: Period
             <div className="w-px h-5 bg-brutal-zinc mx-1"/>
             <button
                 onClick={() => onOffsetChange(offset + 1)}
-                className="p-1.5 border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white transition-all cursor-pointer"
+                className="p-1.5 border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white transition-colors cursor-pointer"
                 aria-label="Previous period"
             >
                 <ChevronLeft className="w-3.5 h-3.5"/>
@@ -167,7 +167,7 @@ function PeriodControls({period, offset, onPeriodChange, onOffsetChange}: Period
                 onClick={() => onOffsetChange(Math.max(0, offset - 1))}
                 disabled={offset === 0}
                 className={cn(
-                    'p-1.5 border-2 transition-all cursor-pointer',
+                    'p-1.5 border-2 transition-colors cursor-pointer',
                     offset === 0
                         ? 'border-brutal-zinc text-brutal-zinc cursor-not-allowed'
                         : 'border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white',
@@ -295,7 +295,7 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
                                 setPage(1);
                             }}
                             className={cn(
-                                'px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                                'px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                                 active
                                     ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                                     : 'text-brutal-slate border-brutal-zinc hover:border-brutal-slate bg-brutal-dark',
@@ -350,7 +350,7 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
                         className={cn(
-                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                             page === 1
                                 ? 'border-brutal-zinc text-brutal-zinc cursor-not-allowed'
                                 : 'border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white',
@@ -365,7 +365,7 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages}
                         className={cn(
-                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                             page === totalPages
                                 ? 'border-brutal-zinc text-brutal-zinc cursor-not-allowed'
                                 : 'border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white',
@@ -401,7 +401,7 @@ function GapRow({gap, index}: {gap: CoverageGap; index: number}) {
                     <span className="font-mono text-xs text-signal-yellow">{gap.conversationCount} convos</span>
                 </div>
                 <ChevronRight className={cn(
-                    'w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-all',
+                    'w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors',
                     expanded && 'rotate-90',
                 )}/>
             </div>
@@ -548,7 +548,7 @@ function SourceRow({source, index}: {source: SourceUsage; index: number}) {
                     <span className="font-mono text-xs text-signal-orange">{source.citationCount.toLocaleString()} citations</span>
                 </div>
                 <ChevronRight className={cn(
-                    'w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-all',
+                    'w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors',
                     expanded && 'rotate-90',
                 )}/>
             </div>
@@ -789,7 +789,7 @@ function UsersTab({period, offset}: {period: Period; offset: number}) {
                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                         disabled={page === 1}
                         className={cn(
-                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                             page === 1
                                 ? 'border-brutal-zinc text-brutal-zinc cursor-not-allowed'
                                 : 'border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white',
@@ -804,7 +804,7 @@ function UsersTab({period, offset}: {period: Period; offset: number}) {
                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                         disabled={page === totalPages}
                         className={cn(
-                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-all cursor-pointer',
+                            'flex items-center gap-1 px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                             page === totalPages
                                 ? 'border-brutal-zinc text-brutal-zinc cursor-not-allowed'
                                 : 'border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-brutal-slate hover:text-brutal-white',
@@ -847,7 +847,7 @@ export function BotPage() {
                         key={id}
                         onClick={() => setActiveTab(id)}
                         className={cn(
-                            'flex items-center gap-2 px-4 py-2.5 text-[10px] font-bold tracking-wider border-b-2 -mb-[2px] transition-all cursor-pointer',
+                            'flex items-center gap-2 px-4 py-2.5 text-[10px] font-bold tracking-wider border-b-2 -mb-[2px] transition-colors cursor-pointer',
                             activeTab === id
                                 ? 'text-signal-orange border-signal-orange bg-signal-orange/5'
                                 : 'text-brutal-slate border-transparent hover:text-brutal-white hover:border-brutal-zinc',

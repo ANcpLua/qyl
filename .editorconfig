@@ -310,6 +310,21 @@ dotnet_diagnostic.CA1819.severity = none # Byte array for token validation
 dotnet_diagnostic.CA1819.severity = none # Tool definition arrays
 
 # =============================================================================
+# HOSTING (Activity.SetTag boxes int — no typed overload exists)
+# =============================================================================
+
+[src/qyl.hosting/**/*.cs]
+dotnet_diagnostic.AL0086.severity = none # Activity.SetTag(string, object?) is the only API — boxing unavoidable
+resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel activity names
+
+[src/qyl.copilot/**/*.cs]
+dotnet_diagnostic.AL0086.severity = none # Activity.SetTag with string[] — OTel convention for finish_reasons
+resharper_explicit_caller_info_argument_highlighting = none # StartActivity with explicit OTel GenAI operation names
+
+[src/qyl.servicedefaults/**/*.cs]
+dotnet_diagnostic.AL0086.severity = none # Activity.SetTag with token counts — OTel GenAI convention requires int values
+
+# =============================================================================
 # PROGRAM.CS
 # =============================================================================
 

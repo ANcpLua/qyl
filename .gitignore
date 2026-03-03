@@ -123,3 +123,6 @@ tmp/
 
 # Q&A session documents
 QA*.md
+
+# Research screenshots
+images/

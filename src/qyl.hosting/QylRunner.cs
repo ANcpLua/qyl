@@ -40,7 +40,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.Run);
 
@@ -103,7 +102,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
     private async Task StartCollectorAsync(CancellationToken ct)
     {
-        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.CollectorStart);
 
@@ -162,7 +160,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         var startTimestamp = Stopwatch.GetTimestamp();
 
-        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.ResourceStart);
 
@@ -375,7 +372,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
     {
         var startTimestamp = Stopwatch.GetTimestamp();
 
-        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.HealthCheck);
 
@@ -430,7 +426,6 @@ internal sealed class QylRunner(QylAppBuilder builder) : IDisposable
 
     private async Task ShutdownAsync()
     {
-        // ReSharper disable once ExplicitCallerInfoArgument — intentional activity name
         using var activity = QylHostingTelemetry.Source.StartActivity(
             HostingActivityNames.Shutdown);
 

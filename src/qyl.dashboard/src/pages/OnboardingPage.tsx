@@ -8,7 +8,6 @@ import {
     CheckCircle2,
     Copy,
     ExternalLink,
-    Github,
     Loader2,
     Plug,
     Rocket,
@@ -17,6 +16,17 @@ import {
     Terminal,
     Unlink,
 } from 'lucide-react';
+
+function GitHubIcon({className}: { className?: string }) {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+             strokeLinejoin="round" className={className}>
+            <path
+                d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/>
+            <path d="M9 18c-4.51 2-5-2-7-2"/>
+        </svg>
+    );
+}
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
@@ -33,7 +43,7 @@ function StepIndicator({current, steps}: { current: number; steps: readonly stri
                 <div key={label} className="flex items-center gap-2">
                     <div
                         className={cn(
-                            'w-8 h-8 flex items-center justify-center border-2 text-xs font-bold transition-all',
+                            'w-8 h-8 flex items-center justify-center border-2 text-xs font-bold transition-colors',
                             i < current
                                 ? 'bg-signal-green border-signal-green text-brutal-black'
                                 : i === current
@@ -290,7 +300,7 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
             <div className="flex items-center gap-3">
                 <div
                     className="w-12 h-12 bg-brutal-dark flex items-center justify-center border-2 border-brutal-zinc">
-                    <Github className="w-6 h-6 text-brutal-white"/>
+                    <GitHubIcon className="w-6 h-6 text-brutal-white"/>
                 </div>
                 <div>
                     <h2 className="text-xl font-bold text-brutal-white tracking-wider">CONNECT GITHUB</h2>
@@ -319,7 +329,7 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
                                     className="w-full bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
                                     onClick={handleStartDeviceFlow}
                                 >
-                                    <Github className="w-4 h-4 mr-2"/>
+                                    <GitHubIcon className="w-4 h-4 mr-2"/>
                                     START GITHUB LOGIN
                                 </Button>
                             )}
@@ -390,7 +400,7 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
                                 onChange={(e) => setPatToken(e.target.value)}
                                 placeholder="ghp_..."
                                 aria-label="GitHub Personal Access Token"
-                                className="flex-1 bg-brutal-carbon border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange focus:outline-none"
+                                className="flex-1 bg-brutal-carbon border-2 border-brutal-zinc px-3 py-2 text-sm font-mono text-brutal-white placeholder:text-brutal-slate/50 focus:border-signal-orange outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2"
                             />
                             <Button
                                 className="bg-signal-green hover:bg-signal-green/80 text-brutal-black font-bold tracking-wider border-2 border-signal-green"
@@ -617,7 +627,7 @@ sdk.start();`,
                     <button
                         key={tab}
                         className={cn(
-                            'px-4 py-2 text-xs font-bold tracking-wider transition-all border-b-2 -mb-[2px]',
+                            'px-4 py-2 text-xs font-bold tracking-wider transition-colors border-b-2 -mb-[2px]',
                             activeTab === tab
                                 ? 'text-signal-orange border-signal-orange'
                                 : 'text-brutal-slate border-transparent hover:text-brutal-white'
@@ -733,7 +743,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                 <div className="w-full bg-brutal-dark border-2 border-brutal-zinc h-2">
                     <div
                         className={cn(
-                            'h-full transition-all duration-500',
+                            'h-full transition-[width] duration-500',
                             status === 'timeout' ? 'bg-signal-orange/50' : 'bg-signal-orange'
                         )}
                         style={{width: `${Math.min((elapsed / 30) * 100, 100)}%`}}
@@ -843,7 +853,7 @@ function DoneStep({verified}: { verified: boolean }) {
                     <button
                         key={to}
                         onClick={() => navigate(to)}
-                        className="border-2 border-brutal-zinc p-4 bg-brutal-dark hover:border-signal-orange hover:bg-brutal-dark/50 transition-all text-left"
+                        className="border-2 border-brutal-zinc p-4 bg-brutal-dark hover:border-signal-orange hover:bg-brutal-dark/50 transition-colors text-left"
                     >
                         <div className="text-xs font-bold text-brutal-white tracking-wider">{label}</div>
                         <div className="text-[10px] text-brutal-slate mt-1">{desc}</div>

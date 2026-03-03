@@ -5,12 +5,10 @@
        Uses ANcpLua.NET.Sdk for shared infrastructure
        ======================================================================= -->
 
-  <!-- Suppress warnings FIRST before any other imports -->
+  <!-- AL0018 in .editorconfig line 55; AL0086 scoped to hosting in .editorconfig -->
   <PropertyGroup>
-    <!-- AL0018: Version.props not imported - we use CPM instead -->
-    <!-- RS0030: Generated code from Microsoft.Extensions.Configuration.Binder uses banned API -->
-    <!-- AL0086: Activity.SetTag(string, object?) boxes int values - analyzer cannot see through boxing -->
-    <NoWarn>$(NoWarn);AL0018;RS0030;AL0086</NoWarn>
+    <!-- RS0030: SDK BannedApiAnalyzers flags ThrowIfNull/ThrowIfNullOrWhiteSpace/Math.Round — project uses these intentionally -->
+    <NoWarn>$(NoWarn);RS0030</NoWarn>
   </PropertyGroup>
 
   <!-- Central Package Management (native .NET 8+) -->

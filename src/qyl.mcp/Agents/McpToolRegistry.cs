@@ -28,7 +28,9 @@ internal sealed class McpToolRegistry(IServiceProvider services)
         typeof(StorageTools),
         typeof(AnalyticsTools),
         typeof(ClaudeCodeTools),
-        typeof(ServiceTools)
+        typeof(ServiceTools),
+        typeof(ErrorTools),
+        typeof(AnomalyTools)
     ];
 
     private IReadOnlyList<AIFunction>? _cachedTools;

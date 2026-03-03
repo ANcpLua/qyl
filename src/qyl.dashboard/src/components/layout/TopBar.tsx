@@ -60,7 +60,7 @@ export function TopBar({
 
     const title = pageTitle[location.pathname] ?? 'QYL.';
 
-    const handleSearch = (e: React.FormEvent) => {
+    const handleSearch = (e: React.SyntheticEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (onSearch) {
             onSearch(searchValue);
@@ -141,7 +141,7 @@ export function TopBar({
                 size="sm"
                 onClick={onLiveToggle}
                 className={cn(
-                    'border-2 text-xs font-bold tracking-wider transition-all',
+                    'border-2 text-xs font-bold tracking-wider transition-colors',
                     isLive
                         ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
                         : 'bg-brutal-dark border-signal-yellow text-signal-yellow hover:bg-signal-yellow/20'

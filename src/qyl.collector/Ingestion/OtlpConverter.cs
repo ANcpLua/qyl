@@ -5,7 +5,6 @@
 
 using qyl.collector.Grpc;
 using qyl.collector.Services;
-using qyl.collector.Storage;
 
 namespace qyl.collector.Ingestion;
 

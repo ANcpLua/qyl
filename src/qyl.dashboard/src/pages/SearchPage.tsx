@@ -186,7 +186,7 @@ export function SearchPage() {
                     placeholder="Search across all telemetry data…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    className="w-full h-14 pl-12 pr-20 text-lg bg-slate-800 border-2 border-slate-700 rounded text-brutal-white placeholder:text-brutal-slate focus:outline-none focus:border-signal-orange transition-colors"
+                    className="w-full h-14 pl-12 pr-20 text-lg bg-slate-800 border-2 border-slate-700 rounded text-brutal-white placeholder:text-brutal-slate outline-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus:border-signal-orange transition-colors"
                     aria-label="Search telemetry data"
                 />
                 <kbd className="absolute right-4 top-1/2 -translate-y-1/2 kbd text-xs text-brutal-slate">⌘K</kbd>
@@ -199,7 +199,7 @@ export function SearchPage() {
                         key={et.key}
                         onClick={() => setActiveType(et.key)}
                         className={cn(
-                            'px-3 py-1.5 text-xs font-bold tracking-wider border-2 rounded transition-all',
+                            'px-3 py-1.5 text-xs font-bold tracking-wider border-2 rounded transition-colors',
                             activeType === et.key
                                 ? pillStyles[et.key]
                                 : 'bg-transparent text-brutal-slate border-brutal-zinc hover:border-brutal-slate hover:text-brutal-white'

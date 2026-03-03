@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace qyl.collector.Observe;
 
 internal static class ObserveEndpoints

@@ -66,7 +66,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     return (
         <aside
             className={cn(
-                'relative flex flex-col bg-brutal-carbon border-r-3 border-brutal-zinc transition-all duration-200 scan-lines',
+                'relative flex flex-col bg-brutal-carbon border-r-3 border-brutal-zinc transition-[width] duration-200 scan-lines',
                 collapsed ? 'w-16' : 'w-56'
             )}
         >
@@ -111,7 +111,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             key={item.to}
                             to={item.to}
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-colors border-2',
                                 isActive
                                     ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
@@ -160,7 +160,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             key={item.to}
                             to={item.to}
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-colors border-2',
                                 isActive
                                     ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
@@ -212,7 +212,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                 key={db.id}
                                 to={to}
                                 className={cn(
-                                    'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                    'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-colors border-2',
                                     isActive
                                         ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                                         : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'
@@ -254,7 +254,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         <NavLink
                             to="/settings"
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-all border-2',
+                                'flex items-center gap-3 px-3 py-2 text-xs font-bold tracking-wider transition-colors border-2',
                                 isActive
                                     ? 'bg-signal-orange/20 text-signal-orange border-signal-orange'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc hover:bg-brutal-dark hover:text-brutal-white'

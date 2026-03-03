@@ -189,6 +189,9 @@ builder.Services.AddSingleton<ProfileService>();
 builder.Services.AddSingleton<GenerationProfileService>();
 builder.Services.AddSingleton<GenerationJobService>();
 
+// Anomaly detection service (Z-score analysis on DuckDB metrics)
+builder.Services.AddSingleton<AnomalyService>();
+
 // Error issue engine + lifecycle + autofix
 builder.Services.AddSingleton<IssueService>();
 builder.Services.AddSingleton<ErrorLifecycleService>();
@@ -622,6 +625,8 @@ app.MapIdentityEndpoints();
 app.MapGitHubEndpoints();
 app.MapProvisioningEndpoints();
 app.MapIssueEndpoints();
+app.MapIssueAnalyticsEndpoints();
+app.MapAnomalyEndpoints();
 app.MapAutofixEndpoints();
 app.MapWorkflowEndpoints();
 app.MapWorkflowRunEndpoints();

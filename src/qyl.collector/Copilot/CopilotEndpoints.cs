@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using qyl.copilot;
 using qyl.copilot.Auth;

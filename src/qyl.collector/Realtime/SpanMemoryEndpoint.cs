@@ -30,10 +30,6 @@ public static class SpanMemoryEndpoints
         return endpoints;
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
     private static IResult GetRecentSpans(
         SpanRingBuffer buffer,
         int? limit)
@@ -51,10 +47,6 @@ public static class SpanMemoryEndpoints
         });
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
     private static IResult GetTraceFromMemory(
         string traceId,
         SpanRingBuffer buffer)
@@ -88,10 +80,6 @@ public static class SpanMemoryEndpoints
         });
     }
 
-    [UnconditionalSuppressMessage("AOT", "IL2026:RequiresUnreferencedCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
-    [UnconditionalSuppressMessage("AOT", "IL3050:RequiresDynamicCode",
-        Justification = "OTLP telemetry contains dynamic user-defined attributes that cannot be statically analyzed")]
     private static IResult GetSessionSpansFromMemory(
         string sessionId,
         SpanRingBuffer buffer,

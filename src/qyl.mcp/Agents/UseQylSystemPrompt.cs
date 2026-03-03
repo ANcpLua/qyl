@@ -21,6 +21,8 @@ internal static class UseQylSystemPrompt
                      get_source_analytics, get_satisfaction, list_users, get_user_journey
         - Claude Code: claude_code_sessions, claude_code_timeline, claude_code_tools
         - Services: list_services
+        - Errors: list_error_issues, get_error_issue, find_similar_errors, get_error_timeline
+        - Anomalies: detect_anomalies, get_metric_baseline, compare_periods
 
         Rules:
         - Start with get_system_context for situational awareness (zero cost)

@@ -32,6 +32,10 @@ builder.Services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.Fro
 builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<AnalyticsTools>(collectorUrl);
 builder.Services.AddCollectorToolClient<ServiceTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<ErrorTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
+builder.Services.AddCollectorToolClient<SummaryTools>(collectorUrl);
+builder.Services.AddSingleton<RcaTools>();
 
 // Agent provider: proxies to collector's /api/v1/copilot/chat for embedded LLM investigation
 builder.Services.AddHttpClient(nameof(HttpAgentProvider), client =>
@@ -67,6 +71,9 @@ jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
 
 builder.Services
     .AddMcpServer()
@@ -170,6 +177,10 @@ builder.Services
     .WithTools<AnalyticsTools>(jsonOptions)
     .WithTools<ClaudeCodeTools>(jsonOptions)
     .WithTools<ServiceTools>(jsonOptions)
+    .WithTools<ErrorTools>(jsonOptions)
+    .WithTools<AnomalyTools>(jsonOptions)
+    .WithTools<SummaryTools>(jsonOptions)
+    .WithTools<RcaTools>(jsonOptions)
     .WithTools<InvestigateTools>(jsonOptions)
     .WithTools<UseQylTools>(jsonOptions);
 

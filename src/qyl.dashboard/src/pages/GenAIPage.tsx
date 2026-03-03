@@ -110,7 +110,7 @@ function GenAISpanCard({
     const hasToolData = toolCallInfo.hasToolCall || showToolDefinitions;
 
     return (
-        <Card className={cn('transition-all', isExpanded && 'ring-1 ring-primary/50')}>
+        <Card className={cn('transition-shadow', isExpanded && 'ring-1 ring-primary/50')}>
             <CardHeader className="cursor-pointer hover:bg-brutal-dark" role="button" tabIndex={0} aria-expanded={isExpanded} onClick={onToggle} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}>
                 <div className="flex items-start gap-4">
                     {isExpanded ? (

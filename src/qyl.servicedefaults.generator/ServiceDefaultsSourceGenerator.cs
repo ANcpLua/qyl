@@ -79,131 +79,66 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var agentEnabled = qylRuntimeAvailable.Combine(toggles)
             .Select(static (pair, _) => pair.Left && pair.Right.Agent);
 
+        RegisterEmitterPipeline(context,
+            GenAiCallSiteAnalyzer.CouldBeGenAiInvocation, GenAiCallSiteAnalyzer.ExtractCallSite,
+            PipelineStage.GenAiCallSitesDiscovered, genAiEnabled,
+            GenAiInterceptorEmitter.Emit, GeneratedFile.GenAiInterceptors, "QSG001");
+
+        RegisterEmitterPipeline(context,
+            DbCallSiteAnalyzer.CouldBeDbInvocation, DbCallSiteAnalyzer.ExtractCallSite,
+            PipelineStage.DbCallSitesDiscovered, dbEnabled,
+            DbInterceptorEmitter.Emit, GeneratedFile.DbInterceptors, "QSG002");
+
+        RegisterEmitterPipeline(context,
+            OTelTagAnalyzer.CouldHaveOTelAttribute, OTelTagAnalyzer.ExtractTagBinding,
+            PipelineStage.OTelTagBindingsDiscovered, qylRuntimeAvailable,
+            OTelTagsEmitter.Emit, GeneratedFile.OTelTagExtensions, "QSG003");
+
+        RegisterEmitterPipeline(context,
+            MeterAnalyzer.CouldBeMeterClass, MeterAnalyzer.ExtractDefinition,
+            PipelineStage.MeterDefinitionsDiscovered, meterEnabled,
+            MeterEmitter.Emit, GeneratedFile.MeterImplementations, "QSG004");
+
+        RegisterEmitterPipeline(context,
+            TracedCallSiteAnalyzer.CouldBeTracedInvocation, TracedCallSiteAnalyzer.ExtractCallSite,
+            PipelineStage.TracedCallSitesDiscovered, tracedEnabled,
+            TracedInterceptorEmitter.Emit, GeneratedFile.TracedInterceptors, "QSG005");
+
+        RegisterEmitterPipeline(context,
+            AgentCallSiteAnalyzer.CouldBeAgentInvocation, AgentCallSiteAnalyzer.ExtractCallSite,
+            PipelineStage.AgentCallSitesDiscovered, agentEnabled,
+            AgentInterceptorEmitter.Emit, GeneratedFile.AgentInterceptors, "QSG006");
+    }
+
+    // =========================================================================
+    // PIPELINE REGISTRATION HELPER
+    // Eliminates repetition across the 6 emitter pipelines.
+    // =========================================================================
+
+    private static void RegisterEmitterPipeline<T>(
+        IncrementalGeneratorInitializationContext context,
+        Func<SyntaxNode, CancellationToken, bool> syntacticPredicate,
+        Func<GeneratorSyntaxContext, CancellationToken, T?> semanticTransform,
+        string trackingName,
+        IncrementalValueProvider<bool> enabledFlag,
+        Func<ImmutableArray<T>, string> emitter,
+        string generatedFileName,
+        string diagnosticId)
+        where T : class, IEquatable<T>
+    {
         context.SyntaxProvider
-            .CreateSyntaxProvider(
-                GenAiCallSiteAnalyzer.CouldBeGenAiInvocation,
-                GenAiCallSiteAnalyzer.ExtractCallSite)
+            .CreateSyntaxProvider(syntacticPredicate, semanticTransform)
             .WhereNotNull()
-            .WithTrackingName(PipelineStage.GenAiCallSitesDiscovered)
-            .CombineWithCollected(genAiEnabled)
-            .SelectAndReportExceptions(static (input, _) =>
+            .WithTrackingName(trackingName)
+            .CombineWithCollected(enabledFlag)
+            .SelectAndReportExceptions((input, _) =>
             {
                 if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = GenAiInterceptorEmitter.Emit(input.Left.AsImmutableArray());
+                var sourceCode = emitter(input.Left.AsImmutableArray());
                 return string.IsNullOrEmpty(sourceCode)
                     ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.GenAiInterceptors, sourceCode);
-            }, context, "QSG001")
-            .AddSource(context);
-
-        // =====================================================================
-        // DATABASE INTERCEPTION PIPELINE
-        // Discovers DbCommand calls and wraps them with database telemetry.
-        // =====================================================================
-
-        context.SyntaxProvider
-            .CreateSyntaxProvider(
-                DbCallSiteAnalyzer.CouldBeDbInvocation,
-                DbCallSiteAnalyzer.ExtractCallSite)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.DbCallSitesDiscovered)
-            .CombineWithCollected(dbEnabled)
-            .SelectAndReportExceptions(static (input, _) =>
-            {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = DbInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode)
-                    ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.DbInterceptors, sourceCode);
-            }, context, "QSG002")
-            .AddSource(context);
-
-        // =====================================================================
-        // OTEL TAG BINDING PIPELINE
-        // Discovers [OTel] attributes and generates tag extraction helpers.
-        // =====================================================================
-
-        context.SyntaxProvider
-            .CreateSyntaxProvider(
-                OTelTagAnalyzer.CouldHaveOTelAttribute,
-                OTelTagAnalyzer.ExtractTagBinding)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.OTelTagBindingsDiscovered)
-            .CombineWithCollected(qylRuntimeAvailable)
-            .SelectAndReportExceptions(static (input, _) =>
-            {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = OTelTagsEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode)
-                    ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.OTelTagExtensions, sourceCode);
-            }, context, "QSG003")
-            .AddSource(context);
-
-        // =====================================================================
-        // METER DEFINITION PIPELINE
-        // Discovers [Meter] classes and generates metric implementations.
-        // =====================================================================
-
-        context.SyntaxProvider
-            .CreateSyntaxProvider(
-                MeterAnalyzer.CouldBeMeterClass,
-                MeterAnalyzer.ExtractDefinition)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered)
-            .CombineWithCollected(meterEnabled)
-            .SelectAndReportExceptions(static (input, _) =>
-            {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = MeterEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode)
-                    ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.MeterImplementations, sourceCode);
-            }, context, "QSG004")
-            .AddSource(context);
-
-        // =====================================================================
-        // TRACED METHOD PIPELINE
-        // Discovers [Traced] methods and generates span interceptors.
-        // =====================================================================
-
-        context.SyntaxProvider
-            .CreateSyntaxProvider(
-                TracedCallSiteAnalyzer.CouldBeTracedInvocation,
-                TracedCallSiteAnalyzer.ExtractCallSite)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.TracedCallSitesDiscovered)
-            .CombineWithCollected(tracedEnabled)
-            .SelectAndReportExceptions(static (input, _) =>
-            {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = TracedInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode)
-                    ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.TracedInterceptors, sourceCode);
-            }, context, "QSG005")
-            .AddSource(context);
-
-        // =====================================================================
-        // AGENT INTERCEPTION PIPELINE
-        // Discovers Microsoft.Agents.AI calls and wraps them with agent telemetry.
-        // =====================================================================
-
-        context.SyntaxProvider
-            .CreateSyntaxProvider(
-                AgentCallSiteAnalyzer.CouldBeAgentInvocation,
-                AgentCallSiteAnalyzer.ExtractCallSite)
-            .WhereNotNull()
-            .WithTrackingName(PipelineStage.AgentCallSitesDiscovered)
-            .CombineWithCollected(agentEnabled)
-            .SelectAndReportExceptions(static (input, _) =>
-            {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
-                var sourceCode = AgentInterceptorEmitter.Emit(input.Left.AsImmutableArray());
-                return string.IsNullOrEmpty(sourceCode)
-                    ? FileWithName.Empty
-                    : new FileWithName(GeneratedFile.AgentInterceptors, sourceCode);
-            }, context, "QSG006")
+                    : new FileWithName(generatedFileName, sourceCode);
+            }, context, diagnosticId)
             .AddSource(context);
     }
 

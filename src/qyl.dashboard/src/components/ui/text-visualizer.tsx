@@ -354,7 +354,7 @@ export function TextVisualizer({
                     <CollapsibleContent forceMount>
                         <div
                             className={cn(
-                                "p-3 overflow-auto transition-all duration-200",
+                                "p-3 overflow-auto transition-[max-height] duration-200",
                                 !isExpanded && needsCollapse && "max-h-[var(--collapsed-height)]"
                             )}
                             style={{

@@ -32,7 +32,7 @@ function ProgressBar({completed, total}: { completed: number; total: number }) {
             <div className="w-20 h-1.5 bg-brutal-zinc rounded-full overflow-hidden">
                 <div
                     className={cn(
-                        'h-full rounded-full transition-all',
+                        'h-full rounded-full transition-[width]',
                         pct === 100 ? 'bg-green-500' : pct > 0 ? 'bg-blue-500' : 'bg-brutal-zinc',
                     )}
                     style={{width: `${pct}%`}}
