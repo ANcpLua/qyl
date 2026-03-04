@@ -20,6 +20,7 @@ using qyl.collector.Grpc;
 using qyl.collector.Health;
 using qyl.collector.Identity;
 using qyl.collector.Insights;
+using qyl.collector.Logs;
 using qyl.collector.Meta;
 using qyl.collector.Provisioning;
 using qyl.collector.SchemaControl;
@@ -228,6 +229,7 @@ builder.Services.AddSingleton<GenerationJobService>();
 
 // Anomaly detection service (Z-score analysis on DuckDB metrics)
 builder.Services.AddSingleton<AnomalyService>();
+builder.Services.AddSingleton<LogSummaryService>();
 
 // Error issue engine + lifecycle + autofix
 builder.Services.AddSingleton<IssueService>();
@@ -546,6 +548,7 @@ app.MapGet("/api/v1/logs", async (
     DuckDbStore store,
     string? session,
     string? trace,
+    string? serviceName,
     string? level,
     string? search,
     int? minSeverity,
@@ -558,6 +561,7 @@ app.MapGet("/api/v1/logs", async (
         level,
         minSeverity,
         search,
+        serviceName: serviceName,
         limit: limit ?? 500,
         ct: ct);
 
@@ -569,83 +573,19 @@ app.MapGet("/api/v1/logs/live", async (
     DuckDbStore store,
     string? session,
     string? trace,
+    bool? dedupe,
+    int? dedupeWindowSeconds,
     CancellationToken ct) =>
 {
     ctx.Response.Headers.ContentType = "text/event-stream";
     ctx.Response.Headers.CacheControl = "no-cache";
     ctx.Response.Headers.Connection = "keep-alive";
 
-    static string MapSeverity(string? severityText, byte severityNumber)
-    {
-        var normalized = severityText?.Trim().ToLowerInvariant();
-        if (normalized is "trace" or "debug" or "info" or "warn" or "error" or "fatal")
-            return normalized;
-        if (normalized is "warning") return "warn";
-        if (normalized is "log") return "info";
-
-        return severityNumber switch
-        {
-            >= 21 => "fatal",
-            >= 17 => "error",
-            >= 13 => "warn",
-            >= 9 => "info",
-            >= 5 => "debug",
-            _ => "trace"
-        };
-    }
-
-    static IReadOnlyDictionary<string, object> ParseAttributes(string? attributesJson)
-    {
-        if (string.IsNullOrWhiteSpace(attributesJson))
-            return new Dictionary<string, object>();
-
-        try
-        {
-            using var document = JsonDocument.Parse(attributesJson);
-            if (document.RootElement.ValueKind != JsonValueKind.Object)
-                return new Dictionary<string, object>();
-
-            var result = new Dictionary<string, object>(StringComparer.Ordinal);
-            foreach (var property in document.RootElement.EnumerateObject())
-            {
-                result[property.Name] = property.Value.ValueKind switch
-                {
-                    JsonValueKind.String => property.Value.GetString() ?? string.Empty,
-                    JsonValueKind.Number => property.Value.TryGetInt64(out var i) ? i : property.Value.GetDouble(),
-                    JsonValueKind.True => true,
-                    JsonValueKind.False => false,
-                    _ => property.Value.GetRawText()
-                };
-            }
-
-            return result;
-        }
-        catch
-        {
-            return new Dictionary<string, object>();
-        }
-    }
-
-    static object ToLiveLog(LogStorageRow log)
-    {
-        var timestamp = TimeConversions.UnixNanoToDateTime(log.TimeUnixNano).ToString("O");
-        var observedTimestamp = log.ObservedTimeUnixNano.HasValue
-            ? TimeConversions.UnixNanoToDateTime(log.ObservedTimeUnixNano.Value).ToString("O")
-            : timestamp;
-
-        return new
-        {
-            timestamp,
-            observedTimestamp,
-            traceId = log.TraceId,
-            spanId = log.SpanId,
-            severityNumber = (int)log.SeverityNumber,
-            severityText = MapSeverity(log.SeverityText, log.SeverityNumber),
-            body = log.Body ?? string.Empty,
-            attributes = ParseAttributes(log.AttributesJson),
-            serviceName = log.ServiceName ?? "unknown"
-        };
-    }
+    var dedupeEnabled = dedupe.GetValueOrDefault(true);
+    var dedupeWindow = TimeSpan.FromSeconds(Math.Clamp(dedupeWindowSeconds ?? 5, 1, 60));
+    var deduplicator = dedupeEnabled
+        ? new LiveLogDeduplicator(dedupeWindow)
+        : null;
 
     await ctx.Response.WriteAsync("event: connected\ndata: {\"status\":\"ok\"}\n\n", ct).ConfigureAwait(false);
     await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
@@ -662,12 +602,29 @@ app.MapGet("/api/v1/logs/live", async (
                 limit: 250,
                 ct: ct).ConfigureAwait(false);
 
+            var dedupedPayload = new List<DeduplicatedLiveLog>(rows.Count + 4);
+
             if (rows.Count > 0)
             {
                 var ordered = rows.OrderBy(static l => l.TimeUnixNano).ToArray();
                 after = ordered[^1].TimeUnixNano;
 
-                var payload = ordered.Select(ToLiveLog).ToArray();
+                if (deduplicator is null)
+                {
+                    dedupedPayload.AddRange(ordered.Select(static log => new DeduplicatedLiveLog(log)));
+                }
+                else
+                {
+                    dedupedPayload.AddRange(deduplicator.ProcessBatch(ordered));
+                }
+            }
+
+            if (deduplicator is not null)
+                dedupedPayload.AddRange(deduplicator.FlushExpired(TimeProvider.System.GetUtcNow().UtcDateTime));
+
+            if (dedupedPayload.Count > 0)
+            {
+                var payload = dedupedPayload.Select(LiveLogProjection.ToDto).ToArray();
                 var json = JsonSerializer.Serialize(new { logs = payload });
                 await ctx.Response.WriteAsync($"event: logs\ndata: {json}\n\n", ct).ConfigureAwait(false);
                 await ctx.Response.Body.FlushAsync(ct).ConfigureAwait(false);
@@ -873,6 +830,7 @@ app.MapWorkflowEventEndpoints();
 app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
 app.MapQueryEndpoints();
+app.MapLogSummaryEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {

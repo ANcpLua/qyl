@@ -1001,6 +1001,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         string? search = null,
         ulong? after = null,
         ulong? before = null,
+        string? serviceName = null,
         int limit = 500,
         CancellationToken ct = default)
     {
@@ -1020,8 +1021,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             qb.Add("severity_number >= $N", minSeverity.Value);
         if (!string.IsNullOrEmpty(search))
             qb.Add("body LIKE $N", $"%{search}%");
+        if (!string.IsNullOrEmpty(serviceName))
+            qb.Add("service_name = $N", serviceName);
         if (after.HasValue)
-            qb.Add("time_unix_nano >= $N", (decimal)after.Value);
+            qb.Add("time_unix_nano > $N", (decimal)after.Value);
         if (before.HasValue)
             qb.Add("time_unix_nano <= $N", (decimal)before.Value);
 

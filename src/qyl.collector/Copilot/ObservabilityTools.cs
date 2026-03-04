@@ -143,18 +143,29 @@ internal static class ObservabilityTools
                     limit: Math.Clamp(limit, 1, 200),
                     ct: ct).ConfigureAwait(false);
 
+                var deduplicator = new LiveLogDeduplicator(TimeSpan.FromSeconds(5));
+                var deduped = deduplicator
+                    .ProcessBatch(logs.OrderBy(static l => l.TimeUnixNano))
+                    .Concat(deduplicator.FlushAll())
+                    .OrderByDescending(static d => d.Log.TimeUnixNano)
+                    .ToArray();
+
                 var duration = (timeProvider.GetUtcNow() - startTime).TotalSeconds;
                 CopilotMetrics.RecordToolDuration(duration, "search_logs", CopilotInstrumentation.GenAiProviderName, CopilotInstrumentation.GenAiRequestModel);
 
-                if (logs.Count is 0)
+                if (deduped.Length is 0)
                     return "No logs found matching the criteria.";
 
                 var sb = new StringBuilder();
-                sb.AppendLine($"Found {logs.Count} logs:");
-                foreach (var log in logs)
+                sb.AppendLine($"Found {deduped.Length} log events ({logs.Count} raw rows):");
+                foreach (var item in deduped)
                 {
+                    var log = item.Log;
+                    var repeatSuffix = item.IsDuplicateSummary && item.RepeatCount > 0
+                        ? $" (repeated {item.RepeatCount}x)"
+                        : string.Empty;
                     sb.AppendLine(
-                        $"- [{log.SeverityText ?? "UNSET"}] {log.Body ?? "(empty)"} service={log.ServiceName ?? "unknown"}");
+                        $"- [{log.SeverityText ?? "UNSET"}] {log.Body ?? "(empty)"}{repeatSuffix} service={log.ServiceName ?? "unknown"}");
                 }
 
                 return sb.ToString();
