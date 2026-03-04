@@ -79,17 +79,66 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
         const eventSource = new EventSource(url);
         eventSourceRef.current = eventSource;
+        let connectedNotified = false;
 
-        eventSource.addEventListener('connected', (e) => {
-            const data = JSON.parse(e.data);
-            setConnectionId(data.connectionId);
+        const markConnected = (id?: string | null) => {
+            if (id) setConnectionId(id);
             setIsConnected(true);
+            if (connectedNotified) return;
+            connectedNotified = true;
             onConnect?.();
-        });
+        };
 
-        eventSource.addEventListener('spans', (e) => {
-            // SSE sends SpanRecord[] directly
-            const records: SpanRecord[] = JSON.parse(e.data);
+        const safeParseJson = (raw: string): unknown => {
+            try {
+                return JSON.parse(raw);
+            } catch {
+                return null;
+            }
+        };
+
+        const parseEnvelope = (raw: string): { eventType: string; payload: unknown } | null => {
+            const parsed = safeParseJson(raw);
+            if (!parsed || typeof parsed !== 'object')
+                return null;
+
+            const outer = parsed as { eventType?: unknown; data?: unknown };
+            if (typeof outer.eventType !== 'string')
+                return null;
+
+            // .NET TypedResults.ServerSentEvents wraps payloads as:
+            // { eventType, data: { eventType, data, timestamp } }
+            if (outer.data && typeof outer.data === 'object')
+            {
+                const inner = outer.data as { eventType?: unknown; data?: unknown };
+                if (typeof inner.eventType === 'string')
+                {
+                    return {
+                        eventType: inner.eventType.toLowerCase(),
+                        payload: inner.data
+                    };
+                }
+            }
+
+            return {
+                eventType: outer.eventType.toLowerCase(),
+                payload: outer.data
+            };
+        };
+
+        const handleSpansPayload = (payload: unknown) => {
+            const data = payload as
+                | SpanRecord[]
+                | { spans?: SpanRecord[]; items?: SpanRecord[] }
+                | null
+                | undefined;
+            const records = Array.isArray(data)
+                ? data
+                : data?.spans ?? data?.items ?? [];
+
+            if (records.length === 0)
+                return;
+
             onSpans?.(records);
 
             // Update recent spans (keep last 100)
@@ -100,6 +149,48 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
             // Invalidate relevant queries
             queryClient.invalidateQueries({queryKey: telemetryKeys.sessions()});
+        };
+
+        const dispatchEvent = (eventType: string, payload: unknown) => {
+            switch (eventType.toLowerCase()) {
+                case 'connected': {
+                    const data = payload as { connectionId?: string; id?: string } | null | undefined;
+                    markConnected(data?.connectionId ?? data?.id ?? null);
+                    break;
+                }
+                case 'spans':
+                    handleSpansPayload(payload);
+                    break;
+            }
+        };
+
+        eventSource.onopen = () => {
+            // Mark open transport as connected even when custom connected events are absent.
+            markConnected();
+        };
+
+        eventSource.onmessage = (e) => {
+            const envelope = parseEnvelope(e.data);
+            if (!envelope) return;
+            dispatchEvent(envelope.eventType, envelope.payload);
+        };
+
+        eventSource.addEventListener('connected', (e) => {
+            const envelope = parseEnvelope(e.data);
+            if (envelope) {
+                dispatchEvent(envelope.eventType, envelope.payload);
+                return;
+            }
+            dispatchEvent('connected', safeParseJson(e.data));
+        });
+
+        eventSource.addEventListener('spans', (e) => {
+            const envelope = parseEnvelope(e.data);
+            if (envelope) {
+                dispatchEvent(envelope.eventType, envelope.payload);
+                return;
+            }
+            dispatchEvent('spans', safeParseJson(e.data));
         });
 
         eventSource.onerror = () => {
