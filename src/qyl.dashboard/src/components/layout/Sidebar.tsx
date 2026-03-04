@@ -69,19 +69,19 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
         <aside
             className={cn(
                 'relative flex flex-col bg-brutal-carbon/92 border-r border-brutal-zinc/70 transition-[width] duration-200',
-                collapsed ? 'w-16' : 'w-56'
+                collapsed ? 'w-14' : 'w-52'
             )}
         >
             {/* BRUTALIST Logo */}
-            <div className="flex items-center h-14 px-4 border-b border-brutal-zinc/70 bg-brutal-dark/90">
-                <NavLink to="/" className="flex items-center gap-2">
+            <div className="flex items-center h-12 px-3 border-b border-brutal-zinc/70 bg-brutal-dark/90">
+                <NavLink to="/" className="flex items-center gap-1.5">
                     <div
-                        className="w-8 h-8 bg-signal-orange flex items-center justify-center border border-brutal-black">
-                        <Terminal className="w-5 h-5 text-brutal-black"/>
+                        className="w-7 h-7 bg-signal-orange flex items-center justify-center border border-brutal-black">
+                        <Terminal className="w-4 h-4 text-brutal-black"/>
                     </div>
                     {!collapsed && (
                         <div className="flex flex-col">
-                            <span className="font-bold text-lg text-signal-orange tracking-wider">QYL.</span>
+                            <span className="font-bold text-base text-signal-orange tracking-wider">QYL.</span>
                             <span className="text-[11px] text-brutal-slate tracking-[0.3em]">OBSERVABILITY</span>
                         </div>
                     )}
@@ -91,7 +91,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
             {/* Connection Status */}
             {!collapsed && (
                 <div className={cn(
-                    'px-4 py-2 border-b flex items-center gap-2 text-xs font-semibold tracking-[0.08em]',
+                    'px-3 py-1.5 border-b flex items-center gap-1.5 text-[11px] font-semibold tracking-[0.08em]',
                     isLive
                         ? 'border-signal-green bg-signal-green/10 text-signal-green'
                         : 'border-brutal-zinc/70 bg-brutal-dark/80 text-brutal-slate'
@@ -113,17 +113,17 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             key={item.to}
                             to={item.to}
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-semibold tracking-[0.08em] transition-colors border',
+                                'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
                                 isActive
                                     ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                             )}
                         >
-                            <Icon className="w-5 h-5 flex-shrink-0"/>
+                            <Icon className="w-4 h-4 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">{item.label}</span>
-                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -162,17 +162,17 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                             key={item.to}
                             to={item.to}
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-semibold tracking-[0.08em] transition-colors border',
+                                'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
                                 isActive
                                     ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                             )}
                         >
-                            <Icon className="w-5 h-5 flex-shrink-0"/>
+                            <Icon className="w-4 h-4 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">{item.label}</span>
-                                    <kbd className="kbd text-[11px]">{item.shortcut}</kbd>
+                                    <kbd className="kbd text-[10px]">{item.shortcut}</kbd>
                                 </>
                             )}
                         </NavLink>
@@ -214,13 +214,13 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                                 key={db.id}
                                 to={to}
                                 className={cn(
-                                    'flex items-center gap-3 px-3 py-2 text-xs font-semibold tracking-[0.08em] transition-colors border',
+                                    'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
                                     isActive
                                         ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
                                         : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                                 )}
                             >
-                                <Icon className="w-5 h-5 flex-shrink-0"/>
+                                <Icon className="w-4 h-4 flex-shrink-0"/>
                                 {!collapsed && (
                                     <span className="flex-1 truncate">{db.title.toUpperCase()}</span>
                                 )}
@@ -256,17 +256,17 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                         <NavLink
                             to="/settings"
                             className={cn(
-                                'flex items-center gap-3 px-3 py-2 text-xs font-semibold tracking-[0.08em] transition-colors border',
+                                'flex items-center gap-2.5 px-2.5 py-1.5 text-[11px] font-semibold tracking-[0.08em] transition-colors border',
                                 isActive
                                     ? 'bg-signal-orange/14 text-signal-orange border-signal-orange/55 shadow-[inset_0_0_0_1px_rgba(0,0,0,0.35)]'
                                     : 'text-brutal-slate border-transparent hover:border-brutal-zinc/70 hover:bg-brutal-dark/80 hover:text-brutal-white'
                             )}
                         >
-                            <GearSix className="w-5 h-5 flex-shrink-0"/>
+                            <GearSix className="w-4 h-4 flex-shrink-0"/>
                             {!collapsed && (
                                 <>
                                     <span className="flex-1">SETTINGS</span>
-                                    <kbd className="kbd text-[11px]">,</kbd>
+                                    <kbd className="kbd text-[10px]">,</kbd>
                                 </>
                             )}
                         </NavLink>

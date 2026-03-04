@@ -35,29 +35,30 @@ import {Badge} from '@/components/ui/badge';
 import {toast} from 'sonner';
 
 const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
+const RADIX_ICON_STROKE = 1.75;
 
 function StepIndicator({current, steps}: { current: number; steps: readonly string[] }) {
     return (
-        <div className="flex items-center justify-end gap-1.5 md:gap-2 flex-wrap">
+        <div className="flex items-center justify-end gap-1.5 md:gap-2.5 flex-wrap">
             {steps.map((label, i) => (
-                <div key={label} className="flex items-center gap-1.5 md:gap-2">
+                <div key={label} className="flex items-center gap-1.5 md:gap-2.5">
                     <div
                         className={cn(
-                            'w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border-2 text-[11px] font-bold transition-colors',
+                            'w-7 h-7 md:w-8 md:h-8 flex items-center justify-center border text-[11px] font-bold transition-colors',
                             i < current
-                                ? 'bg-signal-green border-signal-green text-brutal-black'
+                                ? 'bg-signal-green border-signal-green text-brutal-black shadow-[0_0_12px_rgba(56,189,113,0.28)]'
                                 : i === current
-                                    ? 'bg-signal-orange border-signal-orange text-brutal-black'
-                                    : 'bg-brutal-dark border-brutal-zinc text-brutal-slate'
+                                    ? 'bg-signal-orange border-signal-orange text-brutal-black shadow-[0_0_14px_rgba(255,107,33,0.28)]'
+                                    : 'bg-brutal-dark/95 border-brutal-zinc/90 text-brutal-slate/90'
                         )}
                     >
-                        {i < current ? <Check className="w-4 h-4"/> : i + 1}
+                        {i < current ? <Check className="w-4 h-4" strokeWidth={RADIX_ICON_STROKE}/> : i + 1}
                     </div>
                     {i < steps.length - 1 && (
                         <div
                             className={cn(
-                                'w-5 md:w-8 h-0.5',
-                                i < current ? 'bg-signal-green' : 'bg-brutal-zinc'
+                                'w-5 md:w-8 h-px',
+                                i < current ? 'bg-signal-green/90' : 'bg-brutal-zinc/85'
                             )}
                         />
                     )}
@@ -105,7 +106,7 @@ function WelcomeStep() {
         <div className="space-y-6 text-center max-w-lg mx-auto">
             <div
                 className="w-16 h-16 mx-auto bg-signal-orange flex items-center justify-center border-2 border-brutal-black">
-                <Rocket className="w-8 h-8 text-brutal-black"/>
+                <Rocket className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
             </div>
             <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
                 GET STARTED WITH QYL
@@ -120,8 +121,8 @@ function WelcomeStep() {
                     {icon: Sparkles, label: 'GENAI', desc: 'AI model telemetry'},
                     {icon: Plug, label: 'OTLP', desc: 'OpenTelemetry native'},
                 ].map(({icon: Icon, label, desc}) => (
-                    <div key={label} className="border-2 border-brutal-zinc p-4 bg-brutal-dark">
-                        <Icon className="w-6 h-6 text-signal-orange mx-auto mb-2"/>
+                    <div key={label} className="border border-brutal-zinc/95 p-4 bg-gradient-to-b from-brutal-dark/95 to-brutal-carbon/88">
+                        <Icon className="w-6 h-6 text-signal-orange mx-auto mb-2" strokeWidth={RADIX_ICON_STROKE}/>
                         <div className="text-xs font-bold text-brutal-white tracking-wider">{label}</div>
                         <div className="text-[10px] text-brutal-slate mt-1">{desc}</div>
                     </div>
@@ -840,8 +841,8 @@ function DoneStep({verified}: { verified: boolean }) {
                     verified ? 'bg-signal-green' : 'bg-signal-orange'
                 )}>
                 {verified
-                    ? <CheckCircle2 className="w-8 h-8 text-brutal-black"/>
-                    : <Rocket className="w-8 h-8 text-brutal-black"/>
+                    ? <CheckCircle2 className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
+                    : <Rocket className="w-8 h-8 text-brutal-black" strokeWidth={RADIX_ICON_STROKE}/>
                 }
             </div>
             <h2 className="text-2xl font-bold text-brutal-white tracking-wider">
@@ -911,8 +912,8 @@ export function OnboardingPage() {
             </div>
 
             {/* Step content */}
-            <Card className="border-2 border-brutal-zinc/80 bg-brutal-carbon/95 shadow-[0_18px_42px_-28px_rgba(0,0,0,0.8)]">
-                <CardContent className="py-8 px-5 sm:px-8 md:px-10">
+            <Card className="border border-brutal-zinc/95 bg-gradient-to-b from-brutal-carbon/96 to-brutal-black/90 shadow-[0_24px_56px_-34px_rgba(0,0,0,0.92)]">
+                <CardContent className="py-9 px-5 sm:px-8 md:px-10">
                     {renderStep()}
                 </CardContent>
             </Card>

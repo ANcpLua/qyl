@@ -87,15 +87,15 @@ export function TopBar({
     };
 
     return (
-        <header className="h-14 md:h-16 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-4 gap-3 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
+        <header className="h-12 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-3.5 gap-2.5 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
             {/* Page title - BRUTALIST style */}
-            <div className="flex items-center gap-2.5 shrink-0">
-                <Lightning className="w-4.5 h-4.5 text-signal-orange"/>
+            <div className="flex items-center gap-2 shrink-0">
+                <Lightning className="w-4 h-4 text-signal-orange"/>
                 <h1 className="text-xs md:text-sm font-semibold tracking-[0.14em] text-brutal-white">{title}</h1>
             </div>
 
             {/* Separator */}
-            <div className="hidden md:block w-px h-6 bg-brutal-zinc/70"/>
+            <div className="hidden md:block w-px h-5 bg-brutal-zinc/70"/>
 
             {/* Search - BRUTALIST input */}
             <form onSubmit={handleSearch} className="flex-1 min-w-[12rem] md:min-w-[16rem] max-w-xl">
@@ -107,7 +107,7 @@ export function TopBar({
                         placeholder="SEARCH... (CTRL+/)"
                         value={searchValue}
                         onChange={(e) => setSearchValue(e.target.value)}
-                        className="pl-9 bg-brutal-dark/85 border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-[0.08em] focus:border-signal-orange"
+                        className="h-8 md:h-9 pl-9 bg-brutal-dark/85 border border-brutal-zinc text-brutal-white placeholder:text-brutal-slate text-xs tracking-[0.08em] focus:border-signal-orange"
                         aria-label="Search"
                     />
                 </div>
@@ -117,15 +117,15 @@ export function TopBar({
             <div className="hidden xl:block flex-1"/>
 
             {/* Current time display */}
-            <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-brutal-dark/85 border border-brutal-zinc">
+            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-brutal-dark/85 border border-brutal-zinc">
                 <Clock className="w-4 h-4 text-signal-cyan"/>
-                <span className="font-mono text-sm text-signal-cyan">{formatTime(currentTime)}</span>
+                <span className="font-mono text-xs text-signal-cyan">{formatTime(currentTime)}</span>
             </div>
 
             {/* Time range selector - BRUTALIST */}
             <Select value={timeRange} onValueChange={onTimeRangeChange}>
                 <SelectTrigger
-                    className="w-28 md:w-32 bg-brutal-dark/85 border border-brutal-zinc text-xs font-semibold tracking-[0.08em] text-brutal-white hover:border-signal-orange">
+                    className="h-8 md:h-9 w-24 md:w-28 bg-brutal-dark/85 border border-brutal-zinc text-xs font-semibold tracking-[0.08em] text-brutal-white hover:border-signal-orange">
                     <SelectValue/>
                 </SelectTrigger>
                 <SelectContent className="bg-brutal-carbon border border-brutal-zinc">
@@ -147,7 +147,7 @@ export function TopBar({
                 size="sm"
                 onClick={onLiveToggle}
                 className={cn(
-                    'border text-xs font-semibold tracking-[0.08em] transition-colors',
+                    'h-8 md:h-9 border text-[11px] font-semibold tracking-[0.08em] transition-colors',
                     isLive
                         ? (streamConnected
                             ? 'bg-signal-green/20 border-signal-green text-signal-green hover:bg-signal-green/30'
