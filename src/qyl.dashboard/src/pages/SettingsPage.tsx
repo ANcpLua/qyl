@@ -29,7 +29,7 @@ const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
     {key: 'T', description: 'Go to Traces'},
     {key: 'C', description: 'Go to Console / Logs'},
-    {key: 'S', description: 'Go to Structured logs'},
+    {key: 'S', description: 'Go to Seer'},
     {key: 'M', description: 'Go to Metrics / GenAI'},
     {key: '/', description: 'Go to Search'},
     {key: 'A', description: 'Go to Agents'},

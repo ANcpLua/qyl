@@ -105,11 +105,12 @@ export function useKeyboardShortcuts() {
     };
 }
 
-// Navigation shortcuts aligned with Aspire Dashboard pattern
-// R = Resources, C = Console/Logs, S = Structured logs (same as logs for now)
-// T = Traces, M = Metrics/GenAI
-export function useNavigationShortcuts(navigate: (path: string) => void) {
-    const {registerShortcut} = useKeyboardShortcuts();
+// Navigation shortcuts aligned with the sidebar key hints.
+// R = Resources, T = Traces, C = Logs, M = GenAI, S = Seer
+export function useNavigationShortcuts(
+    navigate: (path: string) => void,
+    registerShortcut: (shortcut: ShortcutHandler) => () => void
+) {
 
     useEffect(() => {
         const unsubscribes = [
@@ -131,11 +132,11 @@ export function useNavigationShortcuts(navigate: (path: string) => void) {
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // S = Structured logs (alias for logs)
+            // S = Seer
             registerShortcut({
                 key: 's',
-                description: 'Go to Structured logs',
-                handler: () => navigate('/logs'),
+                description: 'Go to Seer',
+                handler: () => navigate('/seer'),
             }),
             // M = Metrics / GenAI
             registerShortcut({

@@ -28,13 +28,12 @@ export function DashboardLayout() {
     // Live stream
     const {isConnected, recentSpans, reconnect, clearSpans} = useLiveStream({
         enabled: isLive,
-        onConnect: () => console.log('[QYL] SSE stream connected'),
-        onDisconnect: () => console.log('[QYL] SSE stream disconnected'),
     });
 
     // Keyboard shortcuts
-    useNavigationShortcuts(navigate);
-    const {isModalOpen, setModalOpen} = useKeyboardShortcuts();
+    const keyboard = useKeyboardShortcuts();
+    useNavigationShortcuts(navigate, keyboard.registerShortcut);
+    const {isModalOpen, setModalOpen} = keyboard;
 
     const handleRefresh = useCallback(() => {
         // Invalidate all telemetry queries and dispatch refresh event
