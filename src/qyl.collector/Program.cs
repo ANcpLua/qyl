@@ -818,6 +818,7 @@ app.MapIssueEndpoints();
 app.MapIssueAnalyticsEndpoints();
 app.MapAnomalyEndpoints();
 app.MapAutofixEndpoints();
+app.MapRegressionEndpoints();
 app.MapAgentHandoffEndpoints();
 app.MapCodeReviewEndpoints();
 app.MapCodingAgentEndpoints();

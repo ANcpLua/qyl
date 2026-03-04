@@ -14,10 +14,18 @@ public static class GitHubWebhookEndpoints
             int? limit, string? eventType, string? repoFullName,
             DuckDbStore store, CancellationToken ct) =>
         {
-            int clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
-            IReadOnlyList<GitHubEventRecord> items = await store
-                .GetGitHubEventsAsync(clampedLimit, eventType, repoFullName, ct).ConfigureAwait(false);
-            return Results.Ok(new { items, total = items.Count });
+            try
+            {
+                int clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
+                IReadOnlyList<GitHubEventRecord> items = await store
+                    .GetGitHubEventsAsync(clampedLimit, eventType, repoFullName, ct).ConfigureAwait(false);
+                return Results.Ok(new { items, total = items.Count });
+            }
+            catch
+            {
+                // Avoid breaking Seer dashboard when webhook storage is not initialized.
+                return Results.Ok(new { items = Array.Empty<GitHubEventRecord>(), total = 0 });
+            }
         });
     }
 

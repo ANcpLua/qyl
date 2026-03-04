@@ -40,9 +40,17 @@ public static class AgentHandoffEndpoints
             int? limit,
             DuckDbStore store, CancellationToken ct) =>
         {
-            IReadOnlyList<AgentHandoffRecord> items = await store
-                .GetPendingHandoffsAsync(Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
-            return Results.Ok(new { items, total = items.Count });
+            try
+            {
+                IReadOnlyList<AgentHandoffRecord> items = await store
+                    .GetPendingHandoffsAsync(Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
+                return Results.Ok(new { items, total = items.Count });
+            }
+            catch
+            {
+                // Keep Seer dashboard resilient when handoff tables are not initialized yet.
+                return Results.Ok(new { items = Array.Empty<AgentHandoffRecord>(), total = 0 });
+            }
         });
 
         // Get handoff by ID
