@@ -43,15 +43,29 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Evaluate auto-merge eligibility
+        id: eligibility
+        env:
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+        run: |
+          case "$UPDATE_TYPE" in
+            version-update:semver-patch|version-update:semver-minor)
+              echo "eligible=true" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "eligible=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
       - name: Auto-approve patch and minor updates
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: steps.eligibility.outputs.eligible == 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh pr review --approve "$PR_URL"
 
       - name: Enable auto-merge for patch and minor
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
+        if: steps.eligibility.outputs.eligible == 'true'
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -177,7 +191,9 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr review --approve "$PR_URL" --body "✅ Auto-approved: action governance update (scoped to .github/)"
+        run: |
+          gh pr review --approve "$PR_URL" \
+            --body "✅ Auto-approved: action governance update (scoped to .github/)"
 
       - name: Enable auto-merge
         env:

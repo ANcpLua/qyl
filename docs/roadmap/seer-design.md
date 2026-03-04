@@ -25,6 +25,22 @@ Every claim in this document carries a confidence tag. The taxonomy mirrors requ
 
 ---
 
+## qyl Scope Labels
+
+For qyl planning and implementation tracking, use this scope taxonomy in addition
+to the confidence tags above:
+
+| Label | Meaning |
+|---|---|
+| `IMPLEMENTED-IN-QYL` | Capability exists in this repository and is testable locally. |
+| `CONTEXT-ONLY` | Comparative/reference information; useful context, not a local ship gate. |
+| `EXTERNAL-CLOSED` | Known unknowns in external closed-source systems. |
+| `NOT-PLANNED` | Explicitly excluded from qyl architecture and roadmap. |
+
+See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
+
+---
+
 ## Table of Contents
 
 1. [Glossary](#1-glossary)
@@ -824,6 +840,12 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 
 ## 12. Limitations & Known Gaps
 
+Scope note for this section:
+
+- `Known Closed-Source Gaps` should be treated as `CONTEXT-ONLY` + `EXTERNAL-CLOSED`
+  for qyl docs, not as evidence that qyl implementation is missing.
+- Detailed rationale: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
+
 ### Confirmed Limitations
 
 | Limitation | Detail | Confidence |
@@ -857,6 +879,14 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 ---
 
 ## 13. Experimental & Preview Features
+
+Scope note for this section:
+
+- `In Active Development`, `Recently Graduated`, and `Deprecated / Removed` track
+  external product lifecycle context.
+- In qyl docs, classify these rows as `CONTEXT-ONLY` unless they map to explicit
+  local features and code paths.
+- Detailed rationale: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
 
 ### In Active Development (March 2026)
 
