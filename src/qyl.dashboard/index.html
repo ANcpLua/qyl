@@ -8,7 +8,7 @@
     <script>
       // Prevent flash of unstyled content by applying theme before React loads
       (function() {
-        const theme = localStorage.getItem('theme') || 'system';
+        const theme = localStorage.getItem('theme') || 'dark';
         const isDark = theme === 'dark' ||
           (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
         if (isDark) {
