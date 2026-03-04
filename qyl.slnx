@@ -93,6 +93,7 @@
         <File Path="docs/copy.preferences.md" />
         <File Path="docs/verify-catalog-docs.sh" />
         <File Path="docs/PRINCIPLES.md" />
+        <File Path="docs\img.png" />
     </Folder>
 
     <!-- GitHub config -->
