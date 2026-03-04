@@ -25,13 +25,19 @@ internal static class AgentCallSiteAnalyzer
     /// <summary>
     ///     Declarative agent method patterns.
     /// </summary>
-    private static readonly (InvocationMatcher Matcher, AgentCallKind Kind)[] Matchers = BuildMatchers();
+    private static readonly (string MethodName, InvocationMatcher Matcher, AgentCallKind Kind)[] Matchers = BuildMatchers();
+
+    private static readonly HashSet<string> CandidateMethodNames =
+    [
+        ..Matchers.Select(static matcher => matcher.MethodName)
+    ];
 
     /// <summary>
     ///     Fast syntactic pre-filter: could this syntax node be an agent invocation?
     /// </summary>
-    public static bool CouldBeAgentInvocation(SyntaxNode node, CancellationToken ct) =>
-        AnalyzerHelpers.CouldBeInvocation(node, ct);
+    public static bool CouldBeAgentInvocation(SyntaxNode node, CancellationToken _) =>
+        AnalyzerHelpers.GetInvokedMethodName(node) is { } methodName &&
+        CandidateMethodNames.Contains(methodName);
 
     /// <summary>
     ///     Extracts an agent call site from a syntax context if it matches agent SDK patterns
@@ -56,7 +62,7 @@ internal static class AgentCallSiteAnalyzer
             return BuildCallSite(context, invocation, kind, cancellationToken);
 
         // Then try [AgentTraced] attribute
-        return TryGetAgentTracedAttribute(invocation.TargetMethod, context.SemanticModel.Compilation, out var agentName) ? BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName) : null;
+        return TryGetAgentTracedAttribute(invocation.TargetMethod, out var agentName) ? BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName) : null;
     }
 
     private static AgentCallSite? BuildCallSite(
@@ -94,7 +100,7 @@ internal static class AgentCallSiteAnalyzer
     {
         kind = default;
 
-        foreach (var (matcher, k) in Matchers)
+        foreach (var (_, matcher, k) in Matchers)
         {
             if (!matcher.Matches(invocation))
                 continue;
@@ -108,41 +114,15 @@ internal static class AgentCallSiteAnalyzer
 
     private static bool TryGetAgentTracedAttribute(
         ISymbol method,
-        Compilation compilation,
         [NotNullWhen(true)] out string? agentName)
     {
         agentName = null;
 
-        if (!method.HasAttribute(AgentTracedAttributeFullName))
-            return false;
-
-        if (!TryFindAttributeData(method, compilation, out var attribute))
+        if (method.GetAttribute(AgentTracedAttributeFullName) is not { } attribute)
             return false;
 
         agentName = ExtractAgentName(attribute, fallback: method.Name);
         return true;
-    }
-
-    private static bool TryFindAttributeData(
-        ISymbol method,
-        Compilation compilation,
-        [NotNullWhen(true)] out AttributeData? result)
-    {
-        result = null;
-
-        if (compilation.GetTypeByMetadataName(AgentTracedAttributeFullName) is not { } attributeType)
-            return false;
-
-        foreach (var attribute in method.GetAttributes())
-        {
-            if (!attribute.AttributeClass.IsEqualTo(attributeType))
-                continue;
-
-            result = attribute;
-            return true;
-        }
-
-        return false;
     }
 
     private static string ExtractAgentName(AttributeData attribute, string fallback)
@@ -165,7 +145,7 @@ internal static class AgentCallSiteAnalyzer
         return typeName;
     }
 
-    private static (InvocationMatcher, AgentCallKind)[] BuildMatchers()
+    private static (string MethodName, InvocationMatcher Matcher, AgentCallKind Kind)[] BuildMatchers()
     {
         var invokeAsyncMethods = new[] { "InvokeAsync" };
         var builderMethods = new[] { "AddAgent", "UseAgent", "ConfigureAgent" };
@@ -176,7 +156,7 @@ internal static class AgentCallSiteAnalyzer
             "Microsoft.Agents.AI.DelegatingAIAgent"
         };
 
-        var result = new List<(InvocationMatcher, AgentCallKind)>();
+        var result = new List<(string MethodName, InvocationMatcher Matcher, AgentCallKind Kind)>();
 
         // Agent InvokeAsync patterns
         foreach (var typePrefix in agentTypes)
@@ -186,7 +166,7 @@ internal static class AgentCallSiteAnalyzer
             var matcher = Invoke.Method(methodName)
                 .Where(i => i.TargetMethod.ContainingType?.ToDisplayString()
                     .StartsWithIgnoreCase(prefix) == true);
-            result.Add((matcher, AgentCallKind.InvokeAsync));
+            result.Add((methodName, matcher, AgentCallKind.InvokeAsync));
         }
 
         // AIAgentBuilder registration patterns
@@ -195,7 +175,7 @@ internal static class AgentCallSiteAnalyzer
             var matcher = Invoke.Method(methodName)
                 .Where(i => i.TargetMethod.ContainingType?.ToDisplayString()
                     .StartsWithIgnoreCase("Microsoft.Agents.AI.AIAgentBuilder") == true);
-            result.Add((matcher, AgentCallKind.BuilderRegistration));
+            result.Add((methodName, matcher, AgentCallKind.BuilderRegistration));
         }
 
         return [.. result];
