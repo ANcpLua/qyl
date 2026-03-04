@@ -1202,12 +1202,19 @@ internal static class CopilotEndpoints
         public required ulong StartTimeUnixNano { get; init; }
     }
 
-    private sealed record EnterprisePolicyDecision(
+    private sealed class EnterprisePolicyDecision(
         bool Allowed,
         string Outcome,
         string ApprovalStatus,
         string Reason,
-        string Subject);
+        string Subject)
+    {
+        public bool Allowed { get; } = Allowed;
+        public string Outcome { get; } = Outcome;
+        public string ApprovalStatus { get; } = ApprovalStatus;
+        public string Reason { get; } = Reason;
+        public string Subject { get; } = Subject;
+    }
 
     private sealed class ToolAuditState
     {
