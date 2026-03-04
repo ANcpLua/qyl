@@ -15,7 +15,7 @@
     <!-- Testing -->
     <XunitVersion>3.2.2</XunitVersion>
     <MicrosoftTestingTrxVersion>2.1.0</MicrosoftTestingTrxVersion>
-    <MicrosoftTestingCodeCoverageVersion>18.4.1</MicrosoftTestingCodeCoverageVersion>
+    <MicrosoftTestingCodeCoverageVersion>18.5.2</MicrosoftTestingCodeCoverageVersion>
     <!-- Analyzers -->
     <MicrosoftCodeAnalysisAnalyzersVersion>3.11.0</MicrosoftCodeAnalysisAnalyzersVersion>
     <MicrosoftCodeAnalysisCSharpVersion>5.0.0</MicrosoftCodeAnalysisCSharpVersion>
