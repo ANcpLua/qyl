@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {cloneElement, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {
     AlertTriangle,
@@ -29,7 +29,6 @@ import {
     ComposedChart,
     Line,
     LineChart,
-    ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
@@ -213,26 +212,32 @@ function FadeIn({delay = 0, children}: { delay?: number; children: React.ReactNo
     );
 }
 
-function ChartViewport({children}: { children: React.ReactNode }) {
+function ChartViewport({children}: { children: React.ReactElement<{ width?: number; height?: number }> }) {
     const hostRef = useRef<HTMLDivElement | null>(null);
-    const [ready, setReady] = useState(false);
+    const [size, setSize] = useState({width: 0, height: 0});
 
     useEffect(() => {
         const host = hostRef.current;
         if (!host) return;
 
-        const checkSize = () => {
+        const updateSize = () => {
             const {width, height} = host.getBoundingClientRect();
-            setReady(width > 0 && height > 0);
+            const nextWidth = Math.max(0, Math.floor(width));
+            const nextHeight = Math.max(0, Math.floor(height));
+            setSize((prev) => (
+                prev.width === nextWidth && prev.height === nextHeight
+                    ? prev
+                    : {width: nextWidth, height: nextHeight}
+            ));
         };
 
-        const frameId = window.requestAnimationFrame(checkSize);
+        const frameId = window.requestAnimationFrame(updateSize);
 
         if (typeof ResizeObserver === 'undefined') {
             return () => window.cancelAnimationFrame(frameId);
         }
 
-        const observer = new ResizeObserver(checkSize);
+        const observer = new ResizeObserver(updateSize);
         observer.observe(host);
         return () => {
             window.cancelAnimationFrame(frameId);
@@ -240,13 +245,11 @@ function ChartViewport({children}: { children: React.ReactNode }) {
         };
     }, []);
 
+    const canRender = size.width > 0 && size.height > 0;
+
     return (
         <div ref={hostRef} className="h-full w-full">
-            {ready ? (
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    {children}
-                </ResponsiveContainer>
-            ) : null}
+            {canRender ? cloneElement(children, {width: size.width, height: size.height}) : null}
         </div>
     );
 }
