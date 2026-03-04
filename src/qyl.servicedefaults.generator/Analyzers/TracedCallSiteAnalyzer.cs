@@ -331,10 +331,8 @@ internal static class TracedCallSiteAnalyzer
             return null;
 
         var returnAttrs = method.GetReturnTypeAttributes();
-        var attr = Enumerable.FirstOrDefault(returnAttrs,
-            a => a.AttributeClass.IsEqualTo(tracedReturnAttributeType));
-
-        if (attr is null)
+        if (Enumerable.FirstOrDefault(returnAttrs,
+                a => a.AttributeClass.IsEqualTo(tracedReturnAttributeType)) is not { } attr)
             return null;
 
         if (attr.ConstructorArguments.Length < 1 || attr.ConstructorArguments[0].Value is not string { Length: > 0 } tagName)

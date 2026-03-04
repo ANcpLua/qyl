@@ -252,13 +252,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         IInvocationOperation invocation,
         Compilation compilation)
     {
-        if (invocation.TargetMethod.Name != MethodName.Build)
-            return false;
-
         var webAppBuilderType = compilation.GetTypeByMetadataName(WellKnownType.WebApplicationBuilder);
-        return SymbolEqualityComparer.Default.Equals(
-            invocation.TargetMethod.ContainingType,
-            webAppBuilderType);
+        return invocation.IsMethodNamed(webAppBuilderType, MethodName.Build);
     }
 
 

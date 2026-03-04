@@ -18,6 +18,8 @@ namespace Qyl.ServiceDefaults.Generator.Analyzers;
 /// </remarks>
 internal static class GenAiCallSiteAnalyzer
 {
+    private static readonly string[] ModelParameterNames = ["model", "modelId", "deploymentName"];
+
     /// <summary>
     ///     Declarative GenAI method patterns.
     ///     Each entry pairs an <see cref="InvocationMatcher" /> with the OTel operation metadata it represents.
@@ -105,12 +107,10 @@ internal static class GenAiCallSiteAnalyzer
 
     private static string? TryExtractModelName(IInvocationOperation invocation)
     {
-        foreach (var argument in invocation.Arguments)
+        foreach (var parameterName in ModelParameterNames)
         {
-            if (argument.Parameter?.Name is not ("model" or "modelId" or "deploymentName"))
-                continue;
-
-            if (argument.Value.ConstantValue is { HasValue: true, Value: string modelValue })
+            if (invocation.TryGetStringArgument(parameterName, out var modelValue) &&
+                !string.IsNullOrEmpty(modelValue))
                 return modelValue;
         }
 
