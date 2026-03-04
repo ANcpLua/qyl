@@ -4,6 +4,7 @@ using qyl.copilot;
 using qyl.copilot.Auth;
 using qyl.copilot.Providers;
 using qyl.copilot.Routing;
+using qyl.collector.Auth;
 using qyl.protocol.Copilot;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
@@ -87,6 +88,34 @@ internal static class CopilotEndpoints
         };
 
         ctx.Response.Headers["x-qyl-track-mode"] = routeMode;
+        ctx.Response.Headers["x-qyl-output-format"] = routing.EffectiveMode is TrackMode.Enterprise
+            ? "adaptive-card"
+            : "text";
+
+        if (TryEvaluateEnterprisePolicy(ctx, routing.EffectiveMode) is { } enterprisePolicy)
+        {
+            runBaseContext = runBaseContext with
+            {
+                RouterDecisionType = "policy",
+                RouterOutcome = enterprisePolicy.Outcome,
+                RouterRequiresApproval = true,
+                RouterApprovalStatus = enterprisePolicy.ApprovalStatus,
+                RouterReason = MergeReasons(routing.Reason, enterprisePolicy.Reason),
+                PolicySubject = enterprisePolicy.Subject
+            };
+
+            ctx.Response.Headers["x-qyl-enterprise-policy"] = enterprisePolicy.ApprovalStatus;
+
+            if (!enterprisePolicy.Allowed)
+            {
+                await StreamSseWithAuditAsync(ctx,
+                    StreamPolicyDeniedAsync(enterprisePolicy.Reason, ct),
+                    store,
+                    runBaseContext,
+                    ct);
+                return;
+            }
+        }
 
         var hasGitHubAuth = false;
 
@@ -98,7 +127,10 @@ internal static class CopilotEndpoints
             {
                 var adapter = await factory.GetAdapterAsync(ct).ConfigureAwait(false);
                 await StreamSseWithAuditAsync(ctx,
-                    adapter.ChatAsync(request.Prompt, routedContext, ct),
+                    ApplyOutputTransform(
+                        adapter.ChatAsync(request.Prompt, routedContext, ct),
+                        routing.EffectiveMode,
+                        ct),
                     store,
                     runBaseContext with { Provider = "copilot", Model = "github-copilot" },
                     ct);
@@ -129,7 +161,10 @@ internal static class CopilotEndpoints
                     if (client is not null)
                     {
                         await StreamSseWithAuditAsync(ctx,
-                            StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                            ApplyOutputTransform(
+                                StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                                routing.EffectiveMode,
+                                ct),
                             store,
                             runBaseContext with
                             {
@@ -159,7 +194,10 @@ internal static class CopilotEndpoints
             if (client is not null)
             {
                 await StreamSseWithAuditAsync(ctx,
-                    StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                    ApplyOutputTransform(
+                        StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                        routing.EffectiveMode,
+                        ct),
                     store,
                     runBaseContext with
                     {
@@ -196,7 +234,10 @@ internal static class CopilotEndpoints
                 }
 
                 await StreamSseWithAuditAsync(ctx,
-                    StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                    ApplyOutputTransform(
+                        StreamByokChatAsync(client, request.Prompt, routedSystemPrompt, ct),
+                        routing.EffectiveMode,
+                        ct),
                     store,
                     runBaseContext with
                     {
@@ -360,15 +401,46 @@ internal static class CopilotEndpoints
             StartTimeUnixNano = TimeConversions.ToUnixNanoUnsigned(TimeProvider.System.GetUtcNow())
         };
         ctx.Response.Headers["x-qyl-track-mode"] = routeMode;
+        ctx.Response.Headers["x-qyl-output-format"] = routing.EffectiveMode is TrackMode.Enterprise
+            ? "adaptive-card"
+            : "text";
+
+        if (TryEvaluateEnterprisePolicy(ctx, routing.EffectiveMode) is { } enterprisePolicy)
+        {
+            auditContext = auditContext with
+            {
+                RouterDecisionType = "policy",
+                RouterOutcome = enterprisePolicy.Outcome,
+                RouterRequiresApproval = true,
+                RouterApprovalStatus = enterprisePolicy.ApprovalStatus,
+                RouterReason = MergeReasons(routing.Reason, enterprisePolicy.Reason),
+                PolicySubject = enterprisePolicy.Subject
+            };
+
+            ctx.Response.Headers["x-qyl-enterprise-policy"] = enterprisePolicy.ApprovalStatus;
+
+            if (!enterprisePolicy.Allowed)
+            {
+                await StreamSseWithAuditAsync(ctx,
+                    StreamPolicyDeniedAsync(enterprisePolicy.Reason, ct),
+                    store,
+                    auditContext,
+                    ct);
+                return;
+            }
+        }
 
         IAsyncEnumerable<StreamUpdate> stream;
         try
         {
             var engine = await engineFactory.GetEngineAsync(ct).ConfigureAwait(false);
-            stream = engine.ExecuteAsync(name,
+            stream = ApplyOutputTransform(
+                engine.ExecuteAsync(name,
                 request?.Parameters,
                 request?.Context?.AdditionalContext,
                 requestedMode,
+                ct),
+                routing.EffectiveMode,
                 ct);
         }
         catch (Exception ex)
@@ -392,6 +464,12 @@ internal static class CopilotEndpoints
     private static readonly string[] s_deniedKeywords =
     [
         "approval", "denied", "forbidden", "not allowed", "permission", "unauthorized"
+    ];
+
+    private static readonly string[] s_enterpriseRequiredRoles =
+    [
+        "qyl:enterprise",
+        "qyl:admin"
     ];
 
     private static async Task StreamSseWithAuditAsync(
@@ -578,7 +656,7 @@ internal static class CopilotEndpoints
                 sequence++;
                 var callId = $"{auditContext.RunId}-tool-{sequence:D4}";
                 var eventTime = ToUnixNano(update.Timestamp);
-                var requiresApproval = IsApprovalRequiredTool(update.ToolName);
+                var requiresApproval = IsApprovalRequiredTool(update.ToolName, auditContext.TrackMode);
 
                 toolStates.Add(new ToolAuditState
                 {
@@ -706,22 +784,302 @@ internal static class CopilotEndpoints
         await Task.CompletedTask;
     }
 
+    private static IAsyncEnumerable<StreamUpdate> ApplyOutputTransform(
+        IAsyncEnumerable<StreamUpdate> updates,
+        TrackMode effectiveMode,
+        CancellationToken ct) =>
+        effectiveMode is TrackMode.Enterprise
+            ? StreamAdaptiveCardOutputAsync(updates, ct)
+            : updates;
+
+    private static async IAsyncEnumerable<StreamUpdate> StreamAdaptiveCardOutputAsync(
+        IAsyncEnumerable<StreamUpdate> updates,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var content = new StringBuilder();
+        var completed = false;
+        var sawError = false;
+
+        await foreach (var update in updates.WithCancellation(ct).ConfigureAwait(false))
+        {
+            switch (update.Kind)
+            {
+                case StreamUpdateKind.Content:
+                    if (!string.IsNullOrWhiteSpace(update.Content))
+                    {
+                        content.Append(update.Content);
+                    }
+
+                    break;
+                case StreamUpdateKind.Completed:
+                    completed = true;
+                    break;
+                case StreamUpdateKind.Error:
+                    sawError = true;
+                    yield return update;
+                    break;
+                default:
+                    yield return update;
+                    break;
+            }
+        }
+
+        if (!sawError)
+        {
+            var plainText = content.ToString().Trim();
+            if (!string.IsNullOrWhiteSpace(plainText))
+            {
+                yield return new StreamUpdate
+                {
+                    Kind = StreamUpdateKind.Content,
+                    Content = BuildAdaptiveCardJson(plainText),
+                    Timestamp = TimeProvider.System.GetUtcNow()
+                };
+            }
+        }
+
+        if (completed)
+        {
+            yield return new StreamUpdate
+            {
+                Kind = StreamUpdateKind.Completed,
+                Timestamp = TimeProvider.System.GetUtcNow()
+            };
+        }
+    }
+
+    private static string BuildAdaptiveCardJson(string plainText)
+    {
+        var summary = plainText.Length > 240
+            ? $"{plainText[..240]}..."
+            : plainText;
+
+        Dictionary<string, object?> card = new(StringComparer.Ordinal)
+        {
+            ["type"] = "AdaptiveCard",
+            ["$schema"] = "http://adaptivecards.io/schemas/adaptive-card.json",
+            ["version"] = "1.5",
+            ["body"] = new object[]
+            {
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "TextBlock",
+                    ["text"] = "qyl Enterprise Copilot Report",
+                    ["weight"] = "Bolder",
+                    ["size"] = "Medium"
+                },
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "TextBlock",
+                    ["text"] = $"Generated {TimeProvider.System.GetUtcNow():u}",
+                    ["isSubtle"] = true,
+                    ["wrap"] = true
+                },
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "TextBlock",
+                    ["text"] = summary,
+                    ["wrap"] = true
+                },
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "TextBlock",
+                    ["text"] = "Details",
+                    ["weight"] = "Bolder",
+                    ["spacing"] = "Medium"
+                },
+                new Dictionary<string, object?>
+                {
+                    ["type"] = "TextBlock",
+                    ["text"] = plainText,
+                    ["wrap"] = true
+                }
+            }
+        };
+
+        return JsonSerializer.Serialize(card);
+    }
+
+    private static async IAsyncEnumerable<StreamUpdate> StreamPolicyDeniedAsync(
+        string message,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        yield return new StreamUpdate
+        {
+            Kind = StreamUpdateKind.Error,
+            Error = message,
+            Timestamp = TimeProvider.System.GetUtcNow()
+        };
+
+        await Task.CompletedTask;
+    }
+
+    private static EnterprisePolicyDecision? TryEvaluateEnterprisePolicy(
+        HttpContext context,
+        TrackMode effectiveMode)
+    {
+        if (effectiveMode is not TrackMode.Enterprise)
+        {
+            return null;
+        }
+
+        if (context.Items.TryGetValue(TokenAuthOptions.KeycloakClaimsKey, out var claimsObj) &&
+            claimsObj is IReadOnlyDictionary<string, string> claims)
+        {
+            var roles = ExtractRoles(claims);
+            var matchedRole = s_enterpriseRequiredRoles.FirstOrDefault(role => roles.Contains(role));
+
+            return matchedRole is not null
+                ? new EnterprisePolicyDecision(
+                    Allowed: true,
+                    Outcome: "approved",
+                    ApprovalStatus: "approved",
+                    Reason: $"Enterprise access approved via OAuth role '{matchedRole}'.",
+                    Subject: "oauth:keycloak")
+                : new EnterprisePolicyDecision(
+                    Allowed: false,
+                    Outcome: "denied",
+                    ApprovalStatus: "denied",
+                    Reason: "Enterprise mode denied: OAuth token missing required role (qyl:enterprise or qyl:admin).",
+                    Subject: "oauth:keycloak");
+        }
+
+        var mcpApiKey = context.Request.Headers[TokenAuthOptions.McpApiKeyHeader].FirstOrDefault();
+        if (!string.IsNullOrWhiteSpace(mcpApiKey))
+        {
+            return new EnterprisePolicyDecision(
+                Allowed: true,
+                Outcome: "approved",
+                ApprovalStatus: "approved",
+                Reason: "Enterprise access approved via MCP API key policy.",
+                Subject: "mcp:api-key");
+        }
+
+        return new EnterprisePolicyDecision(
+            Allowed: false,
+            Outcome: "denied",
+            ApprovalStatus: "denied",
+            Reason: "Enterprise mode requires OAuth role (qyl:enterprise/qyl:admin) or MCP API key authentication.",
+            Subject: "policy:enterprise");
+    }
+
+    private static HashSet<string> ExtractRoles(IReadOnlyDictionary<string, string> claims)
+    {
+        var roles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        AddRolesFromRawValue(claims, "roles", roles);
+        AddRolesFromRawValue(claims, "role", roles);
+        AddRolesFromRawValue(claims, "realm_access", roles);
+
+        foreach (var key in claims.Keys.Where(static k =>
+                     k.Contains("role", StringComparison.OrdinalIgnoreCase)))
+        {
+            AddRolesFromRawValue(claims, key, roles);
+        }
+
+        return roles;
+    }
+
+    private static void AddRolesFromRawValue(
+        IReadOnlyDictionary<string, string> claims,
+        string key,
+        HashSet<string> roles)
+    {
+        if (!claims.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw))
+        {
+            return;
+        }
+
+        raw = raw.Trim();
+
+        if (raw.StartsWith("{", StringComparison.Ordinal))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(raw);
+                if (document.RootElement.TryGetProperty("roles", out var rolesElement) &&
+                    rolesElement.ValueKind is JsonValueKind.Array)
+                {
+                    foreach (var value in rolesElement.EnumerateArray()
+                                 .Select(static item => item.GetString())
+                                 .Where(static item => !string.IsNullOrWhiteSpace(item)))
+                    {
+                        roles.Add(value!);
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore malformed claim payloads; auth middleware already validated token signature.
+            }
+
+            return;
+        }
+
+        if (raw.StartsWith("[", StringComparison.Ordinal))
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(raw);
+                if (document.RootElement.ValueKind is JsonValueKind.Array)
+                {
+                    foreach (var value in document.RootElement.EnumerateArray()
+                                 .Select(static item => item.GetString())
+                                 .Where(static item => !string.IsNullOrWhiteSpace(item)))
+                    {
+                        roles.Add(value!);
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // Ignore malformed claim payloads.
+            }
+
+            return;
+        }
+
+        foreach (var token in raw.Split([',', ' ', ';'], StringSplitOptions.RemoveEmptyEntries |
+                                                     StringSplitOptions.TrimEntries))
+        {
+            roles.Add(token);
+        }
+    }
+
+    private static string? MergeReasons(string? primary, string? secondary)
+    {
+        if (string.IsNullOrWhiteSpace(primary))
+        {
+            return string.IsNullOrWhiteSpace(secondary) ? null : secondary.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(secondary))
+        {
+            return primary.Trim();
+        }
+
+        return $"{primary.Trim()} {secondary.Trim()}";
+    }
+
     private static AgentDecisionRecord CreateRouterDecision(AgentRunAuditContext context) =>
         new()
         {
             DecisionId = $"{context.RunId}-routing",
             RunId = context.RunId,
             TraceId = context.TraceId,
-            DecisionType = "routing",
-            Outcome = "selected",
-            RequiresApproval = false,
-            ApprovalStatus = "not_required",
+            DecisionType = context.RouterDecisionType,
+            Outcome = context.RouterOutcome,
+            RequiresApproval = context.RouterRequiresApproval,
+            ApprovalStatus = context.RouterApprovalStatus,
             Reason = context.RouterReason,
             EvidenceJson = BuildEvidenceJson(context.TraceId, context.RunId),
             MetadataJson = JsonSerializer.Serialize(new
             {
                 requested_mode = context.RequestedMode,
-                effective_mode = context.TrackMode
+                effective_mode = context.TrackMode,
+                policy_subject = context.PolicySubject
             }),
             CreatedAtUnixNano = context.StartTimeUnixNano
         };
@@ -756,8 +1114,13 @@ internal static class CopilotEndpoints
         return TimeConversions.ToUnixNanoUnsigned(value);
     }
 
-    private static bool IsApprovalRequiredTool(string? toolName)
+    private static bool IsApprovalRequiredTool(string? toolName, string trackMode)
     {
+        if (string.Equals(trackMode, "enterprise", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
         if (string.IsNullOrWhiteSpace(toolName))
         {
             return false;
@@ -831,8 +1194,20 @@ internal static class CopilotEndpoints
         public required string RequestedMode { get; init; }
         public required string TrackMode { get; init; }
         public string? RouterReason { get; init; }
+        public string RouterDecisionType { get; init; } = "routing";
+        public string RouterOutcome { get; init; } = "selected";
+        public bool RouterRequiresApproval { get; init; }
+        public string RouterApprovalStatus { get; init; } = "not_required";
+        public string? PolicySubject { get; init; }
         public required ulong StartTimeUnixNano { get; init; }
     }
+
+    private sealed record EnterprisePolicyDecision(
+        bool Allowed,
+        string Outcome,
+        string ApprovalStatus,
+        string Reason,
+        string Subject);
 
     private sealed class ToolAuditState
     {

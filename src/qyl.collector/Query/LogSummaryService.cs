@@ -9,6 +9,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
 {
     private const int MaxRows = 10_000;
     private const int BatchSize = 500;
+    private static readonly string[] SSeverityOrder = ["trace", "debug", "info", "warn", "error", "fatal"];
 
     private static readonly FrozenDictionary<string, TimeSpan> SWindowDurations =
         new Dictionary<string, TimeSpan>(StringComparer.OrdinalIgnoreCase)
@@ -126,6 +127,60 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             .ThenByDescending(static x => x.LastSeen)
             .Take(50)
             .ToArray();
+    }
+
+    public async Task<LogStatsResponse> BuildStatsAsync(
+        string window,
+        string? serviceName,
+        DateTimeOffset? startTime,
+        DateTimeOffset? endTime,
+        int? minSeverity,
+        string? search,
+        CancellationToken ct)
+    {
+        var now = timeProvider.GetUtcNow();
+        var (after, before) = ResolveTimeRange(window, startTime, endTime);
+        var logs = await FetchLogsAsync(after, before, serviceName, minSeverity, search, ct).ConfigureAwait(false);
+
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal)
+        {
+            ["trace"] = 0,
+            ["debug"] = 0,
+            ["info"] = 0,
+            ["warn"] = 0,
+            ["error"] = 0,
+            ["fatal"] = 0
+        };
+
+        foreach (var log in logs)
+        {
+            var severity = LiveLogProjection.NormalizeSeverity(log.SeverityText, log.SeverityNumber);
+            if (counts.TryGetValue(severity, out var current))
+                counts[severity] = current + 1;
+            else
+                counts[severity] = 1;
+        }
+
+        DateTime? oldestTimestamp = null;
+        DateTime? newestTimestamp = null;
+        if (logs.Count > 0)
+        {
+            oldestTimestamp = TimeConversions.UnixNanoToDateTime(logs.Min(static l => l.TimeUnixNano));
+            newestTimestamp = TimeConversions.UnixNanoToDateTime(logs.Max(static l => l.TimeUnixNano));
+        }
+
+        var bySeverity = SSeverityOrder
+            .Select(x => new LogStatsSeverityCount(x, counts.GetValueOrDefault(x, 0)))
+            .ToArray();
+
+        var effectiveWindow = startTime.HasValue || endTime.HasValue ? "custom" : window;
+        return new LogStatsResponse(
+            effectiveWindow,
+            now.UtcDateTime,
+            logs.Count,
+            oldestTimestamp,
+            newestTimestamp,
+            bySeverity);
     }
 
     public async Task<LogWaitResponse> WaitForLogAsync(LogWaitRequest request, CancellationToken ct)
@@ -472,6 +527,20 @@ internal sealed record LogPatternResponse(
 );
 
 internal sealed record LogPatternSeverityCount(
+    string Severity,
+    int Count
+);
+
+internal sealed record LogStatsResponse(
+    string Window,
+    DateTime GeneratedAt,
+    int TotalCount,
+    DateTime? OldestTimestamp,
+    DateTime? NewestTimestamp,
+    IReadOnlyList<LogStatsSeverityCount> BySeverity
+);
+
+internal sealed record LogStatsSeverityCount(
     string Severity,
     int Count
 );

@@ -181,6 +181,78 @@ public sealed class LogSummaryServiceTests
         Assert.True(pattern.FirstSeen >= now.AddMinutes(-5).UtcDateTime);
     }
 
+    [Fact]
+    public async Task BuildStatsAsync_ReturnsSeverityBucketsAndTimeBounds()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new DuckDbStore(":memory:");
+        var service = new LogSummaryService(store, TimeProvider.System);
+        var now = TimeProvider.System.GetUtcNow();
+
+        await store.InsertLogsAsync(
+        [
+            CreateLog("svc.api", "trace", "trace message", now.AddMinutes(-4), 1),
+            CreateLog("svc.api", "info", "info message", now.AddMinutes(-3), 2),
+            CreateLog("svc.api", "warn", "warn message", now.AddMinutes(-2), 3),
+            CreateLog("svc.api", "error", "error message", now.AddMinutes(-1), 4),
+            CreateLog("svc.api", "fatal", "fatal message", now.AddSeconds(-30), 5)
+        ], ct);
+
+        var stats = await service.BuildStatsAsync(
+            "5m",
+            "svc.api",
+            startTime: null,
+            endTime: null,
+            minSeverity: null,
+            search: null,
+            ct);
+
+        var bySeverity = stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
+        Assert.Equal("5m", stats.Window);
+        Assert.Equal(5, stats.TotalCount);
+        Assert.Equal(1, bySeverity["trace"]);
+        Assert.Equal(0, bySeverity["debug"]);
+        Assert.Equal(1, bySeverity["info"]);
+        Assert.Equal(1, bySeverity["warn"]);
+        Assert.Equal(1, bySeverity["error"]);
+        Assert.Equal(1, bySeverity["fatal"]);
+        Assert.NotNull(stats.OldestTimestamp);
+        Assert.NotNull(stats.NewestTimestamp);
+        Assert.True(stats.NewestTimestamp >= stats.OldestTimestamp);
+    }
+
+    [Fact]
+    public async Task BuildStatsAsync_RespectsFiltersAndExplicitRange()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var store = new DuckDbStore(":memory:");
+        var service = new LogSummaryService(store, TimeProvider.System);
+        var now = TimeProvider.System.GetUtcNow();
+
+        await store.InsertLogsAsync(
+        [
+            CreateLog("svc.api", "error", "timeout at gateway", now.AddMinutes(-3), 1),
+            CreateLog("svc.api", "info", "timeout recovered", now.AddMinutes(-3).AddSeconds(1), 2),
+            CreateLog("svc.worker", "error", "timeout at worker", now.AddMinutes(-3).AddSeconds(2), 3),
+            CreateLog("svc.api", "error", "timeout old event", now.AddMinutes(-20), 4)
+        ], ct);
+
+        var stats = await service.BuildStatsAsync(
+            "5m",
+            "svc.api",
+            startTime: now.AddMinutes(-5),
+            endTime: now,
+            minSeverity: 17,
+            search: "timeout",
+            ct);
+
+        var bySeverity = stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
+        Assert.Equal("custom", stats.Window);
+        Assert.Equal(1, stats.TotalCount);
+        Assert.Equal(1, bySeverity["error"]);
+        Assert.Equal(0, bySeverity["fatal"]);
+    }
+
     private static LogStorageRow CreateLog(
         string service,
         string severityText,

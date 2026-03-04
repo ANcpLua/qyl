@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
 import {
     AlertTriangle,
@@ -213,6 +213,44 @@ function FadeIn({delay = 0, children}: { delay?: number; children: React.ReactNo
     );
 }
 
+function ChartViewport({children}: { children: React.ReactNode }) {
+    const hostRef = useRef<HTMLDivElement | null>(null);
+    const [ready, setReady] = useState(false);
+
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+
+        const checkSize = () => {
+            const {width, height} = host.getBoundingClientRect();
+            setReady(width > 0 && height > 0);
+        };
+
+        const frameId = window.requestAnimationFrame(checkSize);
+
+        if (typeof ResizeObserver === 'undefined') {
+            return () => window.cancelAnimationFrame(frameId);
+        }
+
+        const observer = new ResizeObserver(checkSize);
+        observer.observe(host);
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            observer.disconnect();
+        };
+    }, []);
+
+    return (
+        <div ref={hostRef} className="h-full w-full">
+            {ready ? (
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                    {children}
+                </ResponsiveContainer>
+            ) : null}
+        </div>
+    );
+}
+
 // ── Summary stat cards (always visible above tabs) ────────────────────────────
 
 interface SummaryStats {
@@ -292,7 +330,7 @@ function TrafficPanel({data, isLoading}: { data: TrafficBucket[] | undefined; is
         <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64">
             <PanelHeader title="Traffic" icon={Zap}/>
             <div className="h-[calc(100%-2rem)]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <ComposedChart data={data} margin={{top: 4, right: 8, bottom: 0, left: 0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
                         <XAxis
@@ -350,7 +388,7 @@ function TrafficPanel({data, isLoading}: { data: TrafficBucket[] | undefined; is
                             name="errorRate"
                         />
                     </ComposedChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
         </div>
     );
@@ -365,7 +403,7 @@ function DurationPanel({data, isLoading}: { data: DurationBucket[] | undefined; 
         <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64">
             <PanelHeader title="Latency" icon={Clock}/>
             <div className="h-[calc(100%-2rem)]">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <LineChart data={data} margin={{top: 4, right: 8, bottom: 0, left: 0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
                         <XAxis
@@ -408,7 +446,7 @@ function DurationPanel({data, isLoading}: { data: DurationBucket[] | undefined; 
                             name="p95Ms"
                         />
                     </LineChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
         </div>
     );
@@ -483,7 +521,7 @@ function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading, clas
         <div className={cn('bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col', className)}>
             <PanelHeader title={title} icon={icon}/>
             <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <BarChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
                         <XAxis
@@ -515,7 +553,7 @@ function StackedBarPanel({title, icon, buckets, legend, nameKey, isLoading, clas
                             />
                         ))}
                     </BarChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                 {legend.map((entry, i) => (
@@ -584,7 +622,7 @@ function ModelCostChart({models, timeseries, legend, isLoading}: {
                 </span>
             </div>
             <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <AreaChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
                         <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
                         <XAxis
@@ -620,7 +658,7 @@ function ModelCostChart({models, timeseries, legend, isLoading}: {
                             />
                         ))}
                     </AreaChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
                 {models?.filter(m => m.cost > 0).map((m, i) => (
@@ -693,7 +731,7 @@ function TokenTypesChart({models, isLoading}: { models: ModelSummary[] | undefin
                 </div>
             </div>
             <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <BarChart
                         data={chartData}
                         layout="vertical"
@@ -725,7 +763,7 @@ function TokenTypesChart({models, isLoading}: { models: ModelSummary[] | undefin
                         <Bar dataKey="input" stackId="tokens" fill={INPUT_COLOR} name="input"/>
                         <Bar dataKey="output" stackId="tokens" fill={OUTPUT_COLOR} name="output"/>
                     </BarChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
         </div>
     );
@@ -759,7 +797,7 @@ function ToolErrorsChart({tools, isLoading}: { tools: ToolSummary[] | undefined;
         <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-56 flex flex-col">
             <PanelHeader title="Tool Errors" icon={AlertTriangle}/>
             <div className="flex-1 min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ChartViewport>
                     <BarChart
                         data={chartData}
                         layout="vertical"
@@ -790,7 +828,7 @@ function ToolErrorsChart({tools, isLoading}: { tools: ToolSummary[] | undefined;
                         />
                         <Bar dataKey="errorRate" fill="oklch(0.65 0.25 25)" name="errorRate"/>
                     </BarChart>
-                </ResponsiveContainer>
+                </ChartViewport>
             </div>
         </div>
     );

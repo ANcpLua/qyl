@@ -15,6 +15,10 @@ internal static class LogSummaryEndpoints
             .WithName("GetLogPatterns")
             .WithSummary("Get grouped log message patterns.");
 
+        group.MapGet("/stats", GetStatsAsync)
+            .WithName("GetLogStats")
+            .WithSummary("Get log volume and severity statistics.");
+
         group.MapPost("/wait", WaitForLogAsync)
             .WithName("WaitForLog")
             .WithSummary("Wait until a matching log entry appears (future logs only).");
@@ -109,6 +113,45 @@ internal static class LogSummaryEndpoints
             ct).ConfigureAwait(false);
 
         return Results.Ok(patterns);
+    }
+
+    private static async Task<IResult> GetStatsAsync(
+        LogSummaryService service,
+        string? window,
+        string? serviceName,
+        DateTimeOffset? startTime,
+        DateTimeOffset? endTime,
+        int? minSeverity,
+        string? search,
+        CancellationToken ct)
+    {
+        var selectedWindow = string.IsNullOrWhiteSpace(window) ? "5m" : window;
+        if (startTime is null && !LogSummaryService.IsValidWindow(selectedWindow))
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["window"] = ["Window must be one of: 30s, 1m, 5m, 15m, 1h."]
+            });
+        }
+
+        if (startTime.HasValue && endTime.HasValue && endTime.Value <= startTime.Value)
+        {
+            return Results.ValidationProblem(new Dictionary<string, string[]>
+            {
+                ["endTime"] = ["endTime must be greater than startTime."]
+            });
+        }
+
+        var stats = await service.BuildStatsAsync(
+            selectedWindow,
+            serviceName,
+            startTime,
+            endTime,
+            minSeverity,
+            search,
+            ct).ConfigureAwait(false);
+
+        return Results.Ok(stats);
     }
 
     private static async Task<IResult> WaitForLogAsync(
