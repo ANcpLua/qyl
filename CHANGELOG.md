@@ -5,6 +5,7 @@
 ### Added
 - **Coding Agent Provider system**: Pluggable coding agent backends for autofix pipeline (Seer, Cursor, GitHub Copilot, Claude Code). Enum, DuckDB schema (`coding_agent_runs`, `seer_settings` tables), REST endpoints (`/api/v1/fix-runs/{id}/coding-agents`, `/api/v1/seer/settings`), React Query hooks, 3 UI components (`ClaudeCodeIntegrationCta`, `CodingAgentResultCard`, `SeerSettingsSection`), Seer tab in Settings, coding agent section in Issue Detail page. No `branch_name` display, provider-aware button text ("Open in Cursor" / "Open in Claude Code")
 - **Playwright E2E tests**: smoke test suite (`e2e/smoke.spec.ts`) covering health endpoint, sidebar navigation, time range selector, theme toggle, search input, and settings page; `npm run e2e` / `npm run e2e:ui` scripts
+- **Expanded dashboard smoke coverage**: compatibility endpoint reachability (`/api/v1/traces`, `/api/v1/genai/*`, `/api/v1/search/query`), onboarding verify endpoint assertions, `/api/v1/logs/live` stream availability, keyboard shortcut navigation/modal checks, and external APIs header/collapse semantics
 - **Browser → Server trace correlation via `session.id`**: every OTLP payload from the browser SDK includes a `session.id` resource attribute (32-char hex, generated once per `init()`), grouping all telemetry from one browser tab without forcing a single mega-trace
 - Per-interaction trace model: each web vital, navigation, click, and fetch gets its own trace; `session.id` on the resource handles session grouping
 - Error logs now include `traceId` and `spanId` for correlation
@@ -20,6 +21,9 @@
 ### Changed
 - **Microsoft.Agents.AI upgrade**: `Microsoft.Agents.AI.Abstractions` → `1.0.0-rc2`, `Microsoft.Agents.AI.GitHub.Copilot` → `1.0.0-preview.260225.1` (split version variable for independent cadence)
 - **Anthropic default model**: `claude-sonnet-4-20250514` → `claude-sonnet-4-6` in `LlmProviderFactory`
+- **Dashboard keyboard shortcuts aligned with UI hints**: `S` now routes to Seer (instead of structured logs alias), and shortcut docs/modal reflect runtime behavior
+- **Live stream status robustness**: dashboard now parses both typed SSE envelope payloads and legacy event payloads for `/api/v1/live`, restoring reliable `LIVE`/connection status transitions
+- **Seer API resilience**: `/api/v1/regressions` mapping is enabled and Seer feed endpoints return `200` with empty payloads when optional storage tables are not initialized
 - Auth unification: GitHub is now the only identity provider (removed cookie-based login)
 - StartupBanner shows GitHub connect hint instead of login token
 - Browser SDK `context.ts` now manages session context (`initSessionContext`, `getSessionId`)
