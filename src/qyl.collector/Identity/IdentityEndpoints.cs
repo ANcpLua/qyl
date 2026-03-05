@@ -100,9 +100,10 @@ public static class IdentityEndpoints
         // --- Environment sub-routes under project ---
 
         group.MapGet("/{workspaceId}/projects/{projectId}/environments", static async (
-            string _, string projectId,
+            string workspaceId, string projectId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
             var envs = await service.ListEnvironmentsAsync(projectId, ct);
             return Results.Ok(new { items = envs, total = envs.Count });
         });
@@ -125,6 +126,8 @@ public static class IdentityEndpoints
             string workspaceId, string projectId, string environmentId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
+            ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
             var deleted = await service.DeleteEnvironmentAsync(environmentId, ct);
             return deleted ? Results.NoContent() : Results.NotFound();
         });
