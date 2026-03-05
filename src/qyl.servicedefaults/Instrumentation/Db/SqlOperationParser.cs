@@ -33,13 +33,8 @@ internal static class SqlOperationParser
     /// <param name="sql">The SQL statement to parse.</param>
     /// <returns>The operation name (SELECT, INSERT, UPDATE, DELETE, etc.) or null if unparseable.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? TryParse(string? sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return null;
-
-        return TryParseCore(sql.AsSpan());
-    }
+    public static string? TryParse(string? sql) =>
+        string.IsNullOrWhiteSpace(sql) ? null : TryParseCore(sql.AsSpan());
 
     /// <summary>
     ///     Attempts to extract the primary table/collection name from a SQL statement.
@@ -47,13 +42,8 @@ internal static class SqlOperationParser
     /// <param name="sql">The SQL statement to parse.</param>
     /// <returns>The collection (table) name or null if unparseable.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static string? TryParseCollectionName(string? sql)
-    {
-        if (string.IsNullOrWhiteSpace(sql))
-            return null;
-
-        return TryParseCollectionNameCore(sql.AsSpan());
-    }
+    public static string? TryParseCollectionName(string? sql) =>
+        string.IsNullOrWhiteSpace(sql) ? null : TryParseCollectionNameCore(sql.AsSpan());
 
     /// <summary>
     ///     Core parsing logic using ReadOnlySpan for zero-allocation.
@@ -488,9 +478,6 @@ internal static class SqlOperationParser
         if (StartsWithKeyword(sql, "COMMIT"))
             return "COMMIT";
 
-        if (StartsWithKeyword(sql, "ROLLBACK"))
-            return "ROLLBACK";
-
-        return null;
+        return StartsWithKeyword(sql, "ROLLBACK") ? "ROLLBACK" : null;
     }
 }

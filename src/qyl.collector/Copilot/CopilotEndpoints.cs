@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using Microsoft.Extensions.AI;
 using qyl.copilot;
 using qyl.copilot.Auth;
@@ -974,7 +973,7 @@ internal static class CopilotEndpoints
         AddRolesFromRawValue(claims, "realm_access", roles);
 
         foreach (var key in claims.Keys.Where(static k =>
-                     k.Contains("role", StringComparison.OrdinalIgnoreCase)))
+                     k.ContainsIgnoreCase("role")))
         {
             AddRolesFromRawValue(claims, key, roles);
         }
@@ -994,7 +993,7 @@ internal static class CopilotEndpoints
 
         raw = raw.Trim();
 
-        if (raw.StartsWith("{", StringComparison.Ordinal))
+        if (raw.StartsWithOrdinal("{"))
         {
             try
             {
@@ -1018,7 +1017,7 @@ internal static class CopilotEndpoints
             return;
         }
 
-        if (raw.StartsWith("[", StringComparison.Ordinal))
+        if (raw.StartsWithOrdinal("["))
         {
             try
             {
@@ -1048,20 +1047,12 @@ internal static class CopilotEndpoints
         }
     }
 
-    private static string? MergeReasons(string? primary, string? secondary)
-    {
-        if (string.IsNullOrWhiteSpace(primary))
-        {
-            return string.IsNullOrWhiteSpace(secondary) ? null : secondary.Trim();
-        }
-
-        if (string.IsNullOrWhiteSpace(secondary))
-        {
-            return primary.Trim();
-        }
-
-        return $"{primary.Trim()} {secondary.Trim()}";
-    }
+    private static string? MergeReasons(string? primary, string? secondary) =>
+        string.IsNullOrWhiteSpace(primary)
+            ? string.IsNullOrWhiteSpace(secondary) ? null : secondary.Trim()
+            : string.IsNullOrWhiteSpace(secondary)
+                ? primary.Trim()
+                : $"{primary.Trim()} {secondary.Trim()}";
 
     private static AgentDecisionRecord CreateRouterDecision(AgentRunAuditContext context) =>
         new()
@@ -1090,22 +1081,13 @@ internal static class CopilotEndpoints
             .Where(static d => d.RequiresApproval)
             .ToArray();
 
-        if (approvalDecisions.Length is 0)
-        {
-            return "not_required";
-        }
-
-        if (approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "denied", StringComparison.OrdinalIgnoreCase)))
-        {
-            return "denied";
-        }
-
-        if (approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "awaiting_approval", StringComparison.OrdinalIgnoreCase)))
-        {
-            return "awaiting_approval";
-        }
-
-        return "approved";
+        return approvalDecisions.Length is 0
+            ? "not_required"
+            : approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "denied", StringComparison.OrdinalIgnoreCase))
+                ? "denied"
+                : approvalDecisions.Any(static d => string.Equals(d.ApprovalStatus, "awaiting_approval", StringComparison.OrdinalIgnoreCase))
+                    ? "awaiting_approval"
+                    : "approved";
     }
 
     private static ulong ToUnixNano(DateTimeOffset timestamp)
@@ -1114,36 +1096,21 @@ internal static class CopilotEndpoints
         return TimeConversions.ToUnixNanoUnsigned(value);
     }
 
-    private static bool IsApprovalRequiredTool(string? toolName, string trackMode)
-    {
-        if (string.Equals(trackMode, "enterprise", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
-
-        if (string.IsNullOrWhiteSpace(toolName))
-        {
-            return false;
-        }
-
-        return s_sensitiveToolKeywords.Any(k => toolName.Contains(k, StringComparison.OrdinalIgnoreCase));
-    }
+    private static bool IsApprovalRequiredTool(string? toolName, string trackMode) =>
+        string.Equals(trackMode, "enterprise", StringComparison.OrdinalIgnoreCase)
+        || (!string.IsNullOrWhiteSpace(toolName)
+            && s_sensitiveToolKeywords.Any(toolName.ContainsIgnoreCase));
 
     private static bool IsDeniedToolResult(StreamUpdate update)
     {
         var text = $"{update.Error} {update.ToolResult}";
-        return s_deniedKeywords.Any(k => text.Contains(k, StringComparison.OrdinalIgnoreCase));
+        return s_deniedKeywords.Any(text.ContainsIgnoreCase);
     }
 
-    private static string BuildToolDecisionReason(string? toolName, StreamUpdate update, string outcome)
-    {
-        if (!string.IsNullOrWhiteSpace(update.Error))
-        {
-            return $"Tool '{toolName}' ended with error: {update.Error}";
-        }
-
-        return $"Tool '{toolName}' outcome: {outcome}.";
-    }
+    private static string BuildToolDecisionReason(string? toolName, StreamUpdate update, string outcome) =>
+        !string.IsNullOrWhiteSpace(update.Error)
+            ? $"Tool '{toolName}' ended with error: {update.Error}"
+            : $"Tool '{toolName}' outcome: {outcome}.";
 
     private static string? BuildEvidenceJson(string? traceId, string runId, string? toolName = null)
     {

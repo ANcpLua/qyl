@@ -151,17 +151,12 @@ public static class TrackModeRouter
     public static string? MergeSystemPrompt(string? systemPrompt, TrackMode mode)
     {
         var modePrompt = BuildModeSystemPrompt(mode);
-        if (string.IsNullOrWhiteSpace(modePrompt))
-        {
-            return string.IsNullOrWhiteSpace(systemPrompt) ? null : systemPrompt;
-        }
 
-        if (string.IsNullOrWhiteSpace(systemPrompt))
-        {
-            return modePrompt;
-        }
-
-        return $"{systemPrompt.Trim()}\n\n{modePrompt}";
+        return string.IsNullOrWhiteSpace(modePrompt)
+            ? string.IsNullOrWhiteSpace(systemPrompt) ? null : systemPrompt
+            : string.IsNullOrWhiteSpace(systemPrompt)
+                ? modePrompt
+                : $"{systemPrompt.Trim()}\n\n{modePrompt}";
     }
 
     /// <summary>
@@ -185,21 +180,16 @@ public static class TrackModeRouter
     /// </summary>
     public static string ToWireValue(TrackMode mode) => mode.ToString().ToLowerInvariant();
 
-    private static string BuildSearchText(string? intentText, string? additionalContext)
-    {
-        if (string.IsNullOrWhiteSpace(intentText) && string.IsNullOrWhiteSpace(additionalContext))
-        {
-            return string.Empty;
-        }
-
-        return $"{intentText ?? string.Empty}\n{additionalContext ?? string.Empty}";
-    }
+    private static string BuildSearchText(string? intentText, string? additionalContext) =>
+        string.IsNullOrWhiteSpace(intentText) && string.IsNullOrWhiteSpace(additionalContext)
+            ? string.Empty
+            : $"{intentText ?? string.Empty}\n{additionalContext ?? string.Empty}";
 
     private static bool ContainsAny(string text, string[] keywords, out string matchedKeyword)
     {
         foreach (var keyword in keywords)
         {
-            if (text.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+            if (text.ContainsIgnoreCase(keyword))
             {
                 matchedKeyword = keyword;
                 return true;

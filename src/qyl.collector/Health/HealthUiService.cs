@@ -236,13 +236,11 @@ public sealed class HealthUiService(
         return new ComponentHealth { Name = "ingestion", Status = status, Message = message, Data = data };
     }
 
-    internal static HealthStatus DetermineOverallStatus(IReadOnlyList<ComponentHealth> components)
-    {
-        if (components.Any(static c => c.Status == HealthStatus.Unhealthy))
-            return HealthStatus.Unhealthy;
-        if (components.Any(static c => c.Status == HealthStatus.Degraded))
-            return HealthStatus.Degraded;
-        return HealthStatus.Healthy;
-    }
+    internal static HealthStatus DetermineOverallStatus(IReadOnlyList<ComponentHealth> components) =>
+        components.Any(static c => c.Status == HealthStatus.Unhealthy)
+            ? HealthStatus.Unhealthy
+            : components.Any(static c => c.Status == HealthStatus.Degraded)
+                ? HealthStatus.Degraded
+                : HealthStatus.Healthy;
 
 }

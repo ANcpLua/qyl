@@ -484,17 +484,13 @@ public static class OtlpConverter
         _ => 0 // UNSET
     };
 
-    private static long? ParseNullableLong(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return null;
-        return value.TryParseInt64();
-    }
+    private static long? ParseNullableLong(string? value) =>
+        string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
 
-    private static double? ParseNullableDouble(string? value)
-    {
-        if (string.IsNullOrEmpty(value)) return null;
-        return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
-    }
+    private static double? ParseNullableDouble(string? value) =>
+        string.IsNullOrEmpty(value)
+            ? null
+            : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
 
     #endregion
 

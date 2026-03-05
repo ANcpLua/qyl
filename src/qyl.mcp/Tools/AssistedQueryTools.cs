@@ -96,9 +96,8 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
 
         // Fallback: try to find a SELECT statement
         int selectIdx = text.IndexOfIgnoreCase("SELECT");
-        if (selectIdx >= 0)
-            return text[selectIdx..].Trim().TrimEnd(';', '`', '\n', '\r');
-
-        return "";
+        return selectIdx >= 0
+            ? text[selectIdx..].Trim().TrimEnd(';', '`', '\n', '\r')
+            : "";
     }
 }

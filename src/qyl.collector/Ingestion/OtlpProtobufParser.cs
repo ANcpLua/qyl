@@ -24,12 +24,8 @@ public static class OtlpProtobufParser
     /// </summary>
     /// <param name="data">The protobuf-encoded request body.</param>
     /// <returns>The parsed ExportTraceServiceRequest.</returns>
-    public static ExportTraceServiceRequest Parse(ReadOnlyMemory<byte> data)
-    {
-        var request = new ExportTraceServiceRequest();
-        request.MergeFrom(new ReadOnlySequence<byte>(data));
-        return request;
-    }
+    public static ExportTraceServiceRequest Parse(ReadOnlyMemory<byte> data) =>
+        Parse(new ReadOnlySequence<byte>(data));
 
     /// <summary>
     ///     Parses an ExportTraceServiceRequest from a protobuf-encoded ReadOnlySequence.
@@ -69,12 +65,7 @@ public static class OtlpProtobufParser
     /// </summary>
     /// <param name="contentType">The Content-Type header value.</param>
     /// <returns>True if the content type indicates protobuf.</returns>
-    public static bool IsProtobufContentType(string? contentType)
-    {
-        if (string.IsNullOrEmpty(contentType))
-            return false;
-
-        // Handle content types like "application/x-protobuf" or "application/x-protobuf; charset=utf-8"
-        return contentType.StartsWithIgnoreCase(ContentType);
-    }
+    // Handle content types like "application/x-protobuf" or "application/x-protobuf; charset=utf-8"
+    public static bool IsProtobufContentType(string? contentType) =>
+        !string.IsNullOrEmpty(contentType) && contentType.StartsWithIgnoreCase(ContentType);
 }
