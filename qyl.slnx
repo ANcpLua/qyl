@@ -16,6 +16,7 @@
     <!-- Build infrastructure + schemas -->
     <Folder Name="/eng/">
         <File Path="eng\semconv\qyl-extensions.json" />
+        <File Path="eng\websocket.md" />
         <Project Path="eng/build/build.csproj" />
         <File Path="eng/build.cmd" />
         <File Path="eng/build.ps1" />
@@ -93,7 +94,6 @@
         <File Path="docs/copy.preferences.md" />
         <File Path="docs/verify-catalog-docs.sh" />
         <File Path="docs/PRINCIPLES.md" />
-        <File Path="docs\img.png" />
     </Folder>
 
     <!-- GitHub config -->

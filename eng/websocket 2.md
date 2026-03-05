@@ -530,3 +530,44 @@ hyped about the small API change. Yeah.
 Thank you all for nerding out with me. I
 hope you enjoy this as much as I do.
 Until next time, peace nerds.
+
+
+## A Deep Dive into Websockets, State, and the OpenAI API Shift
+
+Intro
+- This descriptive summary explore a detailed technical fever dream: how a shift from REST to WebSockets could redefine how AI agents manage context, cache results, and talk to GPUs across vast, distributed infrastructures.
+- The author blends networking nerdcraft with practical AI behavior to argue that the real win is maintaining state across long agent runs, not just faster token generation.
+
+Center
+<div align="center">
+  <em>Key concepts and takeaways</em>
+  <ul>
+    <li><strong>Context and prompts:</strong> The system prompt, user input, and successive tool calls compose a growing, tool-driven dialogue. Every tool invocation returns results that must be reintegrated into the conversation history.</li>
+    <li><strong>Stateless vs. stateful:</strong> Traditional APIs reset context between requests, forcing replays of the entire history. A truly stateful connection preserves context, dramatically reducing redundant data transfers.</li>
+    <li><strong>Tool calls and history:</strong> Each tool call emits a full history back to the AI for continuation. This heavy, repeated payload is both expensive and bandwidth-intensive.</li>
+    <li><strong>Caching and compaction:</strong> Caching reduces compute by reusing prior results but does not reduce the data sent. Compaction summarizes history, yet it undermines cache effectiveness by shortening the history.</li>
+    <li><strong>Architectural bottlenecks:</strong> Routing through a large fleet of API boxes and GPUs forces every request to retread checks (permissions, cache hits) and rehydrate state, which inflates latency and bandwidth.</li>
+    <li><strong>WebSockets as a guarantee, not a miracle:</strong> The primary value is maintaining a persistent session with a single API box, allowing continued stateful interaction and minimized data transfer per turn.</li>
+    <li><strong>Open standards:</strong> OpenAI’s responses API and the emerging Open responses standard promote consistent inputs/outputs; websocket integration is anticipated to mature into a shared baseline.</li>
+  </ul>
+</div>
+
+Table: comparing workflows
+| Aspect | REST (stateless) | WebSocket (stateful) |
+|---|---|---|
+| Context handling | Re-sent per turn | Maintains session context |
+| Tool calls | Full history re-sent each time | Only new inputs; reuse of prior state |
+| Data transfer | High, repeated | Lower, incremental |
+| Caching impact | Partial gains | Greater efficiency via persistence |
+| Latency | Higher due to repeats | Lower with persistent route |
+| Complexity | Simpler backend, heavier client work | More complex orchestration, but faster runs |
+
+- The video’s longer argument emphasizes how the logistics of OpenAI’s API orchestration layers—where requests travel through multiple boxes and GPUs—create nontrivial inefficiencies when every turn revalidates the entire history.
+- In practice, websockets could ensure that subsequent tool calls and follow-ups hit the same backend box, avoiding repeated state reconciliation, and enabling immediate GPU feeding and token generation.
+- The author highlights that this is not merely about speed; it is about reshaping the entire stack—from networking to how we store and retrieve code in Git—toward a more principled, stateful model of conversation with AI agents.
+- OpenAI’s approach, openness to standardization, and potential widespread adoption could set a durable baseline for agentic tools across vendors, including anthropic and Gemini.
+
+Outro
+- The takeaway is exciting: a seemingly modest API change unlocks outsized gains in efficiency for long-running agent workflows.
+- The writer believes we are just beginning to rethink foundational assumptions and that this shift will catalyze broad, creative improvements across the entire AI stack.
+- _Thank you for nerding out with me_; the future of stateful AI conversations is bright, practical, and ready for rapid iteration.
