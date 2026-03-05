@@ -61,6 +61,7 @@ yarn-error.log*
 
 # Frontend build output
 dist/
+dist-extension/
 .vite/
 
 # OS files
@@ -126,6 +127,7 @@ QA*.md
 
 # Research screenshots
 images/
+*.png
 /eng/Benchmark.Large/Benchmark.cs
 /eng/Benchmark.Large/Benchmark.Large.csproj
 /eng/Benchmark.Large/Program.cs

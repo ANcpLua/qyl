@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #e0e0e0;
+      padding: 16px;
+    }
+    h1 {
+      font-size: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status {
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .status.configured { background: #1b4332; color: #95d5b2; }
+    .status.not-configured { background: #3d0000; color: #ff8a8a; }
+    label {
+      display: block;
+      font-size: 12px;
+      color: #999;
+      margin: 10px 0 4px;
+    }
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      background: #16213e;
+      color: #e0e0e0;
+      font-size: 13px;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: #5c6bc0; }
+    .endpoint-row { display: none; }
+    .endpoint-row.visible { display: block; }
+    button {
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      background: #5c6bc0;
+      color: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button:hover { background: #7986cb; }
+    .saved {
+      text-align: center;
+      font-size: 12px;
+      color: #95d5b2;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .saved.show { opacity: 1; }
+  </style>
+</head>
+<body>
+  <h1>qyl AI Actions</h1>
+  <div id="status" class="status not-configured">Not configured</div>
+
+  <label for="provider">AI Provider</label>
+  <select id="provider">
+    <option value="openai">OpenAI</option>
+    <option value="anthropic">Anthropic</option>
+    <option value="ollama">Ollama (local)</option>
+  </select>
+
+  <label for="apiKey">API Key</label>
+  <input id="apiKey" type="password" placeholder="sk-..." autocomplete="off">
+
+  <label for="model">Model</label>
+  <select id="model">
+    <option value="">Loading models...</option>
+  </select>
+
+  <div id="endpointRow" class="endpoint-row">
+    <label for="endpoint">Endpoint</label>
+    <input id="endpoint" type="url" placeholder="http://localhost:11434">
+  </div>
+
+  <button id="save">Save</button>
+  <div id="saved" class="saved">Settings saved</div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>
