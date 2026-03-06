@@ -92,8 +92,7 @@ forbidden:
 |-----|---------|
 | `docs/plans/2026-03-03-qyl-agui-declarative-design.md` | AG-UI + declarative workflows design (approved) |
 | `docs/plans/2026-03-03-qyl-agui-declarative-impl.md` | AG-UI implementation plan |
-| `docs/roadmap/seer-design.md` | Sentry Seer reverse-engineered spec (reference) |
-| `docs/plans/seer` | Seer-inspired enterprise agent framework spec |
+| `docs/roadmap/loom-design.md` | Sentry Loom reverse-engineered spec + qyl implementation evidence |
 
 ## Requests to Humans
 

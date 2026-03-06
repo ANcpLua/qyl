@@ -1,10 +1,10 @@
-  # Seer Design Specification
+# Loom Design Specification
 
 **Reverse-Engineered from Public Sources**
 
 | Field | Value |
 |-------|-------|
-| Subject | Sentry Seer AI Debugging Agent |
+| Subject | Sentry Loom AI Debugging Agent |
 | Version | 1.0 (March 2026) |
 | Method | Requirements engineering on open-source breadcrumbs |
 | Sources | `getsentry/sentry` PRs, issues, code; `docs.sentry.io`; Sentry blog; API surface |
@@ -37,7 +37,23 @@ to the confidence tags above:
 | `EXTERNAL-CLOSED` | Known unknowns in external closed-source systems. |
 | `NOT-PLANNED` | Explicitly excluded from qyl architecture and roadmap. |
 
-See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
+Closed-source Sentry internals remain non-inspectable, but qyl implements its own
+open Loom-like backend surface (triage, autofix, code review, handoff, regression,
+webhook ingestion, dashboard, and MCP tooling).
+
+### Implementation Evidence in qyl
+
+| Capability | Status | Evidence |
+|---|---|---|
+| Endpoint families for Loom-like workflows | Implemented | `Program.cs` maps `MapAutofixEndpoints`, `MapRegressionEndpoints`, `MapAgentHandoffEndpoints`, `MapCodeReviewEndpoints`, `MapGitHubWebhookEndpoints`, `MapLoomSettingsEndpoints`, `MapTriageEndpoints`. |
+| Autofix pipeline | Implemented | `AutofixAgentService.cs`, `AutofixOrchestrator.cs`, `AutofixEndpoints.cs`, `DuckDbStore.Autofix*.cs`. |
+| Fixability scoring and triage | Implemented | `TriagePipelineService.cs`, `TriagePrompts.cs`, `TriageEndpoints.cs`, `DuckDbSchema.Triage.cs`. |
+| Code review endpoints and service | Implemented | `CodeReviewEndpoints.cs`, `CodeReviewService.cs`, `CodeReviewPrompt.cs`. |
+| GitHub webhook ingestion + signature validation | Implemented | `GitHubWebhookEndpoints.cs` (`X-Hub-Signature-256`, `HMACSHA256`). |
+| Agent handoff lifecycle | Implemented | `AgentHandoffEndpoints.cs`, `AgentHandoffService.cs`, `DuckDbStore.Handoff.cs`. |
+| Regression detection and querying | Implemented | `RegressionDetectionService.cs`, `RegressionEndpoints.cs`, `DuckDbStore.Regressions.cs`. |
+| Dashboard/UI for Loom flows | Implemented | `LoomDashboardPage.tsx`, `IssueTriagePage.tsx`, `IssueFixRunsPage.tsx`, `CodeReviewPage.tsx`. |
+| MCP tooling for Loom flows | Implemented | `AutofixMcpTools.cs`, `TriageTools.cs`, `RegressionTools.cs`, `GitHubMcpTools.cs`, `AgentHandoffTools.cs`, `AssistedQueryTools.cs`, `TestGenerationTools.cs`. |
 
 ---
 
@@ -52,7 +68,7 @@ See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation
    - 4.3 [Fixability Scoring](#43-fixability-scoring)
    - 4.4 [Root Cause Analysis](#44-root-cause-analysis)
    - 4.5 [Autofix Pipeline](#45-autofix-pipeline)
-   - 4.6 [AI Code Review (Seer Prevent)](#46-ai-code-review-seer-prevent)
+   - 4.6 [AI Code Review (Loom Prevent)](#46-ai-code-review-Loom-prevent)
    - 4.7 [Explorer (Interactive Agent)](#47-explorer-interactive-agent)
    - 4.8 [Anomaly Detection](#48-anomaly-detection)
    - 4.9 [Trace Summarization](#49-trace-summarization)
@@ -61,8 +77,8 @@ See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation
 5. [Coding Agent Providers](#5-coding-agent-providers)
 6. [API Surface](#6-api-surface)
    - 6.1 [Public REST API](#61-public-rest-api)
-   - 6.2 [Seer Service Endpoints (Sentry -> Seer)](#62-seer-service-endpoints-sentry---seer)
-   - 6.3 [RPC Bridge (Seer -> Sentry)](#63-rpc-bridge-seer---sentry)
+   - 6.2 [Loom Service Endpoints (Sentry -> Loom)](#62-Loom-service-endpoints-sentry---Loom)
+   - 6.3 [RPC Bridge (Loom -> Sentry)](#63-rpc-bridge-Loom---sentry)
    - 6.4 [MCP Server](#64-mcp-server)
 7. [Data Layer](#7-data-layer)
 8. [Configuration & Feature Flags](#8-configuration--feature-flags)
@@ -79,17 +95,17 @@ See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation
 
 | Term | Definition |
 |------|-----------|
-| **Seer** | Sentry's AI debugging agent. Umbrella name for all ML/AI features in the platform. |
-| **Seer Prevent** | Internal codename for the AI Code Review subsystem. |
+| **Loom** | Sentry's AI debugging agent. Umbrella name for all ML/AI features in the platform. |
+| **Loom Prevent** | Internal codename for the AI Code Review subsystem. |
 | **Autofix** | The automated issue-fixing pipeline (root cause -> solution -> code changes -> PR). |
 | **Explorer** | The interactive agentic debugging interface (formerly the `Cmd+/` chat). |
 | **Fixability Score** | A 0.0-1.0 score predicting whether an issue can be automatically fixed. GPU-computed. |
 | **Supergroup** | Cross-issue semantic grouping triggered from Explorer RCA results. |
-| **GroupHashMetadata** | Sentry model storing per-hash Seer state (embedding date, model version, match distance). |
-| **SeerOperator** | Internal orchestrator connecting entrypoints (Slack, web) to Seer lifecycle events. |
+| **GroupHashMetadata** | Sentry model storing per-hash Loom state (embedding date, model version, match distance). |
+| **LoomOperator** | Internal orchestrator connecting entrypoints (Slack, web) to Loom lifecycle events. |
 | **Triage Signals** | The automation pipeline that decides whether to scan, summarize, and autofix an issue. |
-| **Coding Agent** | External service that receives Seer's analysis and generates code changes (Seer built-in, Cursor, GitHub Copilot, Claude Code). |
-| **HMAC-SHA256** | Authentication scheme used for all Sentry <-> Seer HTTP communication. |
+| **Coding Agent** | External service that receives Loom's analysis and generates code changes (Loom built-in, Cursor, GitHub Copilot, Claude Code). |
+| **HMAC-SHA256** | Authentication scheme used for all Sentry <-> Loom HTTP communication. |
 | **pgvector** | PostgreSQL extension used for embedding storage and HNSW nearest-neighbor search. |
 | **HNSW** | Hierarchical Navigable Small World — approximate nearest neighbor index algorithm. |
 | **Flagpole** | Sentry's feature flag evaluation system. |
@@ -100,7 +116,7 @@ See reconciliation note: [seer-scope-reconciliation](./seer-scope-reconciliation
 
 **CONFIRMED**
 
-Seer is a **separate service** from the Sentry monolith. It runs as multiple specialized microservices (pods), each handling a different ML/AI workload. The Sentry Django application acts as the frontend, data provider, and orchestrator, while Seer services perform the actual inference.
+Loom is a **separate service** from the Sentry monolith. It runs as multiple specialized microservices (pods), each handling a different ML/AI workload. The Sentry Django application acts as the frontend, data provider, and orchestrator, while Loom services perform the actual inference.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -122,7 +138,7 @@ Seer is a **separate service** from the Sentry monolith. It runs as multiple spe
                         │                              │
                         ▼                              │
 ┌───────────────────────────────────────────────────────┐
-│                 Seer Service Cluster                   │
+│                 Loom Service Cluster                   │
 │                                                        │
 │  ┌──────────┐  ┌──────────────┐  ┌─────────────────┐  │
 │  │ Autofix  │  │Summarization │  │Anomaly Detection│  │
@@ -136,20 +152,20 @@ Seer is a **separate service** from the Sentry monolith. It runs as multiple spe
 │  │  Code    │  Runtime: Python 3.11, gRPC + Gunicorn   │
 │  │  Review  │  Queue: Celery + RabbitMQ                │
 │  │   Pod    │  Storage: PostgreSQL + pgvector           │
-│  └──────────┘  Models: GCS gs://sentry-ml/seer/models  │
+│  └──────────┘  Models: GCS gs://sentry-ml/Loom/models  │
 │                Observability: Langfuse                  │
 └───────────────────────────────────────────────────────┘
 ```
 
 ### Communication Pattern
 
-**CONFIRMED** — All Sentry-to-Seer calls use `make_signed_seer_api_request()` with:
+**CONFIRMED** — All Sentry-to-Loom calls use `make_signed_Loom_api_request()` with:
 - HMAC-SHA256 signing via `SEER_API_SHARED_SECRET`
 - `Authorization: Rpcsignature rpc0:{signature}` header
 - Optional `X-Viewer-Context` + `X-Viewer-Context-Signature` for audit trails
 - urllib3 connection pooling (migrated from `requests.post` in Feb-Mar 2026)
 
-**CONFIRMED** — Seer-to-Sentry callbacks use `OrganizationSeerRpcEndpoint` at `/api/0/internal/seer-rpc/` with `SEER_RPC_SHARED_SECRET`.
+**CONFIRMED** — Loom-to-Sentry callbacks use `OrganizationLoomRpcEndpoint` at `/api/0/internal/Loom-rpc/` with `SEER_RPC_SHARED_SECRET`.
 
 ---
 
@@ -159,13 +175,13 @@ Seer is a **separate service** from the Sentry monolith. It runs as multiple spe
 
 | Service | Setting | Connection Pool | Purpose |
 |---------|---------|----------------|---------|
-| Autofix/Explorer | `SEER_AUTOFIX_URL` | `seer_autofix_default_connection_pool` | Autofix, explorer, code review routing, project preferences, models, assisted query |
-| Summarization | `SEER_SUMMARIZATION_URL` | `seer_summarization_default_connection_pool` | Issue + trace summaries |
-| Anomaly Detection | `SEER_ANOMALY_DETECTION_URL` | `seer_anomaly_detection_default_connection_pool` | Time-series anomaly detection |
-| Grouping | `SEER_GROUPING_URL` | `seer_grouping_connection_pool` | Embedding-based similar issue detection |
-| Breakpoint Detection | `SEER_BREAKPOINT_DETECTION_URL` | `seer_breakpoint_connection_pool` | Performance regression detection |
+| Autofix/Explorer | `SEER_AUTOFIX_URL` | `Loom_autofix_default_connection_pool` | Autofix, explorer, code review routing, project preferences, models, assisted query |
+| Summarization | `SEER_SUMMARIZATION_URL` | `Loom_summarization_default_connection_pool` | Issue + trace summaries |
+| Anomaly Detection | `SEER_ANOMALY_DETECTION_URL` | `Loom_anomaly_detection_default_connection_pool` | Time-series anomaly detection |
+| Grouping | `SEER_GROUPING_URL` | `Loom_grouping_connection_pool` | Embedding-based similar issue detection |
+| Breakpoint Detection | `SEER_BREAKPOINT_DETECTION_URL` | `Loom_breakpoint_connection_pool` | Performance regression detection |
 | Scoring (GPU) | `SEER_SCORING_URL` | `fixability_connection_pool_gpu` | Fixability scoring |
-| Code Review | `SEER_PREVENT_AI_URL` | `seer_code_review_connection_pool` | AI code review (Seer Prevent) |
+| Code Review | `SEER_PREVENT_AI_URL` | `Loom_code_review_connection_pool` | AI code review (Loom Prevent) |
 
 **INFERRED** — At minimum 7 distinct URL configurations, suggesting either 7 separate deployments or route-based load balancing across fewer physical services.
 
@@ -177,7 +193,7 @@ Seer is a **separate service** from the Sentry monolith. It runs as multiple spe
 
 **CONFIRMED**
 
-When a new event arrives that does not match existing groups by hash, Sentry calls Seer to check if the stacktrace is semantically similar to existing groups.
+When a new event arrives that does not match existing groups by hash, Sentry calls Loom to check if the stacktrace is semantically similar to existing groups.
 
 | Property | Value | Confidence |
 |----------|-------|------------|
@@ -197,17 +213,17 @@ When a new event arrives that does not match existing groups by hash, Sentry cal
 
 | Field | Purpose |
 |-------|---------|
-| `seer_date_sent` | When the hash was sent to Seer |
-| `seer_event_sent` | Which event's stacktrace was sent |
-| `seer_model` | Model version used |
-| `seer_matched_grouphash` | FK to the matched group's hash |
-| `seer_match_distance` | Similarity distance score |
-| `seer_latest_training_model` | Tracks latest training-mode model version |
+| `Loom_date_sent` | When the hash was sent to Loom |
+| `Loom_event_sent` | Which event's stacktrace was sent |
+| `Loom_model` | Model version used |
+| `Loom_matched_grouphash` | FK to the matched group's hash |
+| `Loom_match_distance` | Similarity distance score |
+| `Loom_latest_training_model` | Tracks latest training-mode model version |
 
 **Filtering criteria** (INFERRED):
 - Event must have a stacktrace and a usable title
 - Token count filtering replaced frame count filtering (PR #103997)
-- Killswitch options: global Seer killswitch + similarity-specific killswitch
+- Killswitch options: global Loom killswitch + similarity-specific killswitch
 
 ---
 
@@ -248,15 +264,15 @@ A GPU-backed service scores each issue on a 0.0-1.0 scale to determine automatio
 
 **CONFIRMED**
 
-The first stage of the autofix pipeline. Seer analyzes the issue, telemetry, and stacktraces to determine the root cause.
+The first stage of the autofix pipeline. Loom analyzes the issue, telemetry, and stacktraces to determine the root cause.
 
 | Property | Value | Confidence |
 |----------|-------|------------|
 | Input data | Error messages, stack traces, distributed traces, structured logs, performance profiles, source code | CONFIRMED (docs) |
 | Multi-repo | Can analyze across multiple linked GitHub repos | CONFIRMED (docs) |
 | Streaming | Reasoning is streamed to user in real-time | CONFIRMED (docs) |
-| User feedback | Thumbs up/down on RCA card, tracked via `seer.autofix.feedback_submitted` | INFERRED (PR #104569) |
-| Webhook event | `seer.root_cause_started`, `seer.root_cause_completed` | CONFIRMED (code) |
+| User feedback | Thumbs up/down on RCA card, tracked via `Loom.autofix.feedback_submitted` | INFERRED (PR #104569) |
+| Webhook event | `Loom.root_cause_started`, `Loom.root_cause_completed` | CONFIRMED (code) |
 
 ---
 
@@ -273,7 +289,7 @@ Multi-step automated issue fixing, from analysis through PR creation.
 └─────────────┘     └──────────┘     └──────────────┘     └───────────┘
        │                  │                  │                    │
        ▼                  ▼                  ▼                    ▼
-  seer.root_cause_*  seer.solution_*  seer.coding_*       seer.pr_created
+  Loom.root_cause_*  Loom.solution_*  Loom.coding_*       Loom.pr_created
 ```
 
 **Automation tuning levels** (CONFIRMED — code):
@@ -295,8 +311,8 @@ Multi-step automated issue fixing, from analysis through PR creation.
 | `open_pr` | Automatically open a GitHub PR |
 
 **Rate limits** (INFERRED):
-- Scanner: `seer.max_num_scanner_autotriggered_per_ten_seconds` (default 15)
-- Autofix: `seer.max_num_autofix_autotriggered_per_hour` (default 20, multiplied by tuning level)
+- Scanner: `Loom.max_num_scanner_autotriggered_per_ten_seconds` (default 15)
+- Autofix: `Loom.max_num_autofix_autotriggered_per_hour` (default 20, multiplied by tuning level)
 - Issues older than 2 weeks are skipped for automation to prevent flood on enablement
 
 **Billing** (CONFIRMED):
@@ -304,12 +320,12 @@ Multi-step automated issue fixing, from analysis through PR creation.
 - `DataCategory.SEER_SCANNER` — billed per scan
 
 **Dual-mode architecture** (INFERRED — code):
-1. **Legacy mode** (default): Direct POST to Seer service
-2. **Explorer mode** (`?mode=explorer`): Multi-step agentic pipeline via `SeerExplorerClient`
+1. **Legacy mode** (default): Direct POST to Loom service
+2. **Explorer mode** (`?mode=explorer`): Multi-step agentic pipeline via `LoomExplorerClient`
 
 ---
 
-### 4.6 AI Code Review (Seer Prevent)
+### 4.6 AI Code Review (Loom Prevent)
 
 **CONFIRMED**
 
@@ -325,18 +341,18 @@ Pre-merge analysis triggered by GitHub webhooks.
 | Data sent to AI | File names, code diffs, PR description only | CONFIRMED (docs) |
 | Output | Inline PR comments + GitHub status check | CONFIRMED (docs) |
 | Status check states | Success (green), Neutral (yellow), Error (red), Cancelled | CONFIRMED (docs) |
-| Internal codename | Seer Prevent | INFERRED (code: `SEER_PREVENT_AI_URL`) |
-| DB tracking | `CodeReviewRun` model: `task_enqueued` -> `seer_request_sent` -> `succeeded/failed` | INFERRED (PR #108445) |
+| Internal codename | Loom Prevent | INFERRED (code: `SEER_PREVENT_AI_URL`) |
+| DB tracking | `CodeReviewRun` model: `task_enqueued` -> `Loom_request_sent` -> `succeeded/failed` | INFERRED (PR #108445) |
 | Retention | Cleanup task purges rows older than 90 days | INFERRED (code) |
 | A/B testing | `organizations:code-review-experiments-enabled` flag + per-PR hash-based assignment | EXPERIMENTAL (code) |
 | SCM support | GitHub Cloud only | CONFIRMED (docs) |
 
 **Metrics** (INFERRED — PR #105984):
-- `sentry.seer.code_review.webhook.received`
-- `sentry.seer.code_review.webhook.filtered` (with `reason` tag)
-- `sentry.seer.code_review.webhook.enqueued`
-- `sentry.seer.code_review.webhook.error` (with `error_type` tag)
-- `sentry.seer.code_review.task.e2e_latency`
+- `sentry.Loom.code_review.webhook.received`
+- `sentry.Loom.code_review.webhook.filtered` (with `reason` tag)
+- `sentry.Loom.code_review.webhook.enqueued`
+- `sentry.Loom.code_review.webhook.error` (with `error_type` tag)
+- `sentry.Loom.code_review.task.e2e_latency`
 
 ---
 
@@ -349,7 +365,7 @@ The agentic investigation interface where users ask questions about errors, trac
 | Property | Value | Confidence |
 |----------|-------|------------|
 | UI entry | `Cmd+/` in Sentry | CONFIRMED (docs) |
-| Feature flag | `seer-explorer` | CONFIRMED (code) |
+| Feature flag | `Loom-explorer` | CONFIRMED (code) |
 | Can trigger autofix | Yes, from within Explorer context | INFERRED (PR #108389) |
 | Screenshot support | Frontend can pass screenshots for visual context | INFERRED (PR #99744) |
 | Replay DOM inspection | "Inspect Element" in replay viewer sends DOM to Explorer | EXPERIMENTAL (PR #108527) |
@@ -358,10 +374,10 @@ The agentic investigation interface where users ask questions about errors, trac
 
 **Slack Integration Detail** (EXPERIMENTAL — multiple open PRs):
 - `SlackMentionHandler` parses mentions, extracts prompts, builds thread context
-- `SlackEntrypoint` and `SeerOperator` pattern for workflow orchestration
+- `SlackEntrypoint` and `LoomOperator` pattern for workflow orchestration
 - Renders: Issue Alert, Root Cause, Proposed Solution, Code Changes, Pull Request
 - Thinking face reaction for immediate acknowledgment
-- Feature flag: `seer-slack-explorer`
+- Feature flag: `Loom-slack-explorer`
 
 ---
 
@@ -374,7 +390,7 @@ Time-series anomaly detection for alert monitoring.
 | Property | Value | Confidence |
 |----------|-------|------------|
 | Endpoint | `/v1/anomaly-detection/store` | CONFIRMED (code) |
-| Pool | `seer_anomaly_detection_default_connection_pool` | CONFIRMED (code) |
+| Pool | `Loom_anomaly_detection_default_connection_pool` | CONFIRMED (code) |
 | Aggregate types | Counting vs. other alert types distinguished | INFERRED (PR #107649) |
 | Retry logic | Retries on transient 503s | INFERRED (PRs #105542, #105854) |
 | Timeout | Configurable via `SEER_ANOMALY_DETECTION_TIMEOUT` | CONFIRMED (code) |
@@ -424,19 +440,19 @@ Unit test generation service.
 | Property | Value | Confidence |
 |----------|-------|------------|
 | Endpoint | `/v1/automation/codegen/unit-tests` | CONFIRMED (code) |
-| Module | `src/sentry/seer/services/test_generation/` | CONFIRMED (code) |
+| Module | `src/sentry/Loom/services/test_generation/` | CONFIRMED (code) |
 | Status | Present in code, no public documentation | EXPERIMENTAL |
 
 ---
 
 ## 5. Coding Agent Providers
 
-**CONFIRMED** — Seer supports pluggable coding agent backends via a base class hierarchy.
+**CONFIRMED** — Loom supports pluggable coding agent backends via a base class hierarchy.
 
 | Provider | Status | Feature Flag | Integration Method | Confidence |
 |----------|--------|--------------|-------------------|------------|
-| **Seer (built-in)** | Production | None (default) | Direct via autofix pipeline | CONFIRMED |
-| **Cursor** | Production | Graduated (`seer-coding-agent-integrations`) | Cursor Background Agent API | CONFIRMED (docs) |
+| **Loom (built-in)** | Production | None (default) | Direct via autofix pipeline | CONFIRMED |
+| **Cursor** | Production | Graduated (`Loom-coding-agent-integrations`) | Cursor Background Agent API | CONFIRMED (docs) |
 | **GitHub Copilot** | Production | Graduated | Copilot Coding Agent Tasks API | INFERRED (PR #108565) |
 | **Claude Code** | In Development | `organizations:integrations-claude-code` | Anthropic Claude Code agent API | EXPERIMENTAL (PRs #109526, #109738, #109750) |
 
@@ -448,8 +464,8 @@ CodingAgentIntegrationProvider   # Common provider config, setup dialog
 ```
 
 **Organization settings** (CONFIRMED — code):
-- `SeerOrganizationSettings.default_coding_agent` — `"seer"`, `"cursor"`, or `null`
-- `SeerOrganizationSettings.default_coding_agent_integration_id` — FK to Integration
+- `LoomOrganizationSettings.default_coding_agent` — `"Loom"`, `"cursor"`, or `null`
+- `LoomOrganizationSettings.default_coding_agent_integration_id` — FK to Integration
 
 ---
 
@@ -461,26 +477,26 @@ CodingAgentIntegrationProvider   # Common provider config, setup dialog
 
 | Endpoint | Method | Purpose | Rate Limit |
 |----------|--------|---------|------------|
-| `/api/0/seer/models/` | GET | List active LLM model names | — |
+| `/api/0/Loom/models/` | GET | List active LLM model names | — |
 | `/api/0/issues/{issue_id}/autofix/` | POST | Start autofix run | 25/min user, 100/hr org |
 | `/api/0/issues/{issue_id}/autofix/` | GET | Get autofix state | 1024/min user |
 | `/api/0/issues/{issue_id}/autofix/setup/` | GET | Check autofix prerequisites | — |
 | `/api/0/issues/{issue_id}/autofix/update/` | POST | Send update to running autofix | — |
 | `/api/0/issues/{issue_id}/ai-summary/` | POST | Generate AI issue summary | — |
-| `/api/0/organizations/{org}/seer/setup-check/` | GET | Check Seer quota/billing | — |
-| `/api/0/organizations/{org}/seer/onboarding-check/` | GET | Onboarding status | — |
+| `/api/0/organizations/{org}/Loom/setup-check/` | GET | Check Loom quota/billing | — |
+| `/api/0/organizations/{org}/Loom/onboarding-check/` | GET | Onboarding status | — |
 | `/api/0/organizations/{org}/autofix-automation-settings/` | GET/PUT | Org automation settings | — |
 | `/api/0/organizations/{org}/trace-summary/` | POST | AI trace summarization | — |
-| `/api/0/organizations/{org}/seer-explorer/chat/` | POST | Explorer chat | — |
-| `/api/0/organizations/{org}/seer-explorer/runs/` | GET | List Explorer runs | — |
-| `/api/0/organizations/{org}/seer-explorer/update/` | POST | Update Explorer run | — |
-| `/api/0/projects/{org}/{project}/seer-preferences/` | GET/PUT | Project Seer preferences | — |
+| `/api/0/organizations/{org}/Loom-explorer/chat/` | POST | Explorer chat | — |
+| `/api/0/organizations/{org}/Loom-explorer/runs/` | GET | List Explorer runs | — |
+| `/api/0/organizations/{org}/Loom-explorer/update/` | POST | Update Explorer run | — |
+| `/api/0/projects/{org}/{project}/Loom-preferences/` | GET/PUT | Project Loom preferences | — |
 | `/api/0/organizations/{org}/search-agent/start/` | POST | Start assisted search | — |
 | `/api/0/organizations/{org}/search-agent/state/` | GET | Get search agent state | — |
 
-### 6.2 Seer Service Endpoints (Sentry -> Seer)
+### 6.2 Loom Service Endpoints (Sentry -> Loom)
 
-**CONFIRMED** — These are the HTTP paths Sentry calls on the Seer service, extracted from code.
+**CONFIRMED** — These are the HTTP paths Sentry calls on the Loom service, extracted from code.
 
 | Path | Pool | Purpose |
 |------|------|---------|
@@ -515,11 +531,11 @@ CodingAgentIntegrationProvider   # Common provider config, setup dialog
 | `/v0/issues/supergroups` | Autofix | Supergroup embeddings |
 | `/v1/workflows/compare/cohort` | Anomaly Detection | Compare distributions |
 
-### 6.3 RPC Bridge (Seer -> Sentry)
+### 6.3 RPC Bridge (Loom -> Sentry)
 
-**CONFIRMED** — `OrganizationSeerRpcEndpoint` at `/api/0/internal/seer-rpc/` is HMAC-authenticated.
+**CONFIRMED** — `OrganizationLoomRpcEndpoint` at `/api/0/internal/Loom-rpc/` is HMAC-authenticated.
 
-The RPC bridge exposes dozens of functions for the Seer service to call back into Sentry, including:
+The RPC bridge exposes dozens of functions for the Loom service to call back into Sentry, including:
 
 | RPC Function Category | Confidence |
 |----------------------|------------|
@@ -543,8 +559,8 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 | Auth | OAuth 2.0 browser-based flow |
 | Self-hosted | `npx @sentry/mcp-server@latest --access-token=TOKEN` (STDIO) |
 | Tool count | 16+ tools across Core, Analysis, Advanced categories |
-| Seer integration | Can trigger Seer analysis, get fix recommendations, monitor fix status |
-| Disable Seer | `MCP_DISABLE_SKILLS=seer` |
+| Loom integration | Can trigger Loom analysis, get fix recommendations, monitor fix status |
+| Disable Loom | `MCP_DISABLE_SKILLS=Loom` |
 | Status | "Released for production, however MCP is a developing technology" |
 
 **Note**: No MCP integration exists *inside* the `getsentry/sentry` codebase. The MCP server is a separate project that calls Sentry's public API.
@@ -557,18 +573,18 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 
 **CONFIRMED** — Code-visible models.
 
-**`SeerOrganizationSettings`** (`src/sentry/seer/models/organization_settings.py`):
+**`LoomOrganizationSettings`** (`src/sentry/Loom/models/organization_settings.py`):
 
 | Field | Type | Purpose |
 |-------|------|---------|
 | `organization` | FK (unique, indexed) | Owning organization |
-| `default_coding_agent` | CharField | `"seer"`, `"cursor"`, or null |
+| `default_coding_agent` | CharField | `"Loom"`, `"cursor"`, or null |
 | `default_coding_agent_integration_id` | HybridCloudFK | FK to Integration |
 
-**`GroupHashMetadata`** (extended by Seer — see Section 4.1 for fields)
+**`GroupHashMetadata`** (extended by Loom — see Section 4.1 for fields)
 
 **`CodeReviewRun`** (INFERRED — PR #108445):
-- Tracks lifecycle: `task_enqueued` -> `seer_request_sent` -> `seer_request_succeeded/failed`
+- Tracks lifecycle: `task_enqueued` -> `Loom_request_sent` -> `Loom_request_succeeded/failed`
 
 **`CodeReviewEvent`** (INFERRED — PR #108533):
 - Rows for the internal PR Review Dashboard
@@ -577,7 +593,7 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 
 | Migration | Purpose |
 |-----------|---------|
-| `0001_add_seerorganizationsettings.py` | Creates the settings table |
+| `0001_add_Loomorganizationsettings.py` | Creates the settings table |
 | `0002_add_default_coding_agent.py` | Adds coding agent fields |
 
 ### Caching Strategy
@@ -588,19 +604,19 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 |-------------------|-----|---------|
 | `ai-group-summary-v2:{group_id}` | 7 days | Issue summaries |
 | `ai-trace-summary:{trace_slug}` | 7 days | Trace summaries |
-| `seer-project-has-repos:{org_id}:{project_id}` | 15 min | Repo status |
-| `seer:seat-based-tier:{org_id}` | 4 hours | Pricing tier |
+| `Loom-project-has-repos:{org_id}:{project_id}` | 15 min | Repo status |
+| `Loom:seat-based-tier:{org_id}` | 4 hours | Pricing tier |
 | `autofix_access_check:{group_id}` | 1 min | Access check |
-| `SeerOperatorAutofixCache` (by group_id/run_id) | — | Operator state |
+| `LoomOperatorAutofixCache` (by group_id/run_id) | — | Operator state |
 
 ### External Storage
 
-**INFERRED** — From the Seer service repository mirror:
+**INFERRED** — From the Loom service repository mirror:
 
 | Storage | Purpose |
 |---------|---------|
 | PostgreSQL + pgvector | Embedding storage, HNSW index for similarity search |
-| Google Cloud Storage (`gs://sentry-ml/seer/models`) | ML model artifacts |
+| Google Cloud Storage (`gs://sentry-ml/Loom/models`) | ML model artifacts |
 | Langfuse | AI operation tracing/observability |
 
 ---
@@ -619,10 +635,10 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 | `SEER_GROUPING_URL` | Base URL: similarity grouping |
 | `SEER_BREAKPOINT_DETECTION_URL` | Base URL: performance regression |
 | `SEER_SCORING_URL` | Base URL: GPU fixability scoring |
-| `SEER_PREVENT_AI_URL` | Base URL: code review (Seer Prevent) |
-| `SEER_API_SHARED_SECRET` | HMAC secret for Sentry -> Seer |
-| `SEER_RPC_SHARED_SECRET` | HMAC secret for Seer -> Sentry |
-| `SEER_AUTOFIX_GITHUB_APP_USER_ID` | Seer's GitHub App user ID |
+| `SEER_PREVENT_AI_URL` | Base URL: code review (Loom Prevent) |
+| `SEER_API_SHARED_SECRET` | HMAC secret for Sentry -> Loom |
+| `SEER_RPC_SHARED_SECRET` | HMAC secret for Loom -> Sentry |
+| `SEER_AUTOFIX_GITHUB_APP_USER_ID` | Loom's GitHub App user ID |
 | `SEER_MAX_GROUPING_DISTANCE` | Max distance threshold for similarity |
 | `SEER_ANOMALY_DETECTION_TIMEOUT` | Timeout for anomaly detection |
 | `SEER_BREAKPOINT_DETECTION_TIMEOUT` | Timeout for breakpoint detection |
@@ -635,24 +651,24 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 
 | Flag | Scope | Purpose | Tag |
 |------|-------|---------|-----|
-| `organizations:gen-ai-features` | Org | **Master gate** for all Seer AI features | A |
-| `organizations:seer-explorer` | Org | Explorer agent UI | A |
+| `organizations:gen-ai-features` | Org | **Master gate** for all Loom AI features | A |
+| `organizations:Loom-explorer` | Org | Explorer agent UI | A |
 | `organizations:autofix-on-explorer` | Org | Route autofix through Explorer pipeline | A |
-| `organizations:seat-based-seer-enabled` | Org | Seat-based billing tier | A |
+| `organizations:seat-based-Loom-enabled` | Org | Seat-based billing tier | A |
 | `organizations:single-trace-summary` | Org | Trace summarization | A |
 | `organizations:code-review-experiments-enabled` | Org | A/B testing for code review | A |
 | `organizations:integrations-claude-code` | Org | Claude Code coding agent | E |
-| `organizations:seer-slack-workflows-explorer` | Org | Slack workflows on Explorer | E |
+| `organizations:Loom-slack-workflows-explorer` | Org | Slack workflows on Explorer | E |
 | `projects:similarity-grouping-v2-model` | Project | V2 grouping model rollout | E |
 | `projects:supergroup-embeddings-explorer` | Project | Supergroup embeddings via Explorer | E |
-| `seer-explorer` | System | Explorer feature | A |
-| `seer-slack-explorer` | System | Slack @mention Explorer | E |
+| `Loom-explorer` | System | Explorer feature | A |
+| `Loom-slack-explorer` | System | Slack @mention Explorer | E |
 | `pr-review-dashboard` | System | Internal PR review dashboard | E |
 | `triage-signals-v0-org` | System | New automation flow | A |
-| `seer-agent-pr-consolidation` | System | Consolidated PR toggle UI | A |
-| `organizations:seer-webhooks` | Org | Webhook subscriptions | G |
-| `organizations:autofix-seer-preferences` | Org | Project preferences | G |
-| `organizations:seer-coding-agent-integrations` | Org | External coding agents | G |
+| `Loom-agent-pr-consolidation` | System | Consolidated PR toggle UI | A |
+| `organizations:Loom-webhooks` | Org | Webhook subscriptions | G |
+| `organizations:autofix-Loom-preferences` | Org | Project preferences | G |
+| `organizations:Loom-coding-agent-integrations` | Org | External coding agents | G |
 | `organizations:unlimited-auto-triggered-autofix-runs` | Org | Bypass rate limiting | D |
 
 ### Organization Options
@@ -660,7 +676,7 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 | Option | Type | Purpose | Confidence |
 |--------|------|---------|------------|
 | `sentry:hide_ai_features` | bool | Kill switch for all AI features | CONFIRMED |
-| `sentry:enable_seer_coding` | bool | Enable/disable code changes step | CONFIRMED |
+| `sentry:enable_Loom_coding` | bool | Enable/disable code changes step | CONFIRMED |
 | `sentry:default_autofix_automation_tuning` | str | Default automation tuning for org | INFERRED |
 | `sentry:auto_open_prs` | bool | Default PR creation for new projects | INFERRED |
 | `sentry:default_automation_handoff` | str | Default coding agent for new projects | INFERRED |
@@ -669,18 +685,18 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 
 | Option | Type | Purpose | Confidence |
 |--------|------|---------|------------|
-| `sentry:seer_scanner_automation` | bool | Enable Seer scanner for project | CONFIRMED |
+| `sentry:Loom_scanner_automation` | bool | Enable Loom scanner for project | CONFIRMED |
 | `sentry:autofix_automation_tuning` | str | Tuning: off/super_low/low/medium/high/always | CONFIRMED |
 
 ### Rate Limit Options
 
 | Option | Default | Confidence |
 |--------|---------|------------|
-| `seer.max_num_scanner_autotriggered_per_ten_seconds` | 15 | INFERRED |
-| `seer.max_num_autofix_autotriggered_per_hour` | 20 (x tuning multiplier) | INFERRED |
-| `seer.similarity.circuit-breaker-config` | — | CONFIRMED |
-| `seer.similarity.grouping-ingest-retries` | — | CONFIRMED |
-| `seer.similarity.grouping-ingest-timeout` | — | CONFIRMED |
+| `Loom.max_num_scanner_autotriggered_per_ten_seconds` | 15 | INFERRED |
+| `Loom.max_num_autofix_autotriggered_per_hour` | 20 (x tuning multiplier) | INFERRED |
+| `Loom.similarity.circuit-breaker-config` | — | CONFIRMED |
+| `Loom.similarity.grouping-ingest-retries` | — | CONFIRMED |
+| `Loom.similarity.grouping-ingest-timeout` | — | CONFIRMED |
 
 ---
 
@@ -693,7 +709,7 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 | Integration | Method | Details |
 |-------------|--------|---------|
 | Source code access | Contents (Read & Write) | Fetch files, commits, blame data |
-| PR creation | Seer GitHub App (`seer-by-sentry`) | Separate from main Sentry GitHub App |
+| PR creation | Loom GitHub App (`Loom-by-sentry`) | Separate from main Sentry GitHub App |
 | Code review | Webhooks (pull_request, issue_comment, check_run) | Posts inline comments + status checks |
 | PR tracking | Webhook handler (`autofix/webhooks.py`) | Tracks opened/closed/merged analytics |
 | Copilot handoff | Copilot Coding Agent Tasks API | Polls task status |
@@ -734,29 +750,29 @@ The RPC bridge exposes dozens of functions for the Seer service to call back int
 | `generate_summary_and_run_automation` | `ingest_errors_tasks` | Summary + automation (post-process) | 1 |
 | `generate_issue_summary_only` | `ingest_errors_tasks` | Summary without automation | 3 (3s delay) |
 | `run_automation_only_task` | `ingest_errors_tasks` | Run automation (assumes summary exists) | 1 |
-| `configure_seer_for_existing_org` | `issues_tasks` | Onboarding configuration | 3 |
-| `trigger_autofix_from_issue_summary` | `seer_tasks` | Async autofix trigger | 1 |
-| `process_autofix_updates` | `seer_tasks` | Route updates to entrypoints | 0 |
+| `configure_Loom_for_existing_org` | `issues_tasks` | Onboarding configuration | 3 |
+| `trigger_autofix_from_issue_summary` | `Loom_tasks` | Async autofix trigger | 1 |
+| `process_autofix_updates` | `Loom_tasks` | Route updates to entrypoints | 0 |
 
 ### Sentry Apps Webhooks
 
 **CONFIRMED**
 
-Seer broadcasts lifecycle events to installed Sentry Apps:
+Loom broadcasts lifecycle events to installed Sentry Apps:
 
 | Event | Confidence |
 |-------|------------|
-| `seer.root_cause_started` | CONFIRMED |
-| `seer.root_cause_completed` | CONFIRMED |
-| `seer.solution_started` | CONFIRMED |
-| `seer.solution_completed` | CONFIRMED |
-| `seer.coding_started` | CONFIRMED |
-| `seer.coding_completed` | CONFIRMED |
-| `seer.pr_created` | CONFIRMED |
-| `seer.impact_assessment_started` | INFERRED |
-| `seer.impact_assessment_completed` | INFERRED |
-| `seer.triage_started` | INFERRED |
-| `seer.triage_completed` | INFERRED |
+| `Loom.root_cause_started` | CONFIRMED |
+| `Loom.root_cause_completed` | CONFIRMED |
+| `Loom.solution_started` | CONFIRMED |
+| `Loom.solution_completed` | CONFIRMED |
+| `Loom.coding_started` | CONFIRMED |
+| `Loom.coding_completed` | CONFIRMED |
+| `Loom.pr_created` | CONFIRMED |
+| `Loom.impact_assessment_started` | INFERRED |
+| `Loom.impact_assessment_completed` | INFERRED |
+| `Loom.triage_started` | INFERRED |
+| `Loom.triage_completed` | INFERRED |
 
 ---
 
@@ -788,7 +804,7 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 | Control | Scope | Effect |
 |---------|-------|--------|
 | `Show Generative AI Features` toggle | Organization | Disables all AI features |
-| Seer settings dropdown | Organization | Granular feature control |
+| Loom settings dropdown | Organization | Granular feature control |
 | `Prevent code generation` | Organization (Advanced) | Blocks code generation + PR creation, not chat snippets |
 | `sentry:hide_ai_features` | Organization | Kill switch |
 | Data scrubbing tools | Project | Applied before data transmission |
@@ -801,7 +817,7 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 | `OPENAI_API_KEY` | For OpenAI provider |
 | `ANTHROPIC_API_KEY` | For Anthropic provider |
 
-**CLOSED-SOURCE**: The specific LLM models powering Seer's inference (GPT-4, Claude, etc.) are not publicly disclosed. The `/api/0/seer/models/` endpoint exists but response contents are not documented. The MCP server supports both OpenAI and Anthropic as embedded providers.
+**CLOSED-SOURCE**: The specific LLM models powering Loom's inference (GPT-4, Claude, etc.) are not publicly disclosed. The `/api/0/Loom/models/` endpoint exists but response contents are not documented. The MCP server supports both OpenAI and Anthropic as embedded providers.
 
 ---
 
@@ -814,7 +830,7 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 | Property | Value |
 |----------|-------|
 | Cost | $40 per active contributor per month |
-| Active contributor | Any user making 2+ PRs to a Seer-connected repo in a month |
+| Active contributor | Any user making 2+ PRs to a Loom-connected repo in a month |
 | Plan availability | Team, Business, Enterprise, Trial |
 | Billing | Separate monthly charge, NOT against PAYG budget |
 | Reset | Contributor counts reset monthly |
@@ -829,31 +845,27 @@ Seer broadcasts lifecycle events to installed Sentry Apps:
 | Property | Value |
 |----------|-------|
 | Base fee | $20/month per Sentry subscription |
-| Included | $25 worth of Seer event credits |
+| Included | $25 worth of Loom event credits |
 | Overages | Draw from PAYG budget |
 | Issue Scans | $0.003-$0.00219/run (tiered) |
 | Issue Fixes | $1.00/run |
 
-**INFERRED** — Seat-based transition managed by `is_seer_seat_based_tier_enabled()` combining feature flag and billing flag checks (PR #104290).
+**INFERRED** — Seat-based transition managed by `is_Loom_seat_based_tier_enabled()` combining feature flag and billing flag checks (PR #104290).
 
 ---
 
 ## 12. Limitations & Known Gaps
 
-Scope note for this section:
-
-- `Known Closed-Source Gaps` should be treated as `CONTEXT-ONLY` + `EXTERNAL-CLOSED`
-  for qyl docs, not as evidence that qyl implementation is missing.
-- Detailed rationale: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
+Scope: `CONTEXT-ONLY` + `EXTERNAL-CLOSED` — these are external Sentry gaps, not evidence that qyl is missing functionality.
 
 ### Confirmed Limitations
 
 | Limitation | Detail | Confidence |
 |-----------|--------|------------|
 | GitHub Cloud only | No GitLab, Bitbucket, Azure DevOps, self-hosted GitHub Enterprise | CONFIRMED |
-| Cloud-only | Self-hosted Sentry instances have no Seer access | CONFIRMED |
+| Cloud-only | Self-hosted Sentry instances have no Loom access | CONFIRMED |
 | Drafts skipped | AI Code Review skips PRs in draft state | CONFIRMED |
-| No retroactive analysis | Existing issues need manual trigger after Seer enablement | CONFIRMED |
+| No retroactive analysis | Existing issues need manual trigger after Loom enablement | CONFIRMED |
 | Code generation toggle | Disabling also blocks PR creation but not chat snippets | CONFIRMED |
 | MCP maturity | "MCP is a developing technology and changes should be expected" | CONFIRMED |
 
@@ -871,36 +883,30 @@ Scope note for this section:
 | Component | What We Know | What We Don't |
 |-----------|-------------|---------------|
 | LLM inference layer | Multiple models used, likely GPT + Claude | Exact model names, versions, routing logic |
-| Prompt engineering | `prompts.py` exists in open code | Actual prompt contents in Seer service |
+| Prompt engineering | `prompts.py` exists in open code | Actual prompt contents in Loom service |
 | Model training | jina-embeddings-v2 for grouping | Training data, fine-tuning process |
 | GPU scoring | Fixability scores 0.0-1.0 | Model architecture, training methodology |
-| Code review logic | "Seer Prevent" codename, request/response flow | Review heuristics, bug prediction model |
+| Code review logic | "Loom Prevent" codename, request/response flow | Review heuristics, bug prediction model |
 
 ---
 
 ## 13. Experimental & Preview Features
 
-Scope note for this section:
-
-- `In Active Development`, `Recently Graduated`, and `Deprecated / Removed` track
-  external product lifecycle context.
-- In qyl docs, classify these rows as `CONTEXT-ONLY` unless they map to explicit
-  local features and code paths.
-- Detailed rationale: [seer-scope-reconciliation](./seer-scope-reconciliation.md).
+Scope: `CONTEXT-ONLY` — external product lifecycle tracking, not a qyl acceptance gate.
 
 ### In Active Development (March 2026)
 
 | Feature | Evidence | Flag | Confidence |
 |---------|----------|------|------------|
 | **Claude Code Agent** | 6+ PRs building full integration stack | `organizations:integrations-claude-code` | EXPERIMENTAL |
-| **Slack Explorer** | @mention-based investigation in Slack threads | `seer-slack-explorer` | EXPERIMENTAL |
+| **Slack Explorer** | @mention-based investigation in Slack threads | `Loom-slack-explorer` | EXPERIMENTAL |
 | **Replay DOM Inspector** | "Inspect Element" sends DOM to Explorer | Multiple open PRs | EXPERIMENTAL |
 | **Unified SCM Platform** | Abstraction for Git operations, GitLab explored | Issue #107469, PR #109468 | EXPERIMENTAL |
 | **PR Review Dashboard** | Internal tool, "not meant to be released to customers" | `pr-review-dashboard` | EXPERIMENTAL |
 | **Supergroup Embeddings** | Cross-issue semantic grouping from Explorer RCA | `projects:supergroup-embeddings-explorer` | EXPERIMENTAL |
 | **V2 Grouping Model** | Improved similarity model | `projects:similarity-grouping-v2-model` | EXPERIMENTAL |
-| **Viewer Context** | Org/user audit context on all Seer API calls | PRs #109697, #109719 | EXPERIMENTAL |
-| **Structured Logs** | Seer uses structured logs during debugging | Marked "beta" in docs | EXPERIMENTAL |
+| **Viewer Context** | Org/user audit context on all Loom API calls | PRs #109697, #109719 | EXPERIMENTAL |
+| **Structured Logs** | Loom uses structured logs during debugging | Marked "beta" in docs | EXPERIMENTAL |
 | **Context Rule Parsing** | Auto-parses Cursor/Windsurf/Claude Code config files | Documented but new | EXPERIMENTAL |
 | **Test Generation** | Unit test generation service | Code exists, no docs | EXPERIMENTAL |
 
@@ -908,9 +914,9 @@ Scope note for this section:
 
 | Feature | Former Flag | Confidence |
 |---------|------------|------------|
-| Seer Webhooks | `organizations:seer-webhooks` | CONFIRMED |
-| Project Preferences | `organizations:autofix-seer-preferences` | CONFIRMED |
-| Coding Agent Integrations | `organizations:seer-coding-agent-integrations` | CONFIRMED |
+| Loom Webhooks | `organizations:Loom-webhooks` | CONFIRMED |
+| Project Preferences | `organizations:autofix-Loom-preferences` | CONFIRMED |
+| Coding Agent Integrations | `organizations:Loom-coding-agent-integrations` | CONFIRMED |
 
 ### Deprecated / Removed
 
@@ -928,12 +934,12 @@ Every claim in this document can be traced to one of these source categories:
 
 | Source | URL |
 |--------|-----|
-| Seer Documentation | https://docs.sentry.io/product/ai-in-sentry/seer/ |
-| Issue Fix Documentation | https://docs.sentry.io/product/ai-in-sentry/seer/issue-fix/ |
-| AI Code Review Documentation | https://docs.sentry.io/product/ai-in-sentry/seer/ai-code-review/ |
+| Loom Documentation | https://docs.sentry.io/product/ai-in-sentry/Loom/ |
+| Issue Fix Documentation | https://docs.sentry.io/product/ai-in-sentry/Loom/issue-fix/ |
+| AI Code Review Documentation | https://docs.sentry.io/product/ai-in-sentry/Loom/ai-code-review/ |
 | AI/ML Data Policy | https://docs.sentry.io/security-legal-pii/security/ai-ml-policy/ |
 | Pricing Documentation | https://docs.sentry.io/pricing/ |
-| Seer API Endpoints | https://docs.sentry.io/api/seer/ |
+| Loom API Endpoints | https://docs.sentry.io/api/Loom/ |
 | MCP Server Documentation | https://docs.sentry.io/product/sentry-mcp/ |
 | MCP Server Repository | https://github.com/getsentry/sentry-mcp |
 | GitHub Integration Docs | https://docs.sentry.io/organization/integrations/source-code-mgmt/github/ |
@@ -943,11 +949,11 @@ Every claim in this document can be traced to one of these source categories:
 
 | Source | URL Pattern |
 |--------|-------------|
-| Open PRs | https://github.com/getsentry/sentry/pulls?q=seer+is:open |
-| Closed PRs | https://github.com/getsentry/sentry/pulls?q=seer+is:closed |
-| Seer-labeled Issues | https://github.com/getsentry/sentry/issues?q=is:issue+state:open+label:Seer |
-| Open-source code | `src/sentry/seer/**` in getsentry/sentry |
-| Seer service mirror | https://github.com/doc-sheet/seer |
+| Open PRs | https://github.com/getsentry/sentry/pulls?q=Loom+is:open |
+| Closed PRs | https://github.com/getsentry/sentry/pulls?q=Loom+is:closed |
+| Loom-labeled Issues | https://github.com/getsentry/sentry/issues?q=is:issue+state:open+label:Loom |
+| Open-source code | `src/sentry/Loom/**` in getsentry/sentry |
+| Loom service mirror | https://github.com/doc-sheet/Loom |
 
 ### Closed-Source Boundary
 
@@ -955,26 +961,26 @@ The following components are known to exist in the closed `getsentry` repository
 
 | Component | Evidence of Existence |
 |-----------|----------------------|
-| Billing integration | Settings reference `is_seer_seat_based_tier_enabled()` |
+| Billing integration | Settings reference `is_Loom_seat_based_tier_enabled()` |
 | Feature flag definitions | Flagpole references in open code |
-| Seer service deployment config | Connection pool URLs, Terraform references |
+| Loom service deployment config | Connection pool URLs, Terraform references |
 | LLM model selection logic | `/v1/models` endpoint, `EMBEDDED_AGENT_PROVIDER` setting |
-| Prompt templates (Seer-side) | RPC bridge provides data, inference runs in Seer |
+| Prompt templates (Loom-side) | RPC bridge provides data, inference runs in Loom |
 | GPU scoring model | `SEER_SCORING_URL` references, fixability thresholds in code |
 
 ---
 
 ## Module Map
 
-Complete source tree of `src/sentry/seer/` in the open-source `getsentry/sentry` repository:
+Complete source tree of `src/sentry/Loom/` in the open-source `getsentry/sentry` repository:
 
 ```
-src/sentry/seer/
+src/sentry/Loom/
 ├── __init__.py
 ├── apps.py                         # Django AppConfig
 ├── constants.py                    # SCM provider constants
-├── signed_seer_api.py              # HMAC-signed HTTP client
-├── seer_setup.py                   # Access checks
+├── signed_Loom_api.py              # HMAC-signed HTTP client
+├── Loom_setup.py                   # Access checks
 ├── sentry_data_models.py           # Data model helpers
 ├── breakpoints.py                  # Performance breakpoint detection
 ├── issue_detection.py              # LLM-based issue creation
@@ -1014,7 +1020,7 @@ src/sentry/seer/
 │
 ├── code_review/
 │   ├── metrics.py
-│   ├── models.py                   # SeerCodeReviewConfig
+│   ├── models.py                   # LoomCodeReviewConfig
 │   ├── preflight.py
 │   ├── utils.py                    # Webhook handler, endpoint routing
 │   └── webhooks/
@@ -1030,27 +1036,27 @@ src/sentry/seer/
 │   ├── group_ai_summary.py
 │   ├── group_autofix_setup_check.py
 │   ├── group_autofix_update.py
-│   ├── organization_seer_rpc.py    # Massive Seer->Sentry RPC bridge
-│   ├── organization_seer_explorer_chat.py
-│   ├── organization_seer_explorer_runs.py
+│   ├── organization_Loom_rpc.py    # Massive Loom->Sentry RPC bridge
+│   ├── organization_Loom_explorer_chat.py
+│   ├── organization_Loom_explorer_runs.py
 │   ├── organization_trace_summary.py
-│   ├── project_seer_preferences.py
+│   ├── project_Loom_preferences.py
 │   ├── search_agent_start.py
-│   ├── seer_rpc.py                 # Internal RPC functions
+│   ├── Loom_rpc.py                 # Internal RPC functions
 │   └── ... (15+ more)
 │
 ├── entrypoints/
-│   ├── cache.py                    # SeerOperatorAutofixCache
+│   ├── cache.py                    # LoomOperatorAutofixCache
 │   ├── metrics.py                  # Lifecycle metrics
-│   ├── operator.py                 # SeerOperator orchestrator
+│   ├── operator.py                 # LoomOperator orchestrator
 │   ├── registry.py                 # Entrypoint registry
-│   ├── types.py                    # SeerEntrypoint protocol
+│   ├── types.py                    # LoomEntrypoint protocol
 │   └── slack/
 │       └── entrypoint.py           # Slack entrypoint
 │
 ├── explorer/
-│   ├── client.py                   # SeerExplorerClient
-│   ├── client_models.py            # SeerRunState, ExplorerRun
+│   ├── client.py                   # LoomExplorerClient
+│   ├── client_models.py            # LoomRunState, ExplorerRun
 │   ├── coding_agent_handoff.py     # Launch coding agents from Explorer
 │   ├── context_engine_utils.py
 │   ├── custom_tool_utils.py        # ExplorerTool base class
@@ -1065,12 +1071,12 @@ src/sentry/seer/
 │   └── utils.py
 │
 ├── migrations/
-│   ├── 0001_add_seerorganizationsettings.py
+│   ├── 0001_add_Loomorganizationsettings.py
 │   └── 0002_add_default_coding_agent.py
 │
 ├── models/
-│   ├── organization_settings.py    # SeerOrganizationSettings
-│   └── seer_api_models.py          # Pydantic models for API contracts
+│   ├── organization_settings.py    # LoomOrganizationSettings
+│   └── Loom_api_models.py          # Pydantic models for API contracts
 │
 ├── services/
 │   └── test_generation/            # Unit test generation (EXPERIMENTAL)
@@ -1080,9 +1086,9 @@ src/sentry/seer/
 │
 ├── similarity/
 │   ├── config.py                   # V1 stable, V2 rollout config
-│   ├── grouping_records.py         # CRUD for Seer grouping records
+│   ├── grouping_records.py         # CRUD for Loom grouping records
 │   ├── similar_issues.py           # Core similarity function
-│   ├── types.py                    # SeerSimilarIssueData
+│   ├── types.py                    # LoomSimilarIssueData
 │   └── utils.py
 │
 └── workflows/
