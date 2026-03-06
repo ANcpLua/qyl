@@ -207,40 +207,84 @@ function showUndoToast(): void {
     left: 50%;
     transform: translateX(-50%);
     z-index: 2147483647;
+    max-width: 90vw;
   `;
 
   const shadow = host.attachShadow({ mode: "closed" });
   const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 
+  const bg = isDark ? "#2a2a3e" : "#333";
+  const text = isDark ? "#e0e0e0" : "#fff";
+  const accent = isDark ? "#7986cb" : "#8c9eff";
+  const accentBorder = isDark ? "#7986cb" : "#5c6bc0";
+  const hoverBg = isDark ? "rgba(121,134,203,0.2)" : "rgba(140,158,255,0.2)";
+
+  // Build individual undo items
+  const items = undoStack
+    .map(
+      (entry, i) =>
+        `<div class="item" data-idx="${i}">
+          <span class="preview">${truncate(entry.wrapper.textContent ?? "", 30)}</span>
+          <button class="undo-one" data-idx="${i}">Undo</button>
+        </div>`,
+    )
+    .join("");
+
   shadow.innerHTML = `
     <style>
       .toast {
         display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 10px 16px;
-        background: ${isDark ? "#2a2a3e" : "#333"};
-        color: ${isDark ? "#e0e0e0" : "#fff"};
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 14px;
+        background: ${bg};
+        color: ${text};
         border-radius: 8px;
         font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         box-shadow: 0 4px 24px rgba(0,0,0,0.4);
         animation: slideUp 0.2s ease-out;
+        max-height: 200px;
+        overflow-y: auto;
       }
-      .count { opacity: 0.7; }
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid ${isDark ? "#444" : "#555"};
+        margin-bottom: 2px;
+      }
+      .count { opacity: 0.7; font-size: 12px; }
+      .item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 3px 0;
+      }
+      .preview {
+        opacity: 0.6;
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 250px;
+      }
       button {
-        padding: 4px 12px;
-        border: 1px solid ${isDark ? "#7986cb" : "#5c6bc0"};
+        padding: 3px 10px;
+        border: 1px solid ${accentBorder};
         border-radius: 5px;
         background: transparent;
-        color: ${isDark ? "#7986cb" : "#8c9eff"};
-        font: 13px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: ${accent};
+        font: 12px -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         cursor: pointer;
         transition: background 0.15s;
+        white-space: nowrap;
+        flex-shrink: 0;
       }
-      button:hover {
-        background: ${isDark ? "rgba(121,134,203,0.2)" : "rgba(140,158,255,0.2)"};
-      }
-      .undo-all { opacity: 0.6; border: none; text-decoration: underline; }
+      button:hover { background: ${hoverBg}; }
+      .undo-all { opacity: 0.6; border: none; text-decoration: underline; font-size: 11px; }
       .undo-all:hover { opacity: 1; background: transparent; }
       @keyframes slideUp {
         from { opacity: 0; transform: translateY(10px); }
@@ -248,16 +292,22 @@ function showUndoToast(): void {
       }
     </style>
     <div class="toast">
-      <span class="count">${undoStack.length} change${undoStack.length > 1 ? "s" : ""}</span>
-      <button class="undo-last">Undo</button>
-      ${undoStack.length > 1 ? '<button class="undo-all">Undo all</button>' : ""}
+      <div class="header">
+        <span class="count">${undoStack.length} change${undoStack.length > 1 ? "s" : ""}</span>
+        ${undoStack.length > 1 ? '<button class="undo-all">Undo all</button>' : ""}
+      </div>
+      ${items}
     </div>
   `;
 
-  shadow.querySelector(".undo-last")!.addEventListener("click", (e) => {
-    e.stopPropagation();
-    undoLast();
-  });
+  // Selective undo — click any individual "Undo"
+  for (const btn of shadow.querySelectorAll(".undo-one")) {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const idx = parseInt((btn as HTMLElement).dataset.idx ?? "-1");
+      undoByIndex(idx);
+    });
+  }
 
   shadow.querySelector(".undo-all")?.addEventListener("click", (e) => {
     e.stopPropagation();
@@ -268,18 +318,20 @@ function showUndoToast(): void {
   undoToast = host;
 }
 
+function truncate(s: string, max: number): string {
+  const escaped = s.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return escaped.length > max ? escaped.slice(0, max) + "..." : escaped;
+}
+
 function removeUndoToast(): void {
   undoToast?.remove();
   undoToast = null;
 }
 
-function undoLast(): void {
-  const entry = undoStack.pop();
-  if (!entry) {
-    removeUndoToast();
-    return;
-  }
+function undoByIndex(idx: number): void {
+  if (idx < 0 || idx >= undoStack.length) return;
 
+  const [entry] = undoStack.splice(idx, 1);
   restoreOriginal(entry.wrapper, entry.originalNodes);
 
   if (undoStack.length > 0) {
@@ -288,8 +340,11 @@ function undoLast(): void {
     removeUndoToast();
   }
 
-  // Reopen toolbar on the restored text
   reopenToolbar(entry.originalText, entry.originalNodes);
+}
+
+function undoLast(): void {
+  undoByIndex(undoStack.length - 1);
 }
 
 function undoAll(): void {
