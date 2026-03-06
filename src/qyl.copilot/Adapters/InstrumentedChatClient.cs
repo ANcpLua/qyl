@@ -298,12 +298,10 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         }));
     }
 
-    private static string MapFinishReason(ChatFinishReason reason)
-    {
-        if (reason == ChatFinishReason.Stop) return "stop";
-        if (reason == ChatFinishReason.Length) return "max_tokens";
-        if (reason == ChatFinishReason.ToolCalls) return "tool_calls";
-        if (reason == ChatFinishReason.ContentFilter) return "content_filter";
-        return reason.Value;
-    }
+    private static string MapFinishReason(ChatFinishReason reason) =>
+        reason == ChatFinishReason.Stop ? "stop"
+        : reason == ChatFinishReason.Length ? "max_tokens"
+        : reason == ChatFinishReason.ToolCalls ? "tool_calls"
+        : reason == ChatFinishReason.ContentFilter ? "content_filter"
+        : reason.Value;
 }

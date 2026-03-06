@@ -16,6 +16,7 @@
     <!-- Build infrastructure + schemas -->
     <Folder Name="/eng/">
         <File Path="eng\semconv\qyl-extensions.json" />
+        <File Path="eng\websocket.md" />
         <Project Path="eng/build/build.csproj" />
         <File Path="eng/build.cmd" />
         <File Path="eng/build.ps1" />

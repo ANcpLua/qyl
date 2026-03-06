@@ -786,7 +786,7 @@ function generateFacadeClass(data: ParsedData, facade: FacadeConfig): string {
 
     // Class summary
     lines.push(`/// <summary>`);
-    const descResolved = facade.description.replace(/\{version\}/g, version);
+    const descResolved = facade.description.replace(/\{version}/g, version);
     for (const descLine of descResolved.split("\n")) {
         lines.push(`///     ${descLine}`);
     }
@@ -797,7 +797,7 @@ function generateFacadeClass(data: ParsedData, facade: FacadeConfig): string {
     // Metadata constants (SchemaUrl, SourceName, etc.)
     if (facade.metadata) {
         for (const [name, template] of Object.entries(facade.metadata)) {
-            const value = template.replace(/\{version\}/g, version);
+            const value = template.replace(/\{version}/g, version);
             lines.push(`    /// <summary>${name}.</summary>`);
             lines.push(`    public const string ${name} = "${value}";`);
             lines.push(``);

@@ -44,11 +44,10 @@ internal static class MeterAnalyzer
         if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeMetadataName) is not
-            { } meterAttr)
-            return null;
-
-        return BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.Node));
+        return AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeMetadataName) is not
+            { } meterAttr
+            ? null
+            : BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.Node));
     }
 
     /// <summary>
@@ -68,10 +67,9 @@ internal static class MeterAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(context.Attributes, MeterAttributeMetadataName) is not { } meterAttr)
-            return null;
-
-        return BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.TargetNode));
+        return AnalyzerHelpers.FindAttributeByName(context.Attributes, MeterAttributeMetadataName) is not { } meterAttr
+            ? null
+            : BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.TargetNode));
     }
 
     private static MeterDefinition? BuildDefinition(

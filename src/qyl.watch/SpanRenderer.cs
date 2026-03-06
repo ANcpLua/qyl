@@ -161,12 +161,10 @@ internal static class SpanRenderer
         _ => "green"
     };
 
-    private static string GetStatusColor(SpanDto span)
-    {
-        if (span.IsError) return "red";
-        if (span.HttpStatusCode is >= 500) return "red";
-        if (span.HttpStatusCode is >= 400) return "yellow";
-        if (span.DurationMs > 200) return "yellow";
-        return "green";
-    }
+    private static string GetStatusColor(SpanDto span) =>
+        span.IsError ? "red"
+        : span.HttpStatusCode is >= 500 ? "red"
+        : span.HttpStatusCode is >= 400 ? "yellow"
+        : span.DurationMs > 200 ? "yellow"
+        : "green";
 }

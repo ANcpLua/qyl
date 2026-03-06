@@ -10,7 +10,7 @@ public sealed class QylAppBuilder
 {
     private readonly ConcurrentDictionary<string, IQylResource> _resources = new();
 
-    internal QylAppBuilder(string[] _) => Options = new QylOptions();
+    internal QylAppBuilder(string[]? _ = null) => Options = new QylOptions();
 
     /// <summary>
     ///     Application options.

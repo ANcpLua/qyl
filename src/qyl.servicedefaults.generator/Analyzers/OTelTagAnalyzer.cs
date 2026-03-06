@@ -67,21 +67,17 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(property, cancellationToken) is not { } propertySymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr)
-            return null;
-
-        return AnalyzeProperty(propertySymbol, otelAttr);
+        return AnalyzerHelpers.FindAttributeByName(propertySymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr
+            ? null
+            : AnalyzeProperty(propertySymbol, otelAttr);
     }
 
     private static OTelTagBinding? AnalyzeProperty(
         IPropertySymbol propertySymbol,
-        ImmutableArray<AttributeData> attributes)
-    {
-        if (AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr)
-            return null;
-
-        return AnalyzeProperty(propertySymbol, otelAttr);
-    }
+        ImmutableArray<AttributeData> attributes) =>
+        AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr
+            ? null
+            : AnalyzeProperty(propertySymbol, otelAttr);
 
     private static OTelTagBinding? AnalyzeProperty(
         IPropertySymbol propertySymbol,
@@ -116,21 +112,17 @@ internal static class OTelTagAnalyzer
         if (semanticModel.GetDeclaredSymbol(parameter, cancellationToken) is not { } parameterSymbol)
             return null;
 
-        if (AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr)
-            return null;
-
-        return AnalyzeParameter(parameterSymbol, otelAttr);
+        return AnalyzerHelpers.FindAttributeByName(parameterSymbol.GetAttributes(), OTelAttributeMetadataName) is not { } otelAttr
+            ? null
+            : AnalyzeParameter(parameterSymbol, otelAttr);
     }
 
     private static OTelTagBinding? AnalyzeParameter(
         IParameterSymbol parameterSymbol,
-        ImmutableArray<AttributeData> attributes)
-    {
-        if (AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr)
-            return null;
-
-        return AnalyzeParameter(parameterSymbol, otelAttr);
-    }
+        ImmutableArray<AttributeData> attributes) =>
+        AnalyzerHelpers.FindAttributeByName(attributes, OTelAttributeMetadataName) is not { } otelAttr
+            ? null
+            : AnalyzeParameter(parameterSymbol, otelAttr);
 
     private static OTelTagBinding? AnalyzeParameter(
         IParameterSymbol parameterSymbol,

@@ -1,7 +1,4 @@
 using System.Text.RegularExpressions;
-using System.Security.Cryptography;
-using System.Text;
-using qyl.collector.Realtime;
 
 namespace qyl.collector.Logs;
 
@@ -478,13 +475,10 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
             var firstHalf = observedAt.Count(x => x <= midpoint);
             var secondHalf = observedAt.Count - firstHalf;
 
-            if (firstHalf is 0 && secondHalf > 0)
-                return "increasing";
-            if (secondHalf >= firstHalf * 2)
-                return "increasing";
-            if (secondHalf * 2 <= firstHalf)
-                return "decreasing";
-            return "stable";
+            return firstHalf is 0 && secondHalf > 0 ? "increasing"
+                : secondHalf >= firstHalf * 2 ? "increasing"
+                : secondHalf * 2 <= firstHalf ? "decreasing"
+                : "stable";
         }
 
         private static string CreatePatternId(string key)
