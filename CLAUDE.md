@@ -14,6 +14,8 @@ Docker image IS the product.
 ## Architecture
 
 ```text
+CopilotKit / Angular / Vanilla JS
+       ↕  AG-UI protocol (SSE)
               +------------------+
               |   qyl.dashboard  |
               |    (React 19)    |
@@ -23,12 +25,18 @@ Docker image IS the product.
 +----------+  +------------------+  +------+
 | qyl.mcp  |->|  qyl.collector   |<-| OTLP |
 | (stdio)  |  |  (ASP.NET Core)  |  |Clients|
-+----------+  +--------+---------+  +------+
-                       |
-                       v
-              +------------------+
-              |     DuckDB       |
-              +------------------+
++----------+  +--+-----------+---+  +------+
+                 |           |
+                 v           v
+       +----------+  +-------------+
+       |  DuckDB  |  | qyl.copilot |
+       +----------+  +------+------+
+                            |
+                            v
+                     QylAgentBuilder
+                     → AIAgent (instrumented)
+                     → InstrumentedChatClient
+                     → GitHub Copilot / Azure OpenAI / Ollama
 ```
 
 ## Dependency Chain
@@ -36,6 +44,7 @@ Docker image IS the product.
 ```text
 core/specs/*.tsp → qyl.protocol → qyl.collector → qyl.dashboard
                                  → qyl.mcp
+                                 → qyl.copilot (AG-UI + declarative workflows)
                                  → qyl.servicedefaults → qyl.servicedefaults.generator
 eng/build/ → orchestrates everything above
 ```
@@ -45,12 +54,15 @@ eng/build/ → orchestrates everything above
 ```yaml
 allowed:
   collector -> protocol (ProjectReference)
+  collector -> copilot (ProjectReference)
   mcp -> protocol (ProjectReference)
+  copilot -> protocol (ProjectReference)
   dashboard -> collector (HTTP at runtime)
   mcp -> collector (HTTP at runtime)
 forbidden:
   mcp -> collector (ProjectReference)    # must use HTTP
   protocol -> any-package                # must stay BCL-only
+  copilot -> collector (ProjectReference) # copilot is a library, not a host
 ```
 
 ## Tech Stack (training-prior overrides)
@@ -73,6 +85,15 @@ forbidden:
 | `QYL_OTLP_PORT` | 4318       | HTTP OTLP port (0=disable)         |
 | `QYL_DATA_PATH` | qyl.duckdb | DuckDB file path                   |
 | `PORT`          | —          | Railway/PaaS fallback for QYL_PORT |
+
+## Key Design Docs
+
+| Doc | Purpose |
+|-----|---------|
+| `docs/plans/2026-03-03-qyl-agui-declarative-design.md` | AG-UI + declarative workflows design (approved) |
+| `docs/plans/2026-03-03-qyl-agui-declarative-impl.md` | AG-UI implementation plan |
+| `docs/roadmap/seer-design.md` | Sentry Seer reverse-engineered spec (reference) |
+| `docs/plans/seer` | Seer-inspired enterprise agent framework spec |
 
 ## Requests to Humans
 

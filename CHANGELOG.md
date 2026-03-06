@@ -3,6 +3,27 @@
 ## Unreleased
 
 ### Added
+- **AG-UI copilot endpoint**: `MapQylAguiChat("/api/v1/copilot/chat")` serves any `AIAgent` over AG-UI SSE protocol (CopilotKit-compatible). `AddQylAgui()` service registration, SSE streaming with `RUN_STARTED`/`TEXT_MESSAGE_*`/`RUN_FINISHED` events, `RUN_ERROR` for stream errors.
+- **QylAgentBuilder**: Fluent factory for `AIAgent` instances — `FromCopilotAdapter()` (GitHub Copilot path) and `FromChatClient()` (provider-agnostic path with `InstrumentedChatClient` OTel wrapping).
+- **DeclarativeEngine**: YAML `AdaptiveDialog` workflow executor using `DeclarativeWorkflowBuilder`, streaming `IAsyncEnumerable<StreamUpdate>`. Sits alongside markdown `WorkflowEngine` with same contract. In-memory `ChatClientResponseAgentProvider` bridges `IChatClient` → `ResponseAgentProvider`.
+- **Browser extension scaffold**: Chrome extension with content script (AI text toolbar with undo toast), popup, service worker, shared AI client config, and Vite build pipeline (`vite.extension.config.ts`).
+- **Itemized undo toast**: Browser extension undo toast shows per-change items with text previews and individual undo buttons (`undoByIndex()` for selective reversal).
+- **Semconv comparison docs**: JS vs .NET OTel semantic convention attribute comparison (`eng/semconv/js vs net/`).
+
+### Changed
+- **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method name lookup instead of generic `CouldBeInvocation`, avoiding expensive `GetSymbolInfo` calls on non-matching nodes.
+- **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension, `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
+- **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
+
+### Fixed
+- **AG-UI plan docs restored**: PR #89 accidentally overwrote AG-UI design/impl docs with Seer content; originals restored from git history.
+- **Metrics doc cleaned**: Removed accidental Seer spec appendix from `andrewlock-system-diagnostics-metrics-apis-parts-1-4.md`.
+- **Missing parameter validation** in identity endpoints.
+
+### Removed
+- Stray `docs/plans/index.md` (unrelated Copilot Studio localization content).
+
+### Added
 - **Coding Agent Provider system**: Pluggable coding agent backends for autofix pipeline (Seer, Cursor, GitHub Copilot, Claude Code). Enum, DuckDB schema (`coding_agent_runs`, `seer_settings` tables), REST endpoints (`/api/v1/fix-runs/{id}/coding-agents`, `/api/v1/seer/settings`), React Query hooks, 3 UI components (`ClaudeCodeIntegrationCta`, `CodingAgentResultCard`, `SeerSettingsSection`), Seer tab in Settings, coding agent section in Issue Detail page. No `branch_name` display, provider-aware button text ("Open in Cursor" / "Open in Claude Code")
 - **Playwright E2E tests**: smoke test suite (`e2e/smoke.spec.ts`) covering health endpoint, sidebar navigation, time range selector, theme toggle, search input, and settings page; `npm run e2e` / `npm run e2e:ui` scripts
 - **Expanded dashboard smoke coverage**: compatibility endpoint reachability (`/api/v1/traces`, `/api/v1/genai/*`, `/api/v1/search/query`), onboarding verify endpoint assertions, `/api/v1/logs/live` stream availability, keyboard shortcut navigation/modal checks, and external APIs header/collapse semantics
