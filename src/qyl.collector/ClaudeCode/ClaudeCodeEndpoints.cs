@@ -11,6 +11,11 @@ internal static class ClaudeCodeEndpoints
         group.MapGet("/sessions/{sessionId}/tools", GetToolSummaryAsync);
         group.MapGet("/sessions/{sessionId}/cost", GetCostBreakdownAsync);
 
+        group.MapPost("/hooks", IngestHookAsync);
+        group.MapGet("/attach", GetAttachStatusAsync);
+        group.MapPost("/attach", AttachHooksAsync);
+        group.MapDelete("/attach", DetachHooksAsync);
+
         return app;
     }
 
@@ -72,6 +77,65 @@ internal static class ClaudeCodeEndpoints
             Models = breakdown,
             TotalCostUsd = breakdown.Sum(static m => m.TotalCostUsd)
         });
+    }
+
+    private static async Task<IResult> IngestHookAsync(
+        HttpContext context,
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        JsonElement payload;
+        try
+        {
+            payload = await context.Request.ReadFromJsonAsync<JsonElement>(ct).ConfigureAwait(false);
+        }
+        catch (JsonException)
+        {
+            return Results.BadRequest(new { error = "Invalid JSON" });
+        }
+
+        var now = (ulong)(TimeProvider.System.GetUtcNow().ToUnixTimeMilliseconds() * 1_000_000L);
+        var sessionId = payload.TryGetProperty("session_id", out var sid) ? sid.GetString() : null;
+        var hookEvent = payload.TryGetProperty("hook_event_name", out var hen) ? hen.GetString() : "unknown";
+
+        var log = new LogStorageRow
+        {
+            LogId = Guid.NewGuid().ToString("N"),
+            SessionId = sessionId,
+            TimeUnixNano = now,
+            SeverityNumber = 9, // INFO
+            SeverityText = "INFO",
+            Body = hookEvent,
+            ServiceName = "claude-code",
+            AttributesJson = payload.GetRawText()
+        };
+
+        await store.InsertLogsAsync([log], ct).ConfigureAwait(false);
+        return Results.Accepted();
+    }
+
+    private static async Task<IResult> GetAttachStatusAsync(
+        ClaudeCodeHooksService hooksService,
+        CancellationToken ct)
+    {
+        var attached = await hooksService.IsAttachedAsync(ct).ConfigureAwait(false);
+        return Results.Ok(new ClaudeCodeAttachResponse { Attached = attached });
+    }
+
+    private static async Task<IResult> AttachHooksAsync(
+        ClaudeCodeHooksService hooksService,
+        CancellationToken ct)
+    {
+        await hooksService.AttachAsync(ct).ConfigureAwait(false);
+        return Results.Ok(new ClaudeCodeAttachResponse { Attached = true });
+    }
+
+    private static async Task<IResult> DetachHooksAsync(
+        ClaudeCodeHooksService hooksService,
+        CancellationToken ct)
+    {
+        await hooksService.DetachAsync(ct).ConfigureAwait(false);
+        return Results.Ok(new ClaudeCodeAttachResponse { Attached = false });
     }
 }
 
@@ -165,6 +229,11 @@ internal sealed record ClaudeCodeCostResponse
     public double TotalCostUsd { get; init; }
 }
 
+internal sealed record ClaudeCodeAttachResponse
+{
+    public bool Attached { get; init; }
+}
+
 // =============================================================================
 // JSON serializer context (AOT-compatible)
 // =============================================================================
@@ -180,4 +249,5 @@ internal sealed record ClaudeCodeCostResponse
 [JsonSerializable(typeof(ClaudeCodeTimelineResponse))]
 [JsonSerializable(typeof(ClaudeCodeToolSummaryResponse))]
 [JsonSerializable(typeof(ClaudeCodeCostResponse))]
+[JsonSerializable(typeof(ClaudeCodeAttachResponse))]
 internal sealed partial class ClaudeCodeSerializerContext : JsonSerializerContext;

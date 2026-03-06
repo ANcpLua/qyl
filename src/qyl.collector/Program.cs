@@ -136,6 +136,7 @@ else
 {
     builder.Services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
 }
+builder.Services.AddSingleton<ClaudeCodeHooksService>();
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<MigrationRunner>();

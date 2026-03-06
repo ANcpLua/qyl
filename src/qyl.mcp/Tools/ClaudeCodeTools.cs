@@ -164,6 +164,64 @@ public sealed class ClaudeCodeTools(HttpClient client)
 
             return sb.ToString();
         });
+
+    [McpServerTool(Name = "qyl.observe_claude", Title = "Start Observing Claude Code",
+        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [Description("""
+                 Attach qyl observability hooks to Claude Code.
+
+                 Registers PostToolUse, SubagentStart, and SubagentStop HTTP hooks
+                 in ~/.claude/hooks/hooks.json. These hooks POST event payloads to
+                 qyl.collector for storage and querying.
+
+                 Idempotent — safe to call multiple times.
+
+                 New Claude Code sessions will pick up the hooks automatically.
+                 Existing sessions are unaffected until restarted.
+
+                 Returns: Confirmation message with attach status
+                 """)]
+    public Task<string> ObserveClaudeAsync() =>
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var response = await client.PostAsync("/api/v1/claude-code/attach", null).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ClaudeCodeAttachDto>(
+                ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
+
+            return result?.Attached is true
+                ? "Claude Code hooks attached. New sessions will send tool calls and agent events to qyl. Restart Claude Code to pick up changes."
+                : "Unexpected response — hooks may not be attached. Check ~/.claude/hooks/hooks.json.";
+        });
+
+    [McpServerTool(Name = "qyl.stop_observing_claude", Title = "Stop Observing Claude Code",
+        ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [Description("""
+                 Remove qyl observability hooks from Claude Code.
+
+                 Removes the PostToolUse, SubagentStart, and SubagentStop HTTP hooks
+                 from ~/.claude/hooks/hooks.json. Other hooks (non-qyl) are preserved.
+
+                 Idempotent — safe to call even if hooks are not attached.
+
+                 New Claude Code sessions will no longer send events to qyl.
+                 Existing sessions continue until restarted.
+
+                 Returns: Confirmation message with detach status
+                 """)]
+    public Task<string> StopObservingClaudeAsync() =>
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Delete, "/api/v1/claude-code/attach");
+            var response = await client.SendAsync(request).ConfigureAwait(false);
+            response.EnsureSuccessStatusCode();
+            var result = await response.Content.ReadFromJsonAsync<ClaudeCodeAttachDto>(
+                ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
+
+            return result?.Attached is false
+                ? "Claude Code hooks detached. New sessions will no longer send events to qyl. Restart Claude Code to pick up changes."
+                : "Unexpected response — hooks may still be attached. Check ~/.claude/hooks/hooks.json.";
+        });
 }
 
 #region DTOs
@@ -232,10 +290,16 @@ internal sealed record ClaudeCodeToolDto
     [JsonPropertyName("rejectCount")] public int RejectCount { get; init; }
 }
 
+internal sealed record ClaudeCodeAttachDto
+{
+    [JsonPropertyName("attached")] public bool Attached { get; init; }
+}
+
 #endregion
 
 [JsonSerializable(typeof(ClaudeCodeSessionsDto))]
 [JsonSerializable(typeof(ClaudeCodeTimelineDto))]
 [JsonSerializable(typeof(ClaudeCodeToolSummaryDto))]
+[JsonSerializable(typeof(ClaudeCodeAttachDto))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
 internal sealed partial class ClaudeCodeMcpJsonContext : JsonSerializerContext;

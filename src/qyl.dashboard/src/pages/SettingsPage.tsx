@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
-import {Brain, Database, GearSix, Keyboard, LinkBreak, Monitor, Moon, PaintBrush, Robot, SpinnerGap, Sun, Trash,} from '@phosphor-icons/react';
+import {Brain, Database, GearSix, Keyboard, LinkBreak, Monitor, Moon, PaintBrush, Robot, SpinnerGap, Sun, Terminal, Trash,} from '@phosphor-icons/react';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -24,6 +24,7 @@ import {toast} from 'sonner';
 import {type LlmProvider, LLM_PROVIDERS, useLlmConfig} from '@/hooks/use-llm-config';
 import {useLlmStatus} from '@/hooks/use-llm-status';
 import {SeerSettingsSection} from '@/components/coding-agents/SeerSettingsSection';
+import {useClaudeCodeHooksStatus, useAttachClaudeCodeHooks, useDetachClaudeCodeHooks} from '@/hooks/use-claude-code-hooks';
 
 const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
@@ -202,6 +203,10 @@ export function SettingsPage() {
             return res.json() as Promise<{ configured: boolean; user: { login: string; name: string; avatarUrl: string } | null; authMethod: string }>;
         },
     });
+
+    const {data: claudeHooksStatus, isLoading: claudeHooksLoading} = useClaudeCodeHooksStatus();
+    const attachHooks = useAttachClaudeCodeHooks();
+    const detachHooks = useDetachClaudeCodeHooks();
 
     const handleDisconnectGitHub = async () => {
         setDisconnecting(true);
@@ -450,6 +455,68 @@ export function SettingsPage() {
                                     </Button>
                                 </div>
                             )}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">Claude Code Observability</CardTitle>
+                            <CardDescription>
+                                Attach hooks to observe tool calls and agent lifecycle events
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {claudeHooksLoading ? (
+                                <div className="flex items-center gap-2 text-muted-foreground">
+                                    <SpinnerGap className="w-4 h-4 animate-spin"/>
+                                    Checking hook status...
+                                </div>
+                            ) : (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Terminal className="w-5 h-5 text-muted-foreground"/>
+                                        <div>
+                                            <p className="font-medium">
+                                                {claudeHooksStatus?.attached ? 'Hooks attached' : 'Hooks not attached'}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                                PostToolUse, SubagentStart, SubagentStop
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Badge variant={claudeHooksStatus?.attached ? 'secondary' : 'outline'}>
+                                            {claudeHooksStatus?.attached ? 'Attached' : 'Detached'}
+                                        </Badge>
+                                        <Button
+                                            variant={claudeHooksStatus?.attached ? 'outline' : 'default'}
+                                            size="sm"
+                                            disabled={attachHooks.isPending || detachHooks.isPending}
+                                            onClick={() => {
+                                                if (claudeHooksStatus?.attached) {
+                                                    detachHooks.mutate(undefined, {
+                                                        onSuccess: () => toast.success('Claude Code hooks detached'),
+                                                        onError: () => toast.error('Failed to detach hooks'),
+                                                    });
+                                                } else {
+                                                    attachHooks.mutate(undefined, {
+                                                        onSuccess: () => toast.success('Claude Code hooks attached'),
+                                                        onError: () => toast.error('Failed to attach hooks'),
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            {(attachHooks.isPending || detachHooks.isPending) && (
+                                                <SpinnerGap className="w-4 h-4 animate-spin mr-2"/>
+                                            )}
+                                            {claudeHooksStatus?.attached ? 'Stop Observing' : 'Start Observing'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                                New Claude Code sessions will pick up hook changes. Existing sessions are unaffected.
+                            </p>
                         </CardContent>
                     </Card>
                 </TabsContent>
