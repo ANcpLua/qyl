@@ -232,6 +232,7 @@ qyl implication:
     - 21.10 [CI/CD Improvements](#2110-cicd-improvements-from-suggested-improvementsyaml)
 22. [Requirements Registry](#22-requirements-registry)
 23. [Traceability Matrix](#23-traceability-matrix)
+24. [2025+ Web Source Research — Elegant Patterns](#24-2025-web-source-research--elegant-patterns)
 
 ---
 
@@ -2631,10 +2632,10 @@ Every capability carries a unique ID, domain classification, scope label
 | Prefix  | Scope                | Source Sections                           |
 |---------|----------------------|------------------------------------------|
 | `LOOM-` | `CONTEXT-ONLY`       | [§4](#4-capabilities-catalog), [§6](#6-api-surface) |
-| `SEER-` | `CONTEXT-ONLY`       | [§20](#20-seer-ai-platform--deep-architecture) |
+| `SEER-` | `EXTERNAL-CLOSED`    | [§20](#20-seer-ai-platform--deep-architecture) |
 | `MCP-`  | `CONTEXT-ONLY`       | [§17](#17-sentry-mcp-architecture)       |
-| `PLAT-` | `CONTEXT-ONLY`       | [§16](#16-sentry-platform-features-beyond-loom) |
-| `QYL-`  | `IMPLEMENTED-IN-QYL` | [§15](#15-qyl-platform-capabilities-reference), [§21](#21-qyl-roadmap--extended-feature-reference) |
+| `PLAT-` | mixed                | [§16](#16-sentry-platform-features-beyond-loom) |
+| `QYL-`  | mixed                | [§15](#15-qyl-platform-capabilities-reference), [§21](#21-qyl-roadmap--extended-feature-reference) |
 | `COMP-` | `CONTEXT-ONLY`       | [§18](#18-competitive-analysis)          |
 
 ### Domain Objects
@@ -2663,98 +2664,98 @@ Every capability carries a unique ID, domain classification, scope label
 
 ### LOOM — Sentry Loom Capabilities
 
-| ID       | Capability                    | Domain        | Confidence | §Ref                            | Rationale                                                         |
-|----------|-------------------------------|---------------|------------|----------------------------------|-------------------------------------------------------------------|
-| LOOM-001 | Issue Grouping & Similarity   | Grouping      | CONFIRMED  | [4.1](#41-issue-grouping--similarity-ml) | 40% issue reduction — semantic dedup is the highest-leverage AI   |
-| LOOM-002 | Issue Summarization           | Summarization | CONFIRMED  | [4.2](#42-issue-summarization)   | Headline + possible_cause reduces mean-time-to-understand         |
-| LOOM-003 | Fixability Scoring            | Triage        | CONFIRMED  | [4.3](#43-fixability-scoring)    | 5-tier score gates automation level — prevents wasted LLM spend  |
-| LOOM-004 | Root Cause Analysis           | Autofix       | CONFIRMED  | [4.4](#44-root-cause-analysis)   | 5-whys artifact feeds downstream fix pipeline                     |
-| LOOM-005 | Autofix Pipeline              | Autofix       | CONFIRMED  | [4.5](#45-autofix-pipeline)      | End-to-end issue → PR automation — the core Loom value prop       |
-| LOOM-006 | AI Code Review (Loom Prevent) | CodeReview    | CONFIRMED  | [4.6](#46-ai-code-review-Loom-prevent) | Shift-left: catch bugs before merge, not after deploy             |
-| LOOM-007 | Explorer (Interactive Agent)  | Explorer      | CONFIRMED  | [4.7](#47-explorer-interactive-agent) | Ad-hoc debugging with multi-turn, tools, coding agent handoff    |
-| LOOM-008 | Anomaly Detection             | Anomaly       | CONFIRMED  | [4.8](#48-anomaly-detection)     | 28-day baseline detects regressions missed by threshold alerts    |
-| LOOM-009 | Trace Summarization           | Summarization | CONFIRMED  | [4.9](#49-trace-summarization)   | NL trace analysis surfaces performance issues without manual scan |
-| LOOM-010 | Assisted Query                | Search        | CONFIRMED  | [4.10](#410-assisted-query--search-agent) | NL → Sentry query lowers the Snuba syntax learning curve          |
-| LOOM-011 | Test Generation               | Testing       | CONFIRMED  | [4.11](#411-test-generation)     | PR-driven test gen improves coverage on changed code              |
-| LOOM-012 | Public REST API               | API           | CONFIRMED  | [6.1](#61-public-rest-api)       | External integrations need stable programmatic access             |
-| LOOM-013 | Loom Service Endpoints        | API           | CONFIRMED  | [6.2](#62-Loom-service-endpoints-sentry---Loom) | Sentry → Loom bridge carries events, traces, profiles             |
-| LOOM-014 | RPC Bridge (Loom → Sentry)    | API           | CONFIRMED  | [6.3](#63-rpc-bridge-Loom---sentry) | Loom callbacks for issue updates, PR creation, status             |
-| LOOM-015 | MCP Server (Sentry)           | MCP           | CONFIRMED  | [6.4](#64-mcp-server)            | Coding agent telemetry access via MCP protocol                    |
+| ID       | Capability                    | Domain        | Scope            | Confidence | §Ref                            | Rationale                                                         |
+|----------|-------------------------------|---------------|------------------|------------|----------------------------------|-------------------------------------------------------------------|
+| LOOM-001 | Issue Grouping & Similarity   | Grouping      | `CONTEXT-ONLY`   | CONFIRMED  | [4.1](#41-issue-grouping--similarity-ml) | 40% issue reduction — semantic dedup is the highest-leverage AI   |
+| LOOM-002 | Issue Summarization           | Summarization | `CONTEXT-ONLY`   | CONFIRMED  | [4.2](#42-issue-summarization)   | Headline + possible_cause reduces mean-time-to-understand         |
+| LOOM-003 | Fixability Scoring            | Triage        | `CONTEXT-ONLY`   | CONFIRMED  | [4.3](#43-fixability-scoring)    | 5-tier score gates automation level — prevents wasted LLM spend  |
+| LOOM-004 | Root Cause Analysis           | Autofix       | `CONTEXT-ONLY`   | CONFIRMED  | [4.4](#44-root-cause-analysis)   | 5-whys artifact feeds downstream fix pipeline                     |
+| LOOM-005 | Autofix Pipeline              | Autofix       | `CONTEXT-ONLY`   | CONFIRMED  | [4.5](#45-autofix-pipeline)      | End-to-end issue → PR automation — the core Loom value prop       |
+| LOOM-006 | AI Code Review (Loom Prevent) | CodeReview    | `CONTEXT-ONLY`   | CONFIRMED  | [4.6](#46-ai-code-review-Loom-prevent) | Shift-left: catch bugs before merge, not after deploy             |
+| LOOM-007 | Explorer (Interactive Agent)  | Explorer      | `CONTEXT-ONLY`   | CONFIRMED  | [4.7](#47-explorer-interactive-agent) | Ad-hoc debugging with multi-turn, tools, coding agent handoff    |
+| LOOM-008 | Anomaly Detection             | Anomaly       | `CONTEXT-ONLY`   | CONFIRMED  | [4.8](#48-anomaly-detection)     | 28-day baseline detects regressions missed by threshold alerts    |
+| LOOM-009 | Trace Summarization           | Summarization | `CONTEXT-ONLY`   | CONFIRMED  | [4.9](#49-trace-summarization)   | NL trace analysis surfaces performance issues without manual scan |
+| LOOM-010 | Assisted Query                | Search        | `CONTEXT-ONLY`   | CONFIRMED  | [4.10](#410-assisted-query--search-agent) | NL → Sentry query lowers the Snuba syntax learning curve          |
+| LOOM-011 | Test Generation               | Testing       | `CONTEXT-ONLY`   | CONFIRMED  | [4.11](#411-test-generation)     | PR-driven test gen improves coverage on changed code              |
+| LOOM-012 | Public REST API               | API           | `CONTEXT-ONLY`   | CONFIRMED  | [6.1](#61-public-rest-api)       | External integrations need stable programmatic access             |
+| LOOM-013 | Loom Service Endpoints        | API           | `CONTEXT-ONLY`   | CONFIRMED  | [6.2](#62-Loom-service-endpoints-sentry---Loom) | Sentry → Loom bridge carries events, traces, profiles             |
+| LOOM-014 | RPC Bridge (Loom → Sentry)    | API           | `CONTEXT-ONLY`   | CONFIRMED  | [6.3](#63-rpc-bridge-Loom---sentry) | Loom callbacks for issue updates, PR creation, status             |
+| LOOM-015 | MCP Server (Sentry)           | MCP           | `CONTEXT-ONLY`   | CONFIRMED  | [6.4](#64-mcp-server)            | Coding agent telemetry access via MCP protocol                    |
 
 ### SEER — Deep Architecture
 
-| ID       | Capability                    | Domain        | Confidence | §Ref                             | Rationale                                                        |
-|----------|-------------------------------|---------------|------------|-----------------------------------|------------------------------------------------------------------|
-| SEER-001 | Autofix 5-Step LLM Chain      | Autofix       | CONFIRMED  | [20.1](#201-autofix-pipeline--5-step-llm-chain) | Artifact schemas, data gathering, billing — implementation depth |
-| SEER-002 | Explorer Agent (10 tools)     | Explorer      | CONFIRMED  | [20.2](#202-explorer-agent--interactive-debugging) | Tool inventory and extensibility model for agentic debugging     |
-| SEER-003 | Code Review Bug Prediction    | CodeReview    | CONFIRMED  | [20.3](#203-code-review--bug-prediction) | Trigger taxonomy and severity gating for PR comments             |
-| SEER-004 | Anomaly Detection (Prophet)   | Anomaly       | CONFIRMED  | [20.4](#204-anomaly-detection--prophet-like-forecasting) | Seasonality patterns and confidence bounds for forecasting       |
-| SEER-005 | Issue Similarity Embeddings   | Grouping      | CONFIRMED  | [20.5](#205-issue-similarity--embeddings-v1v2) | V1/V2 model versioning, circuit breaker, dual-write rollout     |
-| SEER-006 | Breakpoint Detection          | Anomaly       | CONFIRMED  | [20.6](#206-breakpoint-detection--trend-analysis) | Statistical t-test for trend analysis — capability absent in §4  |
-| SEER-007 | Fetch Issues (Context)        | Search        | CONFIRMED  | [20.7](#207-fetch-issues--context-retrieval) | Text/function/error-type retrieval — capability absent in §4     |
-| SEER-008 | Issue Summary + Headline      | Summarization | CONFIRMED  | [20.11](#2011-seer-data-models)  | Data model: fixability scores, novelty, possible_cause           |
-| SEER-009 | RPC Method Registry (30+)     | API           | CONFIRMED  | [20.8](#208-rpc-method-registry) | Full read-only method inventory for Seer ↔ Sentry bridge        |
-| SEER-010 | API Endpoints (14)            | API           | CONFIRMED  | [20.9](#209-seer-api-endpoints)  | REST surface: explorer, anomaly, autofix, settings               |
-| SEER-011 | Feature Flags (6)             | API           | CONFIRMED  | [20.10](#2010-seer-feature-flags) | Rollout gating: gen-ai-features, explorer, copilot, similarity  |
-| SEER-012 | Entrypoints & Celery Tasks    | API           | CONFIRMED  | [20.12](#2012-seer-entrypoints--background-tasks) | Background orchestration: autofix polling, agent state           |
-| SEER-013 | Error Handling & Monitoring   | API           | CONFIRMED  | [20.13](#2013-seer-error-handling--monitoring) | Circuit breaker, metrics, exception hierarchy                    |
+| ID       | Capability                    | Domain        | Scope              | Confidence | §Ref                             | Rationale                                                        |
+|----------|-------------------------------|---------------|--------------------|------------|-----------------------------------|------------------------------------------------------------------|
+| SEER-001 | Autofix 5-Step LLM Chain      | Autofix       | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.1](#201-autofix-pipeline--5-step-llm-chain) | Artifact schemas, data gathering, billing — implementation depth |
+| SEER-002 | Explorer Agent (10 tools)     | Explorer      | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.2](#202-explorer-agent--interactive-debugging) | Tool inventory and extensibility model for agentic debugging     |
+| SEER-003 | Code Review Bug Prediction    | CodeReview    | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.3](#203-code-review--bug-prediction) | Trigger taxonomy and severity gating for PR comments             |
+| SEER-004 | Anomaly Detection (Prophet)   | Anomaly       | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.4](#204-anomaly-detection--prophet-like-forecasting) | Seasonality patterns and confidence bounds for forecasting       |
+| SEER-005 | Issue Similarity Embeddings   | Grouping      | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.5](#205-issue-similarity--embeddings-v1v2) | V1/V2 model versioning, circuit breaker, dual-write rollout     |
+| SEER-006 | Breakpoint Detection          | Anomaly       | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.6](#206-breakpoint-detection--trend-analysis) | Statistical t-test for trend analysis — capability absent in §4  |
+| SEER-007 | Fetch Issues (Context)        | Search        | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.7](#207-fetch-issues--context-retrieval) | Text/function/error-type retrieval — capability absent in §4     |
+| SEER-008 | Issue Summary + Headline      | Summarization | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.11](#2011-seer-data-models)  | Data model: fixability scores, novelty, possible_cause           |
+| SEER-009 | RPC Method Registry (30+)     | API           | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.8](#208-rpc-method-registry) | Full read-only method inventory for Seer ↔ Sentry bridge        |
+| SEER-010 | API Endpoints (14)            | API           | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.9](#209-seer-api-endpoints)  | REST surface: explorer, anomaly, autofix, settings               |
+| SEER-011 | Feature Flags (6)             | API           | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.10](#2010-seer-feature-flags) | Rollout gating: gen-ai-features, explorer, copilot, similarity  |
+| SEER-012 | Entrypoints & Celery Tasks    | API           | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.12](#2012-seer-entrypoints--background-tasks) | Background orchestration: autofix polling, agent state           |
+| SEER-013 | Error Handling & Monitoring   | API           | `EXTERNAL-CLOSED`  | CONFIRMED  | [20.13](#2013-seer-error-handling--monitoring) | Circuit breaker, metrics, exception hierarchy                    |
 
 ### MCP — sentry-mcp Architecture
 
-| ID      | Capability                   | Confidence | §Ref                            | Rationale                                                       |
-|---------|------------------------------|------------|----------------------------------|-----------------------------------------------------------------|
-| MCP-001 | Tool Catalog (27 tools)      | CONFIRMED  | [17.1](#171-tool-catalog-19-tools) | Reference inventory for qyl MCP tool parity analysis            |
-| MCP-002 | Skills Authorization (5)     | CONFIRMED  | [17.2](#172-skills-based-authorization) | Tool bundling pattern adopted by qyl (`QylSkillKind`, 8 skills) |
-| MCP-003 | Embedded Agent Framework     | CONFIRMED  | [17.3](#173-embedded-agent-framework) | NL → structured query via Vercel AI SDK — pattern reference     |
-| MCP-004 | Dual OAuth Architecture      | CONFIRMED  | [17.4](#174-dual-oauth-architecture) | Nested token encryption — reference for remote MCP auth         |
-| MCP-005 | Deployment Models (2)        | CONFIRMED  | [17.5](#175-deployment-models)   | Remote (Cloudflare) vs stdio — qyl plans similar split          |
-| MCP-006 | Error Type Hierarchy         | CONFIRMED  | [17.6](#176-error-handling--rate-limiting) | 5-class error taxonomy — reference for qyl MCP error handling   |
-| MCP-007 | Constraints & Capabilities   | CONFIRMED  | [17.7](#177-constraints--capabilities) | URL-scoped org/project gating with capability checks            |
-| MCP-008 | Technology Stack             | CONFIRMED  | [17.8](#178-technology-stack)    | TypeScript + Hono + Zod + Vitest — contrast to qyl C# stack    |
+| ID      | Capability                   | Scope          | Confidence | §Ref                            | Rationale                                                       |
+|---------|------------------------------|----------------|------------|----------------------------------|-----------------------------------------------------------------|
+| MCP-001 | Tool Catalog (27 tools)      | `CONTEXT-ONLY` | CONFIRMED  | [17.1](#171-tool-catalog-19-tools) | Reference inventory for qyl MCP tool parity analysis            |
+| MCP-002 | Skills Authorization (5)     | `CONTEXT-ONLY` | CONFIRMED  | [17.2](#172-skills-based-authorization) | Tool bundling pattern adopted by qyl (`QylSkillKind`, 8 skills) |
+| MCP-003 | Embedded Agent Framework     | `CONTEXT-ONLY` | CONFIRMED  | [17.3](#173-embedded-agent-framework) | NL → structured query via Vercel AI SDK — pattern reference     |
+| MCP-004 | Dual OAuth Architecture      | `CONTEXT-ONLY` | CONFIRMED  | [17.4](#174-dual-oauth-architecture) | Nested token encryption — reference for remote MCP auth         |
+| MCP-005 | Deployment Models (2)        | `CONTEXT-ONLY` | CONFIRMED  | [17.5](#175-deployment-models)   | Remote (Cloudflare) vs stdio — qyl plans similar split          |
+| MCP-006 | Error Type Hierarchy         | `CONTEXT-ONLY` | CONFIRMED  | [17.6](#176-error-handling--rate-limiting) | 5-class error taxonomy — reference for qyl MCP error handling   |
+| MCP-007 | Constraints & Capabilities   | `CONTEXT-ONLY` | CONFIRMED  | [17.7](#177-constraints--capabilities) | URL-scoped org/project gating with capability checks            |
+| MCP-008 | Technology Stack             | `CONTEXT-ONLY` | CONFIRMED  | [17.8](#178-technology-stack)    | TypeScript + Hono + Zod + Vitest — contrast to qyl C# stack    |
 
 ### PLAT — Sentry Platform Features
 
-| ID       | Capability              | Confidence | §Ref                           | qyl Status               | qyl Evidence                      |
-|----------|-------------------------|------------|--------------------------------|---------------------------|-----------------------------------|
-| PLAT-001 | AI Agent Monitoring     | CONFIRMED  | [16.1](#161-ai-agent-monitoring) | `IMPLEMENTED-IN-QYL`     | `AgentRunsPage.tsx`               |
-| PLAT-002 | LLM Monitoring          | CONFIRMED  | [16.2](#162-llm-monitoring)    | `IMPLEMENTED-IN-QYL`     | GenAI semconv v1.40 DuckDB cols   |
-| PLAT-003 | Session Replay          | CONFIRMED  | [16.3](#163-session-replay)    | Partial                   | `qyl.browser` (Web Vitals only)  |
-| PLAT-004 | Uptime & Cron           | CONFIRMED  | [16.4](#164-uptime--cron-monitoring) | Partial               | `qyl.watchdog` (process-level)   |
-| PLAT-005 | Release Health          | CONFIRMED  | [16.5](#165-release-health)    | `IMPLEMENTED-IN-QYL`     | `RegressionDetectionService.cs`   |
-| PLAT-006 | User Feedback           | CONFIRMED  | [16.6](#166-user-feedback)     | Partial                   | Evaluation spans only             |
-| PLAT-007 | Dashboards & Insights   | CONFIRMED  | [16.7](#167-dashboards--insights) | Partial                | Feature-specific pages            |
-| PLAT-008 | Alerts & Notifications  | CONFIRMED  | [16.8](#168-alerts--notifications) | Partial               | SSE streaming only                |
-| PLAT-009 | Logs Explorer           | CONFIRMED  | [16.9](#169-logs-explorer)     | `IMPLEMENTED-IN-QYL`     | OTLP log ingestion + DuckDB      |
-| PLAT-010 | Pricing Model           | CONFIRMED  | [16.10](#1610-pricing-model-detail) | `CONTEXT-ONLY`       | — (reference only)                |
+| ID       | Capability              | Scope                  | Confidence | §Ref                           | qyl Evidence                      |
+|----------|-------------------------|------------------------|------------|--------------------------------|-----------------------------------|
+| PLAT-001 | AI Agent Monitoring     | `IMPLEMENTED-IN-QYL`   | CONFIRMED  | [16.1](#161-ai-agent-monitoring) | `AgentRunsPage.tsx`               |
+| PLAT-002 | LLM Monitoring          | `IMPLEMENTED-IN-QYL`   | CONFIRMED  | [16.2](#162-llm-monitoring)    | GenAI semconv v1.40 DuckDB cols   |
+| PLAT-003 | Session Replay          | `CONTEXT-ONLY`         | CONFIRMED  | [16.3](#163-session-replay)    | `qyl.browser` (Web Vitals only)  |
+| PLAT-004 | Uptime & Cron           | `CONTEXT-ONLY`         | CONFIRMED  | [16.4](#164-uptime--cron-monitoring) | `qyl.watchdog` (process-level)   |
+| PLAT-005 | Release Health          | `IMPLEMENTED-IN-QYL`   | CONFIRMED  | [16.5](#165-release-health)    | `RegressionDetectionService.cs`   |
+| PLAT-006 | User Feedback           | `CONTEXT-ONLY`         | CONFIRMED  | [16.6](#166-user-feedback)     | Evaluation spans only             |
+| PLAT-007 | Dashboards & Insights   | `CONTEXT-ONLY`         | CONFIRMED  | [16.7](#167-dashboards--insights) | Feature-specific pages            |
+| PLAT-008 | Alerts & Notifications  | `CONTEXT-ONLY`         | CONFIRMED  | [16.8](#168-alerts--notifications) | SSE streaming only                |
+| PLAT-009 | Logs Explorer           | `IMPLEMENTED-IN-QYL`   | CONFIRMED  | [16.9](#169-logs-explorer)     | OTLP log ingestion + DuckDB      |
+| PLAT-010 | Pricing Model           | `CONTEXT-ONLY`         | CONFIRMED  | [16.10](#1610-pricing-model-detail) | — (reference only)                |
 
 ### QYL — qyl Platform Capabilities
 
-| ID       | Capability                          | Domain    | §Ref                              | Evidence                                          | Rationale                                                       |
-|----------|-------------------------------------|-----------|-------------------------------------|---------------------------------------------------|-----------------------------------------------------------------|
-| QYL-001  | GenAI Semantic Conventions          | SDK       | [15.1](#151-genai-semantic-conventions-model), [21.5](#215-genai-semconv-full-reference-from-otel-semconv-referencemd) | 40+ attributes, 5-target codegen           | Single source-of-truth for GenAI telemetry vocabulary           |
-| QYL-002  | DuckDB Appender Architecture        | Storage   | [15.2](#152-duckdb-storage--appender-architecture), [21.3](#213-duckdb-appender-purge-from-hades-storage-purgemd) | SpanStorageRow (26 col), LogStorageRow (16 col) | Zero-copy bulk ingestion replacing Roslyn INSERT generator |
-| QYL-003  | MCP Platform (60+ tools, 8 skills)  | MCP       | [15.3](#153-mcp-platform-design), [21.4](#214-mcp-platform--extended-from-mcp-platformmd) | `QylSkillKind` enum, `QYL_SKILLS` env var | 3× Sentry tool count — deepest MCP surface in market            |
-| QYL-004  | AI Chat Analytics (6 modules)       | Analytics | [15.4](#154-ai-chat-analytics-6-modules), [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd) | 6 modules, 9 API endpoints, 10 uncertainty signals | Feedback loop: what users ask, where AI fails               |
-| QYL-005  | AG-UI + Declarative Workflows       | Protocol  | [15.5](#155-ag-ui--declarative-workflows), [21.8](#218-ag-ui--implementation-detail-from-ag-ui-design--impl-docs) | QylAgentBuilder, DeclarativeEngine, SSE | Sentry has no AG-UI — qyl's unique frontend protocol            |
-| QYL-006  | Compile-Time Tracing (`[Traced]`)   | SDK       | [15.6](#156-compile-time-tracing-annotations), [21.6](#216-traced-annotations--stories-from-traced-annotationsmd) | TracedInterceptorEmitter, QSG005, 8 stories | Zero-overhead: no JVM agent, no runtime reflection          |
-| QYL-007  | Zero-Cost Observability Contracts   | SDK       | [15.7](#157-zero-cost-observability-contracts), [21.7](#217-zero-cost-observability--phases-from-zero-cost-observabilitymd) | SubscriptionManager, 6 phases | Instrumentation at zero cost until subscriber activates     |
-| QYL-008  | Port Architecture (OTLP)            | Protocol  | [15.8](#158-port-architecture-otlp-standard-compliance), [21.2](#212-port-architecture--extended-from-antipattern-remediationmd) | 5100/4317/4318 triple-port | OTel standard compliance — any OTLP client works by default |
-| QYL-009  | Aspire 13.x Comparison              | —         | [15.9](#159-aspire-13x-feature-coverage), [21.9](#219-aspire-coverage--extended-matrix-from-aspire-coveragemd) | 42-feature matrix | `CONTEXT-ONLY` — competitive positioning against Aspire     |
-| QYL-010  | Hosting Resource Model              | Hosting   | [15.10](#1510-hosting-resource-model) | 6 resource types, QylApp, QylRunner               | Polyglot orchestration: .NET, Node, Python, Vite, Docker        |
-| QYL-011  | Agent Continuation Evaluation       | SDK       | [15.11](#1511-agent-continuation-evaluation-heuristic-first-pattern) | Heuristic-first pattern | Cost optimization: ~80% fewer LLM evaluator calls           |
-| QYL-012  | AI Chat Extended (Phase 5)          | Analytics | [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd) | Semantic clustering, token economics          | Roadmap: embeddings, feedback, cross-platform                   |
-| QYL-013  | MCP Platform Extended               | MCP       | [21.4](#214-mcp-platform--extended-from-mcp-platformmd) | Monolith split, Streamable HTTP, OAuth        | Roadmap: remote MCP, plugin backends, ecosystem                 |
-| QYL-014  | CI/CD Improvements                  | —         | [21.10](#2110-cicd-improvements-from-suggested-improvementsyaml) | SHA-pinned actions, analyzers | Build hygiene: no suppression, no audit bypass              |
-| QYL-015a | Autofix Orchestration               | Autofix   | [Evidence](#implementation-evidence-in-qyl) | `AutofixOrchestrator.cs`, `AutofixAgentService.cs` | qyl's own autofix pipeline (distinct from SEER-001)         |
-| QYL-015b | Triage Pipeline                     | Triage    | [Evidence](#implementation-evidence-in-qyl) | `TriagePipelineService.cs`, `TriagePrompts.cs`     | qyl's own fixability scoring (distinct from LOOM-003)       |
-| QYL-015c | Code Review Service                 | CodeReview| [Evidence](#implementation-evidence-in-qyl) | `CodeReviewService.cs`, `CodeReviewEndpoints.cs`   | qyl's own PR analysis (distinct from LOOM-006)              |
+| ID       | Capability                          | Domain    | Scope                | §Ref                              | Evidence                                          | Rationale                                                       |
+|----------|-------------------------------------|-----------|----------------------|-------------------------------------|---------------------------------------------------|-----------------------------------------------------------------|
+| QYL-001  | GenAI Semantic Conventions          | SDK       | `IMPLEMENTED-IN-QYL` | [15.1](#151-genai-semantic-conventions-model), [21.5](#215-genai-semconv-full-reference-from-otel-semconv-referencemd) | 40+ attributes, 5-target codegen           | Single source-of-truth for GenAI telemetry vocabulary           |
+| QYL-002  | DuckDB Appender Architecture        | Storage   | `IMPLEMENTED-IN-QYL` | [15.2](#152-duckdb-storage--appender-architecture), [21.3](#213-duckdb-appender-purge-from-hades-storage-purgemd) | SpanStorageRow (26 col), LogStorageRow (16 col) | Zero-copy bulk ingestion replacing Roslyn INSERT generator |
+| QYL-003  | MCP Platform (60+ tools, 8 skills)  | MCP       | `IMPLEMENTED-IN-QYL` | [15.3](#153-mcp-platform-design), [21.4](#214-mcp-platform--extended-from-mcp-platformmd) | `QylSkillKind` enum, `QYL_SKILLS` env var | 3× Sentry tool count — deepest MCP surface in market            |
+| QYL-004  | AI Chat Analytics (6 modules)       | Analytics | `IMPLEMENTED-IN-QYL` | [15.4](#154-ai-chat-analytics-6-modules), [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd) | 6 modules, 9 API endpoints, 10 uncertainty signals | Feedback loop: what users ask, where AI fails               |
+| QYL-005  | AG-UI + Declarative Workflows       | Protocol  | `IMPLEMENTED-IN-QYL` | [15.5](#155-ag-ui--declarative-workflows), [21.8](#218-ag-ui--implementation-detail-from-ag-ui-design--impl-docs) | QylAgentBuilder, DeclarativeEngine, SSE | Sentry has no AG-UI — qyl's unique frontend protocol            |
+| QYL-006  | Compile-Time Tracing (`[Traced]`)   | SDK       | `IMPLEMENTED-IN-QYL` | [15.6](#156-compile-time-tracing-annotations), [21.6](#216-traced-annotations--stories-from-traced-annotationsmd) | TracedInterceptorEmitter, QSG005, 8 stories | Zero-overhead: no JVM agent, no runtime reflection          |
+| QYL-007  | Zero-Cost Observability Contracts   | SDK       | `IMPLEMENTED-IN-QYL` | [15.7](#157-zero-cost-observability-contracts), [21.7](#217-zero-cost-observability--phases-from-zero-cost-observabilitymd) | SubscriptionManager, 6 phases | Instrumentation at zero cost until subscriber activates     |
+| QYL-008  | Port Architecture (OTLP)            | Protocol  | `IMPLEMENTED-IN-QYL` | [15.8](#158-port-architecture-otlp-standard-compliance), [21.2](#212-port-architecture--extended-from-antipattern-remediationmd) | 5100/4317/4318 triple-port | OTel standard compliance — any OTLP client works by default |
+| QYL-009  | Aspire 13.x Comparison              | —         | `CONTEXT-ONLY`       | [15.9](#159-aspire-13x-feature-coverage), [21.9](#219-aspire-coverage--extended-matrix-from-aspire-coveragemd) | 42-feature matrix | Competitive positioning against Aspire                          |
+| QYL-010  | Hosting Resource Model              | Hosting   | `IMPLEMENTED-IN-QYL` | [15.10](#1510-hosting-resource-model) | 6 resource types, QylApp, QylRunner               | Polyglot orchestration: .NET, Node, Python, Vite, Docker        |
+| QYL-011  | Agent Continuation Evaluation       | SDK       | `IMPLEMENTED-IN-QYL` | [15.11](#1511-agent-continuation-evaluation-heuristic-first-pattern) | Heuristic-first pattern | Cost optimization: ~80% fewer LLM evaluator calls           |
+| QYL-012  | AI Chat Extended (Phase 5)          | Analytics | `CONTEXT-ONLY`       | [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd) | Semantic clustering, token economics          | Roadmap: embeddings, feedback, cross-platform                   |
+| QYL-013  | MCP Platform Extended               | MCP       | `CONTEXT-ONLY`       | [21.4](#214-mcp-platform--extended-from-mcp-platformmd) | Monolith split, Streamable HTTP, OAuth        | Roadmap: remote MCP, plugin backends, ecosystem                 |
+| QYL-014  | CI/CD Improvements                  | —         | `CONTEXT-ONLY`       | [21.10](#2110-cicd-improvements-from-suggested-improvementsyaml) | SHA-pinned actions, analyzers | Build hygiene: no suppression, no audit bypass              |
+| QYL-015a | Autofix Orchestration               | Autofix   | `IMPLEMENTED-IN-QYL` | [Evidence](#implementation-evidence-in-qyl) | `AutofixOrchestrator.cs`, `AutofixAgentService.cs` | qyl's own autofix pipeline (distinct from SEER-001)         |
+| QYL-015b | Triage Pipeline                     | Triage    | `IMPLEMENTED-IN-QYL` | [Evidence](#implementation-evidence-in-qyl) | `TriagePipelineService.cs`, `TriagePrompts.cs`     | qyl's own fixability scoring (distinct from LOOM-003)       |
+| QYL-015c | Code Review Service                 | CodeReview| `IMPLEMENTED-IN-QYL` | [Evidence](#implementation-evidence-in-qyl) | `CodeReviewService.cs`, `CodeReviewEndpoints.cs`   | qyl's own PR analysis (distinct from LOOM-006)              |
 
 ### COMP — Competitive Analysis
 
-| ID       | Capability                   | Confidence | §Ref                          | Rationale                                              |
-|----------|------------------------------|------------|-------------------------------|--------------------------------------------------------|
-| COMP-001 | qodo-skills Multi-SCM Review | CONFIRMED  | [18.1](#181-qodo-skills-multi-provider-code-review) | Multi-provider pattern (4 SCMs) that Sentry lacks      |
-| COMP-002 | Feature Gap Matrix           | CONFIRMED  | [18.2](#182-feature-gap-matrix-sentry-vs-qyl) | 29-row Sentry vs qyl comparison with status per feature |
+| ID       | Capability                   | Scope          | Confidence | §Ref                          | Rationale                                              |
+|----------|------------------------------|----------------|------------|-------------------------------|--------------------------------------------------------|
+| COMP-001 | qodo-skills Multi-SCM Review | `CONTEXT-ONLY` | CONFIRMED  | [18.1](#181-qodo-skills-multi-provider-code-review) | Multi-provider pattern (4 SCMs) that Sentry lacks      |
+| COMP-002 | Feature Gap Matrix           | `CONTEXT-ONLY` | CONFIRMED  | [18.2](#182-feature-gap-matrix-sentry-vs-qyl) | 29-row Sentry vs qyl comparison with status per feature |
 
 ---
 
@@ -2814,3 +2815,355 @@ moving from `CONTEXT-ONLY` to `IMPLEMENTED-IN-QYL` must attach local evidence.
 | P1       | QYL-003, QYL-005                   | MCP tool invocation via protocol, AG-UI stream contract      |
 | P2       | QYL-004, QYL-007, QYL-010, QYL-011| Analytics API, subscription activation, hosting, continuation|
 | P3       | QYL-012, QYL-013                   | Phase 5 clustering, remote MCP, OAuth RFC 9728               |
+
+---
+
+## 24. 2025+ Web Source Research — Elegant Patterns
+
+> **Method:** GitHub-only deep research (2025+), targeting production-quality code patterns from
+> `getsentry/sentry`, `getsentry/seer`, `getsentry/sentry-mcp`, `getsentry/sentry-for-ai`,
+> and `getsentry/llm-manual-agent-monitoring-example`.
+>
+> **Safety:** Only GitHub sources; no sites before 2025; verified repos only.
+>
+> **Focus:** "Elegante Code Blöcke wo sich echte Software Engineers was dabei gedacht haben."
+
+### 24.1 AI Agent Instrumentation — Span Hierarchy Pattern
+
+**Source:** [`getsentry/llm-manual-agent-monitoring-example`](https://github.com/getsentry/llm-manual-agent-monitoring-example)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+Sentry SDK v10+ defines a **three-tier span hierarchy** for AI agent observability.
+This is the canonical pattern for instrumenting agents — whether runtime (like Sentry) or compile-time (like qyl).
+
+**Tier 1 — Agent Invocation (outermost span):**
+
+```typescript
+await Sentry.startSpan({
+  name: 'invoke_agent Customer Support Agent',
+  op: 'gen_ai.invoke_agent',
+  attributes: {
+    'gen_ai.agent.name': 'Customer Support Agent',
+    'conversation.session_id': sessionId,
+    'conversation.turn': conversationHistory.length + 1
+  }
+}, async (agentSpan) => {
+  const response = await fetch('/api/ai/chat', { ... });
+  agentSpan.setAttribute('gen_ai.usage.total_tokens', response.totalTokens);
+});
+```
+
+**Tier 2 — LLM Chat Completion (per model call):**
+
+```typescript
+await Sentry.startSpan({
+  name: 'chat custom-model-v2',
+  op: 'gen_ai.chat',
+  attributes: {
+    'gen_ai.request.model': 'custom-model-v2',
+    'gen_ai.request.messages': JSON.stringify(messages)
+  }
+}, async (llmSpan) => {
+  const response = await callCustomLLM(...);
+  llmSpan.setAttribute('gen_ai.usage.input_tokens', response.usage.prompt_tokens);
+  llmSpan.setAttribute('gen_ai.usage.output_tokens', response.usage.completion_tokens);
+  llmSpan.setAttribute('gen_ai.usage.total_tokens', response.usage.total_tokens);
+});
+```
+
+**Tier 3 — Tool Execution (per tool call):**
+
+```typescript
+await Sentry.startSpan({
+  name: `execute_tool ${toolName}`,
+  op: 'gen_ai.execute_tool',
+  attributes: {
+    'gen_ai.tool.name': toolName,
+    'gen_ai.tool.input': JSON.stringify(args)
+  }
+}, async (toolSpan) => {
+  const result = await executeTool(toolName, args);
+  toolSpan.setAttribute('gen_ai.tool.output', result);
+  toolSpan.setAttribute('gen_ai.usage.total_tokens', toolTokens);
+});
+```
+
+**Required Attributes (Sentry standard):**
+
+| Attribute                  | Scope        | Purpose                              |
+|----------------------------|--------------|--------------------------------------|
+| `gen_ai.system`            | All spans    | AI system identifier ("custom-llm")  |
+| `gen_ai.operation.name`    | All spans    | invoke_agent / chat / execute_tool   |
+| `gen_ai.request.model`     | Chat spans   | Model identifier                     |
+| `sentry.origin`            | All spans    | "manual.ai.custom-llm"              |
+| `gen_ai.agent.name`        | Agent spans  | Human-readable agent name            |
+| `conversation.session_id`  | Agent spans  | Multi-turn session tracking          |
+| `conversation.turn`        | Agent spans  | Turn counter for conversation flow   |
+
+**Span Naming Convention:**
+- Agent: `invoke_agent {agent_name}`
+- Chat: `chat {model_name}`
+- Tool: `execute_tool {tool_name}`
+
+**Token Aggregation Strategy:**
+Each span layer tracks its own token consumption. Tool spans feed into agent spans for hierarchical
+cost analysis — total tokens per conversation, per-tool breakdown, and per-model cost distribution
+(p50/p95/p99 latency, resolution status, tool frequency).
+
+**qyl Mapping:** The qyl `[GenAi]` source-generated interceptor already produces `gen_ai.chat` spans
+with token attributes at compile time. The agent-level `gen_ai.invoke_agent` span maps to
+`QylAgentBuilder` → `InstrumentedChatClient`. Tool execution spans map to AG-UI `execute_tool` events.
+Key difference: qyl does this at compile time via Roslyn generators, Sentry does it at runtime.
+
+### 24.2 LLM-Friendly Response Middleware
+
+**Source:** [`getsentry/sentry#106334`](https://github.com/getsentry/sentry/issues/106334)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+Sentry implements middleware that detects AI agent HTTP requests and returns machine-optimized responses
+instead of standard 401 errors. This is an elegant content-negotiation pattern.
+
+**Detection via Accept Header:**
+
+```text
+Accept: text/markdown | text/x-markdown | text/plain  →  AI agent request
+Accept: application/json                               →  Standard client
+```
+
+**Architecture:**
+
+```text
+Request → AuthenticationMiddleware → AiAgentMiddleware → ...
+                                          ↓
+                              Check: unauthenticated?
+                              Check: Accept ∈ {text/markdown, text/x-markdown, text/plain}?
+                                          ↓ yes
+                              Return HTTP 200 (not 401!) with markdown:
+                              - MCP server setup instructions
+                              - REST API auth guidance
+                              - Organization/project context from URL path
+```
+
+**Implementation Files:**
+- `src/sentry/utils/ai_agent.py` — Accept header detection utility
+- `src/sentry/middleware/ai_agent.py` — Request interception middleware
+
+**Behavior Matrix:**
+
+| Accept Header    | Authenticated | Result                    |
+|------------------|---------------|---------------------------|
+| `text/markdown`  | No            | Markdown MCP response     |
+| `text/markdown`  | Yes           | Normal request handling   |
+| `application/json`| No           | Standard 401 response     |
+
+**Design Insight:** Returns **HTTP 200** (not 401), treating this as successful content negotiation.
+The client requested markdown — it gets markdown with helpful guidance. This prevents AI agents from
+entering error-handling loops when they encounter auth walls.
+
+**Analytics:** Tracks interceptions via metrics tagged with accept type and URL path prefix
+to measure AI agent request volume and endpoint patterns.
+
+**qyl Relevance:** qyl's collector could implement the same pattern — when an unauthenticated
+request arrives with `Accept: text/markdown`, return MCP setup instructions for `qyl.mcp`
+instead of a 401. This would make qyl self-discoverable by AI coding agents.
+
+### 24.3 sentry-mcp OAuth — HMAC-SHA256 Signed State
+
+**Source:** [`getsentry/sentry-mcp`](https://github.com/getsentry/sentry-mcp)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+The sentry-mcp server implements a dual OAuth flow (Cloudflare Workers OAuth + Sentry OAuth)
+with cryptographically signed state to prevent CSRF and replay attacks.
+
+**State Construction:**
+
+```text
+state = base64url({
+  sentryState: <random_nonce>,
+  grantedSkills: ["issues", "autofix", "codeReview", ...],
+  timestamp: Date.now()
+})
+signature = HMAC-SHA256(state, SENTRY_CLIENT_SECRET)
+final_state = state + "." + signature
+```
+
+**Validation on Callback:**
+
+1. Split `state` on `.` → `[payload, signature]`
+2. Recompute `HMAC-SHA256(payload, SENTRY_CLIENT_SECRET)` and constant-time compare
+3. Decode payload, check `timestamp` — reject if older than **10 minutes**
+4. Extract `grantedSkills` for authorization scope
+
+**Key Design Decisions:**
+- `grantedSkills` replaces `grantedScopes` (deprecated January 2026) — skills are coarser-grained
+  authorization bundles (e.g., "issues" grants `list_issues` + `get_issue` + `update_issue`)
+- 10-minute expiry prevents replay attacks without requiring server-side state storage
+- HMAC with `SENTRY_CLIENT_SECRET` means only the server can forge valid states
+- Constant-time comparison prevents timing side-channels
+
+**5 Skill Bundles (Authorization):**
+
+| Skill         | Tools Granted                                                        |
+|---------------|----------------------------------------------------------------------|
+| `issues`      | list_issues, get_issue, update_issue, search_errors                  |
+| `autofix`     | create_autofix, get_autofix_state                                    |
+| `codeReview`  | get_code_review, trigger_code_review                                 |
+| `alerts`      | list_alerts, get_alert_rule_details, create_alert_rule               |
+| `releases`    | list_releases, get_release_details                                   |
+
+**SSRF Prevention:** All outbound URLs are validated against an allowlist — only `sentry.io`
+and `*.sentry.io` domains are permitted for API calls.
+
+**qyl Mapping:** qyl's planned OAuth RFC 9728 implementation (QYL-013) could adopt the same
+HMAC-signed state pattern. The skill bundle model maps to qyl's 8 MCP skill categories.
+
+### 24.4 Seer Platform Evolution — CHANGES 2025
+
+**Source:** [`getsentry/seer` CHANGES](https://github.com/getsentry/seer), various issues/PRs
+**Confidence:** INFERRED | **Scope:** CONTEXT-ONLY
+
+Key architectural changes to Seer during 2025, extracted from GitHub activity:
+
+**Agent Nomenclature:**
+- "Coding Agent" replaced internal name for the autofix coding component
+- GitHub Copilot added as a coding agent provider alongside existing options
+- `intelligence-level-for-explorer` made configurable (was hardcoded)
+
+**Explorer Agent Enhancements:**
+- `stopping_point` parameter added — allows callers to define when the explorer should halt
+  (e.g., after root cause identification, before code generation)
+- Per-org autofix metrics added — organizations can track their own autofix success rates
+- `CodeReviewEvent` model introduced for structured code review trigger tracking
+
+**Infrastructure Stack (confirmed from deployment configs):**
+
+| Component      | Technology          | Purpose                              |
+|----------------|---------------------|--------------------------------------|
+| API Server     | Flask, port 9091    | Seer HTTP endpoint                   |
+| Task Queue     | Celery + RabbitMQ   | Async autofix/analysis jobs          |
+| Database       | PostgreSQL          | State, embeddings metadata           |
+| Blob Storage   | GCS (Google Cloud)  | Model artifacts, large outputs       |
+| Observability  | Langfuse            | LLM call tracing and evaluation      |
+| CI/CD          | GoCD pipelines      | Deployment orchestration             |
+| Test Infra     | VCR cassettes (encrypted) | Deterministic LLM replay tests  |
+
+**VCR Test Encryption:** Seer uses encrypted VCR cassettes for LLM integration tests.
+This ensures test determinism (recorded API responses) while protecting API keys
+and proprietary model outputs in the open-source repo.
+
+### 24.5 Sentry Prevent — PR Bug Prediction
+
+**Source:** [`getsentry/sentry/discussions/99351`](https://github.com/getsentry/sentry/discussions/99351),
+[`getsentry/sentry/issues/108691`](https://github.com/getsentry/sentry/issues/108691)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+Sentry Prevent is the umbrella name for pre-production AI capabilities:
+
+**Trigger Model:**
+- Only triggers when a PR is marked as **"Ready for Review"** (not on draft PRs)
+- Skips analysis for draft PRs entirely ([issue #108691](https://github.com/getsentry/sentry/issues/108691))
+- GitHub Cloud only (EU orgs not yet supported as of 2025)
+
+**Analysis Pipeline:**
+1. PR marked "Ready for Review" → webhook fires
+2. Seer pulls existing Sentry issues (errors + performance) for the project
+3. LLM analyzes diff against known issues → predicts if changes will cause production problems
+4. Returns targeted PR feedback (potential errors, not style/lint)
+5. Also identifies flaky tests in the PR's test suite
+
+**Key Constraint:** This is a *prediction* system, not a linting system. It correlates
+code changes against **production error patterns**, not coding standards.
+
+**qyl Mapping:** qyl's `CodeReviewService.cs` (LOOM-006, QYL-015c) implements
+the same webhook-driven pattern. The missing piece is the correlation against
+production issues stored in DuckDB — connecting `qyl.collector` error data
+with PR analysis.
+
+### 24.6 Self-Hosted Seer — Architecture Gap
+
+**Source:** [`getsentry/self-hosted#3249`](https://github.com/getsentry/self-hosted/issues/3249)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+Seer/Autofix is **NOT available** for self-hosted Sentry. Official statement:
+
+> "The Main Service powering AI Autofix and other Advanced AI Features is not ready for Self Hosted Sentry."
+
+**Why this matters for qyl:** This is qyl's core differentiator. Sentry's AI features
+(autofix, triage, code review, explorer) require Sentry Cloud. qyl provides all of these
+as a self-hosted Docker image with DuckDB — no cloud dependency, no GPU requirement.
+The entire Loom-like surface runs on a single container.
+
+### 24.7 Sentry-for-ai — Router-Based Skill Architecture
+
+**Source:** [`getsentry/sentry-for-ai`](https://github.com/getsentry/sentry-for-ai)
+**Confidence:** CONFIRMED | **Scope:** CONTEXT-ONLY
+
+The `sentry-for-ai` repo provides agent skills for Claude Code, Cursor, and similar tools.
+It uses a **router-based architecture** for efficient skill loading:
+
+**3 Routers:**
+- **Setup Router** — `sentry-setup` skill for initializing Sentry in new projects
+- **Review Router** — `sentry-code-review` skill for PR review with Sentry context
+- **Debug Router** — Skills for issue debugging and resolution
+
+**Token Efficiency:**
+- Router-based loading: ~300 tokens at startup (just router descriptions)
+- Monolithic loading: ~1600+ tokens (all skill content upfront)
+- **5.3× reduction** in baseline context consumption
+
+**SKILL.md Frontmatter Convention:**
+
+```yaml
+---
+name: sentry-code-review        # 1-64 chars, lowercase alphanumeric + hyphens
+description: |                   # Up to 1024 chars
+  Review code with Sentry context and automatically resolve
+  bugs that Sentry or Seer flag in pull request comments.
+allowed-tools:                   # Required by Cursor, harmless in Claude Code
+  - Read
+  - Edit
+  - Bash
+---
+```
+
+**Mandatory `commit` Skill:** Every skill set includes a `commit` skill that generates
+conventional commits. This is a vendoring practice — skills are self-contained,
+not dependent on the host IDE's commit workflow.
+
+**qyl Mapping:** qyl already uses skill-based routing in its plugin architecture
+(8 skill categories in `qyl.mcp`). The frontmatter convention and token-efficient
+router pattern could be adopted for qyl's own agent skill distribution.
+
+### 24.8 Spend Management Integration
+
+**Source:** Sentry product documentation, GitHub issues
+**Confidence:** INFERRED | **Scope:** CONTEXT-ONLY
+
+Seer autofixes integrate with Sentry's spend management system:
+
+**Mechanism:**
+- Spend rules define weekly growth limits (typically 5-20%)
+- When a spend rule triggers, Seer autofix is **paused** for the organization
+- Autofixes resume when spend drops below threshold
+- Per-org autofix metrics feed into the billing dashboard
+
+**Design Insight:** AI features are not exempt from cost controls. The system treats
+AI compute as a metered resource with the same governance as event ingestion.
+This prevents runaway costs from aggressive autofix configurations.
+
+**qyl Relevance:** If qyl adds LLM-backed features (autofix, triage), a similar
+metering system would prevent unbounded API costs. DuckDB could store
+per-org token consumption alongside telemetry data.
+
+### 24.9 Cross-Reference Summary
+
+| §24 Subsection | Related Sections           | New Information Added                                   |
+|----------------|----------------------------|---------------------------------------------------------|
+| 24.1           | §4.5, §15.4, §20.2        | Exact TypeScript instrumentation code, 3-tier hierarchy |
+| 24.2           | §17, §20.9                 | LLM-friendly middleware pattern, behavior matrix        |
+| 24.3           | §17.2, §17.3               | HMAC-SHA256 code pattern, 10-min expiry, skill bundles  |
+| 24.4           | §20.1–20.13                | 2025 CHANGES, infrastructure stack, VCR encryption      |
+| 24.5           | §4.6, §20.3, §16           | Prevent trigger model, draft PR skip, prediction scope  |
+| 24.6           | §12 (Limitations)          | Self-hosted unavailability — qyl differentiator         |
+| 24.7           | §17.1                      | Router architecture, ~300 token startup, SKILL.md spec  |
+| 24.8           | §11 (Pricing)              | Spend rule integration, AI metering as first-class      |
