@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4264130+00:00
+//     Generated: 2026-03-06T15:59:59.2467280+00:00
 //     Models for Qyl.OTel.Resource
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -165,7 +165,7 @@ public sealed record Resource
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
-    public global::Qyl.Common.Count? DroppedAttributesCount { get; init; }
+    public long? DroppedAttributesCount { get; init; }
 
 }
 

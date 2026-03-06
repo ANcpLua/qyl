@@ -375,6 +375,20 @@ public sealed record OtlpAnyValue
     public long? IntValue { get; init; }
     public double? DoubleValue { get; init; }
     public bool? BoolValue { get; init; }
+    public OtlpArrayValue? ArrayValue { get; init; }
+    public OtlpKeyValueList? KvlistValue { get; init; }
+    public string? BytesValue { get; init; }
+}
+
+
+public sealed record OtlpArrayValue
+{
+    public List<OtlpAnyValue>? Values { get; init; }
+}
+
+public sealed record OtlpKeyValueList
+{
+    public List<OtlpKeyValue>? Values { get; init; }
 }
 
 // =============================================================================

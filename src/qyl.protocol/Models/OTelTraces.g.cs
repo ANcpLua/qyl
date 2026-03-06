@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4264450+00:00
+//     Generated: 2026-03-06T15:59:59.2469420+00:00
 //     Models for Qyl.OTel.Traces
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -21,15 +21,15 @@ public sealed record Span
 {
     /// <summary>Unique span identifier (16 hex chars)</summary>
     [JsonPropertyName("span_id")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier (32 hex chars)</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parent_span_id")]
-    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
+    public SpanId? ParentSpanId { get; init; }
 
     /// <summary>W3C trace state</summary>
     [JsonPropertyName("trace_state")]
@@ -57,7 +57,7 @@ public sealed record Span
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
-    public global::Qyl.Common.Count? DroppedAttributesCount { get; init; }
+    public long? DroppedAttributesCount { get; init; }
 
     /// <summary>Span events (logs attached to span)</summary>
     [JsonPropertyName("events")]
@@ -65,7 +65,7 @@ public sealed record Span
 
     /// <summary>Dropped events count</summary>
     [JsonPropertyName("dropped_events_count")]
-    public global::Qyl.Common.Count? DroppedEventsCount { get; init; }
+    public long? DroppedEventsCount { get; init; }
 
     /// <summary>Links to other spans</summary>
     [JsonPropertyName("links")]
@@ -73,7 +73,7 @@ public sealed record Span
 
     /// <summary>Dropped links count</summary>
     [JsonPropertyName("dropped_links_count")]
-    public global::Qyl.Common.Count? DroppedLinksCount { get; init; }
+    public long? DroppedLinksCount { get; init; }
 
     /// <summary>Span status</summary>
     [JsonPropertyName("status")]
@@ -110,7 +110,7 @@ public sealed record SpanEvent
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
-    public global::Qyl.Common.Count? DroppedAttributesCount { get; init; }
+    public long? DroppedAttributesCount { get; init; }
 
 }
 
@@ -119,11 +119,11 @@ public sealed record SpanLink
 {
     /// <summary>Linked trace ID</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required TraceId TraceId { get; init; }
 
     /// <summary>Linked span ID</summary>
     [JsonPropertyName("span_id")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required SpanId SpanId { get; init; }
 
     /// <summary>Trace state of the linked span</summary>
     [JsonPropertyName("trace_state")]
@@ -135,7 +135,7 @@ public sealed record SpanLink
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
-    public global::Qyl.Common.Count? DroppedAttributesCount { get; init; }
+    public long? DroppedAttributesCount { get; init; }
 
     /// <summary>Link flags</summary>
     [JsonPropertyName("flags")]
@@ -161,7 +161,7 @@ public sealed record Trace
 {
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required TraceId TraceId { get; init; }
 
     /// <summary>All spans in this trace</summary>
     [JsonPropertyName("spans")]
@@ -177,7 +177,7 @@ public sealed record Trace
 
     /// <summary>Trace duration in nanoseconds</summary>
     [JsonPropertyName("duration_ns")]
-    public required global::Qyl.Common.DurationNs DurationNs { get; init; }
+    public required long DurationNs { get; init; }
 
     /// <summary>Trace start time</summary>
     [JsonPropertyName("start_time")]

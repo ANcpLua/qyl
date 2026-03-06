@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4262510+00:00
+//     Generated: 2026-03-06T15:59:59.2453300+00:00
 //     Models for Qyl.Domains.Observe.Session
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -58,11 +58,11 @@ public sealed record SessionCountryStats
 
     /// <summary>Session count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
 }
 
@@ -75,11 +75,11 @@ public sealed record SessionDeviceStats
 
     /// <summary>Session count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
 }
 
@@ -88,7 +88,7 @@ public sealed record SessionEntity
 {
     /// <summary>Session ID</summary>
     [JsonPropertyName("session.id")]
-    public required global::Qyl.Common.SessionId SessionId { get; init; }
+    public required SessionId SessionId { get; init; }
 
     /// <summary>User ID (if authenticated)</summary>
     [JsonPropertyName("user.id")]
@@ -104,7 +104,7 @@ public sealed record SessionEntity
 
     /// <summary>Session duration in milliseconds</summary>
     [JsonPropertyName("duration_ms")]
-    public global::Qyl.Common.DurationMs? DurationMs { get; init; }
+    public double? DurationMs { get; init; }
 
     /// <summary>Total trace count in session</summary>
     [JsonPropertyName("trace_count")]
@@ -149,11 +149,11 @@ public sealed record SessionGenAiUsage
 
     /// <summary>Total input tokens consumed</summary>
     [JsonPropertyName("total_input_tokens")]
-    public required global::Qyl.Common.TokenCount TotalInputTokens { get; init; }
+    public required long TotalInputTokens { get; init; }
 
     /// <summary>Total output tokens generated</summary>
     [JsonPropertyName("total_output_tokens")]
-    public required global::Qyl.Common.TokenCount TotalOutputTokens { get; init; }
+    public required long TotalOutputTokens { get; init; }
 
     /// <summary>Models used in session</summary>
     [JsonPropertyName("models_used")]
@@ -203,15 +203,15 @@ public sealed record SessionStats
 {
     /// <summary>Active sessions count</summary>
     [JsonPropertyName("active_sessions")]
-    public required global::Qyl.Common.Count ActiveSessions { get; init; }
+    public required long ActiveSessions { get; init; }
 
     /// <summary>Total sessions in time range</summary>
     [JsonPropertyName("total_sessions")]
-    public required global::Qyl.Common.Count TotalSessions { get; init; }
+    public required long TotalSessions { get; init; }
 
     /// <summary>Unique users in time range</summary>
     [JsonPropertyName("unique_users")]
-    public required global::Qyl.Common.Count UniqueUsers { get; init; }
+    public required long UniqueUsers { get; init; }
 
     /// <summary>Average session duration in milliseconds</summary>
     [JsonPropertyName("avg_duration_ms")]
@@ -219,15 +219,15 @@ public sealed record SessionStats
 
     /// <summary>Sessions with errors</summary>
     [JsonPropertyName("sessions_with_errors")]
-    public required global::Qyl.Common.Count SessionsWithErrors { get; init; }
+    public required long SessionsWithErrors { get; init; }
 
     /// <summary>Sessions with GenAI usage</summary>
     [JsonPropertyName("sessions_with_genai")]
-    public required global::Qyl.Common.Count SessionsWithGenai { get; init; }
+    public required long SessionsWithGenai { get; init; }
 
     /// <summary>Bounce rate (single-page sessions)</summary>
     [JsonPropertyName("bounce_rate")]
-    public required global::Qyl.Common.Ratio BounceRate { get; init; }
+    public required double BounceRate { get; init; }
 
     /// <summary>Sessions by device type</summary>
     [JsonPropertyName("by_device_type")]

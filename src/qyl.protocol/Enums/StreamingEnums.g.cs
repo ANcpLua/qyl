@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4250250+00:00
+//     Generated: 2026-03-06T15:59:59.2396570+00:00
 //     Enumeration types for Qyl.Streaming
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,17 +16,17 @@ namespace Qyl.Streaming;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<StreamEventType>))]
 public enum StreamEventType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "traces")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("traces")]
     Traces = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "spans")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("spans")]
     Spans = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "logs")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("logs")]
     Logs = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "metrics")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("metrics")]
     Metrics = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "deployments")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("deployments")]
     Deployments = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "all")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("all")]
     All = 5,
 }
 
@@ -34,19 +34,19 @@ public enum StreamEventType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WebSocketMessageType>))]
 public enum WebSocketMessageType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "subscribe")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("subscribe")]
     Subscribe = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "unsubscribe")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("unsubscribe")]
     Unsubscribe = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "data")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("data")]
     Data = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "error")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
     Error = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "ack")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ack")]
     Ack = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "ping")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ping")]
     Ping = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "pong")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("pong")]
     Pong = 6,
 }
 

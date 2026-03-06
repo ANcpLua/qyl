@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4263560+00:00
+//     Generated: 2026-03-06T15:59:59.2460260+00:00
 //     Models for Qyl.OTel.Metrics
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -54,11 +54,11 @@ public sealed record Exemplar
 
     /// <summary>Span ID of the exemplar</summary>
     [JsonPropertyName("span_id")]
-    public global::Qyl.Common.SpanId? SpanId { get; init; }
+    public SpanId? SpanId { get; init; }
 
     /// <summary>Trace ID of the exemplar</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public TraceId? TraceId { get; init; }
 
     /// <summary>Filtered attributes</summary>
     [JsonPropertyName("filtered_attributes")]

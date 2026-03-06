@@ -380,11 +380,43 @@ public static class OtlpConverter
         return instances;
     }
 
-    private static string? ConvertJsonValueToString(OtlpAnyValue? value) =>
-        value?.StringValue
-        ?? value?.IntValue?.ToString()
-        ?? value?.DoubleValue?.ToString(CultureInfo.InvariantCulture)
-        ?? value?.BoolValue?.ToString().ToLowerInvariant();
+    private static string? ConvertJsonValueToString(OtlpAnyValue? value)
+    {
+        if (value is null)
+            return null;
+
+        if (value.StringValue is not null)
+            return value.StringValue;
+        if (value.IntValue.HasValue)
+            return value.IntValue.Value.ToString();
+        if (value.DoubleValue.HasValue)
+            return value.DoubleValue.Value.ToString(CultureInfo.InvariantCulture);
+        if (value.BoolValue.HasValue)
+            return value.BoolValue.Value.ToString().ToLowerInvariant();
+        if (value.BytesValue is not null)
+            return value.BytesValue;
+
+        if (value.ArrayValue is not null)
+        {
+            var items = value.ArrayValue.Values
+                ?.Select(ConvertJsonValueToString)
+                .Where(static (string? v) => v is not null)
+                .ToArray() ??
+                [];
+
+            return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
+        }
+
+        if (value.KvlistValue is null)
+            return null;
+
+        var dict = value.KvlistValue.Values
+            ?.Where(static kv => ConvertJsonValueToString(kv.Value) is not null)
+            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value))
+            ?? new Dictionary<string, string>(StringComparer.Ordinal);
+
+        return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
+    }
 
     /// <summary>
     ///     Extracts baggage from attributes prefixed with "baggage." and serializes to JSON.

@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4248690+00:00
+//     Generated: 2026-03-06T15:59:59.2388370+00:00
 //     Enumeration types for Qyl.Domains
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,13 +16,13 @@ namespace Qyl.Domains;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AlertFiringStatus>))]
 public enum AlertFiringStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "firing")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("firing")]
     Firing = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "acknowledged")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("acknowledged")]
     Acknowledged = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "resolved")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("resolved")]
     Resolved = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "suppressed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("suppressed")]
     Suppressed = 3,
 }
 
@@ -30,19 +30,19 @@ public enum AlertFiringStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AlertRuleType>))]
 public enum AlertRuleType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "threshold")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("threshold")]
     Threshold = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "error_rate")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("error_rate")]
     ErrorRate = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "new_issue")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("new_issue")]
     NewIssue = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "regression")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("regression")]
     Regression = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "burn_rate")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("burn_rate")]
     BurnRate = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "anomaly")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("anomaly")]
     Anomaly = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "custom")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("custom")]
     Custom = 6,
 }
 
@@ -50,11 +50,11 @@ public enum AlertRuleType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AlertSeverity>))]
 public enum AlertSeverity
 {
-    [System.Runtime.Serialization.EnumMember(Value = "critical")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("critical")]
     Critical = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "warning")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("warning")]
     Warning = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "info")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("info")]
     Info = 2,
 }
 
@@ -62,21 +62,21 @@ public enum AlertSeverity
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<BreadcrumbType>))]
 public enum BreadcrumbType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "navigation")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("navigation")]
     Navigation = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "http")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("http")]
     Http = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "query")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("query")]
     Query = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "user")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("user")]
     User = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "log")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("log")]
     Log = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "error")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
     Error = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "debug")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("debug")]
     Debug = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "default")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("default")]
     Default = 7,
 }
 
@@ -84,17 +84,17 @@ public enum BreadcrumbType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FixRunStatus>))]
 public enum FixRunStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "pending")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("pending")]
     Pending = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "running")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
     Running = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "awaiting_approval")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("awaiting_approval")]
     AwaitingApproval = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "applied")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("applied")]
     Applied = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "rejected")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("rejected")]
     Rejected = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "failed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
     Failed = 5,
 }
 
@@ -102,13 +102,13 @@ public enum FixRunStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FixTriggerType>))]
 public enum FixTriggerType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "alert")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("alert")]
     Alert = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "manual")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
     Manual = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "mcp")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("mcp")]
     Mcp = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "scheduled")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("scheduled")]
     Scheduled = 3,
 }
 
@@ -116,11 +116,11 @@ public enum FixTriggerType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<GenerationJobType>))]
 public enum GenerationJobType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "full")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("full")]
     Full = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "incremental")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("incremental")]
     Incremental = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "preview")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("preview")]
     Preview = 2,
 }
 
@@ -128,13 +128,13 @@ public enum GenerationJobType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HandshakeState>))]
 public enum HandshakeState
 {
-    [System.Runtime.Serialization.EnumMember(Value = "pending")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("pending")]
     Pending = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "verified")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("verified")]
     Verified = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "expired")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("expired")]
     Expired = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "rejected")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("rejected")]
     Rejected = 3,
 }
 
@@ -142,15 +142,15 @@ public enum HandshakeState
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IssueLevel>))]
 public enum IssueLevel
 {
-    [System.Runtime.Serialization.EnumMember(Value = "debug")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("debug")]
     Debug = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "info")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("info")]
     Info = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "warning")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("warning")]
     Warning = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "error")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("error")]
     Error = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "fatal")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("fatal")]
     Fatal = 4,
 }
 
@@ -158,13 +158,13 @@ public enum IssueLevel
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IssuePriority>))]
 public enum IssuePriority
 {
-    [System.Runtime.Serialization.EnumMember(Value = "critical")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("critical")]
     Critical = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "high")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("high")]
     High = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "medium")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("medium")]
     Medium = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "low")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("low")]
     Low = 3,
 }
 
@@ -172,19 +172,19 @@ public enum IssuePriority
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<IssueStatus>))]
 public enum IssueStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "unresolved")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("unresolved")]
     Unresolved = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "acknowledged")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("acknowledged")]
     Acknowledged = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "investigating")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("investigating")]
     Investigating = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "in_progress")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("in_progress")]
     InProgress = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "resolved")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("resolved")]
     Resolved = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "ignored")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ignored")]
     Ignored = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "regressed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("regressed")]
     Regressed = 6,
 }
 
@@ -192,15 +192,15 @@ public enum IssueStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<JobStatus>))]
 public enum JobStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "queued")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("queued")]
     Queued = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "running")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
     Running = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "completed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("completed")]
     Completed = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "failed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
     Failed = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "cancelled")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("cancelled")]
     Cancelled = 4,
 }
 
@@ -208,21 +208,21 @@ public enum JobStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<SearchEntityType>))]
 public enum SearchEntityType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "span")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("span")]
     Span = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "log")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("log")]
     Log = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "issue")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("issue")]
     Issue = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "workflow")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("workflow")]
     Workflow = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "deployment")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("deployment")]
     Deployment = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "session")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("session")]
     Session = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "alert")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("alert")]
     Alert = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "fix")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("fix")]
     Fix = 7,
 }
 
@@ -230,23 +230,23 @@ public enum SearchEntityType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowNodeType>))]
 public enum WorkflowNodeType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "agent")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("agent")]
     Agent = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "tool")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("tool")]
     Tool = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "condition")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("condition")]
     Condition = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "fork")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("fork")]
     Fork = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "join")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("join")]
     Join = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "approval")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("approval")]
     Approval = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "sub_workflow")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("sub_workflow")]
     SubWorkflow = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "transform")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("transform")]
     Transform = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "wait")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("wait")]
     Wait = 8,
 }
 
@@ -254,19 +254,19 @@ public enum WorkflowNodeType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowRunStatus>))]
 public enum WorkflowRunStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "pending")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("pending")]
     Pending = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "running")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("running")]
     Running = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "paused")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("paused")]
     Paused = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "completed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("completed")]
     Completed = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "failed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("failed")]
     Failed = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "cancelled")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("cancelled")]
     Cancelled = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "timed_out")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("timed_out")]
     TimedOut = 6,
 }
 
@@ -274,17 +274,17 @@ public enum WorkflowRunStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkflowTriggerType>))]
 public enum WorkflowTriggerType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "manual")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("manual")]
     Manual = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "alert")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("alert")]
     Alert = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "schedule")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("schedule")]
     Schedule = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "event")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("event")]
     Event = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "api")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("api")]
     Api = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "mcp")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("mcp")]
     Mcp = 5,
 }
 
@@ -292,11 +292,11 @@ public enum WorkflowTriggerType
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<WorkspaceStatus>))]
 public enum WorkspaceStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "active")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("active")]
     Active = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "suspended")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("suspended")]
     Suspended = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "archived")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("archived")]
     Archived = 2,
 }
 

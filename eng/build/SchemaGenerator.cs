@@ -298,9 +298,9 @@ public static class SchemaGenerator
                 }
                 else
                 {
-                    // String enum: need EnumMember for serialization
+                    // String enum: preserve wire value with STJ enum member name mapping
                     sb.AppendLine(CultureInfo.InvariantCulture,
-                        $"    [System.Runtime.Serialization.EnumMember(Value = \"{rawValue}\")]");
+                        $"    [System.Text.Json.Serialization.JsonStringEnumMemberName(\"{rawValue}\")]");
                     sb.AppendLine(CultureInfo.InvariantCulture, $"    {memberName} = {i},");
                 }
             }

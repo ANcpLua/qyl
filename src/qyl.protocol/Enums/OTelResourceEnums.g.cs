@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4250120+00:00
+//     Generated: 2026-03-06T15:59:59.2394690+00:00
 //     Enumeration types for Qyl.OTel.Resource
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,19 +16,19 @@ namespace Qyl.OTel.Resource;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<CloudProvider>))]
 public enum CloudProvider
 {
-    [System.Runtime.Serialization.EnumMember(Value = "alibaba_cloud")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("alibaba_cloud")]
     AlibabaCloud = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "aws")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("aws")]
     Aws = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "azure")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("azure")]
     Azure = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "gcp")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("gcp")]
     Gcp = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "heroku")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("heroku")]
     Heroku = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "ibm_cloud")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ibm_cloud")]
     IbmCloud = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "tencent_cloud")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("tencent_cloud")]
     TencentCloud = 6,
 }
 
@@ -36,21 +36,21 @@ public enum CloudProvider
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<HostArch>))]
 public enum HostArch
 {
-    [System.Runtime.Serialization.EnumMember(Value = "amd64")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("amd64")]
     Amd64 = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "arm32")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("arm32")]
     Arm32 = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "arm64")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("arm64")]
     Arm64 = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "ia64")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ia64")]
     Ia64 = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "ppc32")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ppc32")]
     Ppc32 = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "ppc64")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ppc64")]
     Ppc64 = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "s390x")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("s390x")]
     S390x = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "x86")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("x86")]
     X86 = 7,
 }
 
@@ -58,27 +58,27 @@ public enum HostArch
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<OsType>))]
 public enum OsType
 {
-    [System.Runtime.Serialization.EnumMember(Value = "windows")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("windows")]
     Windows = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "linux")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("linux")]
     Linux = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "darwin")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("darwin")]
     Darwin = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "freebsd")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("freebsd")]
     Freebsd = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "netbsd")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("netbsd")]
     Netbsd = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "openbsd")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("openbsd")]
     Openbsd = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "dragonflybsd")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("dragonflybsd")]
     Dragonflybsd = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "hpux")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("hpux")]
     Hpux = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "aix")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("aix")]
     Aix = 8,
-    [System.Runtime.Serialization.EnumMember(Value = "solaris")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("solaris")]
     Solaris = 9,
-    [System.Runtime.Serialization.EnumMember(Value = "z_os")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("z_os")]
     ZOs = 10,
 }
 

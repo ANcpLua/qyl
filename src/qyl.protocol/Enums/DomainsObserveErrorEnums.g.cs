@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4249180+00:00
+//     Generated: 2026-03-06T15:59:59.2390700+00:00
 //     Enumeration types for Qyl.Domains.Observe.Error
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,35 +16,35 @@ namespace Qyl.Domains.Observe.Error;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ErrorCategory>))]
 public enum ErrorCategory
 {
-    [System.Runtime.Serialization.EnumMember(Value = "client")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("client")]
     Client = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "server")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("server")]
     Server = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "network")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("network")]
     Network = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "timeout")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("timeout")]
     Timeout = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "validation")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("validation")]
     Validation = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "authentication")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("authentication")]
     Authentication = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "authorization")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("authorization")]
     Authorization = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "rate_limit")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("rate_limit")]
     RateLimit = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "not_found")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("not_found")]
     NotFound = 8,
-    [System.Runtime.Serialization.EnumMember(Value = "conflict")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("conflict")]
     Conflict = 9,
-    [System.Runtime.Serialization.EnumMember(Value = "internal")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("internal")]
     Internal = 10,
-    [System.Runtime.Serialization.EnumMember(Value = "external")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("external")]
     External = 11,
-    [System.Runtime.Serialization.EnumMember(Value = "database")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("database")]
     Database = 12,
-    [System.Runtime.Serialization.EnumMember(Value = "configuration")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("configuration")]
     Configuration = 13,
-    [System.Runtime.Serialization.EnumMember(Value = "unknown")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("unknown")]
     Unknown = 14,
 }
 
@@ -52,19 +52,19 @@ public enum ErrorCategory
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ErrorStatus>))]
 public enum ErrorStatus
 {
-    [System.Runtime.Serialization.EnumMember(Value = "new")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("new")]
     New = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "acknowledged")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("acknowledged")]
     Acknowledged = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "in_progress")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("in_progress")]
     InProgress = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "resolved")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("resolved")]
     Resolved = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "ignored")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ignored")]
     Ignored = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "regressed")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("regressed")]
     Regressed = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "wont_fix")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("wont_fix")]
     WontFix = 6,
 }
 
@@ -72,13 +72,13 @@ public enum ErrorStatus
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<ErrorTrend>))]
 public enum ErrorTrend
 {
-    [System.Runtime.Serialization.EnumMember(Value = "increasing")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("increasing")]
     Increasing = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "decreasing")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("decreasing")]
     Decreasing = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "stable")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("stable")]
     Stable = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "spike")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("spike")]
     Spike = 3,
 }
 
@@ -86,13 +86,13 @@ public enum ErrorTrend
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TemporalRelationship>))]
 public enum TemporalRelationship
 {
-    [System.Runtime.Serialization.EnumMember(Value = "concurrent")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("concurrent")]
     Concurrent = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "precedes")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("precedes")]
     Precedes = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "follows")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("follows")]
     Follows = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "unrelated")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("unrelated")]
     Unrelated = 3,
 }
 

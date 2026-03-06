@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4253560+00:00
+//     Generated: 2026-03-06T15:59:59.2412900+00:00
 //     Models for Qyl.Models
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -79,7 +79,7 @@ public sealed record DoraMetrics
 
     /// <summary>Change failure rate</summary>
     [JsonPropertyName("change_failure_rate")]
-    public required global::Qyl.Common.Ratio ChangeFailureRate { get; init; }
+    public required double ChangeFailureRate { get; init; }
 
     /// <summary>Mean time to recovery (hours)</summary>
     [JsonPropertyName("mttr_hours")]
@@ -257,7 +257,7 @@ public sealed record LogAggregationBucket
 
     /// <summary>Document count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Timestamp (for time series)</summary>
     [JsonPropertyName("timestamp")]
@@ -287,7 +287,7 @@ public sealed record LogAggregationResponse
 
     /// <summary>Total matching logs</summary>
     [JsonPropertyName("total_count")]
-    public required global::Qyl.Common.Count TotalCount { get; init; }
+    public required long TotalCount { get; init; }
 
 }
 
@@ -405,11 +405,11 @@ public sealed record OperationInfo
 
     /// <summary>Request count</summary>
     [JsonPropertyName("request_count")]
-    public required global::Qyl.Common.Count RequestCount { get; init; }
+    public required long RequestCount { get; init; }
 
     /// <summary>Error count</summary>
     [JsonPropertyName("error_count")]
-    public required global::Qyl.Common.Count ErrorCount { get; init; }
+    public required long ErrorCount { get; init; }
 
     /// <summary>Average duration in milliseconds</summary>
     [JsonPropertyName("avg_duration_ms")]
@@ -475,7 +475,7 @@ public sealed record ServiceDetails
 
     /// <summary>Error rate</summary>
     [JsonPropertyName("error_rate")]
-    public required global::Qyl.Common.Ratio ErrorRate { get; init; }
+    public required double ErrorRate { get; init; }
 
     /// <summary>Average latency in milliseconds</summary>
     [JsonPropertyName("avg_latency_ms")]
@@ -517,19 +517,19 @@ public sealed record SpanRecord
 {
     /// <summary>Unique span identifier</summary>
     [JsonPropertyName("spanId")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("traceId")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parentSpanId")]
-    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
+    public SpanId? ParentSpanId { get; init; }
 
     /// <summary>Session identifier for grouping related traces</summary>
     [JsonPropertyName("sessionId")]
-    public global::Qyl.Common.SessionId? SessionId { get; init; }
+    public SessionId? SessionId { get; init; }
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]
@@ -549,7 +549,7 @@ public sealed record SpanRecord
 
     /// <summary>Duration in nanoseconds</summary>
     [JsonPropertyName("durationNs")]
-    public required global::Qyl.Common.DurationNs DurationNs { get; init; }
+    public required long DurationNs { get; init; }
 
     /// <summary>Span status code</summary>
     [JsonPropertyName("statusCode")]
@@ -577,11 +577,11 @@ public sealed record SpanRecord
 
     /// <summary>Input/prompt tokens</summary>
     [JsonPropertyName("genAiInputTokens")]
-    public global::Qyl.Common.TokenCount? GenAiInputTokens { get; init; }
+    public long? GenAiInputTokens { get; init; }
 
     /// <summary>Output/completion tokens</summary>
     [JsonPropertyName("genAiOutputTokens")]
-    public global::Qyl.Common.TokenCount? GenAiOutputTokens { get; init; }
+    public long? GenAiOutputTokens { get; init; }
 
     /// <summary>Request temperature</summary>
     [JsonPropertyName("genAiTemperature")]

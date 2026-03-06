@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4264840+00:00
+//     Generated: 2026-03-06T15:59:59.2470770+00:00
 //     Models for Qyl.Streaming
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -55,7 +55,7 @@ public sealed record LogStreamEvent
 
     /// <summary>Log data</summary>
     [JsonPropertyName("data")]
-    public required global::Qyl.OTel.Logs.LogRecord Data { get; init; }
+    public required LogStorageRow Data { get; init; }
 
     /// <summary>Event timestamp</summary>
     [JsonPropertyName("timestamp")]
@@ -110,7 +110,7 @@ public sealed record StreamSubscription
 
     /// <summary>Trace ID filter (for specific trace)</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public TraceId? TraceId { get; init; }
 
     /// <summary>Minimum severity for logs (1-24)</summary>
     [JsonPropertyName("min_severity")]

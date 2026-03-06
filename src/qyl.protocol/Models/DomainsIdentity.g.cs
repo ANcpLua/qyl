@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4261700+00:00
+//     Generated: 2026-03-06T15:59:59.2450670+00:00
 //     Models for Qyl.Domains.Identity
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -29,11 +29,11 @@ public sealed record ServiceDependency
 
     /// <summary>Request count</summary>
     [JsonPropertyName("request_count")]
-    public required global::Qyl.Common.Count RequestCount { get; init; }
+    public required long RequestCount { get; init; }
 
     /// <summary>Error rate</summary>
     [JsonPropertyName("error_rate")]
-    public required global::Qyl.Common.Ratio ErrorRate { get; init; }
+    public required double ErrorRate { get; init; }
 
     /// <summary>Average latency in milliseconds</summary>
     [JsonPropertyName("avg_latency_ms")]

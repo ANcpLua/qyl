@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-01-23T04:18:36.6350810+00:00
+//     Generated: 2026-03-06T15:59:59.2200880+00:00
 //     Strongly-typed scalar primitives
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -11,6 +11,22 @@
 #nullable enable
 
 namespace Qyl.Common;
+
+/// <summary>Cost in USD (floating point)</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(CostUsdJsonConverter))]
+public readonly partial record struct CostUsd(double Value)
+{
+    public static implicit operator double(CostUsd v) => v.Value;
+    public static implicit operator CostUsd(double v) => new(v);
+    public override string ToString() => Value.ToString();
+    public bool IsValid => true;
+}
+
+public sealed class CostUsdJsonConverter : System.Text.Json.Serialization.JsonConverter<CostUsd>
+{
+    public override CostUsd Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, CostUsd value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
+}
 
 /// <summary>Generic non-negative counter</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(CountJsonConverter))]
@@ -207,6 +223,21 @@ public sealed class SpanIdJsonConverter : System.Text.Json.Serialization.JsonCon
     public override void Write(System.Text.Json.Utf8JsonWriter writer, SpanId value, System.Text.Json.JsonSerializerOptions options) => writer.WriteStringValue(value.Value);
 }
 
+/// <summary>Temperature setting for LLM requests (0.0-2.0)</summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(TemperatureJsonConverter))]
+public readonly partial record struct Temperature(double Value)
+{
+    public static implicit operator double(Temperature v) => v.Value;
+    public static implicit operator Temperature(double v) => new(v);
+    public override string ToString() => Value.ToString();
+    public bool IsValid => true;
+}
+
+public sealed class TemperatureJsonConverter : System.Text.Json.Serialization.JsonConverter<Temperature>
+{
+    public override Temperature Read(ref System.Text.Json.Utf8JsonReader reader, System.Type typeToConvert, System.Text.Json.JsonSerializerOptions options) => new(reader.GetDouble());
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, Temperature value, System.Text.Json.JsonSerializerOptions options) => writer.WriteNumberValue(value.Value);
+}
 
 /// <summary>Token count (for LLM operations)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(TokenCountJsonConverter))]

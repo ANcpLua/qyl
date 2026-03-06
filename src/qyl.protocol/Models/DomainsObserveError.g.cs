@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4261770+00:00
+//     Generated: 2026-03-06T15:59:59.2451060+00:00
 //     Models for Qyl.Domains.Observe.Error
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -29,7 +29,7 @@ public sealed record CorrelatedError
 
     /// <summary>Correlation strength</summary>
     [JsonPropertyName("correlation_strength")]
-    public required global::Qyl.Common.Ratio CorrelationStrength { get; init; }
+    public required double CorrelationStrength { get; init; }
 
     /// <summary>Temporal relationship</summary>
     [JsonPropertyName("temporal_relationship")]
@@ -46,11 +46,11 @@ public sealed record ErrorCategoryStats
 
     /// <summary>Count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
 }
 
@@ -108,11 +108,11 @@ public sealed record ErrorEntity
 
     /// <summary>Occurrence count</summary>
     [JsonPropertyName("occurrence_count")]
-    public required global::Qyl.Common.Count OccurrenceCount { get; init; }
+    public required long OccurrenceCount { get; init; }
 
     /// <summary>Affected users count</summary>
     [JsonPropertyName("affected_users")]
-    public global::Qyl.Common.Count? AffectedUsers { get; init; }
+    public long? AffectedUsers { get; init; }
 
     /// <summary>Affected services</summary>
     [JsonPropertyName("affected_services")]
@@ -132,7 +132,7 @@ public sealed record ErrorEntity
 
     /// <summary>Sample trace IDs</summary>
     [JsonPropertyName("sample_traces")]
-    public IReadOnlyList<global::Qyl.Common.TraceId>? SampleTraces { get; init; }
+    public IReadOnlyList<TraceId>? SampleTraces { get; init; }
 
 }
 
@@ -145,11 +145,11 @@ public sealed record ErrorServiceStats
 
     /// <summary>Error count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Error rate</summary>
     [JsonPropertyName("error_rate")]
-    public required global::Qyl.Common.Ratio ErrorRate { get; init; }
+    public required double ErrorRate { get; init; }
 
     /// <summary>Top error type</summary>
     [JsonPropertyName("top_error_type")]
@@ -162,7 +162,7 @@ public sealed record ErrorStats
 {
     /// <summary>Total error count</summary>
     [JsonPropertyName("total_count")]
-    public required global::Qyl.Common.Count TotalCount { get; init; }
+    public required long TotalCount { get; init; }
 
     /// <summary>Unique error types</summary>
     [JsonPropertyName("unique_types")]
@@ -170,7 +170,7 @@ public sealed record ErrorStats
 
     /// <summary>Error rate</summary>
     [JsonPropertyName("error_rate")]
-    public required global::Qyl.Common.Ratio ErrorRate { get; init; }
+    public required double ErrorRate { get; init; }
 
     /// <summary>Errors by category</summary>
     [JsonPropertyName("by_category")]
@@ -199,15 +199,15 @@ public sealed record ErrorTypeStats
 
     /// <summary>Count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
     /// <summary>Affected users</summary>
     [JsonPropertyName("affected_users")]
-    public global::Qyl.Common.Count? AffectedUsers { get; init; }
+    public long? AffectedUsers { get; init; }
 
     /// <summary>Status</summary>
     [JsonPropertyName("status")]

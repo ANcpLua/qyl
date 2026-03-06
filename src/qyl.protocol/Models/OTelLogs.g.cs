@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4263190+00:00
+//     Generated: 2026-03-06T15:59:59.2458660+00:00
 //     Models for Qyl.OTel.Logs
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -66,11 +66,11 @@ public sealed record LogCountByDimension
 
     /// <summary>Log count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Error count for this dimension</summary>
     [JsonPropertyName("error_count")]
-    public required global::Qyl.Common.Count ErrorCount { get; init; }
+    public required long ErrorCount { get; init; }
 
 }
 
@@ -83,11 +83,11 @@ public sealed record LogCountBySeverity
 
     /// <summary>Log count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
 }
 
@@ -120,7 +120,7 @@ public sealed record LogRecord
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
-    public global::Qyl.Common.Count? DroppedAttributesCount { get; init; }
+    public long? DroppedAttributesCount { get; init; }
 
     /// <summary>Flags (trace flags)</summary>
     [JsonPropertyName("flags")]
@@ -128,11 +128,11 @@ public sealed record LogRecord
 
     /// <summary>Associated trace ID</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public TraceId? TraceId { get; init; }
 
     /// <summary>Associated span ID</summary>
     [JsonPropertyName("span_id")]
-    public global::Qyl.Common.SpanId? SpanId { get; init; }
+    public SpanId? SpanId { get; init; }
 
     /// <summary>Resource describing the entity that produced this log</summary>
     [JsonPropertyName("resource")]
@@ -149,7 +149,7 @@ public sealed record LogStats
 {
     /// <summary>Total log count</summary>
     [JsonPropertyName("total_count")]
-    public required global::Qyl.Common.Count TotalCount { get; init; }
+    public required long TotalCount { get; init; }
 
     /// <summary>Log counts by severity</summary>
     [JsonPropertyName("by_severity")]
@@ -165,7 +165,7 @@ public sealed record LogStats
 
     /// <summary>Error log rate</summary>
     [JsonPropertyName("error_rate")]
-    public required global::Qyl.Common.Ratio ErrorRate { get; init; }
+    public required double ErrorRate { get; init; }
 
 }
 

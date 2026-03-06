@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4249370+00:00
+//     Generated: 2026-03-06T15:59:59.2391370+00:00
 //     Enumeration types for Qyl.Domains.Observe.Log
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,25 +16,25 @@ namespace Qyl.Domains.Observe.Log;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AggregationFunction>))]
 public enum AggregationFunction
 {
-    [System.Runtime.Serialization.EnumMember(Value = "count")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("count")]
     Count = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "sum")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("sum")]
     Sum = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "avg")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("avg")]
     Avg = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "min")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("min")]
     Min = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "max")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("max")]
     Max = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "p50")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("p50")]
     P50 = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "p90")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("p90")]
     P90 = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "p95")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("p95")]
     P95 = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "p99")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("p99")]
     P99 = 8,
-    [System.Runtime.Serialization.EnumMember(Value = "count_distinct")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("count_distinct")]
     CountDistinct = 9,
 }
 
@@ -42,33 +42,33 @@ public enum AggregationFunction
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<FilterOperator>))]
 public enum FilterOperator
 {
-    [System.Runtime.Serialization.EnumMember(Value = "eq")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("eq")]
     Eq = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "neq")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("neq")]
     Neq = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "contains")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("contains")]
     Contains = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "starts_with")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("starts_with")]
     StartsWith = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "ends_with")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("ends_with")]
     EndsWith = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "regex")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("regex")]
     Regex = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "gt")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("gt")]
     Gt = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "gte")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("gte")]
     Gte = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "lt")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("lt")]
     Lt = 8,
-    [System.Runtime.Serialization.EnumMember(Value = "lte")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("lte")]
     Lte = 9,
-    [System.Runtime.Serialization.EnumMember(Value = "in")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("in")]
     In = 10,
-    [System.Runtime.Serialization.EnumMember(Value = "not_in")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("not_in")]
     NotIn = 11,
-    [System.Runtime.Serialization.EnumMember(Value = "exists")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("exists")]
     Exists = 12,
-    [System.Runtime.Serialization.EnumMember(Value = "not_exists")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("not_exists")]
     NotExists = 13,
 }
 
@@ -76,13 +76,13 @@ public enum FilterOperator
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogOrderBy>))]
 public enum LogOrderBy
 {
-    [System.Runtime.Serialization.EnumMember(Value = "timestamp_asc")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("timestamp_asc")]
     TimestampAsc = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "timestamp_desc")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("timestamp_desc")]
     TimestampDesc = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "severity_asc")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("severity_asc")]
     SeverityAsc = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "severity_desc")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("severity_desc")]
     SeverityDesc = 3,
 }
 
@@ -90,15 +90,15 @@ public enum LogOrderBy
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<LogPatternTrend>))]
 public enum LogPatternTrend
 {
-    [System.Runtime.Serialization.EnumMember(Value = "increasing")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("increasing")]
     Increasing = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "decreasing")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("decreasing")]
     Decreasing = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "stable")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("stable")]
     Stable = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "new")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("new")]
     New = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "spike")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("spike")]
     Spike = 4,
 }
 
@@ -106,29 +106,29 @@ public enum LogPatternTrend
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TimeBucket>))]
 public enum TimeBucket
 {
-    [System.Runtime.Serialization.EnumMember(Value = "1s")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1s")]
     _1s = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "10s")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("10s")]
     _10s = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "30s")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("30s")]
     _30s = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "1m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1m")]
     _1m = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "5m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("5m")]
     _5m = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "15m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("15m")]
     _15m = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "30m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("30m")]
     _30m = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "1h")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1h")]
     _1h = 7,
-    [System.Runtime.Serialization.EnumMember(Value = "6h")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("6h")]
     _6h = 8,
-    [System.Runtime.Serialization.EnumMember(Value = "12h")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("12h")]
     _12h = 9,
-    [System.Runtime.Serialization.EnumMember(Value = "1d")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1d")]
     _1d = 10,
-    [System.Runtime.Serialization.EnumMember(Value = "1w")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1w")]
     _1w = 11,
 }
 

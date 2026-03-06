@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4250040+00:00
+//     Generated: 2026-03-06T15:59:59.2394510+00:00
 //     Enumeration types for Qyl.OTel.Metrics
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,21 +16,21 @@ namespace Qyl.OTel.Metrics;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<AggregationFunction>))]
 public enum AggregationFunction
 {
-    [System.Runtime.Serialization.EnumMember(Value = "sum")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("sum")]
     Sum = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "avg")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("avg")]
     Avg = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "min")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("min")]
     Min = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "max")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("max")]
     Max = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "count")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("count")]
     Count = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "last")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("last")]
     Last = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "rate")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("rate")]
     Rate = 6,
-    [System.Runtime.Serialization.EnumMember(Value = "increase")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("increase")]
     Increase = 7,
 }
 

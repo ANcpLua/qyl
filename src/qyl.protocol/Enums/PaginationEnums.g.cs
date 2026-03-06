@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4248590+00:00
+//     Generated: 2026-03-06T15:59:59.2388020+00:00
 //     Enumeration types for Qyl.Common.Pagination
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -16,19 +16,19 @@ namespace Qyl.Common.Pagination;
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TimeBucket>))]
 public enum TimeBucket
 {
-    [System.Runtime.Serialization.EnumMember(Value = "1m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1m")]
     _1m = 0,
-    [System.Runtime.Serialization.EnumMember(Value = "5m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("5m")]
     _5m = 1,
-    [System.Runtime.Serialization.EnumMember(Value = "15m")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("15m")]
     _15m = 2,
-    [System.Runtime.Serialization.EnumMember(Value = "1h")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1h")]
     _1h = 3,
-    [System.Runtime.Serialization.EnumMember(Value = "1d")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1d")]
     _1d = 4,
-    [System.Runtime.Serialization.EnumMember(Value = "1w")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("1w")]
     _1w = 5,
-    [System.Runtime.Serialization.EnumMember(Value = "auto")]
+    [System.Text.Json.Serialization.JsonStringEnumMemberName("auto")]
     Auto = 6,
 }
 

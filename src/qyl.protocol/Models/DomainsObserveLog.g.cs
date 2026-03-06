@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-02-27T22:00:11.4262170+00:00
+//     Generated: 2026-03-06T15:59:59.2452370+00:00
 //     Models for Qyl.Domains.Observe.Log
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -75,7 +75,7 @@ public sealed record LogPattern
 
     /// <summary>Occurrence count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>First seen</summary>
     [JsonPropertyName("first_seen")]
@@ -112,11 +112,11 @@ public sealed record LogQuery
 
     /// <summary>Trace ID filter</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public TraceId? TraceId { get; init; }
 
     /// <summary>Span ID filter</summary>
     [JsonPropertyName("span_id")]
-    public global::Qyl.Common.SpanId? SpanId { get; init; }
+    public SpanId? SpanId { get; init; }
 
     /// <summary>Time range start</summary>
     [JsonPropertyName("time_start")]
@@ -153,11 +153,11 @@ public sealed record LogSeverityStats
 
     /// <summary>Count</summary>
     [JsonPropertyName("count")]
-    public required global::Qyl.Common.Count Count { get; init; }
+    public required long Count { get; init; }
 
     /// <summary>Percentage of total</summary>
     [JsonPropertyName("percentage")]
-    public required global::Qyl.Common.Percentage Percentage { get; init; }
+    public required double Percentage { get; init; }
 
 }
 
