@@ -14,7 +14,7 @@ public static class CodingAgentEndpoints
                 return Results.NotFound();
 
             if (!Enum.TryParse<CodingAgentProvider>(request.Provider, true, out var provider))
-                provider = CodingAgentProvider.Seer;
+                provider = CodingAgentProvider.Loom;
 
             var record = new CodingAgentRunRecord
             {

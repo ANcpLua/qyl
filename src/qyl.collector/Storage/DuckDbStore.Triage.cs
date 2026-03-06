@@ -4,7 +4,7 @@ namespace qyl.collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with triage result
-///     storage operations for the Seer triage pipeline.
+///     storage operations for the Loom triage pipeline.
 /// </summary>
 public sealed partial class DuckDbStore
 {

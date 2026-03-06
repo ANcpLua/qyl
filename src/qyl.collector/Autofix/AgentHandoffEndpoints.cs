@@ -48,7 +48,7 @@ public static class AgentHandoffEndpoints
             }
             catch
             {
-                // Keep Seer dashboard resilient when handoff tables are not initialized yet.
+                // Keep Loom dashboard resilient when handoff tables are not initialized yet.
                 return Results.Ok(new { items = Array.Empty<AgentHandoffRecord>(), total = 0 });
             }
         });

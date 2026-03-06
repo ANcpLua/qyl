@@ -5,10 +5,10 @@ import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {DiffViewer} from '@/components/seer/DiffViewer';
-import {PipelineStatus} from '@/components/seer/PipelineStatus';
-import type {AutofixStep} from '@/hooks/use-seer';
-import {useFixRunSteps} from '@/hooks/use-seer';
+import {DiffViewer} from '@/components/Loom/DiffViewer';
+import {PipelineStatus} from '@/components/Loom/PipelineStatus';
+import type {AutofixStep} from '@/hooks/use-Loom';
+import {useFixRunSteps} from '@/hooks/use-Loom';
 import type {FixRun} from '@/hooks/use-coding-agents';
 import {useFixRuns} from '@/hooks/use-coding-agents';
 
@@ -252,7 +252,7 @@ export function IssueFixRunsPage() {
                     <CardContent className="py-12 text-center">
                         <Play className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No fix runs found for this issue</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Fix runs are created when Seer attempts to resolve an issue</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Fix runs are created when Loom attempts to resolve an issue</p>
                     </CardContent>
                 </Card>
             )}

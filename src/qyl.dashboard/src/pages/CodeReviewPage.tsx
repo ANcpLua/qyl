@@ -5,8 +5,8 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {useGitHubEvents, useTriggerCodeReview} from '@/hooks/use-seer';
-import type {CodeReviewComment, CodeReviewResult} from '@/hooks/use-seer';
+import {useGitHubEvents, useTriggerCodeReview} from '@/hooks/use-Loom';
+import type {CodeReviewComment, CodeReviewResult} from '@/hooks/use-Loom';
 
 const severityStyles: Record<string, string> = {
     critical: 'bg-red-500/20 text-red-400 border-red-500/40',

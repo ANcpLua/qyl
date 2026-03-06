@@ -11,7 +11,7 @@ const shortcuts: ShortcutItem[] = [
     {key: 'R', description: 'Go to Resources', category: 'navigation'},
     {key: 'T', description: 'Go to Traces', category: 'navigation'},
     {key: 'C', description: 'Go to Console / Logs', category: 'navigation'},
-    {key: 'S', description: 'Go to Seer', category: 'navigation'},
+    {key: 'S', description: 'Go to Loom', category: 'navigation'},
     {key: 'M', description: 'Go to Metrics / GenAI', category: 'navigation'},
     {key: '/', description: 'Go to Search', category: 'navigation'},
     {key: 'A', description: 'Go to Agents', category: 'navigation'},

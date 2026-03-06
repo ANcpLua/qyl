@@ -1,5 +1,5 @@
 // =============================================================================
-// QYL v2.0 - Triage Models (Seer Pipeline)
+// QYL v2.0 - Triage Models (Loom Pipeline)
 // =============================================================================
 // AI-powered triage pipeline: score fixability, summarize, and route errors.
 // =============================================================================
@@ -10,7 +10,7 @@ import "../common/types.tsp";
 using TypeSpec.OpenAPI;
 using Qyl.Common;
 
-namespace Qyl.Domains.Seer.Triage;
+namespace Qyl.Domains.Loom.Triage;
 
 // =============================================================================
 // Triage Automation Level

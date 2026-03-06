@@ -13,7 +13,7 @@ export interface CodingAgentRun {
     completed_at?: string;
 }
 
-export interface SeerSettings {
+export interface LoomSettings {
     id: string;
     default_coding_agent: string;
     default_coding_agent_integration_id?: string;
@@ -45,7 +45,7 @@ interface FixRunsResponse {
 }
 
 export const CODING_AGENT_PROVIDERS = [
-    {value: 'seer', label: 'Seer (built-in)', description: 'Default autofix pipeline'},
+    {value: 'Loom', label: 'Loom (built-in)', description: 'Default autofix pipeline'},
     {value: 'cursor', label: 'Cursor', description: 'Cursor Background Agent'},
     {value: 'github_copilot', label: 'GitHub Copilot', description: 'Copilot Coding Agent'},
     {value: 'claude_code', label: 'Claude Code', description: 'Anthropic Claude Code agent'},
@@ -56,7 +56,7 @@ export const codingAgentKeys = {
     forFixRun: (fixRunId: string) => [...codingAgentKeys.all, 'fix-run', fixRunId] as const,
     detail: (id: string) => [...codingAgentKeys.all, 'detail', id] as const,
     fixRuns: (issueId: string) => ['fix-runs', issueId] as const,
-    settings: ['seer-settings'] as const,
+    settings: ['Loom-settings'] as const,
 };
 
 export function useFixRuns(issueId?: string) {
@@ -96,22 +96,22 @@ export function useLaunchCodingAgent() {
     });
 }
 
-export function useSeerSettings() {
+export function useLoomSettings() {
     return useQuery({
         queryKey: codingAgentKeys.settings,
-        queryFn: () => fetchJson<SeerSettings>('/api/v1/seer/settings'),
+        queryFn: () => fetchJson<LoomSettings>('/api/v1/Loom/settings'),
         staleTime: 60_000,
     });
 }
 
-export function useUpdateSeerSettings() {
+export function useUpdateLoomSettings() {
     const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (settings: {
             default_coding_agent?: string;
             default_coding_agent_integration_id?: string;
             automation_tuning?: string;
-        }) => fetchJson<SeerSettings>('/api/v1/seer/settings', {
+        }) => fetchJson<LoomSettings>('/api/v1/Loom/settings', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(settings),

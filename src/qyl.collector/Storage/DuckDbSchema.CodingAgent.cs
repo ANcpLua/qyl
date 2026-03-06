@@ -1,5 +1,5 @@
 // =============================================================================
-// Manual schema extensions for coding agent runs and Seer settings persistence.
+// Manual schema extensions for coding agent runs and Loom settings persistence.
 // =============================================================================
 
 namespace qyl.collector.Storage;
@@ -23,10 +23,10 @@ public static partial class DuckDbSchema
                                              CREATE INDEX IF NOT EXISTS idx_car_created ON coding_agent_runs(created_at DESC);
                                              """;
 
-    public const string SeerSettingsDdl = """
-                                          CREATE TABLE IF NOT EXISTS seer_settings (
+    public const string LoomSettingsDdl = """
+                                          CREATE TABLE IF NOT EXISTS Loom_settings (
                                               id VARCHAR PRIMARY KEY DEFAULT 'default',
-                                              default_coding_agent VARCHAR DEFAULT 'seer',
+                                              default_coding_agent VARCHAR DEFAULT 'Loom',
                                               default_coding_agent_integration_id VARCHAR,
                                               automation_tuning VARCHAR DEFAULT 'medium',
                                               updated_at TIMESTAMP DEFAULT now()

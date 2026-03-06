@@ -4,8 +4,8 @@ import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {FixabilityBadge} from '@/components/seer/FixabilityBadge';
-import {useTriageResult} from '@/hooks/use-seer';
+import {FixabilityBadge} from '@/components/Loom/FixabilityBadge';
+import {useTriageResult} from '@/hooks/use-Loom';
 
 const automationStyles: Record<string, string> = {
     auto: 'bg-green-500/20 text-green-400 border-green-500/40',

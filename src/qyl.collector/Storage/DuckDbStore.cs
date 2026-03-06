@@ -1670,15 +1670,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         fixRunsCmd.CommandText = DuckDbSchema.FixRunsDdl;
         fixRunsCmd.ExecuteNonQuery();
 
-        // Coding agent runs + Seer settings
+        // Coding agent runs + Loom settings
         using var codingAgentCmd = con.CreateCommand();
         codingAgentCmd.CommandText = $"""
                                       {DuckDbSchema.CodingAgentRunsDdl}
-                                      {DuckDbSchema.SeerSettingsDdl}
+                                      {DuckDbSchema.LoomSettingsDdl}
                                       """;
         codingAgentCmd.ExecuteNonQuery();
 
-        // Seer triage pipeline
+        // Loom triage pipeline
         using var triageCmd = con.CreateCommand();
         triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
         triageCmd.ExecuteNonQuery();

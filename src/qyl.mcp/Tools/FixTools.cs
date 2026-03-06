@@ -12,7 +12,7 @@ using qyl.mcp.Agents;
 namespace qyl.mcp.Tools;
 
 /// <summary>
-///     MCP tool that runs the Seer two-pass fix-generation pipeline:
+///     MCP tool that runs the Loom two-pass fix-generation pipeline:
 ///     Phase 1 — focused RCA agent (≤8 tool calls) identifies root cause.
 ///     Phase 2 — single LLM call produces a structured <c>changes_json</c> patch.
 ///     Results are stored in the collector via PATCH /api/v1/issues/{id}/fix-runs/{runId}.
@@ -25,7 +25,7 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
     [Description("""
-                 Run the Seer two-pass fix-generation pipeline for an error issue.
+                 Run the Loom two-pass fix-generation pipeline for an error issue.
 
                  Phase 1: Focused root cause analysis agent (≤8 tool calls) investigates
                           the error using spans, logs, and error events.

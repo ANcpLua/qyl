@@ -21,7 +21,7 @@ import {
     TracesPage,
     WorkflowRunDetailPage,
     WorkflowRunsPage,
-    SeerDashboardPage,
+    LoomDashboardPage,
     IssueTriagePage,
     IssueFixRunsPage,
     CodeReviewPage,
@@ -78,8 +78,8 @@ export default function App() {
                             <Route path="/bot" element={<BotPage/>}/>
                             <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>
                             <Route path="/bot/users/:userId/journey" element={<BotUserJourneyPage/>}/>
-                            <Route path="/seer" element={<SeerDashboardPage/>}/>
-                            <Route path="/seer/code-review" element={<CodeReviewPage/>}/>
+                            <Route path="/Loom" element={<LoomDashboardPage/>}/>
+                            <Route path="/Loom/code-review" element={<CodeReviewPage/>}/>
                             <Route path="/issues/:issueId/triage" element={<IssueTriagePage/>}/>
                             <Route path="/issues/:issueId/fix-runs" element={<IssueFixRunsPage/>}/>
                         </Route>

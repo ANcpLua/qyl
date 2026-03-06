@@ -20,7 +20,7 @@ import {Input} from '@/components/ui/input';
 import {CopyableText} from '@/components/ui';
 import type {IssueEvent} from '@/hooks/use-issues';
 import {useAssignIssue, useIssue, useIssueEvents, useUpdateIssueStatus} from '@/hooks/use-issues';
-import {useCodingAgentRuns, useFixRuns, useLaunchCodingAgent, useSeerSettings} from '@/hooks/use-coding-agents';
+import {useCodingAgentRuns, useFixRuns, useLaunchCodingAgent, useLoomSettings} from '@/hooks/use-coding-agents';
 import {CodingAgentResultCard} from '@/components/coding-agents/CodingAgentResultCard';
 
 const statusStyles: Record<string, string> = {
@@ -135,7 +135,7 @@ export function IssueDetailPage() {
     const {data: fixRuns = []} = useFixRuns(issueId);
     const latestFixRun = fixRuns[0];
     const {data: codingAgentRuns = []} = useCodingAgentRuns(latestFixRun?.run_id);
-    const {data: seerSettings} = useSeerSettings();
+    const {data: LoomSettings} = useLoomSettings();
     const launchAgent = useLaunchCodingAgent();
     const updateStatus = useUpdateIssueStatus();
     const assignIssue = useAssignIssue();
@@ -324,7 +324,7 @@ export function IssueDetailPage() {
                             disabled={launchAgent.isPending}
                             onClick={() => launchAgent.mutate({
                                 fixRunId: latestFixRun.run_id,
-                                provider: seerSettings?.default_coding_agent,
+                                provider: LoomSettings?.default_coding_agent,
                             })}
                             className="text-xs font-bold tracking-wider"
                         >

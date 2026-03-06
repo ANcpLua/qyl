@@ -106,7 +106,7 @@ export function useKeyboardShortcuts() {
 }
 
 // Navigation shortcuts aligned with the sidebar key hints.
-// R = Resources, T = Traces, C = Logs, M = GenAI, S = Seer
+// R = Resources, T = Traces, C = Logs, M = GenAI, S = Loom
 export function useNavigationShortcuts(
     navigate: (path: string) => void,
     registerShortcut: (shortcut: ShortcutHandler) => () => void
@@ -132,11 +132,11 @@ export function useNavigationShortcuts(
                 description: 'Go to Console / Logs',
                 handler: () => navigate('/logs'),
             }),
-            // S = Seer
+            // S = Loom
             registerShortcut({
                 key: 's',
-                description: 'Go to Seer',
-                handler: () => navigate('/seer'),
+                description: 'Go to Loom',
+                handler: () => navigate('/Loom'),
             }),
             // M = Metrics / GenAI
             registerShortcut({

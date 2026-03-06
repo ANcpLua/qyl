@@ -43,7 +43,7 @@ const navItems: NavItem[] = [
 const aiNavItems: NavItem[] = [
     {to: '/agents', icon: Robot, label: 'AGENTS', shortcut: 'A'},
     {to: '/bot', icon: ChartBar, label: 'BOT', shortcut: 'B'},
-    {to: '/seer', icon: Eye, label: 'SEER', shortcut: 'S'},
+    {to: '/Loom', icon: Eye, label: 'Loom', shortcut: 'S'},
 ];
 
 const dashboardIconMap: Record<string, PhosphorIcon> = {

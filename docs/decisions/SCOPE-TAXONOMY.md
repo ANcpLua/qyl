@@ -18,8 +18,8 @@ status with external/comparative research notes.
 4. If a feature moves from context to implementation, relabel to `IMPLEMENTED-IN-QYL`
    and attach local evidence.
 
-## Seer Application
+## Loom Application
 
-See [seer-scope-reconciliation](../roadmap/seer-scope-reconciliation.md) for
+See [Loom-scope-reconciliation](../roadmap/Loom-scope-reconciliation.md) for
 the concrete migration from broad omission language to this taxonomy.
 

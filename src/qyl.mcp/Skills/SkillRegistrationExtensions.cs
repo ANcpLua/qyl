@@ -79,8 +79,8 @@ internal static class SkillRegistrationExtensions
             mcpBuilder.WithTools<ClaudeCodeTools>(jsonOptions);
         }
 
-        // Seer: AI debugging pipeline — triage, autofix, code review, agent handoff
-        if (skills.IsEnabled(QylSkillKind.Seer))
+        // Loom: AI debugging pipeline — triage, autofix, code review, agent handoff
+        if (skills.IsEnabled(QylSkillKind.Loom))
         {
             mcpBuilder
                 .WithTools<TriageTools>(jsonOptions)

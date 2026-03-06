@@ -6,8 +6,8 @@ namespace qyl.collector.CodingAgent;
 /// </summary>
 public enum CodingAgentProvider
 {
-    /// <summary>Built-in Seer autofix pipeline (default).</summary>
-    Seer,
+    /// <summary>Built-in Loom autofix pipeline (default).</summary>
+    Loom,
 
     /// <summary>Cursor Background Agent API.</summary>
     Cursor,
@@ -37,12 +37,12 @@ public sealed record CodingAgentRunRecord
 }
 
 /// <summary>
-///     Organization-level Seer configuration. Stored in the seer_settings DuckDB table.
+///     Organization-level Loom configuration. Stored in the Loom_settings DuckDB table.
 /// </summary>
-public sealed record SeerSettingsRecord
+public sealed record LoomSettingsRecord
 {
     public required string Id { get; init; }
-    public string DefaultCodingAgent { get; init; } = "seer";
+    public string DefaultCodingAgent { get; init; } = "Loom";
     public string? DefaultCodingAgentIntegrationId { get; init; }
     public string AutomationTuning { get; init; } = "medium";
     public DateTime UpdatedAt { get; init; }

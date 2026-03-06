@@ -4,7 +4,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Separator} from '@/components/ui/separator';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
-import {CODING_AGENT_PROVIDERS, useSeerSettings, useUpdateSeerSettings} from '@/hooks/use-coding-agents';
+import {CODING_AGENT_PROVIDERS, useLoomSettings, useUpdateLoomSettings} from '@/hooks/use-coding-agents';
 import {ClaudeCodeIntegrationCta} from './ClaudeCodeIntegrationCta';
 import {toast} from 'sonner';
 import {Loader2, Trash2} from 'lucide-react';
@@ -16,32 +16,32 @@ const AUTOMATION_LEVELS = [
     {value: 'high', label: 'High', description: 'Auto-fix high-confidence issues'},
 ] as const;
 
-export function SeerSettingsSection() {
-    const {data: settings, isLoading} = useSeerSettings();
-    const {mutate, isPending} = useUpdateSeerSettings();
+export function LoomSettingsSection() {
+    const {data: settings, isLoading} = useLoomSettings();
+    const {mutate, isPending} = useUpdateLoomSettings();
 
-    const [agent, setAgent] = useState(settings?.default_coding_agent ?? 'seer');
+    const [agent, setAgent] = useState(settings?.default_coding_agent ?? 'Loom');
     const [tuning, setTuning] = useState(settings?.automation_tuning ?? 'medium');
 
     // Sync state when settings load
-    if (settings && agent === 'seer' && settings.default_coding_agent !== 'seer') {
+    if (settings && agent === 'Loom' && settings.default_coding_agent !== 'Loom') {
         setAgent(settings.default_coding_agent);
         setTuning(settings.automation_tuning);
     }
 
     const handleSave = () => {
         mutate({default_coding_agent: agent, automation_tuning: tuning}, {
-            onSuccess: () => toast.success('Seer settings saved'),
+            onSuccess: () => toast.success('Loom settings saved'),
             onError: () => toast.error('Failed to save settings'),
         });
     };
 
     const handleReset = () => {
-        mutate({default_coding_agent: 'seer', automation_tuning: 'medium'}, {
+        mutate({default_coding_agent: 'Loom', automation_tuning: 'medium'}, {
             onSuccess: () => {
-                setAgent('seer');
+                setAgent('Loom');
                 setTuning('medium');
-                toast.success('Seer settings reset');
+                toast.success('Loom settings reset');
             },
         });
     };
@@ -60,7 +60,7 @@ export function SeerSettingsSection() {
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-base">Seer Automation</CardTitle>
+                    <CardTitle className="text-base">Loom Automation</CardTitle>
                     <CardDescription>
                         Configure how qyl's AI debugging agent handles issues automatically.
                     </CardDescription>
@@ -107,7 +107,7 @@ export function SeerSettingsSection() {
                             {isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin"/>}
                             Save
                         </Button>
-                        {settings?.default_coding_agent !== 'seer' && (
+                        {settings?.default_coding_agent !== 'Loom' && (
                             <Button variant="outline" size="sm" onClick={handleReset}>
                                 <Trash2 className="w-4 h-4 mr-2"/>
                                 Reset

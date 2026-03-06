@@ -23,7 +23,7 @@ public static class GitHubWebhookEndpoints
             }
             catch
             {
-                // Avoid breaking Seer dashboard when webhook storage is not initialized.
+                // Avoid breaking Loom dashboard when webhook storage is not initialized.
                 return Results.Ok(new { items = Array.Empty<GitHubEventRecord>(), total = 0 });
             }
         });

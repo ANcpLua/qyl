@@ -23,14 +23,14 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/
 import {toast} from 'sonner';
 import {type LlmProvider, LLM_PROVIDERS, useLlmConfig} from '@/hooks/use-llm-config';
 import {useLlmStatus} from '@/hooks/use-llm-status';
-import {SeerSettingsSection} from '@/components/coding-agents/SeerSettingsSection';
+import {LoomSettingsSection} from '@/components/coding-agents/LoomSettingsSection';
 import {useClaudeCodeHooksStatus, useAttachClaudeCodeHooks, useDetachClaudeCodeHooks} from '@/hooks/use-claude-code-hooks';
 
 const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
     {key: 'T', description: 'Go to Traces'},
     {key: 'C', description: 'Go to Console / Logs'},
-    {key: 'S', description: 'Go to Seer'},
+    {key: 'S', description: 'Go to Loom'},
     {key: 'M', description: 'Go to Metrics / GenAI'},
     {key: '/', description: 'Go to Search'},
     {key: 'A', description: 'Go to Agents'},
@@ -240,9 +240,9 @@ export function SettingsPage() {
                         <Robot className="w-4 h-4 mr-2"/>
                         AI
                     </TabsTrigger>
-                    <TabsTrigger value="seer">
+                    <TabsTrigger value="Loom">
                         <Brain className="w-4 h-4 mr-2"/>
-                        Seer
+                        Loom
                     </TabsTrigger>
                     <TabsTrigger value="appearance">
                         <PaintBrush className="w-4 h-4 mr-2"/>
@@ -300,9 +300,9 @@ export function SettingsPage() {
                     <AiSettingsTab/>
                 </TabsContent>
 
-                {/* Seer */}
-                <TabsContent value="seer" className="space-y-4">
-                    <SeerSettingsSection/>
+                {/* Loom */}
+                <TabsContent value="Loom" className="space-y-4">
+                    <LoomSettingsSection/>
                 </TabsContent>
 
                 {/* Appearance */}

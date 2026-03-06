@@ -76,7 +76,7 @@ if (skills.IsEnabled(QylSkillKind.ClaudeCode))
     builder.Services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
 }
 
-if (skills.IsEnabled(QylSkillKind.Seer))
+if (skills.IsEnabled(QylSkillKind.Loom))
 {
     builder.Services.AddCollectorToolClient<TriageTools>(collectorUrl);
     builder.Services.AddCollectorToolClient<ExportForAgentTools>(collectorUrl);

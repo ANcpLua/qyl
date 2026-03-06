@@ -3,9 +3,9 @@ import {Activity, AlertCircle, Bot, ChevronRight, GitPullRequest, RefreshCw, Zap
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
-import {FixabilityBadge} from '@/components/seer/FixabilityBadge';
-import type {GitHubEvent, TriageResult} from '@/hooks/use-seer';
-import {useGitHubEvents, usePendingHandoffs, useRegressions, useTriageResults} from '@/hooks/use-seer';
+import {FixabilityBadge} from '@/components/Loom/FixabilityBadge';
+import type {GitHubEvent, TriageResult} from '@/hooks/use-Loom';
+import {useGitHubEvents, usePendingHandoffs, useRegressions, useTriageResults} from '@/hooks/use-Loom';
 
 function formatTimestamp(iso?: string): string {
     if (!iso) return '--';
@@ -149,7 +149,7 @@ const stats = [
     {icon: <RefreshCw className="w-4 h-4 text-red-400"/>, label: 'REGRESSIONS', color: 'text-red-400', key: 'regressions'},
 ] as const;
 
-export function SeerDashboardPage() {
+export function LoomDashboardPage() {
     const navigate = useNavigate();
     const {data: triageResults, isLoading: triageLoading, error: triageError} = useTriageResults(20);
     const {data: pendingHandoffs, isLoading: handoffsLoading} = usePendingHandoffs();
@@ -170,7 +170,7 @@ export function SeerDashboardPage() {
                 <Card>
                     <CardContent className="py-12 text-center">
                         <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500"/>
-                        <p className="text-red-400">Failed to load Seer pipeline data</p>
+                        <p className="text-red-400">Failed to load Loom pipeline data</p>
                         <p className="text-sm text-brutal-slate mt-2">
                             {triageError instanceof Error ? triageError.message : 'Unknown error'}
                         </p>
@@ -184,7 +184,7 @@ export function SeerDashboardPage() {
         <div className="p-6 space-y-6">
             {/* Header */}
             <div className="space-y-1">
-                <h1 className="text-lg font-bold text-brutal-white tracking-wider uppercase">SEER</h1>
+                <h1 className="text-lg font-bold text-brutal-white tracking-wider uppercase">Loom</h1>
                 <p className="text-xs text-brutal-slate tracking-wider">AI Debugging Pipeline</p>
             </div>
 

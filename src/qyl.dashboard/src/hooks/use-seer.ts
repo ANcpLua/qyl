@@ -101,21 +101,21 @@ interface GitHubEventsResponse {
     total: number;
 }
 
-export const seerKeys = {
-    triage: (issueId: string) => ['seer', 'triage', issueId] as const,
-    triageList: (limit?: number) => ['seer', 'triage', 'list', limit] as const,
-    fixRunSteps: (issueId: string, runId: string) => ['seer', 'steps', issueId, runId] as const,
-    regressions: (limit?: number) => ['seer', 'regressions', limit] as const,
-    issueRegressions: (issueId: string) => ['seer', 'regressions', 'issue', issueId] as const,
-    handoffs: ['seer', 'handoffs'] as const,
-    pendingHandoffs: ['seer', 'handoffs', 'pending'] as const,
-    handoffDetail: (id: string) => ['seer', 'handoffs', id] as const,
-    githubEvents: (limit?: number) => ['seer', 'github-events', limit] as const,
+export const LoomKeys = {
+    triage: (issueId: string) => ['Loom', 'triage', issueId] as const,
+    triageList: (limit?: number) => ['Loom', 'triage', 'list', limit] as const,
+    fixRunSteps: (issueId: string, runId: string) => ['Loom', 'steps', issueId, runId] as const,
+    regressions: (limit?: number) => ['Loom', 'regressions', limit] as const,
+    issueRegressions: (issueId: string) => ['Loom', 'regressions', 'issue', issueId] as const,
+    handoffs: ['Loom', 'handoffs'] as const,
+    pendingHandoffs: ['Loom', 'handoffs', 'pending'] as const,
+    handoffDetail: (id: string) => ['Loom', 'handoffs', id] as const,
+    githubEvents: (limit?: number) => ['Loom', 'github-events', limit] as const,
 };
 
 export function useTriageResult(issueId?: string) {
     return useQuery({
-        queryKey: seerKeys.triage(issueId!),
+        queryKey: LoomKeys.triage(issueId!),
         queryFn: () => fetchJson<TriageResult>(`/api/v1/issues/${issueId}/triage`),
         enabled: !!issueId,
         staleTime: 30_000,
@@ -124,7 +124,7 @@ export function useTriageResult(issueId?: string) {
 
 export function useTriageResults(limit?: number) {
     return useQuery({
-        queryKey: seerKeys.triageList(limit),
+        queryKey: LoomKeys.triageList(limit),
         queryFn: () => fetchJson<TriageListResponse>(`/api/v1/triage${limit != null ? `?limit=${limit}` : ''}`),
         select: (data) => data.items,
         staleTime: 30_000,
@@ -133,7 +133,7 @@ export function useTriageResults(limit?: number) {
 
 export function useFixRunSteps(issueId?: string, runId?: string) {
     return useQuery({
-        queryKey: seerKeys.fixRunSteps(issueId!, runId!),
+        queryKey: LoomKeys.fixRunSteps(issueId!, runId!),
         queryFn: () => fetchJson<AutofixStepsResponse>(`/api/v1/issues/${issueId}/fix-runs/${runId}/steps`),
         select: (data) => data.items,
         enabled: !!issueId && !!runId,
@@ -143,7 +143,7 @@ export function useFixRunSteps(issueId?: string, runId?: string) {
 
 export function useRegressions(limit?: number) {
     return useQuery({
-        queryKey: seerKeys.regressions(limit),
+        queryKey: LoomKeys.regressions(limit),
         queryFn: () => fetchJson<RegressionsResponse>(`/api/v1/regressions${limit != null ? `?limit=${limit}` : ''}`),
         select: (data) => data.items,
         staleTime: 30_000,
@@ -152,7 +152,7 @@ export function useRegressions(limit?: number) {
 
 export function useIssueRegressions(issueId?: string) {
     return useQuery({
-        queryKey: seerKeys.issueRegressions(issueId!),
+        queryKey: LoomKeys.issueRegressions(issueId!),
         queryFn: () => fetchJson<RegressionsResponse>(`/api/v1/issues/${issueId}/regressions`),
         select: (data) => data.items,
         enabled: !!issueId,
@@ -162,7 +162,7 @@ export function useIssueRegressions(issueId?: string) {
 
 export function usePendingHandoffs() {
     return useQuery({
-        queryKey: seerKeys.pendingHandoffs,
+        queryKey: LoomKeys.pendingHandoffs,
         queryFn: () => fetchJson<HandoffsResponse>('/api/v1/handoffs/pending'),
         select: (data) => data.items,
         staleTime: 30_000,
@@ -171,7 +171,7 @@ export function usePendingHandoffs() {
 
 export function useHandoff(handoffId?: string) {
     return useQuery({
-        queryKey: seerKeys.handoffDetail(handoffId!),
+        queryKey: LoomKeys.handoffDetail(handoffId!),
         queryFn: () => fetchJson<AgentHandoff>(`/api/v1/handoffs/${handoffId}`),
         enabled: !!handoffId,
         staleTime: 30_000,
@@ -186,14 +186,14 @@ export function useTriggerCodeReview() {
             prNumber: number;
         }) => postJson<CodeReviewResult>(`/api/v1/code-review/${repo}/pulls/${prNumber}`, {}),
         onSettled: () => {
-            queryClient.invalidateQueries({queryKey: seerKeys.handoffs});
+            queryClient.invalidateQueries({queryKey: LoomKeys.handoffs});
         },
     });
 }
 
 export function useGitHubEvents(limit?: number) {
     return useQuery({
-        queryKey: seerKeys.githubEvents(limit),
+        queryKey: LoomKeys.githubEvents(limit),
         queryFn: () => fetchJson<GitHubEventsResponse>(`/api/v1/github/events${limit != null ? `?limit=${limit}` : ''}`),
         select: (data) => data.items,
         staleTime: 30_000,
@@ -207,7 +207,7 @@ export function useCheckRegressions() {
             serviceName: string;
         }) => postJson<RegressionEvent[]>(`/api/v1/regressions/check/${serviceName}`, {}),
         onSettled: () => {
-            queryClient.invalidateQueries({queryKey: seerKeys.regressions()});
+            queryClient.invalidateQueries({queryKey: LoomKeys.regressions()});
         },
     });
 }

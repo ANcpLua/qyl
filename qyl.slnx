@@ -1,120 +1,99 @@
 <Solution>
     <Folder Name="/config/">
-        <File Path=".dockerignore" />
-        <File Path=".gitignore" />
+        <File Path=".dockerignore"/>
+        <File Path=".gitignore"/>
 
-        <File Path="CHANGELOG.md" />
-        <File Path="Directory.Build.props" />
-        <File Path="Directory.Build.targets" />
-        <File Path="Directory.Packages.props" />
-        <File Path="global.json" />
-        <File Path="nuget.config" />
-        <File Path="railway.toml" />
-        <File Path="README.md" />
+        <File Path="CHANGELOG.md"/>
+        <File Path="Directory.Build.props"/>
+        <File Path="Directory.Build.targets"/>
+        <File Path="Directory.Packages.props"/>
+        <File Path="global.json"/>
+        <File Path="nuget.config"/>
+        <File Path="railway.toml"/>
+        <File Path="README.md"/>
     </Folder>
 
     <!-- Build infrastructure + schemas -->
     <Folder Name="/eng/">
-        <File Path="eng\semconv\qyl-extensions.json" />
-        <File Path="eng\websocket.md" />
-        <Project Path="eng/build/build.csproj" />
-        <File Path="eng/build.cmd" />
-        <File Path="eng/build.ps1" />
-        <File Path="eng/build.sh" />
-        <File Path="eng/compose.yaml" />
-        <File Path="eng/MSBuild/Shared.props" />
-        <File Path="eng/MSBuild/Shared.targets" />
-        <File Path="eng/MSBuild/Shared.Claude.props" />
-        <File Path="eng/MSBuild/Shared.Claude.Rules.targets" />
-        <File Path="eng/MSBuild/Shared.Claude.targets" />
-        <File Path="core/specs/generated/semconv.g.tsp" />
+        <File Path="eng\semconv\qyl-extensions.json"/>
+        <File Path="eng\websocket.md"/>
+        <Project Path="eng/build/build.csproj"/>
+        <File Path="eng/build.cmd"/>
+        <File Path="eng/build.ps1"/>
+        <File Path="eng/build.sh"/>
+        <File Path="eng/compose.yaml"/>
+        <File Path="eng/MSBuild/Shared.props"/>
+        <File Path="eng/MSBuild/Shared.targets"/>
+        <File Path="eng/MSBuild/Shared.Claude.props"/>
+        <File Path="eng/MSBuild/Shared.Claude.Rules.targets"/>
+        <File Path="eng/MSBuild/Shared.Claude.targets"/>
+        <File Path="core/specs/generated/semconv.g.tsp"/>
     </Folder>
 
     <!-- Platform: collector, protocol, hosting -->
     <Folder Name="/src/platform/">
-        <Project Path="src/qyl.collector/qyl.collector.csproj" />
-        <Project Path="src/qyl.protocol/qyl.protocol.csproj" />
-        <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
+        <Project Path="src/qyl.collector/qyl.collector.csproj"/>
+        <Project Path="src/qyl.protocol/qyl.protocol.csproj"/>
+        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
     </Folder>
 
     <!-- SDK: instrumentation + browser telemetry -->
     <Folder Name="/src/sdk/">
-        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
-        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
-        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
-        <Project Path="src/qyl.browser/qyl.browser.esproj" />
+        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj"/>
+        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"/>
+        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
+        <Project Path="src/qyl.browser/qyl.browser.esproj"/>
     </Folder>
-    <Folder Name="/src/" />
+    <Folder Name="/src/"/>
     <!-- AI: copilot + MCP server -->
     <Folder Name="/src/ai/">
-        <Project Path="src/qyl.copilot/qyl.copilot.csproj" />
-        <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
+        <Project Path="src/qyl.copilot/qyl.copilot.csproj"/>
+        <Project Path="src/qyl.mcp/qyl.mcp.csproj"/>
     </Folder>
 
     <!-- Dashboard: React SPA -->
     <Folder Name="/src/dashboard/">
-        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj" />
+        <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
     </Folder>
 
     <!-- Tools: terminal utilities -->
     <Folder Name="/src/tools/">
-        <Project Path="src/qyl.watch/qyl.watch.csproj" />
+        <Project Path="src/qyl.watch/qyl.watch.csproj"/>
     </Folder>
 
     <!-- Tests -->
     <Folder Name="/tests/">
-        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
+        <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
     </Folder>
+
 
     <!-- Docs -->
     <Folder Name="/docs/">
-        <File Path="docs/adrs/001-observability-enhancements.md" />
-        <File Path="docs/adrs/002-copilot-integration.md" />
-        <File Path="docs/adrs/ADR-001-docker-first-distribution.md" />
-        <File Path="docs/adrs/ADR-002-github-oauth-onboarding.md" />
-        <File Path="docs/adrs/ADR-003-nuget-first-instrumentation.md" />
-        <File Path="docs/adrs/ADR-004-remove-qyl-cli.md" />
-        <File Path="docs/adrs/ADR-005-agent-framework-copilot.md" />
-        <File Path="docs/architecture/semconv-pipeline.md" />
-        <File Path="docs/aspire/aspire.md" />
-        <File Path="docs/aspire/qyl-aspire.md" />
-        <File Path="docs/plans/2026-02-15-ai-chat-analytics-design.md" />
-        <File Path="docs/plans/2026-02-27-adr003-completion-design.md" />
-        <File Path="docs/plans/2026-02-27-adr003-completion-implementation.md" />
-        <File Path="docs/plans/2026-02-27-service-registry-design.md" />
-        <File Path="docs/plans/2026-02-27-service-registry-implementation.md" />
-        <File Path="docs/plans/2026-02-28-traced-annotations-epic.md" />
-        <File Path="docs/prompts/PROMPT-CLEANUP.md" />
-        <File Path="docs/prompts/PROMPT-REMAINING-WORK.md" />
-        <File Path="docs/sentry/qyl-sentry.md" />
-        <File Path="docs/sentry/sentry.md" />
-        <File Path="docs/copy.AGENTS-GUIDE.md" />
-        <File Path="docs/copy.CLAUDE.md" />
-        <File Path="docs/copy.agent-teams-guide.md" />
-        <File Path="docs/copy.preferences.md" />
-        <File Path="docs/verify-catalog-docs.sh" />
-        <File Path="docs/PRINCIPLES.md" />
+        <File Path="docs/andrewlock-system-diagnostics-metrics-apis-parts-1-4.md"/>
+        <File Path="docs/verify-catalog-docs.sh"/>
+
     </Folder>
+
 
     <!-- GitHub config -->
     <Folder Name="/.github/">
-        <File Path=".github/workflows/auto-merge.yml" />
-        <File Path=".github/workflows/ci.yml" />
-        <File Path=".github/workflows/claude.yml" />
-        <File Path=".github/workflows/pages.yml" />
-        <File Path=".github/workflows/release.yml" />
-        <File Path=".github/copilot-instructions.md" />
-        <File Path=".github/dependabot.yml" />
+        <File Path=".github/workflows/auto-merge.yml"/>
+        <File Path=".github/workflows/ci.yml"/>
+        <File Path=".github/workflows/claude.yml"/>
+        <File Path=".github/workflows/pages.yml"/>
+        <File Path=".github/workflows/release.yml"/>
+        <File Path=".github/copilot-instructions.md"/>
+        <File Path=".github/dependabot.yml"/>
     </Folder>
 
     <!-- Samples -->
     <Folder Name="/samples/">
-        <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
+        <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj"/>
     </Folder>
 
     <!-- Claude config -->
     <Folder Name="/.claude/">
-        <File Path=".claude/settings.local.json" />
+        <File Path=".claude/settings.local.json"/>
     </Folder>
 
 </Solution>

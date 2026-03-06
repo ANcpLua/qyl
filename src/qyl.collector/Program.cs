@@ -197,11 +197,11 @@ builder.Services.AddHostedService<InsightsMaterializerService>();
 builder.Services.AddHostedService<ServiceMaterializerService>();
 builder.Services.AddHostedService<EmbeddingClusterWorker>();
 
-// Seer triage pipeline: auto-score and route untriaged error issues
+// Loom triage pipeline: auto-score and route untriaged error issues
 builder.Services.AddSingleton<TriagePipelineService>();
 builder.Services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
 
-// Seer autofix agent: autonomously processes pending fix runs through the LLM pipeline
+// Loom autofix agent: autonomously processes pending fix runs through the LLM pipeline
 builder.Services.AddSingleton<AutofixAgentService>();
 builder.Services.AddHostedService(static sp => sp.GetRequiredService<AutofixAgentService>());
 
@@ -239,7 +239,7 @@ builder.Services.AddSingleton<AutofixOrchestrator>();
 builder.Services.AddSingleton<PrCreationService>();
 builder.Services.AddSingleton<AgentHandoffService>();
 
-// Seer code review: LLM-powered PR diff analysis
+// Loom code review: LLM-powered PR diff analysis
 builder.Services.AddSingleton<CodeReviewService>();
 
 // Workflow run service
@@ -824,7 +824,7 @@ app.MapAgentHandoffEndpoints();
 app.MapCodeReviewEndpoints();
 app.MapCodingAgentEndpoints();
 app.MapGitHubWebhookEndpoints();
-app.MapSeerSettingsEndpoints();
+app.MapLoomSettingsEndpoints();
 app.MapTriageEndpoints();
 app.MapWorkflowEndpoints();
 app.MapWorkflowRunEndpoints();

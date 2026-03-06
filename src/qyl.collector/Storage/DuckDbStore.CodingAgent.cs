@@ -4,7 +4,7 @@ namespace qyl.collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with coding agent run
-///     and Seer settings storage operations.
+///     and Loom settings storage operations.
 /// </summary>
 public sealed partial class DuckDbStore
 {
@@ -126,10 +126,10 @@ public sealed partial class DuckDbStore
         };
 
     // =========================================================================
-    // Seer Settings
+    // Loom Settings
     // =========================================================================
 
-    public async Task<SeerSettingsRecord> GetSeerSettingsAsync(CancellationToken ct = default)
+    public async Task<LoomSettingsRecord> GetLoomSettingsAsync(CancellationToken ct = default)
     {
         ThrowIfDisposed();
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
@@ -138,31 +138,31 @@ public sealed partial class DuckDbStore
         cmd.CommandText = """
                           SELECT id, default_coding_agent, default_coding_agent_integration_id,
                                  automation_tuning, updated_at
-                          FROM seer_settings WHERE id = 'default'
+                          FROM Loom_settings WHERE id = 'default'
                           """;
 
         await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return new SeerSettingsRecord { Id = "default" };
+            return new LoomSettingsRecord { Id = "default" };
 
-        return new SeerSettingsRecord
+        return new LoomSettingsRecord
         {
             Id = reader.GetString(0),
-            DefaultCodingAgent = reader.Col(1).AsString ?? "seer",
+            DefaultCodingAgent = reader.Col(1).AsString ?? "Loom",
             DefaultCodingAgentIntegrationId = reader.Col(2).AsString,
             AutomationTuning = reader.Col(3).AsString ?? "medium",
             UpdatedAt = reader.Col(4).AsDateTime ?? DateTime.MinValue
         };
     }
 
-    public async Task UpsertSeerSettingsAsync(SeerSettingsRecord settings, CancellationToken ct = default)
+    public async Task UpsertLoomSettingsAsync(LoomSettingsRecord settings, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         var job = new WriteJob<int>(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                              INSERT INTO seer_settings
+                              INSERT INTO Loom_settings
                                   (id, default_coding_agent, default_coding_agent_integration_id, automation_tuning, updated_at)
                               VALUES ($1, $2, $3, $4, now())
                               ON CONFLICT (id) DO UPDATE SET

@@ -1,12 +1,12 @@
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
-import {useUpdateSeerSettings} from '@/hooks/use-coding-agents';
+import {useUpdateLoomSettings} from '@/hooks/use-coding-agents';
 import {toast} from 'sonner';
 import {Loader2, Terminal} from 'lucide-react';
 
 export function ClaudeCodeIntegrationCta({onEnabled}: { onEnabled?: () => void }) {
-    const {mutate, isPending} = useUpdateSeerSettings();
+    const {mutate, isPending} = useUpdateLoomSettings();
 
     const handleEnable = () => {
         mutate({default_coding_agent: 'claude_code'}, {

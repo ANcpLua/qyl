@@ -45,15 +45,72 @@ webhook ingestion, dashboard, and MCP tooling).
 
 | Capability | Status | Evidence |
 |---|---|---|
-| Endpoint families for Loom-like workflows | Implemented | `Program.cs` maps `MapAutofixEndpoints`, `MapRegressionEndpoints`, `MapAgentHandoffEndpoints`, `MapCodeReviewEndpoints`, `MapGitHubWebhookEndpoints`, `MapLoomSettingsEndpoints`, `MapTriageEndpoints`. |
-| Autofix pipeline | Implemented | `AutofixAgentService.cs`, `AutofixOrchestrator.cs`, `AutofixEndpoints.cs`, `DuckDbStore.Autofix*.cs`. |
-| Fixability scoring and triage | Implemented | `TriagePipelineService.cs`, `TriagePrompts.cs`, `TriageEndpoints.cs`, `DuckDbSchema.Triage.cs`. |
-| Code review endpoints and service | Implemented | `CodeReviewEndpoints.cs`, `CodeReviewService.cs`, `CodeReviewPrompt.cs`. |
-| GitHub webhook ingestion + signature validation | Implemented | `GitHubWebhookEndpoints.cs` (`X-Hub-Signature-256`, `HMACSHA256`). |
-| Agent handoff lifecycle | Implemented | `AgentHandoffEndpoints.cs`, `AgentHandoffService.cs`, `DuckDbStore.Handoff.cs`. |
-| Regression detection and querying | Implemented | `RegressionDetectionService.cs`, `RegressionEndpoints.cs`, `DuckDbStore.Regressions.cs`. |
-| Dashboard/UI for Loom flows | Implemented | `LoomDashboardPage.tsx`, `IssueTriagePage.tsx`, `IssueFixRunsPage.tsx`, `CodeReviewPage.tsx`. |
-| MCP tooling for Loom flows | Implemented | `AutofixMcpTools.cs`, `TriageTools.cs`, `RegressionTools.cs`, `GitHubMcpTools.cs`, `AgentHandoffTools.cs`, `AssistedQueryTools.cs`, `TestGenerationTools.cs`. |
+| Endpoint families for Loom-like workflows | `IMPLEMENTED-IN-QYL` | `Program.cs` maps `MapAutofixEndpoints`, `MapRegressionEndpoints`, `MapAgentHandoffEndpoints`, `MapCodeReviewEndpoints`, `MapGitHubWebhookEndpoints`, `MapLoomSettingsEndpoints`, `MapTriageEndpoints`. Endpoint registration exists, but registration alone is not treated as proof of runtime correctness. |
+| Autofix pipeline | `IMPLEMENTED-IN-QYL` | `AutofixAgentService.cs`, `AutofixOrchestrator.cs`, `AutofixEndpoints.cs`, `DuckDbStore.Autofix*.cs`. Current document status: implementation present, end-to-end verification still required. |
+| Fixability scoring and triage | `IMPLEMENTED-IN-QYL` | `TriagePipelineService.cs`, `TriagePrompts.cs`, `TriageEndpoints.cs`, `DuckDbSchema.Triage.cs`. Current document status: implementation present, real-issue scoring verification still required. |
+| Code review endpoints and service | `IMPLEMENTED-IN-QYL` | `CodeReviewEndpoints.cs`, `CodeReviewService.cs`, `CodeReviewPrompt.cs`. Current document status: implementation present, webhook-to-comment flow verification still required. |
+| GitHub webhook ingestion + signature validation | `IMPLEMENTED-IN-QYL` | `GitHubWebhookEndpoints.cs` (`X-Hub-Signature-256`, `HMACSHA256`). Current document status: implementation present, signed payload verification still required. |
+| Agent handoff lifecycle | `IMPLEMENTED-IN-QYL` | `AgentHandoffEndpoints.cs`, `AgentHandoffService.cs`, `DuckDbStore.Handoff.cs`. Current document status: implementation present, lifecycle transition verification still required. |
+| Regression detection and querying | `IMPLEMENTED-IN-QYL` | `RegressionDetectionService.cs`, `RegressionEndpoints.cs`, `DuckDbStore.Regressions.cs`. Current document status: implementation present, detection/query verification still required. |
+| Dashboard/UI for Loom flows | `IMPLEMENTED-IN-QYL` | `LoomDashboardPage.tsx`, `IssueTriagePage.tsx`, `IssueFixRunsPage.tsx`, `CodeReviewPage.tsx`. Current document status: implementation present, Playwright validation still required. |
+| MCP tooling for Loom flows | `IMPLEMENTED-IN-QYL` | `AutofixMcpTools.cs`, `TriageTools.cs`, `RegressionTools.cs`, `GitHubMcpTools.cs`, `AgentHandoffTools.cs`, `AssistedQueryTools.cs`, `TestGenerationTools.cs`. Current document status: tool registration exists, protocol-level invocation verification still required. |
+
+### qyl Verification Matrix
+
+This table is the current ship bar for qyl. A capability is not considered verified until the full flow runs end-to-end with real inputs and real outputs.
+
+| Capability | qyl Status | Verification Still Required |
+|---|---|---|
+| Autofix pipeline | `IMPLEMENTED-IN-QYL` | Run full issue -> root cause -> solution -> code change flow; confirm outputs are real and persisted correctly. |
+| Triage/fixability scoring | `IMPLEMENTED-IN-QYL` | Execute scoring against real issues and validate thresholds, persistence, and API shape. |
+| Code review | `IMPLEMENTED-IN-QYL` | Exercise GitHub webhook ingestion through PR analysis and confirm comment/status output. |
+| GitHub webhook ingestion | `IMPLEMENTED-IN-QYL` | Validate HMAC-SHA256 signature handling and event routing with signed payloads. |
+| Agent handoff | `IMPLEMENTED-IN-QYL` | Verify lifecycle transitions, state storage, and recovery behavior. |
+| Regression detection | `IMPLEMENTED-IN-QYL` | Verify detection, storage, and query layer with real time-series inputs. |
+| Dashboard UI | `IMPLEMENTED-IN-QYL` | Cover with Playwright after Phase 1 frontend stabilization. |
+| MCP tooling | `IMPLEMENTED-IN-QYL` | Call tools through the MCP protocol and confirm real responses, not just registration. |
+
+### 2026 Web Source Synthesis
+
+The six extracted 2026 web markdown files collapse into two useful source groups: one primary product announcement cluster and one secondary explainer. The partner translation and press/news reposts do not add net-new product behavior beyond the primary Sentry post, but they do reinforce positioning, pricing, and operating assumptions.
+
+#### Primary product signal: Seer expanded across the full development loop
+
+Scope label for qyl: `CONTEXT-ONLY`
+
+Deduplicated across:
+- Sentry blog primary announcement
+- Ichizoku Japanese translation mirror
+- TechIntelPro secondary coverage
+- AI-Tech Park / Business Wire syndication
+- Sentry changelog page, which was only partially extractable in this corpus
+
+Consolidated product claims:
+- Seer is explicitly positioned as a shift-left system spanning local development, code review, and production rather than a production-only debugger.
+- Runtime telemetry is the differentiator. The consistent message across sources is that traces, logs, metrics, errors, and related context are required to catch failures that static code inspection misses.
+- Local development workflow depends on the Sentry MCP server as the bridge between a coding agent and runtime telemetry during reproduction of a bug.
+- Code review focuses on production-risking defects, not style or low-signal lint-like feedback.
+- Production flow remains root-cause-first, with optional code generation or delegation to an external coding agent when confidence is high.
+- Open-ended investigation over telemetry is real but still preview-stage, so it should not be treated as a hard ship requirement for qyl.
+- Pricing converged in January 2026 to `$40` per active contributor per month with unlimited usage, where an active contributor is defined by `2+` pull requests in a connected repository during the billing month.
+
+qyl implication:
+- The local product target is not "AI everywhere" in the abstract. The target is a telemetry-grounded debugging loop that proves value in three concrete surfaces: local triage/autofix, pre-merge review, and post-merge or production investigation.
+
+#### Secondary product signal: Seer as debugging copilot, with privacy constraints
+
+Scope label for qyl: `CONTEXT-ONLY`
+
+Deduplicated across:
+- Oreate AI third-party explainer
+
+Consolidated product claims:
+- Seer is framed as a copilot that operates on rich debugging context rather than as a generic assistant.
+- Multi-repository and distributed-system reasoning are part of the public story, even if implementation details are not fully public.
+- Privacy messaging matters: customer data and source code are not used for model training without explicit consent, and generated output is scoped to authorized users.
+
+qyl implication:
+- qyl should prioritize strong operator trust boundaries: explicit data movement, auditable tool actions, and clear separation between analysis context and code mutation.
 
 ---
 
@@ -825,7 +882,7 @@ Loom broadcasts lifecycle events to installed Sentry Apps:
 
 ### Current Model (January 2026+)
 
-**CONFIRMED** — Official documentation.
+**CONFIRMED** — Official documentation, corroborated by January 2026 web announcements.
 
 | Property | Value |
 |----------|-------|
@@ -944,6 +1001,8 @@ Every claim in this document can be traced to one of these source categories:
 | MCP Server Repository | https://github.com/getsentry/sentry-mcp |
 | GitHub Integration Docs | https://docs.sentry.io/organization/integrations/source-code-mgmt/github/ |
 | Issue Noise Blog Post | https://blog.sentry.io/how-sentry-decreased-issue-noise-with-ai/ |
+| 2026 Sentry Blog Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-01-27-sentry-blog-seer-debug-with-ai.md` |
+| 2026 Sentry Changelog Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-01-27-sentry-changelog-seer-now-debugs.md` |
 
 ### Secondary Sources (INFERRED / EXPERIMENTAL)
 
@@ -954,6 +1013,10 @@ Every claim in this document can be traced to one of these source categories:
 | Loom-labeled Issues | https://github.com/getsentry/sentry/issues?q=is:issue+state:open+label:Loom |
 | Open-source code | `src/sentry/Loom/**` in getsentry/sentry |
 | Loom service mirror | https://github.com/doc-sheet/Loom |
+| 2026 Partner Translation Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-01-28-ichizoku-jp-seer-debug-with-ai.md` |
+| 2026 News Coverage Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-01-27-techintelpro-seer-expands.md` |
+| 2026 Wire Coverage Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-01-28-ai-techpark-business-wire-seer.md` |
+| 2026 Third-Party Explainer Extraction | `/Users/ancplua/sentry-seer-sourcepack/sources/seer-web-2026/extracted/2026-02-13-oreateai-seer-copilot.md` |
 
 ### Closed-Source Boundary
 

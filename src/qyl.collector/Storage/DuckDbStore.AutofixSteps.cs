@@ -4,7 +4,7 @@ namespace qyl.collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with autofix step
-///     tracking operations for the Seer autofix pipeline.
+///     tracking operations for the Loom autofix pipeline.
 /// </summary>
 public sealed partial class DuckDbStore
 {

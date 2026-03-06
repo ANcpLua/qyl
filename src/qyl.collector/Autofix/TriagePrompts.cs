@@ -1,7 +1,7 @@
 namespace qyl.collector.Autofix;
 
 /// <summary>
-///     LLM prompt templates for the Seer triage pipeline.
+///     LLM prompt templates for the Loom triage pipeline.
 /// </summary>
 internal static class TriagePrompts
 {
