@@ -137,6 +137,12 @@ internal static class GenAiCallSiteAnalyzer
         // (type prefix, methods) — same structure as the old MethodPatterns dictionary
         var patterns = new (string TypePrefix, (string MethodName, string Operation, bool IsAsync)[] Methods)[]
         {
+            // Microsoft.Extensions.AI abstractions
+            (
+                "Microsoft.Extensions.AI.IChatClient",
+                [("GetResponseAsync", "chat", true), ("GetStreamingResponseAsync", "chat", true)]
+            ),
+
             // OpenAI SDK v2.x
             ("OpenAI.Chat.ChatClient", [("CompleteChatAsync", "chat", true), ("CompleteChat", "chat", false)]), (
                 "OpenAI.Embeddings.EmbeddingClient",
