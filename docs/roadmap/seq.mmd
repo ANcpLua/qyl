@@ -1,0 +1,73 @@
+flowchart TB
+
+subgraph DOCS["docs/"]
+direction TB
+
+subgraph DECISIONS["decisions/ - ADRs (numbered)"]
+direction TB
+ADR["0001-scope-taxonomy.md<br/>0002-duckdb-storage.md<br/>0003-ag-ui-protocol.md<br/>0004-compile-time-tracing.md<br/>adr-template.md"]
+end
+
+subgraph SLICES["Vertical Slices"]
+direction LR
+
+subgraph INGESTION["ingestion/"]
+direction TB
+I_SPEC["spec.md - OTLP gRPC+HTTP contract"]
+I_FEAT["features/ - appender, schema, purge"]
+I_REQ["requirements.md - QYL-002, QYL-008"]
+end
+
+subgraph INTELLIGENCE["intelligence/"]
+direction TB
+AI_SPEC["spec.md - autofix, triage, review, anomaly"]
+AI_FEAT["features/ - pipeline stages, prompts"]
+AI_REQ["requirements.md - QYL-015a/b/c, LOOM-001..011"]
+end
+
+subgraph QUERY["query/"]
+direction TB
+Q_SPEC["spec.md - MCP, REST, Copilot"]
+Q_FEAT["features/ - tools, skills, AG-UI"]
+Q_REQ["requirements.md - QYL-003, QYL-005, MCP-*"]
+end
+
+subgraph SDK["sdk/"]
+direction TB
+S_SPEC["spec.md - [Traced], GenAI semconv, generators"]
+S_FEAT["features/ - interceptors, zero-cost contracts"]
+S_REQ["requirements.md - QYL-001, QYL-006, QYL-007"]
+end
+
+subgraph PRESENTATION["presentation/"]
+direction TB
+P_SPEC["spec.md - dashboard, SSE, browser SDK"]
+P_FEAT["features/ - pages, components, Web Vitals"]
+P_REQ["requirements.md - QYL-010, PLAT-*"]
+end
+
+end
+
+subgraph ROADMAP["roadmap/ - strategic (cross-slice)"]
+direction TB
+LOOM["loom-design.md - §1-§23, 65 req IDs"]
+SEMCONV["otel-semconv-reference.md"]
+end
+
+subgraph AGENTS["agents/ - AI navigation"]
+direction TB
+ARCH["architecture.md"]
+CONV["conventions.md"]
+PROMPTS["prompts/ - bootstrap, metrics"]
+end
+
+end
+
+LOOM -.->|"requirement IDs scatter into"| I_REQ
+LOOM -.-> AI_REQ
+LOOM -.-> Q_REQ
+LOOM -.-> S_REQ
+LOOM -.-> P_REQ
+
+style ADR fill:#1a1a2e,stroke:#e94560,color:#ffffff
+style LOOM fill:#1a1a2e,stroke:#0f3460,color:#ffffff

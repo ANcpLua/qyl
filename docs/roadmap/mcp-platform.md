@@ -4,18 +4,18 @@
 
 ## Implementation Status
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Tool annotations (ReadOnly, Destructive, Idempotent) | **DONE** | All tools annotated via `[McpServerTool]` attributes |
-| Skills system (tool grouping + filtering) | **DONE** | `QylSkillKind` enum (8 categories), `QYL_SKILLS` env var, conditional DI registration |
-| Error taxonomy | **DONE** | `CollectorHelper.ExecuteAsync` categorizes by HTTP status |
-| Constraint scoping | **DONE** | `QylScope` + `ScopingDelegatingHandler` via `QYL_SERVICE`/`QYL_SESSION` env vars |
-| Monolith split (core/cloud/sentry) | NOT STARTED | |
-| Streamable HTTP transport | NOT STARTED | |
-| OAuth (RFC 9728) | NOT STARTED | |
-| IObservabilityBackend interface | NOT STARTED | |
-| Sentry backend | NOT STARTED | |
-| Platform connectors (GitHub App, VS Code) | NOT STARTED | |
+| Feature                                              | Status      | Notes                                                                                 |
+|------------------------------------------------------|-------------|---------------------------------------------------------------------------------------|
+| Tool annotations (ReadOnly, Destructive, Idempotent) | **DONE**    | All tools annotated via `[McpServerTool]` attributes                                  |
+| Skills system (tool grouping + filtering)            | **DONE**    | `QylSkillKind` enum (8 categories), `QYL_SKILLS` env var, conditional DI registration |
+| Error taxonomy                                       | **DONE**    | `CollectorHelper.ExecuteAsync` categorizes by HTTP status                             |
+| Constraint scoping                                   | **DONE**    | `QylScope` + `ScopingDelegatingHandler` via `QYL_SERVICE`/`QYL_SESSION` env vars      |
+| Monolith split (core/cloud/sentry)                   | NOT STARTED |                                                                                       |
+| Streamable HTTP transport                            | NOT STARTED |                                                                                       |
+| OAuth (RFC 9728)                                     | NOT STARTED |                                                                                       |
+| IObservabilityBackend interface                      | NOT STARTED |                                                                                       |
+| Sentry backend                                       | NOT STARTED |                                                                                       |
+| Platform connectors (GitHub App, VS Code)            | NOT STARTED |                                                                                       |
 
 > **Note:** The skills system was implemented differently from the original 5-tier design below.
 > Actual implementation uses 8 skill categories (Inspect, Health, Analytics, Agent, Build, Anomaly, Copilot, ClaudeCode)
@@ -27,13 +27,18 @@
 
 > **Date:** 2026-03-01
 > **Status:** Approved
-> **Goal:** Transform qyl.mcp from a stdio-only MCP tool into a distributable observability platform with OAuth, HTTP transport, multi-backend support, and platform-specific connectors.
+> **Goal:** Transform qyl.mcp from a stdio-only MCP tool into a distributable observability platform with OAuth, HTTP
+> transport, multi-backend support, and platform-specific connectors.
 
 ## Context
 
-qyl.mcp currently runs as a stdio MCP server distributed via NuGet (`PackAsTool`). It talks to a single backend (`qyl.collector` via HTTP) and uses a simple API key for auth.
+qyl.mcp currently runs as a stdio MCP server distributed via NuGet (`PackAsTool`). It talks to a single backend (
+`qyl.collector` via HTTP) and uses a simple API key for auth.
 
-Sentry's MCP server demonstrates a mature distribution model: OAuth, Streamable HTTP transport, skill-based tool filtering, Cloudflare Workers deployment, and one-click installation across AI clients (Claude Code, Cursor, VS Code). We want the same distribution reach for qyl, but provider-agnostic — qyl is an observability intelligence layer that can connect to Sentry, Seq, Datadog, or its own native collector.
+Sentry's MCP server demonstrates a mature distribution model: OAuth, Streamable HTTP transport, skill-based tool
+filtering, Cloudflare Workers deployment, and one-click installation across AI clients (Claude Code, Cursor, VS Code).
+We want the same distribution reach for qyl, but provider-agnostic — qyl is an observability intelligence layer that can
+connect to Sentry, Seq, Datadog, or its own native collector.
 
 ## Architecture: Monolith Split (Approach A)
 
@@ -164,7 +169,8 @@ Existing qyl-native tools remain unchanged. They are qyl-specific and do not go 
 ## v0.1 Backends
 
 1. **qyl-native** — wraps existing `qyl.collector` HTTP calls. Capabilities: Identity, Traces, Events.
-2. **Sentry** — new `SentryApiClient` calling Sentry REST API. Capabilities: Identity, Issues, IssueWrite, Traces, Events, Projects, AiAnalysis.
+2. **Sentry** — new `SentryApiClient` calling Sentry REST API. Capabilities: Identity, Issues, IssueWrite, Traces,
+   Events, Projects, AiAnalysis.
 
 ## OAuth & Cloud Architecture
 
@@ -211,6 +217,7 @@ Existing qyl-native tools remain unchanged. They are qyl-specific and do not go 
 ### Token Vault
 
 Per-user storage in Azure Key Vault or Cosmos DB:
+
 - qyl session token (always present)
 - Sentry API token (from Sentry OAuth, optional)
 - Future: Seq API key, Datadog API key
@@ -219,31 +226,34 @@ Per-user storage in Azure Key Vault or Cosmos DB:
 
 Skills group tools and are selected during OAuth.
 
-| Skill       | Tools                                                          | Description              |
-|-------------|----------------------------------------------------------------|--------------------------|
-| **observe** | search_agent_runs, get_agent_run, get_token_usage, search_traces, get_trace | Read telemetry           |
-| **inspect** | get_issue, search_issues, list_issues, search_events           | Investigate errors       |
-| **triage**  | update_issue, resolve_issue                                    | Modify issues (write)    |
-| **navigate**| whoami, list_projects, list_services                           | Orientation              |
-| **analyze** | get_genai_stats, get_latency_stats, get_coverage_gaps          | AI-powered analysis      |
+| Skill        | Tools                                                                       | Description           |
+|--------------|-----------------------------------------------------------------------------|-----------------------|
+| **observe**  | search_agent_runs, get_agent_run, get_token_usage, search_traces, get_trace | Read telemetry        |
+| **inspect**  | get_issue, search_issues, list_issues, search_events                        | Investigate errors    |
+| **triage**   | update_issue, resolve_issue                                                 | Modify issues (write) |
+| **navigate** | whoami, list_projects, list_services                                        | Orientation           |
+| **analyze**  | get_genai_stats, get_latency_stats, get_coverage_gaps                       | AI-powered analysis   |
 
 ## Platform Connectors
 
 ### GitHub App / Marketplace
 
 GitHub App that auto-configures MCP in repos on installation.
+
 - Creates `.github/mcp.json` with qyl endpoint
 - GitHub App OAuth flow stores GitHub token + creates qyl session
 
 ### Azure Copilot Extension
 
 GitHub Copilot Extension (Azure Marketplace) for `@qyl` in Copilot Chat.
+
 - Server-side agent calling qyl.mcp.cloud
 - Azure AD / Microsoft identity
 
 ### VS Code Extension
 
 Thin wrapper that registers MCP server in VS Code settings.
+
 - Installs → configures `mcp.json` → opens OAuth in browser
 - Published on VS Code Marketplace
 
@@ -258,6 +268,7 @@ claude mcp add --transport http qyl https://mcp.qyl.dev/mcp
 ```
 
 Landing page at `https://mcp.qyl.dev` with:
+
 - One-click install buttons per client
 - `/mcp.json` for auto-discovery
 - `/llms.txt` for LLM-readable docs
@@ -268,6 +279,7 @@ Landing page at `https://mcp.qyl.dev` with:
 From the user's scope recommendation:
 
 **Must-have (read-only, high value):**
+
 - `qyl.get_issue` — Get issue details
 - `qyl.search_issues` — Search issues
 - `qyl.list_issues` — List recent issues
@@ -277,17 +289,20 @@ From the user's scope recommendation:
 - `qyl.list_projects` — Navigation
 
 **Nice-to-have (write):**
+
 - `qyl.update_issue` — Update issue status/assignment
 - `qyl.resolve_issue` — Resolve an issue
 
 **qyl-specific (no Sentry equivalent, already exist):**
+
 - `qyl.search_spans` — DuckDB direct
 - `qyl.get_telemetry_summary` — Aggregated stats
 - `qyl.analyze_latency` — Latency analysis
 
 ## Decision: Interface First
 
-Define `IObservabilityBackend` interface first, then implement both backends (qyl-native + Sentry) against it. This ensures tool signatures are stable before building platform connectors.
+Define `IObservabilityBackend` interface first, then implement both backends (qyl-native + Sentry) against it. This
+ensures tool signatures are stable before building platform connectors.
 
 
 ---
@@ -296,11 +311,14 @@ Define `IObservabilityBackend` interface first, then implement both backends (qy
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Split qyl.mcp into core + cloud + sentry packages with a provider-agnostic backend interface, Streamable HTTP transport, and OAuth.
+**Goal:** Split qyl.mcp into core + cloud + sentry packages with a provider-agnostic backend interface, Streamable HTTP
+transport, and OAuth.
 
-**Architecture:** Monolith split — extract shared tools into `qyl.mcp.core`, add `qyl.mcp.sentry` for Sentry API, add `qyl.mcp.cloud` for Azure Container App with HTTP transport + OAuth. See Part 1 (Design) in this document.
+**Architecture:** Monolith split — extract shared tools into `qyl.mcp.core`, add `qyl.mcp.sentry` for Sentry API, add
+`qyl.mcp.cloud` for Azure Container App with HTTP transport + OAuth. See Part 1 (Design) in this document.
 
-**Tech Stack:** .NET 10, ASP.NET Core, ModelContextProtocol NuGet (v1.0.0), ANcpLua.NET.Sdk, source-generated JSON, CPM via Directory.Packages.props + Version.props.
+**Tech Stack:** .NET 10, ASP.NET Core, ModelContextProtocol NuGet (v1.0.0), ANcpLua.NET.Sdk, source-generated JSON, CPM
+via Directory.Packages.props + Version.props.
 
 **Design Doc:** See Part 1 (Design) above in this document.
 
@@ -309,6 +327,7 @@ Define `IObservabilityBackend` interface first, then implement both backends (qy
 ### Task 1: Create qyl.mcp.core project and move shared code
 
 **Files:**
+
 - Create: `src/qyl.mcp.core/qyl.mcp.core.csproj`
 - Move: `src/qyl.mcp/Tools/*.cs` → `src/qyl.mcp.core/Tools/`
 - Move: `src/qyl.mcp/Auth/` → `src/qyl.mcp.core/Auth/`
@@ -362,7 +381,8 @@ mv src/qyl.mcp/McpCollectorHttpClientExtensions.cs src/qyl.mcp.core/
 
 **Step 3: Update namespaces**
 
-Change all moved files from `namespace qyl.mcp` / `namespace qyl.mcp.Tools` / `namespace qyl.mcp.Auth` to `namespace qyl.mcp.core` / `namespace qyl.mcp.core.Tools` / `namespace qyl.mcp.core.Auth`.
+Change all moved files from `namespace qyl.mcp` / `namespace qyl.mcp.Tools` / `namespace qyl.mcp.Auth` to
+`namespace qyl.mcp.core` / `namespace qyl.mcp.core.Tools` / `namespace qyl.mcp.core.Auth`.
 
 **Step 4: Update qyl.mcp.csproj**
 
@@ -378,7 +398,8 @@ Keep only: `Microsoft.Extensions.Hosting`, `ModelContextProtocol` (for stdio tra
 
 **Step 5: Slim down qyl.mcp/Program.cs**
 
-Program.cs becomes a thin host that references core and registers stdio transport. All tool types are resolved from the core assembly. The using directives change to `qyl.mcp.core.*`.
+Program.cs becomes a thin host that references core and registers stdio transport. All tool types are resolved from the
+core assembly. The using directives change to `qyl.mcp.core.*`.
 
 **Step 6: Build and verify**
 
@@ -405,6 +426,7 @@ qyl.mcp becomes a thin stdio host referencing core."
 ### Task 2: Define IObservabilityBackend interface and shared models
 
 **Files:**
+
 - Create: `src/qyl.mcp.core/Backends/IObservabilityBackend.cs`
 - Create: `src/qyl.mcp.core/Backends/BackendCapabilities.cs`
 - Create: `src/qyl.mcp.core/Backends/BackendRegistry.cs`
@@ -458,7 +480,8 @@ public sealed record Issue(
     string? Url);
 ```
 
-Same pattern for `BackendUser`, `Project`, `Trace`, `Event`. Query records like `IssueQuery(string? Query, DateTime? Since, int Limit = 25)`.
+Same pattern for `BackendUser`, `Project`, `Trace`, `Event`. Query records like
+`IssueQuery(string? Query, DateTime? Since, int Limit = 25)`.
 
 **Step 3: Create IObservabilityBackend.cs**
 
@@ -532,6 +555,7 @@ Event, Project, BackendUser)."
 ### Task 3: Create cross-backend MCP tools (IssueTools, TraceTools, IdentityTools)
 
 **Files:**
+
 - Create: `src/qyl.mcp.core/Tools/IssueTools.cs`
 - Create: `src/qyl.mcp.core/Tools/TraceTools.cs`
 - Create: `src/qyl.mcp.core/Tools/IdentityTools.cs`
@@ -647,11 +671,13 @@ internal sealed class IssueTools(BackendRegistry registry)
 
 **Step 2: Create IdentityTools.cs, NavigationTools.cs, TraceTools.cs, EventTools.cs**
 
-Same pattern — each has 1-3 methods that query `BackendRegistry`, fan out to backends, aggregate results, return markdown.
+Same pattern — each has 1-3 methods that query `BackendRegistry`, fan out to backends, aggregate results, return
+markdown.
 
 **Step 3: Register new tools in Program.cs**
 
-Add `.WithTools<IssueTools>()`, `.WithTools<TraceTools>()` etc. to the MCP server builder in both `qyl.mcp/Program.cs` (stdio) and later `qyl.mcp.cloud/Program.cs` (HTTP).
+Add `.WithTools<IssueTools>()`, `.WithTools<TraceTools>()` etc. to the MCP server builder in both `qyl.mcp/Program.cs` (
+stdio) and later `qyl.mcp.cloud/Program.cs` (HTTP).
 
 **Step 4: Build**
 
@@ -677,6 +703,7 @@ all query BackendRegistry for provider-agnostic multi-backend support."
 ### Task 4: Create qyl.mcp.sentry — Sentry API client + backend
 
 **Files:**
+
 - Create: `src/qyl.mcp.sentry/qyl.mcp.sentry.csproj`
 - Create: `src/qyl.mcp.sentry/SentryApiClient.cs`
 - Create: `src/qyl.mcp.sentry/SentryBackend.cs`
@@ -727,6 +754,7 @@ public sealed class SentryOptions
 **Step 3: Create SentryApiClient.cs**
 
 HTTP client calling Sentry REST API v0. Key endpoints:
+
 - `GET /api/0/` — authenticated user
 - `GET /api/0/organizations/{org}/issues/` — search issues
 - `GET /api/0/organizations/{org}/issues/{id}/` — get issue
@@ -824,12 +852,14 @@ models. AOT-ready with source-generated JSON contexts."
 ### Task 5: Create QylNativeBackend implementing IObservabilityBackend
 
 **Files:**
+
 - Create: `src/qyl.mcp.core/Backends/QylNativeBackend.cs`
 - Modify: `src/qyl.mcp.core/Tools/HttpTelemetryStore.cs` — reuse for native backend
 
 **Step 1: Create QylNativeBackend.cs**
 
-Wraps the existing `HttpTelemetryStore` and `StorageTools` HTTP calls. Maps existing qyl.collector responses to shared models.
+Wraps the existing `HttpTelemetryStore` and `StorageTools` HTTP calls. Maps existing qyl.collector responses to shared
+models.
 
 ```csharp
 namespace qyl.mcp.core.Backends;
@@ -907,6 +937,7 @@ Identity returns local user. Issues not supported (returns empty)."
 ### Task 6: Create qyl.mcp.cloud — ASP.NET Core with Streamable HTTP transport
 
 **Files:**
+
 - Create: `src/qyl.mcp.cloud/qyl.mcp.cloud.csproj`
 - Create: `src/qyl.mcp.cloud/Program.cs`
 - Create: `src/qyl.mcp.cloud/Endpoints/McpEndpoints.cs`
@@ -1033,6 +1064,7 @@ References both qyl.mcp.core and qyl.mcp.sentry."
 ### Task 7: Add Skill system — tool filtering by skill groups
 
 **Files:**
+
 - Create: `src/qyl.mcp.core/Skills/Skill.cs`
 - Create: `src/qyl.mcp.core/Skills/SkillRegistry.cs`
 - Create: `src/qyl.mcp.core/Skills/ToolSkillAttribute.cs`
@@ -1083,6 +1115,7 @@ ToolSkillAttribute annotates tools. SkillRegistry resolves visibility."
 ### Task 8: Add OAuth to qyl.mcp.cloud
 
 **Files:**
+
 - Create: `src/qyl.mcp.cloud/OAuth/QylOAuthHandler.cs`
 - Create: `src/qyl.mcp.cloud/OAuth/TokenStore.cs`
 - Create: `src/qyl.mcp.cloud/OAuth/OAuthEndpoints.cs`
@@ -1098,6 +1131,7 @@ ToolSkillAttribute annotates tools. SkillRegistry resolves visibility."
 **Step 2: Implement TokenStore**
 
 In-memory for dev, Azure Cosmos DB or Table Storage for production. Stores per-user:
+
 - qyl session token
 - Sentry auth token (optional)
 - Granted skills
@@ -1132,9 +1166,11 @@ token exchange and per-user token storage. RFC 9728 compliant."
 ### Task 9: Integration test — full stdio round-trip
 
 **Files:**
+
 - Create: `tests/qyl.mcp.tests/StdioIntegrationTests.cs`
 
-**Step 1: Write test that starts qyl.mcp as a process, sends MCP initialize + tools/list, verifies cross-backend tools appear alongside existing tools.**
+**Step 1: Write test that starts qyl.mcp as a process, sends MCP initialize + tools/list, verifies cross-backend tools
+appear alongside existing tools.**
 
 **Step 2: Run**
 
@@ -1154,9 +1190,11 @@ git commit -m "test: add stdio integration test for cross-backend tools"
 ### Task 10: Integration test — HTTP transport round-trip
 
 **Files:**
+
 - Create: `tests/qyl.mcp.cloud.tests/HttpIntegrationTests.cs`
 
-**Step 1: Use WebApplicationFactory to spin up qyl.mcp.cloud, send HTTP MCP requests, verify tools/list and tool invocation.**
+**Step 1: Use WebApplicationFactory to spin up qyl.mcp.cloud, send HTTP MCP requests, verify tools/list and tool
+invocation.**
 
 **Step 2: Run and commit**
 
@@ -1170,18 +1208,18 @@ git commit -m "test: add HTTP transport integration test for cloud project"
 
 ### Summary: Implementation Order
 
-| Task | What | Dependencies |
-|------|------|-------------|
-| 1 | Extract qyl.mcp.core | None |
-| 2 | IObservabilityBackend + models | Task 1 |
-| 3 | Cross-backend tools | Task 2 |
-| 4 | qyl.mcp.sentry | Task 2 |
-| 5 | QylNativeBackend | Task 2 |
-| 6 | qyl.mcp.cloud (HTTP transport) | Tasks 3, 4, 5 |
-| 7 | Skill system | Task 3 |
-| 8 | OAuth | Task 6 |
-| 9 | Stdio integration test | Tasks 3, 5 |
-| 10 | HTTP integration test | Task 6 |
+| Task | What                           | Dependencies  |
+|------|--------------------------------|---------------|
+| 1    | Extract qyl.mcp.core           | None          |
+| 2    | IObservabilityBackend + models | Task 1        |
+| 3    | Cross-backend tools            | Task 2        |
+| 4    | qyl.mcp.sentry                 | Task 2        |
+| 5    | QylNativeBackend               | Task 2        |
+| 6    | qyl.mcp.cloud (HTTP transport) | Tasks 3, 4, 5 |
+| 7    | Skill system                   | Task 3        |
+| 8    | OAuth                          | Task 6        |
+| 9    | Stdio integration test         | Tasks 3, 5    |
+| 10   | HTTP integration test          | Task 6        |
 
 Tasks 3, 4, 5 can run in parallel after Task 2.
 Tasks 9, 10 can run in parallel after their dependencies.

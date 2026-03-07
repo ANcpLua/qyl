@@ -16,35 +16,35 @@ This epic closes remaining gaps in feature parity and adds C#-specific enhanceme
 
 ### Current implementation summary
 
-| Component | Location |
-|-----------|----------|
-| `[Traced]` attribute | `qyl.servicedefaults/Instrumentation/TracedAttribute.cs` |
-| `[TracedTag]` attribute | `qyl.servicedefaults/Instrumentation/TracedTagAttribute.cs` |
-| `[NoTrace]` attribute | `qyl.servicedefaults/Instrumentation/NoTraceAttribute.cs` |
-| Call site analyzer | `qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs` |
-| Interceptor emitter | `qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs` |
-| Data model | `qyl.servicedefaults.generator/Models/Models.cs` (`TracedCallSite`, `TracedTagParameter`) |
-| Generator pipeline | `ServiceDefaultsSourceGenerator.cs` → `QSG005` → `TracedIntercepts.g.cs` |
+| Component               | Location                                                                                  |
+|-------------------------|-------------------------------------------------------------------------------------------|
+| `[Traced]` attribute    | `qyl.servicedefaults/Instrumentation/TracedAttribute.cs`                                  |
+| `[TracedTag]` attribute | `qyl.servicedefaults/Instrumentation/TracedTagAttribute.cs`                               |
+| `[NoTrace]` attribute   | `qyl.servicedefaults/Instrumentation/NoTraceAttribute.cs`                                 |
+| Call site analyzer      | `qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs`                       |
+| Interceptor emitter     | `qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs`                      |
+| Data model              | `qyl.servicedefaults.generator/Models/Models.cs` (`TracedCallSite`, `TracedTagParameter`) |
+| Generator pipeline      | `ServiceDefaultsSourceGenerator.cs` → `QSG005` → `TracedIntercepts.g.cs`                  |
 
 ---
 
 ## 2. Current vs. Java Feature Matrix
 
-| Java Feature | C# Status | Notes |
-|---|---|---|
-| `@WithSpan` – method-level | ✅ `[Traced("source")]` | Required constructor arg for ActivitySource name |
-| `@WithSpan` – class-level | ✅ **Better** | All public methods traced; `[NoTrace]` opt-out |
-| `@SpanAttribute` – parameters | ✅ `[TracedTag]` | Includes `SkipIfNull` opt-in |
-| `@SpanAttribute` – name derivation from param name | ✅ | Falls back to parameter name |
-| `value` → custom span name | ✅ `SpanName = "..."` | Named property on `[Traced]` |
-| `kind` → SpanKind | ✅ `Kind = ActivityKind.Client` | Full `ActivityKind` enum |
-| `inheritContext = false` (root span) | ❌ Missing | **Story T-001** |
-| `CompletableFuture` / async return span lifetime | ✅ `Task`/`ValueTask` | **See gap T-002 for IAsyncEnumerable** |
-| Exception recording | ⚠️ Partial | Uses wrong attributes — **Story T-003** |
-| `@SpanAttribute` on properties | ⚠️ Declared, not generated | `[TracedTag]` targets `Property` but generator ignores it — **Story T-004** |
-| Config-based suppression | ❌ N/A | `[NoTrace]` is strictly better |
-| Config-based method include | ❌ N/A | Not applicable (compile-time) |
-| Misuse diagnostics | ❌ None | **Story T-005** |
+| Java Feature                                       | C# Status                      | Notes                                                                       |
+|----------------------------------------------------|--------------------------------|-----------------------------------------------------------------------------|
+| `@WithSpan` – method-level                         | ✅ `[Traced("source")]`         | Required constructor arg for ActivitySource name                            |
+| `@WithSpan` – class-level                          | ✅ **Better**                   | All public methods traced; `[NoTrace]` opt-out                              |
+| `@SpanAttribute` – parameters                      | ✅ `[TracedTag]`                | Includes `SkipIfNull` opt-in                                                |
+| `@SpanAttribute` – name derivation from param name | ✅                              | Falls back to parameter name                                                |
+| `value` → custom span name                         | ✅ `SpanName = "..."`           | Named property on `[Traced]`                                                |
+| `kind` → SpanKind                                  | ✅ `Kind = ActivityKind.Client` | Full `ActivityKind` enum                                                    |
+| `inheritContext = false` (root span)               | ❌ Missing                      | **Story T-001**                                                             |
+| `CompletableFuture` / async return span lifetime   | ✅ `Task`/`ValueTask`           | **See gap T-002 for IAsyncEnumerable**                                      |
+| Exception recording                                | ⚠️ Partial                     | Uses wrong attributes — **Story T-003**                                     |
+| `@SpanAttribute` on properties                     | ⚠️ Declared, not generated     | `[TracedTag]` targets `Property` but generator ignores it — **Story T-004** |
+| Config-based suppression                           | ❌ N/A                          | `[NoTrace]` is strictly better                                              |
+| Config-based method include                        | ❌ N/A                          | Not applicable (compile-time)                                               |
+| Misuse diagnostics                                 | ❌ None                         | **Story T-005**                                                             |
 
 ---
 
@@ -64,11 +64,13 @@ public async Task ProcessInBackground() { ... }
 creating a span with no parent even if one exists on the current thread.
 
 **Primary use cases:**
+
 - Background jobs / hosted services that should be traced independently
 - Incoming message consumers (queue/Kafka) where the upstream context is irrelevant
 
 **Generator change:**
 In `TracedInterceptorEmitter` emit:
+
 ```csharp
 // When RootSpan = true:
 using var activity = _source.StartActivity(
@@ -124,13 +126,15 @@ public static async IAsyncEnumerable<T> Intercept_Traced_N<T>(
 handle `[EnumeratorCancellation]` on the `CancellationToken` parameter if present.
 
 **Model change:** Add `bool IsAsyncEnumerable` to `TracedCallSite`.
-Detection in `TracedCallSiteAnalyzer`: check `ReturnTypeName.StartsWith("System.Collections.Generic.IAsyncEnumerable<")`.
+Detection in `TracedCallSiteAnalyzer`: check
+`ReturnTypeName.StartsWith("System.Collections.Generic.IAsyncEnumerable<")`.
 
 ---
 
 ### T-003 · Standard OTel exception attributes
 
 **Bug:** The current emitter records exceptions using:
+
 ```csharp
 new ActivityTagsCollection
 {
@@ -142,18 +146,20 @@ new ActivityTagsCollection
 `GenAiAttributes` is the **wrong** attribute set for a generic tracing primitive. The correct OTel semconv
 attributes are `exception.*` ([spec](https://opentelemetry.io/docs/specs/semconv/exceptions/exceptions-spans/)):
 
-| Attribute | Key | Source |
-|---|---|---|
-| `exception.type` | `"exception.type"` | `ex.GetType().FullName` |
-| `exception.message` | `"exception.message"` | `ex.Message` |
-| `exception.stacktrace` | `"exception.stacktrace"` | `ex.ToString()` |
-| `exception.escaped` | `"exception.escaped"` | `true` (re-thrown) |
+| Attribute              | Key                      | Source                  |
+|------------------------|--------------------------|-------------------------|
+| `exception.type`       | `"exception.type"`       | `ex.GetType().FullName` |
+| `exception.message`    | `"exception.message"`    | `ex.Message`            |
+| `exception.stacktrace` | `"exception.stacktrace"` | `ex.ToString()`         |
+| `exception.escaped`    | `"exception.escaped"`    | `true` (re-thrown)      |
 
 **Fix:** Replace `GenAiAttributes.*` references in `TracedInterceptorEmitter` with either:
+
 - Direct string literals (`"exception.type"` etc.), or
 - `ExceptionAttributes.*` constants from `qyl.protocol` / generated semconv
 
 **Generated code after fix:**
+
 ```csharp
 catch (global::System.Exception ex)
 {
@@ -206,6 +212,7 @@ Only when method has explicit `[Traced]` (not class-level), scan instance proper
 **Recommended:** Option A with a visibility filter (only public/internal properties).
 
 **Model change:**
+
 ```csharp
 internal sealed record TracedTagProperty(
     string PropertyName,
@@ -221,13 +228,13 @@ internal sealed record TracedTagProperty(
 
 No Roslyn diagnostics currently exist for the `[Traced]` family. These would surface as build warnings/errors.
 
-| Diagnostic | ID | Severity | Condition |
-|---|---|---|---|
-| `[TracedTag]` without `[Traced]` on method or containing class | `QSD001` | Warning | Parameter has `[TracedTag]` but no `[Traced]` in scope |
-| `[NoTrace]` without class-level `[Traced]` | `QSD002` | Info | `[NoTrace]` on a method whose class lacks `[Traced]` |
-| `[Traced]` on non-interceptable method | `QSD003` | Warning | Abstract, extern, or partial method |
-| `[Traced]` `ActivitySourceName` not registered | `QSD004` | Warning | Checks `builder.Services.AddActivitySource(name)` call existence (best-effort) |
-| `[TracedTag]` on `out`/`ref` parameter | `QSD005` | Error | Cannot safely read `out` params before method body runs |
+| Diagnostic                                                     | ID       | Severity | Condition                                                                      |
+|----------------------------------------------------------------|----------|----------|--------------------------------------------------------------------------------|
+| `[TracedTag]` without `[Traced]` on method or containing class | `QSD001` | Warning  | Parameter has `[TracedTag]` but no `[Traced]` in scope                         |
+| `[NoTrace]` without class-level `[Traced]`                     | `QSD002` | Info     | `[NoTrace]` on a method whose class lacks `[Traced]`                           |
+| `[Traced]` on non-interceptable method                         | `QSD003` | Warning  | Abstract, extern, or partial method                                            |
+| `[Traced]` `ActivitySourceName` not registered                 | `QSD004` | Warning  | Checks `builder.Services.AddActivitySource(name)` call existence (best-effort) |
+| `[TracedTag]` on `out`/`ref` parameter                         | `QSD005` | Error    | Cannot safely read `out` params before method body runs                        |
 
 **Implementation approach:**
 Add `TracedDiagnosticAnalyzer : DiagnosticAnalyzerBase` (from `ANcpLua.Roslyn.Utilities.Analyzers`) in
@@ -251,6 +258,7 @@ public void Charge(
 ```
 
 When `SkipIfDefault = true` and the parameter is a value type, emit:
+
 ```csharp
 if (!global::System.Collections.Generic.EqualityComparer<decimal>.Default.Equals(amount, default))
     activity.SetTag("payment.amount", amount);
@@ -273,6 +281,7 @@ public Product GetProduct(string id) { ... }
 For void/Task returns this is a no-op (compile warning via T-005 diagnostic QSD006).
 
 **Emitted pattern:**
+
 ```csharp
 var result = OriginalMethod(args);
 activity?.SetTag("product.sku", result?.Sku);   // accessor TBD
@@ -280,6 +289,7 @@ return result;
 ```
 
 **Design question:** `result` is typed as `Product` — what to tag? Options:
+
 - String representation: `result?.ToString()` (simple, always works)
 - Specific property: `[return: TracedReturn("product.sku", Property = nameof(Product.Sku))]`
 - Full OTel-tagged object: if `Product` has `[OTel]`-decorated properties, use existing `OTelTagBinding` infrastructure
@@ -304,6 +314,7 @@ public async Task ImportFile(
 More realistic — event at a specific code path without attribute:
 
 **Alternative design** — method-level event markers via a separate attribute on the class:
+
 ```csharp
 [SpanEvent("import.validation.passed")]
 private void ValidateRow(Row row) { ... }   // generates AddEvent on current activity
@@ -315,21 +326,21 @@ This is scope-creep for this epic. **Defer to a separate epic.**
 
 ## 4. C#-Specific Advantages Over Java (Implemented or Planned)
 
-| Feature | Java | C# |
-|---|---|---|
-| Instrumentation point | Runtime bytecode weaving (JVM agent) | Compile-time Roslyn interceptors |
-| Overhead | JVM startup + per-call reflection | Zero (direct call in generated IL) |
-| Class-level tracing | ❌ Method-only | ✅ `[Traced]` on class |
-| Opt-out at method level | Config string (`"ClassName[method]"`) | ✅ `[NoTrace]` |
-| MSBuild toggle | ❌ | ✅ `<QylTraced>false</QylTraced>` disables entire pipeline |
-| Generic methods | Limited | ✅ Full generic parameter + constraints |
-| Static methods | N/A | ✅ Supported |
-| SkipIfNull | ❌ | ✅ |
-| SkipIfDefault | ❌ | 🔲 Story T-006 |
-| Return value capture | ❌ | 🔲 Story T-007 |
-| Property-level tags | ❌ | 🔲 Story T-004 |
-| IAsyncEnumerable lifetime | ❌ | 🔲 Story T-002 |
-| Diagnostics / build warnings | ❌ | 🔲 Story T-005 |
+| Feature                      | Java                                  | C#                                                        |
+|------------------------------|---------------------------------------|-----------------------------------------------------------|
+| Instrumentation point        | Runtime bytecode weaving (JVM agent)  | Compile-time Roslyn interceptors                          |
+| Overhead                     | JVM startup + per-call reflection     | Zero (direct call in generated IL)                        |
+| Class-level tracing          | ❌ Method-only                         | ✅ `[Traced]` on class                                     |
+| Opt-out at method level      | Config string (`"ClassName[method]"`) | ✅ `[NoTrace]`                                             |
+| MSBuild toggle               | ❌                                     | ✅ `<QylTraced>false</QylTraced>` disables entire pipeline |
+| Generic methods              | Limited                               | ✅ Full generic parameter + constraints                    |
+| Static methods               | N/A                                   | ✅ Supported                                               |
+| SkipIfNull                   | ❌                                     | ✅                                                         |
+| SkipIfDefault                | ❌                                     | 🔲 Story T-006                                            |
+| Return value capture         | ❌                                     | 🔲 Story T-007                                            |
+| Property-level tags          | ❌                                     | 🔲 Story T-004                                            |
+| IAsyncEnumerable lifetime    | ❌                                     | 🔲 Story T-002                                            |
+| Diagnostics / build warnings | ❌                                     | 🔲 Story T-005                                            |
 
 ---
 
@@ -352,29 +363,29 @@ T-007  (TracedReturn — largest scope, defer until T-002/T-004 stable)
 
 ### Priority recommendation
 
-| Priority | Story | Effort |
-|---|---|---|
-| P0 (bug) | T-003 exception attributes | XS |
-| P1 | T-001 RootSpan | S |
-| P1 | T-006 SkipIfDefault | S |
-| P2 | T-002 IAsyncEnumerable | M |
-| P2 | T-004 property TracedTag | M |
-| P2 | T-005 diagnostics | M |
-| P3 | T-007 TracedReturn | L |
+| Priority | Story                      | Effort |
+|----------|----------------------------|--------|
+| P0 (bug) | T-003 exception attributes | XS     |
+| P1       | T-001 RootSpan             | S      |
+| P1       | T-006 SkipIfDefault        | S      |
+| P2       | T-002 IAsyncEnumerable     | M      |
+| P2       | T-004 property TracedTag   | M      |
+| P2       | T-005 diagnostics          | M      |
+| P3       | T-007 TracedReturn         | L      |
 
 ---
 
 ## 6. Files Touched Per Story
 
-| Story | Attributes (`servicedefaults`) | Analyzer (`servicedefaults.generator`) | Emitter | Model |
-|---|---|---|---|---|
-| T-001 | `TracedAttribute.cs` | `TracedCallSiteAnalyzer.cs` | `TracedInterceptorEmitter.cs` | `Models.cs` |
-| T-002 | — | `TracedCallSiteAnalyzer.cs` | `TracedInterceptorEmitter.cs` | `Models.cs` |
-| T-003 | — | — | `TracedInterceptorEmitter.cs` | — |
-| T-004 | — | `TracedCallSiteAnalyzer.cs` | `TracedInterceptorEmitter.cs` | `Models.cs` |
-| T-005 | — | new `TracedDiagnosticAnalyzer.cs` | — | — |
-| T-006 | `TracedTagAttribute.cs` | `TracedCallSiteAnalyzer.cs` | `TracedInterceptorEmitter.cs` | `Models.cs` |
-| T-007 | new `TracedReturnAttribute.cs` | `TracedCallSiteAnalyzer.cs` | `TracedInterceptorEmitter.cs` | `Models.cs` |
+| Story | Attributes (`servicedefaults`) | Analyzer (`servicedefaults.generator`) | Emitter                       | Model       |
+|-------|--------------------------------|----------------------------------------|-------------------------------|-------------|
+| T-001 | `TracedAttribute.cs`           | `TracedCallSiteAnalyzer.cs`            | `TracedInterceptorEmitter.cs` | `Models.cs` |
+| T-002 | —                              | `TracedCallSiteAnalyzer.cs`            | `TracedInterceptorEmitter.cs` | `Models.cs` |
+| T-003 | —                              | —                                      | `TracedInterceptorEmitter.cs` | —           |
+| T-004 | —                              | `TracedCallSiteAnalyzer.cs`            | `TracedInterceptorEmitter.cs` | `Models.cs` |
+| T-005 | —                              | new `TracedDiagnosticAnalyzer.cs`      | —                             | —           |
+| T-006 | `TracedTagAttribute.cs`        | `TracedCallSiteAnalyzer.cs`            | `TracedInterceptorEmitter.cs` | `Models.cs` |
+| T-007 | new `TracedReturnAttribute.cs` | `TracedCallSiteAnalyzer.cs`            | `TracedInterceptorEmitter.cs` | `Models.cs` |
 
 ---
 
@@ -383,17 +394,17 @@ T-007  (TracedReturn — largest scope, defer until T-002/T-004 stable)
 Each story requires:
 
 1. **Unit test** in `qyl.collector.tests` (or a new `qyl.servicedefaults.generator.tests` project):
-   - Roslyn compilation test using `CSharpGeneratorDriver`
-   - Verify emitted interceptor matches snapshot
-   - Verify `TracedCallSite` model is correctly extracted
+    - Roslyn compilation test using `CSharpGeneratorDriver`
+    - Verify emitted interceptor matches snapshot
+    - Verify `TracedCallSite` model is correctly extracted
 
 2. **Integration test** (live span):
-   - Method with `[Traced]` is called
-   - Assert `ActivitySource` produces a span with expected name, kind, tags
-   - Assert exception event is recorded with correct attribute keys
+    - Method with `[Traced]` is called
+    - Assert `ActivitySource` produces a span with expected name, kind, tags
+    - Assert exception event is recorded with correct attribute keys
 
 3. **Negative test** (diagnostic):
-   - T-005: Confirm each diagnostic fires at the right syntax location
+    - T-005: Confirm each diagnostic fires at the right syntax location
 
 ### Suggested test structure for generator tests
 

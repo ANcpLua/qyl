@@ -2,30 +2,31 @@
 
 **Typ:** Reines Lösch- und Ersetzungsmandat
 **Scope:** `qyl.collector/Storage/` + `qyl.instrumentation.generators/`
-**Ziel:** Generator-Projekt löschen, handgeschriebene INSERT-Pipeline durch DuckDB Appender ersetzen, kein altes Muster übrig lassen.
+**Ziel:** Generator-Projekt löschen, handgeschriebene INSERT-Pipeline durch DuckDB Appender ersetzen, kein altes Muster
+übrig lassen.
 
 ---
 
 ## Was gelöscht wird (keine Ausnahmen)
 
-| Was | Pfad | Grund |
-|-----|------|-------|
-| Gesamtes Projekt | `src/qyl.instrumentation.generators/` | Wird durch Appender ersetzt |
-| Generator-Referenz | `src/qyl.collector/qyl.collector.csproj` → `<ProjectReference ... instrumentation.generators ...>` | Entfällt |
-| `[DuckDbTable]` Attribut auf `SpanStorageRow` | `DuckDbReaderExtensions.cs:259` | Entfällt |
-| `[DuckDbColumn(IsUBigInt = true)]` Attribute | `DuckDbReaderExtensions.cs:271-273` | Entfällt |
-| `[DuckDbColumn(ExcludeFromInsert = true)]` | `DuckDbReaderExtensions.cs:303` | Entfällt |
-| `partial` Keyword auf `SpanStorageRow` | `DuckDbReaderExtensions.cs:260` | Kein Generator mehr |
-| `SpanColumnCount = 26` Konstante | `DuckDbStore.cs:31` | Appender kennt Spaltenanzahl selbst |
-| `LogColumnCount = 16` Konstante | `DuckDbStore.cs:32` | Appender kennt Spaltenanzahl selbst |
-| `SpanColumnList` Konstante (24 Zeilen) | `DuckDbStore.cs:34-58` | Appender braucht keine Spaltenliste |
-| `LogColumnList` Konstante | `DuckDbStore.cs:60-...` | Appender braucht keine Spaltenliste |
-| `SpanOnConflictClause` Konstante | `DuckDbStore.cs:45` | Appender hat keinen ON CONFLICT Support — separate Upsert-Logik wenn nötig |
-| Manueller INSERT-Aufbau (Spans) | `DuckDbStore.cs:1419-1450` | Ersetzt durch `AppendRecords()` |
-| Manueller INSERT-Aufbau (Logs) | `DuckDbStore.cs:1454-1480` | Ersetzt durch `AppendRecords()` |
-| `SpanStorageRow.MapFromReader()` Aufruf | `DuckDbStore.cs``:1672` | Bleibt für SELECT-Queries — NUR der INSERT-Pfad ändert sich |
-| `ulong` → `decimal` Cast für UBIGINT | `DuckDbEmitter.cs` + generator intern | Appender handled `ulong` nativ (UBIGINT support bestätigt) |
-| Projekt-Eintrag in `qyl.slnx` | Zeile mit `qyl.instrumentation.generators.csproj` | Entfällt |
+| Was                                           | Pfad                                                                                               | Grund                                                                      |
+|-----------------------------------------------|----------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------|
+| Gesamtes Projekt                              | `src/qyl.instrumentation.generators/`                                                              | Wird durch Appender ersetzt                                                |
+| Generator-Referenz                            | `src/qyl.collector/qyl.collector.csproj` → `<ProjectReference ... instrumentation.generators ...>` | Entfällt                                                                   |
+| `[DuckDbTable]` Attribut auf `SpanStorageRow` | `DuckDbReaderExtensions.cs:259`                                                                    | Entfällt                                                                   |
+| `[DuckDbColumn(IsUBigInt = true)]` Attribute  | `DuckDbReaderExtensions.cs:271-273`                                                                | Entfällt                                                                   |
+| `[DuckDbColumn(ExcludeFromInsert = true)]`    | `DuckDbReaderExtensions.cs:303`                                                                    | Entfällt                                                                   |
+| `partial` Keyword auf `SpanStorageRow`        | `DuckDbReaderExtensions.cs:260`                                                                    | Kein Generator mehr                                                        |
+| `SpanColumnCount = 26` Konstante              | `DuckDbStore.cs:31`                                                                                | Appender kennt Spaltenanzahl selbst                                        |
+| `LogColumnCount = 16` Konstante               | `DuckDbStore.cs:32`                                                                                | Appender kennt Spaltenanzahl selbst                                        |
+| `SpanColumnList` Konstante (24 Zeilen)        | `DuckDbStore.cs:34-58`                                                                             | Appender braucht keine Spaltenliste                                        |
+| `LogColumnList` Konstante                     | `DuckDbStore.cs:60-...`                                                                            | Appender braucht keine Spaltenliste                                        |
+| `SpanOnConflictClause` Konstante              | `DuckDbStore.cs:45`                                                                                | Appender hat keinen ON CONFLICT Support — separate Upsert-Logik wenn nötig |
+| Manueller INSERT-Aufbau (Spans)               | `DuckDbStore.cs:1419-1450`                                                                         | Ersetzt durch `AppendRecords()`                                            |
+| Manueller INSERT-Aufbau (Logs)                | `DuckDbStore.cs:1454-1480`                                                                         | Ersetzt durch `AppendRecords()`                                            |
+| `SpanStorageRow.MapFromReader()` Aufruf       | `DuckDbStore.cs``:1672`                                                                            | Bleibt für SELECT-Queries — NUR der INSERT-Pfad ändert sich                |
+| `ulong` → `decimal` Cast für UBIGINT          | `DuckDbEmitter.cs` + generator intern                                                              | Appender handled `ulong` nativ (UBIGINT support bestätigt)                 |
+| Projekt-Eintrag in `qyl.slnx`                 | Zeile mit `qyl.instrumentation.generators.csproj`                                                  | Entfällt                                                                   |
 
 ---
 
@@ -111,6 +112,7 @@ public sealed class LogStorageRowMap : DuckDBAppenderMap<LogStorageRow>
 ### 3. `DuckDbStore` — Bulk-Insert-Methoden ersetzen
 
 **Vorher (zu löschen):**
+
 ```csharp
 // ~60 Zeilen manueller INSERT-Aufbau mit $1..$N Parametern
 var sb = new StringBuilder(1024);
@@ -121,6 +123,7 @@ cmd.CommandText = sb.ToString();
 ```
 
 **Nachher:**
+
 ```csharp
 using var appender = _connection.CreateAppender<SpanStorageRow, SpanStorageRowMap>("spans");
 appender.AppendRecords(batch.Spans);
@@ -153,6 +156,7 @@ public sealed partial record SpanStorageRow  // partial ← WEG
 ```
 
 Wird zu:
+
 ```csharp
 public sealed record SpanStorageRow
 {
@@ -192,11 +196,13 @@ Sauber. Kein Generator-Marker. Kein `partial`. Normales C#-Record.
 
 ## Wichtige Einschränkung: ON CONFLICT
 
-Der aktuelle Code hat `ON CONFLICT (span_id) DO UPDATE SET ...` im INSERT-Statement. Der DuckDB Appender **unterstützt kein ON CONFLICT**.
+Der aktuelle Code hat `ON CONFLICT (span_id) DO UPDATE SET ...` im INSERT-Statement. Der DuckDB Appender **unterstützt
+kein ON CONFLICT**.
 
 **Zwei Optionen:**
 
 ### Option A — Pre-filter (empfohlen für qyl)
+
 Vor dem Append duplikate rausfiltern. Da OTLP-Ingestion idempotent sein soll und Duplikate selten sind:
 
 ```csharp
@@ -211,6 +217,7 @@ if (newSpans.Count > 0)
 ```
 
 ### Option B — Fallback auf INSERT ON CONFLICT nur bei Konflikt
+
 Append zuerst, bei Unique-Violation auf parameterized INSERT mit ON CONFLICT fallback. Selten ausgelöst.
 
 **Hades entscheidet:** Option A. Pre-filter ist sauber, messbar, kein verstecktes Fehlerverhalten.
@@ -219,12 +226,12 @@ Append zuerst, bei Unique-Violation auf parameterized INSERT mit ON CONFLICT fal
 
 ## Verbundene Aufräumarbeiten (im selben Commit)
 
-| Was | Wo | Warum |
-|-----|----|-------|
-| `using Domain.CodeGen;` (bereits erledigt) | `BuildPipeline.cs` | War dead import |
-| `Temperature` + `CostUsd` structs (bereits erledigt) | `Scalars.g.cs` | Ersetzt durch `double?` in Models |
-| `SpanKind`/`SpanStatusCode` in `OTelEnums.cs` | `qyl.protocol/Enums/OTelEnums.cs` | Duplikat von `OTelEnumsEnums.g.cs` — nach Generator-Fix löschen |
-| `using qyl.protocol.Enums;` (bereits erledigt) | `SpanRecord.cs` | Fehlte, jetzt korrekt |
+| Was                                                  | Wo                                | Warum                                                           |
+|------------------------------------------------------|-----------------------------------|-----------------------------------------------------------------|
+| `using Domain.CodeGen;` (bereits erledigt)           | `BuildPipeline.cs`                | War dead import                                                 |
+| `Temperature` + `CostUsd` structs (bereits erledigt) | `Scalars.g.cs`                    | Ersetzt durch `double?` in Models                               |
+| `SpanKind`/`SpanStatusCode` in `OTelEnums.cs`        | `qyl.protocol/Enums/OTelEnums.cs` | Duplikat von `OTelEnumsEnums.g.cs` — nach Generator-Fix löschen |
+| `using qyl.protocol.Enums;` (bereits erledigt)       | `SpanRecord.cs`                   | Fehlte, jetzt korrekt                                           |
 
 ---
 
@@ -265,11 +272,13 @@ nuke Compile
 
 ## Kontext: Warum das zur zero-cost-observability-proposal passt
 
-Die `zero-cost-observability-proposal.md` beschreibt den Daten**fluss**: Interceptor erzeugt Span → Collector speichert Span. Der Generator-Ansatz war die Brücke zwischen beiden. Der Appender ist eine sauberere Brücke:
+Die `zero-cost-observability-proposal.md` beschreibt den Daten**fluss**: Interceptor erzeugt Span → Collector speichert
+Span. Der Generator-Ansatz war die Brücke zwischen beiden. Der Appender ist eine sauberere Brücke:
 
 - **Kein Roslyn-Compiler-Plugin** für interne Collector-Infrastruktur
 - **Kein parametrisierter SQL-String** auf dem heißen Ingestion-Pfad
 - **Direkter DuckDB-Schreibzugriff** — genau das was bei tausenden Spans/s zählt
 - **`SpanStorageRow` ist ein normales Record** — lesbar, testbar, keine Attributmagie
 
-Der Generator löste ein reales Problem (25-Spalten-INSERT in Sync halten). Der Appender löst dasselbe Problem mit weniger Code, weniger Abhängigkeiten und mehr Durchsatz.
+Der Generator löste ein reales Problem (25-Spalten-INSERT in Sync halten). Der Appender löst dasselbe Problem mit
+weniger Code, weniger Abhängigkeiten und mehr Durchsatz.
