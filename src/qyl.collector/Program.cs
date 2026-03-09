@@ -328,9 +328,8 @@ app.UseExceptionHandler(errorApp =>
         var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
         if (exceptionFeature?.Error is { } error)
         {
-            logger.LogError(error,
-                "Unhandled exception on {Method} {Path}{Query}",
-                context.Request.Method, context.Request.Path, context.Request.QueryString);
+            ExceptionHandlerLog.UnhandledException(logger, context.Request.Method,
+                context.Request.Path, context.Request.QueryString.ToString(), error);
         }
 
         await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId });
@@ -914,6 +913,12 @@ app.Run();
 
 namespace qyl.collector
 {
+    internal static partial class ExceptionHandlerLog
+    {
+        [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method} {Path}{Query}")]
+        public static partial void UnhandledException(ILogger logger, string method, string path, string query, Exception error);
+    }
+
     internal static partial class OtlpLogsLog
     {
         [LoggerMessage(Level = LogLevel.Warning, Message = "Failed to process OTLP logs payload")]
