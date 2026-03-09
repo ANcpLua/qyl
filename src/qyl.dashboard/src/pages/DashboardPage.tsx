@@ -1,12 +1,124 @@
-import {useParams} from 'react-router-dom';
-import {Loader2} from 'lucide-react';
-import type {StatCardData, TimeSeriesPoint, TopNRow} from '@/hooks/use-dashboards';
-import {useDashboard} from '@/hooks/use-dashboards';
+import {useNavigate, useParams} from 'react-router-dom';
+import {
+    Activity,
+    AlertCircle,
+    AlertTriangle,
+    Database,
+    Globe,
+    LayoutDashboard,
+    Loader2,
+    MessageSquare,
+    Zap,
+} from 'lucide-react';
+import type {LucideIcon} from 'lucide-react';
+import type {DashboardDefinition, StatCardData, TimeSeriesPoint, TopNRow} from '@/hooks/use-dashboards';
+import {useDashboard, useDashboards} from '@/hooks/use-dashboards';
 import {StatCard, TimeSeriesChart, TopNTable} from '@/components/dashboards';
+import {Card, CardContent} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {cn} from '@/lib/utils';
 
-export function DashboardPage() {
-    const {id} = useParams<{ id: string }>();
-    const {data: dashboard, isLoading, error} = useDashboard(id ?? '');
+const dashboardIconMap: Record<string, LucideIcon> = {
+    'activity': Activity,
+    'globe': Globe,
+    'brain': Zap,
+    'database': Database,
+    'alert-triangle': AlertTriangle,
+    'message-square': MessageSquare,
+};
+
+// ── Index mode (no ID) ────────────────────────────────────────────────────────
+
+function DashboardIndex() {
+    const navigate = useNavigate();
+    const {data: dashboards, isLoading, error} = useDashboards();
+
+    if (isLoading) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-signal-orange animate-spin"/>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <div className="text-center space-y-2">
+                    <AlertCircle className="w-10 h-10 mx-auto text-red-500"/>
+                    <p className="text-sm text-brutal-slate">Failed to load dashboards</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!dashboards || dashboards.length === 0) {
+        return (
+            <div className="flex-1 flex items-center justify-center">
+                <div className="text-center space-y-2">
+                    <LayoutDashboard className="w-10 h-10 mx-auto text-brutal-zinc"/>
+                    <p className="text-sm font-bold text-brutal-slate tracking-wider">
+                        NO DASHBOARDS DETECTED YET
+                    </p>
+                    <p className="text-xs text-brutal-zinc">
+                        Dashboards appear automatically as telemetry arrives.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex-1 p-6 space-y-6 overflow-auto">
+            <h1 className="text-lg font-bold text-brutal-white tracking-wider uppercase">
+                DASHBOARDS
+            </h1>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {dashboards.map((db) => (
+                    <DashboardCard key={db.id} dashboard={db} onClick={() => navigate(`/dashboards/${db.id}`)}/>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function DashboardCard({dashboard, onClick}: { dashboard: DashboardDefinition; onClick: () => void }) {
+    const Icon = dashboardIconMap[dashboard.icon] ?? LayoutDashboard;
+    return (
+        <Card
+            className="cursor-pointer transition-colors hover:border-brutal-zinc/70"
+            onClick={onClick}
+        >
+            <CardContent className="pt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-signal-orange"/>
+                        <span className="text-sm font-bold text-brutal-white tracking-wider uppercase">
+                            {dashboard.title}
+                        </span>
+                    </div>
+                    <Badge
+                        variant={dashboard.isAvailable ? 'default' : 'secondary'}
+                        className={cn(
+                            'text-[10px]',
+                            dashboard.isAvailable
+                                ? 'bg-green-500/20 text-green-400 border-green-500/40'
+                                : 'bg-brutal-zinc/30 text-brutal-slate border-brutal-zinc',
+                        )}
+                    >
+                        {dashboard.isAvailable ? 'LIVE' : 'PENDING'}
+                    </Badge>
+                </div>
+                <p className="text-xs text-brutal-slate line-clamp-2">{dashboard.description}</p>
+            </CardContent>
+        </Card>
+    );
+}
+
+// ── Detail mode (with ID) ─────────────────────────────────────────────────────
+
+function DashboardDetail({id}: { id: string }) {
+    const {data: dashboard, isLoading, error} = useDashboard(id);
 
     if (isLoading) {
         return (
@@ -91,4 +203,11 @@ export function DashboardPage() {
             )}
         </div>
     );
+}
+
+// ── Exported page ─────────────────────────────────────────────────────────────
+
+export function DashboardPage() {
+    const {id} = useParams<{ id: string }>();
+    return id ? <DashboardDetail id={id}/> : <DashboardIndex/>;
 }

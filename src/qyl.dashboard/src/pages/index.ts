@@ -21,3 +21,6 @@ export {IssueFixRunsPage} from './IssueFixRunsPage';
 export {CodeReviewPage} from './CodeReviewPage';
 export {AlertsPage} from './AlertsPage';
 export {PerformancePage} from './PerformancePage';
+export {ErrorsOutagesPage} from './ErrorsOutagesPage';
+export {SpanExplorerPage} from './SpanExplorerPage';
+export {InsightsOverviewPage} from './InsightsOverviewPage';

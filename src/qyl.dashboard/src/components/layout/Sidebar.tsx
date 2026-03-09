@@ -21,6 +21,10 @@ import {
     TreeStructure,
     Warning,
     GearSix,
+    WarningCircle,
+    Stack,
+    ChartLine,
+    SquaresFour,
 } from '@phosphor-icons/react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
@@ -37,10 +41,14 @@ interface NavItem {
 const navItems: NavItem[] = [
     {to: '/', icon: Pulse, label: 'RESOURCES', shortcut: 'R'},
     {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
+    {to: '/errors', icon: WarningCircle, label: 'ERRORS', shortcut: 'E'},
     {to: '/traces', icon: TreeStructure, label: 'TRACES', shortcut: 'T'},
+    {to: '/spans', icon: Stack, label: 'SPANS', shortcut: 'X'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/genai', icon: Sparkle, label: 'GENAI', shortcut: 'M'},
     {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
+    {to: '/insights', icon: ChartLine, label: 'INSIGHTS', shortcut: 'N'},
+    {to: '/dashboards', icon: SquaresFour, label: 'DASHBOARDS', shortcut: 'D'},
     {to: '/search', icon: MagnifyingGlass, label: 'SEARCH', shortcut: '/'},
     {to: '/alerts', icon: Warning, label: 'ALERTS', shortcut: 'L'},
 ];
