@@ -11,6 +11,29 @@ Docker image IS the product.
 - Always follow established coding patterns and conventions in the codebase.
 - If something doesn't make sense architecturally, add it to Requests to Humans below.
 
+## Docs-First Workflow
+
+- Start from the relevant slice doc or active plan doc before changing code.
+- Work step by step through active docs.
+- When a plan/roadmap/temp execution doc is completed or superseded, move it to `docs/done/`.
+- Do NOT move prompts, slice `spec.md`, slice `requirements.md`, decisions, references, screenshots, or canonical guidance docs into `docs/done/`.
+
+## 3-Layer Architecture Model
+
+| Layer | Location | Runs at | Responsibility |
+|-------|----------|---------|----------------|
+| 1. Schema generation | `eng/build/SchemaGenerator.cs` | NUKE build time | TypeSpec OpenAPI → C# models, enums, DuckDB DDL |
+| 2. Roslyn source generation | `src/qyl.servicedefaults.generator/` | MSBuild compile time | 7 interceptor pipelines → compile-time instrumentation |
+| 3. Runtime + collector | `src/qyl.servicedefaults/` + `src/qyl.collector/` | Application runtime | OTel wiring, collector discovery, DevLogs bridge, OTLP ingestion, DuckDB, SSE |
+
+### Non-Negotiable Rules
+
+- Do not confuse schema generation with Roslyn source generation.
+- Do not treat compile-time interception as runtime reflection.
+- Do not treat SchemaGenerator.cs as part of the Roslyn generator pipeline.
+- Do not modify layers 1/2/3 unless the failing behavior is proven to originate there.
+- Prefer fixes in feature/service layers first (dashboard, mcp, Loom services).
+
 ## Architecture
 
 ```text

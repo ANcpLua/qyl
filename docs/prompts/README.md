@@ -5,6 +5,13 @@ Copy-paste each prompt into any AI CLI (Claude Code, Codex, etc.) and execute.
 
 **Pattern:** Prompt Chaining — self-contained, ordered prompts that build on each other's output.
 
+## Worktree Setup
+
+**Canonical source:** [01-worktree-bootstrap.md](01-worktree-bootstrap.md) — the single source of truth for worktree layout.
+**Script:** `scripts/setup-worktrees.sh` — run to create/repair the 4 canonical worktrees.
+
+No other document defines worktree structure. If you see conflicting worktree docs, they are superseded.
+
 ## Index
 
 | # | Prompt | Type | File |

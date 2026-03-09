@@ -172,14 +172,9 @@ For now: custom connector is the ship target.
 
 ## Worktree Strategy
 
-4 git worktrees, each agent gets their own:
-
-| Worktree      | Focus                                                           | Branch                   |
-|---------------|-----------------------------------------------------------------|--------------------------|
-| `wt-backend`  | API endpoints, DuckDB, 500 fixes                                | `fix/backend-stability`  |
-| `wt-frontend` | React state bugs, undefined IDs, Select controlled/uncontrolled | `fix/frontend-stability` |
-| `wt-loom`     | Loom E2E verification, stub removal, seer gap analysis          | `feat/loom-verification` |
-| `wt-mcp`      | MCP server, connector setup, skill update                       | `feat/mcp-integration`   |
+> Worktree ownership is defined in `docs/prompts/01-worktree-bootstrap.md`. Use `dev/` branch names.
+>
+> Run `scripts/setup-worktrees.sh` to create the 4 canonical worktrees.
 
 **Merge rule:** Each branch is 100% tested before merge. No one knows the branch existed because the code is clean.
 

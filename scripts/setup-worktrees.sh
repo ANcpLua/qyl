@@ -5,107 +5,76 @@ repo_root="$(git rev-parse --show-toplevel)"
 worktrees_dir="$repo_root/.worktrees"
 
 worktrees=(
-  agent-collector
-  agent-generator
-  agent-schema
-  agent-investigator
-  agent-architect
-  agent-gardener
+  wt-backend
+  wt-frontend
+  wt-loom
+  wt-mcp
 )
 
 role_contents_common='
-Repository architecture constraints:
-- Layer 1 (Schema generation): eng/build/SchemaGenerator.cs
-- Layer 2 (Roslyn source generator): src/qyl.servicedefaults.generator/
-- Layer 3 (Runtime instrumentation): src/qyl.servicedefaults/, src/qyl.collector/
+Repository architecture constraints (3 layers — never conflate):
+- Layer 1 (Schema generation): eng/build/SchemaGenerator.cs — NUKE build time
+- Layer 2 (Roslyn source generation): src/qyl.servicedefaults.generator/ — MSBuild compile time
+- Layer 3 (Runtime + collector): src/qyl.servicedefaults/, src/qyl.collector/ — Application runtime
 
-These layers must never be conflated in scope, ownership, or edits.
+Non-negotiable:
+- Do not confuse schema generation with Roslyn source generation.
+- Do not treat compile-time interception as runtime reflection.
+- Do not modify layers 1/2/3 unless the failing behavior is proven to originate there.
+- Prefer fixes in feature/service layers first (dashboard, mcp, Loom services).
+
+Verification: dotnet build only — do NOT run dotnet test or nuke test in worktrees.
 '
 
 get_agent_section() {
   local role=$1
 
   case "$role" in
-    agent-collector)
+    wt-backend)
       cat <<'EOF_AGENT'
-## Worktree role: OTLP collector maintainer
-- Scope: `src/qyl.collector`
-- Focus: OTLP ingestion, DuckDB batching, SSE streaming lifecycle
-- Rules:
-  - Use minimal diffs.
-  - Never modify generator or schema code.
-  - Prefer normal scoped execution; escalate to heavy reasoning only for cross-layer incidents.
+## Worktree role: Backend
+- Scope: `src/qyl.collector`, API handlers, DuckDB queries, persistence, backend Loom services
+- Ownership:
+  - Only touch `eng/build` if a backend contract bug is proven from generated schema/DDL.
+  - Do not touch `src/qyl.servicedefaults.generator` unless a compile-time interceptor bug directly causes the failing backend behavior.
 - Model routing:
   - Default: Claude Sonnet 4.6 (`high`)
-  - Escalate to: Claude Opus 4.6 (`max`) only when investigation becomes cross-layer.
+  - Escalate to: Claude Opus 4.6 (`max`) for cross-layer incidents or deep root cause analysis.
 EOF_AGENT
       ;;
-    agent-generator)
+    wt-frontend)
       cat <<'EOF_AGENT'
-## Worktree role: Roslyn pipeline maintainer
-- Scope: `src/qyl.servicedefaults.generator`
-- Focus: incremental pipeline behavior, generator correctness, compile-time interception design
-- Rules:
-  - Preserve pipeline isolation.
-  - Preserve incremental generator design.
-  - Never touch `eng/build/SchemaGenerator.cs` unless explicitly required.
-- Model routing:
-  - Default: Claude Opus 4.6 (`max`)
-  - Escalate to higher effort only for rare architectural ambiguity.
-EOF_AGENT
-      ;;
-    agent-schema)
-      cat <<'EOF_AGENT'
-## Worktree role: schema generator maintainer
-- Scope: `eng/build/SchemaGenerator.cs`
-- Focus: OpenAPI to C# scalar/enum generation, DuckDB DDL emission
-- Rules:
-  - Maintain single-source-of-truth schema pipeline.
-  - Avoid runtime or generator changes unless explicitly required.
-- Model routing:
-  - Default: Claude Opus 4.6 (`max`)
-  - Escalate only for rare architectural ambiguity.
-EOF_AGENT
-      ;;
-    agent-investigator)
-      cat <<'EOF_AGENT'
-## Worktree role: cross-layer debugging agent
-- Allowed scope: generator, runtime, collector
-- Tasks:
-  - incident investigation
-  - telemetry tracing
-  - root cause analysis
-  - cross-layer fault isolation
-- Model routing:
-  - Default: Claude Opus 4.6 (`max`)
-  - Prefer high-confidence tracing and minimal surface changes.
-EOF_AGENT
-      ;;
-    agent-architect)
-      cat <<'EOF_AGENT'
-## Worktree role: repository architect
-- Focus: cross-module cleanup, architecture improvements, multi-file changes
-- Tasks:
-  - cross-module cleanup
-  - architecture improvements
-  - multi-file changes
-  - cross-cutting concern reduction
-  - polyglot or multi-boundary refactors when needed
-- Model routing:
-  - Default: Claude Opus 4.6 (`max`)
-  - Use conservative refactors to minimize behavioral drift.
-EOF_AGENT
-      ;;
-    agent-gardener)
-      cat <<'EOF_AGENT'
-## Worktree role: repository gardener
-- Focus: small correctness fixes, comment cleanup, verification improvements, documentation accuracy
-- Rules:
-  - Keep changes small and low-risk.
-  - Prefer correctness, readability, and testability.
+## Worktree role: Frontend
+- Scope: `src/qyl.dashboard`
+- Ownership:
+  - Never touch any generator layer.
+  - If UI failures come from bad backend shape, document the contract mismatch and hand to backend.
 - Model routing:
   - Default: Claude Sonnet 4.6 (`high`)
-  - Escalate only for correctness ambiguities or architecture-impacting design questions.
+  - Escalate to: Claude Opus 4.6 (`max`) for complex state management or architecture decisions.
+EOF_AGENT
+      ;;
+    wt-loom)
+      cat <<'EOF_AGENT'
+## Worktree role: Loom
+- Scope: Loom-specific services and verification (Autofix, Triage, Code Review, Regression, Handoff)
+- Ownership:
+  - Treat generator and runtime layers as constrained deps.
+  - If Autofix/Triage/Regression needs missing telemetry, prove whether it's collector ingestion, generated instrumentation, or runtime wiring before editing shared infra.
+- Model routing:
+  - Default: Claude Opus 4.6 (`max`)
+  - Loom services cross multiple layers — default to heavy reasoning.
+EOF_AGENT
+      ;;
+    wt-mcp)
+      cat <<'EOF_AGENT'
+## Worktree role: MCP
+- Scope: `src/qyl.mcp` and protocol exposure
+- Ownership:
+  - Do not "fix" missing tool behavior by rewriting runtime instrumentation unless protocol validation proves root cause is telemetry availability.
+- Model routing:
+  - Default: Claude Sonnet 4.6 (`high`)
+  - Escalate to: Claude Opus 4.6 (`max`) for protocol-level investigation.
 EOF_AGENT
       ;;
     *)
@@ -131,10 +100,6 @@ write_common_files() {
 ${role_contents_common}
 
 $(get_agent_section "$role")
-
-Verification commands:
-- dotnet build
-- dotnet test
 
 Operational rule:
 - Do not modify existing repository source code outside your role scope.
@@ -180,7 +145,7 @@ status_values=()
 
 for name in "${worktrees[@]}"; do
   path="$worktrees_dir/$name"
-  branch="worktree/$name"
+  branch="dev/$name"
 
   if [[ -e "$path" ]]; then
     if ! is_registered_worktree "$path"; then
@@ -221,7 +186,7 @@ for name in "${worktrees[@]}"; do
 done
 
 echo "Worktree setup summary:"
-printf "%-22s %-9s %s\n" "WORKTREE" "STATUS" "ABSOLUTE_PATH"
+printf "%-16s %-9s %s\n" "WORKTREE" "STATUS" "ABSOLUTE_PATH"
 printf -- '%.0s-' {1..80}; echo
 
 for idx in "${!worktrees[@]}"; do
@@ -236,7 +201,7 @@ for idx in "${!worktrees[@]}"; do
   [[ -f "$path/CLAUDE.md" ]] && exists_claude=true
   [[ -f "$path/.codex/agent.md" ]] && exists_codex=true
 
-  printf "%-22s %-9s %s\n" "$name" "$status" "$path"
+  printf "%-16s %-9s %s\n" "$name" "$status" "$path"
   printf "  branch: %s\n" "$branch"
   printf "  AGENTS.md: %s\n" "$exists_agents"
   printf "  CLAUDE.md: %s\n" "$exists_claude"
