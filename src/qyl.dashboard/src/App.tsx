@@ -27,6 +27,9 @@ import {
     CodeReviewPage,
     AlertsPage,
     PerformancePage,
+    ErrorsOutagesPage,
+    SpanExplorerPage,
+    InsightsOverviewPage,
 } from '@/pages';
 
 const queryClient = new QueryClient({
@@ -67,6 +70,7 @@ export default function App() {
                             <Route path="/traces" element={<TracesPage/>}/>
                             <Route path="/logs" element={<LogsPage/>}/>
                             <Route path="/genai" element={<GenAIPage/>}/>
+                            <Route path="/dashboards" element={<DashboardPage/>}/>
                             <Route path="/dashboards/:id" element={<DashboardPage/>}/>
                             <Route path="/search" element={<SearchPage/>}/>
                             <Route path="/settings" element={<SettingsPage/>}/>
@@ -86,6 +90,9 @@ export default function App() {
                             <Route path="/issues/:issueId/fix-runs" element={<IssueFixRunsPage/>}/>
                             <Route path="/alerts" element={<AlertsPage/>}/>
                             <Route path="/performance" element={<PerformancePage/>}/>
+                            <Route path="/errors" element={<ErrorsOutagesPage/>}/>
+                            <Route path="/spans" element={<SpanExplorerPage/>}/>
+                            <Route path="/insights" element={<InsightsOverviewPage/>}/>
                         </Route>
                     </Routes>
                 </BrowserRouter>
