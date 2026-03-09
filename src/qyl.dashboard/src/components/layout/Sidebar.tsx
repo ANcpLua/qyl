@@ -2,6 +2,7 @@ import {NavLink, useLocation} from 'react-router-dom';
 import type {Icon as PhosphorIcon} from '@phosphor-icons/react';
 import {
     Broadcast,
+    Bug,
     CaretLeft,
     CaretRight,
     ChartBar,
@@ -9,6 +10,7 @@ import {
     Database,
     Eye,
     FileText,
+    Gauge,
     Globe,
     Lightning,
     MagnifyingGlass,
@@ -34,10 +36,13 @@ interface NavItem {
 
 const navItems: NavItem[] = [
     {to: '/', icon: Pulse, label: 'RESOURCES', shortcut: 'R'},
+    {to: '/issues', icon: Bug, label: 'ISSUES', shortcut: 'I'},
     {to: '/traces', icon: TreeStructure, label: 'TRACES', shortcut: 'T'},
     {to: '/logs', icon: FileText, label: 'LOGS', shortcut: 'C'},
     {to: '/genai', icon: Sparkle, label: 'GENAI', shortcut: 'M'},
+    {to: '/performance', icon: Gauge, label: 'PERFORMANCE', shortcut: 'P'},
     {to: '/search', icon: MagnifyingGlass, label: 'SEARCH', shortcut: '/'},
+    {to: '/alerts', icon: Warning, label: 'ALERTS', shortcut: 'L'},
 ];
 
 const aiNavItems: NavItem[] = [

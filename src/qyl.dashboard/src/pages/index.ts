@@ -19,3 +19,5 @@ export {LoomDashboardPage} from './LoomDashboardPage';
 export {IssueTriagePage} from './IssueTriagePage';
 export {IssueFixRunsPage} from './IssueFixRunsPage';
 export {CodeReviewPage} from './CodeReviewPage';
+export {AlertsPage} from './AlertsPage';
+export {PerformancePage} from './PerformancePage';

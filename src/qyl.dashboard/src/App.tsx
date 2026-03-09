@@ -25,6 +25,8 @@ import {
     IssueTriagePage,
     IssueFixRunsPage,
     CodeReviewPage,
+    AlertsPage,
+    PerformancePage,
 } from '@/pages';
 
 const queryClient = new QueryClient({
@@ -82,6 +84,8 @@ export default function App() {
                             <Route path="/Loom/code-review" element={<CodeReviewPage/>}/>
                             <Route path="/issues/:issueId/triage" element={<IssueTriagePage/>}/>
                             <Route path="/issues/:issueId/fix-runs" element={<IssueFixRunsPage/>}/>
+                            <Route path="/alerts" element={<AlertsPage/>}/>
+                            <Route path="/performance" element={<PerformancePage/>}/>
                         </Route>
                     </Routes>
                 </BrowserRouter>
