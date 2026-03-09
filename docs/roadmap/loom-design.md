@@ -70,7 +70,7 @@ with real inputs and real outputs.
 | Agent handoff             | `IMPLEMENTED-IN-QYL` | Code review: full state machine (pending→accepted→completed/failed), context assembly. Bug fixed: TOCTOU race. Schema fix: table creation wired.             | Live agent polling + submit flow.                          |
 | Regression detection      | `IMPLEMENTED-IN-QYL` | Code review: deployment-based fingerprint matching, re-triage trigger. Bugs fixed: LIKE ESCAPE, checkpoint advancement.                                      | Live detection with real deployments.                      |
 | Dashboard UI              | `IMPLEMENTED-IN-QYL` | Verified: LoomDashboardPage, IssueTriagePage, CodeReviewPage all load, hooks wired to real APIs, loading/error states present.                               | Playwright E2E after live instance available.              |
-| MCP tooling               | `IMPLEMENTED-IN-QYL` | Tool registration confirmed for all 7 tool classes.                                                                                                          | Protocol-level invocation deferred to Phase 4 (MCP).       |
+| MCP tooling               | `IMPLEMENTED-IN-QYL` | Phase 4 audit: 78 tools across 27 classes. 68 OK, 3 BROKEN, 6 INDIRECT, 2 LOCAL. Broken: `qyl_genai_models` (missing endpoint), `qyl_genai_timeseries` (missing endpoint), `qyl_generate_test` (wrong endpoint path). Build: Release 0 errors on main. Collector live at mcp.qyl.info (129K spans, 5K sessions). | Fix 3 broken tools (missing collector endpoints). Deploy MCP SSE transport for remote tool access. |
 
 ### Known Issues (2026-03-09 verification)
 
