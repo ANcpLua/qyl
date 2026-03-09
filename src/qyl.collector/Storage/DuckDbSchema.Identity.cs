@@ -2,6 +2,7 @@
 // Manual schema extensions for workspace identity persistence.
 // The base DuckDbSchema.g.cs is auto-generated from TypeSpec; this partial
 // adds tables not yet in the TypeSpec model.
+// ProjectsDdl and ProjectEnvironmentsDdl moved to DuckDbSchema.g.cs.
 // =============================================================================
 
 namespace qyl.collector.Storage;

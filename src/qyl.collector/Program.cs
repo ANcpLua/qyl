@@ -314,6 +314,29 @@ app.UseMiddleware<TokenAuthMiddleware>(options);
 // Request decompression must be before endpoints that read request body (OTLP)
 app.UseRequestDecompression();
 
+// Global exception handler: structured JSON errors with trace correlation
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
+
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("qyl.collector.ExceptionHandler");
+        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        if (exceptionFeature?.Error is { } error)
+        {
+            logger.LogError(error,
+                "Unhandled exception on {Method} {Path}{Query}",
+                context.Request.Method, context.Request.Path, context.Request.QueryString);
+        }
+
+        await context.Response.WriteAsJsonAsync(new { error = "Internal Server Error", traceId });
+    });
+});
+
 // .NET 10 telemetry middleware: request latency telemetry
 app.UseQylTelemetry();
 

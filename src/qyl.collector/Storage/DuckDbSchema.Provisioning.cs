@@ -1,7 +1,8 @@
 // =============================================================================
-// Manual schema extensions for provisioning (config selections + generation jobs).
+// Manual schema extensions for provisioning (config selections).
 // The base DuckDbSchema.g.cs is auto-generated from TypeSpec; this partial
 // adds tables not yet in the TypeSpec model.
+// GenerationJobsDdl moved to DuckDbSchema.g.cs.
 // =============================================================================
 
 namespace qyl.collector.Storage;
@@ -16,5 +17,4 @@ public static partial class DuckDbSchema
                                                   updated_at TIMESTAMP DEFAULT now()
                                               );
                                               """;
-
 }
