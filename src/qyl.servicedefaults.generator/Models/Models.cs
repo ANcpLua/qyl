@@ -172,25 +172,6 @@ internal sealed record DbCallSite(
 
 #endregion
 
-#region OTel Tag Binding Types
-
-/// <summary>
-///     A discovered [OTel] attribute binding that maps a member to an Activity tag.
-/// </summary>
-/// <remarks>
-///     The "Binding" suffix indicates the relationship between a code member
-///     and its corresponding OTel tag name for Activity enrichment.
-/// </remarks>
-internal sealed record OTelTagBinding(
-    string ContainingTypeName,
-    string MemberName,
-    string MemberTypeName,
-    string AttributeName,
-    bool SkipIfNull,
-    bool IsNullable);
-
-#endregion
-
 #region Meter Definition Types
 
 /// <summary>

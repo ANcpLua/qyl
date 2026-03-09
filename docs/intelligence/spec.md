@@ -4,13 +4,13 @@ AI-powered debugging pipelines: autofix, triage, code review, anomaly detection,
 
 ## Domain Objects
 
-| Object     | Description                                   | src/ Mapping                              |
-|------------|-----------------------------------------------|-------------------------------------------|
-| Autofix    | Bug fixing pipeline (RCA → solution → PR)     | `qyl.copilot/` + `qyl.collector/Loom/`   |
-| Triage     | Issue scoring and prioritization              | `qyl.collector/Loom/Triage*`              |
-| CodeReview | Pre-merge PR analysis via GitHub webhooks     | `qyl.collector/Loom/CodeReview*`          |
-| Anomaly    | Time-series anomaly and regression detection  | `qyl.collector/Loom/Regression*`          |
-| Grouping   | Issue similarity and deduplication            | (roadmap — not yet implemented)           |
+| Object     | Description                                  | src/ Mapping                           |
+|------------|----------------------------------------------|----------------------------------------|
+| Autofix    | Bug fixing pipeline (RCA → solution → PR)    | `qyl.copilot/` + `qyl.collector/Loom/` |
+| Triage     | Issue scoring and prioritization             | `qyl.collector/Loom/Triage*`           |
+| CodeReview | Pre-merge PR analysis via GitHub webhooks    | `qyl.collector/Loom/CodeReview*`       |
+| Anomaly    | Time-series anomaly and regression detection | `qyl.collector/Loom/Regression*`       |
+| Grouping   | Issue similarity and deduplication           | (roadmap — not yet implemented)        |
 
 ## Scope
 

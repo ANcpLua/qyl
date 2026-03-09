@@ -9,6 +9,13 @@
 - `qyl.servicedefaults` and `qyl.servicedefaults.generator` are shared instrumentation layers.
 - `eng/build/` orchestrates TypeSpec, schema generation, and pipeline verification.
 
+## Instrumentation layer ownership
+
+- Layer 1 (schema generation): `eng/build/SchemaGenerator.cs` and NUKE schema orchestration.
+- Layer 2 (Roslyn source generation): `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs` and its analyzer/emitter pairs.
+- Layer 3 (runtime + collector): `src/qyl.servicedefaults/`, `src/qyl.collector/`.
+- Canonical mapping for all instrumentation attributes/pipelines: [docs/sdk/features/instrumentation-toolkit.md](../sdk/features/instrumentation-toolkit.md).
+
 ## Dependency chain (intentional)
 
 ```text

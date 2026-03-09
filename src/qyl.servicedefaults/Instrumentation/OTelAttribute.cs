@@ -1,18 +1,20 @@
 namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
-///     Marks a property or parameter with an OpenTelemetry semantic convention attribute name.
+///     Supplies the canonical OpenTelemetry semantic-convention key for generated telemetry.
 /// </summary>
 /// <remarks>
 ///     <para>
-///         Used by source generators to automatically emit <c>Activity.SetTag()</c> calls.
+///         This attribute does not emit telemetry on its own. It acts as a naming override for
+///         generator-driven capture attributes such as <see cref="TracedTagAttribute" /> and
+///         <see cref="TagAttribute" />.
 ///     </para>
 ///     <para>
 ///         Example:
 ///         <code>
-/// public record ChatRequest(
-///     [OTel(GenAiRequestAttributes.Model)] string Model,
-///     [OTel(GenAiRequestAttributes.MaxTokens)] int? MaxTokens);
+/// [Traced("qyl.chat")]
+/// public Task CompleteAsync(
+///     [TracedTag, OTel(GenAiRequestAttributes.Model)] string model);
 /// </code>
 ///     </para>
 /// </remarks>

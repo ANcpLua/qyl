@@ -450,7 +450,15 @@ public static class SchemaGenerator
             // Check if the referenced scalar has an x-csharp-type override (e.g. Temperature, CostUsd → double)
             var refSchema = schema.Schemas.FirstOrDefault(s => s.Name == refTypeName);
             if (refSchema is not null && refSchema.Extensions.TryGetValue("x-csharp-type", out var refCsType))
-                return refCsType;
+            {
+                // Primitive type keywords (int, long, double, etc.) don't need namespace qualification
+                if (refCsType.Length > 0 && char.IsLower(refCsType[0]))
+                    return refCsType;
+
+                // Custom types (SpanId, TraceId, SessionId, etc.) need namespace qualification
+                var refNs = NamespaceRoutingTable.GetCSharpNamespace(refTypeName);
+                return $"global::{refNs}.{refCsType}";
+            }
 
             // Map namespace-qualified refs to C# types (TypeSpec-style with Qyl.* prefix)
             var ns = NamespaceRoutingTable.GetCSharpNamespace(refTypeName);
@@ -906,11 +914,11 @@ public sealed partial class GenerationGuard(bool force = false, bool dryRun = fa
             switch (Force)
             {
                 case false when SkipExisting:
-                    Log.Information("  [SKIP] {Description} (use --igenerate-force-generate)", description);
+                    Log.Information("  [SKIP] {Description} (use --ipipeline-force-generate)", description);
                     Stats.IncrementSkipped();
                     return;
                 case false:
-                    Log.Warning("  [SKIP] {Description} (use --igenerate-force-generate to overwrite)", description);
+                    Log.Warning("  [SKIP] {Description} (use --ipipeline-force-generate to overwrite)", description);
                     Stats.IncrementSkipped();
                     return;
                 default:
@@ -942,7 +950,7 @@ public sealed partial class GenerationGuard(bool force = false, bool dryRun = fa
 
         if (NukeBuild.IsServerBuild && Stats.SkippedCount > 0 && !Force && failOnStaleInCi)
             throw new InvalidOperationException(
-                $"CI: {Stats.SkippedCount} stale files. Run 'nuke Generate --igenerate-force-generate'.");
+                $"CI: {Stats.SkippedCount} stale files. Run 'nuke Generate --ipipeline-force-generate'.");
 
         Log.Information("═══════════════════════════════════════════════════════════════");
     }

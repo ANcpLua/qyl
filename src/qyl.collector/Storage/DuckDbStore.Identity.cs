@@ -29,7 +29,7 @@ public sealed partial class DuckDbStore
                               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                               ON CONFLICT (workspace_id) DO UPDATE SET
                                   name = EXCLUDED.name,
-                                  service_name = EXCLUDED.service_name,
+                                  service_name = COALESCE(EXCLUDED.service_name, service_name),
                                   sdk_version = EXCLUDED.sdk_version,
                                   runtime_version = EXCLUDED.runtime_version,
                                   framework = EXCLUDED.framework,

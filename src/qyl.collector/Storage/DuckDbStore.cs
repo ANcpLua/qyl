@@ -48,6 +48,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                                     duration_ns = EXCLUDED.duration_ns,
                                                     status_code = EXCLUDED.status_code,
                                                     status_message = EXCLUDED.status_message,
+                                                    service_name = COALESCE(EXCLUDED.service_name, service_name),
                                                     gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
                                                     gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
                                                     gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,

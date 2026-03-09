@@ -213,28 +213,27 @@ internal static class TracedCallSiteAnalyzer
             if (!attribute.AttributeClass.IsEqualTo(tracedTagAttributeType))
                 continue;
 
-            string? tagName = null;
+            string? explicitTagName = null;
             if (attribute.ConstructorArguments.Length > 0)
-                tagName = attribute.ConstructorArguments[0].Value as string;
-            tagName ??= parameter.Name;
+                explicitTagName = attribute.ConstructorArguments[0].Value as string;
 
-            if (string.IsNullOrEmpty(tagName))
-                continue;
-
-            var skipIfNull = true;
+            bool? explicitSkipIfNull = null;
             var skipIfDefault = false;
             foreach (var namedArg in attribute.NamedArguments)
             {
                 switch (namedArg.Key)
                 {
                     case "SkipIfNull" when namedArg.Value.Value is bool sv:
-                        skipIfNull = sv;
+                        explicitSkipIfNull = sv;
                         break;
                     case "SkipIfDefault" when namedArg.Value.Value is bool dv:
                         skipIfDefault = dv;
                         break;
                 }
             }
+
+            var tagName = TelemetryTagNameResolver.ResolveName(parameter, explicitTagName, parameter.Name);
+            var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(parameter, explicitSkipIfNull);
 
             var isValueType = parameter.Type is { IsValueType: true, OriginalDefinition.SpecialType: not SpecialType.System_Nullable_T };
             var isNullable = !isValueType ||
@@ -282,20 +281,19 @@ internal static class TracedCallSiteAnalyzer
                 if (!attribute.AttributeClass.IsEqualTo(tracedTagAttributeType))
                     continue;
 
-                string? tagName = null;
+                string? explicitTagName = null;
                 if (attribute.ConstructorArguments.Length > 0)
-                    tagName = attribute.ConstructorArguments[0].Value as string;
-                tagName ??= member.Name;
+                    explicitTagName = attribute.ConstructorArguments[0].Value as string;
 
-                if (string.IsNullOrEmpty(tagName))
-                    continue;
-
-                var skipIfNull = true;
+                bool? explicitSkipIfNull = null;
                 foreach (var namedArg in attribute.NamedArguments)
                 {
                     if (namedArg is { Key: "SkipIfNull", Value.Value: bool sv })
-                        skipIfNull = sv;
+                        explicitSkipIfNull = sv;
                 }
+
+                var tagName = TelemetryTagNameResolver.ResolveName(member, explicitTagName, member.Name);
+                var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(member, explicitSkipIfNull);
 
                 var isNullable = member.Type.IsReferenceType ||
                                  member.NullableAnnotation == NullableAnnotation.Annotated;

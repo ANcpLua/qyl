@@ -22,10 +22,13 @@
     <PackageReference Include="Microsoft.Agents.AI.Workflows.Declarative"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+  </ItemGroup>
+
   <!-- OpenTelemetry for instrumentation -->
   <ItemGroup>
     <PackageReference Include="OpenTelemetry.Api"/>
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
   </ItemGroup>
 

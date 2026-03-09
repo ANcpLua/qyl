@@ -71,32 +71,58 @@
     <Folder Name="/docs/">
         <File Path="docs/andrewlock-system-diagnostics-metrics-apis-parts-1-4.md" />
         <File Path="docs/verify-catalog-docs.sh" />
-        <File Path="docs\qyl-ship-workflow.md" />
+        <File Path="docs\persistent-agent-worktree-setup.md" />
     </Folder>
     <Folder Name="/docs/roadmap/">
         <File Path="docs/roadmap/loom-design.md" />
-        <File Path="docs/roadmap/ai-chat-analytics.md" />
         <File Path="docs/roadmap/antipattern-remediation.md" />
         <File Path="docs/roadmap/aspire-coverage.md" />
         <File Path="docs/roadmap/hades-storage-purge.md" />
-        <File Path="docs/roadmap/mcp-platform.md" />
         <File Path="docs/roadmap/otel-semconv-reference.md" />
-        <File Path="docs/roadmap/traced-annotations.md" />
-        <File Path="docs/roadmap/zero-cost-observability.md" />
-        <File Path="docs\roadmap\loom-requirements-registry.png" />
-        <File Path="docs\roadmap\mermaid-diagram.png" />
+        <File Path="docs/roadmap/vector-stores-and-embeddings.md" />
+        <File Path="docs\roadmap\dotnet-vector-stores-and-embeddings.md" />
+        <File Path="docs\roadmap\w.md" />
     </Folder>
     <Folder Name="/docs/plans/">
         <File Path="docs/plans/2026-03-03-qyl-agui-declarative-design.md" />
         <File Path="docs/plans/2026-03-03-qyl-agui-declarative-impl.md" />
+        <File Path="docs/plans/2026-03-06-qyl-ship-workflow.md" />
     </Folder>
     <Folder Name="/docs/decisions/">
         <File Path="docs/decisions/PRINCIPLES.md" />
         <File Path="docs/decisions/SCOPE-TAXONOMY.md" />
         <File Path="docs/decisions/suggested-improvements.yaml" />
     </Folder>
-    <Folder Name="/docs/roadmap/embeddings/">
-        <File Path="docs\roadmap\mermaid-diagram.png" />
+    <!-- Vertical slices -->
+    <Folder Name="/docs/ingestion/">
+        <File Path="docs/ingestion/spec.md" />
+        <File Path="docs/ingestion/requirements.md" />
+    </Folder>
+    <Folder Name="/docs/intelligence/">
+        <File Path="docs/intelligence/spec.md" />
+        <File Path="docs/intelligence/requirements.md" />
+    </Folder>
+    <Folder Name="/docs/intelligence/features/">
+        <File Path="docs/intelligence/features/ai-chat-analytics.md" />
+    </Folder>
+    <Folder Name="/docs/query/">
+        <File Path="docs/query/spec.md" />
+        <File Path="docs/query/requirements.md" />
+    </Folder>
+    <Folder Name="/docs/query/features/">
+        <File Path="docs/query/features/mcp-platform.md" />
+    </Folder>
+    <Folder Name="/docs/sdk/">
+        <File Path="docs/sdk/spec.md" />
+        <File Path="docs/sdk/requirements.md" />
+    </Folder>
+    <Folder Name="/docs/sdk/features/">
+        <File Path="docs/sdk/features/traced-annotations.md" />
+        <File Path="docs/sdk/features/zero-cost-observability.md" />
+    </Folder>
+    <Folder Name="/docs/presentation/">
+        <File Path="docs/presentation/spec.md" />
+        <File Path="docs/presentation/requirements.md" />
     </Folder>
     <Folder Name="/docs/screenshots/">
         <File Path="docs/screenshots/insights.png" />

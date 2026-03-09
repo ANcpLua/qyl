@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2469420+00:00
+//     Generated: 2026-03-09T16:48:45.9739030+00:00
 //     Models for Qyl.OTel.Traces
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -21,15 +21,15 @@ public sealed record Span
 {
     /// <summary>Unique span identifier (16 hex chars)</summary>
     [JsonPropertyName("span_id")]
-    public required SpanId SpanId { get; init; }
+    public required global::Qyl.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier (32 hex chars)</summary>
     [JsonPropertyName("trace_id")]
-    public required TraceId TraceId { get; init; }
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parent_span_id")]
-    public SpanId? ParentSpanId { get; init; }
+    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
 
     /// <summary>W3C trace state</summary>
     [JsonPropertyName("trace_state")]
@@ -119,11 +119,11 @@ public sealed record SpanLink
 {
     /// <summary>Linked trace ID</summary>
     [JsonPropertyName("trace_id")]
-    public required TraceId TraceId { get; init; }
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
 
     /// <summary>Linked span ID</summary>
     [JsonPropertyName("span_id")]
-    public required SpanId SpanId { get; init; }
+    public required global::Qyl.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace state of the linked span</summary>
     [JsonPropertyName("trace_state")]
@@ -161,7 +161,7 @@ public sealed record Trace
 {
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("trace_id")]
-    public required TraceId TraceId { get; init; }
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
 
     /// <summary>All spans in this trace</summary>
     [JsonPropertyName("spans")]

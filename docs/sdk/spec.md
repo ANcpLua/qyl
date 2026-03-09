@@ -34,7 +34,7 @@ src/qyl.servicedefaults.generator/Analyzers/*.cs
 src/qyl.servicedefaults.generator/Emitters/*.cs
 src/qyl.servicedefaults.generator/Models/Models.cs
 src/qyl.collector/Observe/
-src/qyl.collector/Observe/
+src/qyl.collector/Observe/*.cs
 ```
 
 ## References
@@ -45,3 +45,9 @@ src/qyl.collector/Observe/
 - [loom-design.md §21.5](../roadmap/loom-design.md#215-genai-semconv-full-reference-from-otel-semconv-reference-md) — full reference
 - [loom-design.md §21.6](../roadmap/loom-design.md#216-traced-annotations--stories-from-traced-annotations-md) — traced stories
 - [loom-design.md §15.11](../roadmap/loom-design.md#1511-agent-continuation-evaluation-heuristic-first-pattern) — QYL-011
+- [Instrumentation Toolkit Reference](features/instrumentation-toolkit.md)
+
+Scope guard:
+- Layer 1 (schema generation): `eng/build/SchemaGenerator.cs` and the NUKE schema pipeline.
+- Layer 2 (Roslyn source generation): `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs` plus analyzer/emitter pairs.
+- Layer 3 (runtime + collector): `src/qyl.servicedefaults/`, `src/qyl.collector/`.

@@ -90,12 +90,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             DbInterceptorEmitter.Emit, GeneratedFile.DbInterceptors, "QSG002");
 
         RegisterAttributeEmitterPipeline(context,
-            OTelTagAnalyzer.OTelAttributeMetadataName,
-            OTelTagAnalyzer.CouldHaveOTelAttribute, OTelTagAnalyzer.ExtractTagBindingFromAttribute,
-            PipelineStage.OTelTagBindingsDiscovered, qylRuntimeAvailable,
-            OTelTagsEmitter.Emit, GeneratedFile.OTelTagExtensions, "QSG003");
-
-        RegisterAttributeEmitterPipeline(context,
             MeterAnalyzer.MeterAttributeMetadataName,
             MeterAnalyzer.CouldBeMeterClass, MeterAnalyzer.ExtractDefinitionFromAttribute,
             PipelineStage.MeterDefinitionsDiscovered, meterEnabled,
@@ -381,9 +375,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Database interception pipeline
         public const string DbCallSitesDiscovered = nameof(DbCallSitesDiscovered);
 
-        // OTel tag binding pipeline
-        public const string OTelTagBindingsDiscovered = nameof(OTelTagBindingsDiscovered);
-
         // Meter definition pipeline
         public const string MeterDefinitionsDiscovered = nameof(MeterDefinitionsDiscovered);
 
@@ -405,7 +396,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string BuilderInterceptors = "Intercepts.g.cs";
         public const string GenAiInterceptors = "GenAiIntercepts.g.cs";
         public const string DbInterceptors = "DbIntercepts.g.cs";
-        public const string OTelTagExtensions = "OTelTagExtensions.g.cs";
         public const string MeterImplementations = "MeterImplementations.g.cs";
         public const string TracedInterceptors = "TracedIntercepts.g.cs";
         public const string AgentInterceptors = "AgentIntercepts.g.cs";

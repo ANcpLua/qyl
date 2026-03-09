@@ -246,12 +246,11 @@ internal static class MeterAnalyzer
             if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is not { } tagAttr)
                 continue;
 
-            string? tagName = null;
+            string? explicitTagName = null;
             if (tagAttr.ConstructorArguments.Length > 0 && tagAttr.ConstructorArguments[0].Value is string tagNameValue)
-                tagName = tagNameValue;
+                explicitTagName = tagNameValue;
 
-            if (tagName is null)
-                continue;
+            var tagName = TelemetryTagNameResolver.ResolveName(param, explicitTagName, param.Name);
 
             tags.Add(new MetricTagParameter(
                 param.Name,

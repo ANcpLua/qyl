@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2412900+00:00
+//     Generated: 2026-03-09T16:48:45.9709740+00:00
 //     Models for Qyl.Models
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -517,19 +517,19 @@ public sealed record SpanRecord
 {
     /// <summary>Unique span identifier</summary>
     [JsonPropertyName("spanId")]
-    public required SpanId SpanId { get; init; }
+    public required global::Qyl.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("traceId")]
-    public required TraceId TraceId { get; init; }
+    public required global::Qyl.Common.TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parentSpanId")]
-    public SpanId? ParentSpanId { get; init; }
+    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
 
     /// <summary>Session identifier for grouping related traces</summary>
     [JsonPropertyName("sessionId")]
-    public SessionId? SessionId { get; init; }
+    public global::Qyl.Common.SessionId? SessionId { get; init; }
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]

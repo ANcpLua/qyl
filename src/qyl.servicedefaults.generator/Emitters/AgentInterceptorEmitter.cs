@@ -19,8 +19,6 @@ namespace Qyl.ServiceDefaults.Generator.Emitters;
 /// </remarks>
 internal static class AgentInterceptorEmitter
 {
-    private const string ActivitySourceName = "qyl.agent";
-
     /// <summary>
     ///     Emits the interceptor source code for all agent invocations.
     /// </summary>
@@ -34,7 +32,6 @@ internal static class AgentInterceptorEmitter
         EmitterHelpers.AppendFileHeader(sb, true);
         AppendUsings(sb);
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
-        AppendActivitySourceClass(sb);
         AppendClassOpen(sb);
         AppendInterceptorMethods(sb, invocations);
         EmitterHelpers.AppendClassClose(sb);
@@ -45,21 +42,8 @@ internal static class AgentInterceptorEmitter
     private static void AppendUsings(StringBuilder sb)
     {
         sb.AppendLine("using System.Diagnostics;");
+        sb.AppendLine("using Qyl.ServiceDefaults.Instrumentation;");
         sb.AppendLine("using qyl.protocol.Attributes;");
-        sb.AppendLine();
-    }
-
-    private static void AppendActivitySourceClass(StringBuilder sb)
-    {
-        sb.AppendLine($$"""
-                        namespace Qyl.ServiceDefaults.Generator
-                        {
-                            file static class AgentActivitySources
-                            {
-                                internal static readonly global::System.Diagnostics.ActivitySource Source = new("{{ActivitySourceName}}");
-                            }
-                        }
-                        """);
         sb.AppendLine();
     }
 
@@ -145,7 +129,7 @@ internal static class AgentInterceptorEmitter
                                 {{interceptAttribute}}
                                 public static async {{returnType}} {{methodName}}({{parameters}})
                                 {
-                                    using var activity = AgentActivitySources.Source.StartActivity(
+                                    using var activity = ActivitySources.AgentSource.StartActivity(
                                         "{{spanName}}",
                                         global::System.Diagnostics.ActivityKind.Client);
 
@@ -171,14 +155,7 @@ internal static class AgentInterceptorEmitter
                             {
                                 if (activity is not null)
                                 {
-                                    activity.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                    activity.SetTag(GenAiAttributes.ErrorType, ex.GetType().Name);
-                                    activity.AddEvent(new global::System.Diagnostics.ActivityEvent("exception",
-                                        tags: new global::System.Diagnostics.ActivityTagsCollection
-                                        {
-                                            { GenAiAttributes.ExceptionType, ex.GetType().FullName },
-                                            { GenAiAttributes.ExceptionMessage, ex.Message }
-                                        }));
+                                    ActivityExceptionTelemetry.Record(activity, ex);
                                 }
                                 throw;
                             }
@@ -195,14 +172,7 @@ internal static class AgentInterceptorEmitter
                             {
                                 if (activity is not null)
                                 {
-                                    activity.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                    activity.SetTag(GenAiAttributes.ErrorType, ex.GetType().Name);
-                                    activity.AddEvent(new global::System.Diagnostics.ActivityEvent("exception",
-                                        tags: new global::System.Diagnostics.ActivityTagsCollection
-                                        {
-                                            { GenAiAttributes.ExceptionType, ex.GetType().FullName },
-                                            { GenAiAttributes.ExceptionMessage, ex.Message }
-                                        }));
+                                    ActivityExceptionTelemetry.Record(activity, ex);
                                 }
                                 throw;
                             }
@@ -231,7 +201,7 @@ internal static class AgentInterceptorEmitter
                                 {{interceptAttribute}}
                                 public static {{returnType}} {{methodName}}({{parameters}})
                                 {
-                                    using var activity = AgentActivitySources.Source.StartActivity(
+                                    using var activity = ActivitySources.AgentSource.StartActivity(
                                         "{{spanName}}",
                                         global::System.Diagnostics.ActivityKind.Client);
 
@@ -257,14 +227,7 @@ internal static class AgentInterceptorEmitter
                             {
                                 if (activity is not null)
                                 {
-                                    activity.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                    activity.SetTag(GenAiAttributes.ErrorType, ex.GetType().Name);
-                                    activity.AddEvent(new global::System.Diagnostics.ActivityEvent("exception",
-                                        tags: new global::System.Diagnostics.ActivityTagsCollection
-                                        {
-                                            { GenAiAttributes.ExceptionType, ex.GetType().FullName },
-                                            { GenAiAttributes.ExceptionMessage, ex.Message }
-                                        }));
+                                    ActivityExceptionTelemetry.Record(activity, ex);
                                 }
                                 throw;
                             }
@@ -281,14 +244,7 @@ internal static class AgentInterceptorEmitter
                             {
                                 if (activity is not null)
                                 {
-                                    activity.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                                    activity.SetTag(GenAiAttributes.ErrorType, ex.GetType().Name);
-                                    activity.AddEvent(new global::System.Diagnostics.ActivityEvent("exception",
-                                        tags: new global::System.Diagnostics.ActivityTagsCollection
-                                        {
-                                            { GenAiAttributes.ExceptionType, ex.GetType().FullName },
-                                            { GenAiAttributes.ExceptionMessage, ex.Message }
-                                        }));
+                                    ActivityExceptionTelemetry.Record(activity, ex);
                                 }
                                 throw;
                             }

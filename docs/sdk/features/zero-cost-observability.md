@@ -1,5 +1,9 @@
 # Zero-Cost-Until-Observed: Compiled Observability Contracts
 
+For the complete attribute-to-pipeline mapping for tracing, agent tracing, and metrics generators, see the [Instrumentation Toolkit Reference](instrumentation-toolkit.md).
+For layer governance, keep generator changes in `src/qyl.servicedefaults.generator/` and runtime/collector changes in
+`src/qyl.servicedefaults/` plus `src/qyl.collector/`; schema-generation belongs only to `eng/build/SchemaGenerator.cs`.
+
 > Merged from: `zero-cost-observability-proposal.md` (vision) + `plans/phase-3-4-5-implementation-spec.md` (
 > implementation)
 

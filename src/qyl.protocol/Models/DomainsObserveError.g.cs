@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2451060+00:00
+//     Generated: 2026-03-09T16:48:45.9727250+00:00
 //     Models for Qyl.Domains.Observe.Error
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -132,7 +132,7 @@ public sealed record ErrorEntity
 
     /// <summary>Sample trace IDs</summary>
     [JsonPropertyName("sample_traces")]
-    public IReadOnlyList<TraceId>? SampleTraces { get; init; }
+    public IReadOnlyList<global::Qyl.Common.TraceId>? SampleTraces { get; init; }
 
 }
 

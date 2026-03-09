@@ -11,6 +11,13 @@
 - Store constraints:
   - DuckDB schema and migrations are generated/managed by `eng/build` and migration scripts.
 
+## Instrumentation ownership rules
+
+- Layer 1 schema changes: `eng/build/SchemaGenerator.cs` and related build pipeline steps.
+- Layer 2 generator changes: `src/qyl.servicedefaults.generator/` (incremental pipelines, analyzers, emitters).
+- Layer 3 runtime/collector changes: `src/qyl.servicedefaults/` and `src/qyl.collector/`.
+- Canonical mapping: [docs/sdk/features/instrumentation-toolkit.md](../sdk/features/instrumentation-toolkit.md).
+
 ## Component rules to apply by path
 
 - `src/qyl.collector/`  

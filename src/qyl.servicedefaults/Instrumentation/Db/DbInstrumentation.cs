@@ -167,11 +167,7 @@ public static class DbInstrumentation
 
     private static void SetErrorStatus(Activity? activity, Exception ex)
     {
-        if (activity is null)
-            return;
-
-        activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddException(ex);
+        ActivityExceptionTelemetry.Record(activity, ex);
     }
 
     /// <summary>

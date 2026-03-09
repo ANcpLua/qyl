@@ -1299,8 +1299,11 @@ Each entry states **what** the capability does, **where** it lives, **what statu
 **how** it relates to the Sentry Loom features described in sections 1–14.
 
 Source documents: `aspire-coverage.md`, `antipattern-remediation.md`, `otel-semconv-reference.md`,
-`traced-annotations.md`, `hades-storage-purge.md`, `mcp-platform.md`, `zero-cost-observability.md`,
-`ai-chat-analytics.md`, `2026-03-03-qyl-agui-declarative-design.md`, `2026-03-03-qyl-agui-declarative-impl.md`,
+`hades-storage-purge.md`, `2026-03-03-qyl-agui-declarative-design.md`, `2026-03-03-qyl-agui-declarative-impl.md`,
+[`sdk/features/traced-annotations.md`](../sdk/features/traced-annotations.md),
+[`sdk/features/zero-cost-observability.md`](../sdk/features/zero-cost-observability.md),
+[`query/features/mcp-platform.md`](../query/features/mcp-platform.md),
+[`intelligence/features/ai-chat-analytics.md`](../intelligence/features/ai-chat-analytics.md).
 `PRINCIPLES.md`, `SCOPE-TAXONOMY.md`.
 
 ---
@@ -1460,7 +1463,7 @@ before append, skip duplicates. OTLP ingestion is idempotent; duplicates are rar
 
 **Scope:** `IMPLEMENTED-IN-QYL` (core features) / remaining items `NOT STARTED`
 **Loom Correlation:** Section 6.4 (MCP Server)
-**Source:** `mcp-platform.md`
+**Source:** [`query/features/mcp-platform.md`](../query/features/mcp-platform.md)
 
 #### Implementation Status
 
@@ -1519,7 +1522,7 @@ Plus Loom-specific MCP tools: `AutofixMcpTools.cs`, `TriageTools.cs`, `Regressio
 
 **Scope:** `IMPLEMENTED-IN-QYL` (design complete, API endpoints planned)
 **Loom Correlation:** Section 4.7 (Explorer) — analytics over the telemetry that Loom-like agents generate
-**Source:** `ai-chat-analytics.md`
+**Source:** [`intelligence/features/ai-chat-analytics.md`](../intelligence/features/ai-chat-analytics.md)
 
 All 6 modules query the existing `spans` table using `gen_ai.*` attributes. No schema changes needed.
 
@@ -1642,7 +1645,7 @@ Cancellation: stream closes, no RUN_ERROR
 
 **Scope:** `IMPLEMENTED-IN-QYL` (core) / stories T-001..T-007 planned
 **Loom Correlation:** Instrumentation layer feeding all Loom-like pipelines
-**Source:** `traced-annotations.md`
+**Source:** [`sdk/features/traced-annotations.md`](../sdk/features/traced-annotations.md)
 
 qyl uses Roslyn source-gen interceptors for zero-overhead tracing. No JVM agent, no runtime
 reflection — the interceptor is compiled directly into the call site IL.
@@ -1695,7 +1698,7 @@ ServiceDefaultsSourceGenerator.cs -> QSG005 -> TracedIntercepts.g.cs
 
 **Scope:** `IMPLEMENTED-IN-QYL` (Phases 0–2) / Phases 3–5 `NOT STARTED`
 **Loom Correlation:** Foundation for selective telemetry collection
-**Source:** `zero-cost-observability.md`
+**Source:** [`sdk/features/zero-cost-observability.md`](../sdk/features/zero-cost-observability.md)
 
 #### Concept
 
@@ -2477,7 +2480,7 @@ ExecutionTreeNode:
 
 Features from qyl roadmap documents that extend or detail capabilities beyond §15.
 
-### 21.1 AI Chat Analytics — Extended (from `ai-chat-analytics.md`)
+### 21.1 AI Chat Analytics — Extended (from [`ai-chat-analytics.md`](../intelligence/features/ai-chat-analytics.md))
 
 Features beyond §15.4:
 
@@ -2523,7 +2526,7 @@ Features beyond §15.2:
 | No `ON CONFLICT` with appender           | Requires separate pre-filter logic (no UPSERT support)                          |
 | Generator project deletion               | `src/qyl.instrumentation.generators/` + all `[DuckDbColumn]` attributes removed |
 
-### 21.4 MCP Platform — Extended (from `mcp-platform.md`)
+### 21.4 MCP Platform — Extended (from [`mcp-platform.md`](../query/features/mcp-platform.md))
 
 Features beyond §15.3:
 
@@ -2555,7 +2558,7 @@ Features beyond §15.1:
 | Semconv generation pipeline | TypeScript/C#/C#UTF8/TypeSpec/DuckDB SQL from single source-of-truth                                                                       |
 | Attribute prefix categories | AI, Transport, Data, Infrastructure, Security, Runtime, Identity, Observe, Ops                                                             |
 
-### 21.6 Traced Annotations — Stories (from `traced-annotations.md`)
+### 21.6 Traced Annotations — Stories (from [`traced-annotations.md`](../sdk/features/traced-annotations.md))
 
 Features beyond §15.6:
 
@@ -2572,7 +2575,8 @@ Features beyond §15.6:
 | —     | `[TracedTag]` parameter capture   | Span tag extraction with `SkipIfNull` option                                             |
 | —     | Exception attributes fix          | Correct `exception.type`/`exception.message`/`exception.stacktrace`                      |
 
-### 21.7 Zero-Cost Observability — Phases (from `zero-cost-observability.md`)
+### 21.7 Zero-Cost Observability — Phases (from [
+`zero-cost-observability.md`](../sdk/features/zero-cost-observability.md))
 
 Features beyond §15.7:
 

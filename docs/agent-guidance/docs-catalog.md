@@ -7,6 +7,8 @@
 - [docs/roadmap/loom-design.md](../docs/roadmap/loom-design.md): implementation evidence and roadmap context.
 - [docs/plans/2026-03-03-qyl-agui-declarative-design.md](../docs/plans/2026-03-03-qyl-agui-declarative-design.md): AG-UI design intent.
 - [docs/plans/2026-03-03-qyl-agui-declarative-impl.md](../docs/plans/2026-03-03-qyl-agui-declarative-impl.md): implementation sequence.
+- [docs/sdk/features/instrumentation-toolkit.md](../sdk/features/instrumentation-toolkit.md): canonical mapping of
+  tracing/agent/metric and DB interception attribute pipelines.
 
 ## Guidance and rules indexes
 

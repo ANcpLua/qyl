@@ -311,16 +311,7 @@ internal static class TracedInterceptorEmitter
 
     // T-003: OTel standard exception semconv (exception.type / message / stacktrace / escaped).
     private const string ExceptionBlock = """
-                            activity?.SetStatus(global::System.Diagnostics.ActivityStatusCode.Error, ex.Message);
-                            activity?.AddEvent(new global::System.Diagnostics.ActivityEvent(
-                                "exception",
-                                tags: new global::System.Diagnostics.ActivityTagsCollection
-                                {
-                                    { "exception.type",       ex.GetType().FullName },
-                                    { "exception.message",    ex.Message },
-                                    { "exception.stacktrace", ex.ToString() },
-                                    { "exception.escaped",    true },
-                                }));
+                            global::Qyl.ServiceDefaults.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
                             throw;
                     """;
 }

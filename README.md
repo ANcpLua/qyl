@@ -72,6 +72,10 @@ This auto-instruments:
 - Token usage, latency, model info
 - Full OTel 1.40 GenAI semantic conventions
 
+For the full compile-time attribute mapping used by this instrumentation stack, see the
+[Instrumentation Toolkit Reference](docs/sdk/features/instrumentation-toolkit.md).  
+It defines the exact `[Traced]`/`[OTel]`/`[Meter]`/`[AgentTraced]` behavior and the corresponding generator pipelines.
+
 Set the exporter endpoint:
 
 ```bash

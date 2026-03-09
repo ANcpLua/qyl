@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2452370+00:00
+//     Generated: 2026-03-09T16:48:45.9729620+00:00
 //     Models for Qyl.Domains.Observe.Log
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -112,11 +112,11 @@ public sealed record LogQuery
 
     /// <summary>Trace ID filter</summary>
     [JsonPropertyName("trace_id")]
-    public TraceId? TraceId { get; init; }
+    public global::Qyl.Common.TraceId? TraceId { get; init; }
 
     /// <summary>Span ID filter</summary>
     [JsonPropertyName("span_id")]
-    public SpanId? SpanId { get; init; }
+    public global::Qyl.Common.SpanId? SpanId { get; init; }
 
     /// <summary>Time range start</summary>
     [JsonPropertyName("time_start")]

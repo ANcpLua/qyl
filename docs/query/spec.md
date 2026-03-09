@@ -4,12 +4,12 @@ MCP tooling, analytics API, and AG-UI protocol for telemetry access.
 
 ## Domain Objects
 
-| Object    | Description                                  | src/ Mapping                       |
-|-----------|----------------------------------------------|------------------------------------|
-| MCP       | 60+ tools in 8 skill categories              | `qyl.mcp/`                        |
-| Analytics | AI chat analytics API (6 modules)            | `qyl.collector/Analytics/`         |
-| AG-UI     | Server-Sent Events protocol for CopilotKit   | `qyl.copilot/` (AG-UI endpoints)  |
-| API       | REST endpoints for telemetry queries          | `qyl.collector/` (API endpoints)  |
+| Object    | Description                                | src/ Mapping                     |
+|-----------|--------------------------------------------|----------------------------------|
+| MCP       | 60+ tools in 8 skill categories            | `qyl.mcp/`                       |
+| Analytics | AI chat analytics API (6 modules)          | `qyl.collector/Analytics/`       |
+| AG-UI     | Server-Sent Events protocol for CopilotKit | `qyl.copilot/` (AG-UI endpoints) |
+| API       | REST endpoints for telemetry queries       | `qyl.collector/` (API endpoints) |
 
 ## Scope
 

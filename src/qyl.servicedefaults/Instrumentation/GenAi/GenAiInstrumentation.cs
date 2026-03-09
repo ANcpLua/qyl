@@ -125,14 +125,7 @@ public static class GenAiInstrumentation
     /// </summary>
     public static void RecordException(Activity? activity, Exception exception)
     {
-        if (activity is null) return;
-
-        activity.SetStatus(ActivityStatusCode.Error, exception.Message);
-
-        // Use culture-invariant exception string for consistent telemetry
-        activity.SetTag(GenAiAttributes.ExceptionType, exception.GetType().FullName);
-        activity.SetTag(GenAiAttributes.ExceptionMessage, exception.Message);
-        activity.AddException(exception);
+        ActivityExceptionTelemetry.Record(activity, exception);
     }
 
     #region Execute Methods (for source generator interception)
@@ -364,16 +357,11 @@ public static class GenAiInstrumentation
         string operation,
         double durationSeconds)
     {
-        activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-
         var errorType = ex is HttpRequestException { StatusCode: { } code }
             ? ((int)code).ToString()
             : ex.GetType().Name;
 
-        activity.SetTag(GenAiAttributes.ErrorType, errorType);
-        activity.SetTag(GenAiAttributes.ExceptionType, ex.GetType().FullName);
-        activity.SetTag(GenAiAttributes.ExceptionMessage, ex.Message);
-        activity.AddException(ex);
+        ActivityExceptionTelemetry.Record(activity, ex, errorType);
 
         OperationDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>(GenAiAttributes.OperationName, operation),

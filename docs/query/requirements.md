@@ -4,12 +4,12 @@ Extracted from [loom-design.md §22](../roadmap/loom-design.md#22-requirements-r
 
 ## Requirements
 
-| ID      | Capability                     | Domain   | Scope                | Evidence                                    | Verification                                     |
-|---------|--------------------------------|----------|----------------------|---------------------------------------------|--------------------------------------------------|
-| QYL-003 | MCP Platform (60+ tools)       | MCP      | `IMPLEMENTED-IN-QYL` | `QylSkillKind` enum, `QYL_SKILLS` env var   | Invoke tools via MCP protocol, verify responses  |
-| QYL-004 | AI Chat Analytics (6 modules)  | Analytics| `IMPLEMENTED-IN-QYL` | 6 modules, 9 API endpoints                  | API returns real data for each module            |
-| QYL-005 | AG-UI + Declarative Workflows  | Protocol | `IMPLEMENTED-IN-QYL` | QylAgentBuilder, DeclarativeEngine, SSE      | SSE stream contract verified with CopilotKit     |
-| QYL-013 | MCP Platform Extended          | MCP      | `CONTEXT-ONLY`       | Monolith split, Streamable HTTP, OAuth       | Roadmap — not ship-blocking                      |
+| ID      | Capability                    | Domain    | Scope                | Evidence                                  | Verification                                    |
+|---------|-------------------------------|-----------|----------------------|-------------------------------------------|-------------------------------------------------|
+| QYL-003 | MCP Platform (60+ tools)      | MCP       | `IMPLEMENTED-IN-QYL` | `QylSkillKind` enum, `QYL_SKILLS` env var | Invoke tools via MCP protocol, verify responses |
+| QYL-004 | AI Chat Analytics (6 modules) | Analytics | `IMPLEMENTED-IN-QYL` | 6 modules, 9 API endpoints                | API returns real data for each module           |
+| QYL-005 | AG-UI + Declarative Workflows | Protocol  | `IMPLEMENTED-IN-QYL` | QylAgentBuilder, DeclarativeEngine, SSE   | SSE stream contract verified with CopilotKit    |
+| QYL-013 | MCP Platform Extended         | MCP       | `CONTEXT-ONLY`       | Monolith split, Streamable HTTP, OAuth    | Roadmap — not ship-blocking                     |
 
 ## Sentry Reference (CONTEXT-ONLY)
 

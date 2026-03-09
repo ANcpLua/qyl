@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2453300+00:00
+//     Generated: 2026-03-09T16:48:45.9731020+00:00
 //     Models for Qyl.Domains.Observe.Session
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -88,7 +88,7 @@ public sealed record SessionEntity
 {
     /// <summary>Session ID</summary>
     [JsonPropertyName("session.id")]
-    public required SessionId SessionId { get; init; }
+    public required global::Qyl.Common.SessionId SessionId { get; init; }
 
     /// <summary>User ID (if authenticated)</summary>
     [JsonPropertyName("user.id")]

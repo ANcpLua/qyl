@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2493970+00:00
+//     Generated: 2026-03-09T16:48:45.9747380+00:00
 //     DuckDB schema definitions
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -15,7 +15,7 @@ namespace qyl.collector.Storage;
 /// <summary>DuckDB schema from TypeSpec God Schema.</summary>
 public static partial class DuckDbSchema
 {
-    public const int Version = 20260306;
+    public const int Version = 20260309;
 
     public const string AlertFiringsDdl = """
         CREATE TABLE IF NOT EXISTS alert_firings (
@@ -442,7 +442,7 @@ public static partial class DuckDbSchema
 
     public static string GetSchemaDdl() =>
         $"""
-        -- QYL DuckDB Schema v20260306
+        -- QYL DuckDB Schema v20260309
         {AlertFiringsDdl}
         {AlertRulesDdl}
         {DeploymentsDdl}
