@@ -250,7 +250,7 @@ public sealed partial class DuckDbStore
                               SELECT error_id, fingerprint
                               FROM errors
                               WHERE status = 'resolved'
-                                AND affected_services LIKE '%' || $1 || '%' ESCAPE '\'
+                                AND affected_services LIKE '%' || $1 || '%' ESCAPE '!'
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = EscapeLikePattern(serviceName) });
 
@@ -333,7 +333,7 @@ public sealed partial class DuckDbStore
         };
 
     private static string EscapeLikePattern(string value)
-        => value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+        => value.Replace("!", "!!").Replace("%", "!%").Replace("_", "!_");
 }
 
 // =============================================================================

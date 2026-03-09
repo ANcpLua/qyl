@@ -37,10 +37,8 @@ public static class TriageEndpoints
             if (await store.GetIssueByIdAsync(issueId, ct) is null)
                 return Results.NotFound();
 
-            // Triage this single issue immediately (bypasses the polling loop)
-            await pipeline.TriageUntriagedIssuesAsync(ct);
-
-            var result = await store.GetLatestTriageForIssueAsync(issueId, ct);
+            // Triage only this specific issue (no side effects on other issues)
+            var result = await pipeline.TriageSingleIssueAsync(issueId, ct);
             return result is null
                 ? Results.Problem("Triage failed to produce a result")
                 : Results.Created($"/api/v1/triage/{result.TriageId}", result);

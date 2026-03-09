@@ -45,6 +45,33 @@ public sealed partial class TriagePipelineService(
         }
     }
 
+    /// <summary>
+    ///     Triages a single specific issue by ID. Used by the REST endpoint
+    ///     to avoid side effects on unrelated issues.
+    /// </summary>
+    internal async Task<TriageResult?> TriageSingleIssueAsync(string issueId, CancellationToken ct)
+    {
+        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        if (issue is null) return null;
+
+        TriageResult result = llm is not null
+            ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
+            : ScoreWithHeuristic(issue);
+
+        await store.InsertTriageResultAsync(result, ct).ConfigureAwait(false);
+        LogIssueTriaged(issueId, result.FixabilityScore, result.AutomationLevel);
+
+        if (result.FixabilityScore >= _autoThreshold)
+        {
+            FixRunRecord run = await orchestrator.CreateFixRunAsync(
+                issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
+            await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
+            LogAutoRouted(issueId, run.RunId);
+        }
+
+        return result;
+    }
+
     internal async Task TriageUntriagedIssuesAsync(CancellationToken ct)
     {
         IReadOnlyList<string> issueIds = await store.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);

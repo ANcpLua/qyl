@@ -55,14 +55,15 @@ public sealed partial class AgentHandoffService(
 
     /// <summary>
     ///     Marks a pending handoff as accepted by an agent.
+    ///     Uses atomic status check to prevent TOCTOU race conditions.
     /// </summary>
     public async Task<AgentHandoffRecord?> AcceptHandoffAsync(string handoffId, CancellationToken ct)
     {
-        AgentHandoffRecord? handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
-        if (handoff is null || handoff.Status is not "pending")
-            return null;
+        int affected = await store.UpdateHandoffStatusAsync(
+            handoffId, "accepted", expectedCurrentStatus: "pending", ct: ct).ConfigureAwait(false);
 
-        await store.UpdateHandoffStatusAsync(handoffId, "accepted", ct: ct).ConfigureAwait(false);
+        if (affected == 0)
+            return null;
 
         LogHandoffAccepted(handoffId);
         return await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
