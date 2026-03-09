@@ -88,6 +88,11 @@ tag, the appender writes `GenAiProviderName` to DuckDB. But the link between the
 Renaming a property on `SpanStorageRow` without updating the appender map is a silent data loss bug. This is the gap
 that subscription contracts are designed to close.
 
+The generator now resolves semantic tag names in one place. `[OTel]` is a naming override for
+capture attributes such as `[TracedTag]` and `[Tag]`; it is not a standalone tag-emission pipeline.
+Exception recording is also centralized through `ActivityExceptionTelemetry`, so traced, agent, GenAI,
+and DB instrumentation all emit the same OTel exception shape.
+
 > **Note:** The previous `DuckDbInsertGenerator` Roslyn source generator is being replaced by `DuckDBAppenderMap<T>` (
 > see `hades-storage-purge.md` in this directory). The appender approach is simpler (27 lines vs a full generator
 > project), faster (direct DuckDB writes, no parameterized SQL), and removes the `(decimal)ulong` UBIGINT workaround. The

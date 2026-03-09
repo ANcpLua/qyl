@@ -24,15 +24,7 @@ public sealed class ExceptionCaptureMiddleware(RequestDelegate next, ILogger<Exc
     {
         if (Activity.Current is not { } activity) return;
 
-        activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddEvent(new ActivityEvent("exception",
-            tags: new ActivityTagsCollection
-            {
-                { ExceptionTypeAttributes.Type, ex.GetType().FullName },
-                { ExceptionMessageAttributes.Message, ex.Message },
-                { ExceptionStacktraceAttributes.Stacktrace, ex.ToString() },
-                { ExceptionEscapedAttributes.Escaped, "true" }
-            }));
+        ActivityExceptionTelemetry.Record(activity, ex);
 
         logger.LogExceptionCaptured(ex.GetType().Name, ex.Message);
     }
@@ -82,16 +74,11 @@ public static class GlobalExceptionHooks
 
     private static void TagActivity(Activity activity, Exception ex, string source)
     {
-        activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddEvent(new ActivityEvent("exception",
-            tags: new ActivityTagsCollection
-            {
-                { ExceptionTypeAttributes.Type, ex.GetType().FullName },
-                { ExceptionMessageAttributes.Message, ex.Message },
-                { ExceptionStacktraceAttributes.Stacktrace, ex.ToString() },
-                { ExceptionEscapedAttributes.Escaped, "true" },
-                { "exception.source", source }
-            }));
+        ActivityExceptionTelemetry.ApplyError(activity, ex);
+
+        var tags = ActivityExceptionTelemetry.CreateTags(ex);
+        tags.Add("exception.source", source);
+        activity.AddEvent(new ActivityEvent("exception", tags: tags));
     }
 }
 

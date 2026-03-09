@@ -38,7 +38,7 @@
 
 - `[OTel("semantic.convention.name")]`
   - Target: property or parameter
-  - Purpose: overrides attribute key used by generated tag mappings.
+  - Purpose: supplies the canonical OpenTelemetry semantic-convention key for a capture attribute such as `[TracedTag]` or `[Tag]`.
 
 ### Meter attributes
 
@@ -78,15 +78,14 @@
 | `Builder Interception` | `WebApplicationBuilder.Build()` | Auto-registration of Qyl service defaults | `Intercepts.g.cs` |
 | `GenAI SDK Instrumentation` | GenAI SDK call patterns (chat, embeddings, text\_completion, agent ops, content generation) | OTel GenAI semantic-convention spans via `GenAiInstrumentation` runtime | `GenAiIntercepts.g.cs` |
 | `DB Invocation` | ADO.NET `DbCommand` call sites | Runtime DB interception path support (separate from attribute domain) | `DbIntercepts.g.cs` |
-| `OTel Tag Binding` | `[OTel("...")]` | OTel tag and convention-name binding for properties/parameters | `OTelTagExtensions.g.cs` |
-| `Meter` | `[Meter]`, `[Counter]`, `[Histogram]`, `[Gauge]`, `[UpDownCounter]`, `[Tag]` | DI registration + meters + unified instrument emitters (`Counter`/`Histogram`/`Gauge`/`UpDownCounter`) | `MeterImplementations.g.cs` |
-| `Tracing` | `[Traced]`, `[TracedTag]`, `[TracedReturn]`, `[NoTrace]` | Activity start/stop, tag capture, return capture, exception handling | `TracedIntercepts.g.cs` |
+| `Meter` | `[Meter]`, `[Counter]`, `[Histogram]`, `[Gauge]`, `[UpDownCounter]`, `[Tag]`, optional `[OTel]` on tag parameters | DI registration + meters + unified instrument emitters (`Counter`/`Histogram`/`Gauge`/`UpDownCounter`) | `MeterImplementations.g.cs` |
+| `Tracing` | `[Traced]`, `[TracedTag]`, `[TracedReturn]`, `[NoTrace]`, optional `[OTel]` on tagged members | Activity start/stop, tag capture, return capture, exception handling | `TracedIntercepts.g.cs` |
 | `Agent` | `[AgentTraced]` + Microsoft.Agents.AI SDK patterns | `gen_ai.agent.invoke` span trees with agent semantic conventions | `AgentIntercepts.g.cs` |
 
 ## Precise correction vs. earlier 7-attribute abstraction
 
 - `[Counter]`, `[Histogram]`, `[Gauge]`, `[UpDownCounter]`, `[Tag]` are emitted through **one unified Meter pipeline** (single pipeline, shared emitter), not as separate pipelines.
-- `[OTel]` is **not only mapping-only**; it is part of a dedicated tag-binding pipeline.
+- `[OTel]` is **not a standalone pipeline**. It is a semantic-name override consumed by the tracing and meter analyzers.
 - DB interception is **additional and domain-specific**, not attribute-driven.
 
 ## Short, unambiguous semantic definitions
@@ -113,25 +112,25 @@
 
 ### OTel conventions
 
-- `[OTel]` on property/parameter drives semantic-convention attribute naming in generated code.
+- `[OTel]` on property/parameter supplies the semantic-convention name for `[TracedTag]` or `[Tag]`.
 
 ## File map
 
 - Runtime attribute definitions: `src/qyl.servicedefaults/Instrumentation/*.cs`
+- Runtime exception contract: `src/qyl.servicedefaults/Instrumentation/ActivityExceptionTelemetry.cs`
 - Generator wiring: `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs`
 - Analyzer/Emitter pairs:
   - Builder registration: `src/qyl.servicedefaults.generator/`
   - Tracing:
     - `src/qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs`
+    - `src/qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`
     - `src/qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs`
-  - OTel tags:
-    - `src/qyl.servicedefaults.generator/Analyzers/OTelTagAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/OTelTagsEmitter.cs`
   - Agent:
     - `src/qyl.servicedefaults.generator/Analyzers/AgentCallSiteAnalyzer.cs`
     - `src/qyl.servicedefaults.generator/Emitters/AgentInterceptorEmitter.cs`
   - Metrics:
     - `src/qyl.servicedefaults.generator/Analyzers/MeterAnalyzer.cs`
+    - `src/qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`
     - `src/qyl.servicedefaults.generator/Emitters/MeterEmitter.cs`
   - DB:
     - `src/qyl.servicedefaults.generator/Analyzers/DbCallSiteAnalyzer.cs`

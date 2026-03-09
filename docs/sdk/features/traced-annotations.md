@@ -21,6 +21,9 @@ around methods. `qyl.servicedefaults` ships a C# equivalent (`[Traced]`, `[Trace
 `[TracedReturn]`) that is structurally superior in every dimension (class-level tracing, compile-time
 interception, no JVM agent, property-level tags, return value capture, diagnostics).
 
+`[OTel]` is not a separate tracing feature. It acts as a semantic-convention name override for
+`[TracedTag]` when a tag should use a canonical OTel key instead of the member name.
+
 All feature stories (T-001 through T-007) are implemented. T-008 (`[SpanEvent]`) was deferred as scope-creep.
 
 ### Current implementation summary
@@ -32,8 +35,10 @@ All feature stories (T-001 through T-007) are implemented. T-008 (`[SpanEvent]`)
 | `[TracedReturn]` attribute | `qyl.servicedefaults/Instrumentation/TracedReturnAttribute.cs`                            |
 | `[NoTrace]` attribute      | `qyl.servicedefaults/Instrumentation/NoTraceAttribute.cs`                                 |
 | Call site analyzer         | `qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs`                       |
+| Tag name resolver          | `qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`                     |
 | Interceptor emitter        | `qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs`                      |
 | Diagnostic analyzer        | `qyl.servicedefaults.generator/Analyzers/TracedDiagnosticAnalyzer.cs`                     |
+| Exception telemetry        | `qyl.servicedefaults/Instrumentation/ActivityExceptionTelemetry.cs`                       |
 | Data model                 | `qyl.servicedefaults.generator/Models/Models.cs` (`TracedCallSite`, `TracedTagParameter`, `TracedTagProperty`, `TracedReturnInfo`) |
 | Generator pipeline         | `ServiceDefaultsSourceGenerator.cs` → `QSG005` → `TracedIntercepts.g.cs`                 |
 
@@ -47,6 +52,7 @@ All feature stories (T-001 through T-007) are implemented. T-008 (`[SpanEvent]`)
 | `@WithSpan` — class-level                          | ✅ **Better**                   | All public methods traced; `[NoTrace]` opt-out                              |
 | `@SpanAttribute` — parameters                      | ✅ `[TracedTag]`                | Includes `SkipIfNull` and `SkipIfDefault`                                   |
 | `@SpanAttribute` — name derivation from param name | ✅                              | Falls back to parameter name                                                |
+| OTel semantic-convention override                  | ✅ `[OTel("...")]` + `[TracedTag]` | `[OTel]` supplies the tag key; `[TracedTag]` remains the capture marker     |
 | `value` → custom span name                         | ✅ `SpanName = "..."`           | Named property on `[Traced]`                                                |
 | `kind` → SpanKind                                  | ✅ `Kind = ActivityKind.Client` | Full `ActivityKind` enum                                                    |
 | `inheritContext = false` (root span)               | ✅ `RootSpan = true`            | Emits `parentContext: default` (T-001)                                      |
@@ -87,7 +93,8 @@ alive until the stream is exhausted or an exception occurs.
 Exception events use correct OTel semconv attributes: `exception.type`, `exception.message`,
 `exception.stacktrace`, `exception.escaped`.
 
-**Implementation:** `TracedInterceptorEmitter.ExceptionBlock` (line 312–325).
+**Implementation:** `ActivityExceptionTelemetry` is called from generated interceptors so every traced
+exception uses the same OTel event shape as the other instrumentation domains.
 
 ---
 
@@ -97,8 +104,8 @@ Properties decorated with `[TracedTag]` on the containing type are captured at m
 `@this.PropertyName` (instance) or `global::Type.PropertyName` (static).
 
 **Implementation:**
-- Analyzer: `TracedCallSiteAnalyzer.ExtractTracedTagProperties` (line 260).
-- Emitter: `TracedInterceptorEmitter.AppendPropertyTagSetters` (line 281–299).
+- Analyzer: `TracedCallSiteAnalyzer.ExtractTracedTagProperties`.
+- Emitter: `TracedInterceptorEmitter.AppendPropertyTagSetters`.
 - Model: `TracedTagProperty(PropertyName, TagName, SkipIfNull, IsNullable, IsStatic)`.
 
 **Resolution:** Option A (instance property capture at method entry, all `[TracedTag]`-decorated
@@ -133,7 +140,7 @@ if (!EqualityComparer<T>.Default.Equals(value, default))
     activity.SetTag("key", value);
 ```
 
-**Implementation:** `TracedInterceptorEmitter.AppendParameterTagSetters` (line 262–268).
+**Implementation:** `TracedInterceptorEmitter.AppendParameterTagSetters`.
 **Model:** `TracedTagParameter.SkipIfDefault`, `TracedTagParameter.TypeName` (fully-qualified, for
 `EqualityComparer<T>`).
 
@@ -145,7 +152,7 @@ if (!EqualityComparer<T>.Default.Equals(value, default))
 attribute. Without `Property`, falls back to `ToString()`. With `Property`, uses null-safe dotted
 member access (`result?.Path?.To?.Member`).
 
-**Implementation:** `TracedInterceptorEmitter.BuildReturnCaptureExpr` (line 302–310).
+**Implementation:** `TracedInterceptorEmitter.BuildReturnCaptureExpr`.
 **Model:** `TracedReturnInfo(TagName, PropertyPath)`, `TracedCallSite.ReturnCapture`.
 
 ---
