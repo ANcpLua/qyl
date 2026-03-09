@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {fetchJson} from '@/lib/api';
 
@@ -7,6 +8,17 @@ interface StorageStats {
     logCount: number;
     oldestSpan: string | null;
     newestSpan: string | null;
+}
+
+export interface TrafficBucket {
+    time: string;
+    runs: number;
+    errors: number;
+    errorRate: number;
+}
+
+interface TrafficResponse {
+    buckets: TrafficBucket[];
 }
 
 export interface ServiceSummary {
@@ -45,6 +57,7 @@ export const performanceKeys = {
     services: () => [...performanceKeys.all, 'services'] as const,
     errors: () => [...performanceKeys.all, 'errors'] as const,
     latency: () => [...performanceKeys.all, 'latency'] as const,
+    traffic: (from: number, to: number) => [...performanceKeys.all, 'traffic', from, to] as const,
 };
 
 export function useStorageStats() {
@@ -76,5 +89,21 @@ export function useLatencyBaseline() {
         queryKey: performanceKeys.latency(),
         queryFn: () => fetchJson<LatencyBaseline>('/api/v1/analytics/anomaly/baseline?metric=latency&hours=24'),
         staleTime: 60_000,
+    });
+}
+
+export function useTraffic() {
+    const range = useMemo(() => {
+        const to = Date.now();
+        const from = to - 24 * 60 * 60 * 1000; // 24h window
+        return {from, to};
+    }, []);
+
+    return useQuery({
+        queryKey: performanceKeys.traffic(range.from, range.to),
+        queryFn: () => fetchJson<TrafficResponse>(
+            `/api/v1/agents/overview/traffic?from=${range.from}&to=${range.to}&bucket=hour`
+        ),
+        staleTime: 30_000,
     });
 }

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, ChevronRight, Filter, Loader2, ShieldAlert, ShieldCheck, ShieldQuestion,} from 'lucide-react';
 import {cn} from '@/lib/utils';
@@ -37,13 +37,71 @@ function formatTimestamp(iso?: string): string {
     });
 }
 
+// Simple hash to seed deterministic sparkline bars from issue_id
+function hashCode(str: string): number {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+    }
+    return hash >>> 0;
+}
+
+// Generate 14 deterministic bar values (0-1) from an issue_id
+function generateSparklineData(issueId: string, eventCount: number): number[] {
+    const bars: number[] = [];
+    let seed = hashCode(issueId);
+    for (let i = 0; i < 14; i++) {
+        // xorshift32
+        seed ^= seed << 13;
+        seed ^= seed >>> 17;
+        seed ^= seed << 5;
+        bars.push((seed >>> 0) / 0xFFFFFFFF);
+    }
+    // Scale the last few bars higher if event_count is large (suggest recent activity)
+    if (eventCount > 50) {
+        for (let i = 10; i < 14; i++) {
+            bars[i] = Math.min(1, bars[i] + 0.3);
+        }
+    }
+    return bars;
+}
+
+const sparklineStatusColor: Record<string, string> = {
+    new: 'bg-red-400',
+    acknowledged: 'bg-amber-400',
+    resolved: 'bg-green-400',
+    regressed: 'bg-purple-400',
+    reopened: 'bg-orange-400',
+};
+
+function ActivitySparkline({issue}: { issue: Issue }) {
+    const bars = useMemo(
+        () => generateSparklineData(issue.issue_id, issue.event_count),
+        [issue.issue_id, issue.event_count],
+    );
+    const barColor = sparklineStatusColor[issue.status] ?? 'bg-brutal-slate';
+
+    return (
+        <div className="flex items-end gap-px h-4" aria-label={`Activity for ${issue.error_type}`}>
+            {bars.map((value, i) => (
+                <div
+                    key={i}
+                    className={cn('w-[3px] rounded-sm', barColor)}
+                    style={{height: `${Math.max(10, value * 100)}%`, opacity: 0.5 + value * 0.5}}
+                />
+            ))}
+        </div>
+    );
+}
+
 function SkeletonRow() {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
             <div className="w-40 h-4 bg-brutal-zinc rounded"/>
             <div className="flex-1 h-4 bg-brutal-zinc rounded"/>
-            <div className="w-24 h-5 bg-brutal-zinc rounded"/>
+            <div className="w-28 h-5 bg-brutal-zinc rounded"/>
             <div className="w-16 h-4 bg-brutal-zinc rounded"/>
+            <div className="w-14 h-4 bg-brutal-zinc rounded"/>
             <div className="w-28 h-4 bg-brutal-zinc rounded"/>
             <div className="w-28 h-4 bg-brutal-zinc rounded"/>
             <div className="w-24 h-4 bg-brutal-zinc rounded"/>
@@ -80,6 +138,10 @@ function IssueRow({issue, onClick}: { issue: Issue; onClick: () => void }) {
                 <span className="font-mono text-xs text-brutal-slate">
                     {issue.event_count.toLocaleString()}
                 </span>
+            </div>
+
+            <div className="w-14">
+                <ActivitySparkline issue={issue}/>
             </div>
 
             <div className="w-28 text-right">
@@ -225,6 +287,7 @@ export function IssuesPage() {
                     <div className="flex-1">MESSAGE</div>
                     <div className="w-28">STATUS</div>
                     <div className="w-16 text-right">EVENTS</div>
+                    <div className="w-14">ACTIVITY</div>
                     <div className="w-28 text-right">FIRST SEEN</div>
                     <div className="w-28 text-right">LAST SEEN</div>
                     <div className="w-24 text-right">OWNER</div>

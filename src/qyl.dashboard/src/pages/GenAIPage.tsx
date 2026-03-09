@@ -1,10 +1,11 @@
-import {useState} from 'react';
+import {cloneElement, useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {
     Activity,
     AlertCircle,
     ChevronDown,
     ChevronRight,
+    Coins,
     Cpu,
     DollarSign,
     FileJson,
@@ -12,7 +13,18 @@ import {
     MessageSquare,
     Sparkles,
     Wrench,
+    Zap,
 } from 'lucide-react';
+import {
+    Area,
+    AreaChart,
+    Bar,
+    BarChart,
+    CartesianGrid,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -21,6 +33,8 @@ import {Separator} from '@/components/ui/separator';
 import {CopyableText, DownloadButton, TextVisualizer} from '@/components/ui';
 import {formatDuration, nsToMs} from '@/hooks/use-telemetry';
 import {extractToolCallInfo, hasToolDefinitions, ToolCallViewer, ToolDefinitionsViewer,} from '@/components/genai';
+import type {TimeFilter} from '@/hooks/use-agent-insights';
+import {useAgentLlmCalls, useAgentTokens} from '@/hooks/use-agent-insights';
 
 // API response types
 interface GenAiStats {
@@ -71,6 +85,256 @@ async function fetchGenAiSpans(limit = 50): Promise<GenAiSpansResponse> {
     const res = await fetch(`/api/v1/genai/spans?limit=${limit}`);
     if (!res.ok) throw new Error('Failed to fetch GenAI spans');
     return res.json();
+}
+
+// ── Chart constants (matching AgentsPage style) ─────────────────────────────
+
+const CHART_COLORS = [
+    'oklch(0.60 0.25 300)', // signal-violet
+    'oklch(0.70 0.20 45)',  // signal-orange
+    'oklch(0.80 0.15 210)', // signal-cyan
+    'oklch(0.85 0.25 145)', // signal-green
+    'oklch(0.90 0.18 95)',  // signal-yellow
+    'oklch(0.65 0.25 25)',  // signal-red
+];
+
+const CHART_GRID_STROKE = 'oklch(0.25 0 0)';
+const CHART_AXIS_TICK = {fill: 'oklch(0.55 0 0)', fontSize: 10};
+const CHART_AXIS_LINE = {stroke: 'oklch(0.30 0 0)'};
+
+const TOOLTIP_STYLE: React.CSSProperties = {
+    backgroundColor: 'oklch(0.18 0 0)',
+    border: '2px solid oklch(0.50 0 0)',
+    borderRadius: 0,
+    color: 'oklch(0.97 0 0)',
+    fontSize: 11,
+    fontFamily: "'JetBrains Mono', monospace",
+};
+
+function formatCompact(n: number): string {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}b`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}m`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return n.toString();
+}
+
+function formatBucketTime(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleTimeString('en-US', {hour12: false, hour: '2-digit', minute: '2-digit'});
+}
+
+// ── Responsive chart viewport (same pattern as AgentsPage) ──────────────────
+
+function ChartViewport({children}: { children: React.ReactElement<{ width?: number; height?: number }> }) {
+    const hostRef = useRef<HTMLDivElement | null>(null);
+    const [size, setSize] = useState({width: 0, height: 0});
+
+    useEffect(() => {
+        const host = hostRef.current;
+        if (!host) return;
+
+        const updateSize = () => {
+            const {width, height} = host.getBoundingClientRect();
+            const nextWidth = Math.max(0, Math.floor(width));
+            const nextHeight = Math.max(0, Math.floor(height));
+            setSize((prev) => (
+                prev.width === nextWidth && prev.height === nextHeight
+                    ? prev
+                    : {width: nextWidth, height: nextHeight}
+            ));
+        };
+
+        const frameId = window.requestAnimationFrame(updateSize);
+
+        if (typeof ResizeObserver === 'undefined') {
+            return () => window.cancelAnimationFrame(frameId);
+        }
+
+        const observer = new ResizeObserver(updateSize);
+        observer.observe(host);
+        return () => {
+            window.cancelAnimationFrame(frameId);
+            observer.disconnect();
+        };
+    }, []);
+
+    const canRender = size.width > 0 && size.height > 0;
+
+    return (
+        <div ref={hostRef} className="h-full w-full">
+            {canRender ? cloneElement(children, {width: size.width, height: size.height}) : null}
+        </div>
+    );
+}
+
+// ── GenAI LLM Calls chart ───────────────────────────────────────────────────
+
+function GenAiCallsChart({filter}: { filter: TimeFilter }) {
+    const {data, isLoading} = useAgentLlmCalls(filter);
+
+    if (isLoading || !data?.buckets || !data?.legend) {
+        return (
+            <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 animate-pulse">
+                <div className="h-3 w-24 bg-brutal-zinc mb-4"/>
+                <div className="space-y-2">
+                    {Array.from({length: 5}).map((_, i) => (
+                        <div key={i} className="bg-brutal-zinc/30" style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    const names = data.legend.map(l => l.name);
+    const chartData = data.buckets.map((b) => {
+        const point: Record<string, string | number> = {time: b.time};
+        for (const name of names) {
+            point[name] = b.models[name] ?? 0;
+        }
+        return point;
+    });
+
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col">
+            <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-3.5 h-3.5 text-signal-cyan"/>
+                <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                    GenAI Call Volume
+                </span>
+            </div>
+            <div className="flex-1 min-h-0">
+                <ChartViewport>
+                    <BarChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
+                        <XAxis
+                            dataKey="time"
+                            tickFormatter={formatBucketTime}
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            width={40}
+                            tickFormatter={formatCompact}
+                        />
+                        <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={((value: number, name: string) => [formatCompact(value), name]) as never}
+                            labelFormatter={((label: string) => formatBucketTime(label)) as never}
+                        />
+                        {names.map((name, i) => (
+                            <Bar
+                                key={name}
+                                dataKey={name}
+                                stackId="stack"
+                                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                                name={name}
+                            />
+                        ))}
+                    </BarChart>
+                </ChartViewport>
+            </div>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                {data.legend.map((entry, i) => (
+                    <div key={entry.name} className="flex items-center gap-1.5">
+                        <div className="w-2 h-2" style={{backgroundColor: CHART_COLORS[i % CHART_COLORS.length]}}/>
+                        <span className="text-[10px] text-brutal-slate truncate max-w-[120px]" title={entry.name}>
+                            {entry.name}
+                        </span>
+                        <span className="text-[10px] text-brutal-zinc font-bold">
+                            {formatCompact(entry.total)}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// ── GenAI Token Usage chart (input vs output as stacked area) ───────────────
+
+function GenAiTokensChart({filter}: { filter: TimeFilter }) {
+    const {data, isLoading} = useAgentTokens(filter);
+
+    const chartData = useMemo(() => {
+        if (!data?.buckets || !data?.legend) return [];
+
+        // Aggregate all models into input/output per bucket
+        // The tokens endpoint returns per-model breakdowns; we sum across all models per bucket
+        return data.buckets.map((b) => {
+            const total = Object.values(b.models).reduce((s, v) => s + v, 0);
+            return {time: b.time, tokens: total};
+        });
+    }, [data]);
+
+    if (isLoading || chartData.length === 0) {
+        return (
+            <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 animate-pulse">
+                <div className="h-3 w-24 bg-brutal-zinc mb-4"/>
+                <div className="space-y-2">
+                    {Array.from({length: 5}).map((_, i) => (
+                        <div key={i} className="bg-brutal-zinc/30" style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    const totalTokens = chartData.reduce((s, b) => s + b.tokens, 0);
+
+    return (
+        <div className="bg-brutal-carbon border-2 border-brutal-zinc p-4 h-64 flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    <Coins className="w-3.5 h-3.5 text-signal-cyan"/>
+                    <span className="text-[10px] font-bold tracking-[0.2em] uppercase text-brutal-slate">
+                        Token Usage
+                    </span>
+                </div>
+                <span className="text-[10px] font-mono font-bold text-signal-cyan">
+                    {formatCompact(totalTokens)} total
+                </span>
+            </div>
+            <div className="flex-1 min-h-0">
+                <ChartViewport>
+                    <AreaChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
+                        <CartesianGrid strokeDasharray="3 3" stroke={CHART_GRID_STROKE}/>
+                        <XAxis
+                            dataKey="time"
+                            tickFormatter={formatBucketTime}
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                        />
+                        <YAxis
+                            tick={CHART_AXIS_TICK}
+                            axisLine={CHART_AXIS_LINE}
+                            tickLine={false}
+                            width={50}
+                            tickFormatter={formatCompact}
+                        />
+                        <Tooltip
+                            contentStyle={TOOLTIP_STYLE}
+                            formatter={((value: number) => [formatCompact(value), 'Tokens']) as never}
+                            labelFormatter={((label: string) => formatBucketTime(label)) as never}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="tokens"
+                            fill="oklch(0.80 0.15 210)"
+                            fillOpacity={0.3}
+                            stroke="oklch(0.80 0.15 210)"
+                            strokeWidth={2}
+                            name="tokens"
+                        />
+                    </AreaChart>
+                </ChartViewport>
+            </div>
+        </div>
+    );
 }
 
 function GenAISpanCard({
@@ -309,6 +573,12 @@ function GenAISpanCard({
 export function GenAIPage() {
     const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
 
+    // 24h default time filter for charts
+    const timeFilter = useMemo<TimeFilter>(() => {
+        const to = Date.now();
+        return {from: to - 24 * 60 * 60 * 1000, to};
+    }, []);
+
     const {
         data: stats,
         isLoading: statsLoading,
@@ -428,6 +698,12 @@ export function GenAIPage() {
                         )}
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* Time-series charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <GenAiCallsChart filter={timeFilter}/>
+                <GenAiTokensChart filter={timeFilter}/>
             </div>
 
             {/* GenAI Spans */}

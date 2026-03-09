@@ -1,4 +1,13 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
+import {
+    Area,
+    AreaChart,
+    CartesianGrid,
+    ResponsiveContainer,
+    Tooltip,
+    XAxis,
+    YAxis,
+} from 'recharts';
 import {
     Activity,
     AlertCircle,
@@ -12,8 +21,8 @@ import {
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
-import type {ServiceSummary} from '@/hooks/usePerformance';
-import {useErrorStats, useLatencyBaseline, useServices, useStorageStats} from '@/hooks/usePerformance';
+import type {ServiceSummary, TrafficBucket} from '@/hooks/usePerformance';
+import {useErrorStats, useLatencyBaseline, useServices, useStorageStats, useTraffic} from '@/hooks/usePerformance';
 
 type SortField = 'serviceName' | 'serviceType' | 'latestVersion' | 'firstSeen' | 'lastSeen' | 'lastErrorAt';
 type SortDir = 'asc' | 'desc';
@@ -33,6 +42,14 @@ function formatLatency(ms: number): string {
     if (ms < 1) return `${(ms * 1000).toFixed(0)}\u00B5s`;
     if (ms < 1000) return `${ms.toFixed(1)}ms`;
     return `${(ms / 1000).toFixed(2)}s`;
+}
+
+function formatHour(iso: string): string {
+    return new Date(iso).toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
 }
 
 function sortServices(services: ServiceSummary[], field: SortField, dir: SortDir): ServiceSummary[] {
@@ -65,6 +82,14 @@ export function PerformancePage() {
     const {data: servicesData, isLoading: servicesLoading, error: servicesError} = useServices();
     const {data: errorStats, isLoading: errorsLoading, error: errorsError} = useErrorStats();
     const {data: latency, isLoading: latencyLoading, error: latencyError} = useLatencyBaseline();
+    const {data: trafficData, isLoading: trafficLoading} = useTraffic();
+
+    const chartData = useMemo(() =>
+        (trafficData?.buckets ?? []).map((b: TrafficBucket) => ({
+            time: formatHour(b.time),
+            requests: b.runs,
+            errors: b.errors,
+        })), [trafficData]);
 
     const isLoading = statsLoading || servicesLoading || errorsLoading || latencyLoading;
     const error = statsError || servicesError || errorsError || latencyError;
@@ -183,6 +208,83 @@ export function PerformancePage() {
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Throughput Chart */}
+            <Card>
+                <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-lg font-semibold">Throughput</h2>
+                        <span className="text-[10px] font-bold text-brutal-slate tracking-wider">LAST 24 HOURS</span>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {trafficLoading ? (
+                        <div className="flex items-center justify-center h-48">
+                            <Loader2 className="w-5 h-5 animate-spin text-brutal-slate"/>
+                        </div>
+                    ) : chartData.length === 0 ? (
+                        <div className="flex items-center justify-center h-48 text-brutal-slate text-sm">
+                            No traffic data in the last 24 hours
+                        </div>
+                    ) : (
+                        <div className="h-56">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                                <AreaChart data={chartData} margin={{top: 4, right: 4, bottom: 0, left: 0}}>
+                                    <defs>
+                                        <linearGradient id="fillRequests" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="fillErrors" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(0, 0%, 20%)"/>
+                                    <XAxis
+                                        dataKey="time"
+                                        tick={{fill: 'hsl(0, 0%, 50%)', fontSize: 10}}
+                                        axisLine={{stroke: 'hsl(0, 0%, 25%)'}}
+                                        tickLine={false}
+                                    />
+                                    <YAxis
+                                        tick={{fill: 'hsl(0, 0%, 50%)', fontSize: 10}}
+                                        axisLine={{stroke: 'hsl(0, 0%, 25%)'}}
+                                        tickLine={false}
+                                        width={50}
+                                        allowDecimals={false}
+                                    />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: 'hsl(0, 0%, 8%)',
+                                            border: '2px solid hsl(0, 0%, 25%)',
+                                            borderRadius: 0,
+                                            color: 'hsl(0, 0%, 90%)',
+                                            fontSize: 12,
+                                        }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="requests"
+                                        name="Requests"
+                                        stroke="#f97316"
+                                        strokeWidth={2}
+                                        fill="url(#fillRequests)"
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="errors"
+                                        name="Errors"
+                                        stroke="#ef4444"
+                                        strokeWidth={1.5}
+                                        fill="url(#fillErrors)"
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Latency Overview */}
             {latency && (
