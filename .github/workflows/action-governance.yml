@@ -71,7 +71,7 @@ jobs:
           echo "drift_detected=$drift" >> "$GITHUB_OUTPUT"
 
       - name: Upload governance artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: action-governance-report
           path: |
