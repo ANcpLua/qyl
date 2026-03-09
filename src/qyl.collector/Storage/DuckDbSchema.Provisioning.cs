@@ -17,17 +17,4 @@ public static partial class DuckDbSchema
                                               );
                                               """;
 
-    public const string GenerationJobsDdl = """
-                                            CREATE TABLE IF NOT EXISTS generation_jobs (
-                                                job_id VARCHAR PRIMARY KEY,
-                                                workspace_id VARCHAR,
-                                                profile_id VARCHAR,
-                                                status VARCHAR DEFAULT 'pending',
-                                                output_url VARCHAR,
-                                                error_message VARCHAR,
-                                                created_at TIMESTAMP DEFAULT now(),
-                                                completed_at TIMESTAMP
-                                            );
-                                            CREATE INDEX IF NOT EXISTS idx_generation_jobs_workspace ON generation_jobs(workspace_id);
-                                            """;
 }

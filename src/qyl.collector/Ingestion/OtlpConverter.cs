@@ -412,7 +412,7 @@ public static class OtlpConverter
 
         var dict = value.KvlistValue.Values
             ?.Where(static kv => ConvertJsonValueToString(kv.Value) is not null)
-            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value))
+            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value) ?? "")
             ?? new Dictionary<string, string>(StringComparer.Ordinal);
 
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);

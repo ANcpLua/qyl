@@ -928,7 +928,7 @@ internal static class CopilotEndpoints
             claimsObj is IReadOnlyDictionary<string, string> claims)
         {
             var roles = ExtractRoles(claims);
-            var matchedRole = s_enterpriseRequiredRoles.FirstOrDefault(role => roles.Contains(role));
+            var matchedRole = s_enterpriseRequiredRoles.FirstOrDefault(roles.Contains);
 
             return matchedRole is not null
                 ? new EnterprisePolicyDecision(

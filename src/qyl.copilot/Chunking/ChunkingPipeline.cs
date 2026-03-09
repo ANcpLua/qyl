@@ -169,12 +169,12 @@ public sealed partial class ChunkingPipeline(
     private static string StripYamlFences(string yaml)
     {
         var trimmed = yaml.Trim();
-        if (trimmed.StartsWith("```yaml", StringComparison.OrdinalIgnoreCase))
+        if (trimmed.StartsWithIgnoreCase("```yaml"))
             trimmed = trimmed[7..];
-        else if (trimmed.StartsWith("```", StringComparison.Ordinal))
+        else if (trimmed.StartsWithOrdinal("```"))
             trimmed = trimmed[3..];
 
-        if (trimmed.EndsWith("```", StringComparison.Ordinal))
+        if (trimmed.EndsWithOrdinal("```"))
             trimmed = trimmed[..^3];
 
         return trimmed.Trim();
