@@ -41,33 +41,47 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Updates a handoff's status with conditional timestamp setting.
     /// </summary>
-    public async Task UpdateHandoffStatusAsync(
+    public async Task<int> UpdateHandoffStatusAsync(
         string handoffId, string status, string? resultJson = null,
-        string? errorMessage = null, CancellationToken ct = default)
+        string? errorMessage = null, string? expectedCurrentStatus = null,
+        CancellationToken ct = default)
     {
         ThrowIfDisposed();
         var job = new WriteJob<int>(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              UPDATE agent_handoffs SET
-                                  status = $1,
-                                  result_json = $2,
-                                  error_message = $3,
-                                  accepted_at = CASE WHEN $1 = 'accepted' THEN now() ELSE accepted_at END,
-                                  submitted_at = CASE WHEN $1 = 'completed' THEN now() ELSE submitted_at END,
-                                  failed_at = CASE WHEN $1 IN ('failed', 'timed_out') THEN now() ELSE failed_at END
-                              WHERE handoff_id = $4
-                              """;
+            cmd.CommandText = expectedCurrentStatus is not null
+                ? """
+                  UPDATE agent_handoffs SET
+                      status = $1,
+                      result_json = $2,
+                      error_message = $3,
+                      accepted_at = CASE WHEN $1 = 'accepted' THEN now() ELSE accepted_at END,
+                      submitted_at = CASE WHEN $1 = 'completed' THEN now() ELSE submitted_at END,
+                      failed_at = CASE WHEN $1 IN ('failed', 'timed_out') THEN now() ELSE failed_at END
+                  WHERE handoff_id = $4 AND status = $5
+                  """
+                : """
+                  UPDATE agent_handoffs SET
+                      status = $1,
+                      result_json = $2,
+                      error_message = $3,
+                      accepted_at = CASE WHEN $1 = 'accepted' THEN now() ELSE accepted_at END,
+                      submitted_at = CASE WHEN $1 = 'completed' THEN now() ELSE submitted_at END,
+                      failed_at = CASE WHEN $1 IN ('failed', 'timed_out') THEN now() ELSE failed_at END
+                  WHERE handoff_id = $4
+                  """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = resultJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = errorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = handoffId });
+            if (expectedCurrentStatus is not null)
+                cmd.Parameters.Add(new DuckDBParameter { Value = expectedCurrentStatus });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
 
         await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
+        return await job.Task.ConfigureAwait(false);
     }
 
     /// <summary>

@@ -285,10 +285,17 @@ public sealed partial class AutofixAgentService(
 
     private static string ExtractJson(string text)
     {
-        int jsonStart = text.IndexOf('{');
-        int jsonEnd = text.LastIndexOf('}');
-        if (jsonStart >= 0 && jsonEnd > jsonStart)
-            return text[jsonStart..(jsonEnd + 1)];
+        int start = text.IndexOf('{');
+        if (start < 0) return "{}";
+
+        int depth = 0;
+        for (int i = start; i < text.Length; i++)
+        {
+            if (text[i] == '{') depth++;
+            else if (text[i] == '}') depth--;
+            if (depth == 0) return text[start..(i + 1)];
+        }
+
         return "{}";
     }
 

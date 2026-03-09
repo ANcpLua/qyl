@@ -53,10 +53,10 @@ public sealed partial class DuckDbStore
             cmd.CommandText = """
                               UPDATE fix_runs SET
                                   status = $1,
-                                  fix_description = $2,
-                                  confidence_score = $3,
-                                  changes_json = $4,
-                                  completed_at = CASE WHEN $1 IN ('applied', 'failed') THEN now() ELSE completed_at END
+                                  fix_description = COALESCE($2, fix_description),
+                                  confidence_score = COALESCE($3, confidence_score),
+                                  changes_json = COALESCE($4, changes_json),
+                                  completed_at = CASE WHEN $1 IN ('applied', 'failed', 'rejected') THEN now() ELSE completed_at END
                               WHERE run_id = $5
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });

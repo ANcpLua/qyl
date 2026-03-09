@@ -1606,6 +1606,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     private static void InitializeSchema(DuckDBConnection con)
     {
+        // Manual fix_runs DDL runs BEFORE generated schema so it wins via CREATE TABLE IF NOT EXISTS
+        using var manualFixRunsCmd = con.CreateCommand();
+        manualFixRunsCmd.CommandText = DuckDbSchema.ManualFixRunsDdl;
+        manualFixRunsCmd.ExecuteNonQuery();
+
         using var cmd = con.CreateCommand();
         cmd.CommandText = DuckDbSchema.GetSchemaDdl();
         cmd.ExecuteNonQuery();
@@ -1666,11 +1671,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         spanClustersCmd.CommandText = DuckDbSchema.SpanClustersDdl;
         spanClustersCmd.ExecuteNonQuery();
 
-        // Autofix: fix runs
-        using var fixRunsCmd = con.CreateCommand();
-        fixRunsCmd.CommandText = DuckDbSchema.FixRunsDdl;
-        fixRunsCmd.ExecuteNonQuery();
-
         // Coding agent runs + Loom settings
         using var codingAgentCmd = con.CreateCommand();
         codingAgentCmd.CommandText = $"""
@@ -1688,6 +1688,21 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var autofixStepsCmd = con.CreateCommand();
         autofixStepsCmd.CommandText = DuckDbSchema.AutofixStepsDdl;
         autofixStepsCmd.ExecuteNonQuery();
+
+        // Agent handoffs
+        using var handoffsCmd = con.CreateCommand();
+        handoffsCmd.CommandText = DuckDbSchema.AgentHandoffsDdl;
+        handoffsCmd.ExecuteNonQuery();
+
+        // GitHub events
+        using var githubEventsCmd = con.CreateCommand();
+        githubEventsCmd.CommandText = DuckDbSchema.GitHubEventsDdl;
+        githubEventsCmd.ExecuteNonQuery();
+
+        // Schema promotions
+        using var schemaPromotionsCmd = con.CreateCommand();
+        schemaPromotionsCmd.CommandText = DuckDbSchema.SchemaPromotionsDdl;
+        schemaPromotionsCmd.ExecuteNonQuery();
 
         // Service registry (telemetry-derived auto-detection)
         using var serviceRegistryCmd = con.CreateCommand();

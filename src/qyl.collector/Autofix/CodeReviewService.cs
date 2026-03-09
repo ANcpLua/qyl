@@ -121,8 +121,11 @@ public sealed partial class CodeReviewService(
             string json = JsonSerializer.Serialize(payload, CodeReviewJsonContext.Default.CodeReviewCommentPayload);
             using StringContent content = new(json, System.Text.Encoding.UTF8, "application/json");
 
-            using HttpResponseMessage response = await client
-                .PostAsync($"repos/{repoFullName}/pulls/{prNumber}/comments", content, ct)
+            using HttpRequestMessage req = new(HttpMethod.Post,
+                $"repos/{repoFullName}/pulls/{prNumber}/comments") { Content = content };
+            SetAuthHeader(req, token);
+
+            using HttpResponseMessage response = await client.SendAsync(req, ct)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -150,8 +153,11 @@ public sealed partial class CodeReviewService(
         using HttpClient client = CreateGitHubClient(token);
 
         // Get PR title
-        using HttpResponseMessage prResp = await client
-            .GetAsync($"repos/{repoFullName}/pulls/{prNumber}", ct)
+        using HttpRequestMessage prReq = new(HttpMethod.Get,
+            $"repos/{repoFullName}/pulls/{prNumber}");
+        SetAuthHeader(prReq, token);
+
+        using HttpResponseMessage prResp = await client.SendAsync(prReq, ct)
             .ConfigureAwait(false);
 
         if (!prResp.IsSuccessStatusCode)
@@ -166,6 +172,7 @@ public sealed partial class CodeReviewService(
         // Get diff
         using HttpRequestMessage diffReq = new(HttpMethod.Get,
             $"repos/{repoFullName}/pulls/{prNumber}");
+        SetAuthHeader(diffReq, token);
         diffReq.Headers.Accept.Clear();
         diffReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.diff"));
 
@@ -219,11 +226,16 @@ public sealed partial class CodeReviewService(
         }
     }
 
-    private HttpClient CreateGitHubClient(string token)
+    private HttpClient CreateGitHubClient(string _)
     {
-        HttpClient client = httpClientFactory.CreateClient("GitHub");
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client;
+        // Return a clean client — auth is set per-request via SetAuthHeader to avoid
+        // mutating DefaultRequestHeaders on a potentially shared HttpClient instance.
+        return httpClientFactory.CreateClient("GitHub");
+    }
+
+    private static void SetAuthHeader(HttpRequestMessage request, string token)
+    {
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
     }
 
     // ── LoggerMessage ───────────────────────────────────────────────────────

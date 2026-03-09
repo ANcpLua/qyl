@@ -65,10 +65,10 @@ public sealed partial class RegressionDetectionService(
             }
 
             totalRegressions += regressedIds.Count;
-        }
 
-        // Update checkpoint to the latest deployment's StartTime
-        _lastChecked = deployments[^1].StartTime;
+            // Advance checkpoint only after successful processing of this deployment
+            _lastChecked = deployment.StartTime;
+        }
 
         // If any regressions were found, trigger re-triage
         if (totalRegressions > 0)
