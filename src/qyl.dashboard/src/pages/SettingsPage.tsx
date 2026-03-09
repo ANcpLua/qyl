@@ -2,6 +2,7 @@ import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import {Brain, Database, GearSix, Keyboard, LinkBreak, Monitor, Moon, PaintBrush, Robot, SpinnerGap, Sun, Terminal, Trash,} from '@phosphor-icons/react';
+import {useTheme} from '@/hooks/use-theme';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -190,7 +191,8 @@ function AiSettingsTab() {
 
 export function SettingsPage() {
     const navigate = useNavigate();
-    const [theme, setTheme] = useState<'dark' | 'light' | 'system'>('dark');
+    const {theme, setTheme} = useTheme();
+    const [density, setDensity] = useState<'compact' | 'comfortable' | 'spacious'>('comfortable');
     const [refreshInterval, setRefreshInterval] = useState('5');
     const [maxLogLines, setMaxLogLines] = useState('1000');
     const [disconnecting, setDisconnecting] = useState(false);
@@ -352,7 +354,7 @@ export function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Select defaultValue="comfortable">
+                            <Select value={density} onValueChange={(v) => setDensity(v as typeof density)}>
                                 <SelectTrigger className="w-48" aria-label="Display density">
                                     <SelectValue/>
                                 </SelectTrigger>
