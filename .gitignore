@@ -46,6 +46,9 @@ packages/
 # Claude Code local files
 .claude/*
 
+# Git worktrees (canonical dev worktrees under .worktrees/)
+.worktrees/
+
 # Playwright MCP logs
 .playwright-mcp/
 
