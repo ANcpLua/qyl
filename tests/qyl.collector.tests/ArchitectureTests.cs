@@ -1,3 +1,4 @@
+using System.Reflection;
 using NetArchTest.Rules;
 using Qyl.Agents.Agents;
 using Qyl.Contracts.Common;
@@ -54,8 +55,7 @@ public sealed class ArchitectureTests
     [Fact]
     public void Mcp_Should_Not_Reference_Collector_Assembly()
     {
-        var mcpAssembly = AppDomain.CurrentDomain.GetAssemblies()
-            .FirstOrDefault(static a => a.GetName().Name == "qyl.mcp");
+        var mcpAssembly = LoadMcpAssembly();
 
         if (mcpAssembly is null)
         {
@@ -74,5 +74,36 @@ public sealed class ArchitectureTests
     {
         var violators = result.FailingTypeNames ?? [];
         return $"Architecture violation: {string.Join(", ", violators)}";
+    }
+
+    private static Assembly? LoadMcpAssembly()
+    {
+        var repoRoot = FindRepoRoot();
+        if (repoRoot is null)
+            return null;
+
+        var assemblyPath = Path.Combine(
+            repoRoot.FullName,
+            "src",
+            "qyl.mcp",
+            "bin",
+            "Debug",
+            "net10.0",
+            "qyl.mcp.dll");
+
+        return File.Exists(assemblyPath)
+            ? Assembly.LoadFrom(assemblyPath)
+            : null;
+    }
+
+    private static DirectoryInfo? FindRepoRoot()
+    {
+        for (DirectoryInfo? current = new(AppContext.BaseDirectory); current is not null; current = current.Parent)
+        {
+            if (File.Exists(Path.Combine(current.FullName, "qyl.slnx")))
+                return current;
+        }
+
+        return null;
     }
 }

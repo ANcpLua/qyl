@@ -83,23 +83,18 @@ Web source analysis (already uploaded):
 - Oreate AI — Seer as copilot framing, privacy guarantees
 - Ichizoku JP — Japanese market localization of the same messaging
 
-### 2.2 Reconcile loom-design.md
+### 2.2 Use the Canonical Loom Status
 
-Current `loom-design.md` status per the Implementation Evidence table:
+Use `docs/roadmap/loom-status.md` as the current readiness source.
 
-| Capability                | qyl Status              | What's Left                                                 |
-|---------------------------|-------------------------|-------------------------------------------------------------|
-| Autofix pipeline          | IMPLEMENTED-IN-QYL.LOOM | Verify E2E flow works, not just endpoint registration       |
-| Triage/fixability scoring | IMPLEMENTED-IN-QYL.LOOM | Verify scoring logic, test with real issues                 |
-| Code review               | IMPLEMENTED-IN-QYL.LOOM | Verify GitHub webhook flow, PR comment generation           |
-| GitHub webhook ingestion  | IMPLEMENTED-IN-QYL.LOOM | Verify HMAC-SHA256 validation, event routing                |
-| Agent handoff             | IMPLEMENTED-IN-QYL.LOOM | Verify lifecycle transitions                                |
-| Regression detection      | IMPLEMENTED-IN-QYL.LOOM | Verify detection + query layer                              |
-| Dashboard UI              | IMPLEMENTED-IN-QYL.LOOM | Covered by Phase 1 frontend fixes                           |
-| MCP tooling               | IMPLEMENTED-IN-QYL.LOOM | Verify all tools work via MCP protocol, not just registered |
+During Phase 2:
 
-**Key action:** For each " IMPLEMENTED-IN-QYL.LOOM" row, run the actual flow end-to-end. Registration ≠ working. Update
-`loom-design.md` with real test results.
+- use the **Capability Status Matrix** as the single source of truth for the 8 Loom capabilities
+- use **MCP Verification** for tool audit detail, broken tools, and transport-readiness notes
+- use **Known Issues** for Loom-specific schema and runtime blockers that affect verification
+
+**Key action:** Run the actual flow end-to-end for every Loom capability. Registration is not enough. Update
+`docs/roadmap/loom-status.md`, not this workflow doc, with the verification result.
 
 ### 2.3 Fill Gaps from Seer Analysis
 
@@ -115,10 +110,10 @@ Apply SCOPE-TAXONOMY.md labels rigorously. No ambiguous "out of scope" language.
 ### 2.4 Done Criteria (Phase 2)
 
 - [ ] Every Loom endpoint returns real data (not stubs/mocks)
-- [ ] `loom-design.md` updated with verified implementation status per feature
+- [ ] `docs/roadmap/loom-status.md` updated with verified capability status and open blockers
 - [ ] Autofix, Triage, Code Review flows tested E2E
 - [ ] MCP tools (`AutofixMcpTools`, `TriageTools`, `RegressionTools`, `GitHubMcpTools`, `AgentHandoffTools`,
-  `AssistedQueryTools`, `TestGenerationTools`) callable and returning real results
+  `AssistedQueryTools`, `TestGenerationTools`) callable and reflected in `loom-status.md` MCP verification
 - [ ] Loom dashboard pages pass Playwright
 
 ---
@@ -167,6 +162,7 @@ For now: custom connector is the ship target.
 - [ ] Claude Web (custom connector) can use qyl tools in a real session
 - [ ] Claude Cowork runs elegance-pipeline with qyl MCP tools
 - [ ] `qyl-mcp` skill file is accurate and current
+- [ ] `docs/roadmap/loom-status.md` MCP verification section updated with connector-surface validation results
 
 ---
 

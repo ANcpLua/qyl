@@ -27,6 +27,9 @@ The solution file is already on the new names. The remaining work is to:
 
 The migration should therefore be treated as **completion and cleanup**, not as a first-pass rename/extract.
 
+Feature readiness, MCP audit status, and Loom-specific open issues are tracked separately in
+`docs/roadmap/loom-status.md`. This document only covers migration and boundary work.
+
 ## 2. Current State Snapshot
 
 ### Already true in the current tree
@@ -50,6 +53,7 @@ The migration should therefore be treated as **completion and cleanup**, not as 
     - `src/qyl.mcp/Agents/SessionSummaryPrompt.cs`
 - Some public-facing or semi-public strings still use `qyl.copilot` naming.
 - Architectural boundaries are not yet enforced by automated tests.
+- Use `docs/roadmap/loom-status.md` for current capability and MCP readiness instead of adding those tables here.
 
 ## 3. Hard Architectural Rules
 

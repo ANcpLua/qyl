@@ -42,44 +42,18 @@ Closed-source Sentry internals remain non-inspectable, but qyl implements its ow
 open Loom-like backend surface (triage, autofix, code review, handoff, regression,
 webhook ingestion, dashboard, and MCP tooling).
 
-### Implementation Evidence in qyl
+### Current qyl Status
 
-| Capability                                      | Status               | Evidence (verified 2026-03-09)                                                                                                                                                                                                                                                                                                               |
-|-------------------------------------------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Endpoint families for Loom-like workflows       | ` IMPLEMENTED-IN-QYL.LOOM` | `Program.cs` maps `MapAutofixEndpoints`, `MapRegressionEndpoints`, `MapAgentHandoffEndpoints`, `MapCodeReviewEndpoints`, `MapGitHubWebhookEndpoints`, `MapLoomSettingsEndpoints`, `MapTriageEndpoints`. **Verified:** 190+ endpoints registered. Global exception handler added for structured 500s.                                         |
-| Autofix pipeline                                | ` IMPLEMENTED-IN-QYL.LOOM` | `AutofixAgentService.cs` (15s polling), `AutofixOrchestrator.cs` (5-step LLM pipeline), `PrCreationService.cs` (real GitHub PR creation with hunk matching), `PolicyGate.cs` (0.85 threshold). **Verified:** Real LLM calls, not stubs. **Bugs fixed:** COALESCE on intermediate status update, brace-counting JSON extractor.               |
-| Fixability scoring and triage                   | ` IMPLEMENTED-IN-QYL.LOOM` | `TriagePipelineService.cs` (30s polling, dual-path: LLM + heuristic fallback), `TriagePrompts.cs`, `TriageEndpoints.cs`, `DuckDbSchema.Triage.cs`. **Verified:** Real scoring with auto-routing at 0.8 threshold. **Bug fixed:** POST endpoint now triages the requested issue, not 20 arbitrary untriaged issues.                           |
-| Code review endpoints and service               | ` IMPLEMENTED-IN-QYL.LOOM` | `CodeReviewService.cs` (fetches PR diff, LLM analysis, inline comment posting), `CodeReviewEndpoints.cs`, `CodeReviewPrompt.cs`. **Verified:** Real GitHub API + LLM integration. **Bug fixed:** Per-request Authorization headers instead of shared HttpClient mutation.                                                                    |
-| GitHub webhook ingestion + signature validation | ` IMPLEMENTED-IN-QYL.LOOM` | `GitHubWebhookEndpoints.cs` (`X-Hub-Signature-256`, `HMACSHA256`, fixed-time comparison). **Verified:** HMAC-SHA256 validation present. Handles `pull_request`, `push`, and generic events. Full payload stored as JSON audit trail. **Schema fix:** `github_events` table wired into InitializeSchema.                                      |
-| Agent handoff lifecycle                         | ` IMPLEMENTED-IN-QYL.LOOM` | `AgentHandoffService.cs` (pending→accepted→completed/failed), `AgentHandoffEndpoints.cs`, `DuckDbStore.Handoff.cs`. **Verified:** Full state machine with context assembly. **Bugs fixed:** TOCTOU race on accept (added `WHERE status='pending'`). **Schema fix:** `agent_handoffs` table wired into InitializeSchema.                      |
-| Regression detection and querying               | ` IMPLEMENTED-IN-QYL.LOOM` | `RegressionDetectionService.cs` (60s polling, deployment-based fingerprint matching), `RegressionEndpoints.cs`, `DuckDbStore.Regressions.cs`. **Verified:** Query-based detection with re-triage trigger. **Bugs fixed:** LIKE ESCAPE literal, checkpoint advancement on failure.                                                             |
-| Dashboard/UI for Loom flows                     | ` IMPLEMENTED-IN-QYL.LOOM` | `LoomDashboardPage.tsx` (stat cards, triage table, pipeline activity), `IssueTriagePage.tsx` (fixability score, automation level), `CodeReviewPage.tsx` (trigger form, severity badges). **Verified:** All pages load, React Query hooks wired to real APIs, loading/error states present.                                                    |
-| MCP tooling for Loom flows                      | ` IMPLEMENTED-IN-QYL.LOOM` | `AutofixMcpTools.cs`, `TriageTools.cs`, `RegressionTools.cs`, `GitHubMcpTools.cs`, `AgentHandoffTools.cs`, `AssistedQueryTools.cs`, `TestGenerationTools.cs`. Tool registration confirmed. **Remaining:** protocol-level invocation verification deferred to Phase 4 (MCP connector).                                                        |
+Current implementation status, MCP readiness, and Loom-specific known issues live in
+`docs/roadmap/loom-status.md`.
 
-### qyl Verification Matrix
+Brief summary:
 
-This table is the current ship bar for qyl. A capability is not considered verified until the full flow runs end-to-end
-with real inputs and real outputs.
-
-| Capability                | qyl Status           | Verified (2026-03-09)                                                                                                                                        | Remaining                                                  |
-|---------------------------|----------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| Autofix pipeline          | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: real 5-step LLM pipeline, PR creation with hunk matching. Bugs fixed: COALESCE update, JSON extractor, schema column mismatch.                 | Live E2E with LLM + GitHub (requires running instance).    |
-| Triage/fixability scoring | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: dual-path scoring (LLM + heuristic), auto-routing at 0.8. Bug fixed: POST endpoint triages correct issue.                                      | Live scoring against real issues.                          |
-| Code review               | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: real PR diff fetch + LLM analysis + inline comments. Bug fixed: thread-safe HttpClient auth.                                                    | Live webhook-to-comment flow with GitHub.                  |
-| GitHub webhook ingestion  | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: HMAC-SHA256 verification present, event routing, full payload audit trail. Schema fix: table creation wired.                                    | Signed payload verification with real webhook.             |
-| Agent handoff             | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: full state machine (pending→accepted→completed/failed), context assembly. Bug fixed: TOCTOU race. Schema fix: table creation wired.             | Live agent polling + submit flow.                          |
-| Regression detection      | ` IMPLEMENTED-IN-QYL.LOOM` | Code review: deployment-based fingerprint matching, re-triage trigger. Bugs fixed: LIKE ESCAPE, checkpoint advancement.                                      | Live detection with real deployments.                      |
-| Dashboard UI              | ` IMPLEMENTED-IN-QYL.LOOM` | Verified: LoomDashboardPage, IssueTriagePage, CodeReviewPage all load, hooks wired to real APIs, loading/error states present.                               | Playwright E2E after live instance available.              |
-| MCP tooling               | ` IMPLEMENTED-IN-QYL.LOOM` | Phase 4 audit: 78 tools across 27 classes. 68 OK, 3 BROKEN, 6 INDIRECT, 2 LOCAL. Broken: `qyl_genai_models` (missing endpoint), `qyl_genai_timeseries` (missing endpoint), `qyl_generate_test` (wrong endpoint path). Build: Release 0 errors on main. Collector live at mcp.qyl.info (129K spans, 5K sessions). | Fix 3 broken tools (missing collector endpoints). Deploy MCP SSE transport for remote tool access. |
-
-### Known Issues (2026-03-09 verification)
-
-| Issue | Scope | Fix location | Status |
-|-------|-------|-------------|--------|
-| 11 TypeSpec-generated tables have duplicate `created_at` columns | Layer 1 (schema generation) | `eng/build/SchemaGenerator.cs` | Open — generator bug, not Loom-specific |
-| `fix_runs` generated DDL columns don't match store code | Layer 1 → manual override | `DuckDbSchema.FixRuns.cs` added with correct manual DDL | Fixed in Phase 2 |
-| `errors` table: `affected_user_ids` vs `affected_users` column name mismatch | Layer 1 (schema generation) | `DuckDbSchema.g.cs` vs `DuckDbStore.cs` | Open — requires generator or store alignment |
-| `schema_promotions` table has no DDL | Manual schema gap | `DuckDbSchema.SchemaControl.cs` needed | Fixed in Phase 2 |
+- qyl already implements the core Loom-like surfaces: autofix, triage, code review, webhook ingestion, agent handoff,
+  regression detection, dashboard UI, and MCP tooling.
+- The remaining ship work is mostly end-to-end verification rather than first-pass feature creation.
+- MCP readiness depends on fixing the currently broken tools and completing protocol-level remote invocation checks.
+- Schema-generation issues that affect verification are tracked in the canonical status document, not in this design spec.
 
 ### 2026 Web Source Synthesis
 
@@ -1395,8 +1369,8 @@ One generator reads `@opentelemetry/semantic-conventions` (npm) and produces typ
 | Output     | File                                                        | Consumer                               |
 |------------|-------------------------------------------------------------|----------------------------------------|
 | TypeScript | `src/qyl.dashboard/src/lib/semconv.ts`                      | Dashboard attribute keys               |
-| C#         | `src/qyl.servicedefaults/.../SemanticConventions.g.cs`      | .NET SDK string constants              |
-| C# UTF-8   | `src/qyl.servicedefaults/.../SemanticConventions.Utf8.g.cs` | Collector zero-allocation OTLP parsing |
+| C#         | `src/qyl.instrumentation/.../SemanticConventions.g.cs`      | .NET SDK string constants              |
+| C# UTF-8   | `src/qyl.instrumentation/.../SemanticConventions.Utf8.g.cs` | Collector zero-allocation OTLP parsing |
 | TypeSpec   | `core/specs/generated/semconv.g.tsp`                        | API codegen typed models               |
 | DuckDB SQL | `src/qyl.collector/Storage/promoted-columns.g.sql`          | Promoted attribute columns             |
 
@@ -1619,8 +1593,8 @@ GitHub Copilot / Azure OpenAI / Ollama / GitHub Models
 
 | File                              | Project       | Purpose                                                                                        |
 |-----------------------------------|---------------|------------------------------------------------------------------------------------------------|
-| `Agents/QylAgentBuilder.cs`       | qyl.copilot   | Fluent `AIAgent` factory: wraps any provider with `InstrumentedChatClient`                     |
-| `Workflows/DeclarativeEngine.cs`  | qyl.copilot   | Loads `.yaml` AdaptiveDialog workflows, wires `InstrumentedChatClient`, streams `StreamUpdate` |
+| `Agents/QylAgentBuilder.cs`       | qyl.agents    | Fluent `AIAgent` factory: wraps any provider with `InstrumentedChatClient`                     |
+| `Workflows/DeclarativeEngine.cs`  | qyl.workflows | Loads `.yaml` AdaptiveDialog workflows, wires `InstrumentedChatClient`, streams `StreamUpdate` |
 | `Copilot/CopilotAguiEndpoints.cs` | qyl.collector | Registers `AddAGUI()` + `MapAGUI("/api/v1/copilot/chat", agent)`                               |
 
 #### AG-UI SSE Protocol
@@ -1645,8 +1619,8 @@ Cancellation: stream closes, no RUN_ERROR
 | Package                                       | Version                | Used By       |
 |-----------------------------------------------|------------------------|---------------|
 | `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` | 1.0.0-preview.260225.1 | qyl.collector |
-| `Microsoft.Agents.AI.Hosting`                 | 1.0.0-preview.260225.1 | qyl.copilot   |
-| `Microsoft.Agents.AI.Workflows.Declarative`   | 1.0.0-rc2              | qyl.copilot   |
+| `Microsoft.Agents.AI.Hosting`                 | 1.0.0-preview.260225.1 | qyl.agents    |
+| `Microsoft.Agents.AI.Workflows.Declarative`   | 1.0.0-rc2              | qyl.workflows |
 
 ---
 
@@ -1837,7 +1811,7 @@ Phase 2 — Improved evaluator prompt (for the ~20% where LLM judgment is needed
   a tool result, the evaluator sees an "unaddressed" result and incorrectly signals continuation
 - **Fix:** Include structured turn metadata (turn type, response status) rather than raw transcript tail
 
-**qyl applicability:** This pattern applies to any agent loop in qyl.copilot where an evaluator
+**qyl applicability:** This pattern applies to any agent loop in qyl's agents and workflows layers where an evaluator
 decides continuation — DeclarativeEngine workflow steps, AG-UI streaming evaluation, and
 QylAgentBuilder tool-use loops. The heuristic-first approach aligns with the zero-cost observability
 principle (Section 15.7): avoid computation when the answer is structurally deterministic.
