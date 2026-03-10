@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Qyl.Contracts.Common;
+namespace Qyl.Common;
 
 /// <summary>
 ///     Nanosecond / millisecond / DateTimeOffset conversions used across the platform.

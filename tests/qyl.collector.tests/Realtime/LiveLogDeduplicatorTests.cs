@@ -1,6 +1,6 @@
 using Qyl.Collector.Realtime;
 using Qyl.Collector.Storage;
-using Qyl.Contracts.Common;
+using Qyl.Common;
 using Xunit;
 
 namespace Qyl.Collector.tests.Realtime;

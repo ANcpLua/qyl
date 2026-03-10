@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using Qyl.Contracts.Common;
+using Qyl.Common;
 
 namespace Qyl.Mcp.Tools;
 

@@ -25,7 +25,7 @@ global using Qyl.Collector.Query;
 global using Qyl.Collector.Realtime;
 global using Qyl.Collector.Storage;
 global using Qyl.Collector.Storage.Migrations;
-global using Qyl.Contracts.Common;
+global using Qyl.Common;
 global using Qyl.OTel.Enums;
 global using qyl.contracts.Attributes;
 global using Qyl.Models;

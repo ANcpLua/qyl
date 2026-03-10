@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-06T15:59:59.2200880+00:00
+//     Generated: 2026-03-10T22:25:09.0044050+00:00
 //     Strongly-typed scalar primitives
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -10,7 +10,7 @@
 
 #nullable enable
 
-namespace Qyl.Contracts.Common;
+namespace Qyl.Common;
 
 /// <summary>Cost in USD (floating point)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(CostUsdJsonConverter))]

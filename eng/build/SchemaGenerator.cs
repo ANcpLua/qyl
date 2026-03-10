@@ -493,7 +493,7 @@ public static class SchemaGenerator
         var version = int.Parse(TimeProvider.System.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture),
             CultureInfo.InvariantCulture);
 
-        sb.AppendLine("namespace qyl.collector.Storage;");
+        sb.AppendLine("namespace Qyl.Collector.Storage;");
         sb.AppendLine();
         sb.AppendLine("/// <summary>DuckDB schema from TypeSpec God Schema.</summary>");
         sb.AppendLine("public static partial class DuckDbSchema");

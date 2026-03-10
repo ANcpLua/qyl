@@ -1,7 +1,7 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Qyl.Agents.Agents;
-using Qyl.Contracts.Common;
+using Qyl.Common;
 using Qyl.Workflows;
 using Xunit;
 

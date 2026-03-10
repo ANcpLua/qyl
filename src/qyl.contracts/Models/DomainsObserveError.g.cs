@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-09T16:48:45.9727250+00:00
+//     Generated: 2026-03-10T22:25:09.0095470+00:00
 //     Models for Qyl.Domains.Observe.Error
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -71,7 +71,7 @@ public sealed record ErrorCorrelation
 
     /// <summary>Common attributes</summary>
     [JsonPropertyName("common_attributes")]
-    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? CommonAttributes { get; init; }
+    public IReadOnlyList<global::Qyl.Common.Attribute>? CommonAttributes { get; init; }
 
 }
 
@@ -128,11 +128,11 @@ public sealed record ErrorEntity
 
     /// <summary>Issue tracker URL</summary>
     [JsonPropertyName("issue_url")]
-    public global::Qyl.Contracts.Common.UrlString? IssueUrl { get; init; }
+    public global::Qyl.Common.UrlString? IssueUrl { get; init; }
 
     /// <summary>Sample trace IDs</summary>
     [JsonPropertyName("sample_traces")]
-    public IReadOnlyList<global::Qyl.Contracts.Common.TraceId>? SampleTraces { get; init; }
+    public IReadOnlyList<global::Qyl.Common.TraceId>? SampleTraces { get; init; }
 
 }
 

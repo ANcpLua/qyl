@@ -6,7 +6,7 @@
 // =============================================================================
 
 using System.Text.Json.Serialization;
-using Qyl.Contracts.Common;
+using Qyl.Common;
 using Qyl.Contracts.Enums;
 
 namespace Qyl.Contracts.Models;
