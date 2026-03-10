@@ -23,9 +23,9 @@
     <ANcpLuaRoslynUtilitiesBaseVersion>1.45.0</ANcpLuaRoslynUtilitiesBaseVersion>
     <!-- Microsoft.Agents.AI -->
     <MicrosoftAgentsAbstractionsVersion>1.0.0-rc2</MicrosoftAgentsAbstractionsVersion>
-    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260225.1</MicrosoftAgentsCopilotVersion>
-    <MicrosoftAgentsHostingVersion>1.0.0-preview.260225.1</MicrosoftAgentsHostingVersion>
-    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260225.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
+    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260304.1</MicrosoftAgentsCopilotVersion>
+    <MicrosoftAgentsHostingVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingVersion>
+    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
     <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc2</MicrosoftAgentsWorkflowsDeclarativeVersion>
     <!-- MCP -->
     <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
