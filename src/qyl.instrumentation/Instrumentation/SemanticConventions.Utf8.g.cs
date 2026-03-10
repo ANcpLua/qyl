@@ -4,7 +4,7 @@
 //
 // UTF-8 ReadOnlySpan<byte> for zero-allocation OTLP parsing hot paths
 
-namespace Qyl.Instrumentation.Instrumentation;
+namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
 /// UTF-8 attribute keys for artifact.attestation.* (zero-allocation parsing)

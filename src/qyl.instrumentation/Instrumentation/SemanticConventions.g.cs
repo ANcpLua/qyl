@@ -2,7 +2,7 @@
 // Generated from @opentelemetry/semantic-conventions v1.40.0
 // Do not edit manually - run 'npm run generate' in SemconvGenerator
 
-namespace Qyl.Instrumentation.Instrumentation;
+namespace Qyl.ServiceDefaults.Instrumentation;
 
 /// <summary>
 /// Semantic convention attributes for artifact.attestation.*

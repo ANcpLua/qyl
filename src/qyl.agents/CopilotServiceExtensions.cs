@@ -232,5 +232,3 @@ public sealed class CopilotAdapterFactory : IAsyncDisposable
         }
     }
 }
-
-/// <summary>
