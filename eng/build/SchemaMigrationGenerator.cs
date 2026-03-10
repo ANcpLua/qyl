@@ -19,6 +19,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Serilog;
 
+namespace Qyl.Build;
+
 /// <summary>
 ///     Generates DuckDB migration SQL by diffing previous and current DDL snapshots.
 /// </summary>

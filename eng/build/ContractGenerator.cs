@@ -9,6 +9,8 @@ using System.Text.Json;
 using Nuke.Common.IO;
 using Serilog;
 
+namespace Qyl.Build;
+
 /// <summary>
 ///     Generates DomainContracts.g.cs from qyl-extensions.json into the servicedefaults generator project.
 ///     Single entry point: <see cref="Generate"/>.

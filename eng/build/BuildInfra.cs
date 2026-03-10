@@ -17,6 +17,8 @@ using Nuke.Common.Tools.Docker;
 using Serilog;
 using static Nuke.Common.Tools.Docker.DockerTasks;
 
+namespace Qyl.Build;
+
 [ParameterPrefix(nameof(IDocker))]
 interface IDocker : IHazSourcePaths
 {

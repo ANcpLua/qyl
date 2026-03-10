@@ -8,6 +8,8 @@
 using System;
 using System.Collections.Immutable;
 
+namespace Qyl.Build;
+
 /// <summary>
 ///     A single row in the type mapping table: OpenAPI (type, format) → C# type + DuckDB type.
 /// </summary>

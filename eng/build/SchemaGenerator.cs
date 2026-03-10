@@ -20,6 +20,8 @@ using Nuke.Common.IO;
 using Serilog;
 using YamlDotNet.RepresentationModel;
 
+namespace Qyl.Build;
+
 // ════════════════════════════════════════════════════════════════════════════════
 // SCHEMA GENERATOR - One button, entire schema translated
 // ════════════════════════════════════════════════════════════════════════════════
