@@ -18,6 +18,9 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.Logging.AddConsole(static o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 
+// Required by AddStandardResilienceHandler() — registers no-op IRedactorProvider
+builder.Services.AddRedaction();
+
 // Add MCP authentication support (reads QYL_MCP_TOKEN env var)
 // If no token configured, auth is disabled (dev mode)
 builder.Services.AddMcpAuth(builder.Configuration);
