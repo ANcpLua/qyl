@@ -7,8 +7,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {CopyableText} from '@/components/ui';
 import {useSessions} from '@/hooks/use-telemetry';
-import type {SessionEntity} from '@/types';
-import {getPrimaryService} from '@/types';
+import {getPrimaryService, type SessionEntity} from '@/types';
 
 type ViewMode = 'grid' | 'list' | 'graph';
 
