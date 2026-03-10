@@ -49,7 +49,6 @@ internal static class SkillRegistrationExtensions
         if (skills.IsEnabled(QylSkillKind.Agent))
         {
             mcpBuilder
-                .WithTools<InvestigateTools>(jsonOptions)
                 .WithTools<UseQylTools>(jsonOptions)
                 .WithTools<RcaTools>(jsonOptions)
                 .WithTools<SummaryTools>(jsonOptions);

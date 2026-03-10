@@ -184,17 +184,6 @@ static JsonSerializerOptions ConfigureCommonServices(
     services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
     services.AddSingleton<RcaTools>();
 
-    services.AddHttpClient(nameof(HttpAgentProvider), client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(120);
-    }).AddStandardResilienceHandler();
-
-    services.AddSingleton<IAgentProvider>(static serviceProvider =>
-        new HttpAgentProvider(
-            serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpAgentProvider)),
-            serviceProvider.GetRequiredService<ILogger<HttpAgentProvider>>()));
-
     services.AddSingleton<McpToolRegistry>();
     services.AddSingleton(TimeProvider.System);
 
@@ -228,7 +217,6 @@ static JsonSerializerOptions ConfigureCommonServices(
     jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);

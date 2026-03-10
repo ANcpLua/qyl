@@ -157,84 +157,6 @@ internal sealed class SummaryTools(HttpClient client, IChatClient? llm = null)
             return response.Text ?? "Summary generation produced no output.";
         });
 
-    [McpServerTool(Name = "qyl.summarize_session", Title = "Summarize Session",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
-    [Description("""
-                 Generate an AI-powered summary of a session.
-
-                 Fetches session metadata and its spans, then uses an LLM
-                 to produce a structured analysis including:
-                 - Session overview and purpose
-                 - Span timeline and interactions
-                 - Error analysis
-                 - Performance characteristics
-
-                 Requires QYL_LLM_PROVIDER to be configured.
-                 Falls back to raw data display if no LLM available.
-
-                 Returns: AI-generated session analysis
-                 """)]
-    public Task<string> SummarizeSessionAsync(
-        [Description("The session ID to summarize")] string sessionId,
-        CancellationToken ct = default) =>
-        CollectorHelper.ExecuteAsync(async () =>
-        {
-            // Fetch session metadata and spans concurrently
-            Task<SessionDto?> sessionTask = client.GetFromJsonAsync<SessionDto>(
-                $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}",
-                SummaryJsonContext.Default.SessionDto, ct);
-
-            Task<SessionSpansResponse?> spansTask = client.GetFromJsonAsync<SessionSpansResponse>(
-                $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans?limit=50",
-                SummaryJsonContext.Default.SessionSpansResponse, ct);
-
-            SessionDto? session = await sessionTask.ConfigureAwait(false);
-            SessionSpansResponse? spansResponse = await spansTask.ConfigureAwait(false);
-
-            if (session is null)
-                return $"Session '{sessionId}' not found.";
-
-            // Build data context for LLM
-            StringBuilder sb = new();
-            sb.AppendLine($"Session ID: {session.SessionId}");
-            if (session.ServiceName is not null)
-                sb.AppendLine($"Service: {session.ServiceName}");
-            if (session.StartTime.HasValue)
-                sb.AppendLine($"Start: {session.StartTime.Value:u}");
-            if (session.EndTime.HasValue)
-                sb.AppendLine($"End: {session.EndTime.Value:u}");
-            sb.AppendLine($"Span Count: {session.SpanCount}");
-            sb.AppendLine($"Error Count: {session.ErrorCount}");
-
-            if (spansResponse?.Items is { Count: > 0 })
-            {
-                sb.AppendLine($"\nSpans ({spansResponse.Items.Count} shown):");
-                foreach (SessionSpanDto span in spansResponse.Items)
-                {
-                    double durationMs = span.DurationNs / 1_000_000.0;
-                    string statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
-
-                    sb.AppendLine($"- {span.Name}{statusLabel} — {durationMs:F1}ms");
-                    if (span.ServiceName is not null)
-                        sb.AppendLine($"  Service: {span.ServiceName}");
-                    if (span.StatusCode == 2 && span.StatusMessage is not null)
-                        sb.AppendLine($"  Error: {span.StatusMessage}");
-                }
-            }
-
-            if (llm is null)
-                return $"# Session Summary (raw data -- no LLM configured)\n\n{sb}";
-
-            List<ChatMessage> messages =
-            [
-                new(ChatRole.System, SessionSummaryPrompt.Prompt),
-                new(ChatRole.User, sb.ToString())
-            ];
-
-            ChatResponse response = await llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
-            return response.Text ?? "Summary generation produced no output.";
-        });
-
     private static string Truncate(string value, int maxLength) =>
         value.Length <= maxLength ? value : string.Concat(value.AsSpan(0, maxLength), "...");
 }
@@ -272,32 +194,10 @@ internal sealed record TraceSpanDto(
     [property: JsonPropertyName("status_code")] int StatusCode,
     [property: JsonPropertyName("status_message")] string? StatusMessage);
 
-internal sealed record SessionDto(
-    [property: JsonPropertyName("session_id")] string SessionId,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time")] DateTime? StartTime,
-    [property: JsonPropertyName("end_time")] DateTime? EndTime,
-    [property: JsonPropertyName("span_count")] int SpanCount,
-    [property: JsonPropertyName("error_count")] int ErrorCount);
-
-internal sealed record SessionSpanDto(
-    [property: JsonPropertyName("span_id")] string SpanId,
-    [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")] long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")] long DurationNs,
-    [property: JsonPropertyName("status_code")] int StatusCode,
-    [property: JsonPropertyName("status_message")] string? StatusMessage);
-
-internal sealed record SessionSpansResponse(
-    [property: JsonPropertyName("items")] List<SessionSpanDto>? Items);
-
 #endregion
 
 [JsonSerializable(typeof(SummaryIssueDto))]
 [JsonSerializable(typeof(SummaryEventsResponse))]
 [JsonSerializable(typeof(List<TraceSpanDto>))]
-[JsonSerializable(typeof(SessionDto))]
-[JsonSerializable(typeof(SessionSpansResponse))]
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
 internal sealed partial class SummaryJsonContext : JsonSerializerContext;

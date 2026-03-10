@@ -15,7 +15,7 @@ internal sealed class McpToolRegistry(IServiceProvider services)
 {
     /// <summary>
     ///     Tool class types whose [McpServerTool] methods are exposed to the meta-agent.
-    ///     Excluded: UseQylTools (self), InvestigateTools (LLM-in-LLM), CopilotTools (LLM chat/workflow).
+    ///     Excluded: UseQylTools (self), CopilotTools (LLM chat/workflow).
     /// </summary>
     private static readonly Type[] ToolTypes =
     [

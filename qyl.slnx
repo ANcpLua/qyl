@@ -200,14 +200,6 @@
         <File Path="docs/agent-guidance/docs-catalog.md" />
         <File Path="docs/agent-guidance/requests-to-humans.md" />
     </Folder>
-    <Folder Name="/docs/api-docs/">
-        <File Path="docs/api-docs/openapi.json" />
-        <File Path="docs/api-docs/index.ts" />
-        <File Path="docs/api-docs/openapi-diff.ts" />
-        <File Path="docs/api-docs/watch.ts" />
-        <File Path="docs/api-docs/package.json" />
-        <File Path="docs/api-docs/pnpm-workspace.yaml" />
-    </Folder>
 
 
     <!-- GitHub config -->
@@ -225,6 +217,7 @@
     <Folder Name="/samples/">
         <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
     </Folder>
+    <Folder Name="/.agents/" />
 
     <!-- Claude config -->
     <Folder Name="/.claude/">

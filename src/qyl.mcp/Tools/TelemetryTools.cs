@@ -74,7 +74,11 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
-                 Get aggregated token usage statistics.
+                 Get aggregated token usage from MCP agent runs (local telemetry).
+
+                 This tracks tokens consumed by the MCP server's own embedded agents
+                 (use_qyl, RCA, summaries). For OTLP GenAI span data from instrumented
+                 apps, use get_genai_stats or list_models instead.
 
                  Groups token consumption by:
                  - 'agent': Per agent/service
@@ -82,7 +86,6 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                  - 'hour': Hourly breakdown
 
                  Returns input/output tokens, run counts, and time ranges.
-                 Use this for cost analysis and usage monitoring.
                  """)]
     public Task<string> GetTokenUsageAsync(
         [Description("Start of time range (ISO timestamp)")]
