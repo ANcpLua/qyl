@@ -130,4 +130,5 @@ forbidden:
 
 ## Requests to Humans
 
-- [ ] ...
+- [ ] Missing project-specific `MEMORY.md` process for architecture discoveries.
+- [ ] Add explicit acceptance criteria for architecture changes that cross collector/loom/mcp boundaries.
