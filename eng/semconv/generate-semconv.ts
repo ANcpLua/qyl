@@ -123,7 +123,7 @@ const CONFIG = {
     ]),
 
     // C# namespace
-    csharpNamespace: "Qyl.ServiceDefaults.Instrumentation",
+    csharpNamespace: "Qyl.Instrumentation.Instrumentation",
 
     // TypeSpec namespace
     typespecNamespace: "OTel.SemConv",
