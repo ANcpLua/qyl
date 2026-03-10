@@ -31,7 +31,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 | `qyl.copilot`                    | GitHub Copilot integration with AG-UI tool rendering        |
 | `qyl.hosting`                    | App orchestration framework (QylRunner)                     |
 | `qyl.servicedefaults`            | .NET instrumentation library with OTel setup                |
-| `qyl.servicedefaults.generator`  | Roslyn source generator for GenAI/DB interceptors           |
+| `qyl.instrumentation.generators`  | Roslyn source generator for GenAI/DB interceptors           |
 | `qyl.mcp`                        | MCP server for AI agent integration                         |
 | `qyl.protocol`                   | Shared types (BCL-only, no dependencies)                    |
 
@@ -262,7 +262,7 @@ src/
   qyl.mcp/                             # MCP server
   qyl.protocol/                         # Shared types (BCL-only)
   qyl.servicedefaults/                  # OTel instrumentation library
-  qyl.servicedefaults.generator/        # Roslyn source generator
+  qyl.instrumentation.generators/        # Roslyn source generator
 tests/                                  # Test projects
 ```
 

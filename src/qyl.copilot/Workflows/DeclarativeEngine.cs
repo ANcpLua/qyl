@@ -21,7 +21,7 @@ using Microsoft.Agents.AI.Workflows.Declarative;
 using Microsoft.Extensions.AI;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Workflows;
 

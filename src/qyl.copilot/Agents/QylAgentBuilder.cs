@@ -5,7 +5,7 @@
 //   1. GitHub Copilot   -> QylAgentBuilder.FromCopilotAdapter(adapter)
 //   2. IChatClient      -> QylAgentBuilder.FromChatClient(chatClient, ...)
 // Both paths return an AIAgent wired with InstrumentedChatClient for OTel spans.
-// Note: qyl.servicedefaults.generator already intercepts AIAgent.RunAsync() at
+// Note: qyl.instrumentation.generators already intercepts AIAgent.RunAsync() at
 // compile time, so UseOpenTelemetry() is not duplicated here.
 // =============================================================================
 

@@ -20,7 +20,7 @@ using qyl.mcp.Providers;
 using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
 using qyl.mcp.Tools;
-using qyl.protocol.Attributes;
+using qyl.contracts.Attributes;
 
 var skills = SkillConfiguration.FromEnvironment();
 var scope = QylScope.FromEnvironment();

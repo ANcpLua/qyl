@@ -192,12 +192,12 @@ partial interface IPipeline : IHazSourcePaths
 
             Log.Information("Semconv generated to final destinations:");
             Log.Information("  TypeSpec: core/specs/generated/semconv.g.tsp");
-            Log.Information("  C#: src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs");
-            Log.Information("  C# UTF-8: src/qyl.servicedefaults/Instrumentation/SemanticConventions.Utf8.g.cs");
+            Log.Information("  C#: src/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs");
+            Log.Information("  C# UTF-8: src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs");
             Log.Information("  TypeScript: src/qyl.dashboard/src/lib/semconv.ts");
             Log.Information("  DuckDB: src/qyl.collector/Storage/promoted-columns.g.sql");
-            Log.Information("  Protocol: src/qyl.protocol/Attributes/GenAiAttributes.g.cs");
-            Log.Information("  Protocol: src/qyl.protocol/Attributes/DbAttributes.g.cs");
+            Log.Information("  Protocol: src/qyl.contracts/Attributes/GenAiAttributes.g.cs");
+            Log.Information("  Protocol: src/qyl.contracts/Attributes/DbAttributes.g.cs");
         });
 
     // ════════════════════════════════════════════════════════════════════════
@@ -219,7 +219,7 @@ partial interface IPipeline : IHazSourcePaths
 
             ContractGenerator.Generate(
                 extensionsJson,
-                paths.ServiceDefaultsGenerator,
+                paths.InstrumentationGenerator,
                 guard);
         });
 

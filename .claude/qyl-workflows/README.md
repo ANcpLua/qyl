@@ -4,11 +4,10 @@ This folder contains workflow docs for using qyl's AI observability capabilities
 
 qyl provides:
 
-- REST + MCP control surface for error triage and autofix
-- LLM-assisted code review for PRs
-- GitHub integration for webhook-backed automation
-- Regression detection and agent handoff flows
-- Dashboard/telemetry query workflows
+- `qyl.collector`: REST, OTLP ingest, storage, workflow state, AG-UI hosting
+- `qyl.mcp`: stdio + streamable HTTP MCP transport over collector HTTP
+- `qyl.copilot`: embedded-agent, AG-UI, workflow engine, and adapter primitives
+- qyl-native issue triage, autofix, regression, code-review, and handoff workflows
 
 ## What you can do
 
@@ -21,21 +20,25 @@ Use the `/qyl` command for live investigation of issues, regressions, triage, an
 /qyl what is the current triage status for issue QYL-1024
 /qyl list recent regression events for service api-gateway
 /qyl summarize error issue QYL-1024 and suggest next steps
+/qyl compare the slowest traces with recent build failures
 ```
 
 ### Review PRs with qyl
 
-- `qyl.trigger_code_review` — start an LLM review of a PR diff
-- `qyl.get_code_review` — fetch the latest cached review result
-- `qyl.list_github_events` — inspect the raw events that fed automation
+- `qyl.trigger_code_review` — start an LLM review of a PR diff in the collector
+- `qyl.get_code_review` — fetch the latest cached review result via MCP
+- `qyl.list_github_events` — inspect the webhook events that fed automation
+- GitHub comment posting is collector REST-only today; MCP currently exposes trigger/get, not a dedicated post-comments tool
 
 ### Fix production issues end-to-end
 
 - Discover issues: `qyl.list_error_issues`
 - Fetch deep issue context: `qyl.get_error_issue`, `qyl.get_error_timeline`
-- Trigger triage: `qyl.trigger_triage`
-- Manage autofix: `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.approve_fix_run`, `qyl.reject_fix_run`
+- Trigger triage: `qyl.trigger_triage`, `qyl.get_triage`
+- Investigate root cause: `qyl.root_cause_analysis`
+- Manage autofix: `qyl.generate_fix`, `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.approve_fix_run`, `qyl.reject_fix_run`
 - Handoff fixes to external agents: `qyl.get_pending_handoffs`, `qyl.accept_handoff`, `qyl.submit_agent_fix`
+- Use `qyl.use_qyl` for broad questions that span errors, spans, logs, sessions, and analytics
 
 ## Quick start
 
@@ -52,7 +55,7 @@ Use the `/qyl` command for live investigation of issues, regressions, triage, an
   - `qyl-pr-code-review.md`
   - `qyl-fix-issues.md`
 - Command: `qyl-command.md`
-- Index: `SKILL_TREE.md`
+- Index: `qyl-skill-tree.md`
 
 ## Notes
 

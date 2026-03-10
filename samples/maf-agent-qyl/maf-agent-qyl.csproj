@@ -8,6 +8,6 @@
     <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="../../src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
+    <ProjectReference Include="../../src/qyl.instrumentation/qyl.instrumentation.csproj" />
   </ItemGroup>
 </Project>

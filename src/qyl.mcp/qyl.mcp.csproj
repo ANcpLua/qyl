@@ -48,7 +48,7 @@
 
   <!-- Reference protocol only - communicate with collector via HTTP -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
+    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
   </ItemGroup>
 
 </Project>

@@ -14,7 +14,7 @@ using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
 using qyl.copilot.Providers;
 using qyl.copilot.Workflows;
-using Qyl.ServiceDefaults.Instrumentation;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace qyl.copilot;
 

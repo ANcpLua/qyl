@@ -6,12 +6,13 @@ description: Build and validate qyl using NUKE. Use after any code change, befor
 # NUKE Build
 
 NUKE is the single build orchestrator. Never bypass it with raw dotnet commands.
+Use the default `nuke` entry point rather than explicit `nuke Test`.
 
 ## Targets
 
 | Target | What it does | When to use |
 |--------|-------------|-------------|
-| `nuke` | Compile + Test (default) | After any code change |
+| `nuke` | Default entrypoint: compile + backend test pipeline | After any code change |
 | `nuke Ci` | Clean + Compile + Test + Coverage | Before PR |
 | `nuke Full` | Ci + Generate + Verify + Frontend | Release readiness |
 | `nuke UnitTests` | Unit tests only | Quick feedback loop |
@@ -35,6 +36,9 @@ IF build is broken        → nuke Clean && nuke
 ## Wrong (never do this)
 
 ```bash
+# Wrong: explicit test target is discouraged in this repo
+nuke Test
+
 # Wrong: raw dotnet with hand-crafted flags
 dotnet restore && dotnet build && dotnet test --no-build ...
 

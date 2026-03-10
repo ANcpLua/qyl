@@ -10,17 +10,17 @@
     <IsAotCompatible>true</IsAotCompatible>
     <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
     <!-- Required for source generator interceptors -->
-    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
 
-  <!-- No direct PackageReferences needed: hosting + config come transitively from qyl.servicedefaults -->
+  <!-- No direct PackageReferences needed: hosting + config come transitively from qyl.instrumentation -->
 
   <ItemGroup>
-    <!-- Service defaults (attributes + runtime helpers, transitively provides qyl.protocol) -->
-    <ProjectReference Include="../qyl.servicedefaults/qyl.servicedefaults.csproj"/>
+    <!-- Service defaults (attributes + runtime helpers, transitively provides qyl.contracts) -->
+    <ProjectReference Include="../qyl.instrumentation/qyl.instrumentation.csproj"/>
 
     <!-- Source generator (compile-time instrumentation) -->
-    <ProjectReference Include="../qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj"
+    <ProjectReference Include="../qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>

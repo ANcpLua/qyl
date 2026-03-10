@@ -2616,7 +2616,7 @@ Features beyond §15.5:
 | `QylAgentBuilder` factory           | `FromCopilotAdapter(adapter)` and `FromChatClient(chatClient, agentName, ...)` with `InstrumentedChatClient` wrapping |
 | `DeclarativeEngine` YAML runtime    | Loads `AdaptiveDialog` YAML, wires `ChatClientResponseAgentProvider`, streams `StreamUpdate` events                   |
 | `InstrumentedChatClient` OTel layer | `gen_ai.*` spans + `CopilotMetrics` at `IChatClient` interception point                                               |
-| `AIAgent.RunAsync()` interception   | `qyl.servicedefaults.generator` already intercepts (no `UseOpenTelemetry()` needed)                                   |
+| `AIAgent.RunAsync()` interception   | `qyl.instrumentation.generators` already intercepts (no `UseOpenTelemetry()` needed)                                   |
 | Declarative YAML actions            | `InvokeMcpToolExecutor`, `ConditionGroup`, `SendActivity` with PowerFx expressions                                    |
 | `StreamUpdate` SSE contract         | `RUN_STARTED`, `TEXT_MESSAGE_START/CONTENT/END`, `RUN_FINISHED`, `RUN_ERROR`                                          |
 | Error boundaries                    | `HttpRequestException` + `JsonException` caught at `IChatClient` level only                                           |

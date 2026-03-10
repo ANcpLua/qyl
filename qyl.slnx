@@ -33,14 +33,14 @@
     <!-- Platform: collector, protocol, hosting -->
     <Folder Name="/src/platform/">
         <Project Path="src/qyl.collector/qyl.collector.csproj" />
-        <Project Path="src/qyl.protocol/qyl.protocol.csproj" />
+        <Project Path="src/qyl.contracts/qyl.contracts.csproj" />
         <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
     </Folder>
 
     <!-- SDK: instrumentation + browser telemetry -->
     <Folder Name="/src/sdk/">
-        <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
-        <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
+        <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj" />
+        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
     </Folder>
     <Folder Name="/src/" />

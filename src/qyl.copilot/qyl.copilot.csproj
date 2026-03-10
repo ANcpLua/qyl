@@ -6,7 +6,7 @@
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Required for source generator interceptors -->
-    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.ServiceDefaults.Generator</InterceptorsNamespaces>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,10 +34,10 @@
 
   <!-- Core dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.protocol\qyl.protocol.csproj"/>
-    <ProjectReference Include="..\qyl.servicedefaults\qyl.servicedefaults.csproj"/>
+    <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
+    <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
     <!-- Auto-instrumentation generator (intercepts AIAgent.RunAsync calls) -->
-    <ProjectReference Include="..\qyl.servicedefaults.generator\qyl.servicedefaults.generator.csproj"
+    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"/>
   </ItemGroup>

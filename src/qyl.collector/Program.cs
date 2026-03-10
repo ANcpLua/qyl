@@ -31,7 +31,7 @@ using qyl.collector.Workflow;
 using qyl.copilot;
 using qyl.copilot.Auth;
 using qyl.copilot.Workflows;
-using Qyl.ServiceDefaults.Instrumentation;
+using Qyl.Instrumentation.Instrumentation;
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
 var builder = WebApplication.CreateSlimBuilder(args);

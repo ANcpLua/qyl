@@ -6,12 +6,13 @@ description: Run qyl tests with correct MTP syntax via NUKE. Use when running ba
 # Run Tests
 
 Tests use xUnit v3 on Microsoft Testing Platform. Always run through NUKE.
+Use the default `nuke` entrypoint for the full backend suite instead of explicit `nuke Test`.
 
 ## Quick Commands
 
 ```bash
 # Run all tests
-nuke Test
+nuke
 
 # Unit tests only
 nuke UnitTests
@@ -26,19 +27,19 @@ xUnit v3 uses query syntax, not the old VSTest `--filter` flag. Pass via NUKE pa
 
 ```bash
 # Filter by namespace pattern
-nuke Test --IQylTest.TestFilter "/*/*/Unit/*"
+nuke --IQylTest.TestFilter "/*/*/Unit/*"
 
 # Filter by class
-nuke Test --IQylTest.TestFilter "/*/CloneTests/*"
+nuke --IQylTest.TestFilter "/*/CloneTests/*"
 
 # Filter by specific method
-nuke Test --IQylTest.TestFilter "/*/*/SkillsTests/TestSkillExecution"
+nuke --IQylTest.TestFilter "/*/*/SkillsTests/TestSkillExecution"
 
 # Stop on first failure + live output
-nuke Test --IQylTest.StopOnFail --IQylTest.LiveOutput
+nuke --IQylTest.StopOnFail --IQylTest.LiveOutput
 
 # Combined
-nuke Test --IQylTest.TestFilter "/*/RpcTests/*" --IQylTest.StopOnFail --IQylTest.LiveOutput
+nuke --IQylTest.TestFilter "/*/RpcTests/*" --IQylTest.StopOnFail --IQylTest.LiveOutput
 ```
 
 ## MTP Exit Codes
@@ -52,6 +53,9 @@ nuke Test --IQylTest.TestFilter "/*/RpcTests/*" --IQylTest.StopOnFail --IQylTest
 ## Wrong (never do this)
 
 ```bash
+# Wrong: explicit target is discouraged in this repo
+nuke Test
+
 # Wrong: VSTest filter syntax
 dotnet test --filter "FullyQualifiedName~CloneTests"
 

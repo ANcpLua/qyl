@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Transitive build targets for qyl.instrumentation consumers.
+  Automatically flows the source generator and required settings to projects
+  that reference qyl.instrumentation, enabling the "magic" experience.
+-->
+<Project>
+  <PropertyGroup>
+    <!-- Enable interceptors namespace for generated code -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Flow the source generator to consumers.
+      The generator DLL path is relative to this targets file location.
+      For ProjectReference builds, this resolves to the generator output.
+    -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.instrumentation.generators/bin/$(Configuration)/netstandard2.0/qyl.instrumentation.generators.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.instrumentation.generators/bin/$(Configuration)/netstandard2.0/qyl.instrumentation.generators.dll')"/>
+    <!-- Generator dependency: ANcpLua.Roslyn.Utilities (pipeline helpers) -->
+    <Analyzer Include="$(MSBuildThisFileDirectory)../../qyl.instrumentation.generators/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll"
+              Condition="Exists('$(MSBuildThisFileDirectory)../../qyl.instrumentation.generators/bin/$(Configuration)/netstandard2.0/ANcpLua.Roslyn.Utilities.dll')"/>
+  </ItemGroup>
+</Project>

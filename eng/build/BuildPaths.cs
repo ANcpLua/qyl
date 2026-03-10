@@ -20,7 +20,7 @@ interface IHazSourcePaths : IHazSolution, IHazArtifacts
     AbsolutePath SourceDirectory => RootDirectory / "src";
     AbsolutePath CollectorDirectory => SourceDirectory / "qyl.collector";
     AbsolutePath DashboardDirectory => SourceDirectory / "qyl.dashboard";
-    AbsolutePath ProtocolDirectory => SourceDirectory / "qyl.protocol";
+    AbsolutePath ProtocolDirectory => SourceDirectory / "qyl.contracts";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
     AbsolutePath ComposeFile => SourceDirectory / "compose.yaml";
     AbsolutePath TestResultsDirectory => RootDirectory / "TestResults";
@@ -35,12 +35,12 @@ public sealed record CodegenPaths(AbsolutePath Root)
 {
     public AbsolutePath Core => Root / "core";
     public AbsolutePath OpenApi => Core / "openapi";
-    public AbsolutePath Protocol => Root / "src" / "qyl.protocol";
+    public AbsolutePath Protocol => Root / "src" / "qyl.contracts";
     public AbsolutePath Collector => Root / "src" / "qyl.collector";
     public AbsolutePath CollectorStorage => Collector / "Storage";
     public AbsolutePath Migrations => CollectorStorage / "Migrations";
     public AbsolutePath Dashboard => Root / "src" / "qyl.dashboard";
-    public AbsolutePath ServiceDefaultsGenerator => Root / "src" / "qyl.servicedefaults.generator";
+    public AbsolutePath InstrumentationGenerator => Root / "src" / "qyl.instrumentation.generators";
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
 }
 

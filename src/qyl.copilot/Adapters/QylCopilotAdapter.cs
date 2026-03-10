@@ -11,7 +11,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using qyl.copilot.Auth;
 using qyl.copilot.Instrumentation;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Adapters;
 
@@ -119,7 +119,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         }
 
         // Create the agent - OTel instrumentation is handled AUTOMATICALLY by
-        // qyl.servicedefaults.generator which intercepts AIAgent.RunAsync() calls
+        // qyl.instrumentation.generators which intercepts AIAgent.RunAsync() calls
         // at compile time. No manual UseOpenTelemetry() needed!
         var agent = client.AsAIAgent(
             tools: wrappedTools,

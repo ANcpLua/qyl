@@ -1,7 +1,7 @@
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Qyl.ServiceDefaults.Instrumentation.GenAi;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace Qyl.Samples.MafAgent;
 

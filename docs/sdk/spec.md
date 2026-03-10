@@ -8,7 +8,7 @@ behavior switching.
 | Object                 | Description                                      | src/ Mapping                              |
 |------------------------|--------------------------------------------------|-------------------------------------------|
 | Semconv Contracts      | Generated and strongly typed OTel GenAI attributes | `qyl.protocol/`                           |
-| Traced Interceptors    | Roslyn-driven compile-time method interception      | `qyl.servicedefaults.generator/`          |
+| Traced Interceptors    | Roslyn-driven compile-time method interception      | `qyl.instrumentation.generators/`          |
 | Runtime Telemetry Kits  | Generated conventions and attribute helpers        | `qyl.servicedefaults/`                   |
 | Heuristic Continuation  | LLM evaluator minimization heuristics             | `qyl.copilot/` (agent continuation hooks) |
 
@@ -30,9 +30,9 @@ behavior switching.
 ```text
 src/qyl.protocol/*.g.cs
 src/qyl.servicedefaults/Instrumentation/*.cs
-src/qyl.servicedefaults.generator/Analyzers/*.cs
-src/qyl.servicedefaults.generator/Emitters/*.cs
-src/qyl.servicedefaults.generator/Models/Models.cs
+src/qyl.instrumentation.generators/Analyzers/*.cs
+src/qyl.instrumentation.generators/Emitters/*.cs
+src/qyl.instrumentation.generators/Models/Models.cs
 src/qyl.collector/Observe/
 src/qyl.collector/Observe/*.cs
 ```
@@ -49,5 +49,5 @@ src/qyl.collector/Observe/*.cs
 
 Scope guard:
 - Layer 1 (schema generation): `eng/build/SchemaGenerator.cs` and the NUKE schema pipeline.
-- Layer 2 (Roslyn source generation): `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs` plus analyzer/emitter pairs.
+- Layer 2 (Roslyn source generation): `src/qyl.instrumentation.generators/ServiceDefaultsSourceGenerator.cs` plus analyzer/emitter pairs.
 - Layer 3 (runtime + collector): `src/qyl.servicedefaults/`, `src/qyl.collector/`.

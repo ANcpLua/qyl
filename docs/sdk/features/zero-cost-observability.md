@@ -1,7 +1,7 @@
 # Zero-Cost-Until-Observed: Compiled Observability Contracts
 
 For the complete attribute-to-pipeline mapping for tracing, agent tracing, and metrics generators, see the [Instrumentation Toolkit Reference](instrumentation-toolkit.md).
-For layer governance, keep generator changes in `src/qyl.servicedefaults.generator/` and runtime/collector changes in
+For layer governance, keep generator changes in `src/qyl.instrumentation.generators/` and runtime/collector changes in
 `src/qyl.servicedefaults/` plus `src/qyl.collector/`; schema-generation belongs only to `eng/build/SchemaGenerator.cs`.
 
 > Merged from: `zero-cost-observability-proposal.md` (vision) + `plans/phase-3-4-5-implementation-spec.md` (
@@ -584,7 +584,7 @@ The components for zero-cost-until-observed already exist across the .NET runtim
 | Dynamic subscription wiring             | `src/qyl.collector/Observe/SubscriptionManager.cs`                       |
 | HTTP subscription endpoints             | `src/qyl.collector/Observe/ObserveEndpoints.cs`                          |
 | Lazy ActivitySources + Meters           | `src/qyl.servicedefaults/Instrumentation/ActivitySources.cs`             |
-| Generated interceptors with null-guard  | `src/qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs` |
+| Generated interceptors with null-guard  | `src/qyl.instrumentation.generators/Emitters/TracedInterceptorEmitter.cs` |
 | DuckDB storage via Appender             | `src/qyl.collector/Storage/SpanAppender.cs` (post-purge)                 |
 | SSE streaming with connection lifecycle | `src/qyl.collector/Realtime/SseEndpoints.cs`                             |
 | TypeSpec schemas with semconv 1.40      | `core/specs/main.tsp`                                                    |
@@ -618,7 +618,7 @@ The work touches **four** areas of the repository.
 | Area                                  | Projects                              |
 |---------------------------------------|---------------------------------------|
 | Nuke build system                     | `eng/build/`                          |
-| Roslyn generator (public NuGet)       | `src/qyl.servicedefaults.generator/`  |
+| Roslyn generator (public NuGet)       | `src/qyl.instrumentation.generators/`  |
 | Roslyn generator (collector-internal) | `src/qyl.instrumentation.generators/` |
 | Collector observe subsystem           | `src/qyl.collector/Observe/`          |
 
@@ -695,7 +695,7 @@ The canonical domain attribute lists live here as `facades[].attributes` arrays.
 
 This JSON is the **source of truth** for Phase 3. Do not invent attribute lists.
 
-### What exists in `src/qyl.servicedefaults.generator/`
+### What exists in `src/qyl.instrumentation.generators/`
 
 No `Generated/` directory yet. The generator already has.
 
@@ -725,7 +725,7 @@ compile-time validation source.
 
 ```
 eng/build/ContractGenerator.cs                                        NEW
-src/qyl.servicedefaults.generator/Generated/DomainContracts.g.cs     GENERATED (written by Nuke)
+src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs     GENERATED (written by Nuke)
 src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs    GENERATED (written by Nuke, identical content)
 ```
 
@@ -742,7 +742,7 @@ src/qyl.collector/Observe/ObserveCatalog.cs    replace hardcoded Domains[] with 
 In `eng/build/BuildPaths.cs`, add to `CodegenPaths`.
 
 ```csharp
-public AbsolutePath ServiceDefaultsGenerator => Root / "src" / "qyl.servicedefaults.generator";
+public AbsolutePath ServiceDefaultsGenerator => Root / "src" / "qyl.instrumentation.generators";
 public AbsolutePath InstrumentationGenerators => Root / "src" / "qyl.instrumentation.generators";
 ```
 
@@ -1107,7 +1107,7 @@ This writes identical `DomainContracts.g.cs` files to both destinations.
 Verify both files exist and compile.
 
 ```bash
-dotnet build src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj --no-restore -v q
+dotnet build src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj --no-restore -v q
 dotnet build src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj --no-restore -v q
 ```
 
@@ -1144,13 +1144,13 @@ No other changes to `ObserveCatalog.cs` in this step.
 ### Phase 3 Validation Checklist
 
 1. `nuke GenerateContracts` exits with code 0.
-2. File `src/qyl.servicedefaults.generator/Generated/DomainContracts.g.cs` exists.
+2. File `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` exists.
 3. File `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` exists.
 4. Both files have identical content (byte-for-byte).
 5. Both files declare `namespace qyl.Contracts`.
 6. Both files contain `internal static class DomainContracts` with fields `GenAi`, `Db`, `Traced`, `Agent`, `All`.
 7. `DomainContracts.All.Length == 4`.
-8. `dotnet build src/qyl.servicedefaults.generator/...csproj --no-restore -v q` → 0 errors.
+8. `dotnet build src/qyl.instrumentation.generators/...csproj --no-restore -v q` → 0 errors.
 9. `dotnet build src/qyl.instrumentation.generators/...csproj --no-restore -v q` → 0 errors.
 10. `CatalogDomain` in `ObserveCatalog.cs` has a nullable `ContractHash` property with `JsonIgnore(WhenWritingNull)`.
 11. Running `nuke Generate` runs `GenerateContracts` as a dependency step.
@@ -1794,7 +1794,7 @@ These must hold at every phase boundary and in the final state.
 | `eng/build/BuildPaths.cs`                                           | 3     | Modify — add 2 path properties to `CodegenPaths`                                                   |
 | `eng/build/ContractGenerator.cs`                                    | 3     | **Create**                                                                                         |
 | `eng/build/BuildPipeline.cs`                                        | 3     | Modify — add `GenerateContracts` target, wire into `Generate`                                      |
-| `src/qyl.servicedefaults.generator/Generated/DomainContracts.g.cs`  | 3     | **Generated by Nuke**                                                                              |
+| `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs`  | 3     | **Generated by Nuke**                                                                              |
 | `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | 3     | **Generated by Nuke**                                                                              |
 | `src/qyl.collector/Observe/ObserveCatalog.cs`                       | 3 + 4 | Modify — add `ContractHash` to `CatalogDomain`; add `ComputeHash`, `BuildDomains`, `GetDomainHash` |
 | `src/qyl.collector/Observe/ObservationSubscription.cs`              | 4 + 5 | Modify — add `ContractHash`, `SchemaVersion` properties; extend constructor                        |

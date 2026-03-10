@@ -3,7 +3,7 @@
 ## Core principle
 
 - All instrumentation for these domains is generated at **compile time** through an `IIncrementalGenerator` setup in:
-  - `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs`
+  - `src/qyl.instrumentation.generators/ServiceDefaultsSourceGenerator.cs`
 - There is **no reflection-based runtime AOP** for these attributes.
 - Generation is implemented through generator pipelines, analyzers, and emitters.
 - Generated code is emitted as part of the compile and uses direct OpenTelemetry API calls.
@@ -118,23 +118,23 @@
 
 - Runtime attribute definitions: `src/qyl.servicedefaults/Instrumentation/*.cs`
 - Runtime exception contract: `src/qyl.servicedefaults/Instrumentation/ActivityExceptionTelemetry.cs`
-- Generator wiring: `src/qyl.servicedefaults.generator/ServiceDefaultsSourceGenerator.cs`
+- Generator wiring: `src/qyl.instrumentation.generators/ServiceDefaultsSourceGenerator.cs`
 - Analyzer/Emitter pairs:
-  - Builder registration: `src/qyl.servicedefaults.generator/`
+  - Builder registration: `src/qyl.instrumentation.generators/`
   - Tracing:
-    - `src/qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/TracedCallSiteAnalyzer.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/TelemetryTagNameResolver.cs`
+    - `src/qyl.instrumentation.generators/Emitters/TracedInterceptorEmitter.cs`
   - Agent:
-    - `src/qyl.servicedefaults.generator/Analyzers/AgentCallSiteAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/AgentInterceptorEmitter.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/AgentCallSiteAnalyzer.cs`
+    - `src/qyl.instrumentation.generators/Emitters/AgentInterceptorEmitter.cs`
   - Metrics:
-    - `src/qyl.servicedefaults.generator/Analyzers/MeterAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/MeterEmitter.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/MeterAnalyzer.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/TelemetryTagNameResolver.cs`
+    - `src/qyl.instrumentation.generators/Emitters/MeterEmitter.cs`
   - DB:
-    - `src/qyl.servicedefaults.generator/Analyzers/DbCallSiteAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/DbInterceptorEmitter.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/DbCallSiteAnalyzer.cs`
+    - `src/qyl.instrumentation.generators/Emitters/DbInterceptorEmitter.cs`
   - GenAI:
-    - `src/qyl.servicedefaults.generator/Analyzers/GenAiCallSiteAnalyzer.cs`
-    - `src/qyl.servicedefaults.generator/Emitters/GenAiInterceptorEmitter.cs`
+    - `src/qyl.instrumentation.generators/Analyzers/GenAiCallSiteAnalyzer.cs`
+    - `src/qyl.instrumentation.generators/Emitters/GenAiInterceptorEmitter.cs`

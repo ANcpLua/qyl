@@ -9,7 +9,7 @@ using System.Runtime.CompilerServices;
 using qyl.copilot.Adapters;
 using qyl.copilot.Instrumentation;
 using qyl.copilot.Routing;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Workflows;
 

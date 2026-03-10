@@ -7,7 +7,7 @@ license: Apache-2.0
 disable-model-invocation: true
 ---
 
-> [All Skills](../../SKILL_TREE.md) > [Workflow](../qyl-workflow.md) > PR Code Review
+> [Workflow Tree](./qyl-skill-tree.md) > [Workflow Router](./qyl-workflow.md) > PR Code Review
 
 # qyl PR Review Workflow
 
@@ -23,6 +23,8 @@ Use this when the user explicitly asks to review a PR flow, or to process a PR w
 - If PR is provided, use it directly.
 - If not provided, ask the user for PR number and repo and suggest recent open PRs with
   `qyl.list_github_events` filtered by `eventType: pull_request`.
+
+qyl currently exposes review execution per PR. There is no separate MCP queue or batch-review object to consume.
 
 ## Step 2 — run or refresh review
 

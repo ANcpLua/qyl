@@ -4,7 +4,7 @@
 // =============================================================================
 
 using System.Text.Json.Serialization;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot;
 

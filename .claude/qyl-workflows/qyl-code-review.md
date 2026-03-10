@@ -7,7 +7,7 @@ parent: qyl-workflow
 disable-model-invocation: true
 ---
 
-> [All Skills](../../SKILL_TREE.md) > [Workflow](../qyl-workflow.md) > Code Review
+> [Workflow Tree](./qyl-skill-tree.md) > [Workflow Router](./qyl-workflow.md) > Code Review
 
 # qyl Code Review
 
@@ -25,6 +25,9 @@ Use this workflow when asked to:
 
 - `qyl.trigger_code_review(repoFullName, prNumber)`
 - `qyl.get_code_review(repoFullName, prNumber)`
+
+`src/qyl.collector/Autofix/CodeReviewService.cs` is the source of truth for review behavior.
+`src/qyl.mcp/Tools/GitHubMcpTools.cs` is the MCP adapter that exposes trigger/get.
 
 ## Workflow
 
@@ -69,6 +72,7 @@ If the review should be returned to GitHub and qyl GitHub posting is enabled, us
 POST /api/v1/code-review/{owner%2Frepo}/pulls/{prNumber}/post
 ```
 
+This is collector REST-only today. There is currently no dedicated MCP tool for posting review comments back to GitHub.
 If the endpoint returns failure, ask user to confirm GitHub token setup and scopes.
 
 ### 5. Reporting

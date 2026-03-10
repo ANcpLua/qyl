@@ -1,7 +1,7 @@
 # qyl.mcp
 
 MCP server for the qyl AI observability platform. It gives AI agents access to traces, logs, metrics, GenAI sessions,
-build failures, anomaly analysis, and qyl's investigation tools.
+build failures, anomaly analysis, and qyl's workflow/meta-agent tools over collector HTTP.
 
 `qyl.mcp` now supports both:
 
@@ -71,10 +71,10 @@ Primary tool families:
 - inspect: traces, spans, errors, logs, services, sessions
 - health: storage and system context
 - analytics: conversation and user analytics
-- agent: RCA, summaries, autonomous investigation
+- agent: `qyl.use_qyl`, `qyl.root_cause_analysis`, summaries, fix generation
 - build: captured build failures
 - anomaly: baselines and anomaly detection
-- copilot / Claude Code / loom: AI workflow and fix pipeline tools
+- copilot / Claude Code / loom: AI workflow, triage, fix pipeline, and handoff tools
 
 The exact exposed tool set is controlled by `QYL_SKILLS`.
 

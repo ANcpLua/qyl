@@ -14,7 +14,7 @@ worktrees=(
 role_contents_common='
 Repository architecture constraints (3 layers — never conflate):
 - Layer 1 (Schema generation): eng/build/SchemaGenerator.cs — NUKE build time
-- Layer 2 (Roslyn source generation): src/qyl.servicedefaults.generator/ — MSBuild compile time
+- Layer 2 (Roslyn source generation): src/qyl.instrumentation.generators/ — MSBuild compile time
 - Layer 3 (Runtime + collector): src/qyl.servicedefaults/, src/qyl.collector/ — Application runtime
 
 Non-negotiable:
@@ -36,7 +36,7 @@ get_agent_section() {
 - Scope: `src/qyl.collector`, API handlers, DuckDB queries, persistence, backend Loom services
 - Ownership:
   - Only touch `eng/build` if a backend contract bug is proven from generated schema/DDL.
-  - Do not touch `src/qyl.servicedefaults.generator` unless a compile-time interceptor bug directly causes the failing backend behavior.
+  - Do not touch `src/qyl.instrumentation.generators` unless a compile-time interceptor bug directly causes the failing backend behavior.
 - Model routing:
   - Default: Claude Sonnet 4.6 (`high`)
   - Escalate to: Claude Opus 4.6 (`max`) for cross-layer incidents or deep root cause analysis.

@@ -28,7 +28,7 @@ One consumer. No coordination needed.
 |---------------|-------------|-----------|
 | `qyl.protocol` | `qyl.contracts` | .NET convention; "protocol" conflicts with OTLP protocol |
 | `qyl.servicedefaults` | `qyl.instrumentation` | "servicedefaults" is an Aspire template artifact |
-| `qyl.servicedefaults.generator` | `qyl.instrumentation.generators` | `{library}.generators` Roslyn convention |
+| `qyl.instrumentation.generators` | `qyl.instrumentation.generators` | `{library}.generators` Roslyn convention |
 
 ### 3.2 New Extracted Projects
 
@@ -123,7 +123,7 @@ git checkout -b feature/loom-decomposition
    - Update all `<ProjectReference>` paths across solution
 2. Rename `src/qyl.servicedefaults/` → `src/qyl.instrumentation/`
    - Update csproj, `RootNamespace`, `InterceptorsNamespaces`
-3. Rename `src/qyl.servicedefaults.generator/` → `src/qyl.instrumentation.generators/`
+3. Rename `src/qyl.instrumentation.generators/` → `src/qyl.instrumentation.generators/`
    - Update csproj, namespace
 
 ### Step 3: Add Extracted Projects
@@ -207,9 +207,9 @@ gh pr create --title "Loom decomposition" --body "See docs/plans/2026-03-10-qyl-
 - [ ] `src/qyl.copilot/` deleted
 - [ ] `src/qyl.protocol/` renamed to `src/qyl.contracts/`
 - [ ] `src/qyl.servicedefaults/` renamed to `src/qyl.instrumentation/`
-- [ ] `src/qyl.servicedefaults.generator/` renamed to `src/qyl.instrumentation.generators/`
+- [ ] `src/qyl.instrumentation.generators/` renamed to `src/qyl.instrumentation.generators/`
 - [ ] `src/qyl.agents/`, `src/qyl.workflows/`, `src/qyl.loom/` added
-- [ ] No grep hits for `qyl.protocol`, `qyl.servicedefaults`, `qyl.copilot`, `Qyl.ServiceDefaults.Generator`
+- [ ] No grep hits for `qyl.protocol`, `qyl.servicedefaults`, `qyl.copilot`, `Qyl.Instrumentation.Generators`
 - [ ] `qyl.slnx` updated with all new projects
 - [ ] Collector has zero duplicated Loom directories
 - [ ] `dotnet build` — 0 errors, 0 warnings

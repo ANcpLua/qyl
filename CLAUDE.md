@@ -34,7 +34,7 @@ Docker image IS the product.
 | Layer | Location | Runs at | Responsibility |
 |-------|----------|---------|----------------|
 | 1. Schema generation | `eng/build/SchemaGenerator.cs` | NUKE build time | TypeSpec OpenAPI → C# models, enums, DuckDB DDL |
-| 2. Roslyn source generation | `src/qyl.servicedefaults.generator/` | MSBuild compile time | 7 interceptor pipelines → compile-time instrumentation |
+| 2. Roslyn source generation | `src/qyl.instrumentation.generators/` | MSBuild compile time | 7 interceptor pipelines → compile-time instrumentation |
 | 3. Runtime + collector | `src/qyl.servicedefaults/` + `src/qyl.collector/` | Application runtime | OTel wiring, collector discovery, DevLogs bridge, OTLP ingestion, DuckDB, SSE |
 
 ### Non-Negotiable Rules
@@ -79,7 +79,7 @@ CopilotKit / Angular / Vanilla JS
 core/specs/*.tsp → qyl.protocol → qyl.collector → qyl.dashboard
                                  → qyl.mcp
                                  → qyl.copilot (AG-UI + declarative workflows)
-                                 → qyl.servicedefaults → qyl.servicedefaults.generator
+                                 → qyl.servicedefaults → qyl.instrumentation.generators
 eng/build/ → orchestrates everything above
 ```
 

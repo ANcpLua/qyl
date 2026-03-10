@@ -365,7 +365,7 @@ GenAI instrumentation, and full OTel SemConv v1.40 compliance.
 | qyl Implementation             | File                                                                    |
 |--------------------------------|-------------------------------------------------------------------------|
 | Service defaults / OTel wiring | `src/qyl.servicedefaults/`                                              |
-| Compile-time interceptors      | `src/qyl.servicedefaults.generator/`                                    |
+| Compile-time interceptors      | `src/qyl.instrumentation.generators/`                                    |
 | GenAI instrumentation          | `src/qyl.servicedefaults/Instrumentation/GenAi/GenAiInstrumentation.cs` |
 | Telemetry source generators    | `src/qyl.instrumentation.generators/`                                   |
 

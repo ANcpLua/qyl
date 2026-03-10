@@ -3,7 +3,7 @@
 // Abstraction for persisting workflow executions (DuckDB, in-memory, etc.)
 // =============================================================================
 
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Workflows;
 

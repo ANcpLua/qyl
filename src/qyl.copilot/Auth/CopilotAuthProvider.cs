@@ -4,7 +4,7 @@
 // OTel 1.40 compliant instrumentation
 // =============================================================================
 
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Auth;
 

@@ -7,7 +7,7 @@ namespace qyl.collector.Observe;
 internal static class ObserveCatalog
 {
     // Semconv version that the attribute manifests correspond to.
-    // Sourced from qyl.protocol.Attributes.GenAiAttributes.SchemaUrl.
+    // Sourced from qyl.contracts.Attributes.GenAiAttributes.SchemaUrl.
     private const string SchemaVersion = "semconv-1.40.0";
 
     /// <summary>

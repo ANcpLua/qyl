@@ -6,7 +6,7 @@
 
 using System.Text.Json;
 using System.Text.RegularExpressions;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Workflows;
 

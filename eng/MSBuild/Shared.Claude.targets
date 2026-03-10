@@ -47,7 +47,7 @@
   <!--
     ClaudeDependency: Key dependencies with purpose
     Example:
-    <ClaudeDependency Include="qyl.protocol" Type="project" Purpose="shared types"/>
+    <ClaudeDependency Include="qyl.contracts" Type="project" Purpose="shared types"/>
     <ClaudeDependency Include="DuckDB.NET.Data.Full" Type="package" Purpose="storage engine"/>
   -->
 

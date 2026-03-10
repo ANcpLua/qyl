@@ -1,4 +1,4 @@
-using qyl.protocol.Attributes;
+using qyl.contracts.Attributes;
 
 namespace qyl.mcp;
 

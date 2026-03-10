@@ -1,6 +1,6 @@
-# qyl Skill Tree
+# qyl Workflow Tree
 
-Use this as a local entry point for qyl workflow docs.
+Use this as the local entry point for qyl workflow docs.
 
 ## Start here
 
@@ -13,6 +13,12 @@ If intent is unclear, read:
 
 - `qyl-workflow.md` — router and dispatch rules
 - `qyl-command.md` — `/qyl` natural-language command
+
+## Architecture anchors
+
+- `src/qyl.collector` — domain logic and REST endpoints
+- `src/qyl.mcp` — MCP transport and tool adapters
+- `src/qyl.copilot` — embedded-agent and workflow primitives
 
 ## Workflows
 

@@ -1,5 +1,5 @@
 using qyl.copilot.Workflows;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.collector.Storage;
 

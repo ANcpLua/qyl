@@ -4,7 +4,7 @@ using qyl.copilot.Auth;
 using qyl.copilot.Providers;
 using qyl.copilot.Routing;
 using qyl.collector.Auth;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 

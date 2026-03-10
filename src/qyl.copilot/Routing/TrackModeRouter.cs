@@ -3,7 +3,7 @@
 // Unified tri-track routing for Creative / Reasoning / Enterprise execution.
 // =============================================================================
 
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.copilot.Routing;
 

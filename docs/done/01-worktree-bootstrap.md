@@ -34,14 +34,14 @@ Model routing policy:
 
 Repository architecture (3 layers — never conflate):
 1. Schema generation — `eng/build/SchemaGenerator.cs` (NUKE build step, emits models/enums/DDL)
-2. Roslyn source generator — `src/qyl.servicedefaults.generator/` (7 incremental pipelines, compile-time interceptors)
+2. Roslyn source generator — `src/qyl.instrumentation.generators/` (7 incremental pipelines, compile-time interceptors)
 3. Runtime + collector — `src/qyl.servicedefaults/`, `src/qyl.collector/` (OTel wiring, collector discovery, DevLogs bridge, OTLP ingestion, DuckDB, SSE)
 
 Required worktrees:
 
 | Worktree | Branch | Ownership |
 |----------|--------|-----------|
-| `.worktrees/wt-backend` | `dev/wt-backend` | `src/qyl.collector`, API handlers, DuckDB queries, persistence, backend Loom services. Only touch `eng/build` if a backend contract bug is proven from generated schema/DDL. Do not touch `src/qyl.servicedefaults.generator` unless a compile-time interceptor bug directly causes the failing backend behavior. |
+| `.worktrees/wt-backend` | `dev/wt-backend` | `src/qyl.collector`, API handlers, DuckDB queries, persistence, backend Loom services. Only touch `eng/build` if a backend contract bug is proven from generated schema/DDL. Do not touch `src/qyl.instrumentation.generators` unless a compile-time interceptor bug directly causes the failing backend behavior. |
 | `.worktrees/wt-frontend` | `dev/wt-frontend` | `src/qyl.dashboard`. Never touch any generator layer. If UI failures come from bad backend shape, document the contract mismatch and hand to backend. |
 | `.worktrees/wt-loom` | `dev/wt-loom` | Loom-specific services and verification. Treat generator and runtime layers as constrained deps. If Autofix/Triage/Regression needs missing telemetry, prove whether it's collector ingestion, generated instrumentation, or runtime wiring before editing shared infra. |
 | `.worktrees/wt-mcp` | `dev/wt-mcp` | `src/qyl.mcp` and protocol exposure. Do not "fix" missing tool behavior by rewriting runtime instrumentation unless protocol validation proves root cause is telemetry availability. |

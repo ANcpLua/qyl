@@ -1,4 +1,4 @@
-using Qyl.ServiceDefaults.Instrumentation;
+using Qyl.Instrumentation.Instrumentation;
 
 namespace Qyl.Hosting.Telemetry;
 

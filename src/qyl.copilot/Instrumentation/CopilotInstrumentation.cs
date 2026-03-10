@@ -4,8 +4,8 @@
 // Metrics are auto-generated via CopilotMetrics [Meter] class
 // =============================================================================
 
-using qyl.protocol.Attributes;
-using Qyl.ServiceDefaults.Instrumentation.GenAi;
+using qyl.contracts.Attributes;
+using Qyl.Instrumentation.Instrumentation.GenAi;
 
 namespace qyl.copilot.Instrumentation;
 

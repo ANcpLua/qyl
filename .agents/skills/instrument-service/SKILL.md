@@ -7,6 +7,12 @@ description: Add compile-time OTel instrumentation to qyl services using source-
 
 qyl uses compile-time source generation for zero-cost observability. Annotate your code, the Roslyn generator produces interceptor methods with `[InterceptsLocation]`. No runtime agent, no reflection, no overhead when nobody is listening.
 
+## Best-Fit Projects
+
+- Good fit: `src/qyl.collector`, `src/qyl.copilot`, `src/qyl.hosting`, `src/qyl.servicedefaults`
+- Usually not the right place: `src/qyl.protocol` (BCL-only contracts) and most of `src/qyl.mcp` (HTTP/MCP adapter surface)
+- If collector and copilot both touch the same behavior, instrument the concrete runtime service where the work actually happens
+
 ## Attribute Vocabulary
 
 ### Tracing (spans)

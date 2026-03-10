@@ -21,15 +21,18 @@ Use this when a user asks for an observational or investigative query.
 /qyl Which error issues are linked to recent deploys?
 /qyl List fix runs for issue ISS-1234
 /qyl Is PR #321 in owner/repo still awaiting code-review findings?
+/qyl What caused the spike in errors at 15:00 across checkout services?
 ```
 
 ## How to execute a query
 
 1. Parse intent (issues, triage, fixes, regressions, PR review, handoff state).
 2. Call the relevant MCP tool(s):
+   - Open-ended multi-domain investigation: `qyl.use_qyl`
    - Issue discovery: `qyl.list_error_issues`
    - Issue details: `qyl.get_error_issue`, `qyl.get_error_timeline`
    - Triage: `qyl.get_triage`, `qyl.list_triage`, `qyl.trigger_triage`
+   - RCA: `qyl.root_cause_analysis`
    - Fix runs: `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.get_fix_run_steps`
    - Regressions: `qyl.list_regressions`, `qyl.get_issue_regressions`
    - Handoffs: `qyl.get_pending_handoffs`, `qyl.get_handoff_context`
@@ -71,6 +74,7 @@ Use the smallest useful format.
 - Keep timestamps readable (`2 mins ago`, `1 hour ago`).
 - If query returns no items, include two alternatives.
 - Never output secrets, raw request bodies, or full stack traces without redacting sensitive tokens.
+- Prefer narrow tools over `qyl.use_qyl` when the request is deterministic and maps to one domain cleanly.
 
 ## Error handling
 

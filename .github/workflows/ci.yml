@@ -184,7 +184,7 @@ jobs:
             src/qyl.collector/Storage/DuckDbSchema.g.cs \
             src/qyl.dashboard/src/types/api.ts \
             src/qyl.servicedefaults/ \
-            src/qyl.servicedefaults.generator/Generated/ \
+            src/qyl.instrumentation.generators/Generated/ \
             core/openapi/; then
             echo "::error::Generated files are stale. Run 'nuke Generate' locally and commit the result."
             git diff --stat -- \
@@ -192,7 +192,7 @@ jobs:
               src/qyl.collector/Storage/DuckDbSchema.g.cs \
               src/qyl.dashboard/src/types/api.ts \
               src/qyl.servicedefaults/ \
-              src/qyl.servicedefaults.generator/Generated/ \
+              src/qyl.instrumentation.generators/Generated/ \
               core/openapi/
             exit 1
           fi

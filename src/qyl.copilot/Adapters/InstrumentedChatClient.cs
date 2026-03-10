@@ -11,7 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Microsoft.Extensions.AI;
 using qyl.copilot.Instrumentation;
-using qyl.protocol.Attributes;
+using qyl.contracts.Attributes;
 
 namespace qyl.copilot.Adapters;
 

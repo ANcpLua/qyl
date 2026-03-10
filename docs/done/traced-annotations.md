@@ -9,7 +9,7 @@ the [Instrumentation Toolkit Reference](instrumentation-toolkit.md).
 
 Layer guard:
 - Keep schema-generation changes in `eng/build/SchemaGenerator.cs` only.
-- Keep generator semantic changes in `src/qyl.servicedefaults.generator/`.
+- Keep generator semantic changes in `src/qyl.instrumentation.generators/`.
 - Keep runtime + collector wiring in `src/qyl.servicedefaults/` and `src/qyl.collector/`.
 
 ---
@@ -34,12 +34,12 @@ All feature stories (T-001 through T-007) are implemented. T-008 (`[SpanEvent]`)
 | `[TracedTag]` attribute    | `qyl.servicedefaults/Instrumentation/TracedTagAttribute.cs`                               |
 | `[TracedReturn]` attribute | `qyl.servicedefaults/Instrumentation/TracedReturnAttribute.cs`                            |
 | `[NoTrace]` attribute      | `qyl.servicedefaults/Instrumentation/NoTraceAttribute.cs`                                 |
-| Call site analyzer         | `qyl.servicedefaults.generator/Analyzers/TracedCallSiteAnalyzer.cs`                       |
-| Tag name resolver          | `qyl.servicedefaults.generator/Analyzers/TelemetryTagNameResolver.cs`                     |
-| Interceptor emitter        | `qyl.servicedefaults.generator/Emitters/TracedInterceptorEmitter.cs`                      |
-| Diagnostic analyzer        | `qyl.servicedefaults.generator/Analyzers/TracedDiagnosticAnalyzer.cs`                     |
+| Call site analyzer         | `qyl.instrumentation.generators/Analyzers/TracedCallSiteAnalyzer.cs`                       |
+| Tag name resolver          | `qyl.instrumentation.generators/Analyzers/TelemetryTagNameResolver.cs`                     |
+| Interceptor emitter        | `qyl.instrumentation.generators/Emitters/TracedInterceptorEmitter.cs`                      |
+| Diagnostic analyzer        | `qyl.instrumentation.generators/Analyzers/TracedDiagnosticAnalyzer.cs`                     |
 | Exception telemetry        | `qyl.servicedefaults/Instrumentation/ActivityExceptionTelemetry.cs`                       |
-| Data model                 | `qyl.servicedefaults.generator/Models/Models.cs` (`TracedCallSite`, `TracedTagParameter`, `TracedTagProperty`, `TracedReturnInfo`) |
+| Data model                 | `qyl.instrumentation.generators/Models/Models.cs` (`TracedCallSite`, `TracedTagParameter`, `TracedTagProperty`, `TracedReturnInfo`) |
 | Generator pipeline         | `ServiceDefaultsSourceGenerator.cs` → `QSG005` → `TracedIntercepts.g.cs`                 |
 
 ---
@@ -128,7 +128,7 @@ likely to produce false positives (source registered via config, DI, or extensio
 the complexity.
 
 **Implementation:** `TracedDiagnosticAnalyzer : DiagnosticAnalyzerBase` in
-`qyl.servicedefaults.generator/Analyzers/TracedDiagnosticAnalyzer.cs`.
+`qyl.instrumentation.generators/Analyzers/TracedDiagnosticAnalyzer.cs`.
 
 ---
 

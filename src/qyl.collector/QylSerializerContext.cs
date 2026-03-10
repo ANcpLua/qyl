@@ -3,7 +3,7 @@ using qyl.collector.Dashboards;
 using qyl.collector.Insights;
 using qyl.collector.Meta;
 using qyl.collector.Search;
-using qyl.protocol.Copilot;
+using qyl.contracts.Copilot;
 
 namespace qyl.collector;
 

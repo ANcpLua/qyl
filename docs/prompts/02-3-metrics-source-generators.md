@@ -19,7 +19,7 @@ has its own generators (with file path evidence)
 Required content:
 - Table: Generator attributes ([Counter], [Histogram], [Gauge] etc.)
   Columns: Attribute | Generated Code | Advantage vs Manual
-- Comparison with qyl.servicedefaults.generator: [Traced] generates spans,
+- Comparison with qyl.instrumentation.generators: [Traced] generates spans,
   Microsoft generates metrics — complementary patterns
 - Partial method pattern: how generators produce extension methods
 - Correlation with section 15.6 (Compile-Time Tracing): same Roslyn generator
