@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 using System.ComponentModel;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class ServiceTools(HttpClient client)

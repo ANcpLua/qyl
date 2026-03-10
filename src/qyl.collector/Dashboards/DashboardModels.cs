@@ -1,4 +1,4 @@
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     Describes an auto-detected dashboard that appears when matching telemetry exists.

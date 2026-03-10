@@ -1,9 +1,10 @@
 using System.ComponentModel;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
+using Qyl.Mcp.Agents;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP meta-tool that gives an embedded LLM agent access to ALL qyl tools.
@@ -12,8 +13,9 @@ namespace qyl.mcp.Tools;
 ///     the right tools, and returns the results.
 /// </summary>
 [McpServerToolType]
-internal sealed class UseQylTools(McpToolRegistry registry, IChatClient? llm = null)
+internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration config)
 {
+    private readonly IChatClient? _agentClient = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.use_qyl", Title = "Use qyl",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
@@ -41,14 +43,14 @@ internal sealed class UseQylTools(McpToolRegistry registry, IChatClient? llm = n
         string? context = null,
         CancellationToken ct = default)
     {
-        if (llm is null)
+        if (_agentClient is null)
             return "use_qyl requires an LLM provider. " +
-                   "Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY environment variables. " +
+                   "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
                    "Use the individual query tools (search_spans, list_errors, get_genai_stats) instead.";
 
         var tools = registry.GetTools();
 
-        var client = new ChatClientBuilder(llm)
+        var client = new ChatClientBuilder(_agentClient)
             .UseFunctionInvocation(configure: invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 10;

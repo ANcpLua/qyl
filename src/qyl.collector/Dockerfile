@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# qyl.collector - Telemetry API Backend
+# Qyl.Collector - Telemetry API Backend
 # Build from repository root:
 #   docker build -f src/qyl.collector/Dockerfile -t qyl-collector .
 
@@ -33,11 +33,13 @@ COPY Directory.Build.props Directory.Build.targets Directory.Packages.props Vers
 COPY eng/ eng/
 
 # Copy project files for restore (layer caching - only invalidated when .csproj changes)
-COPY src/qyl.protocol/*.csproj src/qyl.protocol/
+COPY src/qyl.contracts/*.csproj src/qyl.contracts/
 COPY src/qyl.collector/*.csproj src/qyl.collector/
-COPY src/qyl.servicedefaults/*.csproj src/qyl.servicedefaults/
+COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
-COPY src/qyl.copilot/*.csproj src/qyl.copilot/
+COPY src/qyl.agents/*.csproj src/qyl.agents/
+COPY src/qyl.workflows/*.csproj src/qyl.workflows/
+COPY src/qyl.collector.storage.generators/*.csproj src/qyl.collector.storage.generators/
 
 # Restore dependencies with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector
@@ -46,11 +48,13 @@ RUN --mount=type=cache,id=s/ff836187-b65c-4645-ab40-67b54fbfa93f-nuget,target=/r
 
 # Copy source files
 WORKDIR /src
-COPY src/qyl.protocol/ src/qyl.protocol/
+COPY src/qyl.contracts/ src/qyl.contracts/
 COPY src/qyl.collector/ src/qyl.collector/
-COPY src/qyl.servicedefaults/ src/qyl.servicedefaults/
+COPY src/qyl.instrumentation/ src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
-COPY src/qyl.copilot/ src/qyl.copilot/
+COPY src/qyl.agents/ src/qyl.agents/
+COPY src/qyl.workflows/ src/qyl.workflows/
+COPY src/qyl.collector.storage.generators/ src/qyl.collector.storage.generators/
 
 # Publish with Railway NuGet cache mount
 WORKDIR /src/src/qyl.collector

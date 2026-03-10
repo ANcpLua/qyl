@@ -1,4 +1,4 @@
-namespace qyl.collector.Mapping;
+namespace Qyl.Collector.Mapping;
 
 public static class SpanMapper
 {

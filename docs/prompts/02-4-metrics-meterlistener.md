@@ -13,7 +13,7 @@ ONLY Part 4 (MeterListener, Observable Instruments) and append as section 15.11.
 docs/roadmap/loom-design.md
 
 Section: "15.11.4 MeterListener & Subscription Model"
-Scope labels: CONTEXT-ONLY for API reference, IMPLEMENTED-IN-QYL for qyl
+Scope labels: CONTEXT-ONLY for API reference,  IMPLEMENTED-IN-QYL.LOOM for qyl
 subscription pattern (with file path evidence)
 
 Required content:

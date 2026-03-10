@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     Maps dashboard REST API endpoints.

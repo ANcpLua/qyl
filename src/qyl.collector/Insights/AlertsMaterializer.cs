@@ -1,4 +1,4 @@
-namespace qyl.collector.Insights;
+namespace Qyl.Collector.Insights;
 
 /// <summary>
 ///     Detects error spikes, cost drift, and slow operations in the last hour.

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
-namespace qyl.collector.Auth;
+namespace Qyl.Collector.Auth;
 
 // ── Keycloak JWKS validation ──────────────────────────────────────────────────
 

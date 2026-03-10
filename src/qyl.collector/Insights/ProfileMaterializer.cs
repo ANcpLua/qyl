@@ -1,4 +1,4 @@
-namespace qyl.collector.Insights;
+namespace Qyl.Collector.Insights;
 
 /// <summary>
 ///     Computes latency percentiles, token spend, WoW trends, and error rates

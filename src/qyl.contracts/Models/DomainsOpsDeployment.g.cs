@@ -29,7 +29,7 @@ public sealed record DeploymentEntity
 
     /// <summary>Service version</summary>
     [JsonPropertyName("service.version")]
-    public required global::Qyl.Common.SemVer ServiceVersion { get; init; }
+    public required global::Qyl.Contracts.Common.SemVer ServiceVersion { get; init; }
 
     /// <summary>Environment</summary>
     [JsonPropertyName("environment")]
@@ -53,7 +53,7 @@ public sealed record DeploymentEntity
 
     /// <summary>Duration in seconds</summary>
     [JsonPropertyName("duration_s")]
-    public global::Qyl.Common.DurationS? DurationS { get; init; }
+    public global::Qyl.Contracts.Common.DurationS? DurationS { get; init; }
 
     /// <summary>Deployed by (user/system)</summary>
     [JsonPropertyName("deployed_by")]
@@ -69,7 +69,7 @@ public sealed record DeploymentEntity
 
     /// <summary>Previous version</summary>
     [JsonPropertyName("previous_version")]
-    public global::Qyl.Common.SemVer? PreviousVersion { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? PreviousVersion { get; init; }
 
     /// <summary>Rollback target (if rolled back)</summary>
     [JsonPropertyName("rollback_target")]

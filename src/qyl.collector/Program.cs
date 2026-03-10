@@ -2,35 +2,35 @@ using System.Reflection;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using qyl.collector;
-using qyl.collector.AgentRuns;
-using qyl.collector.Observe;
-using qyl.collector.Analytics;
-using qyl.collector.Auth;
-using qyl.collector.Autofix;
-using qyl.collector.BuildFailures;
-using qyl.collector.CodingAgent;
-using qyl.collector.ClaudeCode;
+using Qyl.Collector;
+using Qyl.Collector.AgentRuns;
+using Qyl.Collector.Observe;
+using Qyl.Collector.Analytics;
+using Qyl.Collector.Auth;
+using Qyl.Collector.Autofix;
+using Qyl.Collector.BuildFailures;
+using Qyl.Collector.CodingAgent;
+using Qyl.Collector.ClaudeCode;
 using Microsoft.Agents.AI;
-using qyl.collector.Copilot;
-using qyl.copilot.Agents;
-using qyl.collector.Dashboard;
-using qyl.collector.Dashboards;
-using qyl.collector.Grpc;
-using qyl.collector.Health;
-using qyl.collector.Identity;
-using qyl.collector.Insights;
-using qyl.collector.Logs;
-using qyl.collector.Meta;
-using qyl.collector.Provisioning;
-using qyl.collector.SchemaControl;
-using qyl.collector.Search;
-using qyl.collector.Services;
-using qyl.collector.Telemetry;
-using qyl.collector.Workflow;
-using qyl.copilot;
-using qyl.copilot.Auth;
-using qyl.copilot.Workflows;
+using Qyl.Collector.Copilot;
+using Qyl.Agents.Agents;
+using Qyl.Collector.Dashboard;
+using Qyl.Collector.Dashboards;
+using Qyl.Collector.Grpc;
+using Qyl.Collector.Health;
+using Qyl.Collector.Identity;
+using Qyl.Collector.Insights;
+using Qyl.Collector.Logs;
+using Qyl.Collector.Meta;
+using Qyl.Collector.Provisioning;
+using Qyl.Collector.SchemaControl;
+using Qyl.Collector.Search;
+using Qyl.Collector.Services;
+using Qyl.Collector.Telemetry;
+using Qyl.Collector.Workflow;
+using Qyl.Agents;
+using Qyl.Agents.Auth;
+using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -41,8 +41,13 @@ builder.UseQyl(options =>
 {
     // Collector has custom OpenAPI via stubs, not the standard AddOpenApi
     options.EnableOpenApi = false;
+    // The collector host should not auto-discover another collector and wire OTLP export to itself.
+    options.EnableAutoDiscovery = false;
+    // Collector provides its own richer health pipeline and endpoints.
+    options.EnableDefaultHealthChecks = false;
+    options.EnableDefaultHealthEndpoints = false;
     // Collector has specialized DuckDB health checks
-    options.AdditionalActivitySources.Add("qyl.collector");
+    options.AdditionalActivitySources.Add("Qyl.Collector");
 });
 
 // Request decompression for OTLP clients sending gzip/deflate compressed payloads
@@ -181,8 +186,9 @@ builder.Services.AddSingleton<IExecutionStore>(static sp =>
 builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
-// GitHub Copilot integration — bridges GitHubService token to Copilot auth (ADR-002)
-builder.Services.AddQylCopilot(builder.Configuration);
+// GitHub Copilot integration — bridges GitHubService token to agent auth (ADR-002)
+builder.Services.AddQylAgents(builder.Configuration);
+builder.Services.AddQylWorkflows();
 // AG-UI SSE infrastructure (CopilotKit-compatible protocol)
 builder.Services.AddQylAgui();
 // Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
@@ -190,7 +196,7 @@ builder.Services.AddSingleton(sp => new CopilotAuthOptions
 {
     AutoDetect = true, ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
 });
-builder.Services.AddQylCopilotTelemetry();
+builder.Services.AddQylAgentTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
@@ -324,7 +330,7 @@ app.UseExceptionHandler(errorApp =>
         var traceId = Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier;
 
         var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
-            .CreateLogger("qyl.collector.ExceptionHandler");
+            .CreateLogger("Qyl.Collector.ExceptionHandler");
         var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
         if (exceptionFeature?.Error is { } error)
         {
@@ -378,7 +384,6 @@ app.MapGet("/api/v1/traces", async (
 });
 
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
-app.MapGet("/api/v1/traces/{traceId}/spans", SpanEndpoints.GetTraceSpansAsync);
 
 
 app.MapCopilotEndpoints();
@@ -912,7 +917,7 @@ app.Lifetime.ApplicationStarted.Register(() =>
 
 app.Run();
 
-namespace qyl.collector
+namespace Qyl.Collector
 {
     internal static partial class ExceptionHandlerLog
     {

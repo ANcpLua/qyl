@@ -112,11 +112,11 @@ public sealed record LogQuery
 
     /// <summary>Trace ID filter</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public global::Qyl.Contracts.Common.TraceId? TraceId { get; init; }
 
     /// <summary>Span ID filter</summary>
     [JsonPropertyName("span_id")]
-    public global::Qyl.Common.SpanId? SpanId { get; init; }
+    public global::Qyl.Contracts.Common.SpanId? SpanId { get; init; }
 
     /// <summary>Time range start</summary>
     [JsonPropertyName("time_start")]

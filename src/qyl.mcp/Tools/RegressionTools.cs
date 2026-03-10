@@ -2,7 +2,7 @@ using System.ComponentModel;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tools for regression detection: trigger checks and query regression events.

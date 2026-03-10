@@ -1,9 +1,12 @@
 using System.ComponentModel;
+using System.Reflection;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
+using Qyl.Mcp.Agents;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tool that performs AI-powered multi-step root cause analysis.
@@ -11,8 +14,9 @@ namespace qyl.mcp.Tools;
 ///     to autonomously investigate error issues.
 /// </summary>
 [McpServerToolType]
-internal sealed class RcaTools(IServiceProvider services, IChatClient? llm = null)
+internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 {
+    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.root_cause_analysis", Title = "Root Cause Analysis",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
@@ -27,7 +31,7 @@ internal sealed class RcaTools(IServiceProvider services, IChatClient? llm = nul
                  The agent has access to error, anomaly, storage, and log tools
                  to autonomously investigate the issue.
 
-                 Requires QYL_LLM_PROVIDER and QYL_LLM_API_KEY to be configured.
+                 Requires QYL_AGENT_API_KEY to be configured.
 
                  Returns: Structured RCA report with root cause, evidence,
                           timeline, recommendations, and confidence level
@@ -37,9 +41,9 @@ internal sealed class RcaTools(IServiceProvider services, IChatClient? llm = nul
         [Description("Additional context: time range, suspected cause, recent deploys")] string? context = null,
         CancellationToken ct = default)
     {
-        if (llm is null)
+        if (_llm is null)
             return "Root cause analysis requires an LLM provider. " +
-                   "Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY environment variables. " +
+                   "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
                    "Use the individual error and anomaly tools instead.";
 
         // Build curated tool set -- only data-retrieval tools, not LLM tools
@@ -49,7 +53,7 @@ internal sealed class RcaTools(IServiceProvider services, IChatClient? llm = nul
             typeof(SpanQueryTools),
             typeof(StructuredLogTools));
 
-        IChatClient agent = new ChatClientBuilder(llm)
+        IChatClient agent = new ChatClientBuilder(_llm)
             .UseFunctionInvocation(configure: static invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 10;
@@ -80,6 +84,22 @@ internal sealed class RcaTools(IServiceProvider services, IChatClient? llm = nul
         }
     }
 
-    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes) =>
-        ToolDiscovery.Discover(services, toolTypes);
+    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
+    {
+        List<AIFunction> tools = [];
+        foreach (Type type in toolTypes)
+        {
+            object instance = services.GetRequiredService(type);
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr)
+                    continue;
+                string name = attr.Name ?? method.Name;
+                tools.Add(AIFunctionFactory.Create(method, instance,
+                    new AIFunctionFactoryOptions { Name = name }));
+            }
+        }
+
+        return tools;
+    }
 }

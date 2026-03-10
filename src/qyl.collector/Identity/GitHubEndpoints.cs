@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace qyl.collector.Identity;
+namespace Qyl.Collector.Identity;
 
 public static class GitHubEndpoints
 {

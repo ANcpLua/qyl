@@ -1,4 +1,4 @@
-namespace qyl.collector.Grpc;
+namespace Qyl.Collector.Grpc;
 
 #region gRPC Service Base and Method Provider
 

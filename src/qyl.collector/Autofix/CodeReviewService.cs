@@ -1,8 +1,8 @@
 using System.Net.Http.Headers;
 using Microsoft.Extensions.AI;
-using qyl.collector.Identity;
+using Qyl.Collector.Identity;
 
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Fetches a PR diff from GitHub, runs LLM-based code review analysis,

@@ -3,7 +3,7 @@
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
 //     Generated: 2026-03-06T15:59:59.2443480+00:00
-//     Models for Qyl.Common
+//     Models for Qyl.Contracts.Common
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
 // =============================================================================
@@ -14,7 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Qyl.Common;
+namespace Qyl.Contracts.Common;
 
 /// <summary>Key-value attribute pair following OTel conventions</summary>
 public sealed record Attribute
@@ -38,11 +38,11 @@ public sealed record InstrumentationScope
 
     /// <summary>Version of the instrumentation scope</summary>
     [JsonPropertyName("version")]
-    public global::Qyl.Common.SemVer? Version { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? Version { get; init; }
 
     /// <summary>Additional attributes for the scope</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]

@@ -3,7 +3,7 @@ using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
 
-namespace qyl.collector.Observe;
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 /// Manages dynamic observability subscriptions that activate dormant ActivitySources on demand.
@@ -47,6 +47,12 @@ internal sealed class SubscriptionManager : IDisposable
         _subscriptions[id] = subscription;
         return subscription;
     }
+
+    /// <summary>
+    /// Creates a new subscription (backward-compatible overload without schema version).
+    /// </summary>
+    public ObservationSubscription Subscribe(string filter, string endpoint)
+        => Subscribe(filter, endpoint, schemaVersion: null);
 
     /// <summary>
     /// Removes and disposes the subscription with the given id.

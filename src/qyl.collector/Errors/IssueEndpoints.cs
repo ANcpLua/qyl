@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace qyl.collector.Errors;
+namespace Qyl.Collector.Errors;
 
 /// <summary>
 ///     Minimal API endpoints for the v2 error issue engine.

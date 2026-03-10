@@ -109,8 +109,8 @@ const CONFIG = {
     // Output paths (relative to this script) - Direct to final destinations
     outputs: {
         typescript: "../../src/qyl.dashboard/src/lib/semconv.ts",
-        csharp: "../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.g.cs",
-        csharpUtf8: "../../src/qyl.servicedefaults/Instrumentation/SemanticConventions.Utf8.g.cs",
+        csharp: "../../src/qyl.instrumentation/Instrumentation/SemanticConventions.g.cs",
+        csharpUtf8: "../../src/qyl.instrumentation/Instrumentation/SemanticConventions.Utf8.g.cs",
         typespec: "../../core/specs/generated/semconv.g.tsp",
         duckdb: "../../src/qyl.collector/Storage/promoted-columns.g.sql",
     },
@@ -751,7 +751,7 @@ function inferDuckDbType(attrName: string): string {
 }
 
 // ============================================================================
-// Protocol Facade Generator (qyl.protocol domain facades)
+// Contracts Facade Generator (qyl.contracts domain facades)
 // ============================================================================
 
 function generateProtocolFacades(data: ParsedData): void {
@@ -895,6 +895,7 @@ function generateFacadeClass(data: ParsedData, facade: FacadeConfig): string {
     }
 
     lines.push(`}`);
+    lines.push(``);
 
     return lines.join("\n");
 }

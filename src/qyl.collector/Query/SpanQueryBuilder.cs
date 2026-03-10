@@ -2,7 +2,7 @@
 // SpanQueryBuilder - Type-safe query construction with positional parameters
 // =============================================================================
 
-namespace qyl.collector.Query;
+namespace Qyl.Collector.Query;
 
 /// <summary>
 ///     Fluent query builder for span queries with promoted field optimization.

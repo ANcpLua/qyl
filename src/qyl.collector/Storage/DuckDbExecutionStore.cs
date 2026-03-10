@@ -1,7 +1,7 @@
-using qyl.copilot.Workflows;
-using qyl.contracts.Copilot;
+using Qyl.Workflows;
+using Qyl.Contracts.Copilot;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     DuckDB-backed implementation of <see cref="IExecutionStore" />.

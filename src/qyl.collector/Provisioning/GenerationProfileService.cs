@@ -1,4 +1,4 @@
-namespace qyl.collector.Provisioning;
+namespace Qyl.Collector.Provisioning;
 
 /// <summary>
 ///     CRUD for generation profiles, selections, and generation job queue management.

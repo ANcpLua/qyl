@@ -3,10 +3,10 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
-using qyl.collector.Grpc;
-using qyl.collector.Services;
+using Qyl.Collector.Grpc;
+using Qyl.Collector.Services;
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Converts OTLP protobuf/JSON to SpanStorageRow.
@@ -462,52 +462,12 @@ public static class OtlpConverter
         double? CostUsd);
 
     /// <summary>
-    ///     Normalizes non-canonical gen_ai.provider.name values to OTel semconv constants.
-    ///     Coding agents often send variant names (e.g. "claude" instead of "anthropic").
-    /// </summary>
-    private static readonly FrozenDictionary<string, string> ProviderValueNormalization =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            // Anthropic variants
-            ["claude"] = GenAiAttributes.Providers.Anthropic,
-            ["claude-code"] = GenAiAttributes.Providers.Anthropic,
-            ["claude_code"] = GenAiAttributes.Providers.Anthropic,
-
-            // OpenAI variants
-            ["gpt"] = GenAiAttributes.Providers.OpenAi,
-            ["chatgpt"] = GenAiAttributes.Providers.OpenAi,
-
-            // GitHub Copilot variants
-            ["copilot"] = GenAiAttributes.Providers.GitHubCopilot,
-            ["github-copilot"] = GenAiAttributes.Providers.GitHubCopilot,
-
-            // Cursor (uses OpenAI/Anthropic APIs, but brands as cursor)
-            ["cursor"] = "cursor",
-
-            // Azure variants
-            ["azure_openai"] = GenAiAttributes.Providers.AzureOpenAi,
-            ["azure-openai"] = GenAiAttributes.Providers.AzureOpenAi,
-            ["azure.openai"] = GenAiAttributes.Providers.AzureOpenAi,
-
-            // Google variants
-            ["gemini"] = GenAiAttributes.Providers.GcpGemini,
-            ["google"] = GenAiAttributes.Providers.GcpGemini,
-            ["vertex"] = GenAiAttributes.Providers.GcpVertexAi,
-            ["vertex_ai"] = GenAiAttributes.Providers.GcpVertexAi,
-        }.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static string? NormalizeProviderName(string? raw) =>
-        raw is null ? null : ProviderValueNormalization.GetValueOrDefault(raw, raw);
-
-    /// <summary>
     ///     Extracts GenAI attributes with fallback to deprecated OTel 1.38 names.
     /// </summary>
     private static GenAiData ExtractGenAiAttributes(IReadOnlyDictionary<string, string> attributes)
     {
-        var providerName = NormalizeProviderName(
-            attributes.GetValueOrDefault("gen_ai.provider.name")
-            ?? attributes.GetValueOrDefault("gen_ai.system"));
+        var providerName = attributes.GetValueOrDefault("gen_ai.provider.name")
+                           ?? attributes.GetValueOrDefault("gen_ai.system");
 
         var requestModel = attributes.GetValueOrDefault("gen_ai.request.model");
         var responseModel = attributes.GetValueOrDefault("gen_ai.response.model");

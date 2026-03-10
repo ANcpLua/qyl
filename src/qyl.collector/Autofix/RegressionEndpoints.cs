@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     REST endpoints for manually triggering regression checks and

@@ -5,7 +5,7 @@
 // GenerationJobsDdl moved to DuckDbSchema.g.cs.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {

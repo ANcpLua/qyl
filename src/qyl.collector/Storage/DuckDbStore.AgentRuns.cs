@@ -1,6 +1,6 @@
-using qyl.contracts.Copilot;
+using Qyl.Contracts.Copilot;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with agent run and tool call operations.

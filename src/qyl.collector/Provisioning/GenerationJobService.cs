@@ -1,4 +1,4 @@
-namespace qyl.collector.Provisioning;
+namespace Qyl.Collector.Provisioning;
 
 /// <summary>
 ///     Manages code generation jobs for instrumentation profile selections.

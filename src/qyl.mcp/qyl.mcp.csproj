@@ -15,7 +15,7 @@
 
     <!-- Package metadata -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageId>qyl.mcp</PackageId>
+    <PackageId>Qyl.Mcp</PackageId>
     <PackageVersion>0.1.0-beta</PackageVersion>
     <PackageTags>AI;MCP;server;stdio;http;streamable-http;observability</PackageTags>
     <Description>An MCP server for qyl observability via stdio or Streamable HTTP.</Description>
@@ -26,7 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
   <ItemGroup>
@@ -40,10 +40,12 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore"/>
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="Microsoft.Extensions.AI"/>
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI"/>
     <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
     <PackageReference Include="Microsoft.Extensions.Compliance.Redaction"/>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience"/>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
+    <PackageReference Include="OpenAI"/>
   </ItemGroup>
 
   <!-- Reference protocol only - communicate with collector via HTTP -->

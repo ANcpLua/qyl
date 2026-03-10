@@ -1,4 +1,4 @@
-namespace qyl.collector.Query;
+namespace Qyl.Collector.Query;
 
 /// <summary>
 ///     REST endpoint for executing read-only SQL queries against the DuckDB store.

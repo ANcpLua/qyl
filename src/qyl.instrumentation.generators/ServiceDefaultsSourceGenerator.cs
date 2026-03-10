@@ -20,7 +20,7 @@ namespace Qyl.Instrumentation.Generators;
 ///     See: https://github.com/dotnet/roslyn/blob/main/docs/features/interceptors.md
 /// </remarks>
 [Generator]
-public sealed class InstrumentationSourceGenerator : IIncrementalGenerator
+public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -179,7 +179,7 @@ public sealed class InstrumentationSourceGenerator : IIncrementalGenerator
     ///     This is the prerequisite for most codegen operations.
     /// </summary>
     private static bool IsQylRuntimeReferenced(Compilation compilation, CancellationToken _) =>
-        compilation.GetTypeByMetadataName(WellKnownType.QylInstrumentation) is not null;
+        compilation.GetTypeByMetadataName(WellKnownType.QylServiceDefaults) is not null;
 
     /// <summary>
     ///     Checks if the GenAI instrumentation runtime is referenced.
@@ -338,7 +338,7 @@ public sealed class InstrumentationSourceGenerator : IIncrementalGenerator
         public const string WebApplication = "Microsoft.AspNetCore.Builder.WebApplication";
 
         // Qyl runtime types that enable codegen
-        public const string QylInstrumentation = "Qyl.Instrumentation.QylInstrumentation";
+        public const string QylServiceDefaults = "Qyl.Instrumentation.QylServiceDefaults";
         public const string GenAiInstrumentation = "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
     }
 

@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace qyl.collector.Logs;
+namespace Qyl.Collector.Logs;
 
 internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProvider)
 {

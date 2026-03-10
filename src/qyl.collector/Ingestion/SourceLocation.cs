@@ -1,4 +1,4 @@
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 public sealed record SourceLocation(string? FilePath, int? Line, int? Column, string? MethodName)
 {

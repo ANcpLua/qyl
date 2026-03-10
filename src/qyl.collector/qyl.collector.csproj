@@ -1,10 +1,12 @@
 <Project Sdk="ANcpLua.NET.Sdk.Web">
   <!-- Build: 2026-01-28T17:10:00Z -->
   <PropertyGroup>
-    <RootNamespace>qyl.collector</RootNamespace>
+    <RootNamespace>Qyl.Collector</RootNamespace>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);Qyl.Instrumentation.Generators</InterceptorsNamespaces>
+    <QylDatabase>false</QylDatabase>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -17,7 +19,7 @@
 
   <!-- Expose internals to test project -->
   <ItemGroup>
-    <InternalsVisibleTo Include="qyl.collector.tests"/>
+    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
   </ItemGroup>
 
   <!-- CLAUDE.md v2: Enable generation with rich metadata -->
@@ -90,11 +92,21 @@
 
   <!-- Core dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.copilot\qyl.copilot.csproj"/>
+    <ProjectReference Include="..\qyl.agents\qyl.agents.csproj"/>
+    <ProjectReference Include="..\qyl.workflows\qyl.workflows.csproj"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
     <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <CompilerVisibleProperty Include="QylDatabase" />
+  </ItemGroup>
+
+  <!-- Source generators (compile-time only) -->
+  <ItemGroup>
+    <ProjectReference Include="..\qyl.instrumentation.generators\qyl.instrumentation.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+    <ProjectReference Include="..\qyl.collector.storage.generators\qyl.collector.storage.generators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false"/>
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Storage/Migrations/*.sql">

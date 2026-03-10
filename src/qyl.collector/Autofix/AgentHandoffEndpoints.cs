@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     REST endpoints for managing coding agent handoff lifecycle:

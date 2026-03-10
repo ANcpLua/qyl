@@ -1,7 +1,7 @@
-using qyl.contracts.Copilot;
+using Qyl.Contracts.Copilot;
 using static System.Threading.Volatile;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     DuckDB storage with separated read/write paths for optimal concurrency.
@@ -12,8 +12,59 @@ namespace qyl.collector.Storage;
 public sealed partial class DuckDbStore : IAsyncDisposable
 {
     // ==========================================================================
-    // SELECT column lists (used by read queries)
+    // Multi-Row Batch Insert Constants
+    // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named.
     // ==========================================================================
+
+    /// <summary>
+    ///     Maximum spans per multi-row INSERT statement.
+    ///     24 columns per span * 100 spans = 2400 parameters (well under DuckDB limits).
+    /// </summary>
+    private const int MaxSpansPerBatch = 100;
+
+    /// <summary>
+    ///     Maximum logs per multi-row INSERT statement.
+    ///     16 columns per log * 150 logs = 2400 parameters.
+    /// </summary>
+    private const int MaxLogsPerBatch = 150;
+
+    private const int SpanColumnCount = 26;
+    private const int LogColumnCount = 16;
+
+    private const string SpanColumnList = """
+                                          span_id, trace_id, parent_span_id, session_id,
+                                          name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
+                                          status_code, status_message, service_name,
+                                          gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
+                                          gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
+                                          gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
+                                          gen_ai_cost_usd, attributes_json, resource_json,
+                                          baggage_json, schema_url
+                                          """;
+
+    private const string SpanOnConflictClause = """
+                                                ON CONFLICT (span_id) DO UPDATE SET
+                                                    end_time_unix_nano = EXCLUDED.end_time_unix_nano,
+                                                    duration_ns = EXCLUDED.duration_ns,
+                                                    status_code = EXCLUDED.status_code,
+                                                    status_message = EXCLUDED.status_message,
+                                                    service_name = COALESCE(EXCLUDED.service_name, service_name),
+                                                    gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
+                                                    gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
+                                                    gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
+                                                    attributes_json = EXCLUDED.attributes_json,
+                                                    resource_json = EXCLUDED.resource_json,
+                                                    baggage_json = EXCLUDED.baggage_json,
+                                                    schema_url = EXCLUDED.schema_url
+                                                """;
+
+    private const string LogColumnList = """
+                                         log_id, trace_id, span_id, session_id,
+                                         time_unix_nano, observed_time_unix_nano,
+                                         severity_number, severity_text, body,
+                                         service_name, attributes_json, resource_json,
+                                         source_file, source_line, source_column, source_method
+                                         """;
 
     private const string SelectSpanColumns = """
                                              span_id, trace_id, parent_span_id, session_id,
@@ -34,18 +85,16 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                           INSERT INTO errors
                                               (error_id, error_type, message, category, fingerprint,
                                                first_seen, last_seen, occurrence_count,
-                                               affected_user_ids, affected_services, status,
+                                               affected_users, affected_services, status,
                                                assigned_to, issue_url, sample_traces)
                                           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                                           ON CONFLICT (fingerprint) DO UPDATE SET
                                               last_seen = EXCLUDED.last_seen,
                                               occurrence_count = errors.occurrence_count + 1,
-                                              affected_user_ids = CASE
-                                                  WHEN EXCLUDED.affected_user_ids IS NULL THEN errors.affected_user_ids
-                                                  WHEN errors.affected_user_ids IS NULL THEN EXCLUDED.affected_user_ids
-                                                  WHEN ',' || errors.affected_user_ids || ',' LIKE '%,' || EXCLUDED.affected_user_ids || ',%'
-                                                      THEN errors.affected_user_ids
-                                                  ELSE errors.affected_user_ids || ',' || EXCLUDED.affected_user_ids
+                                              affected_users = CASE
+                                                  WHEN EXCLUDED.affected_users IS NULL THEN errors.affected_users
+                                                  WHEN errors.affected_users IS NULL THEN EXCLUDED.affected_users
+                                                  ELSE GREATEST(errors.affected_users, EXCLUDED.affected_users)
                                               END,
                                               affected_services = CASE
                                                   WHEN errors.affected_services IS NULL THEN EXCLUDED.affected_services
@@ -69,6 +118,9 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Private Methods - Multi-Row Insert SQL Builders (with caching)
     // ==========================================================================
 
+    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
+    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
+    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
 
     // ==========================================================================
     // Instance Fields
@@ -80,7 +132,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     private readonly bool _isInMemory;
     private readonly Channel<WriteJob> _jobs;
 
-    private readonly Meter _meter = new("qyl.collector.storage", "1.0.0");
+    private readonly Meter _meter = new("Qyl.Collector.storage", "1.0.0");
 
     private readonly SemaphoreSlim _readGate;
     private readonly ReadConnectionPolicy _readPolicy;
@@ -128,7 +180,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // ==========================================================================
 
     /// <summary>
-    ///     Exposes the write connection used by migration runner and session queries.
+    ///     Exposes the write connection for legacy compatibility (SessionQueryService).
+    ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
     /// </summary>
     public DuckDBConnection Connection { get; }
 
@@ -907,15 +960,36 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Log Operations
     // ==========================================================================
 
-    public Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
+    public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         if (logs.Count is 0)
-            return Task.CompletedTask;
+            return;
 
-        using var appender = Connection.CreateAppender<LogStorageRow, LogStorageRowMap>("logs");
-        appender.AppendRecords(logs);
-        return Task.CompletedTask;
+        await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
+
+        var totalLogs = logs.Count;
+        var offset = 0;
+
+        while (offset < totalLogs)
+        {
+            var chunkSize = Math.Min(MaxLogsPerBatch, totalLogs - offset);
+            var sql = BuildMultiRowLogInsertSql(chunkSize);
+
+            await using var cmd = Connection.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = sql;
+
+            for (var i = 0; i < chunkSize; i++)
+            {
+                AddLogParameters(cmd, logs[offset + i]);
+            }
+
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            offset += chunkSize;
+        }
+
+        await tx.CommitAsync(ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
@@ -987,7 +1061,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.UserId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = string.IsNullOrWhiteSpace(error.UserId) ? DBNull.Value : 1L
+        });
         cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
         cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
         cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
@@ -1045,7 +1122,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.CommandText = $"""
                            SELECT error_id, error_type, message, category, fingerprint,
                                   first_seen, last_seen, occurrence_count,
-                                  affected_user_ids, affected_services, status,
+                                  affected_users, affected_services, status,
                                   assigned_to, issue_url, sample_traces
                            FROM errors
                            {qb.WhereClause}
@@ -1105,7 +1182,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             FirstSeen = new DateTimeOffset(reader.GetDateTime(5), TimeSpan.Zero),
             LastSeen = new DateTimeOffset(reader.GetDateTime(6), TimeSpan.Zero),
             OccurrenceCount = reader.GetInt64(7),
-            AffectedUserIds = reader.Col(8).AsString,
+            AffectedUserIds = reader.Col(8).AsInt64?.ToString(CultureInfo.InvariantCulture),
             AffectedServices = reader.Col(9).AsString,
             Status = reader.GetString(10),
             AssignedTo = reader.Col(11).AsString,
@@ -1150,7 +1227,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = """
                           SELECT error_id, error_type, message, category, fingerprint,
-                                 first_seen, last_seen, occurrence_count, affected_user_ids,
+                                 first_seen, last_seen, occurrence_count, affected_users,
                                  affected_services, status, assigned_to, issue_url, sample_traces
                           FROM errors WHERE error_id = $1
                           """;
@@ -1220,30 +1297,31 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         if (batch.Spans.Count is 0)
             return;
 
-        // Pre-filter: skip spans that already exist (idempotent ingestion).
-        // Replaces ON CONFLICT DO UPDATE — Appender doesn't support conflict clauses.
-        var existingIds = new HashSet<string>();
-        await using (var checkCmd = con.CreateCommand())
-        {
-            checkCmd.CommandText = "SELECT span_id FROM spans WHERE span_id IN (" +
-                string.Join(", ", batch.Spans.Select((_, i) => $"${i + 1}")) + ")";
-            foreach (var span in batch.Spans)
-                checkCmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
+        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
 
-            await using var reader = await checkCmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-            while (await reader.ReadAsync(ct).ConfigureAwait(false))
-                existingIds.Add(reader.GetString(0));
+        var spans = batch.Spans;
+        var totalSpans = spans.Count;
+        var offset = 0;
+
+        while (offset < totalSpans)
+        {
+            var chunkSize = Math.Min(MaxSpansPerBatch, totalSpans - offset);
+            var sql = BuildMultiRowSpanInsertSql(chunkSize);
+
+            await using var cmd = con.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = sql;
+
+            for (var i = 0; i < chunkSize; i++)
+            {
+                AddSpanParameters(cmd, spans[offset + i]);
+            }
+
+            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            offset += chunkSize;
         }
 
-        var newSpans = existingIds.Count is 0
-            ? batch.Spans
-            : batch.Spans.Where(s => !existingIds.Contains(s.SpanId)).ToList();
-
-        if (newSpans.Count > 0)
-        {
-            using var appender = con.CreateAppender<SpanStorageRow, SpanStorageRowMap>("spans");
-            appender.AppendRecords(newSpans);
-        }
+        await tx.CommitAsync(ct).ConfigureAwait(false);
 
         // Writer-side error extraction: runs on the single writer thread after span commit.
         // Zero additional channel pressure — errors are extracted inline within the existing job.
@@ -1271,99 +1349,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
         foreach (var error in errors)
         {
-            // 1. Upsert into errors table (existing behavior)
             await using var cmd = con.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = ErrorUpsertSql;
             AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-
-            // 2. Bridge to error_issues table (fingerprint-grouped issue tracking)
-            var issueId = await UpsertIssueBridgeAsync(con, tx, error, now, ct).ConfigureAwait(false);
-
-            // 3. Link error occurrence as issue event (trace-navigable from UI)
-            await InsertIssueEventAsync(con, tx, issueId, error, now, ct).ConfigureAwait(false);
         }
 
         await tx.CommitAsync(ct).ConfigureAwait(false);
-    }
-
-    private static async ValueTask<string> UpsertIssueBridgeAsync(
-        DuckDBConnection con,
-        DbTransaction tx,
-        ErrorEvent error,
-        DateTime now,
-        CancellationToken ct)
-    {
-        await using var checkCmd = con.CreateCommand();
-        checkCmd.Transaction = tx;
-        checkCmd.CommandText = "SELECT id FROM error_issues WHERE project_id = $1 AND fingerprint = $2 LIMIT 1";
-        checkCmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
-        checkCmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
-        var existingId = await checkCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
-
-        if (existingId is not null)
-        {
-            await using var updateCmd = con.CreateCommand();
-            updateCmd.Transaction = tx;
-            updateCmd.CommandText = """
-                                    UPDATE error_issues SET
-                                        occurrence_count = occurrence_count + 1,
-                                        last_seen_at = $1,
-                                        updated_at = $1
-                                    WHERE id = $2
-                                    """;
-            updateCmd.Parameters.Add(new DuckDBParameter { Value = now });
-            updateCmd.Parameters.Add(new DuckDBParameter { Value = existingId });
-            await updateCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            return existingId;
-        }
-
-        var issueId = Guid.NewGuid().ToString("N");
-        await using var insertCmd = con.CreateCommand();
-        insertCmd.Transaction = tx;
-        insertCmd.CommandText = """
-                                INSERT INTO error_issues
-                                    (id, project_id, fingerprint, title, error_type, category, level,
-                                     first_seen_at, last_seen_at, occurrence_count, status, priority,
-                                     created_at, updated_at)
-                                VALUES ($1, $2, $3, $4, $5, $6, 'error', $7, $8, 1, 'unresolved', 'medium', $9, $10)
-                                """;
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
-        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
-        await insertCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-        return issueId;
-    }
-
-    private static async ValueTask InsertIssueEventAsync(
-        DuckDBConnection con,
-        DbTransaction tx,
-        string issueId,
-        ErrorEvent error,
-        DateTime now,
-        CancellationToken ct)
-    {
-        await using var cmd = con.CreateCommand();
-        cmd.Transaction = tx;
-        cmd.CommandText = """
-                          INSERT INTO error_issue_events
-                              (id, issue_id, trace_id, message, timestamp)
-                          VALUES ($1, $2, $3, $4, $5)
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = Guid.NewGuid().ToString("N") });
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
-        cmd.Parameters.Add(new DuckDBParameter { Value = now });
-        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static async ValueTask<int> ArchiveInternalAsync(
@@ -1415,6 +1408,145 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await tx.CommitAsync(ct).ConfigureAwait(false);
 
         return count;
+    }
+
+    /// <summary>
+    ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
+    ///     Caches SQL for common batch sizes to reduce allocations.
+    /// </summary>
+    private static string BuildMultiRowSpanInsertSql(int spanCount)
+    {
+        Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
+
+        return SSpanInsertSqlCache.GetOrAdd(spanCount, static count =>
+        {
+            var sb = new StringBuilder(2048);
+            sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
+
+            for (var i = 0; i < count; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                var baseParam = i * SpanColumnCount;
+                sb.Append('(');
+                for (var col = 0; col < SpanColumnCount; col++)
+                {
+                    if (col > 0)
+                        sb.Append(", ");
+                    sb.Append('$').Append(baseParam + col + 1);
+                }
+
+                sb.Append(')');
+            }
+
+            sb.Append(' ').Append(SpanOnConflictClause);
+            return sb.ToString();
+        });
+    }
+
+    /// <summary>
+    ///     Gets or builds a multi-row INSERT statement for logs (no ON CONFLICT).
+    ///     Caches SQL for common batch sizes to reduce allocations.
+    /// </summary>
+    private static string BuildMultiRowLogInsertSql(int logCount)
+    {
+        Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
+
+        return SLogInsertSqlCache.GetOrAdd(logCount, static count =>
+        {
+            var sb = new StringBuilder(1024);
+            sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
+
+            for (var i = 0; i < count; i++)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+
+                var baseParam = i * LogColumnCount;
+                sb.Append('(');
+                for (var col = 0; col < LogColumnCount; col++)
+                {
+                    if (col > 0)
+                        sb.Append(", ");
+                    sb.Append('$').Append(baseParam + col + 1);
+                }
+
+                sb.Append(')');
+            }
+
+            return sb.ToString();
+        });
+    }
+
+    /// <summary>
+    ///     Adds span parameters to command in column order.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AddSpanParameters(DuckDBCommand cmd, SpanStorageRow span)
+    {
+        // Identity (4 columns)
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
+
+        // Core fields (8 columns) - UBIGINT passed as decimal for DuckDB.NET
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.StartTimeUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.EndTimeUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.DurationNs });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
+
+        // GenAI fields (10 columns)
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiProviderName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiRequestModel ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiResponseModel ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiInputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiOutputTokens ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiTemperature ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiStopReason ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
+
+        // JSON storage (2 columns)
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
+
+        // W3C Baggage and OTel Schema URL (2 columns)
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.BaggageJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = span.SchemaUrl ?? (object)DBNull.Value });
+    }
+
+    /// <summary>
+    ///     Adds log parameters to command in column order.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AddLogParameters(DuckDBCommand cmd, LogStorageRow log)
+    {
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.LogId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)log.TimeUnixNano });
+        cmd.Parameters.Add(new DuckDBParameter
+        {
+            Value = log.ObservedTimeUnixNano.HasValue ? (decimal)log.ObservedTimeUnixNano.Value : DBNull.Value
+        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceFile ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceLine ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceColumn ?? (object)DBNull.Value });
+        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceMethod ?? (object)DBNull.Value });
     }
 
     // ==========================================================================
@@ -1481,13 +1613,22 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         manualFixRunsCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
-        cmd.CommandText = DuckDbSchema.GetSchemaDdl();
+        cmd.CommandText = NormalizeGeneratedSchemaDdl(DuckDbSchema.GetSchemaDdl());
         cmd.ExecuteNonQuery();
 
         // Manual schema extensions (not yet in TypeSpec)
         using var extCmd = con.CreateCommand();
         extCmd.CommandText = DuckDbSchema.WorkflowExecutionsDdl;
         extCmd.ExecuteNonQuery();
+
+        using var workflowRunsCmd = con.CreateCommand();
+        workflowRunsCmd.CommandText = $"""
+                                       {DuckDbSchema.WorkflowRunsV2Ddl}
+                                       {DuckDbSchema.WorkflowNodesV2Ddl}
+                                       {DuckDbSchema.WorkflowCheckpointsV2Ddl}
+                                       {DuckDbSchema.WorkflowEventsV2Ddl}
+                                       """;
+        workflowRunsCmd.ExecuteNonQuery();
 
         using var insightsCmd = con.CreateCommand();
         insightsCmd.CommandText = DuckDbSchema.MaterializedInsightsDdl;
@@ -1583,8 +1724,46 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         servicesViewCmd.ExecuteNonQuery();
     }
 
+    private static string NormalizeGeneratedSchemaDdl(string ddl)
+    {
+        var statements = ddl.Split(";\n", StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var normalized = new List<string>(statements.Length);
+
+        foreach (var statement in statements)
+        {
+            if (!statement.StartsWith("CREATE TABLE IF NOT EXISTS ", StringComparison.Ordinal))
+            {
+                normalized.Add(statement);
+                continue;
+            }
+
+            var lines = statement.Split('\n').ToList();
+            var createdAtIndexes = new List<int>();
+
+            for (var i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].TrimStart().StartsWith("created_at ", StringComparison.OrdinalIgnoreCase))
+                {
+                    createdAtIndexes.Add(i);
+                }
+            }
+
+            if (createdAtIndexes.Count > 1)
+            {
+                foreach (var index in createdAtIndexes.Take(createdAtIndexes.Count - 1).OrderDescending())
+                {
+                    lines.RemoveAt(index);
+                }
+            }
+
+            normalized.Add(string.Join('\n', lines));
+        }
+
+        return string.Join(";\n", normalized) + ";\n";
+    }
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByName(reader);
+    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static LogStorageRow MapLog(DbDataReader reader) =>

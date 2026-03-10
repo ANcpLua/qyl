@@ -15,7 +15,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace qyl.collector.Storage.Migrations;
+namespace Qyl.Collector.Storage.Migrations;
 
 /// <summary>
 ///     Applies pending DuckDB schema migrations on startup.

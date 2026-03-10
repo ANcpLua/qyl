@@ -1,30 +1,34 @@
-namespace qyl.collector;
+namespace Qyl.Collector;
 
 /// <summary>
 ///     Span API endpoints.
 /// </summary>
 internal static class SpanEndpoints
 {
-    private static readonly JsonSerializerOptions SnakeCaseOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        NumberHandling = JsonNumberHandling.AllowReadingFromString
-    };
-
     public static async Task<IResult> GetSessionSpansAsync(string sessionId, DuckDbStore store,
         CancellationToken ct)
     {
         var spans = await store.GetSpansBySessionAsync(sessionId, ct).ConfigureAwait(false);
-        return Results.Json(new { items = spans, total = spans.Count }, SnakeCaseOptions);
-    }
 
-    public static async Task<IResult> GetTraceSpansAsync(string traceId, DuckDbStore store,
-        CancellationToken ct)
-    {
-        var spans = await store.GetTraceAsync(traceId, ct).ConfigureAwait(false);
-        if (spans.Count is 0) return Results.NotFound();
-        return Results.Json(new { items = spans, total = spans.Count }, SnakeCaseOptions);
+        // Extract service name from first span's attributes if available
+        var serviceName = "unknown";
+        if (spans.Count > 0 && spans[0].AttributesJson is { } attrJson)
+        {
+            try
+            {
+                var attrs = JsonSerializer.Deserialize(attrJson,
+                    QylSerializerContext.Default.DictionaryStringString);
+                if (attrs?.TryGetValue("service.name", out var svc) == true)
+                    serviceName = svc;
+            }
+            catch
+            {
+                /* ignore parse errors */
+            }
+        }
+
+        var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
+        return Results.Ok(new SpanListResponseDto { Spans = spanDtos });
     }
 
     public static async Task<IResult> GetTraceAsync(string traceId, DuckDbStore store)

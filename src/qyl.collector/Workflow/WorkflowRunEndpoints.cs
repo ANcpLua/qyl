@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace qyl.collector.Workflow;
+namespace Qyl.Collector.Workflow;
 
 /// <summary>
 ///     Minimal API endpoints for the v2 workflow engine (migration-based tables).

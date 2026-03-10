@@ -6,10 +6,10 @@
 // =============================================================================
 
 using System.Text.Json.Serialization;
-using Qyl.Common;
-using qyl.contracts.Enums;
+using Qyl.Contracts.Common;
+using Qyl.Contracts.Enums;
 
-namespace qyl.contracts.Models;
+namespace Qyl.Contracts.Models;
 
 /// <summary>
 ///     Span record for storage and query operations.

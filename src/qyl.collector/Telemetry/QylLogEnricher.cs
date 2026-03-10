@@ -5,7 +5,7 @@
 
 using Microsoft.Extensions.Diagnostics.Enrichment;
 
-namespace qyl.collector.Telemetry;
+namespace Qyl.Collector.Telemetry;
 
 public sealed class QylLogEnricher : ILogEnricher
 {

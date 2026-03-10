@@ -1,4 +1,4 @@
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Configuration for OTLP endpoint CORS.

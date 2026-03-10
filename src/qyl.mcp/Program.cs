@@ -1,11 +1,11 @@
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -13,13 +13,12 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using ModelContextProtocol.Protocol;
-using qyl.mcp;
-using qyl.mcp.Agents;
-using qyl.mcp.Auth;
-using qyl.mcp.Providers;
-using qyl.mcp.Scoping;
-using qyl.mcp.Skills;
-using qyl.mcp.Tools;
+using Qyl.Mcp;
+using Qyl.Mcp.Agents;
+using Qyl.Mcp.Auth;
+using Qyl.Mcp.Scoping;
+using Qyl.Mcp.Skills;
+using Qyl.Mcp.Tools;
 using qyl.contracts.Attributes;
 
 var skills = SkillConfiguration.FromEnvironment();
@@ -114,9 +113,8 @@ static JsonSerializerOptions ConfigureCommonServices(
     SkillConfiguration skills,
     QylScope scope)
 {
+    // Required by AddStandardResilienceHandler() — registers a no-op redactor provider.
     services.AddRedaction();
-
-    // Collector-facing authentication: qyl.mcp -> qyl.collector
     services.AddMcpAuth(configuration);
     services.AddSingleton(scope);
 
@@ -184,27 +182,26 @@ static JsonSerializerOptions ConfigureCommonServices(
     services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
     services.AddSingleton<RcaTools>();
 
+    services.AddHttpClient(nameof(HttpAgentProvider), client =>
+    {
+        client.BaseAddress = new Uri(collectorUrl);
+        client.Timeout = TimeSpan.FromSeconds(120);
+    }).AddStandardResilienceHandler();
+    services.AddSingleton<IAgentProvider>(static sp =>
+        new HttpAgentProvider(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpAgentProvider)),
+            sp.GetRequiredService<ILogger<HttpAgentProvider>>()));
+
     services.AddSingleton<McpToolRegistry>();
     services.AddSingleton(TimeProvider.System);
-
-    // LLM provider: reads QYL_LLM_* env vars, creates provider-agnostic IChatClient
-    var llmOptions = LlmProviderFactory.BindOptions(configuration);
-    if (llmOptions.IsConfigured)
-    {
-        services.AddHttpClient("LlmProvider");
-        services.AddSingleton<IChatClient>(sp =>
-            LlmProviderFactory.Create(
-                llmOptions,
-                sp.GetRequiredService<IHttpClientFactory>().CreateClient("LlmProvider"))
-            ?? throw new InvalidOperationException("LLM provider was configured but factory returned null."));
-    }
-    services.AddSingleton<ITelemetryStore>(static serviceProvider =>
+    services.AddSingleton<ITelemetryStore>(static sp =>
         new HttpTelemetryStore(
-            serviceProvider.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpTelemetryStore)),
-            serviceProvider.GetRequiredService<TimeProvider>(),
-            serviceProvider.GetRequiredService<ILogger<HttpTelemetryStore>>()));
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpTelemetryStore)),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILogger<HttpTelemetryStore>>()));
 
     var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+    jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(TelemetryToolsJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
@@ -217,6 +214,7 @@ static JsonSerializerOptions ConfigureCommonServices(
     jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
+    jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
@@ -259,7 +257,7 @@ static void ConfigureHttpAuthentication(IServiceCollection services, McpHostOpti
             {
                 OnResourceMetadataRequest = context =>
                 {
-                    var resourceUrl = hostOptions.ResolvePublicMcpUrl(context.HttpContext.Request);
+                    string resourceUrl = hostOptions.ResolvePublicMcpUrl(context.HttpContext.Request);
                     context.ResourceMetadata = new ProtectedResourceMetadata
                     {
                         Resource = resourceUrl,
@@ -283,14 +281,12 @@ static void ConfigureMcpServer(
     McpHostOptions? hostOptions,
     Func<IServiceProvider?> serviceProviderAccessor)
 {
-    string version = ServerVersion.Value;
-
     var mcpBuilder = services.AddMcpServer(options =>
     {
         options.ServerInfo = new Implementation
         {
             Name = "qyl",
-            Version = version
+            Version = ServerVersion.Value
         };
         options.ServerInstructions =
             "Use qyl tools to inspect telemetry, traces, logs, errors, builds, and AI workflow health.";
@@ -448,8 +444,7 @@ static string CreateLlmsText(HttpRequest request, McpHostOptions hostOptions)
     return builder.ToString();
 }
 
-
-namespace qyl.mcp
+namespace Qyl.Mcp
 {
     file static class ServerVersion
     {

@@ -1,4 +1,4 @@
-namespace qyl.collector.Health;
+namespace Qyl.Collector.Health;
 
 /// <summary>
 ///     Service for gathering detailed health information for the UI dashboard.

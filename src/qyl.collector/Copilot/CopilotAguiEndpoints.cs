@@ -1,5 +1,5 @@
 // =============================================================================
-// qyl.collector - CopilotAguiEndpoints
+// Qyl.Collector - CopilotAguiEndpoints
 // Registers and maps the AG-UI SSE endpoint for CopilotKit browser SDKs.
 //
 // Usage in Program.cs:
@@ -11,7 +11,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
 
-namespace qyl.collector.Copilot;
+namespace Qyl.Collector.Copilot;
 
 /// <summary>
 ///     Extension methods that expose a <see cref="AIAgent"/> over the AG-UI SSE

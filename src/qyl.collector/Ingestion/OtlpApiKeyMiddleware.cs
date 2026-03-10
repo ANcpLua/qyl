@@ -1,4 +1,4 @@
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     API key authentication for OTLP endpoints.

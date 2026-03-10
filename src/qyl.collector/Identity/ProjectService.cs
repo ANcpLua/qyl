@@ -1,4 +1,4 @@
-namespace qyl.collector.Identity;
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     CRUD for projects and project environments with cursor-based pagination.

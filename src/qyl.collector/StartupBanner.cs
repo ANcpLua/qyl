@@ -1,4 +1,4 @@
-namespace qyl.collector;
+namespace Qyl.Collector;
 
 public static class StartupBanner
 {
@@ -30,7 +30,7 @@ public static class StartupBanner
         Console.ForegroundColor = ConsoleColor.White;
         Console.Write("  │  ");
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write("qyl.collector");
+        Console.Write("Qyl.Collector");
         Console.ForegroundColor = ConsoleColor.White;
         Console.WriteLine(" is running                                       │");
         Console.ResetColor();

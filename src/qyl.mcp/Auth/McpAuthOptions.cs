@@ -1,4 +1,4 @@
-namespace qyl.mcp.Auth;
+namespace Qyl.Mcp.Auth;
 
 /// <summary>
 ///     Authentication options for MCP server communication with qyl.collector.

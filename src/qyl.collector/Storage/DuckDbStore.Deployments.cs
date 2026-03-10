@@ -1,6 +1,6 @@
-using qyl.collector.Autofix;
+using Qyl.Collector.Autofix;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with deployment

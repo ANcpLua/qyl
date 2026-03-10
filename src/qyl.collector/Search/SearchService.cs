@@ -1,4 +1,4 @@
-namespace qyl.collector.Search;
+namespace Qyl.Collector.Search;
 
 /// <summary>
 ///     Service layer for DuckDB full-text search. Operates against the

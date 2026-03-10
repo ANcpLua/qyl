@@ -3,7 +3,7 @@
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
 //     Generated: 2026-02-27T22:00:11.4259500+00:00
-//     Models for Qyl.Common.Errors
+//     Models for Qyl.Contracts.Common.Errors
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
 // =============================================================================
@@ -14,7 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Qyl.Common.Errors;
+namespace Qyl.Contracts.Common.Errors;
 
 /// <summary>Conflict - resource state conflict (409)</summary>
 public sealed record ConflictError
@@ -133,7 +133,7 @@ public sealed record ValidationError
 
     /// <summary>List of validation errors</summary>
     [JsonPropertyName("errors")]
-    public required IReadOnlyList<global::Qyl.Common.Errors.ValidationErrorDetail> Errors { get; init; }
+    public required IReadOnlyList<global::Qyl.Contracts.Common.Errors.ValidationErrorDetail> Errors { get; init; }
 
 }
 

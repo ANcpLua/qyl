@@ -1,6 +1,6 @@
-using qyl.collector.SchemaControl;
+using Qyl.Collector.SchemaControl;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with schema control operations.

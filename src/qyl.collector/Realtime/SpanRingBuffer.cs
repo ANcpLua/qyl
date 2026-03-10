@@ -1,4 +1,4 @@
-namespace qyl.collector.Realtime;
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     Thread-safe circular buffer for real-time span queries.

@@ -1,4 +1,4 @@
-namespace qyl.collector.Services;
+namespace Qyl.Collector.Services;
 
 /// <summary>
 ///     Background service that recomputes service_instances aggregates

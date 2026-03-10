@@ -1,4 +1,4 @@
-namespace qyl.mcp.Agents;
+namespace Qyl.Mcp.Agents;
 
 /// <summary>
 ///     Static prompt for the two-pass fix generation pipeline.

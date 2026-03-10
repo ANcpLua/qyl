@@ -3,7 +3,7 @@
 // 6 overview panels + trace list + model/tool breakdowns
 // =============================================================================
 
-namespace qyl.collector.AgentRuns;
+namespace Qyl.Collector.AgentRuns;
 
 public sealed class AgentInsightsService(DuckDbStore store)
 {

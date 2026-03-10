@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Storage record for an individual step within a fix run.

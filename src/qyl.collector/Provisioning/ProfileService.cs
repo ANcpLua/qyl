@@ -1,4 +1,4 @@
-namespace qyl.collector.Provisioning;
+namespace Qyl.Collector.Provisioning;
 
 /// <summary>
 ///     Business logic for instrumentation profile management.

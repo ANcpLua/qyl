@@ -1,4 +1,4 @@
-namespace qyl.collector.Services;
+namespace Qyl.Collector.Services;
 
 /// <summary>
 ///     Classifies services by type using OTel attribute inspection.

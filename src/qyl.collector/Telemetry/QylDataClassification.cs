@@ -6,7 +6,7 @@
 using Microsoft.Extensions.Compliance.Classification;
 using Microsoft.Extensions.Compliance.Redaction;
 
-namespace qyl.collector.Telemetry;
+namespace Qyl.Collector.Telemetry;
 
 /// <summary>
 ///     qyl-specific data classifications for log redaction.

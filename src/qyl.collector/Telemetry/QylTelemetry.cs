@@ -3,14 +3,14 @@
 // Uses ActivitySourceOptions/MeterOptions with OTel Schema URL (new in .NET 10)
 // =============================================================================
 
-namespace qyl.collector.Telemetry;
+namespace Qyl.Collector.Telemetry;
 
 /// <summary>
-///     Central telemetry definitions for qyl.collector using .NET 10 APIs.
+///     Central telemetry definitions for Qyl.Collector using .NET 10 APIs.
 /// </summary>
 public static class QylTelemetry
 {
-    public const string ServiceName = "qyl.collector";
+    public const string ServiceName = "Qyl.Collector";
     public const string ServiceVersion = "1.0.0";
 
     // ==========================================================================

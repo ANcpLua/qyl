@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tools for high-level agent run telemetry.
@@ -74,11 +74,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
-                 Get aggregated token usage from MCP agent runs (local telemetry).
-
-                 This tracks tokens consumed by the MCP server's own embedded agents
-                 (use_qyl, RCA, summaries). For OTLP GenAI span data from instrumented
-                 apps, use get_genai_stats or list_models instead.
+                 Get aggregated token usage statistics.
 
                  Groups token consumption by:
                  - 'agent': Per agent/service
@@ -86,6 +82,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                  - 'hour': Hourly breakdown
 
                  Returns input/output tokens, run counts, and time ranges.
+                 Use this for cost analysis and usage monitoring.
                  """)]
     public Task<string> GetTokenUsageAsync(
         [Description("Start of time range (ISO timestamp)")]
@@ -165,7 +162,7 @@ internal sealed partial class TelemetryToolsJsonContext : JsonSerializerContext;
 
 #region Data Models
 
-internal record AgentRun(
+public record AgentRun(
     string RunId,
     string AgentName,
     string? Provider,
@@ -179,7 +176,7 @@ internal record AgentRun(
     string? ErrorType,
     string? ErrorMessage);
 
-internal record TokenUsageSummary(
+public record TokenUsageSummary(
     string GroupKey,
     int TotalInputTokens,
     int TotalOutputTokens,
@@ -187,7 +184,7 @@ internal record TokenUsageSummary(
     DateTime PeriodStart,
     DateTime PeriodEnd);
 
-internal record AgentError(
+public record AgentError(
     string RunId,
     string AgentName,
     string ErrorType,
@@ -195,7 +192,7 @@ internal record AgentError(
     DateTime OccurredAt,
     string? StackTrace);
 
-internal record LatencyStats(
+public record LatencyStats(
     string? AgentName,
     double P50Ms,
     double P95Ms,
@@ -209,7 +206,7 @@ internal record LatencyStats(
 
 #region Store Interface
 
-internal interface ITelemetryStore
+public interface ITelemetryStore
 {
     ValueTask<AgentRun?> GetRunAsync(string runId);
     ValueTask<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since);

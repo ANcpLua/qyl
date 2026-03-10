@@ -1,13 +1,15 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
+using Qyl.Mcp.Agents;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tool that runs the Loom two-pass fix-generation pipeline:
@@ -16,8 +18,9 @@ namespace qyl.mcp.Tools;
 ///     Results are stored in the collector via PATCH /api/v1/issues/{id}/fix-runs/{runId}.
 /// </summary>
 [McpServerToolType]
-internal sealed class FixTools(HttpClient http, IServiceProvider services, IChatClient? llm = null)
+internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceProvider services)
 {
+    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = true)]
@@ -31,7 +34,7 @@ internal sealed class FixTools(HttpClient http, IServiceProvider services, IChat
 
                  The fix run is created in the collector and the result stored there.
 
-                 Requires QYL_LLM_PROVIDER to be configured.
+                 Requires QYL_AGENT_API_KEY to be configured.
 
                  Returns: Summary of the fix run including run_id and confidence score.
                  """)]
@@ -41,9 +44,9 @@ internal sealed class FixTools(HttpClient http, IServiceProvider services, IChat
         [Description("Additional context: suspected cause, relevant file paths, recent changes")] string? context = null,
         CancellationToken ct = default)
     {
-        if (llm is null)
+        if (_llm is null)
             return "Fix generation requires an LLM provider. " +
-                   "Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY environment variables.";
+                   "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables.";
 
         // Create a new fix run in the collector
         using HttpResponseMessage createResp = await http.PostAsJsonAsync(
@@ -83,7 +86,7 @@ internal sealed class FixTools(HttpClient http, IServiceProvider services, IChat
                 new(ChatRole.User, fixGenInput)
             ];
 
-            ChatResponse fixResponse = await llm.GetResponseAsync(fixMessages, cancellationToken: ct)
+            ChatResponse fixResponse = await _llm.GetResponseAsync(fixMessages, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             string rawJson = fixResponse.Text?.Trim() ?? "{}";
@@ -135,7 +138,7 @@ internal sealed class FixTools(HttpClient http, IServiceProvider services, IChat
             typeof(SpanQueryTools),
             typeof(StructuredLogTools));
 
-        IChatClient agent = new ChatClientBuilder(llm!)
+        IChatClient agent = new ChatClientBuilder(_llm!)
             .UseFunctionInvocation(configure: static invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 8;
@@ -269,8 +272,23 @@ internal sealed class FixTools(HttpClient http, IServiceProvider services, IChat
         return sb.ToString();
     }
 
-    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes) =>
-        ToolDiscovery.Discover(services, toolTypes);
+    private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
+    {
+        List<AIFunction> tools = [];
+        foreach (Type type in toolTypes)
+        {
+            object? instance = services.GetService(type);
+            if (instance is null) continue;
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            {
+                if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr) continue;
+                string name = attr.Name ?? method.Name;
+                tools.Add(AIFunctionFactory.Create(method, instance,
+                    new AIFunctionFactoryOptions { Name = name }));
+            }
+        }
+        return tools;
+    }
 }
 
 /// <summary>JSON DTO for the fix run response from the collector.</summary>

@@ -33,7 +33,7 @@ public sealed record Resource
 
     /// <summary>Service version</summary>
     [JsonPropertyName("service.version")]
-    public global::Qyl.Common.SemVer? ServiceVersion { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? ServiceVersion { get; init; }
 
     /// <summary>Telemetry SDK name</summary>
     [JsonPropertyName("telemetry.sdk.name")]
@@ -45,11 +45,11 @@ public sealed record Resource
 
     /// <summary>Telemetry SDK version</summary>
     [JsonPropertyName("telemetry.sdk.version")]
-    public global::Qyl.Common.SemVer? TelemetrySdkVersion { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? TelemetrySdkVersion { get; init; }
 
     /// <summary>Auto-instrumentation agent name</summary>
     [JsonPropertyName("telemetry.auto.version")]
-    public global::Qyl.Common.SemVer? TelemetryAutoVersion { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? TelemetryAutoVersion { get; init; }
 
     /// <summary>Deployment environment (e.g., production, staging)</summary>
     [JsonPropertyName("deployment.environment.name")]
@@ -161,7 +161,7 @@ public sealed record Resource
 
     /// <summary>Additional resource attributes</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]

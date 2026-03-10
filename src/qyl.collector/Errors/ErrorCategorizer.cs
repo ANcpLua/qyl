@@ -1,4 +1,4 @@
-namespace qyl.collector.Errors;
+namespace Qyl.Collector.Errors;
 
 public static class ErrorCategorizer
 {

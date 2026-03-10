@@ -1,6 +1,6 @@
-using qyl.collector.ClaudeCode;
+using Qyl.Collector.ClaudeCode;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with Claude Code session queries.

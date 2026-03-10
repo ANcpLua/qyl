@@ -1,6 +1,6 @@
-using qyl.collector.Storage;
+using Qyl.Collector.Storage;
 
-namespace qyl.collector.CodingAgent;
+namespace Qyl.Collector.CodingAgent;
 
 public static class LoomSettingsEndpoints
 {
@@ -17,13 +17,15 @@ public static class LoomSettingsEndpoints
             UpdateLoomSettingsRequest request, DuckDbStore store, CancellationToken ct) =>
         {
             if (request.DefaultCodingAgent is { } agent &&
-                !Enum.TryParse<CodingAgentProvider>(agent, true, out _))
+                !CodingAgentProviderNames.TryParse(agent, out _))
                 return Results.BadRequest(new { error = $"Unknown provider: {agent}" });
 
             var current = await store.GetLoomSettingsAsync(ct);
             var updated = current with
             {
-                DefaultCodingAgent = request.DefaultCodingAgent ?? current.DefaultCodingAgent,
+                DefaultCodingAgent = request.DefaultCodingAgent is { } defaultCodingAgent
+                    ? CodingAgentProviderNames.NormalizeSlug(defaultCodingAgent)
+                    : current.DefaultCodingAgent,
                 DefaultCodingAgentIntegrationId =
                     request.DefaultCodingAgentIntegrationId ?? current.DefaultCodingAgentIntegrationId,
                 AutomationTuning = request.AutomationTuning ?? current.AutomationTuning

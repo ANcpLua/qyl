@@ -1,6 +1,6 @@
 using System.Runtime.CompilerServices;
 
-namespace Qyl.Common;
+namespace Qyl.Contracts.Common;
 
 /// <summary>
 ///     Nanosecond / millisecond / DateTimeOffset conversions used across the platform.
@@ -9,7 +9,7 @@ namespace Qyl.Common;
 /// <remarks>
 ///     <para>
 ///         The qyl codebase uses two UnixNano types:
-///         - Protocol (qyl.contracts): <c>long</c> for JSON serialization (signed for JavaScript safety)
+///         - Protocol (Qyl.Contracts): <c>long</c> for JSON serialization (signed for JavaScript safety)
 ///         - Collector (qyl.collector): <c>ulong</c> for OTel fixed64 wire format and DuckDB UBIGINT
 ///     </para>
 ///     <para>Valid until year ~2554 (ulong max / 1e9 seconds).</para>

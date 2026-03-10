@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace qyl.collector.ClaudeCode;
+namespace Qyl.Collector.ClaudeCode;
 
 /// <summary>
 ///     Manages qyl hook entries in ~/.claude/hooks/hooks.json.

@@ -1,4 +1,4 @@
-namespace qyl.collector;
+namespace Qyl.Collector;
 
 /// <summary>Response from clearing telemetry data.</summary>
 public sealed record ClearTelemetryResponse(

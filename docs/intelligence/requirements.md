@@ -6,11 +6,11 @@ Extracted from [loom-design.md §22](../roadmap/loom-design.md#22-requirements-r
 
 | ID       | Capability              | Domain     | Scope                | Evidence                                         | Verification                                    |
 |----------|-------------------------|------------|----------------------|--------------------------------------------------|-------------------------------------------------|
-| QYL-004  | AI Chat Analytics       | Analytics  | `IMPLEMENTED-IN-QYL` | 6 modules, 9 API endpoints, 10 uncertainty signals | API returns real data, not stubs               |
+| QYL-004  | AI Chat Analytics       | Analytics  | ` IMPLEMENTED-IN-QYL.LOOM` | 6 modules, 9 API endpoints, 10 uncertainty signals | API returns real data, not stubs               |
 | QYL-012  | AI Chat Extended (Ph 5) | Analytics  | `CONTEXT-ONLY`       | Semantic clustering, token economics             | Roadmap — not ship-blocking                     |
-| QYL-015a | Autofix Orchestration   | Autofix    | `IMPLEMENTED-IN-QYL` | AutofixOrchestrator.cs                           | Full issue → RCA → solution → code change flow |
-| QYL-015b | Triage Pipeline         | Triage     | `IMPLEMENTED-IN-QYL` | TriagePipelineService.cs                         | Score real issues, verify threshold gating      |
-| QYL-015c | Code Review Service     | CodeReview | `IMPLEMENTED-IN-QYL` | CodeReviewService.cs                             | GitHub webhook → analysis → PR comment          |
+| QYL-015a | Autofix Orchestration   | Autofix    | ` IMPLEMENTED-IN-QYL.LOOM` | AutofixOrchestrator.cs                           | Full issue → RCA → solution → code change flow |
+| QYL-015b | Triage Pipeline         | Triage     | ` IMPLEMENTED-IN-QYL.LOOM` | TriagePipelineService.cs                         | Score real issues, verify threshold gating      |
+| QYL-015c | Code Review Service     | CodeReview | ` IMPLEMENTED-IN-QYL.LOOM` | CodeReviewService.cs                             | GitHub webhook → analysis → PR comment          |
 
 ## Sentry Reference Requirements (CONTEXT-ONLY)
 

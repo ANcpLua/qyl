@@ -1,6 +1,6 @@
 using System.Diagnostics;
 
-namespace qyl.collector.Observe;
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 /// An active observability subscription: a named filter wired to a live OTLP export pipeline.

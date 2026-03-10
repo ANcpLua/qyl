@@ -1,6 +1,6 @@
-using qyl.collector.Storage;
+using Qyl.Collector.Storage;
 
-namespace qyl.collector.CodingAgent;
+namespace Qyl.Collector.CodingAgent;
 
 public static class CodingAgentEndpoints
 {
@@ -13,14 +13,14 @@ public static class CodingAgentEndpoints
             if (await store.GetFixRunAsync(fixRunId, ct) is null)
                 return Results.NotFound();
 
-            if (!Enum.TryParse<CodingAgentProvider>(request.Provider, true, out var provider))
+            if (!CodingAgentProviderNames.TryParse(request.Provider, out var provider))
                 provider = CodingAgentProvider.Loom;
 
             var record = new CodingAgentRunRecord
             {
                 Id = Guid.NewGuid().ToString("N"),
                 FixRunId = fixRunId,
-                Provider = provider.ToString().ToLowerInvariant(),
+                Provider = CodingAgentProviderNames.ToSlug(provider),
                 Status = "pending",
                 RepoFullName = request.RepoFullName
             };

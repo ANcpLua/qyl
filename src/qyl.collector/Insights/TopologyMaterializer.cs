@@ -1,4 +1,4 @@
-namespace qyl.collector.Insights;
+namespace Qyl.Collector.Insights;
 
 /// <summary>
 ///     Discovers services, AI models, and top errors from ingested spans.

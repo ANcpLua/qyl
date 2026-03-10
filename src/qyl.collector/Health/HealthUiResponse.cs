@@ -1,4 +1,4 @@
-namespace qyl.collector.Health;
+namespace Qyl.Collector.Health;
 
 /// <summary>
 ///     Detailed health status for the UI dashboard.

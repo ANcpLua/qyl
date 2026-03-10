@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace qyl.mcp.Auth;
+namespace Qyl.Mcp.Auth;
 
 /// <summary>
 ///     Extension methods for configuring MCP authentication.

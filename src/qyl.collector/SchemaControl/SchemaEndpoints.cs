@@ -1,4 +1,4 @@
-namespace qyl.collector.SchemaControl;
+namespace Qyl.Collector.SchemaControl;
 
 /// <summary>
 ///     REST endpoints for schema promotion and migration management.

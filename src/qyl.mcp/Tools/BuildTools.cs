@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 [McpServerToolType]
 public sealed class BuildTools(HttpClient client)

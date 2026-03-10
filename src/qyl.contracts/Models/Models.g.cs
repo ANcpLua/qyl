@@ -25,7 +25,7 @@ public sealed record DeploymentCreate
 
     /// <summary>Service version</summary>
     [JsonPropertyName("service_version")]
-    public required global::Qyl.Common.SemVer ServiceVersion { get; init; }
+    public required global::Qyl.Contracts.Common.SemVer ServiceVersion { get; init; }
 
     /// <summary>Environment</summary>
     [JsonPropertyName("environment")]
@@ -104,7 +104,7 @@ public sealed record ErrorUpdate
 
     /// <summary>Issue URL</summary>
     [JsonPropertyName("issue_url")]
-    public global::Qyl.Common.UrlString? IssueUrl { get; init; }
+    public global::Qyl.Contracts.Common.UrlString? IssueUrl { get; init; }
 
 }
 
@@ -215,7 +215,7 @@ public sealed record HealthResponse
 
     /// <summary>Service version</summary>
     [JsonPropertyName("version")]
-    public required global::Qyl.Common.SemVer Version { get; init; }
+    public required global::Qyl.Contracts.Common.SemVer Version { get; init; }
 
     /// <summary>Uptime in seconds</summary>
     [JsonPropertyName("uptime_seconds")]
@@ -354,7 +354,7 @@ public sealed record MetricQueryRequest
 
     /// <summary>Step interval</summary>
     [JsonPropertyName("step")]
-    public global::Qyl.Common.Pagination.TimeBucket? Step { get; init; }
+    public global::Qyl.Contracts.Common.Pagination.TimeBucket? Step { get; init; }
 
     /// <summary>Aggregation function</summary>
     [JsonPropertyName("aggregation")]
@@ -451,7 +451,7 @@ public sealed record ServiceDetails
 
     /// <summary>Service version</summary>
     [JsonPropertyName("version")]
-    public global::Qyl.Common.SemVer? Version { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? Version { get; init; }
 
     /// <summary>Instance count</summary>
     [JsonPropertyName("instance_count")]
@@ -463,11 +463,11 @@ public sealed record ServiceDetails
 
     /// <summary>Resource attributes</summary>
     [JsonPropertyName("resource_attributes")]
-    public required IReadOnlyList<global::Qyl.Common.Attribute> ResourceAttributes { get; init; }
+    public required IReadOnlyList<global::Qyl.Contracts.Common.Attribute> ResourceAttributes { get; init; }
 
     /// <summary>Instrumentation libraries</summary>
     [JsonPropertyName("instrumentation_libraries")]
-    public required IReadOnlyList<global::Qyl.Common.InstrumentationScope> InstrumentationLibraries { get; init; }
+    public required IReadOnlyList<global::Qyl.Contracts.Common.InstrumentationScope> InstrumentationLibraries { get; init; }
 
     /// <summary>Request rate (per second)</summary>
     [JsonPropertyName("request_rate")]
@@ -500,7 +500,7 @@ public sealed record ServiceInfo
 
     /// <summary>Service version</summary>
     [JsonPropertyName("version")]
-    public global::Qyl.Common.SemVer? Version { get; init; }
+    public global::Qyl.Contracts.Common.SemVer? Version { get; init; }
 
     /// <summary>Instance count</summary>
     [JsonPropertyName("instance_count")]
@@ -517,19 +517,19 @@ public sealed record SpanRecord
 {
     /// <summary>Unique span identifier</summary>
     [JsonPropertyName("spanId")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required global::Qyl.Contracts.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("traceId")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required global::Qyl.Contracts.Common.TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parentSpanId")]
-    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
+    public global::Qyl.Contracts.Common.SpanId? ParentSpanId { get; init; }
 
     /// <summary>Session identifier for grouping related traces</summary>
     [JsonPropertyName("sessionId")]
-    public global::Qyl.Common.SessionId? SessionId { get; init; }
+    public global::Qyl.Contracts.Common.SessionId? SessionId { get; init; }
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]

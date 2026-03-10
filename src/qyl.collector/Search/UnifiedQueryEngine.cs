@@ -1,4 +1,4 @@
-namespace qyl.collector.Search;
+namespace Qyl.Collector.Search;
 
 /// <summary>
 ///     Builds cross-entity DuckDB queries using UNION ALL with time-bounded text search.
@@ -45,18 +45,20 @@ internal static class UnifiedQueryEngine
     private const string ErrorSubquery = """
                                          SELECT
                                              'errors' AS entity_type,
-                                             error_id AS entity_id,
-                                             COALESCE(error_type, 'Error') AS title,
-                                             COALESCE(message, '') AS snippet,
-                                             CAST(epoch_ns(last_seen) AS UBIGINT) AS ts,
-                                             CASE WHEN COALESCE(message, '') ILIKE $1 ESCAPE '\' THEN 2.0
+                                             id AS entity_id,
+                                             COALESCE(title, COALESCE(error_type, 'Issue')) AS title,
+                                             COALESCE(culprit, '') AS snippet,
+                                             CAST(epoch_ns(last_seen_at) AS UBIGINT) AS ts,
+                                             CASE WHEN COALESCE(title, '') ILIKE $1 ESCAPE '\' THEN 2.0
                                                   WHEN COALESCE(error_type, '') ILIKE $1 ESCAPE '\' THEN 1.5
+                                                  WHEN COALESCE(culprit, '') ILIKE $1 ESCAPE '\' THEN 1.25
                                                   ELSE 1.0 END AS score
-                                         FROM errors
-                                         WHERE (COALESCE(message, '') ILIKE $1 ESCAPE '\'
-                                             OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\')
-                                           AND CAST(epoch_ns(last_seen) AS UBIGINT) >= $2
-                                           AND CAST(epoch_ns(last_seen) AS UBIGINT) <= $3
+                                         FROM error_issues
+                                         WHERE (COALESCE(title, '') ILIKE $1 ESCAPE '\'
+                                             OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\'
+                                             OR COALESCE(culprit, '') ILIKE $1 ESCAPE '\')
+                                           AND CAST(epoch_ns(last_seen_at) AS UBIGINT) >= $2
+                                           AND CAST(epoch_ns(last_seen_at) AS UBIGINT) <= $3
                                          """;
 
     private const string AgentRunSubquery = """
@@ -79,44 +81,51 @@ internal static class UnifiedQueryEngine
     private const string WorkflowSubquery = """
                                             SELECT
                                                 'workflows' AS entity_type,
-                                                execution_id AS entity_id,
-                                                COALESCE(workflow_name, 'Workflow') AS title,
-                                                COALESCE(status, '') AS snippet,
-                                                COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) AS ts,
-                                                CASE WHEN COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\' THEN 2.0
-                                                     WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\' THEN 1.5
-                                                     ELSE 1.0 END AS score
-                                            FROM workflow_executions
-                                            WHERE (COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\'
-                                                OR COALESCE(status, '') ILIKE $1 ESCAPE '\')
-                                              AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) >= $2
-                                              AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) <= $3
-                                            """;
+                                                workflow_result.entity_id,
+                                                workflow_result.title,
+                                                workflow_result.snippet,
+                                                workflow_result.ts,
+                                                workflow_result.score
+                                            FROM (
+                                                SELECT
+                                                    execution_id AS entity_id,
+                                                    COALESCE(workflow_name, 'Workflow') AS title,
+                                                    COALESCE(status, '') AS snippet,
+                                                    COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) AS ts,
+                                                    CASE WHEN COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\' THEN 2.0
+                                                         WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\' THEN 1.5
+                                                         ELSE 1.0 END AS score
+                                                FROM workflow_executions
+                                                WHERE (COALESCE(workflow_name, '') ILIKE $1 ESCAPE '\'
+                                                    OR COALESCE(status, '') ILIKE $1 ESCAPE '\')
+                                                  AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) >= $2
+                                                  AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) <= $3
 
-    private const string IssueSubquery = """
-                                        SELECT
-                                            'issues' AS entity_type,
-                                            id AS entity_id,
-                                            title,
-                                            COALESCE(culprit, '') AS snippet,
-                                            CAST(epoch_ns(last_seen_at) AS UBIGINT) AS ts,
-                                            CASE WHEN title ILIKE $1 ESCAPE '\' THEN 2.0
-                                                 WHEN COALESCE(error_type, '') ILIKE $1 ESCAPE '\' THEN 1.5
-                                                 WHEN COALESCE(culprit, '') ILIKE $1 ESCAPE '\' THEN 1.0
-                                                 ELSE 0.5 END AS score
-                                        FROM error_issues
-                                        WHERE (title ILIKE $1 ESCAPE '\'
-                                            OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\'
-                                            OR COALESCE(culprit, '') ILIKE $1 ESCAPE '\')
-                                          AND CAST(epoch_ns(last_seen_at) AS UBIGINT) >= $2
-                                          AND CAST(epoch_ns(last_seen_at) AS UBIGINT) <= $3
-                                        """;
+                                                UNION ALL
+
+                                                SELECT
+                                                    id AS entity_id,
+                                                    COALESCE(workflow_id, 'Workflow') AS title,
+                                                    COALESCE(status, '') AS snippet,
+                                                    COALESCE(CAST(epoch_ns(COALESCE(started_at, created_at)) AS UBIGINT), 0) AS ts,
+                                                    CASE WHEN COALESCE(workflow_id, '') ILIKE $1 ESCAPE '\' THEN 2.0
+                                                         WHEN COALESCE(status, '') ILIKE $1 ESCAPE '\' THEN 1.5
+                                                         WHEN COALESCE(trigger_type, '') ILIKE $1 ESCAPE '\' THEN 1.25
+                                                         ELSE 1.0 END AS score
+                                                FROM workflow_runs
+                                                WHERE (COALESCE(workflow_id, '') ILIKE $1 ESCAPE '\'
+                                                    OR COALESCE(status, '') ILIKE $1 ESCAPE '\'
+                                                    OR COALESCE(trigger_type, '') ILIKE $1 ESCAPE '\')
+                                                  AND COALESCE(CAST(epoch_ns(COALESCE(started_at, created_at)) AS UBIGINT), 0) >= $2
+                                                  AND COALESCE(CAST(epoch_ns(COALESCE(started_at, created_at)) AS UBIGINT), 0) <= $3
+                                            ) AS workflow_result
+                                            """;
 
     /// <summary>Default time window when no explicit range is specified (24 hours).</summary>
     private static readonly TimeSpan DefaultWindow = TimeSpan.FromHours(24);
 
     private static readonly FrozenSet<string> ValidEntityTypes = FrozenSet.ToFrozenSet(
-        ["spans", "logs", "errors", "issues", "agent_runs", "workflows"]);
+        ["spans", "logs", "errors", "agent_runs", "workflows"]);
 
     /// <summary>
     ///     Builds a UNION ALL query across requested entity types, applying text and time filters.
@@ -145,9 +154,6 @@ internal static class UnifiedQueryEngine
 
         if (entityTypes.Contains("errors"))
             unions.Add(ErrorSubquery);
-
-        if (entityTypes.Contains("issues"))
-            unions.Add(IssueSubquery);
 
         if (entityTypes.Contains("agent_runs"))
             unions.Add(AgentRunSubquery);

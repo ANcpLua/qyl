@@ -1,4 +1,4 @@
-namespace qyl.collector.Identity;
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     GitHub identity integration with runtime-updatable tokens (ADR-002).
@@ -20,7 +20,7 @@ public sealed partial class GitHubService(
     public bool IsConfigured => !string.IsNullOrWhiteSpace(GetEffectiveToken());
 
     /// <summary>
-    ///     Returns the current GitHub token (runtime or env var). Used by qyl.copilot token bridge (ADR-002).
+    ///     Returns the current GitHub token (runtime or env var). Used by Qyl.Agents token bridge (ADR-002).
     /// </summary>
     public string? GetToken() => GetEffectiveToken();
 

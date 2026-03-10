@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Receives GitHub webhook events, verifies HMAC-SHA256 signatures,

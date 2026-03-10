@@ -1,20 +1,17 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
-using Microsoft.Extensions.AI;
 using ModelContextProtocol.Server;
-using Qyl.Common;
-using qyl.mcp.Agents;
+using Qyl.Contracts.Common;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tools for replaying and analyzing stored AI sessions.
 ///     Fetches data from qyl.collector via HTTP.
-///     Optionally uses an LLM for AI-powered session summarization.
 /// </summary>
 [McpServerToolType]
-public sealed class ReplayTools(HttpClient client, IChatClient? llm = null)
+public sealed class ReplayTools(HttpClient client)
 {
     [McpServerTool(Name = "qyl.list_sessions", Title = "List Sessions",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -74,7 +71,7 @@ public sealed class ReplayTools(HttpClient client, IChatClient? llm = null)
         }, "Error fetching sessions");
 
     [McpServerTool(Name = "qyl.get_session_transcript", Title = "Get Session Transcript",
-        ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
                  Get a human-readable transcript of an AI session.
 
@@ -85,36 +82,31 @@ public sealed class ReplayTools(HttpClient client, IChatClient? llm = null)
                  - Duration of each operation
                  - Errors and their messages
 
-                 Set summarize=true to get an AI-powered analysis instead of the raw
-                 transcript (requires QYL_LLM_PROVIDER). The summary includes session
-                 overview, timeline, error analysis, performance, and GenAI breakdown.
-
                  Use list_sessions first to find a session_id.
 
-                 Returns: Formatted transcript (or AI summary when summarize=true)
+                 Example: get_session_transcript(session_id="session-abc123")
+
+                 Returns: Formatted transcript with timing, tokens, costs, and errors
                  """)]
     public Task<string> GetSessionTranscriptAsync(
         [Description("The session ID from list_sessions (required)")]
-        string sessionId,
-        [Description("When true, return an AI-powered summary instead of raw transcript (requires LLM)")]
-        bool summarize = false,
-        CancellationToken ct = default) =>
+        string sessionId) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
-                ReplayJsonContext.Default.SpanListResponse, ct).ConfigureAwait(false);
+                ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{sessionId}' not found or has no spans";
 
-            // Sort by start time
-            var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
-
             var sb = new StringBuilder();
             sb.AppendLine($"# Session Transcript: {sessionId}");
-            sb.AppendLine($"Total Spans: {sortedSpans.Count}");
+            sb.AppendLine($"Total Spans: {response.Items.Count}");
             sb.AppendLine();
+
+            // Sort by start time
+            var sortedSpans = response.Items.OrderBy(static s => s.StartTimeUnixNano).ToList();
 
             foreach (var span in sortedSpans)
             {
@@ -140,7 +132,7 @@ public sealed class ReplayTools(HttpClient client, IChatClient? llm = null)
                 sb.AppendLine();
             }
 
-            // Summary footer
+            // Summary
             var totalTokensIn = sortedSpans.Sum(static s => s.GenAiInputTokens ?? 0L);
             var totalTokensOut = sortedSpans.Sum(static s => s.GenAiOutputTokens ?? 0L);
             var totalCost = sortedSpans.Sum(static s => s.GenAiCostUsd ?? 0d);
@@ -154,22 +146,7 @@ public sealed class ReplayTools(HttpClient client, IChatClient? llm = null)
             if (totalCost > 0)
                 sb.AppendLine($"- Total Cost: ${totalCost:F4}");
 
-            var transcript = sb.ToString();
-
-            if (!summarize)
-                return transcript;
-
-            if (llm is null)
-                return $"{transcript}\n\n*Summarization requested but no LLM configured (set QYL_LLM_PROVIDER).*";
-
-            List<ChatMessage> messages =
-            [
-                new(ChatRole.System, SessionSummaryPrompt.Prompt),
-                new(ChatRole.User, transcript)
-            ];
-
-            var summaryResponse = await llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
-            return summaryResponse.Text ?? "Summary generation produced no output.";
+            return sb.ToString();
         }, "Error fetching session");
 
     [McpServerTool(Name = "qyl.get_trace", Title = "Get Trace",

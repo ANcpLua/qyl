@@ -2,7 +2,7 @@
 // Manual schema extensions for autofix step tracking within fix runs.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {

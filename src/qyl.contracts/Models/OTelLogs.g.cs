@@ -44,7 +44,7 @@ public sealed record LogBodyKvList
 {
     /// <summary>Key-value pairs</summary>
     [JsonPropertyName("kv_list_value")]
-    public required IReadOnlyList<global::Qyl.Common.Attribute> KvListValue { get; init; }
+    public required IReadOnlyList<global::Qyl.Contracts.Common.Attribute> KvListValue { get; init; }
 
 }
 
@@ -116,7 +116,7 @@ public sealed record LogRecord
 
     /// <summary>Log attributes</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
@@ -128,11 +128,11 @@ public sealed record LogRecord
 
     /// <summary>Associated trace ID</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public global::Qyl.Contracts.Common.TraceId? TraceId { get; init; }
 
     /// <summary>Associated span ID</summary>
     [JsonPropertyName("span_id")]
-    public global::Qyl.Common.SpanId? SpanId { get; init; }
+    public global::Qyl.Contracts.Common.SpanId? SpanId { get; init; }
 
     /// <summary>Resource describing the entity that produced this log</summary>
     [JsonPropertyName("resource")]
@@ -140,7 +140,7 @@ public sealed record LogRecord
 
     /// <summary>Instrumentation scope</summary>
     [JsonPropertyName("instrumentation_scope")]
-    public global::Qyl.Common.InstrumentationScope? InstrumentationScope { get; init; }
+    public global::Qyl.Contracts.Common.InstrumentationScope? InstrumentationScope { get; init; }
 
 }
 

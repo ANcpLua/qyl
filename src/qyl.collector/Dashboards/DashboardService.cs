@@ -1,4 +1,4 @@
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     Background service that periodically re-detects available dashboards.

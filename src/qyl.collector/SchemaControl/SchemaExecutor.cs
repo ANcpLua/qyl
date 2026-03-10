@@ -1,4 +1,4 @@
-namespace qyl.collector.SchemaControl;
+namespace Qyl.Collector.SchemaControl;
 
 /// <summary>
 ///     Executes planned schema promotions against DuckDB.

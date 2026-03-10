@@ -3,7 +3,7 @@
 // Called by EmbeddingClusterWorker to persist semantic cluster assignments.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>A span that has not yet been assigned to a semantic cluster.</summary>
 public sealed record UnclusteredSpan(string SpanId, string SpanName, string? InputMessages);

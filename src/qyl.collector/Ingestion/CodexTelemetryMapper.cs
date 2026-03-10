@@ -24,7 +24,7 @@
 // - gen_ai.tool.name / gen_ai.tool.call.id
 // =============================================================================
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Transforms Codex custom telemetry events to OTel GenAI semantic conventions.

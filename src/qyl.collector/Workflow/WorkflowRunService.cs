@@ -1,4 +1,4 @@
-namespace qyl.collector.Workflow;
+namespace Qyl.Collector.Workflow;
 
 /// <summary>
 ///     Service layer for the workflow engine. Operates against the
@@ -12,11 +12,20 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
     // ==========================================================================
 
     private const string RunSelectSql = """
-                                        SELECT id, workflow_id, workflow_version, project_id, trigger_type,
-                                               trigger_source, input_json, output_json, status, error_message,
-                                               parent_run_id, correlation_id, started_at, completed_at,
-                                               duration_ms, created_at
-                                        FROM workflow_runs
+                                        SELECT r.id, r.workflow_id, r.workflow_version, r.project_id, r.trigger_type,
+                                               r.trigger_source, r.input_json, r.output_json, r.status, r.error_message,
+                                               r.parent_run_id, r.correlation_id, r.started_at, r.completed_at,
+                                               r.duration_ms, r.created_at,
+                                               COALESCE(node_stats.node_count, 0) AS node_count,
+                                               COALESCE(node_stats.completed_nodes, 0) AS completed_nodes
+                                        FROM workflow_runs AS r
+                                        LEFT JOIN (
+                                            SELECT run_id,
+                                                   COUNT(*) AS node_count,
+                                                   SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) AS completed_nodes
+                                            FROM workflow_nodes
+                                            GROUP BY run_id
+                                        ) AS node_stats ON node_stats.run_id = r.id
                                         """;
     // ==========================================================================
     // Workflow Runs
@@ -304,8 +313,19 @@ public sealed partial class WorkflowRunService(DuckDbStore store, ILogger<Workfl
             StartedAt = reader.Col(12).AsDateTime,
             CompletedAt = reader.Col(13).AsDateTime,
             DurationMs = reader.Col(14).AsInt32,
-            CreatedAt = reader.GetDateTime(15)
+            CreatedAt = reader.GetDateTime(15),
+            NodeCount = ReadCount(reader.GetValue(16)),
+            CompletedNodes = ReadCount(reader.GetValue(17))
         };
+
+    private static int ReadCount(object value) => value switch
+    {
+        int intValue => intValue,
+        long longValue => checked((int)longValue),
+        decimal decimalValue => checked((int)decimalValue),
+        System.Numerics.BigInteger bigIntegerValue => checked((int)bigIntegerValue),
+        _ => Convert.ToInt32(value, CultureInfo.InvariantCulture)
+    };
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static WorkflowNodeRow MapNode(DbDataReader reader) =>
@@ -382,6 +402,8 @@ public sealed record WorkflowRunRow
     public DateTime? CompletedAt { get; init; }
     public int? DurationMs { get; init; }
     public required DateTime CreatedAt { get; init; }
+    public required int NodeCount { get; init; }
+    public required int CompletedNodes { get; init; }
 }
 
 /// <summary>

@@ -1,6 +1,7 @@
 <Project Sdk="ANcpLua.NET.Sdk.Web">
   <PropertyGroup>
-    <RootNamespace>qyl.collector.tests</RootNamespace>
+    <RootNamespace>Qyl.Collector.Tests</RootNamespace>
+    <AssemblyName>Qyl.Collector.Tests</AssemblyName>
     <LangVersion>14</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <OutputType>Exe</OutputType>
@@ -8,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="xunit.v3.mtp-v2" />
+    <PackageReference Include="NetArchTest.Rules" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
@@ -15,5 +17,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\qyl.collector\qyl.collector.csproj" />
+    <ProjectReference Include="..\..\src\qyl.agents\qyl.agents.csproj" />
+    <ProjectReference Include="..\..\src\qyl.workflows\qyl.workflows.csproj" />
+    <ProjectReference Include="..\..\src\qyl.mcp\qyl.mcp.csproj" />
+    <ProjectReference Include="..\..\src\qyl.contracts\qyl.contracts.csproj" />
   </ItemGroup>
 </Project>

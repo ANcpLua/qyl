@@ -10,7 +10,7 @@
 
 #nullable enable
 
-namespace Qyl.Common;
+namespace Qyl.Contracts.Common;
 
 /// <summary>Cost in USD (floating point)</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(CostUsdJsonConverter))]

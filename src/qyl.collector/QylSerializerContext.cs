@@ -1,11 +1,11 @@
-using qyl.collector.BuildFailures;
-using qyl.collector.Dashboards;
-using qyl.collector.Insights;
-using qyl.collector.Meta;
-using qyl.collector.Search;
-using qyl.contracts.Copilot;
+using Qyl.Collector.BuildFailures;
+using Qyl.Collector.Dashboards;
+using Qyl.Collector.Insights;
+using Qyl.Collector.Meta;
+using Qyl.Collector.Search;
+using Qyl.Contracts.Copilot;
 
-namespace qyl.collector;
+namespace Qyl.Collector;
 
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,

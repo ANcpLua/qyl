@@ -1,14 +1,15 @@
 using Microsoft.Extensions.AI;
-using qyl.copilot;
-using qyl.copilot.Auth;
-using qyl.copilot.Providers;
-using qyl.copilot.Routing;
-using qyl.collector.Auth;
-using qyl.contracts.Copilot;
+using Qyl.Agents;
+using Qyl.Agents.Auth;
+using Qyl.Agents.Providers;
+using Qyl.Agents.Routing;
+using Qyl.Collector.Auth;
+using Qyl.Contracts.Copilot;
+using Qyl.Workflows;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
-namespace qyl.collector.Copilot;
+namespace Qyl.Collector.Copilot;
 
 /// <summary>
 ///     REST endpoints for GitHub Copilot integration.
@@ -79,7 +80,7 @@ internal static class CopilotEndpoints
             RunId = Guid.NewGuid().ToString("N"),
             TraceId = traceId,
             AgentType = "chat",
-            AgentName = "qyl.copilot.chat",
+            AgentName = "Qyl.Agents.chat",
             RequestedMode = requestMode,
             TrackMode = routeMode,
             RouterReason = routing.Reason,
@@ -391,7 +392,7 @@ internal static class CopilotEndpoints
             RunId = Guid.NewGuid().ToString("N"),
             TraceId = traceId,
             AgentType = "workflow",
-            AgentName = $"qyl.copilot.workflow:{name}",
+            AgentName = $"Qyl.Agents.workflow:{name}",
             Provider = "copilot",
             Model = "github-copilot",
             RequestedMode = TrackModeRouter.ToWireValue(requestedMode),

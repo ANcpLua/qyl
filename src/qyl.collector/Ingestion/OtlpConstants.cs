@@ -1,4 +1,4 @@
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Shared constants for OTLP endpoints.

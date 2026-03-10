@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tools for accessing frontend console logs captured by qyl.collector.
@@ -89,6 +89,56 @@ public sealed class ConsoleTools(HttpClient client)
             return sb.ToString();
         });
 
+    [McpServerTool(Name = "qyl.list_console_errors", Title = "List Console Errors",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
+    [Description("""
+                 List frontend console errors and warnings.
+
+                 Quick way to see what's broken in the browser. Returns only warn and error level messages.
+
+                 Returns: Formatted list of errors/warnings with timestamps and stack traces
+                 """)]
+    public Task<string> ListConsoleErrorsAsync(
+        [Description("Maximum number of errors to return (default: 20)")]
+        int limit = 20) =>
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var errors = await client.GetFromJsonAsync<ConsoleLogDto[]>(
+                $"/api/v1/console/errors?limit={limit}",
+                ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
+
+            if (errors is null || errors.Length is 0)
+            {
+                return
+                    "No console errors found. Either the app is working, or the qyl-console.js shim isn't installed.";
+            }
+
+            var sb = new StringBuilder();
+            sb.AppendLine($"# Console Errors ({errors.Length} entries)");
+            sb.AppendLine();
+
+            foreach (var error in errors)
+            {
+                var levelIcon = error.Lvl == "Error" ? "[ERROR]" : "[WARN]";
+
+                sb.AppendLine($"## {error.At:HH:mm:ss} {levelIcon}");
+                sb.AppendLine();
+                sb.AppendLine(error.Msg);
+
+                if (!string.IsNullOrEmpty(error.Url))
+                    sb.AppendLine($"\n**Source:** {error.Url}");
+
+                if (!string.IsNullOrEmpty(error.Stack))
+                {
+                    sb.AppendLine("\n**Stack trace:**");
+                    sb.AppendLine($"```\n{error.Stack}\n```");
+                }
+
+                sb.AppendLine();
+            }
+
+            return sb.ToString();
+        });
 }
 
 #region DTOs

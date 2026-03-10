@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Sockets;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     Shared helper for MCP tool methods that call qyl.collector via HTTP.

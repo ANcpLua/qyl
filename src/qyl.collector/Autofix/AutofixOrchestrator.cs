@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Orchestrates agent-driven fix runs for grouped errors. Creates workflow

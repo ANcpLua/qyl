@@ -1,4 +1,4 @@
-namespace qyl.collector.BuildFailures;
+namespace Qyl.Collector.BuildFailures;
 
 public sealed record BuildFailureIngestRequest(
     string? Id,

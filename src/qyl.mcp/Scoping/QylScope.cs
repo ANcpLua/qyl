@@ -1,4 +1,4 @@
-namespace qyl.mcp.Scoping;
+namespace Qyl.Mcp.Scoping;
 
 /// <summary>
 ///     Reads QYL_SERVICE and QYL_SESSION environment variables to narrow tool scope.

@@ -21,19 +21,19 @@ public sealed record Span
 {
     /// <summary>Unique span identifier (16 hex chars)</summary>
     [JsonPropertyName("span_id")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required global::Qyl.Contracts.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace identifier (32 hex chars)</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required global::Qyl.Contracts.Common.TraceId TraceId { get; init; }
 
     /// <summary>Parent span identifier (null for root spans)</summary>
     [JsonPropertyName("parent_span_id")]
-    public global::Qyl.Common.SpanId? ParentSpanId { get; init; }
+    public global::Qyl.Contracts.Common.SpanId? ParentSpanId { get; init; }
 
     /// <summary>W3C trace state</summary>
     [JsonPropertyName("trace_state")]
-    public global::Qyl.Common.TraceState? TraceState { get; init; }
+    public global::Qyl.Contracts.Common.TraceState? TraceState { get; init; }
 
     /// <summary>Human-readable span name</summary>
     [JsonPropertyName("name")]
@@ -53,7 +53,7 @@ public sealed record Span
 
     /// <summary>Span attributes</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
@@ -89,7 +89,7 @@ public sealed record Span
 
     /// <summary>Instrumentation scope</summary>
     [JsonPropertyName("instrumentation_scope")]
-    public global::Qyl.Common.InstrumentationScope? InstrumentationScope { get; init; }
+    public global::Qyl.Contracts.Common.InstrumentationScope? InstrumentationScope { get; init; }
 
 }
 
@@ -106,7 +106,7 @@ public sealed record SpanEvent
 
     /// <summary>Event attributes</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
@@ -119,19 +119,19 @@ public sealed record SpanLink
 {
     /// <summary>Linked trace ID</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required global::Qyl.Contracts.Common.TraceId TraceId { get; init; }
 
     /// <summary>Linked span ID</summary>
     [JsonPropertyName("span_id")]
-    public required global::Qyl.Common.SpanId SpanId { get; init; }
+    public required global::Qyl.Contracts.Common.SpanId SpanId { get; init; }
 
     /// <summary>Trace state of the linked span</summary>
     [JsonPropertyName("trace_state")]
-    public global::Qyl.Common.TraceState? TraceState { get; init; }
+    public global::Qyl.Contracts.Common.TraceState? TraceState { get; init; }
 
     /// <summary>Link attributes</summary>
     [JsonPropertyName("attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? Attributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? Attributes { get; init; }
 
     /// <summary>Dropped attributes count</summary>
     [JsonPropertyName("dropped_attributes_count")]
@@ -161,7 +161,7 @@ public sealed record Trace
 {
     /// <summary>Trace identifier</summary>
     [JsonPropertyName("trace_id")]
-    public required global::Qyl.Common.TraceId TraceId { get; init; }
+    public required global::Qyl.Contracts.Common.TraceId TraceId { get; init; }
 
     /// <summary>All spans in this trace</summary>
     [JsonPropertyName("spans")]

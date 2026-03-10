@@ -1,8 +1,10 @@
 using System.ComponentModel;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
+using Qyl.Mcp.Agents;
 
-namespace qyl.mcp.Tools;
+namespace Qyl.Mcp.Tools;
 
 /// <summary>
 ///     MCP tool for generating test code from error context.
@@ -10,8 +12,9 @@ namespace qyl.mcp.Tools;
 ///     an LLM to generate a regression test that would catch the error.
 /// </summary>
 [McpServerToolType]
-internal sealed class TestGenerationTools(HttpClient http, IChatClient? llm = null)
+internal sealed class TestGenerationTools(HttpClient http, IConfiguration config)
 {
+    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -27,8 +30,8 @@ internal sealed class TestGenerationTools(HttpClient http, IChatClient? llm = nu
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            if (llm is null)
-                return "Test generation requires an LLM. Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY to enable.";
+            if (_llm is null)
+                return "Test generation requires an LLM. Set QYL_AGENT_API_KEY to enable.";
 
             string targetFramework = framework?.ToLowerInvariant() switch
             {
@@ -38,7 +41,7 @@ internal sealed class TestGenerationTools(HttpClient http, IChatClient? llm = nu
 
             // Fetch error details
             using HttpResponseMessage issueResp = await http
-                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
+                .GetAsync($"/api/v1/errors/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
 
             if (issueResp.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -58,7 +61,7 @@ internal sealed class TestGenerationTools(HttpClient http, IChatClient? llm = nu
 
             string prompt = BuildTestPrompt(issueJson, eventsJson, targetFramework);
 
-            ChatResponse response = await llm.GetResponseAsync(prompt, cancellationToken: ct)
+            ChatResponse response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             return $"## Generated Test for Issue {issueId}\n\n{response.Text}";

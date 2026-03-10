@@ -1,4 +1,4 @@
-namespace qyl.collector.Observe;
+namespace Qyl.Collector.Observe;
 
 internal static class ObserveEndpoints
 {

@@ -1,4 +1,4 @@
-namespace qyl.collector.Services;
+namespace Qyl.Collector.Services;
 
 internal static class ServiceEndpoints
 {

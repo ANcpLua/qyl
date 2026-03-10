@@ -1,4 +1,4 @@
-namespace qyl.collector.Search;
+namespace Qyl.Collector.Search;
 
 /// <summary>
 ///     REST endpoints for unified cross-entity search.

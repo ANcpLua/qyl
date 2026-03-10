@@ -1,4 +1,4 @@
-namespace qyl.collector.Observe;
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 /// Negotiates schema version compatibility between a subscriber's declared semconv pin

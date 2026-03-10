@@ -1,12 +1,12 @@
 // =============================================================================
-// qyl.contracts - Copilot Integration Types
+// Qyl.Contracts - Copilot Integration Types
 // BCL-only shared types for GitHub Copilot workflows
-// Owner: qyl.contracts | Consumers: copilot, collector, dashboard
+// Owner: Qyl.Contracts | Consumers: copilot, collector, dashboard
 // =============================================================================
 
 using System.Text.Json.Serialization;
 
-namespace qyl.contracts.Copilot;
+namespace Qyl.Contracts.Copilot;
 
 /// <summary>
 ///     Trigger type for workflow execution.

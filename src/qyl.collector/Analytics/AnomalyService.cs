@@ -1,4 +1,4 @@
-namespace qyl.collector.Analytics;
+namespace Qyl.Collector.Analytics;
 
 /// <summary>
 ///     Z-score anomaly detection service operating against the <c>spans</c> table
@@ -16,6 +16,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         {
             ["error_rate"] =
                 "CAST(SUM(CASE WHEN status_code = 2 THEN 1 ELSE 0 END) AS DOUBLE) / NULLIF(COUNT(*), 0)",
+            ["latency"] = "PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns)",
             ["latency_p50"] = "PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY duration_ns)",
             ["latency_p95"] = "PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY duration_ns)",
             ["latency_p99"] = "PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY duration_ns)",

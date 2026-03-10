@@ -2,7 +2,7 @@
 // AnalyticsEndpoints - REST API for AI chat analytics
 // =============================================================================
 
-namespace qyl.collector.Query;
+namespace Qyl.Collector.Query;
 
 /// <summary>
 ///     REST endpoints for AI chat analytics.

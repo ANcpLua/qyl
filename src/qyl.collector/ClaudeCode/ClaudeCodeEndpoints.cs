@@ -1,4 +1,4 @@
-namespace qyl.collector.ClaudeCode;
+namespace Qyl.Collector.ClaudeCode;
 
 internal static class ClaudeCodeEndpoints
 {

@@ -4,7 +4,7 @@
 // Target: .NET 10 / C# 14
 // =============================================================================
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     OTel GenAI Semantic Conventions v1.40.0 - UTF-8 attribute keys for zero-allocation parsing.

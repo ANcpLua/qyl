@@ -1,4 +1,4 @@
-namespace qyl.collector.AgentRuns;
+namespace Qyl.Collector.AgentRuns;
 
 /// <summary>
 ///     Endpoints for querying agent runs and tool calls.

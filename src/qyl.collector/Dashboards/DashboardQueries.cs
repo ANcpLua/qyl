@@ -1,4 +1,4 @@
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     Pre-built DuckDB queries for each dashboard type.

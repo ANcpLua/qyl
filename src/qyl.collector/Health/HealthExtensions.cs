@@ -2,10 +2,10 @@ using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
-namespace qyl.collector.Health;
+namespace Qyl.Collector.Health;
 
 /// <summary>
-///     2-liner health infrastructure for qyl.collector.
+///     2-liner health infrastructure for Qyl.Collector.
 ///     <code>
 ///     services.AddQylHealthChecks();
 ///     app.MapQylHealthChecks();

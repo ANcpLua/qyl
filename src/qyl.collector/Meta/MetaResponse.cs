@@ -1,4 +1,4 @@
-namespace qyl.collector.Meta;
+namespace Qyl.Collector.Meta;
 
 /// <summary>
 ///     Server capabilities, configuration status, and connection metadata.

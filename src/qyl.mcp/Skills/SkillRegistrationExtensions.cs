@@ -1,8 +1,8 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using qyl.mcp.Tools;
+using Qyl.Mcp.Tools;
 
-namespace qyl.mcp.Skills;
+namespace Qyl.Mcp.Skills;
 
 /// <summary>
 ///     Extension methods for conditionally registering MCP tools based on enabled skills.
@@ -49,6 +49,7 @@ internal static class SkillRegistrationExtensions
         if (skills.IsEnabled(QylSkillKind.Agent))
         {
             mcpBuilder
+                .WithTools<InvestigateTools>(jsonOptions)
                 .WithTools<UseQylTools>(jsonOptions)
                 .WithTools<RcaTools>(jsonOptions)
                 .WithTools<SummaryTools>(jsonOptions);

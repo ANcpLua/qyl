@@ -21,11 +21,11 @@ public sealed record SessionClientInfo
 {
     /// <summary>Client IP address</summary>
     [JsonPropertyName("ip")]
-    public global::Qyl.Common.IpAddress? Ip { get; init; }
+    public global::Qyl.Contracts.Common.IpAddress? Ip { get; init; }
 
     /// <summary>User agent string</summary>
     [JsonPropertyName("user_agent")]
-    public global::Qyl.Common.UserAgent? UserAgent { get; init; }
+    public global::Qyl.Contracts.Common.UserAgent? UserAgent { get; init; }
 
     /// <summary>Device type</summary>
     [JsonPropertyName("device_type")]
@@ -88,11 +88,11 @@ public sealed record SessionEntity
 {
     /// <summary>Session ID</summary>
     [JsonPropertyName("session.id")]
-    public required global::Qyl.Common.SessionId SessionId { get; init; }
+    public required global::Qyl.Contracts.Common.SessionId SessionId { get; init; }
 
     /// <summary>User ID (if authenticated)</summary>
     [JsonPropertyName("user.id")]
-    public global::Qyl.Common.UserId? UserId { get; init; }
+    public global::Qyl.Contracts.Common.UserId? UserId { get; init; }
 
     /// <summary>Session start time</summary>
     [JsonPropertyName("start_time")]

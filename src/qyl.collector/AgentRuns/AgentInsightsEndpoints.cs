@@ -3,7 +3,7 @@
 // 6 overview panels + trace list + models + tools + trace detail
 // =============================================================================
 
-namespace qyl.collector.AgentRuns;
+namespace Qyl.Collector.AgentRuns;
 
 internal static class AgentInsightsEndpoints
 {

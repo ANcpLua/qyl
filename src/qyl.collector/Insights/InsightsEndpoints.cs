@@ -1,4 +1,4 @@
-namespace qyl.collector.Insights;
+namespace Qyl.Collector.Insights;
 
 public sealed record InsightsResponse(
     string Markdown,

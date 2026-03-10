@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace qyl.collector.Analytics;
+namespace Qyl.Collector.Analytics;
 
 /// <summary>
 ///     Minimal API endpoints for Z-score anomaly detection, baseline statistics,

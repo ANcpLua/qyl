@@ -1,4 +1,4 @@
-namespace qyl.collector.CodingAgent;
+namespace Qyl.Collector.CodingAgent;
 
 /// <summary>
 ///     Pluggable coding agent backends that can receive autofix analysis
@@ -17,6 +17,49 @@ public enum CodingAgentProvider
 
     /// <summary>Anthropic Claude Code agent API (experimental).</summary>
     ClaudeCode
+}
+
+public static class CodingAgentProviderNames
+{
+    public static string ToSlug(CodingAgentProvider provider) => provider switch
+    {
+        CodingAgentProvider.Loom => "Loom",
+        CodingAgentProvider.Cursor => "cursor",
+        CodingAgentProvider.GithubCopilot => "github_copilot",
+        CodingAgentProvider.ClaudeCode => "claude_code",
+        _ => throw new ArgumentOutOfRangeException(nameof(provider), provider, null)
+    };
+
+    public static string NormalizeSlug(string? value) =>
+        TryParse(value, out var provider) ? ToSlug(provider) : "Loom";
+
+    public static bool TryParse(string? value, out CodingAgentProvider provider)
+    {
+        provider = CodingAgentProvider.Loom;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        var normalized = value.Trim().Replace("-", "_").Replace(" ", "_").ToLowerInvariant();
+        switch (normalized)
+        {
+            case "loom":
+                provider = CodingAgentProvider.Loom;
+                return true;
+            case "cursor":
+                provider = CodingAgentProvider.Cursor;
+                return true;
+            case "github_copilot":
+            case "githubcopilot":
+                provider = CodingAgentProvider.GithubCopilot;
+                return true;
+            case "claude_code":
+            case "claudecode":
+                provider = CodingAgentProvider.ClaudeCode;
+                return true;
+            default:
+                return Enum.TryParse(value, ignoreCase: true, out provider);
+        }
+    }
 }
 
 /// <summary>

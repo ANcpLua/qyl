@@ -13,7 +13,7 @@ ONLY Part 3 (Metrics Source Generators) and append as section 15.11.3 to
 docs/roadmap/loom-design.md
 
 Section: "15.11.3 Metrics Source Generators"
-Scope labels: CONTEXT-ONLY for API reference, IMPLEMENTED-IN-QYL where qyl
+Scope labels: CONTEXT-ONLY for API reference,  IMPLEMENTED-IN-QYL.LOOM where qyl
 has its own generators (with file path evidence)
 
 Required content:

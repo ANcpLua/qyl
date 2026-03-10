@@ -3,14 +3,14 @@
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
 //     Generated: 2026-03-06T15:59:59.2388020+00:00
-//     Enumeration types for Qyl.Common.Pagination
+//     Enumeration types for Qyl.Contracts.Common.Pagination
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
 // =============================================================================
 
 #nullable enable
 
-namespace Qyl.Common.Pagination;
+namespace Qyl.Contracts.Common.Pagination;
 
 /// <summary>Time bucket size for aggregations</summary>
 [System.Text.Json.Serialization.JsonConverter(typeof(System.Text.Json.Serialization.JsonStringEnumConverter<TimeBucket>))]

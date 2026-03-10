@@ -1,6 +1,6 @@
 // =============================================================================
 // qyl.instrumentation - GenAI Configuration Constants
-// QYL-specific constants only - OTel semconv attributes are in qyl.contracts
+// QYL-specific constants only - OTel semconv attributes are in Qyl.Contracts
 // =============================================================================
 
 using qyl.contracts.Attributes;

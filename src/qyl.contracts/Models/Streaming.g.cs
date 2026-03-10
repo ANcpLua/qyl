@@ -110,7 +110,7 @@ public sealed record StreamSubscription
 
     /// <summary>Trace ID filter (for specific trace)</summary>
     [JsonPropertyName("trace_id")]
-    public global::Qyl.Common.TraceId? TraceId { get; init; }
+    public global::Qyl.Contracts.Common.TraceId? TraceId { get; init; }
 
     /// <summary>Minimum severity for logs (1-24)</summary>
     [JsonPropertyName("min_severity")]

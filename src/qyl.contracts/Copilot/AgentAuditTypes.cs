@@ -1,9 +1,9 @@
 // =============================================================================
-// qyl.contracts - Agent Audit Types
+// Qyl.Contracts - Agent Audit Types
 // Structured agent run and decision contracts for tri-track auditing.
 // =============================================================================
 
-namespace qyl.contracts.Copilot;
+namespace Qyl.Contracts.Copilot;
 
 /// <summary>
 ///     Evidence link attached to an agent decision.

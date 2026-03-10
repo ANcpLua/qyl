@@ -1,6 +1,6 @@
-using qyl.collector.Search;
+using Qyl.Collector.Search;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with unified cross-entity search operations.
@@ -75,13 +75,13 @@ public sealed partial class DuckDbStore
                               FROM workflow_executions WHERE workflow_name ILIKE $1 ESCAPE '\'
                               GROUP BY workflow_name
                               UNION ALL
-                              SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
-                              FROM errors WHERE error_type ILIKE $1 ESCAPE '\'
-                              GROUP BY error_type
+                              SELECT COALESCE(workflow_id, '') AS text, 'workflows' AS entity_type, COUNT(*) AS cnt
+                              FROM workflow_runs WHERE workflow_id ILIKE $1 ESCAPE '\'
+                              GROUP BY workflow_id
                               UNION ALL
-                              SELECT title AS text, 'issues' AS entity_type, COUNT(*) AS cnt
-                              FROM error_issues WHERE title ILIKE $1 ESCAPE '\'
-                              GROUP BY title
+                              SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
+                              FROM error_issues WHERE error_type ILIKE $1 ESCAPE '\'
+                              GROUP BY error_type
                           ) AS suggestions
                           WHERE text != ''
                           ORDER BY cnt DESC
@@ -108,10 +108,7 @@ public sealed partial class DuckDbStore
 
     private static SearchResult MapSearchResult(DbDataReader reader)
     {
-        var tsRaw = reader.Col(4);
-        var timestamp = tsRaw.AsUInt64 is { } nano
-            ? TimeConversions.UnixNanoToDateTime(nano)
-            : TimeProvider.System.GetUtcNow().UtcDateTime;
+        var timestamp = ReadTimestamp(reader.GetValue(4));
 
         return new SearchResult(
             reader.GetString(0),
@@ -119,6 +116,28 @@ public sealed partial class DuckDbStore
             reader.GetString(2),
             reader.Col(3).AsString,
             timestamp,
-            reader.Col(5).GetDouble(0));
+            ReadScore(reader.GetValue(5)));
     }
+
+    private static DateTime ReadTimestamp(object value) => value switch
+    {
+        ulong ulongValue => TimeConversions.UnixNanoToDateTime(ulongValue),
+        long longValue when longValue >= 0 => TimeConversions.UnixNanoToDateTime((ulong)longValue),
+        decimal decimalValue => TimeConversions.UnixNanoToDateTime((ulong)decimalValue),
+        System.Numerics.BigInteger bigIntegerValue => TimeConversions.UnixNanoToDateTime((ulong)bigIntegerValue),
+        DateTime dateTimeValue => DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc),
+        DateTimeOffset dateTimeOffsetValue => dateTimeOffsetValue.UtcDateTime,
+        _ => TimeProvider.System.GetUtcNow().UtcDateTime
+    };
+
+    private static double ReadScore(object value) => value switch
+    {
+        double doubleValue => doubleValue,
+        float floatValue => floatValue,
+        decimal decimalValue => (double)decimalValue,
+        int intValue => intValue,
+        long longValue => longValue,
+        System.Numerics.BigInteger bigIntegerValue => (double)bigIntegerValue,
+        _ => Convert.ToDouble(value, CultureInfo.InvariantCulture)
+    };
 }

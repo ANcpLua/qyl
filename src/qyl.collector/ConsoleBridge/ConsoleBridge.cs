@@ -1,4 +1,4 @@
-namespace qyl.collector.ConsoleBridge;
+namespace Qyl.Collector.ConsoleBridge;
 
 public sealed class FrontendConsole
 {

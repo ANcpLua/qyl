@@ -1,4 +1,4 @@
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public sealed class DuckDbBuildFailureStore : IBuildFailureStore
 {

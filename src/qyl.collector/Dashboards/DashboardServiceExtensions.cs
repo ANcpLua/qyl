@@ -1,4 +1,4 @@
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     DI registration for dashboard services.

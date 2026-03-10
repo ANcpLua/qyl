@@ -1,4 +1,4 @@
-namespace qyl.mcp.Skills;
+namespace Qyl.Mcp.Skills;
 
 /// <summary>
 ///     Categories for grouping MCP tools into logical skill sets.

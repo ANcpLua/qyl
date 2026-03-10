@@ -1,4 +1,4 @@
-namespace qyl.collector.Realtime;
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     REST endpoints for querying spans from in-memory <see cref="SpanRingBuffer" />.

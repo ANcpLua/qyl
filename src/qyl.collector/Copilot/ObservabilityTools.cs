@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using Microsoft.Extensions.AI;
-using qyl.copilot.Instrumentation;
+using Qyl.Agents.Instrumentation;
 
-namespace qyl.collector.Copilot;
+namespace Qyl.Collector.Copilot;
 
 /// <summary>
 ///     AI tools that expose qyl observability queries to the Copilot agent.

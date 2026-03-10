@@ -1,4 +1,4 @@
-namespace qyl.collector.BuildFailures;
+namespace Qyl.Collector.BuildFailures;
 
 public static class BuildFailureEndpoints
 {

@@ -1,4 +1,4 @@
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Storage record for a GitHub webhook event. Maps to the github_events DuckDB table.

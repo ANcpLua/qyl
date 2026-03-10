@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace qyl.collector.Autofix;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>
 ///     Background service that periodically scans for untriaged error issues,

@@ -2,7 +2,7 @@
 // Manual schema extensions for coding agent runs and Loom settings persistence.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {

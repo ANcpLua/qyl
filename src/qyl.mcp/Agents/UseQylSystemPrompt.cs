@@ -1,4 +1,4 @@
-namespace qyl.mcp.Agents;
+namespace Qyl.Mcp.Agents;
 
 /// <summary>
 ///     Static system prompt for the use_qyl meta-agent.
@@ -12,8 +12,8 @@ internal static class UseQylSystemPrompt
 
         Available tool categories:
         - Telemetry: search_agent_runs, get_agent_run, get_token_usage, list_errors, get_latency_stats
-        - Replays: list_sessions, get_session_transcript (supports summarize=true), get_trace, analyze_session_errors
-        - Logs: list_console_logs, list_structured_logs, list_trace_logs, search_logs
+        - Replays: list_sessions, get_session_transcript, get_trace, analyze_session_errors
+        - Logs: list_console_logs, list_console_errors, list_structured_logs, list_trace_logs, search_logs
         - Builds: list_build_failures, get_build_failure, search_build_failures
         - GenAI: get_genai_stats, list_genai_spans, list_models, get_token_timeseries
         - Storage: get_storage_stats, health_check, get_system_context, search_spans

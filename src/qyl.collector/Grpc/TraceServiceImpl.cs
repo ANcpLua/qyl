@@ -1,6 +1,6 @@
 using StatusCode = Grpc.Core.StatusCode;
 
-namespace qyl.collector.Grpc;
+namespace Qyl.Collector.Grpc;
 
 /// <summary>
 ///     gRPC implementation of the OTLP TraceService for span ingestion on port 4317.

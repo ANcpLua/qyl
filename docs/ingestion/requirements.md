@@ -6,8 +6,8 @@ Extracted from [loom-design.md §22](../roadmap/loom-design.md#22-requirements-r
 
 | ID      | Capability                   | Domain   | Scope                | Evidence                                | Verification                                         |
 |---------|------------------------------|----------|----------------------|-----------------------------------------|------------------------------------------------------|
-| QYL-002 | DuckDB Appender Architecture | Storage  | `IMPLEMENTED-IN-QYL` | SpanStorageRow (26 col), LogStorageRow (16 col) | Run OTLP ingest → verify rows in DuckDB         |
-| QYL-008 | Port Architecture (OTLP)    | Protocol | `IMPLEMENTED-IN-QYL` | 5100/4317/4318 triple-port              | Verify all 3 ports accept OTLP, health checks pass  |
+| QYL-002 | DuckDB Appender Architecture | Storage  | ` IMPLEMENTED-IN-QYL.LOOM` | SpanStorageRow (26 col), LogStorageRow (16 col) | Run OTLP ingest → verify rows in DuckDB         |
+| QYL-008 | Port Architecture (OTLP)    | Protocol | ` IMPLEMENTED-IN-QYL.LOOM` | 5100/4317/4318 triple-port              | Verify all 3 ports accept OTLP, health checks pass  |
 
 ## Acceptance Criteria
 

@@ -71,7 +71,7 @@ public sealed record ErrorCorrelation
 
     /// <summary>Common attributes</summary>
     [JsonPropertyName("common_attributes")]
-    public IReadOnlyList<global::Qyl.Common.Attribute>? CommonAttributes { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.Attribute>? CommonAttributes { get; init; }
 
 }
 
@@ -128,11 +128,11 @@ public sealed record ErrorEntity
 
     /// <summary>Issue tracker URL</summary>
     [JsonPropertyName("issue_url")]
-    public global::Qyl.Common.UrlString? IssueUrl { get; init; }
+    public global::Qyl.Contracts.Common.UrlString? IssueUrl { get; init; }
 
     /// <summary>Sample trace IDs</summary>
     [JsonPropertyName("sample_traces")]
-    public IReadOnlyList<global::Qyl.Common.TraceId>? SampleTraces { get; init; }
+    public IReadOnlyList<global::Qyl.Contracts.Common.TraceId>? SampleTraces { get; init; }
 
 }
 

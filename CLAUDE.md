@@ -35,7 +35,7 @@ Docker image IS the product.
 |-------|----------|---------|----------------|
 | 1. Schema generation | `eng/build/SchemaGenerator.cs` | NUKE build time | TypeSpec OpenAPI → C# models, enums, DuckDB DDL |
 | 2. Roslyn source generation | `src/qyl.instrumentation.generators/` | MSBuild compile time | 7 interceptor pipelines → compile-time instrumentation |
-| 3. Runtime + collector | `src/qyl.servicedefaults/` + `src/qyl.collector/` | Application runtime | OTel wiring, collector discovery, DevLogs bridge, OTLP ingestion, DuckDB, SSE |
+| 3. Runtime + collector | `src/qyl.instrumentation/` + `src/qyl.collector/` | Application runtime | OTel wiring, collector discovery, DevLogs bridge, OTLP ingestion, DuckDB, SSE |
 
 ### Non-Negotiable Rules
 
@@ -62,24 +62,25 @@ CopilotKit / Angular / Vanilla JS
 +----------+  +--+-----------+---+  +------+
                  |           |
                  v           v
-       +----------+  +-------------+
-       |  DuckDB  |  | qyl.copilot |
-       +----------+  +------+------+
-                            |
-                            v
-                     QylAgentBuilder
-                     → AIAgent (instrumented)
-                     → InstrumentedChatClient
-                     → GitHub Copilot / Azure OpenAI / Ollama
+       +----------+  +------------+
+       |  DuckDB  |  | qyl.agents |
+       +----------+  +-----+------+
+                           |
+                           v
+                    QylAgentBuilder
+                    → AIAgent (instrumented)
+                    → InstrumentedChatClient
+                    → GitHub Copilot / Azure OpenAI / Ollama
 ```
 
 ## Dependency Chain
 
 ```text
-core/specs/*.tsp → qyl.protocol → qyl.collector → qyl.dashboard
-                                 → qyl.mcp
-                                 → qyl.copilot (AG-UI + declarative workflows)
-                                 → qyl.servicedefaults → qyl.instrumentation.generators
+core/specs/*.tsp → qyl.contracts → qyl.collector → qyl.dashboard
+                                  → qyl.mcp
+                                  → qyl.agents + qyl.workflows
+                                  → qyl.instrumentation → qyl.instrumentation.generators
+                                  → qyl.collector.storage.generators (DuckDB codegen)
 eng/build/ → orchestrates everything above
 ```
 
@@ -87,16 +88,19 @@ eng/build/ → orchestrates everything above
 
 ```yaml
 allowed:
-  collector -> protocol (ProjectReference)
-  collector -> copilot (ProjectReference)
-  mcp -> protocol (ProjectReference)
-  copilot -> protocol (ProjectReference)
+  collector -> contracts (ProjectReference)
+  collector -> agents (ProjectReference)
+  collector -> workflows (ProjectReference)
+  collector -> instrumentation (ProjectReference)
+  mcp -> contracts (ProjectReference)
+  loom -> collector, agents, workflows, contracts, instrumentation (ProjectReference)
   dashboard -> collector (HTTP at runtime)
   mcp -> collector (HTTP at runtime)
 forbidden:
-  mcp -> collector (ProjectReference)    # must use HTTP
-  protocol -> any-package                # must stay BCL-only
-  copilot -> collector (ProjectReference) # copilot is a library, not a host
+  mcp -> collector (ProjectReference)               # must use HTTP
+  contracts -> any-package                           # must stay BCL-only
+  instrumentation.generators -> collector/storage    # DDD boundary
+  collector.storage.generators -> instrumentation    # DDD boundary
 ```
 
 ## Tech Stack (training-prior overrides)

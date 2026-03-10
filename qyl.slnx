@@ -30,23 +30,25 @@
         <File Path="core/specs/generated/semconv.g.tsp" />
     </Folder>
 
-    <!-- Platform: collector, protocol, hosting -->
+    <!-- Platform: collector, contracts, hosting, loom -->
     <Folder Name="/src/platform/">
         <Project Path="src/qyl.collector/qyl.collector.csproj" />
         <Project Path="src/qyl.contracts/qyl.contracts.csproj" />
         <Project Path="src/qyl.hosting/qyl.hosting.csproj" />
     </Folder>
 
-    <!-- SDK: instrumentation + browser telemetry -->
+    <!-- SDK: instrumentation, generators, browser telemetry -->
     <Folder Name="/src/sdk/">
         <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj" />
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
+        <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
     </Folder>
     <Folder Name="/src/" />
-    <!-- AI: copilot + MCP server -->
+    <!-- AI: agents, workflows, MCP server -->
     <Folder Name="/src/ai/">
-        <Project Path="src/qyl.copilot/qyl.copilot.csproj" />
+        <Project Path="src/qyl.agents/qyl.agents.csproj" />
+        <Project Path="src/qyl.workflows/qyl.workflows.csproj" />
         <Project Path="src/qyl.mcp/qyl.mcp.csproj" />
     </Folder>
 

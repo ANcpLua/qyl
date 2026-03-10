@@ -1,4 +1,4 @@
-namespace qyl.collector.Realtime;
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     Shared projection helpers for streaming/searching log rows as UI-friendly DTOs.

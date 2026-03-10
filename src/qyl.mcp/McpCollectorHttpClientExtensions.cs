@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using qyl.mcp.Auth;
-using qyl.mcp.Scoping;
+using Qyl.Mcp.Auth;
+using Qyl.Mcp.Scoping;
 
-namespace qyl.mcp;
+namespace Qyl.Mcp;
 
 internal static class McpCollectorHttpClientExtensions
 {

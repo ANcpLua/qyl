@@ -9,7 +9,7 @@ paths:
 - Supports both `stdio` and streamable HTTP (`/mcp`) transports.
 - Consumed by AI agents (Claude, Copilot, desktop tools, remote MCP connectors).
 - Communicates with collector via HTTP only (never ProjectReference).
-- Uses `qyl.protocol` types where shared contracts are required.
+- Uses `qyl.contracts` types where shared contracts are required.
 - Uses `McpToolRegistry`, `UseQylTools`, and `RcaTools` for embedded meta-agent flows.
 
 ## Constraints

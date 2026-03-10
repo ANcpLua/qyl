@@ -1,4 +1,4 @@
-namespace qyl.collector.Identity;
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     Handshake session state machine with PKCE challenge/verifier validation.

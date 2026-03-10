@@ -1,4 +1,4 @@
-namespace qyl.collector.Workflow;
+namespace Qyl.Collector.Workflow;
 
 /// <summary>
 ///     SSE streaming endpoint for live workflow events.
@@ -16,57 +16,66 @@ public static class WorkflowEventEndpoints
         return endpoints;
     }
 
-    private static ServerSentEventsResult<SseItem<WorkflowEventRecord>> HandleEventStream(
+    private static ServerSentEventsResult<SseItem<LegacyWorkflowEventDto>> HandleEventStream(
         string runId,
-        DuckDbStore store,
+        WorkflowRunService service,
         HttpContext context) =>
         TypedResults.ServerSentEvents(
-            StreamEventsAsync(runId, store, context.RequestAborted),
+            StreamEventsAsync(runId, service, context.RequestAborted),
             null
         );
 
-    private static async IAsyncEnumerable<SseItem<WorkflowEventRecord>> StreamEventsAsync(
+    private static async IAsyncEnumerable<SseItem<LegacyWorkflowEventDto>> StreamEventsAsync(
         string runId,
-        DuckDbStore store,
+        WorkflowRunService service,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        // Send initial connected event with null data typed as WorkflowEventRecord
-        yield return new SseItem<WorkflowEventRecord>(
-            new WorkflowEventRecord
+        yield return new SseItem<LegacyWorkflowEventDto>(
+            new LegacyWorkflowEventDto
             {
                 EventId = "connected",
-                ExecutionId = runId,
+                RunId = runId,
                 EventType = "connected",
-                CreatedAtUnixNano = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
+                Timestamp = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
             },
             "connected"
         );
 
-        var lastSequence = -1;
+        long lastSequence = -1;
 
         while (!ct.IsCancellationRequested)
         {
-            var events = await store.GetWorkflowEventsAsync(runId, lastSequence, ct).ConfigureAwait(false);
+            var events = await service.GetEventsAsync(runId, lastSequence, 200, ct).ConfigureAwait(false);
 
             foreach (var evt in events)
             {
                 lastSequence = Math.Max(lastSequence, evt.SequenceNumber);
 
-                yield return new SseItem<WorkflowEventRecord>(evt, evt.EventType ?? "workflow_event");
+                yield return new SseItem<LegacyWorkflowEventDto>(
+                    new LegacyWorkflowEventDto
+                    {
+                        EventId = evt.Id,
+                        RunId = evt.RunId,
+                        EventType = evt.EventType,
+                        NodeId = evt.NodeId,
+                        Timestamp = TimeConversions.ToUnixNano(new DateTimeOffset(evt.Timestamp, TimeSpan.Zero)),
+                        PayloadJson = evt.PayloadJson
+                    },
+                    evt.EventType
+                );
             }
 
-            // Check if the workflow has ended
-            var run = await store.GetWorkflowExecutionAsync(runId, ct).ConfigureAwait(false);
+            var run = await service.GetRunByIdAsync(runId, ct).ConfigureAwait(false);
             if (run is { Status: "completed" or "failed" or "cancelled" })
             {
-                yield return new SseItem<WorkflowEventRecord>(
-                    new WorkflowEventRecord
+                yield return new SseItem<LegacyWorkflowEventDto>(
+                    new LegacyWorkflowEventDto
                     {
                         EventId = "done",
-                        ExecutionId = runId,
+                        RunId = runId,
                         EventType = "done",
-                        PayloadJson = $"{{\"finalStatus\":\"{run.Status}\"}}",
-                        CreatedAtUnixNano = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
+                        PayloadJson = JsonSerializer.Serialize(new { finalStatus = run.Status }),
+                        Timestamp = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
                     },
                     "done"
                 );

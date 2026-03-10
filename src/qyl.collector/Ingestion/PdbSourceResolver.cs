@@ -1,7 +1,7 @@
 using System.Reflection.PortableExecutable;
 using System.Text.RegularExpressions;
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 public sealed partial class PdbSourceResolver
 {

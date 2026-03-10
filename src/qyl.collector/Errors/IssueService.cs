@@ -1,4 +1,4 @@
-namespace qyl.collector.Errors;
+namespace Qyl.Collector.Errors;
 
 /// <summary>
 ///     Service layer for the error issue engine. Operates against the

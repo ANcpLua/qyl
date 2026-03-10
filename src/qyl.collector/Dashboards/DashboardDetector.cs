@@ -1,4 +1,4 @@
-namespace qyl.collector.Dashboards;
+namespace Qyl.Collector.Dashboards;
 
 /// <summary>
 ///     Detects which dashboards should be available based on telemetry in DuckDB.

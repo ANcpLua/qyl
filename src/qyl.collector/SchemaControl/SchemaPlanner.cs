@@ -1,6 +1,6 @@
 using System.Text.RegularExpressions;
 
-namespace qyl.collector.SchemaControl;
+namespace Qyl.Collector.SchemaControl;
 
 /// <summary>
 ///     Plans schema changes by generating safe, additive DDL statements.

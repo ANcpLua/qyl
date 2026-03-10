@@ -2,8 +2,9 @@
 
   <PropertyGroup>
     <!-- LEAF project - shared contracts between all qyl components -->
-    <Description>Shared types and contracts for qyl AI Observability Platform</Description>
+    <Description>Shared contracts for the qyl.loom AI observability platform</Description>
     <PackageId>Qyl.Contracts</PackageId>
+    <RootNamespace>Qyl.Contracts</RootNamespace>
     <Authors>ANcpLua</Authors>
 
     <!-- SDK injection features (Guard.NotNull from Roslyn.Utilities used in consuming projects) -->

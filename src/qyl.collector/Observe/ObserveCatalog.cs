@@ -1,4 +1,4 @@
-namespace qyl.collector.Observe;
+namespace Qyl.Collector.Observe;
 
 /// <summary>
 /// Builds the observability catalog: available domains, their attribute manifests,

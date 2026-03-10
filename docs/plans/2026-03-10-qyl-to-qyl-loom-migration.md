@@ -1,224 +1,296 @@
-# Loom Decomposition: Merge qyl.loom into qyl
+# Loom Decomposition: Finish the In-Repo Migration
 
-**Date:** 2026-03-10
-**Status:** Proposed
-**Author:** ANcpLua + Claude
+**Date:** 2026-03-10  
+**Status:** Proposed (Rebased to Current Tree)  
+**Author:** ANcpLua + Claude + Codex
 
 ## 1. Summary
 
-Apply qyl.loom's architectural improvements as a branch in qyl. qyl already has the full infrastructure (CI/CD, analyzer configs, GitHub repo, Railway deployment). qyl.loom has 15 code-level improvements. Merge direction: qyl.loom → qyl.
+This is no longer a greenfield `qyl.loom -> qyl` merge plan.
 
-## 2. Zero Public Users — Evidence
+The current `qyl` repo already contains the decomposed project set:
 
-| Check | Result |
-|-------|--------|
-| GitHub visibility | Private (`gh api repos/ancplua/qyl → .private = true`) |
-| Stars / Forks | 0 / 0 |
-| Published NuGet | None |
-| Docker Hub | `ancplua/qyl:latest` — personal image, no third-party consumers |
-| Railway | Self-hosted personal project |
+- `qyl.contracts`
+- `qyl.instrumentation`
+- `qyl.instrumentation.generators`
+- `qyl.collector.storage.generators`
+- `qyl.agents`
+- `qyl.workflows`
+- `qyl.loom`
 
-One consumer. No coordination needed.
+The solution file is already on the new names. The remaining work is to:
 
-## 3. What qyl.loom Brings (the delta)
+1. finish consumer migration,
+2. remove stale legacy references and build assets,
+3. preserve strict architecture boundaries with automated tests,
+4. avoid deleting still-live compatibility code prematurely.
 
-### 3.1 Project Renames
+The migration should therefore be treated as **completion and cleanup**, not as a first-pass rename/extract.
 
-| qyl (current) | After merge | Rationale |
-|---------------|-------------|-----------|
-| `qyl.protocol` | `qyl.contracts` | .NET convention; "protocol" conflicts with OTLP protocol |
-| `qyl.servicedefaults` | `qyl.instrumentation` | "servicedefaults" is an Aspire template artifact |
-| `qyl.instrumentation.generators` | `qyl.instrumentation.generators` | `{library}.generators` Roslyn convention |
+## 2. Current State Snapshot
 
-### 3.2 New Extracted Projects
+### Already true in the current tree
 
-| Project | Type | Dependencies | Extracted From |
-|---------|------|-------------|----------------|
-| `qyl.agents` | Library | contracts, instrumentation, instrumentation.generators (analyzer) | qyl.copilot (minus Workflows) |
-| `qyl.workflows` | Library | contracts, agents | qyl.copilot/Workflows/ |
-| `qyl.loom` | Library | collector, agents, workflows, contracts, instrumentation | qyl.collector (Loom features) |
+- `qyl.slnx` already includes `qyl.contracts`, `qyl.instrumentation`, `qyl.instrumentation.generators`,
+  `qyl.collector.storage.generators`, `qyl.agents`, `qyl.workflows`, and `qyl.loom`.
+- `qyl.collector` already references the new projects.
+- `qyl.collector.storage.generators` already exists and contains the DuckDB generator files:
+    - `DuckDbAttributes.cs`
+    - `DuckDbEmitter.cs`
+    - `DuckDbInsertGenerator.cs`
+- `qyl.instrumentation.generators` already appears clean of DuckDB code and contains `Generated/DomainContracts.g.cs`.
+- `qyl.mcp` already references `qyl.contracts` and already has active remote MCP HTTP support.
 
-### 3.3 New Source Generators
+### Still needing completion
 
-| File | Purpose |
-|------|---------|
-| `qyl.instrumentation.generators/DuckDb/DuckDbAttributes.cs` | Marker attributes for DuckDb tables |
-| `qyl.instrumentation.generators/DuckDb/DuckDbEmitter.cs` | Roslyn emitter for type-safe inserts |
-| `qyl.instrumentation.generators/DuckDb/DuckDbInsertGenerator.cs` | IIncrementalGenerator — compile-time DuckDb |
-| `qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | Generated domain contract types |
+- Dockerfiles and some build assets still reference deleted legacy paths such as `qyl.protocol`, `qyl.servicedefaults`,
+  and `qyl.copilot`.
+- Compatibility/runtime code still exists that must not be deleted blindly:
+    - `src/qyl.mcp/McpHostOptions.cs`
+    - `src/qyl.mcp/Agents/SessionSummaryPrompt.cs`
+- Some public-facing or semi-public strings still use `qyl.copilot` naming.
+- Architectural boundaries are not yet enforced by automated tests.
 
-### 3.4 Other Changes
+## 3. Hard Architectural Rules
 
-| Change | Detail |
-|--------|--------|
-| `Agents/AgentLlmFactory.cs` added to qyl.mcp | Replaces `Providers/LlmProviderFactory.cs` |
-| `Tools/TelemetryJsonContext.cs` added to qyl.mcp | AOT-compatible `JsonSerializerContext` |
-| `Storage/DuckDbSchema.WorkflowRuns.cs` added to collector | Workflow run persistence |
-| `eng/scripts/qyl-verify.sh` added | Verification script |
-| `Storage/SpanAppender.cs` removed from collector | Replaced by generated DuckDb inserts |
-| `McpHostOptions.cs` removed from qyl.mcp | Absorbed into builder |
-| `Agents/SessionSummaryPrompt.cs` removed from qyl.mcp | Consolidated |
+These are the non-negotiables for the rest of the migration.
 
-## 4. Dependency Graph After Merge
+### 3.1 Contracts stay leaf-only
 
+`qyl.contracts` must remain BCL-only and dependency-free.
+
+### 3.2 Instrumentation and storage generation stay separate
+
+`qyl.instrumentation.generators` must remain generic telemetry/instrumentation only.  
+`qyl.collector.storage.generators` must own DuckDB-specific source generation.
+
+No DuckDB code, symbols, or references are allowed in `qyl.instrumentation.generators`.
+
+### 3.3 MCP stays runtime-HTTP to collector only
+
+`qyl.mcp` may call collector over HTTP at runtime.  
+`qyl.mcp` must not gain a `ProjectReference` to `qyl.collector`.
+
+### 3.4 Do not break active compatibility code without replacement
+
+Do not delete:
+
+- `McpHostOptions.cs` until its behavior is fully absorbed elsewhere
+- `SessionSummaryPrompt.cs` until its call sites are migrated
+- legacy tool names like `qyl.copilot_*` unless the contract rename is explicit and versioned
+
+## 4. What This Plan Is Not
+
+This plan is not:
+
+- a fresh rename of `qyl.protocol -> qyl.contracts`
+- a fresh rename of `qyl.servicedefaults -> qyl.instrumentation`
+- a fresh extraction of `qyl.agents`, `qyl.workflows`, `qyl.loom`
+- a same-PR cleanup of local worktrees or repo archival
+
+Those first three steps are already materially present in the tree. The remaining work is integration cleanup and
+enforcement.
+
+## 5. Recommended Execution Strategy
+
+Use one branch and multiple small commits, not one destructive sweep.
+
+**Branch name:** `dev/loom-decomposition`
+
+### Phase 0: Freeze and Inventory
+
+1. Create the working branch from `main`.
+2. Capture a baseline compile and test result using the repo build entrypoints.
+3. Inventory all remaining stale references and classify them into:
+    - build/config references
+    - runtime code references
+    - public contract strings
+    - dead code
+
+**Important:** A plain text grep hit is not automatically a bug.  
+For example, `qyl.copilot` inside an MCP tool name may be an intentional contract, while `qyl.copilot` inside a Docker
+`COPY` path is stale infrastructure.
+
+### Phase 1: Confirm Current Authorities
+
+Treat the following as current authorities unless a diff proves otherwise:
+
+- `qyl.contracts` over any old `protocol` naming
+- `qyl.instrumentation` over any old `servicedefaults` naming
+- `qyl.instrumentation.generators` for generic telemetry generation
+- `qyl.collector.storage.generators` for DuckDB generation
+- `qyl.agents` for agent infrastructure
+- `qyl.workflows` for workflow engine code
+- `qyl.loom` for Loom-specific slice code
+
+Do not re-extract or re-rename these projects again.
+
+### Phase 2: Finish Consumer Migration
+
+Focus on the remaining places that still point at legacy names or legacy ownership.
+
+#### 2.1 Build and packaging assets
+
+Update all Dockerfiles, scripts, and build assets that still copy or reference:
+
+- `src/qyl.protocol`
+- `src/qyl.servicedefaults`
+- `src/qyl.copilot`
+
+This is now the highest-confidence cleanup because those legacy source directories no longer exist.
+
+#### 2.2 MCP-specific cleanup
+
+Apply MCP changes only if they preserve current behavior.
+
+- Keep `McpHostOptions.cs` until the remote HTTP path is fully preserved by another mechanism.
+- Keep `SessionSummaryPrompt.cs` until `ReplayTools` no longer uses it.
+- If adding `TelemetryJsonContext.cs`, do it only where it replaces a real serialization gap.
+- If `AgentLlmFactory.cs` is already present, treat it as current state, not as new work.
+
+#### 2.3 Collector and Loom boundary cleanup
+
+Move remaining Loom-specific authority into `qyl.loom` only when the collector call sites have been redirected and
+verified.
+
+Do not delete collector-side logic merely because a similarly named Loom file exists.  
+Require one of:
+
+- direct consumer migration to `qyl.loom`, or
+- a proof diff showing the collector copy is dead and redundant.
+
+### Phase 3: Safe Deletion of Residual Legacy Code
+
+Only after Phases 1 and 2 are green:
+
+1. Delete dead compatibility code that has no active call sites.
+2. Remove stale project references and `using` directives.
+3. Remove dead build assets that reference deleted paths.
+
+This phase is where ruthless deletion belongs.  
+It does **not** belong before migration proof.
+
+### Phase 4: Add Automated Architecture Tests
+
+Add architecture tests to prevent regression.
+
+Suggested assertions:
+
+```csharp
+[Fact]
+public void Agents_Should_Not_Depend_On_Loom_Or_Collector()
+{
+    var result = Types.InAssembly(typeof(Qyl.Agents.Agents.QylAgentBuilder).Assembly)
+        .ShouldNot()
+        .HaveDependencyOnAny("Qyl.Loom", "Qyl.Collector")
+        .GetResult();
+
+    Assert.True(result.IsSuccessful);
+}
+
+[Fact]
+public void Workflows_Should_Not_Depend_On_Loom_Or_Collector()
+{
+    var result = Types.InAssembly(typeof(Qyl.Workflows.WorkflowServiceExtensions).Assembly)
+        .ShouldNot()
+        .HaveDependencyOnAny("Qyl.Loom", "Qyl.Collector")
+        .GetResult();
+
+    Assert.True(result.IsSuccessful);
+}
 ```
-qyl.contracts (leaf, BCL-only, zero dependencies)
-     ↑
-qyl.instrumentation → contracts, instrumentation.generators (analyzer)
-     ↑
-qyl.agents → contracts, instrumentation, instrumentation.generators (analyzer)
-     ↑
-qyl.workflows → contracts, agents
-     ↑
-qyl.collector → agents, workflows, contracts, instrumentation, instrumentation.generators (analyzer)
-     ↑
-qyl.loom → collector, agents, workflows, contracts, instrumentation
 
-qyl.mcp → contracts (HTTP to collector — boundary preserved)
-```
+Also add guards for the source generators:
 
-## 5. Antipatterns Fixed
+- `qyl.instrumentation.generators` must not depend on `Qyl.Collector` or `Qyl.Collector.Storage.Generators`
+- `qyl.collector.storage.generators` must not depend on `Qyl.Instrumentation` or `Qyl.Instrumentation.Generators`
+- `qyl.mcp` must not reference `qyl.collector.csproj`
 
-| Before | After |
-|--------|-------|
-| `qyl.copilot` mixes agents + workflows + streaming | `qyl.agents` (AI) + `qyl.workflows` (engine) |
-| Collector owns 40+ feature directories | Loom features in `qyl.loom` project |
-| Runtime DuckDb appends (`SpanAppender.cs`) | Compile-time generated inserts (`DuckDbInsertGenerator`) |
-| `qyl.servicedefaults` name leaks Aspire detail | `qyl.instrumentation` |
-| `qyl.protocol` ambiguous with OTLP | `qyl.contracts` |
-| No AOT serialization in MCP | `TelemetryJsonContext.cs` |
-
-## 6. What Already Matches (no porting needed)
-
-Both repos share identical infrastructure — confirmed by direct file comparison:
-
-- `.globalconfig` (100+ analyzer rules at error severity)
-- `.editorconfig` (17k formatting/severity config)
-- `.aiexclude`, `.claudeignore`
-- `.codecov.yml`, `.markdownlint.json`
-- `.github/workflows/` (6 CI/CD workflows)
-- `.nuke/parameters.json`
-- `.mcp.json`
-- `eng/` build system, `Version.props`, `Directory.Packages.props`
-
-**Only missing from qyl.loom** (minor, port during merge):
-- `.qyl/workflows/` (declarative AG-UI workflows)
-- `.codex/` (Codex agent config)
-- `.codex-screenshots/`, `.codex-screenshots-advanced/` (16 design variants)
-
-## 7. Merge Sequence
-
-### Step 1: Branch
+In addition to assembly dependency tests, add a low-tech content check in CI:
 
 ```bash
-cd /Users/ancplua/qyl
-git checkout main
-git checkout -b feature/loom-decomposition
+rg -n "DuckDb|DuckDB" src/qyl.instrumentation.generators && exit 1
 ```
 
-### Step 2: Rename Projects
+### Phase 5: Verify
 
-1. Rename `src/qyl.protocol/` → `src/qyl.contracts/`
-   - Update csproj filename, `RootNamespace`, `PackageId`
-   - Update all `<ProjectReference>` paths across solution
-2. Rename `src/qyl.servicedefaults/` → `src/qyl.instrumentation/`
-   - Update csproj, `RootNamespace`, `InterceptorsNamespaces`
-3. Rename `src/qyl.instrumentation.generators/` → `src/qyl.instrumentation.generators/`
-   - Update csproj, namespace
-
-### Step 3: Add Extracted Projects
-
-1. Copy `src/qyl.agents/` from qyl.loom
-2. Copy `src/qyl.workflows/` from qyl.loom
-3. Copy `src/qyl.loom/` from qyl.loom (the project, not the repo)
-4. Add all three to `qyl.slnx`
-
-### Step 4: Add DuckDb Generators
-
-1. Copy `qyl.instrumentation.generators/DuckDb/` from qyl.loom
-2. Copy `qyl.instrumentation.generators/Generated/DomainContracts.g.cs` from qyl.loom
-
-### Step 5: Apply MCP Changes
-
-1. Add `Agents/AgentLlmFactory.cs` (from qyl.loom)
-2. Add `Tools/TelemetryJsonContext.cs` (from qyl.loom)
-3. Delete `Providers/LlmProviderFactory.cs`
-4. Delete `McpHostOptions.cs`
-5. Delete `Agents/SessionSummaryPrompt.cs`
-
-### Step 6: Apply Collector Changes
-
-1. Add `Storage/DuckDbSchema.WorkflowRuns.cs` (from qyl.loom)
-2. Delete `Storage/SpanAppender.cs`
-
-### Step 7: Clean Up Dead Code
-
-1. Delete `src/qyl.copilot/` entirely
-2. For each duplicated directory (AgentRuns, Analytics, Autofix, CodingAgent, Errors, Identity, Workflow):
-   - Diff collector copy vs qyl.loom copy
-   - Keep authoritative version in `src/qyl.loom/`
-   - Delete from collector
-3. Remove `qyl.copilot` from `qyl.slnx` if still referenced
-
-### Step 8: Update Solution
-
-1. Update `qyl.slnx`:
-   - Remove: `qyl.copilot`
-   - Add: `qyl.agents`, `qyl.workflows`, `qyl.loom`
-   - Rename paths for contracts, instrumentation, instrumentation.generators
-2. Add `tests/qyl.collector.tests/` if missing
-
-### Step 9: Verify
+Use the repo build entrypoints, not ad-hoc `dotnet test`.
 
 ```bash
-eng/build.sh Compile    # 0 errors, 0 warnings
-eng/build.sh Test       # all pass
-docker build -f src/qyl.collector/Dockerfile .  # image builds
+eng/build.sh Compile
+eng/build.sh Test
+docker build -f src/qyl.collector/Dockerfile .
+docker build -f src/qyl.mcp/Dockerfile .
 ```
 
-Grep for stale references:
-```bash
-grep -r "qyl\.protocol" --include="*.cs" --include="*.csproj" src/
-grep -r "qyl\.servicedefaults" --include="*.cs" --include="*.csproj" src/
-grep -r "qyl\.copilot" --include="*.cs" --include="*.csproj" --include="*.slnx" .
-grep -r "Qyl\.ServiceDefaults\.Generator" --include="*.cs" src/
-```
-
-### Step 10: PR
+Then run targeted stale-reference checks:
 
 ```bash
-git add -A
-git commit -m "feat: decompose collector into qyl.agents + qyl.workflows + qyl.loom"
-git push -u origin feature/loom-decomposition
-gh pr create --title "Loom decomposition" --body "See docs/plans/2026-03-10-qyl-to-qyl-loom-migration.md"
+rg -n "qyl\.protocol|qyl\.servicedefaults|qyl\.copilot" src/ eng/ .github/
+rg -n "DuckDb|DuckDB" src/qyl.instrumentation.generators
+rg -n "qyl\.collector" src/qyl.mcp/*.csproj src/qyl.mcp/**/*.cs
 ```
+
+Interpretation rule:
+
+- hits in Dockerfiles or build scripts usually mean stale infrastructure
+- hits in tool names or UI labels may be intentional contracts and require a rename decision, not blind deletion
+
+## 6. Explicit Do-Not-Do List
+
+Do not:
+
+- recreate already-existing projects as if they were missing
+- add DuckDB generator code back into `qyl.instrumentation.generators`
+- give `qyl.mcp` a project reference to `qyl.collector`
+- delete `McpHostOptions.cs` or `SessionSummaryPrompt.cs` before replacing their behavior
+- rename public MCP tool names in the same refactor unless the contract migration is intentional
+- delete local worktrees or archive the local `qyl.loom` repo in the same PR as the code migration
+
+## 7. Concrete Remaining Tasks
+
+This is the practical shortlist for the next implementation pass.
+
+- Fix stale Dockerfile copy paths in:
+    - `src/qyl.collector/Dockerfile`
+    - `src/qyl.mcp/Dockerfile`
+- Audit remaining `qyl.copilot` strings and classify them:
+    - public contract to keep
+    - stale naming to rename
+- Audit `qyl.mcp` for deletions proposed by the older doc and remove only what is truly dead
+- Add architecture tests to `tests/qyl.collector.tests`
+- Run compile, tests, Docker builds, and stale-reference checks
 
 ## 8. Risk Assessment
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|------------|
-| Namespace breaks after renames | Medium | Build fails | Step 9 catches it |
-| Duplicated files diverged | Medium | Wrong behavior | Diff in Step 7 |
-| Dockerfile paths change | Low | Docker fails | Collector path unchanged |
-| CI workflow references old names | Low | CI fails | Grep in Step 9 |
+| Risk                                                   | Likelihood | Impact                   | Mitigation                                         |
+|--------------------------------------------------------|------------|--------------------------|----------------------------------------------------|
+| Deleting still-live compatibility code                 | High       | Build/runtime break      | Require call-site proof before deletion            |
+| Reintroducing DuckDB into instrumentation generators   | Medium     | Architectural regression | Assembly tests + grep guard                        |
+| MCP/collector boundary erosion                         | Medium     | Layer violation          | Explicit no-project-reference test                 |
+| Renaming public `qyl.copilot_*` contracts accidentally | Medium     | External behavior break  | Treat names as contract until explicitly versioned |
+| Stale Dockerfiles breaking container builds            | High       | CI/deploy failure        | Fix before deletion PR closes                      |
 
 ## 9. Verification Checklist
 
-- [ ] `src/qyl.copilot/` deleted
-- [ ] `src/qyl.protocol/` renamed to `src/qyl.contracts/`
-- [ ] `src/qyl.servicedefaults/` renamed to `src/qyl.instrumentation/`
-- [ ] `src/qyl.instrumentation.generators/` renamed to `src/qyl.instrumentation.generators/`
-- [ ] `src/qyl.agents/`, `src/qyl.workflows/`, `src/qyl.loom/` added
-- [ ] No grep hits for `qyl.protocol`, `qyl.servicedefaults`, `qyl.copilot`, `Qyl.Instrumentation.Generators`
-- [ ] `qyl.slnx` updated with all new projects
-- [ ] Collector has zero duplicated Loom directories
-- [ ] `dotnet build` — 0 errors, 0 warnings
-- [ ] All tests pass
-- [ ] Docker image builds
-- [ ] OTLP smoke test passes
+- [ ] `qyl.contracts`, `qyl.instrumentation`, `qyl.instrumentation.generators`, `qyl.collector.storage.generators`,
+  `qyl.agents`, `qyl.workflows`, and `qyl.loom` remain the authoritative project set
+- [ ] `qyl.instrumentation.generators` contains zero DuckDB code
+- [ ] `qyl.collector.storage.generators` remains DuckDB-only
+- [ ] `qyl.mcp` keeps HTTP-runtime-only dependency on collector
+- [ ] Dockerfiles no longer reference deleted legacy paths
+- [ ] no dead compatibility files remain without a call site
+- [ ] architecture tests enforce boundaries
+- [ ] compile passes
+- [ ] tests pass
+- [ ] collector and MCP Docker images build
 
-## 10. After Merge
+## 10. Post-Merge Cleanup
 
-1. ~~Delete empty worktrees (`wt-backend`, `wt-frontend`, `wt-loom`, `wt-mcp`)~~ **DONE** (2026-03-10)
-2. Delete or archive the local qyl.loom repo
-3. Move this doc to `docs/done/`
+After the code migration is green:
+
+1. delete or archive the separate local `qyl.loom` repo if it is no longer needed
+2. clean up stale worktrees only if they are truly obsolete
+3. move this document to `docs/done/`
+
+Do not combine those housekeeping steps with the main refactor PR.

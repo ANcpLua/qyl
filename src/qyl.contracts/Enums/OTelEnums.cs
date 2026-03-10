@@ -1,4 +1,4 @@
-namespace qyl.contracts.Enums;
+namespace Qyl.Contracts.Enums;
 
 /// <summary>
 ///     OTel span kind describing the relationship between spans.

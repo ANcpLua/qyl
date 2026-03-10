@@ -4,7 +4,7 @@
 // adds tables not yet in the TypeSpec model.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {

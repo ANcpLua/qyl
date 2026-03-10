@@ -1,4 +1,4 @@
-namespace qyl.collector.Identity;
+namespace Qyl.Collector.Identity;
 
 /// <summary>
 ///     CRUD operations for workspace envelope entities with heartbeat lifecycle.

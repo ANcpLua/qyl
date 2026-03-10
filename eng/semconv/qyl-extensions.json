@@ -1,10 +1,10 @@
 {
-  "$comment": "Protocol facade definitions — merged upstream OTel semconv + qyl extensions. Used by generateProtocolFacades() in generate-semconv.ts",
+  "$comment": "Contracts facade definitions — merged upstream OTel semconv + qyl extensions. Used by generateProtocolFacades() in generate-semconv.ts",
   "facades": [
     {
       "className": "GenAiAttributes",
-      "namespace": "qyl.protocol.Attributes",
-      "output": "../../src/qyl.protocol/Attributes/GenAiAttributes.g.cs",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/GenAiAttributes.g.cs",
       "description": "OTel {version} GenAI semantic convention attribute keys.\nStatus: Development\nhttps://opentelemetry.io/docs/specs/semconv/gen-ai/",
       "upstreamPrefix": "gen_ai",
       "metadata": {
@@ -145,21 +145,13 @@
             "ClientInferenceOperationDetails": "gen_ai.client.inference.operation.details",
             "EvaluationResult": "gen_ai.evaluation.result"
           }
-        },
-        "Deprecated": {
-          "summary": "Deprecated attribute names for backward compatibility.",
-          "values": {
-            "System": "gen_ai.system",
-            "UsagePromptTokens": "gen_ai.usage.prompt_tokens",
-            "UsageCompletionTokens": "gen_ai.usage.completion_tokens"
-          }
         }
       }
     },
     {
       "className": "DbAttributes",
-      "namespace": "qyl.protocol.Attributes",
-      "output": "../../src/qyl.protocol/Attributes/DbAttributes.g.cs",
+      "namespace": "qyl.contracts.Attributes",
+      "output": "../../src/qyl.contracts/Attributes/DbAttributes.g.cs",
       "description": "OTel {version} Database semantic convention attribute keys.\nStatus: Stable\nhttps://opentelemetry.io/docs/specs/semconv/database/",
       "upstreamPrefix": "db",
       "attributes": [
@@ -211,18 +203,6 @@
             "ExecuteReader": "ExecuteReader",
             "ExecuteNonQuery": "ExecuteNonQuery",
             "ExecuteScalar": "ExecuteScalar"
-          }
-        }
-      },
-      "customClasses": {
-        "Deprecated": {
-          "summary": "Deprecated attribute names for backward compatibility.",
-          "values": {
-            "System": "db.system",
-            "Name": "db.name",
-            "Statement": "db.statement",
-            "Operation": "db.operation",
-            "User": "db.user"
           }
         }
       }

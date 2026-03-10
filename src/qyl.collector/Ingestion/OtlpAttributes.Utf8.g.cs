@@ -4,7 +4,7 @@
 //
 // UTF-8 ReadOnlySpan<byte> for zero-allocation OTLP parsing hot paths
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 /// UTF-8 attribute keys for aspnetcore.diagnostics.* (zero-allocation parsing)

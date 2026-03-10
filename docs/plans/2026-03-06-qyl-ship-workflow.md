@@ -87,27 +87,27 @@ Web source analysis (already uploaded):
 
 Current `loom-design.md` status per the Implementation Evidence table:
 
-| Capability                | qyl Status         | What's Left                                                 |
-|---------------------------|--------------------|-------------------------------------------------------------|
-| Autofix pipeline          | IMPLEMENTED-IN-QYL | Verify E2E flow works, not just endpoint registration       |
-| Triage/fixability scoring | IMPLEMENTED-IN-QYL | Verify scoring logic, test with real issues                 |
-| Code review               | IMPLEMENTED-IN-QYL | Verify GitHub webhook flow, PR comment generation           |
-| GitHub webhook ingestion  | IMPLEMENTED-IN-QYL | Verify HMAC-SHA256 validation, event routing                |
-| Agent handoff             | IMPLEMENTED-IN-QYL | Verify lifecycle transitions                                |
-| Regression detection      | IMPLEMENTED-IN-QYL | Verify detection + query layer                              |
-| Dashboard UI              | IMPLEMENTED-IN-QYL | Covered by Phase 1 frontend fixes                           |
-| MCP tooling               | IMPLEMENTED-IN-QYL | Verify all tools work via MCP protocol, not just registered |
+| Capability                | qyl Status              | What's Left                                                 |
+|---------------------------|-------------------------|-------------------------------------------------------------|
+| Autofix pipeline          | IMPLEMENTED-IN-QYL.LOOM | Verify E2E flow works, not just endpoint registration       |
+| Triage/fixability scoring | IMPLEMENTED-IN-QYL.LOOM | Verify scoring logic, test with real issues                 |
+| Code review               | IMPLEMENTED-IN-QYL.LOOM | Verify GitHub webhook flow, PR comment generation           |
+| GitHub webhook ingestion  | IMPLEMENTED-IN-QYL.LOOM | Verify HMAC-SHA256 validation, event routing                |
+| Agent handoff             | IMPLEMENTED-IN-QYL.LOOM | Verify lifecycle transitions                                |
+| Regression detection      | IMPLEMENTED-IN-QYL.LOOM | Verify detection + query layer                              |
+| Dashboard UI              | IMPLEMENTED-IN-QYL.LOOM | Covered by Phase 1 frontend fixes                           |
+| MCP tooling               | IMPLEMENTED-IN-QYL.LOOM | Verify all tools work via MCP protocol, not just registered |
 
-**Key action:** For each "IMPLEMENTED-IN-QYL" row, run the actual flow end-to-end. Registration ≠ working. Update
+**Key action:** For each " IMPLEMENTED-IN-QYL.LOOM" row, run the actual flow end-to-end. Registration ≠ working. Update
 `loom-design.md` with real test results.
 
 ### 2.3 Fill Gaps from Seer Analysis
 
 After reading the source pack, identify which Seer capabilities are:
 
-- Already in qyl and working → label `IMPLEMENTED-IN-QYL`, move on
+- Already in qyl and working → label ` IMPLEMENTED-IN-QYL.LOOM`, move on
 - Already in qyl but stubbed → either implement fully or delete + label `NOT-PLANNED`
-- Missing but valuable → design, implement, label `IMPLEMENTED-IN-QYL`
+- Missing but valuable → design, implement, label ` IMPLEMENTED-IN-QYL.LOOM`
 - Missing and not needed → label `NOT-PLANNED` with decision note
 
 Apply SCOPE-TAXONOMY.md labels rigorously. No ambiguous "out of scope" language.

@@ -1,9 +1,9 @@
 // =============================================================================
-// qyl.collector - Collector-specific types
+// Qyl.Collector - Collector-specific types
 // Types used only by the collector that are not in the TypeSpec schema
 // =============================================================================
 
-namespace qyl.collector.Ingestion;
+namespace Qyl.Collector.Ingestion;
 
 /// <summary>
 ///     Unix timestamp in nanoseconds since epoch.

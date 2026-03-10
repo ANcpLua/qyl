@@ -9,9 +9,9 @@ namespace Qyl.Instrumentation;
 
 /// <summary>
 ///     Thin wrappers for generator compatibility.
-///     All logic lives in <see cref="QylInstrumentationExtensions" />.
+///     All logic lives in <see cref="QylServiceDefaultsExtensions" />.
 /// </summary>
-public static partial class QylInstrumentation
+public static partial class QylServiceDefaults
 {
     private const string DevLogsScript = """
                                          (function() {
@@ -34,7 +34,7 @@ public static partial class QylInstrumentation
                                          """;
 
     /// <summary>
-    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylInstrumentationExtensions.UseQyl" />.
+    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.UseQyl" />.
     /// </summary>
     public static TBuilder TryUseQylConventions<TBuilder>(this TBuilder builder)
         where TBuilder : IHostApplicationBuilder
@@ -44,7 +44,7 @@ public static partial class QylInstrumentation
     }
 
     /// <summary>
-    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylInstrumentationExtensions.MapQylEndpoints" />.
+    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.MapQylEndpoints" />.
     /// </summary>
     public static void MapQylDefaultEndpoints(this WebApplication app) => app.MapQylEndpoints();
 

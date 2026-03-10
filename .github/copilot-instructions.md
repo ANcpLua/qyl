@@ -39,13 +39,16 @@ dotnet test                                      # Run tests
 | `core/`                               | TypeSpec schemas (source of truth)             |
 | `eng/`                                | NUKE build system                              |
 | `src/qyl.collector/`                  | Backend API + gRPC + storage                   |
-| `src/qyl.copilot/`                    | GitHub Copilot integration                     |
+| `src/qyl.agents/`                     | AI agent infrastructure (was qyl.copilot)      |
+| `src/qyl.workflows/`                  | Workflow engine                                |
+| `src/qyl.loom/`                       | Loom product features                          |
 | `src/qyl.dashboard/`                  | React 19 SPA                                   |
 | `src/qyl.hosting/`                    | App orchestration framework                    |
 | `src/qyl.mcp/`                        | MCP server for AI agents                       |
-| `src/qyl.protocol/`                   | Shared types (BCL-only)                        |
-| `src/qyl.servicedefaults/`            | OTel + health + resilience defaults            |
+| `src/qyl.contracts/`                  | Shared types (BCL-only, was qyl.protocol)      |
+| `src/qyl.instrumentation/`           | OTel + health + resilience defaults            |
 | `src/qyl.instrumentation.generators/`  | Roslyn auto-instrumentation                    |
+| `src/qyl.collector.storage.generators/`| DuckDB source generators                       |
 | `src/qyl.browser/`                    | Browser OTLP SDK (TypeScript, ESM + IIFE)      |
 | `src/qyl.watch/`                      | Live terminal span viewer (dotnet tool)        |
 | `tests/`                              | xUnit v3 + MTP tests                           |

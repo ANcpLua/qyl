@@ -1,4 +1,4 @@
-namespace qyl.collector.Realtime;
+namespace Qyl.Collector.Realtime;
 
 /// <summary>
 ///     Quern-inspired live log deduplicator.

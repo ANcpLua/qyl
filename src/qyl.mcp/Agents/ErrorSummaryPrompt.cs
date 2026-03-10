@@ -1,4 +1,4 @@
-namespace qyl.mcp.Agents;
+namespace Qyl.Mcp.Agents;
 
 /// <summary>
 ///     Static system prompt for the error summary agent.

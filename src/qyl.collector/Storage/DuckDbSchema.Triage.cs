@@ -2,7 +2,7 @@
 // Manual schema extensions for triage pipeline persistence.
 // =============================================================================
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 public static partial class DuckDbSchema
 {

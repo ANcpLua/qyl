@@ -180,18 +180,18 @@ jobs:
       - name: Assert no generated file drift
         run: |
           if ! git diff --exit-code -- \
-            src/qyl.protocol/ \
+            src/qyl.contracts/ \
             src/qyl.collector/Storage/DuckDbSchema.g.cs \
             src/qyl.dashboard/src/types/api.ts \
-            src/qyl.servicedefaults/ \
+            src/qyl.instrumentation/ \
             src/qyl.instrumentation.generators/Generated/ \
             core/openapi/; then
             echo "::error::Generated files are stale. Run 'nuke Generate' locally and commit the result."
             git diff --stat -- \
-              src/qyl.protocol/ \
+              src/qyl.contracts/ \
               src/qyl.collector/Storage/DuckDbSchema.g.cs \
               src/qyl.dashboard/src/types/api.ts \
-              src/qyl.servicedefaults/ \
+              src/qyl.instrumentation/ \
               src/qyl.instrumentation.generators/Generated/ \
               core/openapi/
             exit 1

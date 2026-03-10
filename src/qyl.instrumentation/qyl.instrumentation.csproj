@@ -14,7 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="qyl.collector.tests"/>
+    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
   </ItemGroup>
 
   <ItemGroup>

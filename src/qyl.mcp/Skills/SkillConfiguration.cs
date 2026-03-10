@@ -1,4 +1,4 @@
-namespace qyl.mcp.Skills;
+namespace Qyl.Mcp.Skills;
 
 /// <summary>
 ///     Reads QYL_SKILLS environment variable to determine which tool skills are enabled.

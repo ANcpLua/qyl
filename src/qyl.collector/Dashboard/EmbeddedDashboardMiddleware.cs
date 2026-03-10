@@ -8,7 +8,7 @@
 // - SPA fallback routing (serve index.html for client-side routes)
 // =============================================================================
 
-namespace qyl.collector.Dashboard;
+namespace Qyl.Collector.Dashboard;
 
 /// <summary>
 ///     Middleware that serves embedded dashboard resources with caching and compression.
@@ -16,7 +16,7 @@ namespace qyl.collector.Dashboard;
 /// </summary>
 public sealed partial class EmbeddedDashboardMiddleware
 {
-    private const string ResourcePrefix = "qyl.collector.wwwroot.";
+    private const string ResourcePrefix = "Qyl.Collector.wwwroot.";
     private readonly string _basePath;
     private readonly CachedResource? _indexHtml;
     private readonly ILogger<EmbeddedDashboardMiddleware> _logger;
@@ -236,5 +236,5 @@ public static class EmbeddedDashboardExtensions
     public static bool HasEmbeddedDashboard() =>
         typeof(EmbeddedDashboardMiddleware).Assembly
             .GetManifestResourceNames()
-            .Any(static n => n.StartsWithOrdinal("qyl.collector.wwwroot."));
+            .Any(static n => n.StartsWithOrdinal("Qyl.Collector.wwwroot."));
 }

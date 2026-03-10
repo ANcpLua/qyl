@@ -1,6 +1,6 @@
-using qyl.collector.CodingAgent;
+using Qyl.Collector.CodingAgent;
 
-namespace qyl.collector.Storage;
+namespace Qyl.Collector.Storage;
 
 /// <summary>
 ///     Partial class extending <see cref="DuckDbStore" /> with coding agent run
@@ -116,7 +116,7 @@ public sealed partial class DuckDbStore
         {
             Id = reader.GetString(0),
             FixRunId = reader.GetString(1),
-            Provider = reader.GetString(2),
+            Provider = CodingAgentProviderNames.NormalizeSlug(reader.GetString(2)),
             Status = reader.GetString(3),
             AgentUrl = reader.Col(4).AsString,
             PrUrl = reader.Col(5).AsString,
@@ -148,7 +148,7 @@ public sealed partial class DuckDbStore
         return new LoomSettingsRecord
         {
             Id = reader.GetString(0),
-            DefaultCodingAgent = reader.Col(1).AsString ?? "Loom",
+            DefaultCodingAgent = CodingAgentProviderNames.NormalizeSlug(reader.Col(1).AsString),
             DefaultCodingAgentIntegrationId = reader.Col(2).AsString,
             AutomationTuning = reader.Col(3).AsString ?? "medium",
             UpdatedAt = reader.Col(4).AsDateTime ?? DateTime.MinValue
@@ -172,7 +172,7 @@ public sealed partial class DuckDbStore
                                   updated_at = now()
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = settings.Id });
-            cmd.Parameters.Add(new DuckDBParameter { Value = settings.DefaultCodingAgent });
+            cmd.Parameters.Add(new DuckDBParameter { Value = CodingAgentProviderNames.NormalizeSlug(settings.DefaultCodingAgent) });
             cmd.Parameters.Add(new DuckDBParameter
                 { Value = settings.DefaultCodingAgentIntegrationId ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = settings.AutomationTuning });

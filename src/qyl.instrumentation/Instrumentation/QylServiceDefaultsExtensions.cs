@@ -42,7 +42,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 ///         </item>
 ///     </list>
 /// </remarks>
-public static class QylInstrumentationExtensions
+public static class QylServiceDefaultsExtensions
 {
     private static readonly string[] SGenAiActivitySources =
     [
@@ -92,7 +92,10 @@ public static class QylInstrumentationExtensions
 
             // Observability (includes auto-discovery)
             ConfigureOpenTelemetry(builder, options);
-            ConfigureHealthChecks(builder);
+            if (options.EnableDefaultHealthChecks)
+            {
+                ConfigureHealthChecks(builder);
+            }
 
             // Log discovery result once at startup
             if (options.EnableAutoDiscovery)
@@ -131,7 +134,7 @@ public static class QylInstrumentationExtensions
         /// </summary>
         /// <param name="configure">Optional configuration callback.</param>
         /// <returns>The builder for chaining.</returns>
-        public TBuilder AddQylInstrumentation(Action<QylOptions>? configure = null) =>
+        public TBuilder AddQylServiceDefaults(Action<QylOptions>? configure = null) =>
             builder.UseQyl(configure);
     }
 
@@ -144,12 +147,15 @@ public static class QylInstrumentationExtensions
 
         var options = app.Services.GetService<QylOptions>() ?? new QylOptions();
 
-        // Health endpoints (Aspire-compatible)
-        app.MapHealthChecks("/health",
-            new HealthCheckOptions { Predicate = static check => check.Tags.Contains("ready") });
+        if (options.EnableDefaultHealthEndpoints)
+        {
+            // Health endpoints (Aspire-compatible)
+            app.MapHealthChecks("/health",
+                new HealthCheckOptions { Predicate = static check => check.Tags.Contains("ready") });
 
-        app.MapHealthChecks("/alive",
-            new HealthCheckOptions { Predicate = static check => check.Tags.Contains("live") });
+            app.MapHealthChecks("/alive",
+                new HealthCheckOptions { Predicate = static check => check.Tags.Contains("live") });
+        }
 
         // Exception capture middleware
         app.UseMiddleware<ExceptionCaptureMiddleware>();
@@ -362,6 +368,18 @@ public sealed class QylOptions
     ///     Enable .NET 10 validation. Default: true.
     /// </summary>
     public bool EnableValidation { get; set; } = true;
+
+    /// <summary>
+    ///     Register default liveness/readiness health checks in UseQyl.
+    ///     Disable when the host provides its own named health checks.
+    /// </summary>
+    public bool EnableDefaultHealthChecks { get; set; } = true;
+
+    /// <summary>
+    ///     Map default /health and /alive endpoints in MapQylEndpoints.
+    ///     Disable when the host exposes custom health endpoints.
+    /// </summary>
+    public bool EnableDefaultHealthEndpoints { get; set; } = true;
 
     /// <summary>
     ///     Enable automatic collector discovery via network probes when no

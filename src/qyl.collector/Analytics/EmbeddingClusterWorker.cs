@@ -18,7 +18,7 @@
 
 using Microsoft.Extensions.AI;
 
-namespace qyl.collector.Analytics;
+namespace Qyl.Collector.Analytics;
 
 /// <summary>
 ///     Background service that enriches gen_ai spans with semantic cluster labels.
