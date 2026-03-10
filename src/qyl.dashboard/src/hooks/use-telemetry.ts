@@ -13,18 +13,62 @@ export const telemetryKeys = {
     sessions: () => [...telemetryKeys.all, 'sessions'] as const,
     session: (id: string) => [...telemetryKeys.sessions(), id] as const,
     sessionSpans: (id: string) => [...telemetryKeys.session(id), 'spans'] as const,
+    traceSpans: (id: string) => [...telemetryKeys.all, 'trace', id, 'spans'] as const,
     logs: () => [...telemetryKeys.all, 'logs'] as const,
     metrics: () => [...telemetryKeys.all, 'metrics'] as const,
 };
 
+// Raw storage row shape returned by snake_case API endpoints
+interface RawSpanRow {
+    span_id: string;
+    trace_id: string;
+    parent_span_id?: string | null;
+    session_id?: string | null;
+    name: string;
+    kind: number;
+    start_time_unix_nano: number;
+    end_time_unix_nano: number;
+    duration_ns: number;
+    status_code: number;
+    status_message?: string | null;
+    service_name?: string | null;
+    attributes_json?: string | null;
+    resource_json?: string | null;
+    [key: string]: unknown;
+}
+
+interface RawSpanListResponse {
+    items: RawSpanRow[];
+    total: number;
+}
+
+function rawToSpan(raw: RawSpanRow): SpanRecord {
+    const parseAttrs = (json?: string | null): { key: string; value: unknown }[] => {
+        if (!json) return [];
+        try {
+            return Object.entries(JSON.parse(json)).map(([key, value]) => ({key, value}));
+        } catch {
+            return [];
+        }
+    };
+
+    return {
+        span_id: raw.span_id,
+        trace_id: raw.trace_id,
+        parent_span_id: raw.parent_span_id ?? undefined,
+        name: raw.name,
+        kind: raw.kind,
+        start_time_unix_nano: raw.start_time_unix_nano,
+        end_time_unix_nano: raw.end_time_unix_nano,
+        status: {code: raw.status_code, message: raw.status_message ?? undefined},
+        attributes: parseAttrs(raw.attributes_json),
+        resource: {attributes: parseAttrs(raw.resource_json)},
+    } as unknown as SpanRecord;
+}
+
 // API response types (actual API shape)
 interface ApiSessionsResponse {
     items: SessionEntity[];
-    total?: number;
-}
-
-interface ApiSpansResponse {
-    items: SpanRecord[];
     total?: number;
 }
 
@@ -41,9 +85,18 @@ export function useSessions() {
 export function useSessionSpans(sessionId: string) {
     return useQuery({
         queryKey: telemetryKeys.sessionSpans(sessionId),
-        queryFn: () => fetchJson<ApiSpansResponse>(`/api/v1/sessions/${sessionId}/spans`),
-        select: (data): SpanRecord[] => data.items,
+        queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/sessions/${sessionId}/spans`),
+        select: (data): SpanRecord[] => data.items.map(rawToSpan),
         enabled: !!sessionId,
+    });
+}
+
+export function useTraceSpans(traceId: string) {
+    return useQuery({
+        queryKey: telemetryKeys.traceSpans(traceId),
+        queryFn: () => fetchJson<RawSpanListResponse>(`/api/v1/traces/${traceId}/spans`),
+        select: (data): SpanRecord[] => data.items.map(rawToSpan),
+        enabled: !!traceId,
     });
 }
 

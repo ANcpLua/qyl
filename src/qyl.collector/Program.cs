@@ -378,6 +378,7 @@ app.MapGet("/api/v1/traces", async (
 });
 
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
+app.MapGet("/api/v1/traces/{traceId}/spans", SpanEndpoints.GetTraceSpansAsync);
 
 
 app.MapCopilotEndpoints();

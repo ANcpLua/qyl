@@ -20,6 +20,7 @@ import {
     STATUS_ERROR,
     useSessions,
     useSessionSpans,
+    useTraceSpans,
 } from '@/hooks/use-telemetry';
 import type {Span} from '@/types';
 import {getStatusLabel} from '@/types';
@@ -351,6 +352,7 @@ function SpanDetails({span}: { span: SpanRecord }) {
 export function TracesPage() {
     const [searchParams] = useSearchParams();
     const sessionId = searchParams.get('session') || '';
+    const traceId = searchParams.get('traceId') || '';
 
     const [selectedSpan, setSelectedSpan] = useState<SpanRecord | null>(null);
     const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
@@ -359,9 +361,15 @@ export function TracesPage() {
     const parentRef = useRef<HTMLDivElement>(null);
 
     const {data: sessions = []} = useSessions();
-    const {data: spans = [], isLoading} = useSessionSpans(
-        sessionId || sessions[0]?.['session.id'] || ''
+
+    // When traceId is present, fetch spans for that trace directly;
+    // otherwise fall back to session-based span loading.
+    const sessionSpanQuery = useSessionSpans(
+        traceId ? '' : (sessionId || sessions[0]?.['session.id'] || '')
     );
+    const traceSpanQuery = useTraceSpans(traceId);
+
+    const {data: spans = [], isLoading} = traceId ? traceSpanQuery : sessionSpanQuery;
 
     // Build span tree and compute timeline bounds
     const {childrenMap, timelineStart, timelineEnd} = useMemo(() => {
