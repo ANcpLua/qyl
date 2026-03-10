@@ -262,20 +262,37 @@ public sealed partial class DuckDbStore
             while (await reader.ReadAsync(token).ConfigureAwait(false))
                 candidates.Add((reader.GetString(0), reader.GetString(1)));
 
+            if (candidates.Count == 0)
+                return regressedIds;
+
+            var fingerprints = candidates
+                .Select(static candidate => candidate.Fingerprint)
+                .Distinct(StringComparer.Ordinal)
+                .ToArray();
+
+            var regressedFingerprints = new HashSet<string>(StringComparer.Ordinal);
+            await using (var checkCmd = con.CreateCommand())
+            {
+                var placeholders = string.Join(", ", fingerprints.Select(static (_, index) => $"${index + 1}"));
+                checkCmd.CommandText = $"""
+                                        SELECT DISTINCT fingerprint
+                                        FROM errors
+                                        WHERE status = 'new'
+                                          AND fingerprint IN ({placeholders})
+                                        """;
+
+                foreach (var fingerprint in fingerprints)
+                    checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
+
+                await using var checkReader = await checkCmd.ExecuteReaderAsync(token).ConfigureAwait(false);
+                while (await checkReader.ReadAsync(token).ConfigureAwait(false))
+                    regressedFingerprints.Add(checkReader.GetString(0));
+            }
+
             foreach (var (errorId, fingerprint) in candidates)
             {
-                // Check if there are newer unresolved errors with the same fingerprint
-                await using var checkCmd = con.CreateCommand();
-                checkCmd.CommandText = """
-                                       SELECT COUNT(*) FROM errors
-                                       WHERE fingerprint = $1 AND status = 'new' AND error_id != $2
-                                       """;
-                checkCmd.Parameters.Add(new DuckDBParameter { Value = fingerprint });
-                checkCmd.Parameters.Add(new DuckDBParameter { Value = errorId });
-
-                var count = Convert.ToInt64(await checkCmd.ExecuteScalarAsync(token).ConfigureAwait(false),
-                    CultureInfo.InvariantCulture);
-                if (count <= 0) continue;
+                if (!regressedFingerprints.Contains(fingerprint))
+                    continue;
 
                 // Transition to regressed
                 await using var updateCmd = con.CreateCommand();
