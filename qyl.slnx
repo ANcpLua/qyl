@@ -41,7 +41,6 @@
     <Folder Name="/src/sdk/">
         <Project Path="src/qyl.servicedefaults/qyl.servicedefaults.csproj" />
         <Project Path="src/qyl.servicedefaults.generator/qyl.servicedefaults.generator.csproj" />
-        <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
     </Folder>
     <Folder Name="/src/" />

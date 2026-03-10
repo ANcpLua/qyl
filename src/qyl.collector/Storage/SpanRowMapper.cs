@@ -10,8 +10,8 @@ namespace qyl.collector.Storage;
 ///     Use when column order may vary (e.g., SpanQueryBuilder dynamic SELECT).
 /// </summary>
 /// <remarks>
-///     For ordinal-based mapping with fixed column order, use generated
-///     <see cref="SpanStorageRow.MapFromReader" /> instead.
+///     Uses name-based column access, safe when column order varies
+///     (e.g., SpanQueryBuilder dynamic SELECT with optional columns).
 /// </remarks>
 public static class SpanRowMapper
 {

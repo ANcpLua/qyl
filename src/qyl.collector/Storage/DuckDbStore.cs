@@ -12,59 +12,8 @@ namespace qyl.collector.Storage;
 public sealed partial class DuckDbStore : IAsyncDisposable
 {
     // ==========================================================================
-    // Multi-Row Batch Insert Constants
-    // DuckDB.NET 1.4.3: Use positional parameters ($1, $2, ...) instead of named.
+    // SELECT column lists (used by read queries)
     // ==========================================================================
-
-    /// <summary>
-    ///     Maximum spans per multi-row INSERT statement.
-    ///     24 columns per span * 100 spans = 2400 parameters (well under DuckDB limits).
-    /// </summary>
-    private const int MaxSpansPerBatch = 100;
-
-    /// <summary>
-    ///     Maximum logs per multi-row INSERT statement.
-    ///     16 columns per log * 150 logs = 2400 parameters.
-    /// </summary>
-    private const int MaxLogsPerBatch = 150;
-
-    private const int SpanColumnCount = 26;
-    private const int LogColumnCount = 16;
-
-    private const string SpanColumnList = """
-                                          span_id, trace_id, parent_span_id, session_id,
-                                          name, kind, start_time_unix_nano, end_time_unix_nano, duration_ns,
-                                          status_code, status_message, service_name,
-                                          gen_ai_provider_name, gen_ai_request_model, gen_ai_response_model,
-                                          gen_ai_input_tokens, gen_ai_output_tokens, gen_ai_temperature,
-                                          gen_ai_stop_reason, gen_ai_tool_name, gen_ai_tool_call_id,
-                                          gen_ai_cost_usd, attributes_json, resource_json,
-                                          baggage_json, schema_url
-                                          """;
-
-    private const string SpanOnConflictClause = """
-                                                ON CONFLICT (span_id) DO UPDATE SET
-                                                    end_time_unix_nano = EXCLUDED.end_time_unix_nano,
-                                                    duration_ns = EXCLUDED.duration_ns,
-                                                    status_code = EXCLUDED.status_code,
-                                                    status_message = EXCLUDED.status_message,
-                                                    service_name = COALESCE(EXCLUDED.service_name, service_name),
-                                                    gen_ai_input_tokens = EXCLUDED.gen_ai_input_tokens,
-                                                    gen_ai_output_tokens = EXCLUDED.gen_ai_output_tokens,
-                                                    gen_ai_cost_usd = EXCLUDED.gen_ai_cost_usd,
-                                                    attributes_json = EXCLUDED.attributes_json,
-                                                    resource_json = EXCLUDED.resource_json,
-                                                    baggage_json = EXCLUDED.baggage_json,
-                                                    schema_url = EXCLUDED.schema_url
-                                                """;
-
-    private const string LogColumnList = """
-                                         log_id, trace_id, span_id, session_id,
-                                         time_unix_nano, observed_time_unix_nano,
-                                         severity_number, severity_text, body,
-                                         service_name, attributes_json, resource_json,
-                                         source_file, source_line, source_column, source_method
-                                         """;
 
     private const string SelectSpanColumns = """
                                              span_id, trace_id, parent_span_id, session_id,
@@ -120,9 +69,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Private Methods - Multi-Row Insert SQL Builders (with caching)
     // ==========================================================================
 
-    // Cache SQL statements for common batch sizes to avoid repeated StringBuilder allocations
-    private static readonly ConcurrentDictionary<int, string> SSpanInsertSqlCache = new();
-    private static readonly ConcurrentDictionary<int, string> SLogInsertSqlCache = new();
 
     // ==========================================================================
     // Instance Fields
@@ -182,8 +128,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // ==========================================================================
 
     /// <summary>
-    ///     Exposes the write connection for legacy compatibility (SessionQueryService).
-    ///     NOTE: For new code, use RentReadConnectionAsync for read queries.
+    ///     Exposes the write connection used by migration runner and session queries.
     /// </summary>
     public DuckDBConnection Connection { get; }
 
@@ -962,36 +907,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Log Operations
     // ==========================================================================
 
-    public async Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
+    public Task InsertLogsAsync(IReadOnlyList<LogStorageRow> logs, CancellationToken ct = default)
     {
         ThrowIfDisposed();
         if (logs.Count is 0)
-            return;
+            return Task.CompletedTask;
 
-        await using var tx = await Connection.BeginTransactionAsync(ct).ConfigureAwait(false);
-
-        var totalLogs = logs.Count;
-        var offset = 0;
-
-        while (offset < totalLogs)
-        {
-            var chunkSize = Math.Min(MaxLogsPerBatch, totalLogs - offset);
-            var sql = BuildMultiRowLogInsertSql(chunkSize);
-
-            await using var cmd = Connection.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = sql;
-
-            for (var i = 0; i < chunkSize; i++)
-            {
-                AddLogParameters(cmd, logs[offset + i]);
-            }
-
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            offset += chunkSize;
-        }
-
-        await tx.CommitAsync(ct).ConfigureAwait(false);
+        using var appender = Connection.CreateAppender<LogStorageRow, LogStorageRowMap>("logs");
+        appender.AppendRecords(logs);
+        return Task.CompletedTask;
     }
 
     public async Task<IReadOnlyList<LogStorageRow>> GetLogsAsync(
@@ -1296,31 +1220,30 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         if (batch.Spans.Count is 0)
             return;
 
-        await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
-
-        var spans = batch.Spans;
-        var totalSpans = spans.Count;
-        var offset = 0;
-
-        while (offset < totalSpans)
+        // Pre-filter: skip spans that already exist (idempotent ingestion).
+        // Replaces ON CONFLICT DO UPDATE — Appender doesn't support conflict clauses.
+        var existingIds = new HashSet<string>();
+        await using (var checkCmd = con.CreateCommand())
         {
-            var chunkSize = Math.Min(MaxSpansPerBatch, totalSpans - offset);
-            var sql = BuildMultiRowSpanInsertSql(chunkSize);
+            checkCmd.CommandText = "SELECT span_id FROM spans WHERE span_id IN (" +
+                string.Join(", ", batch.Spans.Select((_, i) => $"${i + 1}")) + ")";
+            foreach (var span in batch.Spans)
+                checkCmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
 
-            await using var cmd = con.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = sql;
-
-            for (var i = 0; i < chunkSize; i++)
-            {
-                AddSpanParameters(cmd, spans[offset + i]);
-            }
-
-            await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
-            offset += chunkSize;
+            await using var reader = await checkCmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            while (await reader.ReadAsync(ct).ConfigureAwait(false))
+                existingIds.Add(reader.GetString(0));
         }
 
-        await tx.CommitAsync(ct).ConfigureAwait(false);
+        var newSpans = existingIds.Count is 0
+            ? batch.Spans
+            : batch.Spans.Where(s => !existingIds.Contains(s.SpanId)).ToList();
+
+        if (newSpans.Count > 0)
+        {
+            using var appender = con.CreateAppender<SpanStorageRow, SpanStorageRowMap>("spans");
+            appender.AppendRecords(newSpans);
+        }
 
         // Writer-side error extraction: runs on the single writer thread after span commit.
         // Zero additional channel pressure — errors are extracted inline within the existing job.
@@ -1407,145 +1330,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await tx.CommitAsync(ct).ConfigureAwait(false);
 
         return count;
-    }
-
-    /// <summary>
-    ///     Gets or builds a multi-row INSERT statement for spans with ON CONFLICT DO UPDATE.
-    ///     Caches SQL for common batch sizes to reduce allocations.
-    /// </summary>
-    private static string BuildMultiRowSpanInsertSql(int spanCount)
-    {
-        Debug.Assert(spanCount is > 0 and <= MaxSpansPerBatch);
-
-        return SSpanInsertSqlCache.GetOrAdd(spanCount, static count =>
-        {
-            var sb = new StringBuilder(2048);
-            sb.Append("INSERT INTO spans (").Append(SpanColumnList).Append(") VALUES ");
-
-            for (var i = 0; i < count; i++)
-            {
-                if (i > 0)
-                    sb.Append(", ");
-
-                var baseParam = i * SpanColumnCount;
-                sb.Append('(');
-                for (var col = 0; col < SpanColumnCount; col++)
-                {
-                    if (col > 0)
-                        sb.Append(", ");
-                    sb.Append('$').Append(baseParam + col + 1);
-                }
-
-                sb.Append(')');
-            }
-
-            sb.Append(' ').Append(SpanOnConflictClause);
-            return sb.ToString();
-        });
-    }
-
-    /// <summary>
-    ///     Gets or builds a multi-row INSERT statement for logs (no ON CONFLICT).
-    ///     Caches SQL for common batch sizes to reduce allocations.
-    /// </summary>
-    private static string BuildMultiRowLogInsertSql(int logCount)
-    {
-        Debug.Assert(logCount is > 0 and <= MaxLogsPerBatch);
-
-        return SLogInsertSqlCache.GetOrAdd(logCount, static count =>
-        {
-            var sb = new StringBuilder(1024);
-            sb.Append("INSERT INTO logs (").Append(LogColumnList).Append(") VALUES ");
-
-            for (var i = 0; i < count; i++)
-            {
-                if (i > 0)
-                    sb.Append(", ");
-
-                var baseParam = i * LogColumnCount;
-                sb.Append('(');
-                for (var col = 0; col < LogColumnCount; col++)
-                {
-                    if (col > 0)
-                        sb.Append(", ");
-                    sb.Append('$').Append(baseParam + col + 1);
-                }
-
-                sb.Append(')');
-            }
-
-            return sb.ToString();
-        });
-    }
-
-    /// <summary>
-    ///     Adds span parameters to command in column order.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AddSpanParameters(DuckDBCommand cmd, SpanStorageRow span)
-    {
-        // Identity (4 columns)
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.SpanId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.TraceId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.ParentSpanId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.SessionId ?? (object)DBNull.Value });
-
-        // Core fields (8 columns) - UBIGINT passed as decimal for DuckDB.NET
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.Name });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.Kind });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.StartTimeUnixNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.EndTimeUnixNano });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)span.DurationNs });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusCode });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.StatusMessage ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.ServiceName ?? (object)DBNull.Value });
-
-        // GenAI fields (10 columns)
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiProviderName ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiRequestModel ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiResponseModel ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiInputTokens ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiOutputTokens ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiTemperature ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiStopReason ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolName ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiToolCallId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.GenAiCostUsd ?? (object)DBNull.Value });
-
-        // JSON storage (2 columns)
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.AttributesJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.ResourceJson ?? (object)DBNull.Value });
-
-        // W3C Baggage and OTel Schema URL (2 columns)
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.BaggageJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = span.SchemaUrl ?? (object)DBNull.Value });
-    }
-
-    /// <summary>
-    ///     Adds log parameters to command in column order.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AddLogParameters(DuckDBCommand cmd, LogStorageRow log)
-    {
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.LogId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.TraceId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SpanId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SessionId ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)log.TimeUnixNano });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = log.ObservedTimeUnixNano.HasValue ? (decimal)log.ObservedTimeUnixNano.Value : DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityNumber });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SeverityText ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.Body ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.ServiceName ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.AttributesJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.ResourceJson ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceFile ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceLine ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceColumn ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = log.SourceMethod ?? (object)DBNull.Value });
     }
 
     // ==========================================================================
@@ -1715,7 +1499,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanStorageRow.MapFromReader(reader);
+    private static SpanStorageRow MapSpan(DbDataReader reader) => SpanRowMapper.MapByName(reader);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static LogStorageRow MapLog(DbDataReader reader) =>

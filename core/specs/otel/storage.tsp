@@ -316,6 +316,24 @@ model LogRecordStorage {
   @TypeSpec.OpenAPI.extension("x-duckdb-type", "VARCHAR")
   resourceJson?: string;
 
+  // === Source Location ===
+
+  @doc("Source file path where the log was emitted")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "source_file")
+  sourceFile?: string;
+
+  @doc("Source line number")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "source_line")
+  sourceLine?: int32;
+
+  @doc("Source column number")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "source_column")
+  sourceColumn?: int32;
+
+  @doc("Source method name")
+  @TypeSpec.OpenAPI.extension("x-duckdb-column", "source_method")
+  sourceMethod?: string;
+
   // === Internal Storage Fields ===
 
   @doc("Row creation timestamp")

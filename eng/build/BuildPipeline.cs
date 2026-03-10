@@ -220,7 +220,6 @@ partial interface IPipeline : IHazSourcePaths
             ContractGenerator.Generate(
                 extensionsJson,
                 paths.ServiceDefaultsGenerator,
-                paths.InstrumentationGenerators,
                 guard);
         });
 
@@ -419,7 +418,6 @@ partial interface IPipeline : IHazSourcePaths
             Log.Information("  DuckDB DDL: collector/Storage/DuckDbSchema.g.cs");
             Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
             Log.Information("  Contracts:   servicedefaults.generator/Generated/DomainContracts.g.cs");
-            Log.Information("  Contracts:   instrumentation.generators/Generated/DomainContracts.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 

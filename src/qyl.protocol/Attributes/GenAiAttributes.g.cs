@@ -369,18 +369,4 @@ public static class GenAiAttributes
 
     }
 
-    /// <summary>Deprecated attribute names for backward compatibility.</summary>
-    public static class Deprecated
-    {
-        /// <summary>gen_ai.system</summary>
-        public const string System = "gen_ai.system";
-
-        /// <summary>gen_ai.usage.prompt_tokens</summary>
-        public const string UsagePromptTokens = "gen_ai.usage.prompt_tokens";
-
-        /// <summary>gen_ai.usage.completion_tokens</summary>
-        public const string UsageCompletionTokens = "gen_ai.usage.completion_tokens";
-
-    }
-
 }

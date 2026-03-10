@@ -123,24 +123,4 @@ public static class DbAttributes
 
     }
 
-    /// <summary>Deprecated attribute names for backward compatibility.</summary>
-    public static class Deprecated
-    {
-        /// <summary>db.system</summary>
-        public const string System = "db.system";
-
-        /// <summary>db.name</summary>
-        public const string Name = "db.name";
-
-        /// <summary>db.statement</summary>
-        public const string Statement = "db.statement";
-
-        /// <summary>db.operation</summary>
-        public const string Operation = "db.operation";
-
-        /// <summary>db.user</summary>
-        public const string User = "db.user";
-
-    }
-
 }

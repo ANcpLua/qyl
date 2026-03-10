@@ -128,7 +128,7 @@ dotnet_naming_symbols.namespaces.applicable_kinds = namespace
 # SOURCE GENERATORS (netstandard2.0 Roslyn components)
 # =============================================================================
 
-[src/{qyl.servicedefaults.generator,qyl.instrumentation.generators}/**/*.cs]
+[src/qyl.servicedefaults.generator/**/*.cs]
 dotnet_diagnostic.RS1038.severity = none # Transitive Workspaces reference via ANcpLua.Roslyn.Utilities — upstream fix needed
 
 # =============================================================================

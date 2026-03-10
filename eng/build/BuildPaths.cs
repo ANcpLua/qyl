@@ -41,7 +41,6 @@ public sealed record CodegenPaths(AbsolutePath Root)
     public AbsolutePath Migrations => CollectorStorage / "Migrations";
     public AbsolutePath Dashboard => Root / "src" / "qyl.dashboard";
     public AbsolutePath ServiceDefaultsGenerator => Root / "src" / "qyl.servicedefaults.generator";
-    public AbsolutePath InstrumentationGenerators => Root / "src" / "qyl.instrumentation.generators";
     public static CodegenPaths From(INukeBuild build) => new(build.RootDirectory);
 }
 

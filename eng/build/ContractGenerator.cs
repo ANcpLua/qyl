@@ -10,7 +10,7 @@ using Nuke.Common.IO;
 using Serilog;
 
 /// <summary>
-///     Generates DomainContracts.g.cs from qyl-extensions.json into both generator projects.
+///     Generates DomainContracts.g.cs from qyl-extensions.json into the servicedefaults generator project.
 ///     Single entry point: <see cref="Generate"/>.
 /// </summary>
 public static class ContractGenerator
@@ -18,12 +18,11 @@ public static class ContractGenerator
     private const string SchemaVersion = "semconv-1.40.0";
 
     /// <summary>
-    ///     Reads qyl-extensions.json, emits DomainContracts.g.cs to both generator destinations.
+    ///     Reads qyl-extensions.json, emits DomainContracts.g.cs to the servicedefaults generator.
     /// </summary>
     public static void Generate(
         AbsolutePath extensionsJsonPath,
         AbsolutePath serviceDefaultsGeneratorDir,
-        AbsolutePath instrumentationGeneratorsDir,
         GenerationGuard guard)
     {
         if (!extensionsJsonPath.FileExists())
@@ -37,13 +36,8 @@ public static class ContractGenerator
 
         var content = EmitDomainContracts(domains);
 
-        var dest1 = serviceDefaultsGeneratorDir / "Generated" / "DomainContracts.g.cs";
-        var dest2 = instrumentationGeneratorsDir / "Generated" / "DomainContracts.g.cs";
-
-        guard.WriteIfAllowed(dest1, content, "DomainContracts.g.cs → servicedefaults.generator");
-        guard.WriteIfAllowed(dest2, content, "DomainContracts.g.cs → instrumentation.generators");
-
-        Log.Information("DomainContracts.g.cs written to 2 destination(s)");
+        var dest = serviceDefaultsGeneratorDir / "Generated" / "DomainContracts.g.cs";
+        guard.WriteIfAllowed(dest, content, "DomainContracts.g.cs → servicedefaults.generator");
     }
 
     // ── Domain loading ────────────────────────────────────────────────────────

@@ -49,12 +49,6 @@ internal sealed class SubscriptionManager : IDisposable
     }
 
     /// <summary>
-    /// Creates a new subscription (backward-compatible overload without schema version).
-    /// </summary>
-    public ObservationSubscription Subscribe(string filter, string endpoint)
-        => Subscribe(filter, endpoint, schemaVersion: null);
-
-    /// <summary>
     /// Removes and disposes the subscription with the given id.
     /// Returns true if found and removed, false if unknown.
     /// </summary>

@@ -243,7 +243,6 @@ enum WorkflowNodeType {
 // =============================================================================
 
 @doc("Durable node snapshot for crash recovery")
-@extension("x-duckdb-table", "workflow_checkpoints")
 @extension("x-csharp-type", "WorkflowCheckpointEntity")
 model WorkflowCheckpointEntity {
   @doc("Checkpoint ID")
