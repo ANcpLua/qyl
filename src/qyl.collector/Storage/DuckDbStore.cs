@@ -1271,14 +1271,99 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         await using var tx = await con.BeginTransactionAsync(ct).ConfigureAwait(false);
         foreach (var error in errors)
         {
+            // 1. Upsert into errors table (existing behavior)
             await using var cmd = con.CreateCommand();
             cmd.Transaction = tx;
             cmd.CommandText = ErrorUpsertSql;
             AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
             await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+
+            // 2. Bridge to error_issues table (fingerprint-grouped issue tracking)
+            var issueId = await UpsertIssueBridgeAsync(con, tx, error, now, ct).ConfigureAwait(false);
+
+            // 3. Link error occurrence as issue event (trace-navigable from UI)
+            await InsertIssueEventAsync(con, tx, issueId, error, now, ct).ConfigureAwait(false);
         }
 
         await tx.CommitAsync(ct).ConfigureAwait(false);
+    }
+
+    private static async ValueTask<string> UpsertIssueBridgeAsync(
+        DuckDBConnection con,
+        DbTransaction tx,
+        ErrorEvent error,
+        DateTime now,
+        CancellationToken ct)
+    {
+        await using var checkCmd = con.CreateCommand();
+        checkCmd.Transaction = tx;
+        checkCmd.CommandText = "SELECT id FROM error_issues WHERE project_id = $1 AND fingerprint = $2 LIMIT 1";
+        checkCmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
+        checkCmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
+        var existingId = await checkCmd.ExecuteScalarAsync(ct).ConfigureAwait(false) as string;
+
+        if (existingId is not null)
+        {
+            await using var updateCmd = con.CreateCommand();
+            updateCmd.Transaction = tx;
+            updateCmd.CommandText = """
+                                    UPDATE error_issues SET
+                                        occurrence_count = occurrence_count + 1,
+                                        last_seen_at = $1,
+                                        updated_at = $1
+                                    WHERE id = $2
+                                    """;
+            updateCmd.Parameters.Add(new DuckDBParameter { Value = now });
+            updateCmd.Parameters.Add(new DuckDBParameter { Value = existingId });
+            await updateCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+            return existingId;
+        }
+
+        var issueId = Guid.NewGuid().ToString("N");
+        await using var insertCmd = con.CreateCommand();
+        insertCmd.Transaction = tx;
+        insertCmd.CommandText = """
+                                INSERT INTO error_issues
+                                    (id, project_id, fingerprint, title, error_type, category, level,
+                                     first_seen_at, last_seen_at, occurrence_count, status, priority,
+                                     created_at, updated_at)
+                                VALUES ($1, $2, $3, $4, $5, $6, 'error', $7, $8, 1, 'unresolved', 'medium', $9, $10)
+                                """;
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Fingerprint });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.ErrorType });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = error.Category });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
+        insertCmd.Parameters.Add(new DuckDBParameter { Value = now });
+        await insertCmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
+        return issueId;
+    }
+
+    private static async ValueTask InsertIssueEventAsync(
+        DuckDBConnection con,
+        DbTransaction tx,
+        string issueId,
+        ErrorEvent error,
+        DateTime now,
+        CancellationToken ct)
+    {
+        await using var cmd = con.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = """
+                          INSERT INTO error_issue_events
+                              (id, issue_id, trace_id, message, timestamp)
+                          VALUES ($1, $2, $3, $4, $5)
+                          """;
+        cmd.Parameters.Add(new DuckDBParameter { Value = Guid.NewGuid().ToString("N") });
+        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.TraceId });
+        cmd.Parameters.Add(new DuckDBParameter { Value = error.Message });
+        cmd.Parameters.Add(new DuckDBParameter { Value = now });
+        await cmd.ExecuteNonQueryAsync(ct).ConfigureAwait(false);
     }
 
     private static async ValueTask<int> ArchiveInternalAsync(
