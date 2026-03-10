@@ -1607,10 +1607,14 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     private static void InitializeSchema(DuckDBConnection con)
     {
-        // Manual fix_runs DDL runs BEFORE generated schema so it wins via CREATE TABLE IF NOT EXISTS
+        // Manual DDLs run BEFORE generated schema so CREATE TABLE IF NOT EXISTS in generated DDL is a no-op
         using var manualFixRunsCmd = con.CreateCommand();
         manualFixRunsCmd.CommandText = DuckDbSchema.ManualFixRunsDdl;
         manualFixRunsCmd.ExecuteNonQuery();
+
+        using var manualLogsCmd = con.CreateCommand();
+        manualLogsCmd.CommandText = DuckDbSchema.ManualLogsDdl;
+        manualLogsCmd.ExecuteNonQuery();
 
         using var cmd = con.CreateCommand();
         cmd.CommandText = NormalizeGeneratedSchemaDdl(DuckDbSchema.GetSchemaDdl());
