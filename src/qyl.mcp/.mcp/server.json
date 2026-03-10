@@ -1,6 +1,6 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/draft/2025-07-09/server.json",
-  "description": "MCP server for the qyl AI observability platform — query traces, logs, metrics, and GenAI sessions",
+  "description": "MCP server for the qyl AI observability platform via stdio or Streamable HTTP — query traces, logs, metrics, builds, and GenAI sessions",
   "name": "io.github.ancplua/qyl-mcp",
   "packages": [
     {

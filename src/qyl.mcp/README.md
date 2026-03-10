@@ -1,7 +1,12 @@
 # qyl.mcp
 
-MCP (Model Context Protocol) server for the qyl AI observability platform. Gives AI agents native access to telemetry
-data — traces, logs, metrics, GenAI sessions — over stdio.
+MCP server for the qyl AI observability platform. It gives AI agents access to traces, logs, metrics, GenAI sessions,
+build failures, anomaly analysis, and qyl's investigation tools.
+
+`qyl.mcp` now supports both:
+
+- `stdio` transport for local MCP clients like Claude Code, Cursor, and desktop tools
+- Streamable HTTP at `/mcp` for remote connectors such as Anthropic and OpenAI
 
 ## Install
 
@@ -9,47 +14,75 @@ data — traces, logs, metrics, GenAI sessions — over stdio.
 dotnet tool install --global qyl.mcp
 ```
 
-## Configure
+## Modes
 
-Set environment variables before launching:
+### Local stdio mode
 
-| Variable            | Default                 | Purpose            |
-|---------------------|-------------------------|--------------------|
-| `QYL_COLLECTOR_URL` | `http://localhost:5100` | Collector endpoint |
-| `QYL_MCP_TOKEN`     | *(none)*                | Auth token         |
+Default mode when no HTTP hosting environment is configured.
+
+```bash
+QYL_COLLECTOR_URL=http://localhost:5100 qyl.mcp
+```
+
+### Remote HTTP mode
+
+Enable remote MCP hosting by setting `QYL_MCP_TRANSPORT=http`.
+
+```bash
+QYL_MCP_TRANSPORT=http \
+QYL_COLLECTOR_URL=http://localhost:5100 \
+ASPNETCORE_URLS=http://0.0.0.0:8080 \
+qyl.mcp
+```
+
+Remote mode exposes:
+
+- `/mcp` — Streamable HTTP MCP endpoint
+- `/mcp.json` — lightweight discovery metadata
+- `/llms.txt` — human/LLM-readable server summary
+- `/healthz` — container health endpoint
+
+## Configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `QYL_COLLECTOR_URL` | `http://localhost:5100` | qyl collector base URL |
+| `QYL_MCP_TRANSPORT` | `stdio` | `stdio` or `http` |
+| `QYL_MCP_PATH` | `/mcp` | MCP HTTP route prefix |
+| `QYL_MCP_PUBLIC_URL` | derived from request | Public base URL used in metadata |
+| `QYL_MCP_STATELESS` | `false` | Enables stateless Streamable HTTP sessions |
+| `QYL_MCP_TOKEN` | none | Outbound auth token used by qyl.mcp when calling qyl.collector |
+| `QYL_KEYCLOAK_AUTHORITY` | none | Keycloak/OIDC authority for collector auth and optional incoming JWT validation |
+| `QYL_KEYCLOAK_CLIENT_ID` | none | Client credentials for qyl.mcp -> qyl.collector |
+| `QYL_KEYCLOAK_CLIENT_SECRET` | none | Client credentials for qyl.mcp -> qyl.collector |
+| `QYL_KEYCLOAK_AUDIENCE` | none | Optional audience for incoming bearer token validation in HTTP mode |
+| `PORT` | none | PaaS fallback for HTTP port binding |
+
+## Auth
+
+- If `QYL_KEYCLOAK_AUTHORITY` is not configured, HTTP mode runs without host-facing auth.
+- If `QYL_KEYCLOAK_AUTHORITY` is configured, HTTP mode requires bearer tokens and publishes MCP protected-resource metadata for OAuth-aware clients.
+- Collector-facing auth remains separate: `qyl.mcp` still authenticates to `qyl.collector` using Keycloak client credentials or `QYL_MCP_TOKEN`.
 
 ## Tools
 
-| Tool                         | Purpose                                 |
-|------------------------------|-----------------------------------------|
-| `qyl.list_sessions`          | List AI sessions with span/error counts |
-| `qyl.get_session_transcript` | Human-readable session timeline         |
-| `qyl.get_trace`              | Complete span tree for a trace          |
-| `qyl.analyze_session_errors` | Analyze session errors                  |
-| `qyl.get_genai_stats`        | Token usage, costs, latency             |
-| `qyl.list_genai_spans`       | Query LLM calls with filters            |
-| `qyl.list_models`            | Model usage breakdown                   |
-| `qyl.get_token_timeseries`   | Token consumption over time             |
-| `qyl.search_agent_runs`      | Search agent runs                       |
-| `qyl.get_agent_run`          | Agent run details                       |
-| `qyl.get_token_usage`        | Aggregated token usage                  |
-| `qyl.list_errors`            | Recent agent errors                     |
-| `qyl.get_latency_stats`      | P50/P95/P99 latency                     |
-| `qyl.list_console_logs`      | Frontend console.log entries            |
-| `qyl.list_console_errors`    | Frontend console errors                 |
-| `qyl.list_structured_logs`   | OTLP log records                        |
-| `qyl.list_trace_logs`        | Logs for a specific trace               |
-| `qyl.search_logs`            | Search logs by text                     |
-| `qyl.list_build_failures`    | List captured build failures            |
-| `qyl.get_build_failure`      | Detailed build failure report           |
-| `qyl.search_build_failures`  | Search build failures                   |
-| `qyl.get_storage_stats`      | Database statistics                     |
-| `qyl.health_check`           | Collector health                        |
-| `qyl.search_spans`           | General span query                      |
+Primary tool families:
 
-## Transport
+- inspect: traces, spans, errors, logs, services, sessions
+- health: storage and system context
+- analytics: conversation and user analytics
+- agent: RCA, summaries, autonomous investigation
+- build: captured build failures
+- anomaly: baselines and anomaly detection
+- copilot / Claude Code / loom: AI workflow and fix pipeline tools
 
-stdio (JSON-RPC) — compatible with Claude Code, Cursor, and any MCP-compliant client.
+The exact exposed tool set is controlled by `QYL_SKILLS`.
+
+## Remote client notes
+
+- Anthropic and OpenAI remote connectors should point at the public `https://.../mcp` URL.
+- If you are behind a proxy or ingress, set `QYL_MCP_PUBLIC_URL` so metadata uses the public origin rather than the internal container address.
+- For OAuth-backed deployments, your identity provider must publish standard OIDC metadata and be reachable by the MCP client.
 
 ## Links
 

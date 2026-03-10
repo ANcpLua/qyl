@@ -2,7 +2,6 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
 using qyl.mcp.Agents;
 
@@ -14,9 +13,8 @@ namespace qyl.mcp.Tools;
 ///     <see cref="GenAiTools"/> with the IChatClient pattern from <see cref="UseQylTools"/>.
 /// </summary>
 [McpServerToolType]
-internal sealed class SummaryTools(HttpClient client, IConfiguration config)
+internal sealed class SummaryTools(HttpClient client, IChatClient? llm = null)
 {
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.summarize_error", Title = "Summarize Error",
         ReadOnly = true, Destructive = false, Idempotent = false, OpenWorld = true)]
@@ -30,7 +28,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  - Fixability score (1-5)
                  - Suggested fix
 
-                 Requires QYL_AGENT_API_KEY to be configured.
+                 Requires QYL_LLM_PROVIDER to be configured.
                  Falls back to raw data display if no LLM available.
 
                  Returns: AI-generated error analysis
@@ -40,17 +38,20 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            // Fetch error data
-            SummaryIssueDto? issue = await client.GetFromJsonAsync<SummaryIssueDto>(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
+            // Fetch error data concurrently
+            string escapedId = Uri.EscapeDataString(issueId);
+            Task<SummaryIssueDto?> issueTask = client.GetFromJsonAsync<SummaryIssueDto>(
+                $"/api/v1/issues/{escapedId}",
+                SummaryJsonContext.Default.SummaryIssueDto, ct);
+            Task<SummaryEventsResponse?> eventsTask = client.GetFromJsonAsync<SummaryEventsResponse>(
+                $"/api/v1/issues/{escapedId}/events?limit=5",
+                SummaryJsonContext.Default.SummaryEventsResponse, ct);
+
+            SummaryIssueDto? issue = await issueTask.ConfigureAwait(false);
+            SummaryEventsResponse? eventsResponse = await eventsTask.ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
-
-            SummaryEventsResponse? eventsResponse = await client.GetFromJsonAsync<SummaryEventsResponse>(
-                $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=5",
-                SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
 
             // Build data context for LLM
             StringBuilder sb = new();
@@ -72,7 +73,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 }
             }
 
-            if (_llm is null)
+            if (llm is null)
                 return $"# Error Summary (raw data -- no LLM configured)\n\n{sb}";
 
             List<ChatMessage> messages =
@@ -81,7 +82,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            ChatResponse response = await llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 
@@ -97,7 +98,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  - Error analysis
                  - GenAI cost/latency breakdown (if applicable)
 
-                 Requires QYL_AGENT_API_KEY to be configured.
+                 Requires QYL_LLM_PROVIDER to be configured.
                  Falls back to raw data display if no LLM available.
 
                  Returns: AI-generated trace analysis
@@ -143,7 +144,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                     sb.AppendLine($"  Error: {span.StatusMessage}");
             }
 
-            if (_llm is null)
+            if (llm is null)
                 return $"# Trace Summary (raw data -- no LLM configured)\n\n{sb}";
 
             List<ChatMessage> messages =
@@ -152,7 +153,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            ChatResponse response = await llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 
@@ -168,7 +169,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  - Error analysis
                  - Performance characteristics
 
-                 Requires QYL_AGENT_API_KEY to be configured.
+                 Requires QYL_LLM_PROVIDER to be configured.
                  Falls back to raw data display if no LLM available.
 
                  Returns: AI-generated session analysis
@@ -221,7 +222,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 }
             }
 
-            if (_llm is null)
+            if (llm is null)
                 return $"# Session Summary (raw data -- no LLM configured)\n\n{sb}";
 
             List<ChatMessage> messages =
@@ -230,7 +231,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            ChatResponse response = await llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 

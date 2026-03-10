@@ -1,5 +1,5 @@
 # qyl.mcp - MCP Server for AI Agent Queries
-# Native AOT build for minimal footprint
+# Default container mode is remote Streamable HTTP for OpenAI / Anthropic connectors.
 #
 # Build from repository root:
 #   docker build -f src/qyl.mcp/Dockerfile -t qyl-mcp .
@@ -47,6 +47,8 @@ RUN addgroup -S qyl && adduser -S qyl -G qyl
 
 WORKDIR /app
 
+EXPOSE 8080
+
 # Copy published app
 COPY --from=build /app .
 
@@ -58,5 +60,7 @@ USER qyl
 
 # Environment variables
 ENV QYL_COLLECTOR_URL=http://localhost:5100
+ENV QYL_MCP_TRANSPORT=http
+ENV ASPNETCORE_URLS=http://+:8080
 
 ENTRYPOINT ["./qyl.mcp"]

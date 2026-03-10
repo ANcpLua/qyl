@@ -40,22 +40,29 @@ internal sealed class McpToolRegistry(IServiceProvider services)
     ///     Returns all discovered MCP tool methods as AIFunction instances.
     ///     Results are cached after first call (tool set is static at runtime).
     /// </summary>
-    public IReadOnlyList<AIFunction> GetTools() => _cachedTools ??= DiscoverTools();
+    public IReadOnlyList<AIFunction> GetTools() => _cachedTools ??= ToolDiscovery.Discover(services, ToolTypes);
+}
 
-    private List<AIFunction> DiscoverTools()
+/// <summary>
+///     Discovers [McpServerTool] methods on DI-registered types and wraps them as <see cref="AIFunction"/>.
+///     Skips types not registered in the container (skills may be disabled).
+/// </summary>
+internal static class ToolDiscovery
+{
+    public static List<AIFunction> Discover(IServiceProvider services, params Type[] toolTypes)
     {
-        var tools = new List<AIFunction>();
-
-        foreach (var type in ToolTypes)
+        List<AIFunction> tools = [];
+        foreach (Type type in toolTypes)
         {
-            var instance = services.GetRequiredService(type);
+            object? instance = services.GetService(type);
+            if (instance is null) continue;
 
-            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr)
                     continue;
 
-                var name = attr.Name ?? method.Name;
+                string name = attr.Name ?? method.Name;
                 tools.Add(AIFunctionFactory.Create(method, instance,
                     new AIFunctionFactoryOptions { Name = name }));
             }

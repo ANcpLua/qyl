@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
@@ -12,9 +10,8 @@ namespace qyl.mcp.Tools;
 ///     an LLM to generate a regression test that would catch the error.
 /// </summary>
 [McpServerToolType]
-internal sealed class TestGenerationTools(HttpClient http, IConfiguration config)
+internal sealed class TestGenerationTools(HttpClient http, IChatClient? llm = null)
 {
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_test_from_error", Title = "Generate Test from Error",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -30,8 +27,8 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            if (_llm is null)
-                return "Test generation requires an LLM. Set QYL_AGENT_API_KEY to enable.";
+            if (llm is null)
+                return "Test generation requires an LLM. Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY to enable.";
 
             string targetFramework = framework?.ToLowerInvariant() switch
             {
@@ -61,7 +58,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
 
             string prompt = BuildTestPrompt(issueJson, eventsJson, targetFramework);
 
-            ChatResponse response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
+            ChatResponse response = await llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             return $"## Generated Test for Issue {issueId}\n\n{response.Text}";

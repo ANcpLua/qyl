@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using qyl.mcp.Agents;
 
 namespace qyl.mcp.Tools;
 
@@ -13,9 +11,8 @@ namespace qyl.mcp.Tools;
 ///     the collector's /api/v1/query endpoint, and formats output.
 /// </summary>
 [McpServerToolType]
-internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
+internal sealed class AssistedQueryTools(HttpClient http, IChatClient? llm = null)
 {
-    private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.assisted_query", Title = "Assisted Query",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -31,13 +28,13 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            if (_llm is null)
-                return "Assisted query requires an LLM. Set QYL_AGENT_API_KEY to enable.";
+            if (llm is null)
+                return "Assisted query requires an LLM. Set QYL_LLM_PROVIDER and QYL_LLM_API_KEY to enable.";
 
             int take = Math.Clamp(limit ?? 50, 1, 500);
             string prompt = BuildSqlPrompt(question, take);
 
-            ChatResponse response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
+            ChatResponse response = await llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             string sql = ExtractSql(response.Text ?? "");
