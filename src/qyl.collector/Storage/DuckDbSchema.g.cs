@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-09T16:48:45.9747380+00:00
+//     Generated: 2026-03-10T06:59:29.9218240+00:00
 //     DuckDB schema definitions
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -15,7 +15,7 @@ namespace qyl.collector.Storage;
 /// <summary>DuckDB schema from TypeSpec God Schema.</summary>
 public static partial class DuckDbSchema
 {
-    public const int Version = 20260309;
+    public const int Version = 20260310;
 
     public const string AlertFiringsDdl = """
         CREATE TABLE IF NOT EXISTS alert_firings (
@@ -56,8 +56,7 @@ public static partial class DuckDbSchema
             last_triggered_at TIMESTAMP,
             trigger_count BIGINT NOT NULL,
             created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -151,8 +150,7 @@ public static partial class DuckDbSchema
             tags_json JSON,
             metadata_json JSON,
             created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -191,8 +189,7 @@ public static partial class DuckDbSchema
             duration_ms INTEGER,
             created_at TIMESTAMP NOT NULL,
             started_at TIMESTAMP,
-            completed_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            completed_at TIMESTAMP
         );
         """;
 
@@ -229,8 +226,7 @@ public static partial class DuckDbSchema
             template_overrides_json JSON,
             is_default BOOLEAN NOT NULL,
             created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -244,8 +240,7 @@ public static partial class DuckDbSchema
             enabled BOOLEAN NOT NULL,
             config_json JSON,
             created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -260,8 +255,7 @@ public static partial class DuckDbSchema
             state VARCHAR NOT NULL,
             verified_at TIMESTAMP,
             expires_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -291,8 +285,7 @@ public static partial class DuckDbSchema
             display_name VARCHAR NOT NULL,
             color VARCHAR,
             sort_order INTEGER NOT NULL,
-            created_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -304,8 +297,7 @@ public static partial class DuckDbSchema
             description VARCHAR,
             created_at TIMESTAMP NOT NULL,
             updated_at TIMESTAMP NOT NULL,
-            archived_at TIMESTAMP,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            archived_at TIMESTAMP
         );
         """;
 
@@ -395,8 +387,7 @@ public static partial class DuckDbSchema
             started_at TIMESTAMP,
             completed_at TIMESTAMP,
             duration_ms INTEGER,
-            created_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -417,8 +408,7 @@ public static partial class DuckDbSchema
             started_at TIMESTAMP,
             completed_at TIMESTAMP,
             duration_ms INTEGER,
-            created_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP NOT NULL
         );
         """;
 
@@ -435,14 +425,13 @@ public static partial class DuckDbSchema
             status VARCHAR NOT NULL,
             config_json JSON,
             created_at TIMESTAMP NOT NULL,
-            updated_at TIMESTAMP NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+            updated_at TIMESTAMP NOT NULL
         );
         """;
 
     public static string GetSchemaDdl() =>
         $"""
-        -- QYL DuckDB Schema v20260309
+        -- QYL DuckDB Schema v20260310
         {AlertFiringsDdl}
         {AlertRulesDdl}
         {DeploymentsDdl}

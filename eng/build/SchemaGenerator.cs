@@ -537,8 +537,16 @@ public static class SchemaGenerator
                     indexes.Add($"CREATE INDEX IF NOT EXISTS {indexName} ON {tableName}({columnName});");
             }
 
-            // Add created_at if not present
-            if (!table.Properties.Any(static p => p.Name == "createdAt"))
+            // Add created_at if no property resolves to a created_at column
+            var hasCreatedAtColumn = table.Properties.Any(p =>
+            {
+                var colName = p.Extensions.TryGetValue("x-duckdb-column", out var col)
+                    ? col
+                    : ToSnakeCase(p.Name);
+                return colName == "created_at";
+            });
+
+            if (!hasCreatedAtColumn)
                 columns.Add("            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
             // Add PRIMARY KEY as constraint if defined

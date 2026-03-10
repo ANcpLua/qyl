@@ -227,7 +227,7 @@ internal sealed class SummaryTools(HttpClient client, IChatClient? llm = null)
 
             List<ChatMessage> messages =
             [
-                new(ChatRole.System, TraceSummaryPrompt.Prompt),
+                new(ChatRole.System, SessionSummaryPrompt.Prompt),
                 new(ChatRole.User, sb.ToString())
             ];
 

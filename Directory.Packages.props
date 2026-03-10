@@ -56,7 +56,7 @@
     <!-- Analyzers (SDK manages: ANcpLua.Analyzers, BannedApiAnalyzers, JonSkeet, Sbom) -->
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="$(MicrosoftCodeAnalysisAnalyzersVersion)" />
     <!-- Roslyn Utilities -->
-    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="1.44.0" />
+    <PackageVersion Include="ANcpLua.Roslyn.Utilities" Version="$(ANcpLuaRoslynUtilitiesBaseVersion)" />
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Polyfills" Version="$(ANcpLuaRoslynUtilitiesVersion)" />
     <PackageVersion Include="ANcpLua.Roslyn.Utilities.Testing" Version="$(ANcpLuaRoslynUtilitiesVersion)" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(MicrosoftCodeAnalysisCSharpVersion)" />
@@ -68,11 +68,9 @@
     <PackageVersion Include="Microsoft.Agents.AI.Workflows.Declarative" Version="$(MicrosoftAgentsWorkflowsDeclarativeVersion)" />
     <!-- Microsoft.IdentityModel (JWT/JWKS for Keycloak) -->
     <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="$(MicrosoftIdentityModelVersion)" />
-    <!-- MCP & AI Clients -->
+    <!-- MCP -->
     <PackageVersion Include="ModelContextProtocol" Version="$(ModelContextProtocolVersion)" />
     <PackageVersion Include="ModelContextProtocol.AspNetCore" Version="$(ModelContextProtocolVersion)" />
-    <PackageVersion Include="OpenAI" Version="$(OpenAIVersion)" />
-    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsVersion)" />
     <!-- Build Tooling (Nuke) -->
     <PackageVersion Include="Nuke.Common" Version="$(NukeVersion)" />
     <PackageVersion Include="Nuke.Components" Version="$(NukeVersion)" />
