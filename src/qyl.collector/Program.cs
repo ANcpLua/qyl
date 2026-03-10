@@ -151,7 +151,7 @@ builder.Services.AddSingleton<IBuildFailureStore>(_ =>
 // OTLP CORS configuration
 var otlpCorsOptions = new OtlpCorsOptions
 {
-    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"] ?? "*",
+    AllowedOrigins = builder.Configuration["QYL_OTLP_CORS_ALLOWED_ORIGINS"],
     AllowedHeaders = builder.Configuration["QYL_OTLP_CORS_ALLOWED_HEADERS"]
 };
 
