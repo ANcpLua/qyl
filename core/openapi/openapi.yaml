@@ -8013,8 +8013,7 @@ components:
             - $ref: '#/components/schemas/Qyl.Common.InstrumentationScope'
           description: Instrumentation scope
       description: OpenTelemetry Log Record
-      x-duckdb-table: logs
-    Qyl.OTel.Logs.LogStats:
+      Qyl.OTel.Logs.LogStats:
       type: object
       required:
         - total_count

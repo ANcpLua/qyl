@@ -35,7 +35,7 @@ function MetricCard({label, value, icon, variant = 'default'}: MetricCardProps) 
     const style = variantStyles[variant];
     return (
         <div className={cn(
-            'bg-brutal-dark border-3 p-4 transition-[transform,box-shadow] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+            'bg-brutal-dark border-3 p-4 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
             style.split(' ')[0]
         )}>
             <div className="flex items-center justify-between mb-3">
@@ -66,7 +66,7 @@ function ResourceCard({session}: { session: SessionEntity }) {
 
     return (
         <div className={cn(
-            'bg-brutal-dark border-3 transition-[transform,box-shadow] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+            'bg-brutal-dark border-3 transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
             hasErrors ? 'border-signal-red' : 'border-brutal-zinc hover:border-signal-orange'
         )}>
             {/* Accent bar */}
@@ -177,7 +177,7 @@ const ResourceRow = memo(function ResourceRow({session}: { session: SessionEntit
         <Link
             to={`/traces?session=${sessionId}`}
             className={cn(
-                'flex items-center gap-4 px-4 hover:bg-brutal-carbon border-b-3 border-brutal-zinc transition-colors',
+                'flex items-center gap-4 px-4 hover:bg-brutal-carbon border-b-3 border-brutal-zinc transition-all',
                 hasErrors && 'bg-signal-red/10 border-l-3 border-l-signal-red'
             )}
             style={{height: ROW_HEIGHT}}
@@ -306,7 +306,7 @@ function GraphView({sessions}: { sessions: SessionEntity[] }) {
                     <div
                         key={node.name}
                         className={cn(
-                            'relative p-4 border-3 bg-brutal-dark min-w-[160px] transition-[transform,box-shadow] hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
+                            'relative p-4 border-3 bg-brutal-dark min-w-[160px] transition-all hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-brutal',
                             node.errors > 0 ? 'border-signal-red' : 'border-signal-cyan'
                         )}
                         style={{
@@ -412,10 +412,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('grid')}
-                        aria-label="Grid view"
-                        aria-pressed={viewMode === 'grid'}
                         className={cn(
-                            'border-2 transition-colors',
+                            'border-2 transition-all',
                             viewMode === 'grid'
                                 ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
                                 : 'border-transparent text-brutal-slate hover:text-brutal-white'
@@ -427,10 +425,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('list')}
-                        aria-label="List view"
-                        aria-pressed={viewMode === 'list'}
                         className={cn(
-                            'border-2 transition-colors',
+                            'border-2 transition-all',
                             viewMode === 'list'
                                 ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
                                 : 'border-transparent text-brutal-slate hover:text-brutal-white'
@@ -442,10 +438,8 @@ export function ResourcesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => setViewMode('graph')}
-                        aria-label="Graph view"
-                        aria-pressed={viewMode === 'graph'}
                         className={cn(
-                            'border-2 transition-colors',
+                            'border-2 transition-all',
                             viewMode === 'graph'
                                 ? 'bg-signal-orange/20 border-signal-orange text-signal-orange'
                                 : 'border-transparent text-brutal-slate hover:text-brutal-white'

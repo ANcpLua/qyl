@@ -61,7 +61,7 @@ ALTER TABLE logs
 ALTER TABLE logs
     ALTER COLUMN observed_time_unix_nano DROP NOT NULL;
 ALTER TABLE logs
-    ALTER COLUMN resource DROP NOT NULL;
+    ALTER COLUMN resource_json DROP NOT NULL;
 
 UPDATE logs
 SET log_id = REPLACE(CAST(uuid() AS VARCHAR), '-', '')

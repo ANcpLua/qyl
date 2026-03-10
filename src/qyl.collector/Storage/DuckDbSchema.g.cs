@@ -2,7 +2,7 @@
 // AUTO-GENERATED FILE - DO NOT EDIT
 // =============================================================================
 //     Source:    core/openapi/openapi.yaml
-//     Generated: 2026-03-10T06:59:29.9218240+00:00
+//     Generated: 2026-03-10T14:48:24.3051538+00:00
 //     DuckDB schema definitions
 // =============================================================================
 // To modify: update TypeSpec in core/specs/ then run: nuke Generate
@@ -259,28 +259,6 @@ public static partial class DuckDbSchema
         );
         """;
 
-    public const string LogsDdl = """
-        CREATE TABLE IF NOT EXISTS logs (
-            log_id VARCHAR NOT NULL PRIMARY KEY,
-            trace_id VARCHAR(32),
-            span_id VARCHAR(16),
-            session_id VARCHAR,
-            time_unix_nano UBIGINT NOT NULL,
-            observed_time_unix_nano UBIGINT,
-            severity_number UTINYINT NOT NULL,
-            severity_text VARCHAR,
-            body VARCHAR,
-            service_name VARCHAR,
-            attributes_json VARCHAR,
-            resource_json VARCHAR,
-            source_file VARCHAR,
-            source_line INTEGER,
-            source_column INTEGER,
-            source_method VARCHAR,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-        """;
-
     public const string ProjectEnvironmentsDdl = """
         CREATE TABLE IF NOT EXISTS project_environments (
             id VARCHAR NOT NULL,
@@ -331,11 +309,11 @@ public static partial class DuckDbSchema
             parent_span_id VARCHAR(16),
             session_id VARCHAR(128),
             name VARCHAR NOT NULL,
-            kind UTINYINT NOT NULL,
-            start_time_unix_nano UBIGINT NOT NULL,
-            end_time_unix_nano UBIGINT NOT NULL,
+            kind DOUBLE NOT NULL,
+            start_time_unix_nano BIGINT NOT NULL,
+            end_time_unix_nano BIGINT NOT NULL,
             duration_ns UBIGINT NOT NULL,
-            status_code UTINYINT NOT NULL,
+            status_code DOUBLE NOT NULL,
             status_message VARCHAR,
             service_name VARCHAR,
             gen_ai_provider_name VARCHAR,
@@ -448,7 +426,6 @@ public static partial class DuckDbSchema
         {GenerationProfilesDdl}
         {GenerationSelectionsDdl}
         {HandshakeSessionsDdl}
-        {LogsDdl}
         {ProjectEnvironmentsDdl}
         {ProjectsDdl}
         {SessionEntitiesDdl}
