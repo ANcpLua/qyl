@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -26,7 +28,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Returns: List of agent runs with tokens, costs, and status
                  """)]
-    public Task<ToolResult<AgentRun[]>> SearchAgentRunsAsync(
+    public Task<string> SearchAgentRunsAsync(
         [Description("Filter by AI provider (e.g., 'anthropic', 'openai', 'google')")]
         string? provider = null,
         [Description("Filter by model name (partial match, e.g., 'claude-3')")]
@@ -35,7 +37,14 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         string? errorType = null,
         [Description("Only include runs since this ISO timestamp")]
         DateTime? since = null) =>
-        ToolResult.ExecuteAsync(() => store.SearchRunsAsync(provider, model, errorType, since), "Search");
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var result = await store.SearchRunsAsync(provider, model, errorType, since)
+                .ConfigureAwait(false);
+            return result.Length is 0
+                ? "No agent runs found."
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRunArray);
+        });
 
     [McpServerTool(Name = "qyl.get_agent_run", Title = "Get Agent Run",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -51,10 +60,16 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  The run_id can be obtained from search_agent_runs.
                  """)]
-    public Task<ToolResult<AgentRun?>> GetAgentRunAsync(
+    public Task<string> GetAgentRunAsync(
         [Description("The unique run ID from search_agent_runs")]
         string runId) =>
-        ToolResult.ExecuteAsync(() => store.GetRunAsync(runId), "Get run");
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var result = await store.GetRunAsync(runId).ConfigureAwait(false);
+            return result is null
+                ? $"Agent run '{runId}' not found."
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRun);
+        });
 
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -69,14 +84,21 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                  Returns input/output tokens, run counts, and time ranges.
                  Use this for cost analysis and usage monitoring.
                  """)]
-    public Task<ToolResult<TokenUsageSummary[]>> GetTokenUsageAsync(
+    public Task<string> GetTokenUsageAsync(
         [Description("Start of time range (ISO timestamp)")]
         DateTime? since = null,
         [Description("End of time range (ISO timestamp)")]
         DateTime? until = null,
         [Description("Group by: 'agent', 'model', or 'hour' (default: agent)")]
         string groupBy = "agent") =>
-        ToolResult.ExecuteAsync(() => store.GetTokenUsageAsync(since, until, groupBy), "Get token usage");
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var result = await store.GetTokenUsageAsync(since, until, groupBy)
+                .ConfigureAwait(false);
+            return result.Length is 0
+                ? "No token usage data available."
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.TokenUsageSummaryArray);
+        });
 
     [McpServerTool(Name = "qyl.list_errors", Title = "List Errors",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -91,12 +113,19 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Use this to quickly identify and diagnose failures.
                  """)]
-    public Task<ToolResult<AgentError[]>> ListErrorsAsync(
+    public Task<string> ListErrorsAsync(
         [Description("Maximum errors to return (default: 50)")]
         int limit = 50,
         [Description("Filter by agent/service name")]
         string? agentName = null) =>
-        ToolResult.ExecuteAsync(() => store.ListErrorsAsync(limit, agentName), "List errors");
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var result = await store.ListErrorsAsync(limit, agentName)
+                .ConfigureAwait(false);
+            return result.Length is 0
+                ? "No errors found."
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentErrorArray);
+        });
 
     [McpServerTool(Name = "qyl.get_latency_stats", Title = "Get Latency Stats",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
@@ -110,48 +139,26 @@ internal sealed class TelemetryTools(ITelemetryStore store)
 
                  Use this to monitor performance and identify slow operations.
                  """)]
-    public Task<ToolResult<LatencyStats>> GetLatencyStatsAsync(
+    public Task<string> GetLatencyStatsAsync(
         [Description("Filter by agent/service name")]
         string? agentName = null,
         [Description("Time window in hours (default: 24)")]
         int hours = 24) =>
-        ToolResult.ExecuteAsync(() => store.GetLatencyStatsAsync(agentName, hours), "Get latency stats");
+        CollectorHelper.ExecuteAsync(async () =>
+        {
+            var result = await store.GetLatencyStatsAsync(agentName, hours)
+                .ConfigureAwait(false);
+            return JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.LatencyStats);
+        });
 }
 
-/// <summary>
-///     Result wrapper for MCP tool responses with error handling.
-/// </summary>
-public record ToolResult<T>(bool Success, T? Data, string? Error)
-{
-    public static implicit operator T?(ToolResult<T> result) => result.Data;
-}
-
-public static class ToolResult
-{
-    public static ToolResult<T> Ok<T>(T data) => new(true, data, null);
-    public static ToolResult<T> Error<T>(string message) => new(false, default, message);
-
-    /// <summary>
-    ///     Executes a store operation with standard error handling for MCP tools.
-    /// </summary>
-    public static async Task<ToolResult<T>> ExecuteAsync<T>(
-        Func<ValueTask<T>> operation, string operationName)
-    {
-        try
-        {
-            var result = await operation().ConfigureAwait(false);
-            return Ok(result);
-        }
-        catch (HttpRequestException ex)
-        {
-            return Error<T>($"Failed to connect to qyl collector: {ex.Message}");
-        }
-        catch (Exception ex)
-        {
-            return Error<T>($"{operationName} failed: {ex.Message}");
-        }
-    }
-}
+[JsonSerializable(typeof(AgentRun[]))]
+[JsonSerializable(typeof(AgentRun))]
+[JsonSerializable(typeof(TokenUsageSummary[]))]
+[JsonSerializable(typeof(AgentError[]))]
+[JsonSerializable(typeof(LatencyStats))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+internal sealed partial class TelemetryToolsJsonContext : JsonSerializerContext;
 
 #region Data Models
 

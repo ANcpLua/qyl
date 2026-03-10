@@ -52,7 +52,7 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
 
             // Fetch recent events for stack traces
             using HttpResponseMessage eventsResp = await http
-                .GetAsync($"/api/v1/errors/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
+                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
                 .ConfigureAwait(false);
 
             string eventsJson = eventsResp.IsSuccessStatusCode

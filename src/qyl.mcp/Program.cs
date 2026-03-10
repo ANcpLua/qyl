@@ -116,6 +116,7 @@ builder.Services.AddSingleton<ITelemetryStore>(static sp =>
 
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
 jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
+jsonOptions.TypeInfoResolverChain.Add(TelemetryToolsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(BuildJsonContext.Default);

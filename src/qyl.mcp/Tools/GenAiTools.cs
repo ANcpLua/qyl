@@ -139,6 +139,7 @@ public sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
+    // TODO: Endpoint /api/v1/genai/models missing in collector — see docs/mcp-tool-audit.md
     [McpServerTool(Name = "qyl.list_models", Title = "List Models",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
@@ -179,6 +180,7 @@ public sealed class GenAiTools(HttpClient client)
             return sb.ToString();
         });
 
+    // TODO: Endpoint /api/v1/genai/usage/timeseries missing in collector — see docs/mcp-tool-audit.md
     [McpServerTool(Name = "qyl.get_token_timeseries", Title = "Get Token Timeseries",
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("""
