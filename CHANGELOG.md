@@ -19,6 +19,7 @@
 - **AG-UI plan docs restored**: PR #89 accidentally overwrote AG-UI design/impl docs with Loom content; originals restored from git history.
 - **Metrics doc cleaned**: Removed accidental Loom spec appendix from `andrewlock-system-diagnostics-metrics-apis-parts-1-4.md`.
 - **Missing parameter validation** in identity endpoints.
+- **MCP tool consolidation** (`f7403d5`): removed deprecated `qyl.investigate`, `qyl.list_console_errors`, and `qyl.summarize_session`; deleted `InvestigateTools.cs`, `IAgentProvider.cs`, `HttpAgentProvider.cs`, `ObservabilitySystemPrompt.cs`; updated `ReplayTools`, `SummaryTools`, `UseQylSystemPrompt`, `ConsoleTools`, and telemetry prompts to reflect local MCP-agent telemetry and OTLP flow.
 
 ### Removed
 - Stray `docs/plans/index.md` (unrelated Copilot Studio localization content).
