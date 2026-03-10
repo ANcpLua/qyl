@@ -18,6 +18,17 @@ Docker image IS the product.
 - When a plan/roadmap/temp execution doc is completed or superseded, move it to `docs/done/`.
 - Do NOT move prompts, slice `spec.md`, slice `requirements.md`, decisions, references, screenshots, or canonical guidance docs into `docs/done/`.
 
+## Assistant Workflow Reference Pack (qyl-native)
+
+- Workflow index: `.claude/qyl-workflows/qyl-skill-tree.md`
+- Workflow router: `.claude/qyl-workflows/qyl-workflow.md`
+- Natural-language query command: `/qyl` → `.claude/qyl-workflows/qyl-command.md`
+- PR code review workflow: `.claude/qyl-workflows/qyl-code-review.md`
+- PR review loop workflow: `.claude/qyl-workflows/qyl-pr-code-review.md`
+- Issue remediation workflow: `.claude/qyl-workflows/qyl-fix-issues.md`
+- Supporting notes and conventions: `.claude/qyl-workflows/AGENTS.md` and `.claude/qyl-workflows/README.md`
+- Legacy mirror (for agent tooling compatibility): `.agents/qyl-workflows/`
+
 ## 3-Layer Architecture Model
 
 | Layer | Location | Runs at | Responsibility |

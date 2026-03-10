@@ -24,3 +24,7 @@ OTLP-native observability: ingest traces/logs/metrics, store in DuckDB, and expo
 - [Coding conventions and constraints](docs/agent-guidance/conventions.md)
 - [Docs and project map](docs/agent-guidance/docs-catalog.md)
 - [Open requests and blockers](docs/agent-guidance/requests-to-humans.md)
+- [qyl workflow docs](/.claude/qyl-workflows/README.md)
+- [qyl workflow command](/.claude/qyl-workflows/qyl-command.md)
+- [qyl workflow docs (agents mirror)](/.agents/qyl-workflows/README.md)
+- [qyl workflow command (agents mirror)](/.agents/qyl-workflows/qyl-command.md)
