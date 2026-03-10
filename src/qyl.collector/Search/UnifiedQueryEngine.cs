@@ -93,11 +93,30 @@ internal static class UnifiedQueryEngine
                                               AND COALESCE(CAST(epoch_ns(started_at) AS UBIGINT), 0) <= $3
                                             """;
 
+    private const string IssueSubquery = """
+                                        SELECT
+                                            'issues' AS entity_type,
+                                            id AS entity_id,
+                                            title,
+                                            COALESCE(culprit, '') AS snippet,
+                                            CAST(epoch_ns(last_seen_at) AS UBIGINT) AS ts,
+                                            CASE WHEN title ILIKE $1 ESCAPE '\' THEN 2.0
+                                                 WHEN COALESCE(error_type, '') ILIKE $1 ESCAPE '\' THEN 1.5
+                                                 WHEN COALESCE(culprit, '') ILIKE $1 ESCAPE '\' THEN 1.0
+                                                 ELSE 0.5 END AS score
+                                        FROM error_issues
+                                        WHERE (title ILIKE $1 ESCAPE '\'
+                                            OR COALESCE(error_type, '') ILIKE $1 ESCAPE '\'
+                                            OR COALESCE(culprit, '') ILIKE $1 ESCAPE '\')
+                                          AND CAST(epoch_ns(last_seen_at) AS UBIGINT) >= $2
+                                          AND CAST(epoch_ns(last_seen_at) AS UBIGINT) <= $3
+                                        """;
+
     /// <summary>Default time window when no explicit range is specified (24 hours).</summary>
     private static readonly TimeSpan DefaultWindow = TimeSpan.FromHours(24);
 
     private static readonly FrozenSet<string> ValidEntityTypes = FrozenSet.ToFrozenSet(
-        ["spans", "logs", "errors", "agent_runs", "workflows"]);
+        ["spans", "logs", "errors", "issues", "agent_runs", "workflows"]);
 
     /// <summary>
     ///     Builds a UNION ALL query across requested entity types, applying text and time filters.
@@ -126,6 +145,9 @@ internal static class UnifiedQueryEngine
 
         if (entityTypes.Contains("errors"))
             unions.Add(ErrorSubquery);
+
+        if (entityTypes.Contains("issues"))
+            unions.Add(IssueSubquery);
 
         if (entityTypes.Contains("agent_runs"))
             unions.Add(AgentRunSubquery);

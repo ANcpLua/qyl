@@ -78,6 +78,10 @@ public sealed partial class DuckDbStore
                               SELECT COALESCE(error_type, '') AS text, 'errors' AS entity_type, COUNT(*) AS cnt
                               FROM errors WHERE error_type ILIKE $1 ESCAPE '\'
                               GROUP BY error_type
+                              UNION ALL
+                              SELECT title AS text, 'issues' AS entity_type, COUNT(*) AS cnt
+                              FROM error_issues WHERE title ILIKE $1 ESCAPE '\'
+                              GROUP BY title
                           ) AS suggestions
                           WHERE text != ''
                           ORDER BY cnt DESC
