@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
@@ -23,11 +23,13 @@ export function LoomSettingsSection() {
     const [agent, setAgent] = useState(settings?.default_coding_agent ?? 'Loom');
     const [tuning, setTuning] = useState(settings?.automation_tuning ?? 'medium');
 
-    // Sync state when settings load
-    if (settings && agent === 'Loom' && settings.default_coding_agent !== 'Loom') {
-        setAgent(settings.default_coding_agent);
-        setTuning(settings.automation_tuning);
-    }
+    // Sync local state once when server settings arrive
+    useEffect(() => {
+        if (settings && settings.default_coding_agent !== 'Loom') {
+            setAgent(settings.default_coding_agent);
+            setTuning(settings.automation_tuning);
+        }
+    }, [settings?.default_coding_agent, settings?.automation_tuning]);
 
     const handleSave = () => {
         mutate({default_coding_agent: agent, automation_tuning: tuning}, {
