@@ -3,12 +3,15 @@ namespace Qyl.Collector.Storage;
 public static partial class DuckDbSchema
 {
     /// <summary>
-    ///     Manual logs DDL with extended columns (log_id, session_id, service_name, source_*).
+    ///     Manual logs DDL merging the generated schema columns with the extended columns
+    ///     added by migration V20260214 (log_id, session_id, service_name, source_*).
     ///     Runs before generated schema so CREATE TABLE IF NOT EXISTS in the generated DDL is a no-op.
+    ///     Includes original columns (resource, attributes, etc.) so migrations can ALTER them.
+    ///     Indexes are deferred to migration files to avoid DuckDB ALTER TABLE conflicts.
     /// </summary>
     public const string ManualLogsDdl = """
         CREATE TABLE IF NOT EXISTS logs (
-            log_id VARCHAR NOT NULL,
+            log_id VARCHAR,
             trace_id VARCHAR,
             span_id VARCHAR,
             session_id VARCHAR,
@@ -24,11 +27,12 @@ public static partial class DuckDbSchema
             source_line INTEGER,
             source_column INTEGER,
             source_method VARCHAR,
+            attributes VARCHAR,
+            dropped_attributes_count BIGINT,
+            flags INTEGER,
+            resource VARCHAR,
+            instrumentation_scope VARCHAR,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
-        CREATE INDEX IF NOT EXISTS idx_logs_time ON logs(time_unix_nano);
-        CREATE INDEX IF NOT EXISTS idx_logs_service ON logs(service_name);
-        CREATE INDEX IF NOT EXISTS idx_logs_severity ON logs(severity_number);
-        CREATE INDEX IF NOT EXISTS idx_logs_session ON logs(session_id);
         """;
 }
