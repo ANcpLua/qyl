@@ -162,7 +162,7 @@ internal sealed partial class TelemetryToolsJsonContext : JsonSerializerContext;
 
 #region Data Models
 
-public record AgentRun(
+internal record AgentRun(
     string RunId,
     string AgentName,
     string? Provider,
@@ -176,7 +176,7 @@ public record AgentRun(
     string? ErrorType,
     string? ErrorMessage);
 
-public record TokenUsageSummary(
+internal record TokenUsageSummary(
     string GroupKey,
     int TotalInputTokens,
     int TotalOutputTokens,
@@ -184,7 +184,7 @@ public record TokenUsageSummary(
     DateTime PeriodStart,
     DateTime PeriodEnd);
 
-public record AgentError(
+internal record AgentError(
     string RunId,
     string AgentName,
     string ErrorType,
@@ -192,7 +192,7 @@ public record AgentError(
     DateTime OccurredAt,
     string? StackTrace);
 
-public record LatencyStats(
+internal record LatencyStats(
     string? AgentName,
     double P50Ms,
     double P95Ms,
@@ -206,7 +206,7 @@ public record LatencyStats(
 
 #region Store Interface
 
-public interface ITelemetryStore
+internal interface ITelemetryStore
 {
     ValueTask<AgentRun?> GetRunAsync(string runId);
     ValueTask<AgentRun[]> SearchRunsAsync(string? provider, string? model, string? errorType, DateTime? since);

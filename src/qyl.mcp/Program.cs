@@ -118,7 +118,6 @@ builder.Services.AddSingleton<ITelemetryStore>(static sp =>
         sp.GetRequiredService<ILogger<HttpTelemetryStore>>()));
 
 var jsonOptions = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-jsonOptions.TypeInfoResolverChain.Add(TelemetryJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(TelemetryToolsJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(ConsoleJsonContext.Default);
 jsonOptions.TypeInfoResolverChain.Add(LogsJsonContext.Default);

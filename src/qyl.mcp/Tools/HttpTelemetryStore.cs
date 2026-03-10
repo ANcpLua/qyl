@@ -8,7 +8,7 @@ namespace qyl.mcp.Tools;
 ///     HTTP-based telemetry store querying qyl.collector REST API.
 ///     Per CLAUDE.md: qyl.mcp → qyl.collector via HTTP ONLY.
 /// </summary>
-public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger)
+internal sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider time, ILogger<HttpTelemetryStore> logger)
     : ITelemetryStore
 {
     public async ValueTask<AgentRun?> GetRunAsync(string runId)
