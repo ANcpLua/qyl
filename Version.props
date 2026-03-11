@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="Package Versions">
     <!-- .NET Shared Framework (ships with runtime) -->
-    <DotNetRuntimeVersion>10.0.3</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>10.0.4</DotNetRuntimeVersion>
     <!-- Microsoft.Extensions.* (out-of-band NuGet packages) -->
     <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
     <!-- OpenTelemetry -->
@@ -26,11 +26,11 @@
     <MicrosoftAgentsCopilotVersion>1.0.0-preview.260304.1</MicrosoftAgentsCopilotVersion>
     <MicrosoftAgentsHostingVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingVersion>
     <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
-    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc2</MicrosoftAgentsWorkflowsDeclarativeVersion>
+    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc3</MicrosoftAgentsWorkflowsDeclarativeVersion>
     <!-- OpenAI SDK -->
     <OpenAIVersion>2.9.1</OpenAIVersion>
     <!-- MCP -->
-    <ModelContextProtocolVersion>1.0.0</ModelContextProtocolVersion>
+    <ModelContextProtocolVersion>1.1.0</ModelContextProtocolVersion>
     <!-- Microsoft.IdentityModel (JWT/JWKS validation for Keycloak) -->
     <MicrosoftIdentityModelVersion>8.16.0</MicrosoftIdentityModelVersion>
     <!-- Build Tooling -->
