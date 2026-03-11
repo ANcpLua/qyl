@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup Label="Package Versions">
     <!-- .NET Shared Framework (ships with runtime) -->
-    <DotNetRuntimeVersion>10.0.3</DotNetRuntimeVersion>
+    <DotNetRuntimeVersion>10.0.4</DotNetRuntimeVersion>
     <!-- Microsoft.Extensions.* (out-of-band NuGet packages) -->
     <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
     <!-- OpenTelemetry -->
