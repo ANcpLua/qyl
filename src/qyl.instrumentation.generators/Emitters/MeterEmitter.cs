@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
+using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
 namespace Qyl.Instrumentation.Generators.Emitters;
@@ -23,6 +24,7 @@ internal static class MeterEmitter
 
         EmitterHelpers.AppendFileHeader(sb, nullableEnable: true);
         AppendUsings(sb);
+        AppendGeneratedMeterAttributes(sb, meters);
 
         foreach (var meter in meters.OrderBy(static m => m.SortKey, StringComparer.Ordinal))
             AppendMeterClass(sb, meter);
@@ -35,6 +37,20 @@ internal static class MeterEmitter
     {
         sb.AppendLine("using System.Collections.Generic;");
         sb.AppendLine("using System.Diagnostics.Metrics;");
+        sb.AppendLine();
+    }
+
+    private static void AppendGeneratedMeterAttributes(StringBuilder sb, ImmutableArray<MeterDefinition> meters)
+    {
+        foreach (var meterName in meters
+                     .Select(static meter => meter.MeterName)
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(static name => name, StringComparer.Ordinal))
+        {
+            sb.AppendLine(
+                $"[assembly: global::Qyl.Instrumentation.GeneratedMeterAttribute({SymbolDisplay.FormatLiteral(meterName, quote: true)})]");
+        }
+
         sb.AppendLine();
     }
 
@@ -128,8 +144,8 @@ internal static class MeterEmitter
         // Build parameter list
         var paramParts = new List<string>();
 
-        // Histogram, Gauge, and UpDownCounter all take a value parameter
-        if (method.Kind is MetricKind.Histogram or MetricKind.Gauge or MetricKind.UpDownCounter &&
+        // Counter accepts an explicit delta when a non-tag value parameter is present.
+        if (method.Kind is MetricKind.Counter or MetricKind.Histogram or MetricKind.Gauge or MetricKind.UpDownCounter &&
             method.ValueTypeName is not null)
             paramParts.Add($"{method.ValueTypeName} value");
 
@@ -154,6 +170,7 @@ internal static class MeterEmitter
         {
             sb.AppendLine(method.Kind switch
             {
+                MetricKind.Counter when method.ValueTypeName is not null => $"            {fieldName}.Add(value);",
                 MetricKind.Counter => $"            {fieldName}.Add(1);",
                 MetricKind.UpDownCounter => $"            {fieldName}.Add(value);",
                 _ => $"            {fieldName}.Record(value);"
@@ -166,6 +183,7 @@ internal static class MeterEmitter
 
             sb.AppendLine(method.Kind switch
             {
+                MetricKind.Counter when method.ValueTypeName is not null => $"            {fieldName}.Add(value, {kvp});",
                 MetricKind.Counter => $"            {fieldName}.Add(1, {kvp});",
                 MetricKind.UpDownCounter => $"            {fieldName}.Add(value, {kvp});",
                 _ => $"            {fieldName}.Record(value, {kvp});"
@@ -185,6 +203,7 @@ internal static class MeterEmitter
 
             sb.AppendLine(method.Kind switch
             {
+                MetricKind.Counter when method.ValueTypeName is not null => $"            {fieldName}.Add(value, tags);",
                 MetricKind.Counter => $"            {fieldName}.Add(1, tags);",
                 MetricKind.UpDownCounter => $"            {fieldName}.Add(value, tags);",
                 _ => $"            {fieldName}.Record(value, tags);"

@@ -36,10 +36,12 @@ public static partial class QylServiceDefaults
     /// <summary>
     ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.UseQyl" />.
     /// </summary>
-    public static TBuilder TryUseQylConventions<TBuilder>(this TBuilder builder)
+    public static TBuilder TryUseQylConventions<TBuilder>(
+        this TBuilder builder,
+        Action<QylOptions>? configure = null)
         where TBuilder : IHostApplicationBuilder
     {
-        builder.UseQyl();
+        builder.UseQyl(configure);
         return builder;
     }
 
