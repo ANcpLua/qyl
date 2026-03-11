@@ -39,6 +39,7 @@ public sealed record CodegenPaths(AbsolutePath Root)
     public AbsolutePath OpenApi => Core / "openapi";
     public AbsolutePath Protocol => Root / "src" / "qyl.contracts";
     public AbsolutePath Collector => Root / "src" / "qyl.collector";
+    public AbsolutePath CollectorObserve => Collector / "Observe";
     public AbsolutePath CollectorStorage => Collector / "Storage";
     public AbsolutePath Migrations => CollectorStorage / "Migrations";
     public AbsolutePath Dashboard => Root / "src" / "qyl.dashboard";

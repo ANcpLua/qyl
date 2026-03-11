@@ -12,7 +12,7 @@ using Serilog;
 namespace Qyl.Build;
 
 /// <summary>
-///     Generates DomainContracts.g.cs from qyl-extensions.json into the servicedefaults generator project.
+///     Generates DomainContracts.g.cs from qyl-extensions.json into compile-time and runtime consumers.
 ///     Single entry point: <see cref="Generate"/>.
 /// </summary>
 public static class ContractGenerator
@@ -20,11 +20,12 @@ public static class ContractGenerator
     private const string SchemaVersion = "semconv-1.40.0";
 
     /// <summary>
-    ///     Reads qyl-extensions.json, emits DomainContracts.g.cs to the servicedefaults generator.
+    ///     Reads qyl-extensions.json, emits DomainContracts.g.cs to the instrumentation generator and collector.
     /// </summary>
     public static void Generate(
         AbsolutePath extensionsJsonPath,
-        AbsolutePath serviceDefaultsGeneratorDir,
+        AbsolutePath instrumentationGeneratorDir,
+        AbsolutePath collectorObserveDir,
         GenerationGuard guard)
     {
         if (!extensionsJsonPath.FileExists())
@@ -38,8 +39,11 @@ public static class ContractGenerator
 
         var content = EmitDomainContracts(domains);
 
-        var dest = serviceDefaultsGeneratorDir / "Generated" / "DomainContracts.g.cs";
-        guard.WriteIfAllowed(dest, content, "DomainContracts.g.cs → servicedefaults.generator");
+        var generatorDest = instrumentationGeneratorDir / "Generated" / "DomainContracts.g.cs";
+        var collectorDest = collectorObserveDir / "Generated" / "DomainContracts.g.cs";
+
+        guard.WriteIfAllowed(generatorDest, content, "DomainContracts.g.cs → qyl.instrumentation.generators");
+        guard.WriteIfAllowed(collectorDest, content, "DomainContracts.g.cs → qyl.collector/Observe");
     }
 
     // ── Domain loading ────────────────────────────────────────────────────────
@@ -130,24 +134,20 @@ public static class ContractGenerator
     {
         var suffix = attributeName.Split('.')[^1];
 
-        if (suffix is "tokens" || attributeName.EndsWith("_tokens", StringComparison.Ordinal)
-                                || attributeName.EndsWith("_count", StringComparison.Ordinal)
-                                || attributeName.EndsWith("_size", StringComparison.Ordinal)
-                                || attributeName.EndsWith("max_tokens", StringComparison.Ordinal)
-                                || attributeName.EndsWith("returned_rows", StringComparison.Ordinal)
-                                || attributeName.EndsWith("batch.size", StringComparison.Ordinal))
+        if (suffix is "tokens" or "count" or "size" or "max_tokens" or "returned_rows"
+            || suffix.EndsWith("_tokens", StringComparison.Ordinal)
+            || suffix.EndsWith("_count", StringComparison.Ordinal)
+            || suffix.EndsWith("_size", StringComparison.Ordinal))
             return "int";
 
-        if (attributeName.EndsWith("_temperature", StringComparison.Ordinal)
-         || attributeName.EndsWith("_top_p", StringComparison.Ordinal)
-         || attributeName.EndsWith("_top_k", StringComparison.Ordinal)
-         || attributeName.EndsWith("_penalty", StringComparison.Ordinal)
+        if (suffix is "temperature" or "top_p" or "top_k"
+         || suffix.EndsWith("_penalty", StringComparison.Ordinal)
          || attributeName.EndsWith("score.value", StringComparison.Ordinal))
             return "double";
 
-        if (attributeName.EndsWith("_reasons", StringComparison.Ordinal)
-         || attributeName.EndsWith("_sequences", StringComparison.Ordinal)
-         || attributeName.EndsWith("_formats", StringComparison.Ordinal)
+        if (suffix.EndsWith("_reasons", StringComparison.Ordinal)
+         || suffix.EndsWith("_sequences", StringComparison.Ordinal)
+         || suffix.EndsWith("_formats", StringComparison.Ordinal)
          || attributeName.EndsWith("input.messages", StringComparison.Ordinal)
          || attributeName.EndsWith("output.messages", StringComparison.Ordinal))
             return "string[]";
@@ -166,7 +166,7 @@ public static class ContractGenerator
         sb.AppendLine("// Source: eng/semconv/qyl-extensions.json");
         sb.AppendLine(CultureInfo.InvariantCulture, $"// Schema: {SchemaVersion}");
         sb.AppendLine();
-        sb.AppendLine("namespace qyl.Contracts;");
+        sb.AppendLine("namespace Qyl.Contracts.Generated;");
         sb.AppendLine();
 
         // AttributeDef

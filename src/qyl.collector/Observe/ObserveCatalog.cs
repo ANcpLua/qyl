@@ -1,14 +1,16 @@
+using Qyl.Contracts.Generated;
+
 namespace Qyl.Collector.Observe;
 
 /// <summary>
-/// Builds the observability catalog: available domains, their attribute manifests,
-/// and active subscriptions. Initially hardcoded from the four known ActivitySources.
+/// Builds the observability catalog: available domains, their generated attribute manifests,
+/// and active subscriptions.
 /// </summary>
 internal static class ObserveCatalog
 {
     // Semconv version that the attribute manifests correspond to.
-    // Sourced from qyl.contracts.Attributes.GenAiAttributes.SchemaUrl.
-    private const string SchemaVersion = "semconv-1.40.0";
+    // Sourced from the generated DomainContracts source of truth.
+    private const string SchemaVersion = DomainContracts.SchemaVersion;
 
     /// <summary>
     /// Builds the catalog snapshot, merging static domain definitions with live subscription state.
@@ -31,51 +33,31 @@ internal static class ObserveCatalog
 
     private static IEnumerable<CatalogDomain> BuildDomains()
     {
-        var raw = new CatalogDomain[]
+        foreach (var contract in DomainContracts.All)
         {
-            new("gen_ai", "qyl.genai", ["traces", "metrics"],
-                [
-                    new("gen_ai.operation.name", "string", Required: true),
-                    new("gen_ai.provider.name", "string", Required: true),
-                    new("gen_ai.request.model", "string", Required: true),
-                    new("gen_ai.response.model", "string"),
-                    new("gen_ai.usage.input_tokens", "int"),
-                    new("gen_ai.usage.output_tokens", "int"),
-                    new("gen_ai.request.temperature", "double"),
-                    new("gen_ai.request.max_tokens", "int"),
-                    new("gen_ai.request.top_p", "double"),
-                    new("gen_ai.response.finish_reasons", "string[]"),
-                    new("gen_ai.response.id", "string"),
-                    new("gen_ai.tool.name", "string"),
-                    new("gen_ai.tool.call.id", "string"),
-                    new("gen_ai.output.type", "string"),
-                    new("error.type", "string"),
-                ],
-                [
-                    new("gen_ai.client.token.usage", "histogram", "token"),
-                    new("gen_ai.client.operation.duration", "histogram", "s"),
-                ]),
+            var domain = new CatalogDomain(
+                contract.Name,
+                contract.Source,
+                contract.Signals,
+                contract.TraceAttributes.Length is 0
+                    ? null
+                    : contract.TraceAttributes
+                        .Select(static attribute => new CatalogAttribute(
+                            attribute.Name,
+                            attribute.Type,
+                            attribute.Required))
+                        .ToArray(),
+                contract.MetricInstruments.Length is 0
+                    ? null
+                    : contract.MetricInstruments
+                        .Select(static metric => new CatalogMetricInstrument(
+                            metric.Name,
+                            metric.Instrument,
+                            metric.Unit))
+                        .ToArray());
 
-            new("db", "qyl.db", ["traces"],
-                [
-                    new("db.system.name", "string", Required: true),
-                    new("db.operation.name", "string", Required: true),
-                    new("db.collection.name", "string"),
-                    new("db.query.text", "string"),
-                    new("db.namespace", "string"),
-                ]),
-
-            new("traced", "qyl.traced", ["traces"]),
-
-            new("agent", "qyl.agent", ["traces", "metrics"],
-                [
-                    new("gen_ai.agent.name", "string"),
-                    new("gen_ai.operation.name", "string", Required: true),
-                ]),
-        };
-
-        foreach (var domain in raw)
             yield return domain with { ContractHash = ComputeHash(domain) };
+        }
     }
 
     /// <summary>Returns the contract hash for a given domain source name, or null if not found.</summary>
