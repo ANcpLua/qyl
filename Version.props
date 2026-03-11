@@ -7,7 +7,7 @@
     <!-- OpenTelemetry -->
     <OpenTelemetryVersion>1.15.0</OpenTelemetryVersion>
     <!-- DuckDB -->
-    <DuckDBVersion>1.4.4</DuckDBVersion>
+    <DuckDBVersion>1.5.0</DuckDBVersion>
     <!-- gRPC & Protobuf -->
     <GoogleProtobufVersion>3.34.0</GoogleProtobufVersion>
     <GrpcAspNetCoreVersion>2.76.0</GrpcAspNetCoreVersion>
