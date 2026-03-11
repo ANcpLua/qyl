@@ -2,7 +2,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     HTTP-based telemetry store querying qyl.collector REST API.
@@ -17,7 +17,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         {
             var session = await client.GetFromJsonAsync(
                 $"/api/v1/sessions/{Uri.EscapeDataString(runId)}",
-                HttpStoreJsonContext.Default.StoreSession).ConfigureAwait(false);
+                qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSession).ConfigureAwait(false);
 
             return session is null ? null : MapToRun(session, time);
         }
@@ -38,11 +38,11 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&provider={Uri.EscapeDataString(provider)}";
 
             var response = await client.GetFromJsonAsync(
-                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
-            return response?.Items?
-                .Select(s => MapToRun(s, time))
-                .Where(r =>
+            return Enumerable
+                .Where<AgentRun>(response?.Items?
+                    .Select(s => MapToRun(s, time)), r =>
                     (string.IsNullOrEmpty(model) ||
                      r.Model?.ContainsIgnoreCase(model) is true) &&
                     (string.IsNullOrEmpty(errorType) ||
@@ -63,7 +63,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         {
             var response = await client.GetFromJsonAsync(
                 "/api/v1/sessions?limit=1000",
-                HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             if (response?.Items is not { Count: > 0 }) return [];
 
@@ -76,8 +76,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
 
             return
             [
-                .. response.Items
-                    .Where(s => InRange(ParseTime(s.StartTime), since, until))
+                .. Enumerable
+                    .Where<StoreSession>(response.Items, s => InRange(ParseTime(s.StartTime), since, until))
                     .GroupBy(keySelector)
                     .Select(g => new TokenUsageSummary(
                         g.Key,
@@ -104,11 +104,11 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
             var response = await client.GetFromJsonAsync(
-                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
-            return response?.Items?
-                .Where(s => s.ErrorCount > 0)
-                .Take(limit)
+            return Enumerable
+                .Take<StoreSession>(response?.Items?
+                    .Where(s => s.ErrorCount > 0), limit)
                 .Select(s => new AgentError(
                     s.SessionId,
                     s.ServiceName ?? "unknown",
@@ -134,12 +134,12 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
             var response = await client.GetFromJsonAsync(
-                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             var since = time.GetUtcNow().AddHours(-hours).DateTime;
-            var durations = response?.Items?
-                .Where(s => ParseTime(s.StartTime) >= since)
-                .Select(s => (double)s.SpanCount)
+            var durations = Enumerable
+                .Select<StoreSession, double>(response?.Items?
+                    .Where(s => ParseTime(s.StartTime) >= since), s => (double)s.SpanCount)
                 .OrderBy(x => x)
                 .ToList() ?? [];
 

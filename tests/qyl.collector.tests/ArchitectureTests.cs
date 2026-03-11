@@ -1,11 +1,11 @@
 using System.Reflection;
 using NetArchTest.Rules;
 using Qyl.Agents.Agents;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 using Qyl.Workflows;
 using Xunit;
 
-namespace Qyl.Collector.tests;
+namespace Qyl.Collector.Tests;
 
 /// <summary>
 ///     Enforces the decomposed project boundaries established during the Loom migration.

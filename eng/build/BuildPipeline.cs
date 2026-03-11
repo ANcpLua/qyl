@@ -18,8 +18,6 @@ using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // IPipeline - Unified Code Generation Interface
 // ════════════════════════════════════════════════════════════════════════════════

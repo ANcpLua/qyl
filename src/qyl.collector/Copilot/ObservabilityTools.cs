@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using Microsoft.Extensions.AI;
 using Qyl.Agents.Instrumentation;
+using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Copilot;
 

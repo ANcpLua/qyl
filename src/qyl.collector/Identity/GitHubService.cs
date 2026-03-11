@@ -502,4 +502,4 @@ public sealed record GitHubPrResponse(
 [JsonSerializable(typeof(GitHubPutFileRequest))]
 [JsonSerializable(typeof(GitHubCreatePrRequest))]
 [JsonSerializable(typeof(GitHubPrResponse))]
-internal partial class GitHubJsonContext : JsonSerializerContext;
+public partial class GitHubJsonContext : JsonSerializerContext;

@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for accessing OTLP structured logs stored by qyl.collector.
@@ -62,7 +62,7 @@ public sealed class StructuredLogTools(HttpClient client)
                 url += $"&search={Uri.EscapeDataString(search)}";
 
             var response = await client.GetFromJsonAsync<LogsResponse>(
-                url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)
                 return "No structured logs found matching the criteria.";
@@ -130,7 +130,7 @@ public sealed class StructuredLogTools(HttpClient client)
             var url = $"/api/v1/logs?trace={Uri.EscapeDataString(traceId)}&limit=500";
 
             var response = await client.GetFromJsonAsync<LogsResponse>(
-                url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)
                 return $"No logs found for trace '{traceId}'.";
@@ -197,7 +197,7 @@ public sealed class StructuredLogTools(HttpClient client)
                 url += $"&minSeverity={minSeverity.Value}";
 
             var response = await client.GetFromJsonAsync<LogsResponse>(
-                url, LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.LogsJsonContext.Default.LogsResponse).ConfigureAwait(false);
 
             if (response?.Logs is null || response.Logs.Count is 0)
                 return $"No logs matching '{query}' in the last {hours} hours.";

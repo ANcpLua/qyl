@@ -89,22 +89,4 @@ internal static class EmitterHelpers
     public static string BuildArgumentList(EquatableArray<string> parameterNames) =>
         parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
 
-    /// <summary>
-    ///     Checks if a type name represents a primitive value type.
-    /// </summary>
-    public static bool IsPrimitiveValueType(string typeName) =>
-        typeName.StartsWithOrdinal("global::System.Int") ||
-        typeName.StartsWithOrdinal("global::System.UInt") ||
-        typeName.StartsWithOrdinal("global::System.Double") ||
-        typeName.StartsWithOrdinal("global::System.Single") ||
-        typeName.StartsWithOrdinal("global::System.Decimal") ||
-        typeName.StartsWithOrdinal("global::System.Boolean") ||
-        typeName.StartsWithOrdinal("global::System.Byte") ||
-        typeName.StartsWithOrdinal("global::System.SByte") ||
-        typeName.StartsWithOrdinal("global::System.Char") ||
-        typeName.StartsWithOrdinal("global::System.DateTime") ||
-        typeName.StartsWithOrdinal("global::System.TimeSpan") ||
-        typeName.StartsWithOrdinal("global::System.Guid") ||
-        typeName is "int" or "uint" or "long" or "ulong" or "short" or "ushort" or
-            "byte" or "sbyte" or "float" or "double" or "decimal" or "bool" or "char";
 }

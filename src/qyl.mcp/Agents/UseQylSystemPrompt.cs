@@ -1,4 +1,4 @@
-namespace Qyl.Mcp.Agents;
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Static system prompt for the use_qyl meta-agent.

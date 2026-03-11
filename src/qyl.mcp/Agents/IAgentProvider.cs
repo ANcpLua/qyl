@@ -1,4 +1,4 @@
-namespace Qyl.Mcp.Agents;
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Abstraction for an embedded LLM agent that can investigate observability data.

@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for anomaly detection analytics.
@@ -43,7 +43,7 @@ public sealed class AnomalyTools(HttpClient client)
                 url += $"&service={Uri.EscapeDataString(service)}";
 
             AnomalyDetectionResponse? response = await client.GetFromJsonAsync<AnomalyDetectionResponse>(
-                url, AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No anomaly detection data available.";
@@ -106,7 +106,7 @@ public sealed class AnomalyTools(HttpClient client)
                 url += $"&service={Uri.EscapeDataString(service)}";
 
             BaselineResponse? response = await client.GetFromJsonAsync<BaselineResponse>(
-                url, AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No baseline data available.";
@@ -161,7 +161,7 @@ public sealed class AnomalyTools(HttpClient client)
                 url += $"&service={Uri.EscapeDataString(service)}";
 
             PeriodComparisonResponse? response = await client.GetFromJsonAsync<PeriodComparisonResponse>(
-                url, AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No comparison data available.";

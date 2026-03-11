@@ -1,8 +1,11 @@
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
-using Qyl.Mcp.Tools;
+using qyl.mcp.Apps.ErrorExplorer;
+using qyl.mcp.Apps.QueryStudio;
+using qyl.mcp.Apps.TraceExplorer;
+using qyl.mcp.Tools;
 
-namespace Qyl.Mcp.Skills;
+namespace qyl.mcp.Skills;
 
 /// <summary>
 ///     Extension methods for conditionally registering MCP tools based on enabled skills.
@@ -92,6 +95,15 @@ internal static class SkillRegistrationExtensions
                 .WithTools<AgentHandoffTools>(jsonOptions)
                 .WithTools<AssistedQueryTools>(jsonOptions)
                 .WithTools<TestGenerationTools>(jsonOptions);
+        }
+
+        // Apps: interactive ext-app UIs (trace viewer, error explorer, query studio)
+        if (skills.IsEnabled(QylSkillKind.Apps))
+        {
+            mcpBuilder
+                .WithTraceExplorer(jsonOptions)
+                .WithErrorExplorer(jsonOptions)
+                .WithQueryStudio(jsonOptions);
         }
 
         return mcpBuilder;

@@ -290,4 +290,4 @@ public sealed record PatchHunk
 [JsonSerializable(typeof(PatchDocument))]
 [JsonSerializable(typeof(PatchFile))]
 [JsonSerializable(typeof(PatchHunk))]
-internal sealed partial class PrCreationJsonContext : JsonSerializerContext;
+public sealed partial class PrCreationJsonContext : JsonSerializerContext;

@@ -153,10 +153,7 @@ internal static class AgentInterceptorEmitter
                             }
                             catch (global::System.Exception ex)
                             {
-                                if (activity is not null)
-                                {
-                                    ActivityExceptionTelemetry.Record(activity, ex);
-                                }
+                                    global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
                                 throw;
                             }
                         }
@@ -170,10 +167,7 @@ internal static class AgentInterceptorEmitter
                             }
                             catch (global::System.Exception ex)
                             {
-                                if (activity is not null)
-                                {
-                                    ActivityExceptionTelemetry.Record(activity, ex);
-                                }
+                                    global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
                                 throw;
                             }
                         }
@@ -225,10 +219,7 @@ internal static class AgentInterceptorEmitter
                             }
                             catch (global::System.Exception ex)
                             {
-                                if (activity is not null)
-                                {
-                                    ActivityExceptionTelemetry.Record(activity, ex);
-                                }
+                                    global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
                                 throw;
                             }
                         }
@@ -242,10 +233,7 @@ internal static class AgentInterceptorEmitter
                             }
                             catch (global::System.Exception ex)
                             {
-                                if (activity is not null)
-                                {
-                                    ActivityExceptionTelemetry.Record(activity, ex);
-                                }
+                                    global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
                                 throw;
                             }
                         }

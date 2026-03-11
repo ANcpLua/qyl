@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for interacting with GitHub Copilot via the qyl collector.
@@ -30,7 +30,7 @@ public sealed class CopilotTools(HttpClient client)
     public Task<string> GetCopilotStatusAsync() =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            if (await client.GetFromJsonAsync<CopilotStatusDto>("/api/v1/copilot/status", CopilotJsonContext.Default.CopilotStatusDto).ConfigureAwait(false) is not { } status)
+            if (await client.GetFromJsonAsync<CopilotStatusDto>("/api/v1/copilot/status", qyl.mcp.Tools.CopilotJsonContext.Default.CopilotStatusDto).ConfigureAwait(false) is not { } status)
                 return "Unable to retrieve Copilot status.";
 
             var sb = new StringBuilder();
@@ -88,7 +88,7 @@ public sealed class CopilotTools(HttpClient client)
             using var response = await client.PostAsJsonAsync(
                 "/api/v1/copilot/chat",
                 request,
-                CopilotJsonContext.Default.CopilotChatRequestDto).ConfigureAwait(false);
+                qyl.mcp.Tools.CopilotJsonContext.Default.CopilotChatRequestDto).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
                 return $"Copilot chat failed with status {response.StatusCode}";
@@ -107,12 +107,12 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        if (JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
+                        if (JsonSerializer.Deserialize(json, qyl.mcp.Tools.CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
                             update.Content is not null)
                         {
-                            contentBuilder.Append(update.Content);
+                            contentBuilder.Append((string?)update.Content);
                         }
                         else if (string.Equals(update.Kind, "completed", StringComparison.OrdinalIgnoreCase))
                         {
@@ -175,7 +175,7 @@ public sealed class CopilotTools(HttpClient client)
             using var response = await client.PostAsJsonAsync(
                 $"/api/v1/copilot/workflows/{Uri.EscapeDataString(name)}/run",
                 request,
-                CopilotJsonContext.Default.CopilotWorkflowRunDto).ConfigureAwait(false);
+                qyl.mcp.Tools.CopilotJsonContext.Default.CopilotWorkflowRunDto).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
                 return $"Workflow execution failed with status {response.StatusCode}";
@@ -193,12 +193,12 @@ public sealed class CopilotTools(HttpClient client)
                     var json = line["data: ".Length..];
                     try
                     {
-                        if (JsonSerializer.Deserialize(json, CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
+                        if (JsonSerializer.Deserialize(json, qyl.mcp.Tools.CopilotJsonContext.Default.CopilotStreamUpdateDto) is not { } update) continue;
 
                         if (string.Equals(update.Kind, "content", StringComparison.OrdinalIgnoreCase) &&
                             update.Content is not null)
                         {
-                            contentBuilder.Append(update.Content);
+                            contentBuilder.Append((string?)update.Content);
                         }
                         else if (string.Equals(update.Kind, "error", StringComparison.OrdinalIgnoreCase))
                         {

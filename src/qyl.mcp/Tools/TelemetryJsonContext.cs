@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 [JsonSerializable(typeof(AgentRun))]
 [JsonSerializable(typeof(AgentRun[]))]

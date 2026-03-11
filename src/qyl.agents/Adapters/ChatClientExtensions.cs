@@ -4,11 +4,11 @@
 // ChatOptions tool list without touching the underlying client directly.
 // =============================================================================
 
-using Qyl.Agents.Adapters;
+using Microsoft.Extensions.AI;
 
 // Intentionally in the Microsoft.Extensions.AI namespace so the extensions
 // are discoverable alongside the types they extend, with no extra using needed.
-namespace Microsoft.Extensions.AI;
+namespace Qyl.Agents.Adapters;
 
 /// <summary>
 ///     Extension methods for adding qyl OpenTelemetry instrumentation to

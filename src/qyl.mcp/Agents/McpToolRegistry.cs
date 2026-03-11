@@ -2,9 +2,9 @@ using System.Reflection;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Tools;
+using qyl.mcp.Tools;
 
-namespace Qyl.Mcp.Agents;
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Discovers all [McpServerTool] methods on registered tool classes and wraps

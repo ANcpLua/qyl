@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying spans.
@@ -59,7 +59,7 @@ public sealed class SpanQueryTools(HttpClient client)
             url += "?" + string.Join("&", queryParams);
 
         var response = await client.GetFromJsonAsync<SpanSearchResponse>(
-            url, SpanQueryJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
+            url, qyl.mcp.Tools.SpanQueryJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
 
         var spans = response?.Items ?? response?.Spans;
 

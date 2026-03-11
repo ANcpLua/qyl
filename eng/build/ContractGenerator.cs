@@ -1,4 +1,5 @@
 // eng/build/ContractGenerator.cs
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -8,8 +9,6 @@ using System.Text;
 using System.Text.Json;
 using Nuke.Common.IO;
 using Serilog;
-
-namespace Qyl.Build;
 
 /// <summary>
 ///     Generates DomainContracts.g.cs from qyl-extensions.json into compile-time and runtime consumers.
@@ -141,15 +140,15 @@ public static class ContractGenerator
             return "int";
 
         if (suffix is "temperature" or "top_p" or "top_k"
-         || suffix.EndsWith("_penalty", StringComparison.Ordinal)
-         || attributeName.EndsWith("score.value", StringComparison.Ordinal))
+            || suffix.EndsWith("_penalty", StringComparison.Ordinal)
+            || attributeName.EndsWith("score.value", StringComparison.Ordinal))
             return "double";
 
         if (suffix.EndsWith("_reasons", StringComparison.Ordinal)
-         || suffix.EndsWith("_sequences", StringComparison.Ordinal)
-         || suffix.EndsWith("_formats", StringComparison.Ordinal)
-         || attributeName.EndsWith("input.messages", StringComparison.Ordinal)
-         || attributeName.EndsWith("output.messages", StringComparison.Ordinal))
+            || suffix.EndsWith("_sequences", StringComparison.Ordinal)
+            || suffix.EndsWith("_formats", StringComparison.Ordinal)
+            || attributeName.EndsWith("input.messages", StringComparison.Ordinal)
+            || attributeName.EndsWith("output.messages", StringComparison.Ordinal))
             return "string[]";
 
         return "string";

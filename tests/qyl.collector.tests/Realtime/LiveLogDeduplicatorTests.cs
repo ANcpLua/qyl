@@ -1,9 +1,9 @@
 using Qyl.Collector.Realtime;
 using Qyl.Collector.Storage;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 using Xunit;
 
-namespace Qyl.Collector.tests.Realtime;
+namespace Qyl.Collector.Tests.Realtime;
 
 public sealed class LiveLogDeduplicatorTests
 {

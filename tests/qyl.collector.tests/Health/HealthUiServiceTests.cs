@@ -2,7 +2,7 @@ using Qyl.Collector.Health;
 using Qyl.Models;
 using Xunit;
 
-namespace Qyl.Collector.tests.Health;
+namespace Qyl.Collector.Tests.Health;
 
 /// <summary>
 ///     Unit tests for <see cref="HealthUiService.DetermineOverallStatus" />.

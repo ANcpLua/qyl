@@ -1,5 +1,6 @@
 using Qyl.Workflows;
 using Qyl.Contracts.Copilot;
+using Qyl.Workflows.Workflows;
 
 namespace Qyl.Collector.Storage;
 

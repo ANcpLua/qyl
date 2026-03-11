@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying and triggering Loom triage assessments.

@@ -2,9 +2,9 @@ using System.ComponentModel;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying GenAI telemetry (LLM calls, token usage, costs).
@@ -38,7 +38,7 @@ public sealed class GenAiTools(HttpClient client)
             if (!string.IsNullOrEmpty(sessionId))
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
-            if (await client.GetFromJsonAsync<GenAiStatsDto>(url, GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false) is not { } stats)
+            if (await client.GetFromJsonAsync<GenAiStatsDto>(url, qyl.mcp.Tools.GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false) is not { } stats)
                 return "No GenAI statistics available.";
 
             var sb = new StringBuilder();
@@ -102,7 +102,7 @@ public sealed class GenAiTools(HttpClient client)
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
             var response = await client.GetFromJsonAsync<GenAiSpansResponse>(
-                url, GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);
 
             if (response?.Spans is null || response.Spans.Count is 0)
                 return "No GenAI spans found matching the criteria.";
@@ -157,7 +157,7 @@ public sealed class GenAiTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ModelUsageResponse>(
                 $"/api/v1/genai/models?hours={hours}",
-                GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
 
             if (response?.Models is null || response.Models.Count is 0)
                 return "No model usage data available.";
@@ -204,7 +204,7 @@ public sealed class GenAiTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
                 $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
-                GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
 
             if (response?.Data is null || response.Data.Count is 0)
                 return "No usage data available for the specified time range.";

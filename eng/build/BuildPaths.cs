@@ -10,8 +10,6 @@ using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Components;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // IHazSourcePaths - qyl project directory structure
 // ════════════════════════════════════════════════════════════════════════════════

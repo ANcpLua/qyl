@@ -20,8 +20,6 @@ using Nuke.Common.IO;
 using Serilog;
 using YamlDotNet.RepresentationModel;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // SCHEMA GENERATOR - One button, entire schema translated
 // ════════════════════════════════════════════════════════════════════════════════
@@ -489,11 +487,13 @@ public static class SchemaGenerator
 
     static string GenerateDuckDb(IEnumerable<SchemaDefinition> tables, OpenApiSchema schema)
     {
+        // First pass: generate DDL content to compute a deterministic content hash.
+        // This ensures Version only changes when the actual schema changes, not on every run.
+        var ddlContent = GenerateDdlContent(tables, schema);
+        var version = ComputeSchemaVersion(ddlContent);
+
         var sb = new StringBuilder();
         AppendCSharpHeader(sb, "DuckDB schema definitions");
-
-        var version = int.Parse(TimeProvider.System.GetUtcNow().ToString("yyyyMMdd", CultureInfo.InvariantCulture),
-            CultureInfo.InvariantCulture);
 
         sb.AppendLine("namespace Qyl.Collector.Storage;");
         sb.AppendLine();
@@ -666,6 +666,73 @@ public static class SchemaGenerator
             ("boolean", _) => ("bool", "reader.GetBoolean()", "writer.WriteBooleanValue(value.Value)"),
             _ => ("string", "reader.GetString() ?? string.Empty", "writer.WriteStringValue(value.Value)")
         };
+
+    /// <summary>
+    ///     Computes a deterministic schema version from DDL content.
+    ///     Uses the first 8 hex chars of a SHA-256 hash, parsed as an int.
+    ///     Only changes when the actual schema definition changes.
+    /// </summary>
+    static int ComputeSchemaVersion(string ddlContent)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(ddlContent));
+        // Take first 4 bytes → 8 hex chars → positive int (mask sign bit)
+        return BitConverter.ToInt32(hash, 0) & 0x7FFFFFFF;
+    }
+
+    /// <summary>
+    ///     Generates the raw DDL string content (all CREATE TABLE + CREATE INDEX statements)
+    ///     without any C# wrapper. Used to compute a content-based version hash.
+    /// </summary>
+    static string GenerateDdlContent(IEnumerable<SchemaDefinition> tables, OpenApiSchema schema)
+    {
+        var sb = new StringBuilder();
+        foreach (var table in tables.OrderBy(static t => t.Extensions["x-duckdb-table"]))
+        {
+            var tableName = table.Extensions["x-duckdb-table"];
+            sb.AppendLine(CultureInfo.InvariantCulture, $"CREATE TABLE IF NOT EXISTS {tableName} (");
+
+            var columns = new List<string>();
+            foreach (var prop in table.Properties)
+            {
+                var columnName = prop.Extensions.TryGetValue("x-duckdb-column", out var col)
+                    ? col
+                    : ToSnakeCase(prop.Name);
+                var columnType = ResolveDuckDbType(prop, schema);
+                var columnDef = $"    {columnName} {columnType}";
+                if (prop.IsRequired && !columnType.Contains("DEFAULT", StringComparison.OrdinalIgnoreCase))
+                    columnDef += " NOT NULL";
+                columns.Add(columnDef);
+                if (prop.Extensions.ContainsKey("x-duckdb-primary-key"))
+                    columns.Add($"    PRIMARY KEY ({columnName})");
+            }
+
+            var hasCreatedAt = table.Properties.Any(p =>
+            {
+                var colName = p.Extensions.TryGetValue("x-duckdb-column", out var c) ? c : ToSnakeCase(p.Name);
+                return colName == "created_at";
+            });
+            if (!hasCreatedAt)
+                columns.Add("    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+
+            sb.AppendLine(string.Join(",\n", columns));
+            sb.AppendLine(");");
+
+            foreach (var prop in table.Properties)
+            {
+                if (prop.Extensions.TryGetValue("x-duckdb-index", out var indexName))
+                {
+                    var colName = prop.Extensions.TryGetValue("x-duckdb-column", out var c)
+                        ? c
+                        : ToSnakeCase(prop.Name);
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"CREATE INDEX IF NOT EXISTS {indexName} ON {tableName}({colName});");
+                }
+            }
+        }
+
+        return sb.ToString();
+    }
 
     static string EscapeKeyword(string name) => name switch
     {

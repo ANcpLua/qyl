@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying the error issue system.
@@ -46,7 +46,7 @@ public sealed class ErrorTools(HttpClient client)
                 url += $"&level={Uri.EscapeDataString(level)}";
 
             ErrorIssueListResponse? response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
-                url, ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);
+                url, qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return "No error issues found matching the criteria.";
@@ -92,7 +92,7 @@ public sealed class ErrorTools(HttpClient client)
         {
             ErrorIssueDto? issue = await client.GetFromJsonAsync<ErrorIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                ErrorJsonContext.Default.ErrorIssueDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueDto).ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
@@ -122,7 +122,7 @@ public sealed class ErrorTools(HttpClient client)
             {
                 ErrorIssueEventsResponse? eventsResponse = await client.GetFromJsonAsync<ErrorIssueEventsResponse>(
                     $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit={eventLimit}",
-                    ErrorJsonContext.Default.ErrorIssueEventsResponse).ConfigureAwait(false);
+                    qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueEventsResponse).ConfigureAwait(false);
 
                 if (eventsResponse?.Items is { Count: > 0 })
                 {
@@ -178,7 +178,7 @@ public sealed class ErrorTools(HttpClient client)
         {
             SimilarSpansResponse? response = await client.GetFromJsonAsync<SimilarSpansResponse>(
                 $"/api/v1/issues/similar?spanId={Uri.EscapeDataString(spanId)}&limit={limit}",
-                ErrorJsonContext.Default.SimilarSpansResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.ErrorJsonContext.Default.SimilarSpansResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"No similar errors found for span '{spanId}'.";
@@ -219,7 +219,7 @@ public sealed class ErrorTools(HttpClient client)
         {
             TimelineResponse? response = await client.GetFromJsonAsync<TimelineResponse>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/timeline?hours={hours}&bucketMinutes={bucketMinutes}",
-                ErrorJsonContext.Default.TimelineResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.ErrorJsonContext.Default.TimelineResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"No timeline data available for issue '{issueId}'.";

@@ -19,11 +19,11 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Workflows;
 using Microsoft.Agents.AI.Workflows.Declarative;
 using Microsoft.Extensions.AI;
+using Qyl.Contracts.Copilot;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
-using Qyl.Contracts.Copilot;
 
-namespace Qyl.Workflows;
+namespace Qyl.Workflows.Workflows;
 
 /// <summary>
 ///     Executes YAML <c>AdaptiveDialog</c> workflows using

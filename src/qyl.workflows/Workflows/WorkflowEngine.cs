@@ -11,7 +11,7 @@ using Qyl.Agents.Instrumentation;
 using Qyl.Agents.Routing;
 using Qyl.Contracts.Copilot;
 
-namespace Qyl.Workflows;
+namespace Qyl.Workflows.Workflows;
 
 /// <summary>
 ///     Engine for discovering, managing, and executing workflows.

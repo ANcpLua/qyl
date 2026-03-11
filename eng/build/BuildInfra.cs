@@ -9,15 +9,11 @@
 // IDocker - Container Build & Orchestration
 // ════════════════════════════════════════════════════════════════════════════════
 
-
 using Nuke.Common;
 using Nuke.Common.IO;
 using Nuke.Common.Tooling;
 using Nuke.Common.Tools.Docker;
 using Serilog;
-using static Nuke.Common.Tools.Docker.DockerTasks;
-
-namespace Qyl.Build;
 
 [ParameterPrefix(nameof(IDocker))]
 interface IDocker : IHazSourcePaths
@@ -66,8 +62,8 @@ interface IDocker : IHazSourcePaths
                 ImageSpecs.Length,
                 ParallelBuild ? " in parallel" : "");
 
-            DockerBuild(s => s
-                    .SetPath(RootDirectory)
+            DockerTasks.DockerBuild(s => DockerBuildSettingsExtensions
+                    .SetPath<DockerBuildSettings>(s, RootDirectory)
                     .EnablePull()
                     .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1")
                     .CombineWith(ImageSpecs, static (settings, img) => settings
@@ -94,8 +90,8 @@ interface IDocker : IHazSourcePaths
         {
             Log.Information("Pushing images to registry: {Registry}", Registry);
 
-            DockerPush(s => s
-                    .CombineWith(ImageSpecs, static (settings, img) => settings.SetName(img.Tag)),
+            DockerTasks.DockerPush(s => s
+                    .CombineWith(ImageSpecs, static (settings, img) => DockerPushSettingsExtensions.SetName<DockerPushSettings>(settings, img.Tag)),
                 ParallelBuild ? 2 : 1);
 
             Log.Information("Images pushed successfully");
@@ -178,8 +174,8 @@ interface IDocker : IHazSourcePaths
     {
         Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
 
-        DockerBuild(s => s
-            .SetPath(RootDirectory)
+        DockerTasks.DockerBuild(s => DockerBuildSettingsExtensions
+            .SetPath<DockerBuildSettings>(s, RootDirectory)
             .SetFile(spec.Dockerfile)
             .SetTag(spec.Tag)
             .EnablePull()
