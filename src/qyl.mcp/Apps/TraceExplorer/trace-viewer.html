@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>qyl Trace Explorer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        surface: { 0: '#0a0a0f', 1: '#12121a', 2: '#1a1a25', 3: '#222230' },
+        accent: { DEFAULT: '#6366f1', light: '#818cf8', dim: '#4f46e5' },
+        ok: '#22c55e', error: '#ef4444', unset: '#eab308', pending: '#64748b'
+      },
+      fontFamily: { mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'] }
+    }
+  }
+};
+</script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #12121a; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #555; }
+  .span-bar { transition: opacity 0.15s, transform 0.05s; cursor: pointer; }
+  .span-bar:hover { opacity: 0.9; transform: scaleY(1.3); }
+  .span-row { transition: background-color 0.1s; }
+  .span-row:hover { background-color: rgba(99, 102, 241, 0.08); }
+  .span-row.selected { background-color: rgba(99, 102, 241, 0.15); }
+  .fade-in { animation: fadeIn 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  .detail-panel { animation: slideIn 0.2s ease-out; }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: none; } }
+  .tree-line { border-left: 1px solid #333; }
+</style>
+</head>
+<body class="bg-surface-0 text-gray-200 min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="bg-surface-1 border-b border-surface-3 px-4 py-3 flex items-center gap-4 shrink-0">
+  <div class="flex items-center gap-2">
+    <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/>
+    </svg>
+    <h1 class="text-sm font-semibold text-white tracking-wide">qyl Trace Explorer</h1>
+  </div>
+  <div id="trace-meta" class="flex items-center gap-3 text-xs text-gray-400">
+    <span id="trace-id-label" class="font-mono"></span>
+    <span id="span-count-label"></span>
+    <span id="duration-label"></span>
+  </div>
+  <div class="ml-auto flex items-center gap-2">
+    <span id="status-badge" class="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-gray-400">No data</span>
+  </div>
+</header>
+
+<!-- Filter Bar -->
+<div class="bg-surface-1 border-b border-surface-3 px-4 py-2 flex items-center gap-3 shrink-0">
+  <div class="flex items-center gap-1.5">
+    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+    </svg>
+    <span class="text-xs text-gray-500 font-medium">Filters</span>
+  </div>
+  <input id="filter-service" type="text" placeholder="Service..."
+         class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 w-28 placeholder-gray-600 focus:outline-none focus:border-accent/50">
+  <input id="filter-operation" type="text" placeholder="Operation..."
+         class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 w-36 placeholder-gray-600 focus:outline-none focus:border-accent/50">
+  <select id="filter-status"
+          class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none focus:border-accent/50">
+    <option value="">All Status</option>
+    <option value="OK">OK</option>
+    <option value="ERROR">Error</option>
+    <option value="UNSET">Unset</option>
+  </select>
+  <input id="filter-min-duration" type="number" placeholder="Min ms..."
+         class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 w-24 placeholder-gray-600 focus:outline-none focus:border-accent/50">
+  <button id="btn-clear-filters"
+          class="text-xs text-gray-500 hover:text-gray-300 transition-colors px-2 py-1">Clear</button>
+
+  <!-- Stats summary -->
+  <div id="stats-bar" class="ml-auto flex items-center gap-4 text-xs text-gray-500"></div>
+</div>
+
+<!-- Main Content -->
+<div class="flex flex-1 overflow-hidden">
+
+  <!-- Waterfall Panel -->
+  <div id="waterfall-panel" class="flex-1 overflow-auto">
+
+    <!-- Timeline Header -->
+    <div id="timeline-header" class="sticky top-0 bg-surface-1 border-b border-surface-3 z-10 flex h-7">
+      <div class="w-80 shrink-0 px-3 flex items-center text-xs text-gray-500 font-medium border-r border-surface-3">
+        Operation
+      </div>
+      <div id="time-ruler" class="flex-1 relative flex items-end px-2"></div>
+    </div>
+
+    <!-- Span Rows -->
+    <div id="span-rows" class="relative"></div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="flex flex-col items-center justify-center py-20 text-center fade-in">
+      <svg class="w-16 h-16 text-surface-3 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6m6 0h6m-6 0V9a2 2 0 012-2h2a2 2 0 012 2v10m6 0v-4a2 2 0 00-2-2h-2a2 2 0 00-2 2v4"/>
+      </svg>
+      <p class="text-gray-500 text-sm mb-1">Waiting for trace data...</p>
+      <p class="text-gray-600 text-xs">Loading sample trace for preview</p>
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div id="detail-panel" class="w-96 bg-surface-1 border-l border-surface-3 overflow-auto shrink-0 hidden">
+    <div class="p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-white">Span Details</h2>
+        <button id="btn-close-detail" class="text-gray-500 hover:text-gray-300 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="detail-content"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---- State ----
+  let allSpans = [];
+  let filteredSpans = [];
+  let traceStart = 0;
+  let traceDuration = 0;
+  let selectedSpanId = null;
+
+  // ---- Sample Data ----
+  const sampleSpans = [
+    { traceId: 'a1b2c3d4e5f6', spanId: 's001', parentSpanId: null,
+      operationName: 'HTTP GET /api/orders', serviceName: 'api-gateway',
+      startTime: '2026-03-11T10:00:00.000Z', duration: 342.7, status: 'OK',
+      attributes: { 'http.method': 'GET', 'http.route': '/api/orders', 'http.status_code': 200, 'net.peer.name': 'order-service' },
+      events: [{ name: 'request.received', timestamp: '2026-03-11T10:00:00.001Z', attributes: { 'user.id': 'u-4821' } }] },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's002', parentSpanId: 's001',
+      operationName: 'orders.validate', serviceName: 'order-service',
+      startTime: '2026-03-11T10:00:00.012Z', duration: 18.3, status: 'OK',
+      attributes: { 'order.count': 3, 'validation.cached': true } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's003', parentSpanId: 's001',
+      operationName: 'SELECT orders FROM duckdb', serviceName: 'order-service',
+      startTime: '2026-03-11T10:00:00.031Z', duration: 89.4, status: 'OK',
+      attributes: { 'db.system': 'duckdb', 'db.statement': 'SELECT * FROM orders WHERE user_id = ?', 'db.operation': 'SELECT', 'db.rows_affected': 42 } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's004', parentSpanId: 's001',
+      operationName: 'cache.lookup', serviceName: 'cache-service',
+      startTime: '2026-03-11T10:00:00.005Z', duration: 4.1, status: 'OK',
+      attributes: { 'cache.hit': false, 'cache.key': 'orders:u-4821' } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's005', parentSpanId: 's003',
+      operationName: 'duckdb.query.execute', serviceName: 'order-service',
+      startTime: '2026-03-11T10:00:00.035Z', duration: 78.2, status: 'OK',
+      attributes: { 'db.system': 'duckdb', 'db.operation': 'execute', 'thread.id': 14 } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's006', parentSpanId: 's001',
+      operationName: 'order.enrich', serviceName: 'enrichment-service',
+      startTime: '2026-03-11T10:00:00.125Z', duration: 156.8, status: 'OK',
+      attributes: { 'enrichment.fields': 'pricing,inventory', 'enrichment.source': 'catalog-v2' } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's007', parentSpanId: 's006',
+      operationName: 'HTTP GET /api/pricing', serviceName: 'enrichment-service',
+      startTime: '2026-03-11T10:00:00.128Z', duration: 67.3, status: 'OK',
+      attributes: { 'http.method': 'GET', 'http.url': 'http://pricing:8080/api/pricing', 'http.status_code': 200 } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's008', parentSpanId: 's006',
+      operationName: 'inventory.check', serviceName: 'inventory-service',
+      startTime: '2026-03-11T10:00:00.200Z', duration: 72.1, status: 'ERROR',
+      attributes: { 'inventory.warehouse': 'us-east-1', 'error.type': 'TimeoutException' },
+      events: [
+        { name: 'exception', timestamp: '2026-03-11T10:00:00.270Z',
+          attributes: { 'exception.type': 'TimeoutException', 'exception.message': 'Inventory check timed out after 70ms', 'exception.stacktrace': 'at InventoryClient.CheckAsync()\n  at EnrichmentPipeline.RunAsync()' } },
+        { name: 'retry.scheduled', timestamp: '2026-03-11T10:00:00.271Z', attributes: { 'retry.attempt': 1 } }
+      ] },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's009', parentSpanId: 's001',
+      operationName: 'response.serialize', serviceName: 'api-gateway',
+      startTime: '2026-03-11T10:00:00.290Z', duration: 12.4, status: 'OK',
+      attributes: { 'serializer': 'System.Text.Json', 'response.size_bytes': 14832 } },
+    { traceId: 'a1b2c3d4e5f6', spanId: 's010', parentSpanId: 's001',
+      operationName: 'telemetry.export', serviceName: 'api-gateway',
+      startTime: '2026-03-11T10:00:00.305Z', duration: 35.2, status: 'UNSET',
+      attributes: { 'otel.exporter': 'otlp', 'otel.batch_size': 10 } }
+  ];
+
+  // ---- Helpers ----
+  function parseTime(ts) { return new Date(ts).getTime(); }
+
+  function formatDuration(ms) {
+    if (ms < 0.01) return '<0.01ms';
+    if (ms < 1) return ms.toFixed(2) + 'ms';
+    if (ms < 1000) return ms.toFixed(1) + 'ms';
+    return (ms / 1000).toFixed(2) + 's';
+  }
+
+  function statusColor(s) {
+    switch ((s || '').toUpperCase()) {
+      case 'OK': return { bar: '#22c55e', bg: 'bg-ok/10', text: 'text-ok', badge: 'bg-ok/20 text-ok' };
+      case 'ERROR': return { bar: '#ef4444', bg: 'bg-error/10', text: 'text-error', badge: 'bg-error/20 text-error' };
+      default: return { bar: '#eab308', bg: 'bg-unset/10', text: 'text-unset', badge: 'bg-unset/20 text-unset' };
+    }
+  }
+
+  const serviceColors = {};
+  const palette = ['#6366f1','#8b5cf6','#06b6d4','#f59e0b','#ec4899','#10b981','#f97316','#14b8a6','#a855f7','#3b82f6'];
+  let colorIdx = 0;
+  function serviceColor(name) {
+    if (!name) return palette[0];
+    if (!serviceColors[name]) { serviceColors[name] = palette[colorIdx++ % palette.length]; }
+    return serviceColors[name];
+  }
+
+  function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ---- Build Tree ----
+  function buildTree(spans) {
+    const byId = new Map();
+    const roots = [];
+    spans.forEach(s => byId.set(s.spanId, { ...s, children: [] }));
+    byId.forEach(node => {
+      if (node.parentSpanId && byId.has(node.parentSpanId)) {
+        byId.get(node.parentSpanId).children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    // Sort children by start time
+    function sortChildren(node) {
+      node.children.sort((a, b) => parseTime(a.startTime) - parseTime(b.startTime));
+      node.children.forEach(sortChildren);
+    }
+    roots.sort((a, b) => parseTime(a.startTime) - parseTime(b.startTime));
+    roots.forEach(sortChildren);
+    return roots;
+  }
+
+  function flattenTree(roots, depth) {
+    const result = [];
+    function walk(node, d) {
+      result.push({ ...node, depth: d });
+      node.children.forEach(c => walk(c, d + 1));
+    }
+    roots.forEach(r => walk(r, depth || 0));
+    return result;
+  }
+
+  // ---- Percentiles ----
+  function percentile(sorted, p) {
+    if (sorted.length === 0) return 0;
+    const idx = Math.ceil(p * sorted.length) - 1;
+    return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
+  }
+
+  function computeStats(spans) {
+    const durations = spans.map(s => s.duration).sort((a, b) => a - b);
+    if (durations.length === 0) return null;
+    return {
+      count: durations.length,
+      p50: percentile(durations, 0.50),
+      p95: percentile(durations, 0.95),
+      p99: percentile(durations, 0.99),
+      total: durations.reduce((a, b) => a + b, 0)
+    };
+  }
+
+  // ---- Rendering ----
+  function renderTimeRuler() {
+    const ruler = document.getElementById('time-ruler');
+    ruler.innerHTML = '';
+    if (traceDuration <= 0) return;
+    const ticks = 6;
+    for (let i = 0; i <= ticks; i++) {
+      const pct = (i / ticks) * 100;
+      const ms = (i / ticks) * traceDuration;
+      const el = document.createElement('div');
+      el.className = 'absolute text-[10px] text-gray-500 font-mono';
+      el.style.left = pct + '%';
+      el.style.bottom = '2px';
+      el.style.transform = i === ticks ? 'translateX(-100%)' : i === 0 ? 'none' : 'translateX(-50%)';
+      el.textContent = formatDuration(ms);
+      ruler.appendChild(el);
+      // Tick mark
+      const tick = document.createElement('div');
+      tick.className = 'absolute bottom-0 w-px bg-surface-3';
+      tick.style.left = pct + '%';
+      tick.style.height = '5px';
+      ruler.appendChild(tick);
+    }
+  }
+
+  function renderSpans() {
+    const container = document.getElementById('span-rows');
+    const emptyState = document.getElementById('empty-state');
+    container.innerHTML = '';
+
+    if (filteredSpans.length === 0) {
+      emptyState.classList.remove('hidden');
+      return;
+    }
+    emptyState.classList.add('hidden');
+
+    const tree = buildTree(filteredSpans);
+    const flat = flattenTree(tree);
+
+    flat.forEach((span, i) => {
+      const sc = statusColor(span.status);
+      const svc = serviceColor(span.serviceName);
+      const startMs = parseTime(span.startTime) - traceStart;
+      const leftPct = traceDuration > 0 ? (startMs / traceDuration) * 100 : 0;
+      const widthPct = traceDuration > 0 ? Math.max((span.duration / traceDuration) * 100, 0.3) : 0;
+      const isSelected = span.spanId === selectedSpanId;
+
+      const row = document.createElement('div');
+      row.className = `span-row flex items-center h-8 border-b border-surface-3/50 ${isSelected ? 'selected' : ''} fade-in`;
+      row.style.animationDelay = Math.min(i * 12, 300) + 'ms';
+      row.dataset.spanId = span.spanId;
+
+      // Operation label column
+      const labelCol = document.createElement('div');
+      labelCol.className = 'w-80 shrink-0 flex items-center gap-1 px-3 border-r border-surface-3/50 overflow-hidden';
+
+      // Indent
+      if (span.depth > 0) {
+        const indent = document.createElement('div');
+        indent.className = 'shrink-0 flex items-center';
+        indent.style.width = (span.depth * 16) + 'px';
+        // Tree connector
+        const connector = document.createElement('div');
+        connector.className = 'tree-line h-full ml-auto';
+        connector.style.paddingLeft = '7px';
+        const dot = document.createElement('div');
+        dot.className = 'w-1.5 h-1.5 rounded-full shrink-0';
+        dot.style.backgroundColor = svc;
+        indent.appendChild(connector);
+        labelCol.appendChild(indent);
+        labelCol.appendChild(dot);
+      } else {
+        const dot = document.createElement('div');
+        dot.className = 'w-2 h-2 rounded-full shrink-0';
+        dot.style.backgroundColor = svc;
+        labelCol.appendChild(dot);
+      }
+
+      const nameEl = document.createElement('span');
+      nameEl.className = 'text-xs truncate ml-1.5';
+      nameEl.title = span.operationName;
+      nameEl.textContent = span.operationName;
+      labelCol.appendChild(nameEl);
+
+      const svcEl = document.createElement('span');
+      svcEl.className = 'text-[10px] text-gray-500 truncate ml-auto shrink-0 pl-2';
+      svcEl.textContent = span.serviceName || '';
+      labelCol.appendChild(svcEl);
+
+      row.appendChild(labelCol);
+
+      // Waterfall column
+      const barCol = document.createElement('div');
+      barCol.className = 'flex-1 relative h-full flex items-center px-1';
+
+      const bar = document.createElement('div');
+      bar.className = 'span-bar absolute h-3 rounded-sm';
+      bar.style.left = leftPct + '%';
+      bar.style.width = Math.max(widthPct, 0.15) + '%';
+      bar.style.minWidth = '2px';
+      bar.style.backgroundColor = span.status === 'ERROR' ? sc.bar : svc;
+      bar.style.opacity = span.status === 'ERROR' ? '0.85' : '0.7';
+      if (span.status === 'ERROR') {
+        bar.style.backgroundImage = 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)';
+      }
+      barCol.appendChild(bar);
+
+      // Duration label
+      const durEl = document.createElement('span');
+      durEl.className = 'absolute text-[10px] font-mono text-gray-400';
+      const durLeft = leftPct + widthPct;
+      durEl.style.left = Math.min(durLeft + 0.5, 95) + '%';
+      durEl.style.top = '50%';
+      durEl.style.transform = 'translateY(-50%)';
+      durEl.textContent = formatDuration(span.duration);
+      barCol.appendChild(durEl);
+
+      row.appendChild(barCol);
+
+      row.addEventListener('click', () => selectSpan(span));
+      container.appendChild(row);
+    });
+  }
+
+  function renderStats() {
+    const bar = document.getElementById('stats-bar');
+    const stats = computeStats(filteredSpans);
+    if (!stats) { bar.innerHTML = ''; return; }
+    const errorCount = filteredSpans.filter(s => s.status === 'ERROR').length;
+    bar.innerHTML = `
+      <span>p50: <span class="text-gray-300 font-mono">${formatDuration(stats.p50)}</span></span>
+      <span>p95: <span class="text-gray-300 font-mono">${formatDuration(stats.p95)}</span></span>
+      <span>p99: <span class="text-gray-300 font-mono">${formatDuration(stats.p99)}</span></span>
+      <span class="border-l border-surface-3 pl-4">Total: <span class="text-gray-300 font-mono">${formatDuration(stats.total)}</span></span>
+      ${errorCount > 0 ? `<span class="text-error">${errorCount} error${errorCount > 1 ? 's' : ''}</span>` : ''}
+    `;
+  }
+
+  function renderHeader() {
+    const idLabel = document.getElementById('trace-id-label');
+    const countLabel = document.getElementById('span-count-label');
+    const durLabel = document.getElementById('duration-label');
+    const badge = document.getElementById('status-badge');
+
+    if (allSpans.length === 0) {
+      idLabel.textContent = '';
+      countLabel.textContent = '';
+      durLabel.textContent = '';
+      badge.className = 'text-xs px-2 py-0.5 rounded-full bg-surface-3 text-gray-400';
+      badge.textContent = 'No data';
+      return;
+    }
+
+    const traceId = allSpans[0].traceId;
+    idLabel.textContent = traceId.length > 16 ? traceId.slice(0, 8) + '...' + traceId.slice(-8) : traceId;
+    countLabel.textContent = filteredSpans.length + ' span' + (filteredSpans.length !== 1 ? 's' : '');
+    durLabel.textContent = formatDuration(traceDuration);
+
+    const hasError = allSpans.some(s => s.status === 'ERROR');
+    if (hasError) {
+      badge.className = 'text-xs px-2 py-0.5 rounded-full bg-error/20 text-error';
+      badge.textContent = 'Error';
+    } else {
+      badge.className = 'text-xs px-2 py-0.5 rounded-full bg-ok/20 text-ok';
+      badge.textContent = 'OK';
+    }
+  }
+
+  function selectSpan(span) {
+    selectedSpanId = span.spanId;
+    renderSpans();
+    showDetail(span);
+  }
+
+  function showDetail(span) {
+    const panel = document.getElementById('detail-panel');
+    const content = document.getElementById('detail-content');
+    panel.classList.remove('hidden');
+
+    const sc = statusColor(span.status);
+    const svc = serviceColor(span.serviceName);
+    const startMs = parseTime(span.startTime) - traceStart;
+
+    let html = `<div class="detail-panel space-y-4">`;
+
+    // Operation title
+    html += `<div>
+      <div class="text-xs text-gray-500 mb-1">Operation</div>
+      <div class="text-sm text-white font-medium">${escapeHtml(span.operationName)}</div>
+    </div>`;
+
+    // Quick stats
+    html += `<div class="grid grid-cols-2 gap-3">
+      <div class="bg-surface-2 rounded-lg p-2.5">
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Service</div>
+        <div class="text-xs text-white flex items-center gap-1.5">
+          <div class="w-2 h-2 rounded-full" style="background:${svc}"></div>
+          ${escapeHtml(span.serviceName || 'unknown')}
+        </div>
+      </div>
+      <div class="bg-surface-2 rounded-lg p-2.5">
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Duration</div>
+        <div class="text-xs font-mono text-white">${formatDuration(span.duration)}</div>
+      </div>
+      <div class="bg-surface-2 rounded-lg p-2.5">
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Status</div>
+        <div class="text-xs"><span class="px-1.5 py-0.5 rounded ${sc.badge} text-[10px] font-medium">${escapeHtml(span.status || 'UNSET')}</span></div>
+      </div>
+      <div class="bg-surface-2 rounded-lg p-2.5">
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-0.5">Offset</div>
+        <div class="text-xs font-mono text-white">+${formatDuration(startMs)}</div>
+      </div>
+    </div>`;
+
+    // IDs
+    html += `<div class="bg-surface-2 rounded-lg p-2.5 space-y-1.5">
+      <div class="text-[10px] text-gray-500 uppercase tracking-wider">Identifiers</div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] text-gray-500 w-14">Trace</span>
+        <span class="text-xs font-mono text-gray-300 truncate">${escapeHtml(span.traceId)}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-[10px] text-gray-500 w-14">Span</span>
+        <span class="text-xs font-mono text-gray-300 truncate">${escapeHtml(span.spanId)}</span>
+      </div>
+      ${span.parentSpanId ? `<div class="flex items-center gap-2">
+        <span class="text-[10px] text-gray-500 w-14">Parent</span>
+        <span class="text-xs font-mono text-gray-300 truncate">${escapeHtml(span.parentSpanId)}</span>
+      </div>` : ''}
+    </div>`;
+
+    // Attributes
+    const attrs = span.attributes || {};
+    const attrKeys = Object.keys(attrs);
+    if (attrKeys.length > 0) {
+      html += `<div>
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Attributes</div>
+        <div class="bg-surface-2 rounded-lg divide-y divide-surface-3">`;
+      attrKeys.sort().forEach(key => {
+        const val = attrs[key];
+        const isError = key.startsWith('error.') || key.startsWith('exception.');
+        html += `<div class="flex items-start gap-2 px-2.5 py-1.5">
+          <span class="text-[10px] font-mono ${isError ? 'text-error' : 'text-accent-light'} shrink-0">${escapeHtml(key)}</span>
+          <span class="text-[10px] font-mono text-gray-300 break-all ml-auto text-right">${escapeHtml(String(val))}</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Events
+    const events = span.events || [];
+    if (events.length > 0) {
+      html += `<div>
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Events (${events.length})</div>
+        <div class="space-y-2">`;
+      events.forEach(evt => {
+        const isException = evt.name === 'exception';
+        html += `<div class="bg-surface-2 rounded-lg p-2.5 ${isException ? 'border border-error/30' : ''}">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-xs font-medium ${isException ? 'text-error' : 'text-gray-300'}">${escapeHtml(evt.name)}</span>
+            ${evt.timestamp ? `<span class="text-[10px] font-mono text-gray-500 ml-auto">${new Date(evt.timestamp).toISOString().slice(11, 23)}</span>` : ''}
+          </div>`;
+        if (evt.attributes) {
+          Object.entries(evt.attributes).forEach(([k, v]) => {
+            const isStack = k === 'exception.stacktrace';
+            html += `<div class="mt-1">
+              <span class="text-[10px] font-mono text-gray-500">${escapeHtml(k)}</span>
+              ${isStack
+                ? `<pre class="text-[10px] font-mono text-error/80 mt-1 whitespace-pre-wrap break-all bg-surface-0 rounded p-2 max-h-40 overflow-auto">${escapeHtml(String(v))}</pre>`
+                : `<div class="text-[10px] font-mono text-gray-300">${escapeHtml(String(v))}</div>`}
+            </div>`;
+          });
+        }
+        html += `</div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    // Links
+    if (span.links && span.links.length > 0) {
+      html += `<div>
+        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Links (${span.links.length})</div>
+        <div class="bg-surface-2 rounded-lg divide-y divide-surface-3">`;
+      span.links.forEach(link => {
+        html += `<div class="px-2.5 py-1.5">
+          <span class="text-[10px] font-mono text-accent-light">${escapeHtml(link.traceId || '')}</span>
+          <span class="text-[10px] font-mono text-gray-500 ml-1">${escapeHtml(link.spanId || '')}</span>
+        </div>`;
+      });
+      html += `</div></div>`;
+    }
+
+    html += `</div>`;
+    content.innerHTML = html;
+  }
+
+  function closeDetail() {
+    document.getElementById('detail-panel').classList.add('hidden');
+    selectedSpanId = null;
+    renderSpans();
+  }
+
+  // ---- Filtering ----
+  function applyFilters() {
+    const svc = document.getElementById('filter-service').value.trim().toLowerCase();
+    const op = document.getElementById('filter-operation').value.trim().toLowerCase();
+    const status = document.getElementById('filter-status').value;
+    const minDur = parseFloat(document.getElementById('filter-min-duration').value) || 0;
+
+    filteredSpans = allSpans.filter(s => {
+      if (svc && !(s.serviceName || '').toLowerCase().includes(svc)) return false;
+      if (op && !(s.operationName || '').toLowerCase().includes(op)) return false;
+      if (status && (s.status || 'UNSET').toUpperCase() !== status) return false;
+      if (minDur > 0 && s.duration < minDur) return false;
+      return true;
+    });
+
+    renderSpans();
+    renderStats();
+  }
+
+  function clearFilters() {
+    document.getElementById('filter-service').value = '';
+    document.getElementById('filter-operation').value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-min-duration').value = '';
+    applyFilters();
+  }
+
+  // ---- Data Ingestion ----
+  function ingestSpans(spans) {
+    allSpans = spans;
+
+    if (spans.length > 0) {
+      const starts = spans.map(s => parseTime(s.startTime));
+      const ends = spans.map(s => parseTime(s.startTime) + s.duration);
+      traceStart = Math.min(...starts);
+      const traceEnd = Math.max(...ends);
+      traceDuration = traceEnd - traceStart;
+    } else {
+      traceStart = 0;
+      traceDuration = 0;
+    }
+
+    // Reset service color assignments for consistency
+    Object.keys(serviceColors).forEach(k => delete serviceColors[k]);
+    colorIdx = 0;
+
+    filteredSpans = [...allSpans];
+    renderHeader();
+    renderTimeRuler();
+    renderSpans();
+    renderStats();
+  }
+
+  // ---- Event Listeners ----
+  document.getElementById('filter-service').addEventListener('input', applyFilters);
+  document.getElementById('filter-operation').addEventListener('input', applyFilters);
+  document.getElementById('filter-status').addEventListener('change', applyFilters);
+  document.getElementById('filter-min-duration').addEventListener('input', applyFilters);
+  document.getElementById('btn-clear-filters').addEventListener('click', clearFilters);
+  document.getElementById('btn-close-detail').addEventListener('click', closeDetail);
+
+  // ext-apps bridge: listen for data from MCP host
+  window.addEventListener('message', function(event) {
+    try {
+      const msg = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+      if (msg && msg.type === 'tool_result' && msg.data && Array.isArray(msg.data.spans)) {
+        ingestSpans(msg.data.spans);
+      }
+    } catch (e) {
+      // Ignore malformed messages
+    }
+  });
+
+  // Load sample data after a brief moment so the empty state is visible first
+  setTimeout(function() {
+    if (allSpans.length === 0) {
+      ingestSpans(sampleSpans);
+    }
+  }, 600);
+})();
+</script>
+</body>
+</html>

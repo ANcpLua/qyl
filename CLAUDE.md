@@ -128,9 +128,9 @@ forbidden:
 
 | Doc | Purpose |
 |-----|---------|
-| `docs/plans/2026-03-03-qyl-agui-declarative-design.md` | AG-UI + declarative workflows design (approved) |
-| `docs/plans/2026-03-03-qyl-agui-declarative-impl.md` | AG-UI implementation plan |
-| `docs/roadmap/loom-design.md` | Sentry Loom reverse-engineered spec + qyl implementation evidence |
+| `docs/instrumentation-toolkit.md` | Canonical Roslyn generator reference (12 attributes, 6 pipelines) |
+| `docs/loom-design.md` | Architecture reference + reverse-engineered spec |
+| `docs/mcp-tool-audit.md` | MCP tool verification matrix (78 tools, 27 classes) |
 
 ## Requests to Humans
 

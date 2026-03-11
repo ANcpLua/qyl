@@ -5,6 +5,7 @@ using Qyl.Agents.Providers;
 using Qyl.Agents.Routing;
 using Qyl.Collector.Auth;
 using Qyl.Contracts.Copilot;
+using Qyl.Contracts.Primitives;
 using Qyl.Workflows;
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;

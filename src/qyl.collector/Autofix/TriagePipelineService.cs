@@ -232,7 +232,7 @@ public sealed partial class TriagePipelineService(
 }
 
 /// <summary>JSON response shape from the LLM fixability scoring prompt.</summary>
-internal sealed record LlmTriageResponse
+public sealed record LlmTriageResponse
 {
     [JsonPropertyName("fixability_score")]
     public double FixabilityScore { get; init; }
@@ -248,4 +248,4 @@ internal sealed record LlmTriageResponse
 }
 
 [JsonSerializable(typeof(LlmTriageResponse))]
-internal sealed partial class TriageJsonContext : JsonSerializerContext;
+public sealed partial class TriageJsonContext : JsonSerializerContext;

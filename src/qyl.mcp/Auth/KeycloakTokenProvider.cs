@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace Qyl.Mcp.Auth;
+namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Fetches and caches a Keycloak JWT via OAuth2 client-credentials flow.
@@ -98,7 +98,7 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         try
         {
             tokenResponse = await response.Content
-                .ReadFromJsonAsync(KeycloakJsonContext.Default.TokenResponse, ct)
+                .ReadFromJsonAsync(qyl.mcp.Auth.KeycloakJsonContext.Default.TokenResponse, ct)
                 .ConfigureAwait(false);
         }
         catch (JsonException ex)

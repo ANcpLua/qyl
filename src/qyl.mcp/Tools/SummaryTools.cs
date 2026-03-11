@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Agents;
+using qyl.mcp.Agents;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools that fetch observability data via HTTP then feed it to an LLM
@@ -43,14 +43,14 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             // Fetch error data
             SummaryIssueDto? issue = await client.GetFromJsonAsync<SummaryIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
+                qyl.mcp.Tools.SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
 
             SummaryEventsResponse? eventsResponse = await client.GetFromJsonAsync<SummaryEventsResponse>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=5",
-                SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
+                qyl.mcp.Tools.SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
 
             // Build data context for LLM
             StringBuilder sb = new();
@@ -110,7 +110,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             // Fetch trace data (list of spans)
             List<TraceSpanDto>? spans = await client.GetFromJsonAsync<List<TraceSpanDto>>(
                 $"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
-                SummaryJsonContext.Default.ListTraceSpanDto, ct).ConfigureAwait(false);
+                qyl.mcp.Tools.SummaryJsonContext.Default.ListTraceSpanDto, ct).ConfigureAwait(false);
 
             if (spans is null || spans.Count is 0)
                 return $"Trace '{traceId}' not found or contains no spans.";
@@ -181,11 +181,11 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             // Fetch session metadata and spans concurrently
             Task<SessionDto?> sessionTask = client.GetFromJsonAsync<SessionDto>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}",
-                SummaryJsonContext.Default.SessionDto, ct);
+                qyl.mcp.Tools.SummaryJsonContext.Default.SessionDto, ct);
 
             Task<SessionSpansResponse?> spansTask = client.GetFromJsonAsync<SessionSpansResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans?limit=50",
-                SummaryJsonContext.Default.SessionSpansResponse, ct);
+                qyl.mcp.Tools.SummaryJsonContext.Default.SessionSpansResponse, ct);
 
             SessionDto? session = await sessionTask.ConfigureAwait(false);
             SessionSpansResponse? spansResponse = await spansTask.ConfigureAwait(false);

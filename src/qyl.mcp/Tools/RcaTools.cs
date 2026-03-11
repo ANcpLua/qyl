@@ -4,9 +4,9 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Agents;
+using qyl.mcp.Agents;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that performs AI-powered multi-step root cause analysis.

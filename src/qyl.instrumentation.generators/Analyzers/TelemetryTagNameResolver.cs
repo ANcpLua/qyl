@@ -25,19 +25,10 @@ internal static class TelemetryTagNameResolver
     public static string ResolveName(ISymbol symbol, string? explicitName, string fallbackName)
     {
         if (!string.IsNullOrWhiteSpace(explicitName))
-        {
-            var resolvedName = explicitName!;
-            return resolvedName;
-        }
+            return explicitName!;
 
         var otel = ReadOtelOverride(symbol);
-        if (!string.IsNullOrWhiteSpace(otel.Name))
-        {
-            var resolvedName = otel.Name!;
-            return resolvedName;
-        }
-
-        return fallbackName;
+        return !string.IsNullOrWhiteSpace(otel.Name) ? otel.Name! : fallbackName;
     }
 
     public static bool ResolveSkipIfNull(ISymbol symbol, bool? explicitSkipIfNull, bool defaultValue = true)

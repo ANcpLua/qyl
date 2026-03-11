@@ -18,8 +18,6 @@ using Nuke.Common.Tools.Git;
 using Nuke.Common.Tools.Npm;
 using Serilog;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // IPipeline - Unified Code Generation Interface
 // ════════════════════════════════════════════════════════════════════════════════
@@ -207,7 +205,7 @@ partial interface IPipeline : IHazSourcePaths
     // ════════════════════════════════════════════════════════════════════════
 
     Target GenerateContracts => d => d
-        .Description("Generate DomainContracts.g.cs into both Roslyn generator projects")
+        .Description("Generate DomainContracts.g.cs for instrumentation generator and collector")
         .DependsOn(GenerateSemconv)
         .Executes(() =>
         {
@@ -222,6 +220,7 @@ partial interface IPipeline : IHazSourcePaths
             ContractGenerator.Generate(
                 extensionsJson,
                 paths.InstrumentationGenerator,
+                paths.CollectorObserve,
                 guard);
         });
 
@@ -419,7 +418,8 @@ partial interface IPipeline : IHazSourcePaths
             Log.Information("  C# Records: protocol/*.g.cs");
             Log.Information("  DuckDB DDL: collector/Storage/DuckDbSchema.g.cs");
             Log.Information("  OTel Semconv: servicedefaults/Instrumentation/SemanticConventions.g.cs");
-            Log.Information("  Contracts:   servicedefaults.generator/Generated/DomainContracts.g.cs");
+            Log.Information("  Contracts:   src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs");
+            Log.Information("  Contracts:   src/qyl.collector/Observe/Generated/DomainContracts.g.cs");
             Log.Information("═══════════════════════════════════════════════════════════════");
         });
 

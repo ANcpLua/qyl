@@ -1,3 +1,5 @@
+using Qyl.Contracts.Primitives;
+
 namespace Qyl.Collector.Workflow;
 
 /// <summary>

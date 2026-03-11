@@ -5,7 +5,7 @@
 
 using Qyl.Contracts.Copilot;
 
-namespace Qyl.Workflows;
+namespace Qyl.Workflows.Workflows;
 
 /// <summary>
 ///     Storage abstraction for workflow execution persistence.

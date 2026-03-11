@@ -79,6 +79,12 @@ public static class QylServiceDefaultsExtensions
         {
             ArgumentNullException.ThrowIfNull(builder);
 
+            // Idempotency guard: the source-generated interceptor may also call
+            // TryUseQylConventions → UseQyl, causing double OTel registration.
+            if (builder.Services.Any(static d => d.ServiceType == typeof(QylServiceDefaultsMarker)))
+                return builder;
+            builder.Services.AddSingleton<QylServiceDefaultsMarker>();
+
             var options = new QylOptions();
             configure?.Invoke(options);
 
@@ -455,3 +461,6 @@ public enum ObservabilityMode
     /// </summary>
     Warm,
 }
+
+/// <summary>Marker to prevent double UseQyl registration when source-generated interceptors also call it.</summary>
+internal sealed class QylServiceDefaultsMarker;

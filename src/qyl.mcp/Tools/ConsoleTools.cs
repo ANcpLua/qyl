@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for accessing frontend console logs captured by qyl.collector.
@@ -46,7 +46,7 @@ public sealed class ConsoleTools(HttpClient client)
                 url += $"&level={Uri.EscapeDataString(level)}";
 
             var logs = await client.GetFromJsonAsync<ConsoleLogDto[]>(
-                url, ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
+                url, qyl.mcp.Tools.ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
             if (logs is null || logs.Length is 0)
                 return "No console logs found. The qyl-console.js shim may not be installed in the frontend.";
@@ -105,7 +105,7 @@ public sealed class ConsoleTools(HttpClient client)
         {
             var errors = await client.GetFromJsonAsync<ConsoleLogDto[]>(
                 $"/api/v1/console/errors?limit={limit}",
-                ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
+                qyl.mcp.Tools.ConsoleJsonContext.Default.ConsoleLogDtoArray).ConfigureAwait(false);
 
             if (errors is null || errors.Length is 0)
             {

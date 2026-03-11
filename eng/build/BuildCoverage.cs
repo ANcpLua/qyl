@@ -21,8 +21,6 @@ using Nuke.Common.Tools.ReportGenerator;
 using Nuke.Components;
 using Serilog;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // ICoverage - Code Coverage
 // ════════════════════════════════════════════════════════════════════════════════

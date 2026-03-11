@@ -135,7 +135,7 @@ public sealed partial class AgentHandoffService(
 ///     Assembled context passed to a coding agent for a handoff, including
 ///     the fix run details and all autofix step outputs.
 /// </summary>
-internal sealed record HandoffContext(
+public sealed record HandoffContext(
     string RunId,
     string IssueId,
     string? FixDescription,
@@ -146,7 +146,7 @@ internal sealed record HandoffContext(
 /// <summary>
 ///     Summary of a single autofix step included in the handoff context.
 /// </summary>
-internal sealed record HandoffStepSummary(string StepName, string? OutputJson);
+public sealed record HandoffStepSummary(string StepName, string? OutputJson);
 
 [JsonSerializable(typeof(HandoffContext))]
-internal sealed partial class HandoffJsonContext : JsonSerializerContext;
+public sealed partial class HandoffJsonContext : JsonSerializerContext;

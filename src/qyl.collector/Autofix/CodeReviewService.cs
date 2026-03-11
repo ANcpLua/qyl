@@ -292,12 +292,12 @@ public sealed record CodeReviewComment
 }
 
 /// <summary>GitHub PR detail DTO — only the fields we need.</summary>
-internal sealed record GitHubPrDetail(
+public sealed record GitHubPrDetail(
     [property: JsonPropertyName("title")] string Title,
     [property: JsonPropertyName("number")] int Number);
 
 /// <summary>Payload for posting a PR review comment via GitHub API.</summary>
-internal sealed record CodeReviewCommentPayload(
+public sealed record CodeReviewCommentPayload(
     [property: JsonPropertyName("body")] string Body,
     [property: JsonPropertyName("path")] string Path,
     [property: JsonPropertyName("line")] int Line);
@@ -310,4 +310,4 @@ internal sealed record CodeReviewCommentPayload(
 [JsonSerializable(typeof(CodeReviewResult))]
 [JsonSerializable(typeof(GitHubPrDetail))]
 [JsonSerializable(typeof(CodeReviewCommentPayload))]
-internal sealed partial class CodeReviewJsonContext : JsonSerializerContext;
+public sealed partial class CodeReviewJsonContext : JsonSerializerContext;

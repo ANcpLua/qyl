@@ -1,4 +1,5 @@
 using Qyl.Collector.ClaudeCode;
+using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Storage;
 

@@ -22,7 +22,7 @@ Non-negotiable:
 - Do not treat compile-time interception as runtime reflection.
 - Do not modify layers 1/2/3 unless the failing behavior is proven to originate there.
 - Prefer fixes in feature/service layers first (dashboard, mcp, Loom services).
-
+ 
 Verification: dotnet build only — do NOT run dotnet test or nuke test in worktrees.
 '
 

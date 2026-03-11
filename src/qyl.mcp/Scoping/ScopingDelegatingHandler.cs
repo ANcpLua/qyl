@@ -1,4 +1,4 @@
-namespace Qyl.Mcp.Scoping;
+namespace qyl.mcp.Scoping;
 
 /// <summary>
 ///     HTTP delegating handler that appends scope query parameters to all collector requests.

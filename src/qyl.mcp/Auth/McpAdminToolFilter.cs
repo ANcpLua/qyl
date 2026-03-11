@@ -2,7 +2,7 @@ using System.Collections.Frozen;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Protocol;
 
-namespace Qyl.Mcp.Auth;
+namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Blocks admin-tier MCP tools when Keycloak is active and the caller's JWT lacks

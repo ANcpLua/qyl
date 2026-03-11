@@ -7,9 +7,9 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Agents;
+using qyl.mcp.Agents;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that runs the Loom two-pass fix-generation pipeline:
@@ -61,7 +61,7 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
             return $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}";
 
         FixRunDto? run = await createResp.Content
-            .ReadFromJsonAsync(FixToolsJsonContext.Default.FixRunDto, ct)
+            .ReadFromJsonAsync(qyl.mcp.Tools.FixToolsJsonContext.Default.FixRunDto, ct)
             .ConfigureAwait(false);
 
         if (run is null)

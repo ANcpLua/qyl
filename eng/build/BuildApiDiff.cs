@@ -33,8 +33,6 @@ using Nuke.Common.Tools.Git;
 using Serilog;
 using YamlDotNet.RepresentationModel;
 
-namespace Qyl.Build;
-
 // ════════════════════════════════════════════════════════════════════════════════
 // IApiDiff - OpenAPI Schema Diff Interface
 // ════════════════════════════════════════════════════════════════════════════════

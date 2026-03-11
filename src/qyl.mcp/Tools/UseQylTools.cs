@@ -2,9 +2,9 @@ using System.ComponentModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Agents;
+using qyl.mcp.Agents;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP meta-tool that gives an embedded LLM agent access to ALL qyl tools.

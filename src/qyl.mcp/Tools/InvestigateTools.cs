@@ -1,9 +1,8 @@
 using System.ComponentModel;
-using System.Text;
 using ModelContextProtocol.Server;
-using Qyl.Mcp.Agents;
+using qyl.mcp.Agents;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tool that delegates natural language observability questions to an embedded LLM agent.

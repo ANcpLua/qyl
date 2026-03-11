@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import {
@@ -32,6 +32,7 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Badge} from '@/components/ui/badge';
+import {resolveOnboardingConnection, useCollectorMeta} from '@/lib/onboarding';
 import {toast} from 'sonner';
 
 const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
@@ -440,23 +441,8 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
 }
 
 function ConnectStep() {
-    const {data: meta} = useQuery({
-        queryKey: ['meta'],
-        queryFn: async () => {
-            const res = await fetch('/api/v1/meta');
-            if (!res.ok) return null;
-            return res.json() as Promise<{ ports: { http: number; grpc: number; otlpHttp: number } }>;
-        },
-        staleTime: 1000 * 60 * 5,
-    });
-
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const httpPort = meta?.ports?.otlpHttp || 4318;
-    const grpcPort = meta?.ports?.grpc || 4317;
-    const dashPort = meta?.ports?.http || 5100;
-
-    const otlpEndpoint = isLocal ? `http://localhost:${httpPort}` : window.location.origin;
-    const grpcEndpoint = isLocal ? `http://localhost:${grpcPort}` : window.location.origin;
+    const {data: meta} = useCollectorMeta();
+    const connection = resolveOnboardingConnection(meta, window.location);
 
     return (
         <div className="space-y-6 max-w-xl mx-auto">
@@ -468,16 +454,16 @@ function ConnectStep() {
                     Set this env var and you're done. Works with any OTel SDK in any language.
                 </p>
                 <CodeBlock
-                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=${otlpEndpoint}`}
+                    code={`OTEL_EXPORTER_OTLP_ENDPOINT=${connection.otlpHttpEndpoint}`}
                     label="OTLP Endpoint"
                 />
-                {isLocal && (
+                {connection.isLocal && (
                     <p className="text-[10px] text-brutal-slate">
                         Most SDKs default to gRPC. For HTTP, also set{' '}
                         <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span>
                     </p>
                 )}
-                {!isLocal && (
+                {!connection.isLocal && (
                     <p className="text-[10px] text-brutal-slate">
                         Set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span> for
                         HTTP transport (recommended for cloud deployments).
@@ -485,40 +471,54 @@ function ConnectStep() {
                 )}
             </div>
 
-            {isLocal ? (
+            {connection.isLocal ? (
                 <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
                     <div className="text-xs font-bold text-brutal-slate tracking-wider">PORTS</div>
                     <div className="space-y-2 text-sm font-mono">
                         <div className="flex justify-between">
                             <span className="text-brutal-slate">Dashboard</span>
-                            <span className="text-brutal-white">:{dashPort}</span>
+                            <span className="text-brutal-white">{`http://localhost:${connection.dashboardPort}`}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-brutal-slate">OTLP HTTP</span>
-                            <span className="text-signal-green">:{httpPort}</span>
+                            <span className="text-signal-green">{`http://localhost:${connection.otlpHttpPort}`}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-brutal-slate">OTLP gRPC</span>
-                            <span className="text-signal-green">:{grpcPort}</span>
+                            <span className={connection.grpcEnabled ? 'text-signal-green' : 'text-brutal-slate'}>
+                                {connection.grpcEnabled ? `http://localhost:${connection.grpcPort}` : 'disabled'}
+                            </span>
                         </div>
                     </div>
+                    {meta?.ports?.otlpHttp === 0 && (
+                        <p className="text-[10px] text-brutal-slate">
+                            Dedicated OTLP HTTP is disabled, so HTTP ingestion falls back to the dashboard listener on port{' '}
+                            <span className="text-brutal-white font-mono">{connection.dashboardPort}</span>.
+                        </p>
+                    )}
                 </div>
             ) : (
                 <div className="border-2 border-brutal-zinc p-4 bg-brutal-dark space-y-3">
                     <div className="text-xs font-bold text-brutal-slate tracking-wider">ENDPOINT</div>
-                    <code className="text-sm text-signal-green font-mono">{window.location.origin}</code>
+                    <code className="text-sm text-signal-green font-mono">{connection.otlpHttpEndpoint}</code>
                     <p className="text-[10px] text-brutal-slate">
                         All OTLP traffic routes through this URL. Use HTTP/protobuf protocol.
                     </p>
                 </div>
             )}
 
-            {isLocal && (
+            {connection.isLocal && connection.grpcEnabled && (
                 <p className="text-[10px] text-brutal-slate tracking-wider">
                     For gRPC transport, use{' '}
                     <span className="text-brutal-white font-mono">
-                        OTEL_EXPORTER_OTLP_ENDPOINT={grpcEndpoint}
+                        OTEL_EXPORTER_OTLP_ENDPOINT={connection.grpcEndpoint}
                     </span>
+                </p>
+            )}
+
+            {connection.isLocal && !connection.grpcEnabled && (
+                <p className="text-[10px] text-brutal-slate tracking-wider">
+                    OTLP gRPC is disabled for this collector instance. Use the HTTP endpoint above.
                 </p>
             )}
         </div>
@@ -527,11 +527,15 @@ function ConnectStep() {
 
 function SdkSetupStep() {
     const [activeTab, setActiveTab] = useState<'.NET' | 'Python' | 'Go' | 'Node.js'>('.NET');
-
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const endpoint = isLocal ? 'http://localhost:4318' : window.location.origin;
-    const grpcEndpoint = isLocal ? 'http://localhost:4317' : window.location.origin;
-    const grpcHost = isLocal ? 'localhost:4317' : window.location.host;
+    const {data: meta} = useCollectorMeta();
+    const connection = useMemo(
+        () => resolveOnboardingConnection(meta, window.location),
+        [meta],
+    );
+    const useGrpcExamples = connection.isLocal && connection.grpcEnabled;
+    const endpoint = connection.otlpHttpEndpoint;
+    const httpTraceUrl = connection.otlpHttpTraceUrl;
+    const httpHost = connection.isLocal ? `localhost:${connection.otlpHttpPort}` : window.location.host;
 
     const snippets: Record<string, string> = {
         '.NET': `// Web application
@@ -558,13 +562,15 @@ await app.RunAsync();`,
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from opentelemetry.exporter.otlp.proto.${isLocal ? 'grpc' : 'http'}.trace_exporter import (
+from opentelemetry.exporter.otlp.proto.${useGrpcExamples ? 'grpc' : 'http'}.trace_exporter import (
     OTLPSpanExporter,
 )
 
 provider = TracerProvider()
 processor = BatchSpanProcessor(
-    OTLPSpanExporter(endpoint="${isLocal ? grpcEndpoint : endpoint}")
+    OTLPSpanExporter(
+        endpoint="${useGrpcExamples ? connection.grpcEndpoint : httpTraceUrl}",${useGrpcExamples ? '\n        insecure=True,' : ''}
+    )
 )
 provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)`,
@@ -573,15 +579,15 @@ trace.set_tracer_provider(provider)`,
 // OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} go run .
 
 // Option 2: Programmatic
-// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${isLocal ? 'grpc' : 'http'}
+// go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${useGrpcExamples ? 'grpc' : 'http'}
 import (
     "go.opentelemetry.io/otel"
-    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${isLocal ? 'grpc' : 'http'}"
+    "go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptrace${useGrpcExamples ? 'grpc' : 'http'}"
     sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
-exp, _ := otlptrace${isLocal ? 'grpc' : 'http'}.New(ctx,
-    otlptrace${isLocal ? 'grpc' : 'http'}.WithEndpoint("${grpcHost}"),${isLocal ? '\n    otlptracegrpc.WithInsecure(),' : ''}
+exp, _ := otlptrace${useGrpcExamples ? 'grpc' : 'http'}.New(ctx,
+    otlptrace${useGrpcExamples ? 'grpc' : 'http'}.WithEndpoint("${useGrpcExamples ? connection.grpcHost : httpHost}"),${useGrpcExamples ? '\n    otlptracegrpc.WithInsecure(),' : ''}
 )
 tp := sdktrace.NewTracerProvider(
     sdktrace.WithBatcher(exp),
@@ -592,15 +598,15 @@ otel.SetTracerProvider(tp)`,
 // OTEL_EXPORTER_OTLP_ENDPOINT=${endpoint} node app.js
 
 // Option 2: Programmatic
-// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-${isLocal ? 'grpc' : 'proto'}
+// npm install @opentelemetry/sdk-node @opentelemetry/exporter-trace-otlp-${useGrpcExamples ? 'grpc' : 'proto'}
 const { NodeSDK } = require("@opentelemetry/sdk-node");
 const {
   OTLPTraceExporter,
-} = require("@opentelemetry/exporter-trace-otlp-${isLocal ? 'grpc' : 'proto'}");
+} = require("@opentelemetry/exporter-trace-otlp-${useGrpcExamples ? 'grpc' : 'proto'}");
 
 const sdk = new NodeSDK({
   traceExporter: new OTLPTraceExporter({
-    url: "${isLocal ? grpcEndpoint : endpoint}",
+    url: "${useGrpcExamples ? connection.grpcEndpoint : httpTraceUrl}",
   }),
 });
 sdk.start();`,
@@ -618,6 +624,11 @@ sdk.start();`,
                     Just set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={endpoint}</span> and
                     skip this step. The snippets below are for new projects.
                 </p>
+                {connection.isLocal && !connection.grpcEnabled && (
+                    <p className="text-[10px] text-brutal-slate">
+                        Local OTLP gRPC is disabled, so the programmatic examples below use HTTP/protobuf.
+                    </p>
+                )}
             </div>
 
             <p className="text-brutal-slate text-sm">
@@ -648,19 +659,8 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
     const [status, setStatus] = useState<'idle' | 'polling' | 'success' | 'timeout'>('idle');
     const [elapsed, setElapsed] = useState(0);
     const [attempts, setAttempts] = useState(0);
-
-    const {data: meta} = useQuery({
-        queryKey: ['meta'],
-        queryFn: async () => {
-            const res = await fetch('/api/v1/meta');
-            if (!res.ok) return null;
-            return res.json() as Promise<{ ports: { http: number; grpc: number; otlpHttp: number } }>;
-        },
-        staleTime: 1000 * 60 * 5,
-    });
-    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-    const otlpHttpPort = meta?.ports?.otlpHttp || 4318;
-    const expectedEndpoint = isLocal ? `http://localhost:${otlpHttpPort}` : `${window.location.origin}/v1/traces`;
+    const {data: meta} = useCollectorMeta();
+    const connection = resolveOnboardingConnection(meta, window.location);
 
     const startPolling = useCallback(() => {
         setStatus('polling');
@@ -797,7 +797,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
                     <ul className="text-xs text-brutal-slate space-y-2">
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">1.</span>
-                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={expectedEndpoint}</span></span>
+                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={connection.otlpHttpEndpoint}</span></span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">2.</span>
@@ -814,7 +814,7 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
             {status === 'idle' && (
                 <div className="border border-brutal-zinc p-4 bg-brutal-dark/85 text-left">
                     <div className="text-[10px] font-bold text-brutal-slate tracking-wider mb-2">EXPECTED ENDPOINT</div>
-                    <code className="text-xs text-signal-green font-mono">{expectedEndpoint}</code>
+                    <code className="text-xs text-signal-green font-mono">{connection.otlpHttpEndpoint}</code>
                     <p className="text-[10px] text-brutal-slate mt-2">
                         qyl checks for incoming traces and logs every 3 seconds for up to 30 seconds.
                     </p>
@@ -899,7 +899,7 @@ export function OnboardingPage() {
     };
 
     return (
-        <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-5xl mx-auto">
+        <div className="max-w-5xl mx-auto space-y-8 p-4 pb-28 sm:p-6 sm:pb-28 md:p-8 md:pb-32">
             {/* Header */}
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                 <div>
