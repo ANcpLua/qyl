@@ -91,7 +91,19 @@ public sealed record IssueContext(
 
 Provides issue context as system messages when an `AIAgent` is invoked with an issue ID in the session state.
 
+**Type alias required:** `qyl.contracts` defines its own `ChatMessage`/`ChatRole`. Files that use the SDK types must alias them:
+
 ```csharp
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
+```
+
+This follows the existing convention in `DeclarativeEngine.cs` and `CopilotEndpoints.cs`.
+
+```csharp
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
+
 public sealed class ObservabilityContextProvider(IIssueContextSource contextSource)
     : MessageAIContextProvider
 {
@@ -100,7 +112,7 @@ public sealed class ObservabilityContextProvider(IIssueContextSource contextSour
     /// </summary>
     public const string IssueIdKey = "qyl.issueId";
 
-    protected override async ValueTask<IEnumerable<ChatMessage>> ProvideMessagesAsync(
+    protected override async ValueTask<IEnumerable<AiChatMessage>> ProvideMessagesAsync(
         MessageAIContextProvider.InvokingContext context,
         CancellationToken cancellationToken = default)
     {
@@ -112,7 +124,7 @@ public sealed class ObservabilityContextProvider(IIssueContextSource contextSour
 
         if (string.IsNullOrEmpty(formatted)) return [];
 
-        return [new ChatMessage(ChatRole.System,
+        return [new AiChatMessage(AiChatRole.System,
             $"## Error Context\n{formatted}")];
     }
 }
@@ -178,17 +190,17 @@ effectivePrompt = $"{history}\n{prompt}";
 var enumerator = _agent.RunStreamingAsync(effectivePrompt, ct)...
 ```
 
-**After:**
+**After:** (uses existing `AiChatMessage`/`AiChatRole` aliases)
 ```csharp
 // Build proper ChatMessage list
-List<ChatMessage> messages = [];
+List<AiChatMessage> messages = [];
 if (sessionHistory is { Count: > 0 })
 {
     foreach (var (role, content) in sessionHistory)
-        messages.Add(new ChatMessage(
-            role == "user" ? ChatRole.User : ChatRole.Assistant, content));
+        messages.Add(new AiChatMessage(
+            role == "user" ? AiChatRole.User : AiChatRole.Assistant, content));
 }
-messages.Add(new ChatMessage(ChatRole.User, prompt));
+messages.Add(new AiChatMessage(AiChatRole.User, prompt));
 
 // Pass typed messages instead of concatenated string
 // AIAgent.RunStreamingAsync(IEnumerable<ChatMessage>, AgentSession, AgentRunOptions, CancellationToken)
@@ -295,4 +307,13 @@ When Loom eventually moves from `IChatClient` to `AIAgent`:
 3. **`IIssueContextSource` in qyl.contracts** — adds a dependency-free interface to the contracts package.
    - This is allowed per dependency rules (`contracts -> any-package` is forbidden, but BCL-only interfaces are fine).
 
-4. **Service lifetime safety** — all relevant services (`DuckDbStore`, `IssueService`, `IssueContextBuilder`, `ObservabilityContextProvider`) are registered as `Singleton` in `Program.cs`. No captive dependency risk. If any dependency changes to `Scoped` in the future, `IssueContextBuilder` must change to match.
+4. **Service lifetime safety** — all relevant services (`DuckDbStore`, `IssueService`, `IssueContextBuilder`, `ObservabilityContextProvider`) are registered as `Singleton` in `Program.cs` (verified: lines 147, 243). No captive dependency risk. If any dependency changes to `Scoped` in the future, `IssueContextBuilder` must change to match.
+
+5. **`RunStreamingAsync(IEnumerable<ChatMessage>)` overload** — MS Learn docs list this overload on `AIAgent`. However, all existing codebase calls use the `string` overload. **Implementation gate:** Before modifying `QylCopilotAdapter`, verify the overload compiles against rc3. If it requires `AgentSession` (not optional), the adapter must also create/manage sessions — increasing scope.
+
+## Required tests
+
+`ObservabilityContextProvider` ships with zero callers that set `StateBag["qyl.issueId"]` in the initial PR (Component 5 is deferred). Two unit tests are required to prove correctness:
+
+1. **No StateBag key set → returns empty messages.** Verify `ProvideMessagesAsync` returns `[]` when `StateBag` has no `qyl.issueId` entry.
+2. **StateBag key set → returns formatted context.** Mock `IIssueContextSource`, set `StateBag["qyl.issueId"]`, verify the returned `ChatMessage` contains the formatted block with `ChatRole.System`.
