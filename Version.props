@@ -3,7 +3,7 @@
     <!-- .NET Shared Framework (ships with runtime) -->
     <DotNetRuntimeVersion>10.0.3</DotNetRuntimeVersion>
     <!-- Microsoft.Extensions.* (out-of-band NuGet packages) -->
-    <MicrosoftExtensionsVersion>10.3.0</MicrosoftExtensionsVersion>
+    <MicrosoftExtensionsVersion>10.4.0</MicrosoftExtensionsVersion>
     <!-- OpenTelemetry -->
     <OpenTelemetryVersion>1.15.0</OpenTelemetryVersion>
     <!-- DuckDB -->
