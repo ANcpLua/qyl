@@ -31,12 +31,12 @@ in [Requirements-Engineering-NASA-cFE](https://github.com/ANcpLua/Requirements-E
 For qyl planning and implementation tracking, use this scope taxonomy in addition
 to the confidence tags above:
 
-| Label                | Meaning                                                                   |
-|----------------------|---------------------------------------------------------------------------|
+| Label                      | Meaning                                                                   |
+|----------------------------|---------------------------------------------------------------------------|
 | ` IMPLEMENTED-IN-QYL.LOOM` | Capability exists in this repository and is testable locally.             |
-| `CONTEXT-ONLY`       | Comparative/reference information; useful context, not a local ship gate. |
-| `EXTERNAL-CLOSED`    | Known unknowns in external closed-source systems.                         |
-| `NOT-PLANNED`        | Explicitly excluded from qyl architecture and roadmap.                    |
+| `CONTEXT-ONLY`             | Comparative/reference information; useful context, not a local ship gate. |
+| `EXTERNAL-CLOSED`          | Known unknowns in external closed-source systems.                         |
+| `NOT-PLANNED`              | Explicitly excluded from qyl architecture and roadmap.                    |
 
 Closed-source Sentry internals remain non-inspectable, but qyl implements its own
 open Loom-like backend surface (triage, autofix, code review, handoff, regression,
@@ -53,7 +53,8 @@ Brief summary:
   regression detection, dashboard UI, and MCP tooling.
 - The remaining ship work is mostly end-to-end verification rather than first-pass feature creation.
 - MCP readiness depends on fixing the currently broken tools and completing protocol-level remote invocation checks.
-- Schema-generation issues that affect verification are tracked in the canonical status document, not in this design spec.
+- Schema-generation issues that affect verification are tracked in the canonical status document, not in this design
+  spec.
 
 ### 2026 Web Source Synthesis
 
@@ -2170,19 +2171,19 @@ qodo-skills (`github.com/qodo-ai/qodo-skills`) provides shift-left code review v
 
 Scope: ` IMPLEMENTED-IN-QYL.LOOM` (POLICY) — Engineering governance from `docs/decisions/PRINCIPLES.md`.
 
-| #  | Principle                                          | Rationale                                                                  |
-|----|----------------------------------------------------|----------------------------------------------------------------------------|
-| 1  | Avoid short fixes, prioritize long-run correctness | Telemetry debt is invisible until queries break months later               |
-| 2  | Call out bad assumptions plainly                   | "This span always exists" is the #1 cause of corrupted telemetry           |
-| 3  | Plan first, checkpoints, no partial refactors      | Telemetry changes cross protocol -> storage -> query -> dashboard -> tests |
-| 4  | Consider the entire schema, not just AI            | qyl is a signal processing system, not an "AI feature"                     |
-| 5  | If you can't root-cause, stop — don't suppress     | Suppressing diagnostics in an observability platform is self-sabotage      |
-| 6  | Map current vs. proposed pipeline                  | Ambiguous changes to ingest -> normalize -> store -> query are risky       |
-| 7  | Use explicit scope labels in design docs           | ` IMPLEMENTED-IN-QYL.LOOM`, `CONTEXT-ONLY`, `EXTERNAL-CLOSED`, `NOT-PLANNED`     |
-| 8  | Keep commands minimal                              | Fewer entry points = fewer accidental modes; prefer NUKE orchestration     |
-| 9  | Prefer Playwright MCP over more tests              | E2E signal validation catches failures unit tests never will               |
-| 10 | No suppression — no `#pragma warning disable`      | Enforced by ANcpLua.Analyzers; fix diagnostics, don't hide them            |
-| 11 | Don't bypass NUKE                                  | NUKE encodes generation order, test ordering, artifact production          |
+| #  | Principle                                          | Rationale                                                                    |
+|----|----------------------------------------------------|------------------------------------------------------------------------------|
+| 1  | Avoid short fixes, prioritize long-run correctness | Telemetry debt is invisible until queries break months later                 |
+| 2  | Call out bad assumptions plainly                   | "This span always exists" is the #1 cause of corrupted telemetry             |
+| 3  | Plan first, checkpoints, no partial refactors      | Telemetry changes cross protocol -> storage -> query -> dashboard -> tests   |
+| 4  | Consider the entire schema, not just AI            | qyl is a signal processing system, not an "AI feature"                       |
+| 5  | If you can't root-cause, stop — don't suppress     | Suppressing diagnostics in an observability platform is self-sabotage        |
+| 6  | Map current vs. proposed pipeline                  | Ambiguous changes to ingest -> normalize -> store -> query are risky         |
+| 7  | Use explicit scope labels in design docs           | ` IMPLEMENTED-IN-QYL.LOOM`, `CONTEXT-ONLY`, `EXTERNAL-CLOSED`, `NOT-PLANNED` |
+| 8  | Keep commands minimal                              | Fewer entry points = fewer accidental modes; prefer NUKE orchestration       |
+| 9  | Prefer Playwright MCP over more tests              | E2E signal validation catches failures unit tests never will                 |
+| 10 | No suppression — no `#pragma warning disable`      | Enforced by ANcpLua.Analyzers; fix diagnostics, don't hide them              |
+| 11 | Don't bypass NUKE                                  | NUKE encodes generation order, test ordering, artifact production            |
 
 ---
 
@@ -2559,6 +2560,7 @@ Features beyond §15.6:
 | —     | Exception attributes fix          | Correct `exception.type`/`exception.message`/`exception.stacktrace`                      |
 
 ### 21.7 Zero-Cost Observability — Phases (from [
+
 `zero-cost-observability.md`](../sdk/features/zero-cost-observability.md))
 
 Features beyond §15.7:
@@ -2590,7 +2592,7 @@ Features beyond §15.5:
 | `QylAgentBuilder` factory           | `FromCopilotAdapter(adapter)` and `FromChatClient(chatClient, agentName, ...)` with `InstrumentedChatClient` wrapping |
 | `DeclarativeEngine` YAML runtime    | Loads `AdaptiveDialog` YAML, wires `ChatClientResponseAgentProvider`, streams `StreamUpdate` events                   |
 | `InstrumentedChatClient` OTel layer | `gen_ai.*` spans + `CopilotMetrics` at `IChatClient` interception point                                               |
-| `AIAgent.RunAsync()` interception   | `qyl.instrumentation.generators` already intercepts (no `UseOpenTelemetry()` needed)                                   |
+| `AIAgent.RunAsync()` interception   | `qyl.instrumentation.generators` already intercepts (no `UseOpenTelemetry()` needed)                                  |
 | Declarative YAML actions            | `InvokeMcpToolExecutor`, `ConditionGroup`, `SendActivity` with PowerFx expressions                                    |
 | `StreamUpdate` SSE contract         | `RUN_STARTED`, `TEXT_MESSAGE_START/CONTENT/END`, `RUN_FINISHED`, `RUN_ERROR`                                          |
 | Error boundaries                    | `HttpRequestException` + `JsonException` caught at `IChatClient` level only                                           |
@@ -2718,23 +2720,23 @@ Every capability carries a unique ID, domain classification, scope label
 
 ### PLAT — Sentry Platform Features
 
-| ID       | Capability             | Scope                | Confidence | §Ref                                 | qyl Evidence                    |
-|----------|------------------------|----------------------|------------|--------------------------------------|---------------------------------|
+| ID       | Capability             | Scope                      | Confidence | §Ref                                 | qyl Evidence                    |
+|----------|------------------------|----------------------------|------------|--------------------------------------|---------------------------------|
 | PLAT-001 | AI Agent Monitoring    | ` IMPLEMENTED-IN-QYL.LOOM` | CONFIRMED  | [16.1](#161-ai-agent-monitoring)     | `AgentRunsPage.tsx`             |
 | PLAT-002 | LLM Monitoring         | ` IMPLEMENTED-IN-QYL.LOOM` | CONFIRMED  | [16.2](#162-llm-monitoring)          | GenAI semconv v1.40 DuckDB cols |
-| PLAT-003 | Session Replay         | `CONTEXT-ONLY`       | CONFIRMED  | [16.3](#163-session-replay)          | `qyl.browser` (Web Vitals only) |
-| PLAT-004 | Uptime & Cron          | `CONTEXT-ONLY`       | CONFIRMED  | [16.4](#164-uptime--cron-monitoring) | `qyl.watchdog` (process-level)  |
+| PLAT-003 | Session Replay         | `CONTEXT-ONLY`             | CONFIRMED  | [16.3](#163-session-replay)          | `qyl.browser` (Web Vitals only) |
+| PLAT-004 | Uptime & Cron          | `CONTEXT-ONLY`             | CONFIRMED  | [16.4](#164-uptime--cron-monitoring) | `qyl.watchdog` (process-level)  |
 | PLAT-005 | Release Health         | ` IMPLEMENTED-IN-QYL.LOOM` | CONFIRMED  | [16.5](#165-release-health)          | `RegressionDetectionService.cs` |
-| PLAT-006 | User Feedback          | `CONTEXT-ONLY`       | CONFIRMED  | [16.6](#166-user-feedback)           | Evaluation spans only           |
-| PLAT-007 | Dashboards & Insights  | `CONTEXT-ONLY`       | CONFIRMED  | [16.7](#167-dashboards--insights)    | Feature-specific pages          |
-| PLAT-008 | Alerts & Notifications | `CONTEXT-ONLY`       | CONFIRMED  | [16.8](#168-alerts--notifications)   | SSE streaming only              |
+| PLAT-006 | User Feedback          | `CONTEXT-ONLY`             | CONFIRMED  | [16.6](#166-user-feedback)           | Evaluation spans only           |
+| PLAT-007 | Dashboards & Insights  | `CONTEXT-ONLY`             | CONFIRMED  | [16.7](#167-dashboards--insights)    | Feature-specific pages          |
+| PLAT-008 | Alerts & Notifications | `CONTEXT-ONLY`             | CONFIRMED  | [16.8](#168-alerts--notifications)   | SSE streaming only              |
 | PLAT-009 | Logs Explorer          | ` IMPLEMENTED-IN-QYL.LOOM` | CONFIRMED  | [16.9](#169-logs-explorer)           | OTLP log ingestion + DuckDB     |
-| PLAT-010 | Pricing Model          | `CONTEXT-ONLY`       | CONFIRMED  | [16.10](#1610-pricing-model-detail)  | — (reference only)              |
+| PLAT-010 | Pricing Model          | `CONTEXT-ONLY`             | CONFIRMED  | [16.10](#1610-pricing-model-detail)  | — (reference only)              |
 
 ### QYL — qyl Platform Capabilities
 
-| ID       | Capability                         | Domain     | Scope                | §Ref                                                                                                                             | Evidence                                           | Rationale                                                   |
-|----------|------------------------------------|------------|----------------------|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------|
+| ID       | Capability                         | Domain     | Scope                      | §Ref                                                                                                                             | Evidence                                           | Rationale                                                   |
+|----------|------------------------------------|------------|----------------------------|----------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|-------------------------------------------------------------|
 | QYL-001  | GenAI Semantic Conventions         | SDK        | ` IMPLEMENTED-IN-QYL.LOOM` | [15.1](#151-genai-semantic-conventions-model), [21.5](#215-genai-semconv-full-reference-from-otel-semconv-referencemd)           | 40+ attributes, 5-target codegen                   | Single source-of-truth for GenAI telemetry vocabulary       |
 | QYL-002  | DuckDB Appender Architecture       | Storage    | ` IMPLEMENTED-IN-QYL.LOOM` | [15.2](#152-duckdb-storage--appender-architecture), [21.3](#213-duckdb-appender-purge-from-hades-storage-purgemd)                | SpanStorageRow (26 col), LogStorageRow (16 col)    | Zero-copy bulk ingestion replacing Roslyn INSERT generator  |
 | QYL-003  | MCP Platform (60+ tools, 8 skills) | MCP        | ` IMPLEMENTED-IN-QYL.LOOM` | [15.3](#153-mcp-platform-design), [21.4](#214-mcp-platform--extended-from-mcp-platformmd)                                        | `QylSkillKind` enum, `QYL_SKILLS` env var          | 3× Sentry tool count — deepest MCP surface in market        |
@@ -2743,12 +2745,12 @@ Every capability carries a unique ID, domain classification, scope label
 | QYL-006  | Compile-Time Tracing (`[Traced]`)  | SDK        | ` IMPLEMENTED-IN-QYL.LOOM` | [15.6](#156-compile-time-tracing-annotations), [21.6](#216-traced-annotations--stories-from-traced-annotationsmd)                | TracedInterceptorEmitter, QSG005, 8 stories        | Zero-overhead: no JVM agent, no runtime reflection          |
 | QYL-007  | Zero-Cost Observability Contracts  | SDK        | ` IMPLEMENTED-IN-QYL.LOOM` | [15.7](#157-zero-cost-observability-contracts), [21.7](#217-zero-cost-observability--phases-from-zero-cost-observabilitymd)      | SubscriptionManager, 6 phases                      | Instrumentation at zero cost until subscriber activates     |
 | QYL-008  | Port Architecture (OTLP)           | Protocol   | ` IMPLEMENTED-IN-QYL.LOOM` | [15.8](#158-port-architecture-otlp-standard-compliance), [21.2](#212-port-architecture--extended-from-antipattern-remediationmd) | 5100/4317/4318 triple-port                         | OTel standard compliance — any OTLP client works by default |
-| QYL-009  | Aspire 13.x Comparison             | —          | `CONTEXT-ONLY`       | [15.9](#159-aspire-13x-feature-coverage), [21.9](#219-aspire-coverage--extended-matrix-from-aspire-coveragemd)                   | 42-feature matrix                                  | Competitive positioning against Aspire                      |
+| QYL-009  | Aspire 13.x Comparison             | —          | `CONTEXT-ONLY`             | [15.9](#159-aspire-13x-feature-coverage), [21.9](#219-aspire-coverage--extended-matrix-from-aspire-coveragemd)                   | 42-feature matrix                                  | Competitive positioning against Aspire                      |
 | QYL-010  | Hosting Resource Model             | Hosting    | ` IMPLEMENTED-IN-QYL.LOOM` | [15.10](#1510-hosting-resource-model)                                                                                            | 6 resource types, QylApp, QylRunner                | Polyglot orchestration: .NET, Node, Python, Vite, Docker    |
 | QYL-011  | Agent Continuation Evaluation      | SDK        | ` IMPLEMENTED-IN-QYL.LOOM` | [15.11](#1511-agent-continuation-evaluation-heuristic-first-pattern)                                                             | Heuristic-first pattern                            | Cost optimization: ~80% fewer LLM evaluator calls           |
-| QYL-012  | AI Chat Extended (Phase 5)         | Analytics  | `CONTEXT-ONLY`       | [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd)                                                                | Semantic clustering, token economics               | Roadmap: embeddings, feedback, cross-platform               |
-| QYL-013  | MCP Platform Extended              | MCP        | `CONTEXT-ONLY`       | [21.4](#214-mcp-platform--extended-from-mcp-platformmd)                                                                          | Monolith split, Streamable HTTP, OAuth             | Roadmap: remote MCP, plugin backends, ecosystem             |
-| QYL-014  | CI/CD Improvements                 | —          | `CONTEXT-ONLY`       | [21.10](#2110-cicd-improvements-from-suggested-improvementsyaml)                                                                 | SHA-pinned actions, analyzers                      | Build hygiene: no suppression, no audit bypass              |
+| QYL-012  | AI Chat Extended (Phase 5)         | Analytics  | `CONTEXT-ONLY`             | [21.1](#211-ai-chat-analytics--extended-from-ai-chat-analyticsmd)                                                                | Semantic clustering, token economics               | Roadmap: embeddings, feedback, cross-platform               |
+| QYL-013  | MCP Platform Extended              | MCP        | `CONTEXT-ONLY`             | [21.4](#214-mcp-platform--extended-from-mcp-platformmd)                                                                          | Monolith split, Streamable HTTP, OAuth             | Roadmap: remote MCP, plugin backends, ecosystem             |
+| QYL-014  | CI/CD Improvements                 | —          | `CONTEXT-ONLY`             | [21.10](#2110-cicd-improvements-from-suggested-improvementsyaml)                                                                 | SHA-pinned actions, analyzers                      | Build hygiene: no suppression, no audit bypass              |
 | QYL-015a | Autofix Orchestration              | Autofix    | ` IMPLEMENTED-IN-QYL.LOOM` | [Evidence](#implementation-evidence-in-qyl)                                                                                      | `AutofixOrchestrator.cs`, `AutofixAgentService.cs` | qyl's own autofix pipeline (distinct from SEER-001)         |
 | QYL-015b | Triage Pipeline                    | Triage     | ` IMPLEMENTED-IN-QYL.LOOM` | [Evidence](#implementation-evidence-in-qyl)                                                                                      | `TriagePipelineService.cs`, `TriagePrompts.cs`     | qyl's own fixability scoring (distinct from LOOM-003)       |
 | QYL-015c | Code Review Service                | CodeReview | ` IMPLEMENTED-IN-QYL.LOOM` | [Evidence](#implementation-evidence-in-qyl)                                                                                      | `CodeReviewService.cs`, `CodeReviewEndpoints.cs`   | qyl's own PR analysis (distinct from LOOM-006)              |
@@ -2844,16 +2846,16 @@ This is the canonical pattern for instrumenting agents — whether runtime (like
 
 ```typescript
 await Sentry.startSpan({
-  name: 'invoke_agent Customer Support Agent',
-  op: 'gen_ai.invoke_agent',
-  attributes: {
-    'gen_ai.agent.name': 'Customer Support Agent',
-    'conversation.session_id': sessionId,
-    'conversation.turn': conversationHistory.length + 1
-  }
+    name: 'invoke_agent Customer Support Agent',
+    op: 'gen_ai.invoke_agent',
+    attributes: {
+        'gen_ai.agent.name': 'Customer Support Agent',
+        'conversation.session_id': sessionId,
+        'conversation.turn': conversationHistory.length + 1
+    }
 }, async (agentSpan) => {
-  const response = await fetch('/api/ai/chat', { ... });
-  agentSpan.setAttribute('gen_ai.usage.total_tokens', response.totalTokens);
+    const response = await fetch('/api/ai/chat', {...});
+    agentSpan.setAttribute('gen_ai.usage.total_tokens', response.totalTokens);
 });
 ```
 
@@ -2861,17 +2863,17 @@ await Sentry.startSpan({
 
 ```typescript
 await Sentry.startSpan({
-  name: 'chat custom-model-v2',
-  op: 'gen_ai.chat',
-  attributes: {
-    'gen_ai.request.model': 'custom-model-v2',
-    'gen_ai.request.messages': JSON.stringify(messages)
-  }
+    name: 'chat custom-model-v2',
+    op: 'gen_ai.chat',
+    attributes: {
+        'gen_ai.request.model': 'custom-model-v2',
+        'gen_ai.request.messages': JSON.stringify(messages)
+    }
 }, async (llmSpan) => {
-  const response = await callCustomLLM(...);
-  llmSpan.setAttribute('gen_ai.usage.input_tokens', response.usage.prompt_tokens);
-  llmSpan.setAttribute('gen_ai.usage.output_tokens', response.usage.completion_tokens);
-  llmSpan.setAttribute('gen_ai.usage.total_tokens', response.usage.total_tokens);
+    const response = await callCustomLLM(...);
+    llmSpan.setAttribute('gen_ai.usage.input_tokens', response.usage.prompt_tokens);
+    llmSpan.setAttribute('gen_ai.usage.output_tokens', response.usage.completion_tokens);
+    llmSpan.setAttribute('gen_ai.usage.total_tokens', response.usage.total_tokens);
 });
 ```
 
@@ -2879,16 +2881,16 @@ await Sentry.startSpan({
 
 ```typescript
 await Sentry.startSpan({
-  name: `execute_tool ${toolName}`,
-  op: 'gen_ai.execute_tool',
-  attributes: {
-    'gen_ai.tool.name': toolName,
-    'gen_ai.tool.input': JSON.stringify(args)
-  }
+    name: `execute_tool ${toolName}`,
+    op: 'gen_ai.execute_tool',
+    attributes: {
+        'gen_ai.tool.name': toolName,
+        'gen_ai.tool.input': JSON.stringify(args)
+    }
 }, async (toolSpan) => {
-  const result = await executeTool(toolName, args);
-  toolSpan.setAttribute('gen_ai.tool.output', result);
-  toolSpan.setAttribute('gen_ai.usage.total_tokens', toolTokens);
+    const result = await executeTool(toolName, args);
+    toolSpan.setAttribute('gen_ai.tool.output', result);
+    toolSpan.setAttribute('gen_ai.usage.total_tokens', toolTokens);
 });
 ```
 
@@ -3130,12 +3132,12 @@ It uses a **router-based architecture** for efficient skill loading:
 ---
 name: sentry-code-review        # 1-64 chars, lowercase alphanumeric + hyphens
 description: |                   # Up to 1024 chars
-  Review code with Sentry context and automatically resolve
-  bugs that Sentry or Seer flag in pull request comments.
-allowed-tools:                   # Required by Cursor, harmless in Claude Code
-  - Read
-  - Edit
-  - Bash
+    Review code with Sentry context and automatically resolve
+    bugs that Sentry or Seer flag in pull request comments.
+allowed-tools: # Required by Cursor, harmless in Claude Code
+    - Read
+    - Edit
+    - Bash
 ---
 ```
 
