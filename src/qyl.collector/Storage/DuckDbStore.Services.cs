@@ -1,4 +1,5 @@
 using Qyl.Collector.Services;
+using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Storage;
 

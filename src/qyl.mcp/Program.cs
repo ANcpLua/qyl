@@ -1,5 +1,4 @@
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -13,13 +12,31 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol.AspNetCore.Authentication;
 using ModelContextProtocol.Authentication;
 using ModelContextProtocol.Protocol;
-using Qyl.Mcp;
-using Qyl.Mcp.Agents;
-using Qyl.Mcp.Auth;
-using Qyl.Mcp.Scoping;
-using Qyl.Mcp.Skills;
-using Qyl.Mcp.Tools;
 using qyl.contracts.Attributes;
+using qyl.mcp;
+using qyl.mcp.Agents;
+using qyl.mcp.Auth;
+using qyl.mcp.Scoping;
+using qyl.mcp.Skills;
+using qyl.mcp.Tools;
+using AgentJsonContext = qyl.mcp.Agents.AgentJsonContext;
+using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
+using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
+using BuildJsonContext = qyl.mcp.Tools.BuildJsonContext;
+using ClaudeCodeMcpJsonContext = qyl.mcp.Tools.ClaudeCodeMcpJsonContext;
+using ConsoleJsonContext = qyl.mcp.Tools.ConsoleJsonContext;
+using CopilotJsonContext = qyl.mcp.Tools.CopilotJsonContext;
+using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
+using FixToolsJsonContext = qyl.mcp.Tools.FixToolsJsonContext;
+using GenAiJsonContext = qyl.mcp.Tools.GenAiJsonContext;
+using LogsJsonContext = qyl.mcp.Tools.LogsJsonContext;
+using ReplayJsonContext = qyl.mcp.Tools.ReplayJsonContext;
+using ServiceMcpJsonContext = qyl.mcp.Tools.ServiceMcpJsonContext;
+using SpanQueryJsonContext = qyl.mcp.Tools.SpanQueryJsonContext;
+using StorageHealthJsonContext = qyl.mcp.Tools.StorageHealthJsonContext;
+using SummaryJsonContext = qyl.mcp.Tools.SummaryJsonContext;
+using TelemetryJsonContext = qyl.mcp.Tools.TelemetryJsonContext;
+using TelemetryToolsJsonContext = qyl.mcp.Tools.TelemetryToolsJsonContext;
 
 var skills = SkillConfiguration.FromEnvironment();
 var scope = QylScope.FromEnvironment();
@@ -444,7 +461,7 @@ static string CreateLlmsText(HttpRequest request, McpHostOptions hostOptions)
     return builder.ToString();
 }
 
-namespace Qyl.Mcp
+namespace qyl.mcp
 {
     file static class ServerVersion
     {

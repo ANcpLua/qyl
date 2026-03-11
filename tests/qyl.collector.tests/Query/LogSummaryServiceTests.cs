@@ -1,9 +1,9 @@
-using Qyl.Collector.Logs;
+using Qyl.Collector.Query;
 using Qyl.Collector.Storage;
-using Qyl.Common;
+using Qyl.Contracts.Primitives;
 using Xunit;
 
-namespace Qyl.Collector.tests.Logs;
+namespace Qyl.Collector.Tests.Query;
 
 public sealed class LogSummaryServiceTests
 {

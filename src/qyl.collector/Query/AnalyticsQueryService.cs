@@ -2,6 +2,8 @@
 // AnalyticsQueryService - AI chat analytics queries against DuckDB spans
 // =============================================================================
 
+using Qyl.Contracts.Primitives;
+
 namespace Qyl.Collector.Query;
 
 /// <summary>

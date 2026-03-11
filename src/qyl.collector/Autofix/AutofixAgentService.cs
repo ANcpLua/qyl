@@ -330,7 +330,7 @@ public sealed partial class AutofixAgentService(
 }
 
 /// <summary>LLM confidence scoring result.</summary>
-internal sealed record ConfidenceResult
+public sealed record ConfidenceResult
 {
     [JsonPropertyName("confidence")]
     public double Confidence { get; init; }
@@ -346,4 +346,4 @@ internal sealed record ConfidenceResult
 }
 
 [JsonSerializable(typeof(ConfidenceResult))]
-internal sealed partial class AutofixAgentJsonContext : JsonSerializerContext;
+public sealed partial class AutofixAgentJsonContext : JsonSerializerContext;

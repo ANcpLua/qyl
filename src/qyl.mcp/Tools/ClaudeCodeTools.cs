@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for querying Claude Code session telemetry via the qyl collector.
@@ -35,7 +35,7 @@ public sealed class ClaudeCodeTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ClaudeCodeSessionsDto>(
                 $"/api/v1/claude-code/sessions?limit={limit}",
-                ClaudeCodeMcpJsonContext.Default.ClaudeCodeSessionsDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ClaudeCodeMcpJsonContext.Default.ClaudeCodeSessionsDto).ConfigureAwait(false);
 
             if (response?.Sessions is null || response.Sessions.Count is 0)
                 return "No Claude Code sessions found. Ensure CLAUDE_CODE_ENABLE_TELEMETRY=1 is set and OTLP is configured.";
@@ -78,7 +78,7 @@ public sealed class ClaudeCodeTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ClaudeCodeTimelineDto>(
                 $"/api/v1/claude-code/sessions/{Uri.EscapeDataString(sessionId)}/timeline",
-                ClaudeCodeMcpJsonContext.Default.ClaudeCodeTimelineDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ClaudeCodeMcpJsonContext.Default.ClaudeCodeTimelineDto).ConfigureAwait(false);
 
             if (response?.Events is null || response.Events.Count is 0)
                 return $"No events found for session {sessionId}.";
@@ -142,7 +142,7 @@ public sealed class ClaudeCodeTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ClaudeCodeToolSummaryDto>(
                 $"/api/v1/claude-code/sessions/{Uri.EscapeDataString(sessionId)}/tools",
-                ClaudeCodeMcpJsonContext.Default.ClaudeCodeToolSummaryDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ClaudeCodeMcpJsonContext.Default.ClaudeCodeToolSummaryDto).ConfigureAwait(false);
 
             if (response?.Tools is null || response.Tools.Count is 0)
                 return $"No tool usage found for session {sessionId}.";
@@ -187,7 +187,7 @@ public sealed class ClaudeCodeTools(HttpClient client)
             var response = await client.PostAsync("/api/v1/claude-code/attach", null).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadFromJsonAsync<ClaudeCodeAttachDto>(
-                ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
 
             return result?.Attached is true
                 ? "Claude Code hooks attached. New sessions will send tool calls and agent events to qyl. Restart Claude Code to pick up changes."
@@ -216,7 +216,7 @@ public sealed class ClaudeCodeTools(HttpClient client)
             var response = await client.SendAsync(request).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             var result = await response.Content.ReadFromJsonAsync<ClaudeCodeAttachDto>(
-                ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
+                qyl.mcp.Tools.ClaudeCodeMcpJsonContext.Default.ClaudeCodeAttachDto).ConfigureAwait(false);
 
             return result?.Attached is false
                 ? "Claude Code hooks detached. New sessions will no longer send events to qyl. Restart Claude Code to pick up changes."

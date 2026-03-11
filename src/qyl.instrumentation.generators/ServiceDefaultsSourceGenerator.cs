@@ -43,11 +43,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .WhereNotNull()
             .WithTrackingName(PipelineStage.BuilderCallSitesDiscovered);
 
-        // Step 3: Emit interceptor code when prerequisites are met
-        context.RegisterSourceOutput(
-            builderCallSites.CombineWithCollected(qylRuntimeAvailable),
-            EmitBuilderInterceptors);
-
         // =====================================================================
         // GENAI SDK INTERCEPTION PIPELINE
         // Discovers GenAI SDK calls and wraps them with OTel telemetry.
@@ -79,6 +74,41 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var agentEnabled = qylRuntimeAvailable.Combine(toggles)
             .Select(static (pair, _) => pair.Left && pair.Right.Agent);
 
+        var meterDefinitions = context.SyntaxProvider
+            .ForAttributeWithMetadataName(
+                MeterAnalyzer.MeterAttributeMetadataName,
+                MeterAnalyzer.CouldBeMeterClass,
+                MeterAnalyzer.ExtractDefinitionFromAttribute)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.MeterDefinitionsDiscovered);
+
+        var tracedCallSites = context.SyntaxProvider
+            .CreateSyntaxProvider(
+                TracedCallSiteAnalyzer.CouldBeTracedInvocation,
+                TracedCallSiteAnalyzer.ExtractCallSite)
+            .WhereNotNull()
+            .WithTrackingName(PipelineStage.TracedCallSitesDiscovered);
+
+        var generatedTelemetry = BuildGeneratedTelemetryRegistration(
+            context,
+            meterDefinitions,
+            meterEnabled,
+            tracedCallSites,
+            tracedEnabled,
+            toggles);
+
+        var builderInterceptors = builderCallSites
+            .CollectAsEquatableArray()
+            .Combine(qylRuntimeAvailable)
+            .Combine(generatedTelemetry)
+            .Select(static (input, _) => new BuilderInterceptorInput(
+                input.Left.Left,
+                input.Left.Right,
+                input.Right));
+
+        // Step 3: Emit interceptor code when prerequisites are met
+        context.RegisterSourceOutput(builderInterceptors, EmitBuilderInterceptors);
+
         RegisterEmitterPipeline(context,
             GenAiCallSiteAnalyzer.CouldBeGenAiInvocation, GenAiCallSiteAnalyzer.ExtractCallSite,
             PipelineStage.GenAiCallSitesDiscovered, genAiEnabled,
@@ -89,15 +119,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             PipelineStage.DbCallSitesDiscovered, dbEnabled,
             DbInterceptorEmitter.Emit, GeneratedFile.DbInterceptors, "QSG002");
 
-        RegisterAttributeEmitterPipeline(context,
-            MeterAnalyzer.MeterAttributeMetadataName,
-            MeterAnalyzer.CouldBeMeterClass, MeterAnalyzer.ExtractDefinitionFromAttribute,
-            PipelineStage.MeterDefinitionsDiscovered, meterEnabled,
+        RegisterCollectedEmitterPipeline(context,
+            meterDefinitions, meterEnabled,
             MeterEmitter.Emit, GeneratedFile.MeterImplementations, "QSG004");
 
-        RegisterEmitterPipeline(context,
-            TracedCallSiteAnalyzer.CouldBeTracedInvocation, TracedCallSiteAnalyzer.ExtractCallSite,
-            PipelineStage.TracedCallSitesDiscovered, tracedEnabled,
+        RegisterCollectedEmitterPipeline(context,
+            tracedCallSites, tracedEnabled,
             TracedInterceptorEmitter.Emit, GeneratedFile.TracedInterceptors, "QSG005");
 
         RegisterEmitterPipeline(context,
@@ -138,29 +165,21 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             .AddSource(context);
     }
 
-    private static void RegisterAttributeEmitterPipeline<T>(
+    private static void RegisterCollectedEmitterPipeline<T>(
         IncrementalGeneratorInitializationContext context,
-        string attributeMetadataName,
-        Func<SyntaxNode, CancellationToken, bool> syntacticPredicate,
-        Func<GeneratorAttributeSyntaxContext, CancellationToken, T?> semanticTransform,
-        string trackingName,
+        IncrementalValuesProvider<T> values,
         IncrementalValueProvider<bool> enabledFlag,
         Func<ImmutableArray<T>, string> emitter,
         string generatedFileName,
         string diagnosticId)
         where T : class, IEquatable<T>
     {
-        context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                attributeMetadataName,
-                syntacticPredicate,
-                semanticTransform)
-            .WhereNotNull()
-            .WithTrackingName(trackingName)
-            .CombineWithCollected(enabledFlag)
+        values
+            .CollectAsEquatableArray()
+            .Combine(enabledFlag)
             .SelectAndReportExceptions((input, _) =>
             {
-                if (!input.Right || input.Left.IsEmpty) return FileWithName.Empty;
+                if (!input.Right || input.Left.IsDefaultOrEmpty) return FileWithName.Empty;
                 var sourceCode = emitter(input.Left.AsImmutableArray());
                 return string.IsNullOrEmpty(sourceCode)
                     ? FileWithName.Empty
@@ -266,12 +285,14 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
     private static void EmitBuilderInterceptors(
         SourceProductionContext context,
-        (EquatableArray<BuilderCallSite> CallSites, bool QylRuntimeAvailable) input)
+        BuilderInterceptorInput input)
     {
         if (!input.QylRuntimeAvailable)
             return;
 
-        var sourceCode = GenerateBuilderInterceptorSource(input.CallSites.AsImmutableArray());
+        var sourceCode = GenerateBuilderInterceptorSource(
+            input.CallSites.AsImmutableArray(),
+            input.GeneratedTelemetry);
         context.AddSource(GeneratedFile.BuilderInterceptors, SourceText.From(sourceCode, Encoding.UTF8));
     }
 
@@ -279,7 +300,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     // SOURCE CODE GENERATION
     // =========================================================================
 
-    private static string GenerateBuilderInterceptorSource(ImmutableArray<BuilderCallSite> callSites)
+    private static string GenerateBuilderInterceptorSource(
+        ImmutableArray<BuilderCallSite> callSites,
+        GeneratedTelemetryRegistration generatedTelemetry)
     {
         var sb = new StringBuilder();
 
@@ -294,7 +317,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         foreach (var callSite in orderedCallSites)
         {
             if (callSite.Kind is BuilderCallKind.Build)
-                AppendBuildInterceptorMethod(sb, callSite, index);
+                AppendBuildInterceptorMethod(sb, callSite, index, generatedTelemetry);
             index++;
         }
 
@@ -305,10 +328,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static void AppendBuildInterceptorMethod(
         StringBuilder sb,
         BuilderCallSite callSite,
-        int index)
+        int index,
+        GeneratedTelemetryRegistration generatedTelemetry)
     {
         var displayLocation = callSite.Location.GetDisplayLocation();
         var interceptAttribute = callSite.Location.GetInterceptsLocationAttributeSyntax();
+        var configure = BuildGeneratedTelemetryRegistrationLambda(generatedTelemetry);
+        var useQylCall = configure is null
+            ? $"builder.{MethodName.TryUseQylConventions}();"
+            : $"builder.{MethodName.TryUseQylConventions}({configure});";
 
         sb.AppendLine($$"""
                                 // Intercepted call at {{displayLocation}}
@@ -316,12 +344,167 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                                 public static global::{{WellKnownType.WebApplication}} {{MethodName.InterceptBuildPrefix}}{{index}}(
                                     this global::{{WellKnownType.WebApplicationBuilder}} builder)
                                 {
-                                    builder.{{MethodName.TryUseQylConventions}}();
+                                    {{useQylCall}}
                                     var app = builder.{{MethodName.Build}}();
                                     app.{{MethodName.MapQylDefaultEndpoints}}();
                                     return app;
                                 }
                         """);
+    }
+
+    private static IncrementalValueProvider<GeneratedTelemetryRegistration> BuildGeneratedTelemetryRegistration(
+        IncrementalGeneratorInitializationContext context,
+        IncrementalValuesProvider<MeterDefinition> meterDefinitions,
+        IncrementalValueProvider<bool> meterEnabled,
+        IncrementalValuesProvider<TracedCallSite> tracedCallSites,
+        IncrementalValueProvider<bool> tracedEnabled,
+        IncrementalValueProvider<PipelineToggles> toggles)
+    {
+        var currentTelemetry = meterDefinitions
+            .CollectAsEquatableArray()
+            .Combine(meterEnabled)
+            .Combine(tracedCallSites.CollectAsEquatableArray().Combine(tracedEnabled))
+            .Select(static (input, _) =>
+            {
+                var currentMeters = input.Left.Right ? input.Left.Left : default;
+                var currentTraced = input.Right.Right ? input.Right.Left : default;
+                return BuildCurrentTelemetryRegistration(currentMeters, currentTraced);
+            })
+            .WithTrackingName(PipelineStage.GeneratedTelemetryCurrentDiscovered);
+
+        var referencedTelemetry = context.CompilationProvider
+            .Select(CollectReferencedTelemetryRegistration)
+            .WithTrackingName(PipelineStage.GeneratedTelemetryReferencedDiscovered);
+
+        return currentTelemetry
+            .Combine(referencedTelemetry)
+            .Combine(toggles)
+            .Select(static (input, _) => FilterTelemetryRegistration(
+                MergeTelemetryRegistrations(input.Left.Left, input.Left.Right),
+                input.Right))
+            .WithTrackingName(PipelineStage.GeneratedTelemetryCombined);
+    }
+
+    private static GeneratedTelemetryRegistration BuildCurrentTelemetryRegistration(
+        EquatableArray<MeterDefinition> meters,
+        EquatableArray<TracedCallSite> tracedCallSites) =>
+        new(
+            tracedCallSites.IsDefaultOrEmpty
+                ? default
+                : tracedCallSites
+                    .Select(static callSite => callSite.ActivitySourceName)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static name => name, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray(),
+            meters.IsDefaultOrEmpty
+                ? default
+                : meters
+                    .Select(static meter => meter.MeterName)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static name => name, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray());
+
+    private static GeneratedTelemetryRegistration CollectReferencedTelemetryRegistration(
+        Compilation compilation,
+        CancellationToken _)
+    {
+        var activitySources = new SortedSet<string>(StringComparer.Ordinal);
+        var meterNames = new SortedSet<string>(StringComparer.Ordinal);
+
+        foreach (var reference in compilation.References)
+        {
+            if (compilation.GetAssemblyOrModuleSymbol(reference) is not IAssemblySymbol assembly)
+                continue;
+
+            CollectGeneratedTelemetryAttributes(assembly.GetAttributes(), activitySources, meterNames);
+        }
+
+        return new GeneratedTelemetryRegistration(
+            activitySources.Count is 0 ? default : activitySources.ToArray().ToEquatableArray(),
+            meterNames.Count is 0 ? default : meterNames.ToArray().ToEquatableArray());
+    }
+
+    private static void CollectGeneratedTelemetryAttributes(
+        ImmutableArray<AttributeData> attributes,
+        SortedSet<string> activitySources,
+        SortedSet<string> meterNames)
+    {
+        foreach (var attribute in attributes)
+        {
+            if (attribute.ConstructorArguments.Length is 0 ||
+                attribute.ConstructorArguments[0].Value is not string { Length: > 0 } name)
+            {
+                continue;
+            }
+
+            var attributeName = attribute.AttributeClass?.ToDisplayString();
+            if (string.Equals(attributeName, WellKnownType.GeneratedActivitySourceAttribute, StringComparison.Ordinal))
+            {
+                activitySources.Add(name);
+            }
+            else if (string.Equals(attributeName, WellKnownType.GeneratedMeterAttribute, StringComparison.Ordinal))
+            {
+                meterNames.Add(name);
+            }
+        }
+    }
+
+    private static GeneratedTelemetryRegistration MergeTelemetryRegistrations(
+        GeneratedTelemetryRegistration current,
+        GeneratedTelemetryRegistration referenced) =>
+        new(
+            MergeTelemetryNames(current.ActivitySources, referenced.ActivitySources),
+            MergeTelemetryNames(current.MeterNames, referenced.MeterNames));
+
+    private static EquatableArray<string> MergeTelemetryNames(
+        EquatableArray<string> left,
+        EquatableArray<string> right)
+    {
+        if (left.IsDefaultOrEmpty && right.IsDefaultOrEmpty)
+            return default;
+
+        return left
+            .Concat(right)
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(static name => name, StringComparer.Ordinal)
+            .ToArray()
+            .ToEquatableArray();
+    }
+
+    private static GeneratedTelemetryRegistration FilterTelemetryRegistration(
+        GeneratedTelemetryRegistration registration,
+        PipelineToggles toggles) =>
+        new(
+            toggles.Traced ? registration.ActivitySources : default,
+            toggles.Meter ? registration.MeterNames : default);
+
+    private static string? BuildGeneratedTelemetryRegistrationLambda(
+        GeneratedTelemetryRegistration registration)
+    {
+        if (registration.ActivitySources.IsDefaultOrEmpty &&
+            registration.MeterNames.IsDefaultOrEmpty)
+            return null;
+
+        var sb = new StringBuilder();
+        sb.AppendLine("static options =>");
+        sb.AppendLine("        {");
+
+        foreach (var activitySource in registration.ActivitySources)
+        {
+            sb.AppendLine(
+                $"            options.AdditionalActivitySources.Add({SymbolDisplay.FormatLiteral(activitySource, quote: true)});");
+        }
+
+        foreach (var meterName in registration.MeterNames)
+        {
+            sb.AppendLine(
+                $"            options.AdditionalMeterNames.Add({SymbolDisplay.FormatLiteral(meterName, quote: true)});");
+        }
+
+        sb.Append("        }");
+        return sb.ToString();
     }
 
     // =========================================================================
@@ -340,6 +523,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // Qyl runtime types that enable codegen
         public const string QylServiceDefaults = "Qyl.Instrumentation.QylServiceDefaults";
         public const string GenAiInstrumentation = "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
+        public const string GeneratedActivitySourceAttribute = "Qyl.Instrumentation.GeneratedActivitySourceAttribute";
+        public const string GeneratedMeterAttribute = "Qyl.Instrumentation.GeneratedMeterAttribute";
     }
 
     /// <summary>
@@ -386,6 +571,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
         // MSBuild property toggle check
         public const string ToggleCheck = nameof(ToggleCheck);
+
+        // Generated telemetry registration discovery
+        public const string GeneratedTelemetryCurrentDiscovered = nameof(GeneratedTelemetryCurrentDiscovered);
+        public const string GeneratedTelemetryReferencedDiscovered = nameof(GeneratedTelemetryReferencedDiscovered);
+        public const string GeneratedTelemetryCombined = nameof(GeneratedTelemetryCombined);
     }
 
     /// <summary>
@@ -410,6 +600,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         bool Agent,
         bool Traced,
         bool Meter);
+
+    private readonly record struct GeneratedTelemetryRegistration(
+        EquatableArray<string> ActivitySources,
+        EquatableArray<string> MeterNames);
+
+    private readonly record struct BuilderInterceptorInput(
+        EquatableArray<BuilderCallSite> CallSites,
+        bool QylRuntimeAvailable,
+        GeneratedTelemetryRegistration GeneratedTelemetry);
 
     /// <summary>
     ///     Source code templates for generated output.

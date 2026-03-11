@@ -1,4 +1,4 @@
-namespace Qyl.Mcp.Skills;
+namespace qyl.mcp.Skills;
 
 /// <summary>
 ///     Categories for grouping MCP tools into logical skill sets.
@@ -32,4 +32,7 @@ public enum QylSkillKind
 
     /// <summary>Loom AI debugging: triage, autofix, code review, agent handoff</summary>
     Loom,
+
+    /// <summary>Interactive ext-apps: trace viewer, error explorer, query studio</summary>
+    Apps,
 }

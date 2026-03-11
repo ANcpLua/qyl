@@ -20,7 +20,6 @@ using Qyl.Collector.Grpc;
 using Qyl.Collector.Health;
 using Qyl.Collector.Identity;
 using Qyl.Collector.Insights;
-using Qyl.Collector.Logs;
 using Qyl.Collector.Meta;
 using Qyl.Collector.Provisioning;
 using Qyl.Collector.SchemaControl;
@@ -32,6 +31,8 @@ using Qyl.Agents;
 using Qyl.Agents.Auth;
 using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
+using Qyl.Workflows.Workflows;
+
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -247,6 +248,10 @@ builder.Services.AddSingleton<AgentHandoffService>();
 
 // Loom code review: LLM-powered PR diff analysis
 builder.Services.AddSingleton<CodeReviewService>();
+
+// Loom interactive debugging: insight + streaming explorer
+builder.Services.AddSingleton<LoomInsightService>();
+builder.Services.AddSingleton<LoomExplorerService>();
 
 // Workflow run service
 builder.Services.AddSingleton<WorkflowRunService>();
@@ -853,6 +858,7 @@ app.MapCodeReviewEndpoints();
 app.MapCodingAgentEndpoints();
 app.MapGitHubWebhookEndpoints();
 app.MapLoomSettingsEndpoints();
+app.MapLoomEndpoints();
 app.MapTriageEndpoints();
 app.MapWorkflowEndpoints();
 app.MapWorkflowRunEndpoints();

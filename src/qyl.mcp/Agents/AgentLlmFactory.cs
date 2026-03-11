@@ -2,7 +2,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
 
-namespace Qyl.Mcp.Agents;
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Creates an <see cref="IChatClient"/> for the use_qyl meta-agent from environment variables.

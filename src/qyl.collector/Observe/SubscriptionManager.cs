@@ -2,6 +2,7 @@ using System.Diagnostics;
 using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Trace;
+using Qyl.Contracts.Generated;
 
 namespace Qyl.Collector.Observe;
 
@@ -104,18 +105,16 @@ internal sealed class SubscriptionManager : IDisposable
     /// </summary>
     private static string? ResolveContractHash(string filter)
     {
-        ReadOnlySpan<string> sources = ["qyl.genai", "qyl.db", "qyl.traced", "qyl.agent"];
-
         string? matchedSource = null;
-        foreach (var source in sources)
+        foreach (var domain in DomainContracts.All)
         {
-            if (!MatchesFilter(source, filter))
+            if (!MatchesFilter(domain.Source, filter))
                 continue;
 
             if (matchedSource is not null)
                 return null; // Multiple matches (e.g., wildcard "qyl.*") → no single contract
 
-            matchedSource = source;
+            matchedSource = domain.Source;
         }
 
         return matchedSource is not null

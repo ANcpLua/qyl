@@ -1,3 +1,5 @@
+using Qyl.Contracts.Generated;
+
 namespace Qyl.Collector.Observe;
 
 /// <summary>
@@ -7,7 +9,7 @@ namespace Qyl.Collector.Observe;
 internal static class SchemaVersionNegotiator
 {
     /// <summary>Collector's deployed semconv version (matches DomainContracts.SchemaVersion).</summary>
-    internal const string CollectorVersion = "semconv-1.40.0";
+    internal const string CollectorVersion = DomainContracts.SchemaVersion;
 
     // ── Result DU ─────────────────────────────────────────────────────────────
 

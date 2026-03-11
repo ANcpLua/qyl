@@ -6,13 +6,22 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// <remarks>
 ///     <para>
 ///         The source generator creates a Counter instrument and implements the method
-///         to record increments with tags from parameters marked with <see cref="TagAttribute" />.
+///         to record increments or explicit deltas with tags from parameters marked with
+///         <see cref="TagAttribute" />.
 ///     </para>
 ///     <para>
-///         Example:
+///         When the first non-tag parameter is numeric, its value is passed to
+///         <c>Counter&lt;long&gt;.Add(...)</c>. If no non-tag parameter exists, the generator
+///         emits <c>Add(1)</c> for simple occurrence counters.
+///     </para>
+///     <para>
+///         Examples:
 ///         <code>
 /// [Counter("orders.created", Unit = "{order}", Description = "Orders created")]
 /// public static partial void RecordOrderCreated([Tag("status")] string status);
+///
+/// [Counter("orders.retried", Unit = "{retry}", Description = "Retries processed")]
+/// public static partial void RecordRetries(long value, [Tag("status")] string status);
 /// </code>
 ///     </para>
 /// </remarks>

@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for system health and storage status.
@@ -31,7 +31,7 @@ public sealed class StorageHealthTools(HttpClient client)
     {
         var health = await client.GetFromJsonAsync<HealthResponse>(
             "/health",
-            StorageHealthJsonContext.Default.HealthResponse).ConfigureAwait(false);
+            qyl.mcp.Tools.StorageHealthJsonContext.Default.HealthResponse).ConfigureAwait(false);
 
         var sb = new StringBuilder();
         sb.AppendLine("# Storage Statistics");

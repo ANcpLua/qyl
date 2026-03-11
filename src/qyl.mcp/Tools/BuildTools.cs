@@ -3,7 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 [McpServerToolType]
 public sealed class BuildTools(HttpClient client)
@@ -18,7 +18,7 @@ public sealed class BuildTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<BuildFailuresResponse>(
                 $"/api/v1/build-failures?limit={Math.Clamp(limit, 1, 100)}",
-                BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return "No captured build failures.";
@@ -60,7 +60,7 @@ public sealed class BuildTools(HttpClient client)
 
         return CollectorHelper.ExecuteAsync(async () =>
         {
-            if (await client.GetFromJsonAsync<BuildFailureDto>($"/api/v1/build-failures/{Uri.EscapeDataString(id)}", BuildJsonContext.Default.BuildFailureDto).ConfigureAwait(false) is not { } item)
+            if (await client.GetFromJsonAsync<BuildFailureDto>($"/api/v1/build-failures/{Uri.EscapeDataString(id)}", qyl.mcp.Tools.BuildJsonContext.Default.BuildFailureDto).ConfigureAwait(false) is not { } item)
                 return $"Build failure '{id}' was not found.";
 
             var sb = new StringBuilder();
@@ -116,7 +116,7 @@ public sealed class BuildTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<BuildFailuresResponse>(
                 $"/api/v1/build-failures/search?pattern={Uri.EscapeDataString(pattern)}&limit={Math.Clamp(limit, 1, 100)}",
-                BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.BuildJsonContext.Default.BuildFailuresResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"No build failures matched '{pattern}'.";

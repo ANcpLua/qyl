@@ -18,6 +18,7 @@ internal static class TracedInterceptorEmitter
         EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
         sb.AppendLine("using System.Diagnostics;");
         sb.AppendLine();
+        AppendGeneratedActivitySourceAttributes(sb, invocations);
         EmitterHelpers.AppendInterceptsLocationAttribute(sb);
         AppendActivitySourcesClass(sb, fieldNames);
 
@@ -32,6 +33,22 @@ internal static class TracedInterceptorEmitter
 
         EmitterHelpers.AppendClassClose(sb);
         return sb.ToString();
+    }
+
+    private static void AppendGeneratedActivitySourceAttributes(
+        StringBuilder sb,
+        ImmutableArray<TracedCallSite> invocations)
+    {
+        foreach (var activitySourceName in invocations
+                     .Select(static invocation => invocation.ActivitySourceName)
+                     .Distinct(StringComparer.Ordinal)
+                     .OrderBy(static name => name, StringComparer.Ordinal))
+        {
+            sb.AppendLine(
+                $"[assembly: global::Qyl.Instrumentation.GeneratedActivitySourceAttribute({SymbolDisplay.FormatLiteral(activitySourceName, quote: true)})]");
+        }
+
+        sb.AppendLine();
     }
 
     // ── ActivitySource field map ──────────────────────────────────────────────

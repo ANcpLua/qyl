@@ -26,31 +26,6 @@ internal static class MeterAnalyzer
         node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
 
     /// <summary>
-    ///     Extracts a meter definition from a syntax context if it has a [Meter] attribute.
-    ///     Returns null if no [Meter] attribute or if the class is not properly decorated.
-    /// </summary>
-    public static MeterDefinition? ExtractDefinition(
-        GeneratorSyntaxContext context,
-        CancellationToken cancellationToken)
-    {
-        if (context.Node is not ClassDeclarationSyntax classSyntax)
-            return null;
-
-        if (AnalyzerHelpers.IsGeneratedFile(context.Node.SyntaxTree.FilePath))
-            return null;
-
-        var semanticModel = context.SemanticModel;
-
-        if (semanticModel.GetDeclaredSymbol(classSyntax, cancellationToken) is not { } classSymbol)
-            return null;
-
-        return AnalyzerHelpers.FindAttributeByName(classSymbol.GetAttributes(), MeterAttributeMetadataName) is not
-            { } meterAttr
-            ? null
-            : BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.Node));
-    }
-
-    /// <summary>
     ///     Extracts a meter definition from a targeted attribute context.
     ///     This is used with <c>ForAttributeWithMetadataName</c> for incremental performance.
     /// </summary>
@@ -78,9 +53,9 @@ internal static class MeterAnalyzer
         AttributeData meterAttr,
         string sortKey)
     {
-        // Must be partial and static
-        if (!classSyntax.Modifiers.Any(SyntaxKind.PartialKeyword) ||
-            !classSyntax.Modifiers.Any(SyntaxKind.StaticKeyword))
+        // The generator requires a partial container but can target either static
+        // or non-static classes as long as the metric methods themselves are static.
+        if (!classSyntax.Modifiers.Any(SyntaxKind.PartialKeyword))
             return null;
 
         var (meterName, meterVersion) = ExtractMeterAttributeValues(meterAttr);
@@ -124,7 +99,7 @@ internal static class MeterAnalyzer
 
         foreach (var member in classSymbol.GetMembers())
         {
-            if (member is not IMethodSymbol method)
+            if (member is not IMethodSymbol { IsStatic: true } method)
                 continue;
 
             if (!method.IsPartialDefinition)
@@ -136,63 +111,17 @@ internal static class MeterAnalyzer
             var upDownCounterAttr =
                 AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), UpDownCounterAttributeFullName);
 
-            if (counterAttr is null && histogramAttr is null && gaugeAttr is null && upDownCounterAttr is null)
+            var (kind, attr) = counterAttr is not null ? (MetricKind.Counter, counterAttr)
+                : histogramAttr is not null ? (MetricKind.Histogram, histogramAttr)
+                : gaugeAttr is not null ? (MetricKind.Gauge, gaugeAttr)
+                : upDownCounterAttr is not null ? (MetricKind.UpDownCounter, upDownCounterAttr)
+                : default;
+
+            if (attr is null)
                 continue;
 
-            MetricKind kind;
-            string? metricName;
-            string? unit;
-            string? description;
-            string? valueTypeName = null;
-
-            if (counterAttr is not null)
-            {
-                kind = MetricKind.Counter;
-                (metricName, unit, description) = ExtractMetricAttributeValues(counterAttr);
-            }
-            else if (histogramAttr is not null)
-            {
-                kind = MetricKind.Histogram;
-                (metricName, unit, description) = ExtractMetricAttributeValues(histogramAttr);
-
-                // First non-tagged parameter is the value for histogram
-                foreach (var param in method.Parameters.Where(static param =>
-                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
-                {
-                    valueTypeName = param.Type.ToDisplayString();
-                    break;
-                }
-            }
-            else if (gaugeAttr is not null)
-            {
-                kind = MetricKind.Gauge;
-                (metricName, unit, description) = ExtractMetricAttributeValues(gaugeAttr);
-
-                // First non-tagged parameter is the value for gauge
-                foreach (var param in method.Parameters.Where(static param =>
-                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
-                {
-                    valueTypeName = param.Type.ToDisplayString();
-                    break;
-                }
-            }
-            else if (upDownCounterAttr is not null)
-            {
-                kind = MetricKind.UpDownCounter;
-                (metricName, unit, description) = ExtractMetricAttributeValues(upDownCounterAttr);
-
-                // First non-tagged parameter is the delta value for up-down counter
-                foreach (var param in method.Parameters.Where(static param =>
-                             AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
-                {
-                    valueTypeName = param.Type.ToDisplayString();
-                    break;
-                }
-            }
-            else
-            {
-                continue;
-            }
+            var (metricName, unit, description) = ExtractMetricAttributeValues(attr);
+            var valueTypeName = FindMetricValueTypeName(method);
 
             if (metricName is null)
                 continue;
@@ -210,6 +139,17 @@ internal static class MeterAnalyzer
         }
 
         return methods.ToArray().ToEquatableArray();
+    }
+
+    private static string? FindMetricValueTypeName(IMethodSymbol method)
+    {
+        foreach (var param in method.Parameters.Where(static param =>
+                     AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
+        {
+            return param.Type.ToDisplayString();
+        }
+
+        return null;
     }
 
     private static (string? Name, string? Unit, string? Description) ExtractMetricAttributeValues(AttributeData attr)

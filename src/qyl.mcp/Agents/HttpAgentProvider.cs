@@ -4,7 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 
-namespace Qyl.Mcp.Agents;
+namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Agent provider that proxies to the collector's /api/v1/copilot/chat endpoint.
@@ -35,7 +35,7 @@ internal sealed partial class HttpAgentProvider(HttpClient client, ILogger<HttpA
             response = await client.PostAsJsonAsync(
                 "/api/v1/copilot/chat",
                 request,
-                AgentJsonContext.Default.AgentChatRequest,
+                qyl.mcp.Agents.AgentJsonContext.Default.AgentChatRequest,
                 ct).ConfigureAwait(false);
         }
         catch (HttpRequestException ex)
@@ -76,7 +76,7 @@ internal sealed partial class HttpAgentProvider(HttpClient client, ILogger<HttpA
             AgentStreamUpdateDto? update;
             try
             {
-                update = JsonSerializer.Deserialize(json, AgentJsonContext.Default.AgentStreamUpdateDto);
+                update = JsonSerializer.Deserialize(json, qyl.mcp.Agents.AgentJsonContext.Default.AgentStreamUpdateDto);
             }
             catch (JsonException)
             {

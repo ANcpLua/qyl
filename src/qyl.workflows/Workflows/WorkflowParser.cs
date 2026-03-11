@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 using Qyl.Agents;
 using Qyl.Contracts.Copilot;
 
-namespace Qyl.Workflows;
+namespace Qyl.Workflows.Workflows;
 
 /// <summary>
 ///     Parses workflow definition files from .qyl/workflows/*.md format.

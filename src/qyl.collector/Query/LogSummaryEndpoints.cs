@@ -1,4 +1,4 @@
-namespace Qyl.Collector.Logs;
+namespace Qyl.Collector.Query;
 
 internal static class LogSummaryEndpoints
 {

@@ -1,9 +1,8 @@
 using System.ComponentModel;
-using System.Net.Http.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 /// <summary>
 ///     MCP tools for GitHub integration: trigger code reviews,

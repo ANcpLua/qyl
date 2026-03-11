@@ -1,10 +1,9 @@
+using System.ComponentModel;
 using System.Net.Http.Json;
-using System.Text;
 using System.Text.Json.Serialization;
 using ModelContextProtocol.Server;
-using System.ComponentModel;
 
-namespace Qyl.Mcp.Tools;
+namespace qyl.mcp.Tools;
 
 [McpServerToolType]
 public sealed class ServiceTools(HttpClient client)
@@ -24,7 +23,7 @@ public sealed class ServiceTools(HttpClient client)
 
             var response = await client.GetFromJsonAsync<ServicesMcpResponse>(
                 $"/api/v1/services{query}",
-                ServiceMcpJsonContext.Default.ServicesMcpResponse).ConfigureAwait(false);
+                qyl.mcp.Tools.ServiceMcpJsonContext.Default.ServicesMcpResponse).ConfigureAwait(false);
 
             if (response?.Services is not { Count: > 0 })
                 return "No services detected yet. Services are auto-discovered from incoming OTLP telemetry.";

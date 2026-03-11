@@ -14,8 +14,6 @@ using Nuke.Common.Tools.GitVersion;
 using Nuke.Components;
 using Serilog;
 
-namespace Qyl.Build;
-
 [GitHubActions(
     "ci",
     GitHubActionsImage.UbuntuLatest,

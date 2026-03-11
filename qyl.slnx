@@ -13,8 +13,9 @@
         <File Path="README.md" />
     </Folder>
 
-    <!-- Build infrastructure + schemas -->
+    <!-- Build infrastructure -->
     <Folder Name="/eng/">
+        <File Path="eng\loom-requirements-registry.png" />
         <File Path="eng\semconv\qyl-extensions.json" />
         <File Path="eng\websocket.md" />
         <Project Path="eng/build/build.csproj" />
@@ -27,7 +28,64 @@
         <File Path="eng/MSBuild/Shared.Claude.props" />
         <File Path="eng/MSBuild/Shared.Claude.Rules.targets" />
         <File Path="eng/MSBuild/Shared.Claude.targets" />
+    </Folder>
+
+    <!-- TypeSpec specs + schemas -->
+    <Folder Name="/core/">
+        <File Path="core/openapi/openapi.yaml" />
+        <File Path="core/schemas/qyl-telemetry" />
+        <File Path="core/specs/main.tsp" />
+        <File Path="core/specs/tspconfig.yaml" />
+        <File Path="core/specs/package.json" />
+        <File Path="core/specs/VERSIONING.md" />
         <File Path="core/specs/generated/semconv.g.tsp" />
+    </Folder>
+    <Folder Name="/core/specs/" />
+    <Folder Name="/core/specs/api/">
+        <File Path="core/specs/api/routes.tsp" />
+        <File Path="core/specs/api/streaming.tsp" />
+    </Folder>
+    <Folder Name="/core/specs/common/">
+        <File Path="core/specs/common/errors.tsp" />
+        <File Path="core/specs/common/pagination.tsp" />
+        <File Path="core/specs/common/types.tsp" />
+    </Folder>
+    <Folder Name="/core/specs/models/">
+        <File Path="core/specs/models/alerting.tsp" />
+        <File Path="core/specs/models/configurator.tsp" />
+        <File Path="core/specs/models/db.tsp" />
+        <File Path="core/specs/models/deployment.tsp" />
+        <File Path="core/specs/models/error.tsp" />
+        <File Path="core/specs/models/genai.tsp" />
+        <File Path="core/specs/models/http.tsp" />
+        <File Path="core/specs/models/identity.tsp" />
+        <File Path="core/specs/models/issues.tsp" />
+        <File Path="core/specs/models/log.tsp" />
+        <File Path="core/specs/models/messaging.tsp" />
+        <File Path="core/specs/models/otel-config.tsp" />
+        <File Path="core/specs/models/retention.tsp" />
+        <File Path="core/specs/models/rpc.tsp" />
+        <File Path="core/specs/models/search.tsp" />
+        <File Path="core/specs/models/session.tsp" />
+        <File Path="core/specs/models/system.tsp" />
+        <File Path="core/specs/models/test.tsp" />
+        <File Path="core/specs/models/triage.tsp" />
+        <File Path="core/specs/models/workflow.tsp" />
+        <File Path="core/specs/models/workspace.tsp" />
+    </Folder>
+    <Folder Name="/core/specs/models/agent/">
+        <File Path="core/specs/models/agent/agent-run.tsp" />
+        <File Path="core/specs/models/agent/tool-call.tsp" />
+        <File Path="core/specs/models/agent/workflow-checkpoint.tsp" />
+        <File Path="core/specs/models/agent/workflow-execution.tsp" />
+    </Folder>
+    <Folder Name="/core/specs/otel/">
+        <File Path="core/specs/otel/enums.tsp" />
+        <File Path="core/specs/otel/logs.tsp" />
+        <File Path="core/specs/otel/metrics.tsp" />
+        <File Path="core/specs/otel/resource.tsp" />
+        <File Path="core/specs/otel/span.tsp" />
+        <File Path="core/specs/otel/storage.tsp" />
     </Folder>
 
     <!-- Platform: collector, contracts, hosting, loom -->
@@ -44,7 +102,12 @@
         <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
     </Folder>
-    <Folder Name="/src/" />
+
+    <!-- Loom -->
+    <Folder Name="/src/">
+        <Project Path="src/qyl.loom/qyl.loom.csproj" />
+    </Folder>
+
     <!-- AI: agents, workflows, MCP server -->
     <Folder Name="/src/ai/">
         <Project Path="src/qyl.agents/qyl.agents.csproj" />
@@ -67,100 +130,27 @@
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj" />
     </Folder>
 
-
     <!-- Docs -->
     <Folder Name="/docs/">
-        <File Path="docs/andrewlock-system-diagnostics-metrics-apis-parts-1-4.md" />
-        <File Path="docs/verify-catalog-docs.sh" />
-        <File Path="docs\persistent-agent-worktree-setup.md" />
-    </Folder>
-    <Folder Name="/docs/roadmap/">
-        <File Path="docs/roadmap/loom-design.md" />
-        <File Path="docs/roadmap/antipattern-remediation.md" />
-        <File Path="docs/roadmap/aspire-coverage.md" />
-        <File Path="docs/roadmap/hades-storage-purge.md" />
-        <File Path="docs/roadmap/otel-semconv-reference.md" />
-        <File Path="docs/roadmap/vector-stores-and-embeddings.md" />
-        <File Path="docs\roadmap\dotnet-vector-stores-and-embeddings.md" />
-        <File Path="docs\roadmap\w.md" />
-    </Folder>
-    <Folder Name="/docs/plans/">
-        <File Path="docs/plans/2026-03-03-qyl-agui-declarative-design.md" />
-        <File Path="docs/plans/2026-03-03-qyl-agui-declarative-impl.md" />
-        <File Path="docs/plans/2026-03-06-qyl-ship-workflow.md" />
-    </Folder>
-    <Folder Name="/docs/decisions/">
-        <File Path="docs/decisions/PRINCIPLES.md" />
-        <File Path="docs/decisions/SCOPE-TAXONOMY.md" />
-        <File Path="docs/decisions/suggested-improvements.yaml" />
-    </Folder>
-    <Folder Name="/docs/done/" />
-    <!-- Vertical slices -->
-    <Folder Name="/docs/ingestion/">
-        <File Path="docs/ingestion/spec.md" />
-        <File Path="docs/ingestion/requirements.md" />
-    </Folder>
-    <Folder Name="/docs/intelligence/">
-        <File Path="docs/intelligence/spec.md" />
-        <File Path="docs/intelligence/requirements.md" />
-    </Folder>
-    <Folder Name="/docs/intelligence/features/">
-        <File Path="docs/intelligence/features/ai-chat-analytics.md" />
-    </Folder>
-    <Folder Name="/docs/query/">
-        <File Path="docs/query/spec.md" />
-        <File Path="docs/query/requirements.md" />
-    </Folder>
-    <Folder Name="/docs/query/features/">
-        <File Path="docs/query/features/mcp-platform.md" />
-    </Folder>
-    <Folder Name="/docs/sdk/">
-        <File Path="docs/sdk/spec.md" />
-        <File Path="docs/sdk/requirements.md" />
-    </Folder>
-    <Folder Name="/docs/sdk/features/">
-        <File Path="docs/sdk/features/traced-annotations.md" />
-        <File Path="docs/sdk/features/zero-cost-observability.md" />
-    </Folder>
-    <Folder Name="/docs/presentation/">
-        <File Path="docs/presentation/spec.md" />
-        <File Path="docs/presentation/requirements.md" />
+        <File Path="docs/instrumentation-toolkit.md" />
+        <File Path="docs/loom-design.md" />
+        <File Path="docs/mcp-platform.md" />
+        <File Path="docs/mcp-tool-audit.md" />
+        <File Path="docs/qyl-ollama-mcp-design.md" />
+        <File Path="docs/sentry-ui-reference.md" />
+        <File Path="docs/zero-cost-observability.md" />
+        <File Path="docs\agent-framework.pdf" />
     </Folder>
     <Folder Name="/docs/screenshots/">
         <File Path="docs/screenshots/insights.png" />
         <File Path="docs/screenshots/issue-details.png" />
         <File Path="docs/screenshots/logs.png" />
-        <File Path="docs/screenshots/loom-requirements-registry.png" />
         <File Path="docs/screenshots/replays.png" />
         <File Path="docs/screenshots/seer.png" />
         <File Path="docs/screenshots/trace-explorer.png" />
         <File Path="docs/screenshots/traces.png" />
         <File Path="docs/screenshots/uptime.png" />
-        <File Path="docs\screenshots\01-issues-feed.png" />
-        <File Path="docs\screenshots\02-issues-errors-outages.png" />
-        <File Path="docs\screenshots\03-explore-traces.png" />
-        <File Path="docs\screenshots\04-explore-spans.png" />
-        <File Path="docs\screenshots\05-explore-logs.png" />
-        <File Path="docs\screenshots\06-dashboards-overview.png" />
-        <File Path="docs\screenshots\07-dashboards-general.png" />
-        <File Path="docs\screenshots\08-dashboards-frontend.png" />
-        <File Path="docs\screenshots\09-dashboards-backend.png" />
-        <File Path="docs\screenshots\10-dashboards-mobile.png" />
-        <File Path="docs\screenshots\11-insights-overview.png" />
-        <File Path="docs\screenshots\12-insights-frontend.png" />
-        <File Path="docs\screenshots\13-insights-backend.png" />
-        <File Path="docs\screenshots\14-insights-mobile.png" />
-        <File Path="docs\screenshots\15-insights-ai-agents.png" />
-        <File Path="docs\screenshots\16-insights-llm-monitoring.png" />
-        <File Path="docs\screenshots\17-performance-overview.png" />
-        <File Path="docs\screenshots\18-profiling.png" />
-        <File Path="docs\screenshots\19-session-replays.png" />
-        <File Path="docs\screenshots\21-alerts.png" />
-        <File Path="docs\screenshots\22-settings-overview.png" />
-        <File Path="docs\screenshots\23-settings-projects.png" />
-        <File Path="docs\screenshots\24-settings-teams.png" />
-        <File Path="docs\screenshots\25-settings-integrations.png" />
-        <File Path="docs\screenshots\26-uptime-monitors.png" />
+
         <File Path="docs\screenshots\27-buildwithcode-login.jpeg" />
         <File Path="docs\screenshots\28-user-feedback.jpeg" />
         <File Path="docs\screenshots\29-releases.jpeg" />
@@ -186,26 +176,25 @@
         <File Path="docs\screenshots\46-dev-architecture.jpeg" />
         <File Path="docs\screenshots\49-pricing.jpeg" />
         <File Path="docs\screenshots\50-api-docs.jpeg" />
-    </Folder>
-    <Folder Name="/docs/prompts/">
-        <File Path="docs/prompts/README.md" />
-        <File Path="docs/prompts/01-worktree-bootstrap.md" />
-        <File Path="docs/prompts/02-1-metrics-instrument-types.md" />
-        <File Path="docs/prompts/02-2-metrics-diagnostics-tooling.md" />
-        <File Path="docs/prompts/02-3-metrics-source-generators.md" />
-        <File Path="docs/prompts/02-4-metrics-meterlistener.md" />
-    </Folder>
-    <Folder Name="/docs/agent-guidance/">
-        <File Path="docs/agent-guidance/architecture.md" />
-        <File Path="docs/agent-guidance/build-and-tooling.md" />
-        <File Path="docs/agent-guidance/conventions.md" />
-        <File Path="docs/agent-guidance/docs-catalog.md" />
-        <File Path="docs/agent-guidance/requests-to-humans.md" />
-    </Folder>
 
+        <File Path="docs/screenshots/51-sentry-seer.png" />
+        <File Path="docs/screenshots/52-sentry-mcp.png" />
+        <File Path="docs/screenshots/53-sentry-session-replay.png" />
+        <File Path="docs/screenshots/54-sentry-performance.png" />
+        <File Path="docs/screenshots/55-sentry-dashboards.png" />
+        <File Path="docs/screenshots/56-sentry-alerts.png" />
+        <File Path="docs/screenshots/57-sentry-error-tracking.png" />
+        <File Path="docs/screenshots/58-sentry-distributed-tracing.png" />
+        <File Path="docs/screenshots/59-sentry-profiling.png" />
+        <File Path="docs/screenshots/60-sentry-discover.png" />
+        <File Path="docs/screenshots/61-sentry-developer-metrics.png" />
+        <File Path="docs/screenshots/62-sentry-cron-monitoring.png" />
+        <File Path="docs/screenshots/63-sentry-codecov.png" />
+    </Folder>
 
     <!-- GitHub config -->
     <Folder Name="/.github/">
+        <File Path=".github/workflows/action-governance.yml" />
         <File Path=".github/workflows/auto-merge.yml" />
         <File Path=".github/workflows/ci.yml" />
         <File Path=".github/workflows/claude.yml" />
@@ -219,11 +208,34 @@
     <Folder Name="/samples/">
         <Project Path="samples/maf-agent-qyl/maf-agent-qyl.csproj" />
     </Folder>
-    <Folder Name="/.agents/" />
+
+    <!-- Site -->
+    <Folder Name="/site/">
+        <File Path="site/index.html" />
+    </Folder>
+    <Folder Name="/.claude/" />
 
     <!-- Claude config -->
-    <Folder Name="/.claude/">
-        <File Path=".claude/settings.local.json" />
+    <Folder Name="/.claude/qyl-workflows/">
+        <File Path=".claude/qyl-workflows/AGENTS.md" />
+        <File Path=".claude/qyl-workflows/README.md" />
+        <File Path=".claude/qyl-workflows/qyl-code-review.md" />
+        <File Path=".claude/qyl-workflows/qyl-command.md" />
+        <File Path=".claude/qyl-workflows/qyl-fix-issues.md" />
+        <File Path=".claude/qyl-workflows/qyl-pr-code-review.md" />
+        <File Path=".claude/qyl-workflows/qyl-skill-tree.md" />
+        <File Path=".claude/qyl-workflows/qyl-workflow.md" />
+    </Folder>
+    <Folder Name="/.claude/rules/">
+        <File Path=".claude/rules/collector.md" />
+        <File Path=".claude/rules/copilot.md" />
+        <File Path=".claude/rules/mcp-server.md" />
+        <File Path=".claude/rules/testing.md" />
+    </Folder>
+    <Folder Name="/.claude/skills/">
+        <File Path=".claude/skills/instrument-service/SKILL.md" />
+        <File Path=".claude/skills/nuke-build/SKILL.md" />
+        <File Path=".claude/skills/run-tests/SKILL.md" />
     </Folder>
 
 </Solution>
