@@ -8,6 +8,7 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public sealed partial class LoomInsightService(
     DuckDbStore store,
+    IssueContextBuilder contextBuilder,
     IssueService issueService,
     ILogger<LoomInsightService> logger,
     IChatClient? llm = null)
@@ -36,7 +37,8 @@ public sealed partial class LoomInsightService(
         string issueId, IssueSummary issue,
         IReadOnlyList<ErrorIssueEventRow> events, CancellationToken ct)
     {
-        string context = BuildContextBlock(issue, events);
+        IssueContext ctx = await contextBuilder.BuildAsync(issueId, ct: ct).ConfigureAwait(false);
+        string context = ctx.FormattedBlock;
 
         try
         {
@@ -85,25 +87,6 @@ public sealed partial class LoomInsightService(
             InitialGuess = initialGuess,
             InTheTrace = inTheTrace
         };
-    }
-
-    private static string BuildContextBlock(IssueSummary issue, IReadOnlyList<ErrorIssueEventRow> events)
-    {
-        StringBuilder sb = new();
-        sb.AppendLine($"Type: {issue.ErrorType}");
-        sb.AppendLine($"Message: {issue.ErrorMessage ?? "N/A"}");
-        sb.AppendLine($"Occurrences: {issue.EventCount}");
-        sb.AppendLine($"First seen: {issue.FirstSeen:O}");
-        sb.AppendLine($"Last seen: {issue.LastSeen:O}");
-
-        foreach (ErrorIssueEventRow e in events)
-        {
-            sb.AppendLine($"- [{e.Timestamp:O}] {e.Message ?? "no message"}");
-            if (e.StackTrace is not null)
-                sb.AppendLine($"  Stack: {e.StackTrace[..Math.Min(500, e.StackTrace.Length)]}");
-        }
-
-        return sb.ToString();
     }
 
     private static LoomInsight? TryParseInsight(string text, string issueId)
