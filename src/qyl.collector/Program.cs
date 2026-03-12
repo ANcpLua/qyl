@@ -29,6 +29,8 @@ using Qyl.Collector.Telemetry;
 using Qyl.Collector.Workflow;
 using Qyl.Agents;
 using Qyl.Agents.Auth;
+using Qyl.Agents.Context;
+using Qyl.Contracts.Copilot;
 using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Workflows.Workflows;
@@ -207,6 +209,13 @@ builder.Services.AddHostedService<EmbeddingClusterWorker>();
 // Loom triage pipeline: auto-score and route untriaged error issues
 builder.Services.AddSingleton<TriagePipelineService>();
 builder.Services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
+
+// Loom session persistence and context
+builder.Services.AddSingleton<LoomSessionStore>();
+builder.Services.AddSingleton<IssueContextBuilder>();
+builder.Services.AddSingleton<IIssueContextSource>(sp =>
+    sp.GetRequiredService<IssueContextBuilder>());
+builder.Services.AddSingleton<ObservabilityContextProvider>();
 
 // Loom autofix agent: autonomously processes pending fix runs through the LLM pipeline
 builder.Services.AddSingleton<AutofixAgentService>();
@@ -395,7 +404,13 @@ app.MapCopilotEndpoints();
 // AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
 if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
 {
+    // Generic AG-UI chat (no issue context)
     app.MapQylAguiChat(QylAgentBuilder.FromChatClient(aguiChatClient, agentName: "qyl-llm"));
+
+    // Loom conversational AG-UI (issue-aware)
+    var contextProvider = app.Services.GetRequiredService<ObservabilityContextProvider>();
+    var loomAgent = LoomAgent.Create(aguiChatClient, [], [contextProvider]);
+    app.MapLoomAguiEndpoints(loomAgent);
 }
 app.MapClaudeCodeEndpoints();
 app.MapServiceEndpoints();
