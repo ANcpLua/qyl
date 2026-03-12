@@ -30,6 +30,7 @@ public static class QylAgentBuilder
     /// </summary>
     /// <param name="adapter">The live adapter whose inner agent to expose.</param>
     /// <returns>The underlying <see cref="AIAgent"/>.</returns>
+    [Obsolete("Use LoomAgent.Create() with LoomAguiEndpoints instead. Will be removed when workflow engine is migrated.")]
     public static AIAgent FromCopilotAdapter(QylCopilotAdapter adapter)
     {
         Guard.NotNull(adapter);

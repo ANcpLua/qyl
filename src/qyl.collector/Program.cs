@@ -400,7 +400,7 @@ app.MapGet("/api/v1/traces", async (
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
-app.MapCopilotEndpoints();
+app.MapCopilotEndpoints(); // DEPRECATED: Replace with LoomAguiEndpoints. Kept for workflow engine compatibility.
 // AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
 if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
 {
