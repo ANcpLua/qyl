@@ -3,21 +3,22 @@
 @Version.props
 
 OTLP-native observability: ingest traces/logs/metrics, store in DuckDB, query via API/MCP/Copilot.
-Deploys as Docker container (self-hosted) or cloud service (HTTP + OAuth).
+Docker image IS the product.
 
 ## Core Rules
 
 - When you learn something non-obvious, update MEMORY.md or this file.
-- If something doesn't line up or exist twice suggest the human a better approach.
+- Always follow established coding patterns and conventions in the codebase.
+- If something doesn't make sense architecturally, add it to Requests to Humans below.
 
 ## Docs-First Workflow
 
 - Start from the relevant slice doc or active plan doc before changing code.
 - Work step by step through active docs.
 - When a plan/roadmap/temp execution doc is completed or superseded, move it to `docs/done/`.
-- Keep the overall structure very cohesive avoid extreme programming - be smart not lazy.
+- Do NOT move prompts, slice `spec.md`, slice `requirements.md`, decisions, references, screenshots, or canonical guidance docs into `docs/done/`.
 
-## Assistant Workflow Reference Pack (qyl)
+## Assistant Workflow Reference Pack (qyl-native)
 
 - Workflow index: `.claude/qyl-workflows/qyl-skill-tree.md`
 - Workflow router: `.claude/qyl-workflows/qyl-workflow.md`
@@ -58,9 +59,9 @@ CopilotKit / Angular / Vanilla JS
                        v
 +----------+  +------------------+  +------+
 | qyl.mcp  |->|  qyl.collector   |<-| OTLP |
-| (stdio + |  |  (ASP.NET Core)  |  |Clients|
-|  HTTP)   |  +--+-----------+---+  +------+
-+----------+     |           |
+| (stdio)  |  |  (ASP.NET Core)  |  |Clients|
++----------+  +--+-----------+---+  +------+
+                 |           |
                  v           v
        +----------+  +------------+
        |  DuckDB  |  | qyl.agents |
@@ -72,11 +73,6 @@ CopilotKit / Angular / Vanilla JS
                     → InstrumentedChatClient
                     → GitHub Copilot / Azure OpenAI / Ollama
 ```
-
-**qyl.mcp deployment modes:**
-- **Embedded** — runs inside qyl.collector, direct DI access via `IQylDataService`
-- **Standalone stdio** — CLI tool (`dotnet tool install qyl-mcp`), token auth
-- **Standalone HTTP** — cloud service, OAuth 2.0 + PKCE, MCP 1.1.0 auth
 
 ## Dependency Chain
 
@@ -97,12 +93,11 @@ allowed:
   collector -> agents (ProjectReference)
   collector -> workflows (ProjectReference)
   collector -> instrumentation (ProjectReference)
-  collector -> mcp (ProjectReference)               # embedded mode
   mcp -> contracts (ProjectReference)
-  mcp -> IQylDataService abstraction                # direct DI (embedded) or HTTP client (standalone)
-  loom -> collector, agents, workflows, contracts, instrumentation (ProjectReference)
   dashboard -> collector (HTTP at runtime)
+  mcp -> collector (HTTP at runtime)
 forbidden:
+  mcp -> collector (ProjectReference)               # must use HTTP
   contracts -> any-package                           # must stay BCL-only
   instrumentation.generators -> collector/storage    # DDD boundary
   collector.storage.generators -> instrumentation    # DDD boundary
@@ -116,7 +111,6 @@ forbidden:
 | Frontend  | React 19, Vite 7, Tailwind CSS 4              |
 | Storage   | DuckDB (columnar, glibc required)             |
 | Protocol  | OTel Semantic Conventions 1.40                |
-| MCP       | ModelContextProtocol.AspNetCore 1.1.0         |
 | Testing   | xUnit v3, Microsoft Testing Platform          |
 | Build     | NUKE                                          |
 

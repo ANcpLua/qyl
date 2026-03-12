@@ -15,7 +15,6 @@
 
     <!-- Build infrastructure -->
     <Folder Name="/eng/">
-        <File Path="eng\loom-requirements-registry.png" />
         <File Path="eng\semconv\qyl-extensions.json" />
         <File Path="eng\websocket.md" />
         <Project Path="eng/build/build.csproj" />
@@ -88,7 +87,7 @@
         <File Path="core/specs/otel/storage.tsp" />
     </Folder>
 
-    <!-- Platform: collector, contracts, hosting, loom -->
+    <!-- Platform: collector, contracts, hosting -->
     <Folder Name="/src/platform/">
         <Project Path="src/qyl.collector/qyl.collector.csproj" />
         <Project Path="src/qyl.contracts/qyl.contracts.csproj" />
@@ -101,11 +100,6 @@
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj" />
         <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj" />
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
-    </Folder>
-
-    <!-- Loom -->
-    <Folder Name="/src/">
-        <Project Path="src/qyl.loom/qyl.loom.csproj" />
     </Folder>
 
     <!-- AI: agents, workflows, MCP server -->
@@ -401,19 +395,6 @@
         <File Path="docs\screenshots\49-pricing.jpeg" />
         <File Path="docs\screenshots\50-api-docs.jpeg" />
 
-        <File Path="docs/screenshots/51-sentry-seer.png" />
-        <File Path="docs/screenshots/52-sentry-mcp.png" />
-        <File Path="docs/screenshots/53-sentry-session-replay.png" />
-        <File Path="docs/screenshots/54-sentry-performance.png" />
-        <File Path="docs/screenshots/55-sentry-dashboards.png" />
-        <File Path="docs/screenshots/56-sentry-alerts.png" />
-        <File Path="docs/screenshots/57-sentry-error-tracking.png" />
-        <File Path="docs/screenshots/58-sentry-distributed-tracing.png" />
-        <File Path="docs/screenshots/59-sentry-profiling.png" />
-        <File Path="docs/screenshots/60-sentry-discover.png" />
-        <File Path="docs/screenshots/61-sentry-developer-metrics.png" />
-        <File Path="docs/screenshots/62-sentry-cron-monitoring.png" />
-        <File Path="docs/screenshots/63-sentry-codecov.png" />
     </Folder>
 
     <!-- GitHub config -->
@@ -452,7 +433,6 @@
     </Folder>
     <Folder Name="/.claude/rules/">
         <File Path=".claude/rules/collector.md" />
-        <File Path=".claude/rules/copilot.md" />
         <File Path=".claude/rules/mcp-server.md" />
         <File Path=".claude/rules/testing.md" />
     </Folder>

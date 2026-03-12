@@ -1,4 +1,4 @@
-namespace Qyl.Loom;
+namespace Qyl.Collector.Analytics;
 
 /// <summary>Anomaly classification confidence level.</summary>
 public enum AnomalyType

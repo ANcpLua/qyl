@@ -1,48 +1,37 @@
+using System.Text;
+using Qyl.Collector.Errors;
+using Qyl.Collector.Storage;
 using Qyl.Contracts.Copilot;
 
 namespace Qyl.Collector.Autofix;
 
-/// <summary>
-///     Builds a shared formatted issue-context block for Loom and agent integrations.
-/// </summary>
 public sealed class IssueContextBuilder(DuckDbStore store, IssueService issueService)
     : IIssueContextSource
 {
-    public const int DefaultMaxEvents = 5;
     public const int DefaultMaxStackLength = 800;
 
-    /// <summary>
-    ///     Loads issue data and recent events and returns a formatted context block.
-    /// </summary>
     public async Task<IssueContext> BuildAsync(
         string issueId,
         string? userContext = null,
-        int maxEvents = DefaultMaxEvents,
+        int maxEvents = 5,
         int maxStackLength = DefaultMaxStackLength,
         CancellationToken ct = default)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (issue is null)
-            return IssueContext.Empty;
+        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct);
+        if (issue is null) return IssueContext.Empty;
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
-            .GetEventsAsync(issueId, maxEvents, ct)
-            .ConfigureAwait(false);
+        IReadOnlyList<ErrorIssueEventRow> events =
+            await issueService.GetEventsAsync(issueId, maxEvents, ct);
 
-        return new IssueContext(
-            issue,
-            events,
-            userContext,
-            FormatBlock(issue, events, userContext, maxStackLength));
+        string block = FormatBlock(issue, events, userContext, maxStackLength);
+        return new IssueContext(issue, events, userContext, block);
     }
 
     async Task<string> IIssueContextSource.GetFormattedContextAsync(
-        string issueId,
-        string? userContext,
-        CancellationToken ct)
+        string issueId, string? userContext, CancellationToken ct)
     {
-        var context = await BuildAsync(issueId, userContext, ct: ct).ConfigureAwait(false);
-        return context.FormattedBlock;
+        IssueContext ctx = await BuildAsync(issueId, userContext, ct: ct);
+        return ctx.FormattedBlock;
     }
 
     internal static string FormatBlock(
@@ -51,52 +40,33 @@ public sealed class IssueContextBuilder(DuckDbStore store, IssueService issueSer
         string? userContext,
         int maxStackLength = DefaultMaxStackLength)
     {
-        var sb = new StringBuilder();
+        StringBuilder sb = new();
         sb.AppendLine($"Error type: {issue.ErrorType}");
         sb.AppendLine($"Message: {issue.ErrorMessage ?? "N/A"}");
         sb.AppendLine($"Occurrences: {issue.EventCount}");
         sb.AppendLine($"First seen: {issue.FirstSeen:O}");
         sb.AppendLine($"Last seen: {issue.LastSeen:O}");
-        sb.AppendLine($"Env: {ResolveEnvironment(events)}");
 
         if (events.Count > 0)
         {
-            sb.AppendLine();
-            sb.AppendLine("Recent events:");
-
-            for (var index = 0; index < events.Count; index++)
+            sb.AppendLine("\nRecent events:");
+            foreach (ErrorIssueEventRow e in events)
             {
-                var evt = events[index];
-                sb.AppendLine($"  [{evt.Timestamp:O}] {evt.Message ?? "no message"}");
-
-                if (!string.IsNullOrWhiteSpace(evt.StackTrace))
-                    sb.AppendLine($"    Stack: {Truncate(evt.StackTrace, maxStackLength)}");
-
-                if (!string.IsNullOrWhiteSpace(evt.Environment))
-                    sb.AppendLine($"    Env: {evt.Environment}");
+                sb.AppendLine($"  [{e.Timestamp:O}] {e.Message ?? "no message"}");
+                if (e.StackTrace is not null)
+                    sb.AppendLine($"    Stack: {e.StackTrace[..Math.Min(maxStackLength, e.StackTrace.Length)]}");
+                if (e.Environment is not null)
+                    sb.AppendLine($"    Env: {e.Environment}");
             }
         }
 
-        if (!string.IsNullOrWhiteSpace(userContext))
-        {
-            sb.AppendLine();
-            sb.AppendLine("Additional context from user:");
-            sb.AppendLine(userContext);
-        }
+        if (userContext is not null)
+            sb.AppendLine($"\nAdditional context from user:\n{userContext}");
 
         return sb.ToString();
     }
-
-    private static string ResolveEnvironment(IReadOnlyList<ErrorIssueEventRow> events) =>
-        events.FirstOrDefault(static e => !string.IsNullOrWhiteSpace(e.Environment))?.Environment ?? "unknown";
-
-    private static string Truncate(string value, int maxLength) =>
-        value.Length <= maxLength ? value : value[..maxLength];
 }
 
-/// <summary>
-///     Loaded issue context data and its formatted representation.
-/// </summary>
 public sealed record IssueContext(
     IssueSummary? Issue,
     IReadOnlyList<ErrorIssueEventRow> Events,
@@ -104,6 +74,5 @@ public sealed record IssueContext(
     string FormattedBlock)
 {
     public static IssueContext Empty { get; } = new(null, [], null, string.Empty);
-
     public bool IsEmpty => Issue is null;
 }

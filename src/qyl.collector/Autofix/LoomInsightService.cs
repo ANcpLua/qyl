@@ -7,38 +7,43 @@ namespace Qyl.Collector.Autofix;
 ///     Produces "What Happened" / "Initial Guess" / "In the Trace" summary.
 /// </summary>
 public sealed partial class LoomInsightService(
+    DuckDbStore store,
     IssueContextBuilder contextBuilder,
+    IssueService issueService,
     ILogger<LoomInsightService> logger,
     IChatClient? llm = null)
 {
     public async Task<LoomInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
-        IssueContext context = await contextBuilder
-            .BuildAsync(issueId, ct: ct)
-            .ConfigureAwait(false);
-        if (context.Issue is null)
+        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        if (issue is null)
         {
             LogIssueNotFound(issueId);
             return null;
         }
 
-        LogGeneratingInsight(issueId, context.Events.Count);
+        IReadOnlyList<ErrorIssueEventRow> events = await issueService
+            .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
+
+        LogGeneratingInsight(issueId, events.Count);
 
         if (llm is not null)
-            return await GenerateWithLlmAsync(issueId, context, ct).ConfigureAwait(false);
+            return await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false);
 
-        return GenerateHeuristic(issueId, context.Issue, context.Events);
+        return GenerateHeuristic(issueId, issue, events);
     }
 
     private async Task<LoomInsight> GenerateWithLlmAsync(
-        string issueId,
-        IssueContext context,
-        CancellationToken ct)
+        string issueId, IssueSummary issue,
+        IReadOnlyList<ErrorIssueEventRow> events, CancellationToken ct)
     {
+        IssueContext ctx = await contextBuilder.BuildAsync(issueId, ct: ct).ConfigureAwait(false);
+        string context = ctx.FormattedBlock;
+
         try
         {
             ChatResponse response = await llm!.GetResponseAsync(
-                $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context.FormattedBlock}",
+                $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context}",
                 cancellationToken: ct).ConfigureAwait(false);
 
             LoomInsight? parsed = TryParseInsight(response.Text ?? "{}", issueId);
@@ -49,7 +54,7 @@ public sealed partial class LoomInsightService(
             LogLlmInsightFailed(issueId, ex);
         }
 
-        return GenerateHeuristic(issueId, context.Issue!, context.Events);
+        return GenerateHeuristic(issueId, issue, events);
     }
 
     internal static LoomInsight GenerateHeuristic(

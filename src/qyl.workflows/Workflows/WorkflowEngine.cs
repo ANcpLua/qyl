@@ -6,7 +6,7 @@
 
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
-using Qyl.Agents.Adapters;
+using Microsoft.Agents.AI;
 using Qyl.Agents.Instrumentation;
 using Qyl.Agents.Routing;
 using Qyl.Contracts.Copilot;
@@ -18,7 +18,7 @@ namespace Qyl.Workflows.Workflows;
 /// </summary>
 public sealed class WorkflowEngine : IAsyncDisposable
 {
-    private readonly QylCopilotAdapter _adapter;
+    private readonly AIAgent _agent;
 
     private readonly SemaphoreSlim _discoverLock = new(1, 1);
 
@@ -36,18 +36,18 @@ public sealed class WorkflowEngine : IAsyncDisposable
     /// <summary>
     ///     Creates a new workflow engine.
     /// </summary>
-    /// <param name="adapter">The Copilot adapter for execution.</param>
+    /// <param name="agent">The AI agent for executing workflow instructions.</param>
     /// <param name="workflowsDirectory">Directory containing workflow files.</param>
     /// <param name="timeProvider">Time provider (defaults to System).</param>
     /// <param name="executionStore">Optional persistent store for executions.</param>
     public WorkflowEngine(
-        QylCopilotAdapter adapter,
+        AIAgent agent,
         string? workflowsDirectory = null,
         TimeProvider? timeProvider = null,
         IExecutionStore? executionStore = null)
     {
-        ArgumentNullException.ThrowIfNull(adapter);
-        _adapter = adapter;
+        ArgumentNullException.ThrowIfNull(agent);
+        _agent = agent;
         _workflowsDirectory = workflowsDirectory ?? WorkflowParser.GetDefaultWorkflowsDirectory();
         _timeProvider = timeProvider ?? TimeProvider.System;
         _executionStore = executionStore;
@@ -60,7 +60,7 @@ public sealed class WorkflowEngine : IAsyncDisposable
         _disposed = true;
 
         _discoverLock.Dispose();
-        return _adapter.DisposeAsync();
+        return default;
     }
 
     /// <summary>
@@ -220,7 +220,10 @@ public sealed class WorkflowEngine : IAsyncDisposable
             }
         }
 
-        var context = new CopilotContext { Parameters = parameters, AdditionalContext = additionalContext };
+        // Substitute template parameters and append additional context
+        var instructions = SubstituteParameters(workflow.Instructions, parameters);
+        if (!string.IsNullOrEmpty(additionalContext))
+            instructions = $"{instructions}\n\n## Context\n{additionalContext}";
 
         var totalInputTokens = 0;
         var totalOutputTokens = 0;
@@ -232,42 +235,36 @@ public sealed class WorkflowEngine : IAsyncDisposable
         // Record qyl-specific workflow start metric
         CopilotMetrics.RecordWorkflowExecution(workflow.Name, triggerName);
 
-        // Collect updates from adapter
-        var enumerator = _adapter.ExecuteWorkflowAsync(workflow, context, ct).GetAsyncEnumerator(ct);
+        collectedUpdates.Add(new StreamUpdate
+        {
+            Kind = StreamUpdateKind.Progress,
+            Progress = 0,
+            Content = $"Starting workflow: {workflow.Name}",
+            Timestamp = _timeProvider.GetUtcNow()
+        });
+
+        // Execute via AIAgent directly
+        var enumerator = _agent.RunStreamingAsync(instructions, cancellationToken: ct).GetAsyncEnumerator(ct);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
             {
-                var update = enumerator.Current;
+                var agentUpdate = enumerator.Current;
+                var content = agentUpdate.ToString();
 
-                // Accumulate results
-                if (update is { Kind: StreamUpdateKind.Content, Content: not null })
+                if (!string.IsNullOrEmpty(content))
                 {
-                    resultBuilder.Append(update.Content);
+                    resultBuilder.Append(content);
+                    collectedUpdates.Add(new StreamUpdate
+                    {
+                        Kind = StreamUpdateKind.Content,
+                        Content = content,
+                        Timestamp = _timeProvider.GetUtcNow()
+                    });
                 }
-
-                if (update.InputTokens.HasValue)
-                {
-                    totalInputTokens = (int)update.InputTokens.Value;
-                }
-
-                if (update.OutputTokens.HasValue)
-                {
-                    totalOutputTokens = (int)update.OutputTokens.Value;
-                }
-
-                switch (update.Kind)
-                {
-                    case StreamUpdateKind.Error:
-                        error = update.Error;
-                        break;
-                    case StreamUpdateKind.Completed:
-                        success = true;
-                        break;
-                }
-
-                collectedUpdates.Add(update);
             }
+
+            success = true;
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -468,6 +465,18 @@ public sealed class WorkflowEngine : IAsyncDisposable
         }
 
         return string.Join("\n\n", segments);
+    }
+
+    private static string SubstituteParameters(string template, IReadOnlyDictionary<string, string>? parameters)
+    {
+        if (parameters is null || parameters.Count is 0)
+            return template;
+
+        var result = template;
+        foreach (var (key, value) in parameters)
+            result = result.Replace($"{{{{{key}}}}}", value, StringComparison.OrdinalIgnoreCase);
+
+        return result;
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);

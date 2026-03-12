@@ -8,7 +8,9 @@ namespace Qyl.Collector.Autofix;
 ///     Drives the "Start Loom" → monologue → root cause → solution flow.
 /// </summary>
 public sealed partial class LoomExplorerService(
+    DuckDbStore store,
     IssueContextBuilder contextBuilder,
+    IssueService issueService,
     ILogger<LoomExplorerService> logger,
     IChatClient? llm = null)
 {
@@ -29,16 +31,16 @@ public sealed partial class LoomExplorerService(
         // ── Phase 1: Ingest context ──────────────────────────────────────────
         yield return MakeProgress(0, "Ingesting qyl data...");
 
-        IssueContext context = await contextBuilder
-            .BuildAsync(issueId, userContext, ct: ct)
+        IssueContext ctx = await contextBuilder.BuildAsync(issueId, userContext, ct: ct)
             .ConfigureAwait(false);
-        if (context.Issue is null)
+        if (ctx.IsEmpty)
         {
             yield return MakeError($"Issue '{issueId}' not found.");
             yield break;
         }
 
-        LogExplorationStarted(issueId, context.Events.Count);
+        string contextBlock = ctx.FormattedBlock;
+        LogExplorationStarted(issueId, ctx.Events.Count);
 
         // ── Phase 2: Stream root cause investigation ─────────────────────────
         yield return MakeProgress(20, "Figuring out the root cause...");
@@ -47,7 +49,7 @@ public sealed partial class LoomExplorerService(
             {LoomPrompts.ExplorerMonologue}
 
             Error context:
-            {context.FormattedBlock}
+            {contextBlock}
             """;
 
         List<StreamUpdate> monologueUpdates = [];

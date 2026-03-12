@@ -1,4 +1,4 @@
-namespace Qyl.Loom;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>Root cause analysis artifact produced by the explorer agent.</summary>
 public sealed record RootCauseArtifact

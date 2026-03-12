@@ -1,33 +1,36 @@
 using Microsoft.Agents.AI;
 using Qyl.Contracts.Copilot;
+
 using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
 using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace Qyl.Agents.Context;
 
 /// <summary>
-///     Injects issue-specific observability context into agent runs when an issue id
-///     is present in the session state bag.
+///     Auto-injects formatted issue context as a system message at the start of
+///     every agent invocation that carries a <c>qyl.issueId</c> in the session
+///     state bag.
 /// </summary>
-public sealed class ObservabilityContextProvider(IIssueContextSource contextSource)
+public class ObservabilityContextProvider(IIssueContextSource contextSource)
     : MessageAIContextProvider
 {
+    /// <summary>
+    ///     Key used to store the active issue ID in <see cref="AgentSession.StateBag"/>.
+    /// </summary>
     public const string IssueIdKey = "qyl.issueId";
 
+    /// <inheritdoc/>
     protected override async ValueTask<IEnumerable<AiChatMessage>> ProvideMessagesAsync(
-        InvokingContext context,
+        MessageAIContextProvider.InvokingContext context,
         CancellationToken cancellationToken = default)
     {
-        string? issueId = context.Session?.StateBag?.GetValue<string>(IssueIdKey);
-        if (string.IsNullOrWhiteSpace(issueId))
-            return [];
+        context.Session.StateBag.TryGetValue<string>(IssueIdKey, out string? issueId, null!);
+        if (issueId is null) return [];
 
         string formatted = await contextSource
-            .GetFormattedContextAsync(issueId, ct: cancellationToken)
-            .ConfigureAwait(false);
+            .GetFormattedContextAsync(issueId, ct: cancellationToken);
 
-        if (string.IsNullOrWhiteSpace(formatted))
-            return [];
+        if (string.IsNullOrEmpty(formatted)) return [];
 
         return [new AiChatMessage(AiChatRole.System, $"## Error Context\n{formatted}")];
     }

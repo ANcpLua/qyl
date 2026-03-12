@@ -1,4 +1,4 @@
-namespace Qyl.Loom;
+namespace Qyl.Collector.Analytics;
 
 /// <summary>
 ///     Compares multi-dimensional keyed distributions using KL divergence,

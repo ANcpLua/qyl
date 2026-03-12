@@ -1,4 +1,4 @@
-namespace Qyl.Loom;
+namespace Qyl.Collector.Autofix;
 
 /// <summary>Fixability score thresholds used to classify issue fix difficulty.</summary>
 public enum FixabilityLevel

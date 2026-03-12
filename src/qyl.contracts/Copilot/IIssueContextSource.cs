@@ -1,15 +1,11 @@
 namespace Qyl.Contracts.Copilot;
 
 /// <summary>
-///     Provides formatted issue context for AI agents and Loom workflows.
+///     Provides formatted issue context for AIAgent sessions.
+///     Implemented by <c>IssueContextBuilder</c> in <c>qyl.collector</c>.
 /// </summary>
 public interface IIssueContextSource
 {
-    /// <summary>
-    ///     Returns a formatted context block for the specified issue.
-    /// </summary>
     Task<string> GetFormattedContextAsync(
-        string issueId,
-        string? userContext = null,
-        CancellationToken ct = default);
+        string issueId, string? userContext = null, CancellationToken ct = default);
 }
