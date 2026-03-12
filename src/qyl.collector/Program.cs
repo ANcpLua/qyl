@@ -26,9 +26,12 @@ using Qyl.Collector.SchemaControl;
 using Qyl.Collector.Search;
 using Qyl.Collector.Services;
 using Qyl.Collector.Telemetry;
+using Qyl.Collector.Endpoints;
 using Qyl.Collector.Workflow;
 using Qyl.Agents;
 using Qyl.Agents.Auth;
+using Qyl.Agents.Context;
+using Qyl.Contracts.Copilot;
 using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Workflows.Workflows;
@@ -250,6 +253,9 @@ builder.Services.AddSingleton<AgentHandoffService>();
 builder.Services.AddSingleton<CodeReviewService>();
 
 // Loom interactive debugging: insight + streaming explorer
+builder.Services.AddSingleton<IssueContextBuilder>();
+builder.Services.AddSingleton<IIssueContextSource>(static sp => sp.GetRequiredService<IssueContextBuilder>());
+builder.Services.AddSingleton<ObservabilityContextProvider>();
 builder.Services.AddSingleton<LoomInsightService>();
 builder.Services.AddSingleton<LoomExplorerService>();
 
@@ -518,7 +524,17 @@ app.MapPost("/v1/traces", async (
             serviceInstances = OtlpConverter.ExtractServiceInstancesFromJson(otlpData);
         }
 
-        if (spans.Count is 0) return Results.Accepted();
+        async Task UpsertServiceInstancesAsync()
+        {
+            foreach (var si in serviceInstances)
+                await store.UpsertServiceInstanceAsync(si, ct);
+        }
+
+        if (spans.Count is 0)
+        {
+            await UpsertServiceInstancesAsync();
+            return Results.Accepted();
+        }
 
         // Apply Codex telemetry transformations (codex.* -> gen_ai.*)
         var batch = new SpanBatch(spans).WithCodexTransformations();
@@ -529,8 +545,7 @@ app.MapPost("/v1/traces", async (
         await store.EnqueueAsync(batch, ct);
 
         // Upsert discovered services (idempotent, through write channel)
-        foreach (var si in serviceInstances)
-            await store.UpsertServiceInstanceAsync(si, ct);
+        await UpsertServiceInstancesAsync();
 
         broadcaster.PublishSpans(batch);
 
@@ -867,6 +882,11 @@ app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
 app.MapQueryEndpoints();
 app.MapLogSummaryEndpoints();
+app.MapMcpTraceEndpoints();
+app.MapMcpLogEndpoints();
+app.MapMcpSessionEndpoints();
+app.MapMcpMetricEndpoints();
+app.MapMcpApiKeyEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {
