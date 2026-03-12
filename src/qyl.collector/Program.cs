@@ -28,7 +28,6 @@ using Qyl.Collector.Services;
 using Qyl.Collector.Telemetry;
 using Qyl.Collector.Workflow;
 using Qyl.Agents;
-using Qyl.Agents.Auth;
 using Qyl.Agents.Context;
 using Qyl.Contracts.Copilot;
 using Qyl.Workflows;
@@ -189,17 +188,18 @@ builder.Services.AddSingleton<IExecutionStore>(static sp =>
 builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
-// GitHub Copilot integration — bridges GitHubService token to agent auth (ADR-002)
+// LLM provider + agent infrastructure
 builder.Services.AddQylAgents(builder.Configuration);
-builder.Services.AddQylWorkflows();
+builder.Services.AddQylAgentTelemetry();
 // AG-UI SSE infrastructure (CopilotKit-compatible protocol)
 builder.Services.AddQylAgui();
-// Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
-builder.Services.AddSingleton(sp => new CopilotAuthOptions
+// Workflow agent + engine (resolves from IChatClient at runtime)
+builder.Services.AddSingleton<AIAgent>(static sp =>
 {
-    AutoDetect = true, ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
+    var chatClient = sp.GetRequiredService<IChatClient>();
+    return QylAgentBuilder.FromChatClient(chatClient, agentName: "qyl-workflow");
 });
-builder.Services.AddQylAgentTelemetry();
+builder.Services.AddQylWorkflows();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
@@ -400,7 +400,6 @@ app.MapGet("/api/v1/traces", async (
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
-app.MapCopilotEndpoints(); // DEPRECATED: Replace with LoomAguiEndpoints. Kept for workflow engine compatibility.
 // AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
 if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
 {

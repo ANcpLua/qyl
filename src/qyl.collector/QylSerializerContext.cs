@@ -80,11 +80,8 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(IReadOnlyList<DashboardWidget>))]
 [JsonSerializable(typeof(IReadOnlyList<TopNRow>))]
 [JsonSerializable(typeof(IReadOnlyList<TimeSeriesPoint>))]
-// Copilot types (for request body deserialization)
-[JsonSerializable(typeof(ChatRequest))]
-[JsonSerializable(typeof(ByokLlmConfig))]
+// Workflow types
 [JsonSerializable(typeof(WorkflowRunRequest))]
-[JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(StreamUpdate))]
 [JsonSerializable(typeof(AgentRunAudit))]
 [JsonSerializable(typeof(AgentDecision))]

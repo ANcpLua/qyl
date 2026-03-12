@@ -1,10 +1,7 @@
 // =============================================================================
 // Qyl.Agents - QylAgentBuilder
-// Factory for creating AIAgent instances ready for MapAGUI() endpoint exposure.
-// Two paths:
-//   1. GitHub Copilot   -> QylAgentBuilder.FromCopilotAdapter(adapter)
-//   2. IChatClient      -> QylAgentBuilder.FromChatClient(chatClient, ...)
-// Both paths return an AIAgent wired with InstrumentedChatClient for OTel spans.
+// Factory for creating AIAgent instances ready for AG-UI endpoint exposure.
+// Wraps IChatClient with InstrumentedChatClient for OTel spans.
 // Note: qyl.instrumentation.generators already intercepts AIAgent.RunAsync() at
 // compile time, so UseOpenTelemetry() is not duplicated here.
 // =============================================================================
@@ -17,26 +14,11 @@ namespace Qyl.Agents.Agents;
 
 /// <summary>
 ///     Factory that produces <see cref="AIAgent"/> instances ready to be served
-///     via AG-UI (<c>MapAGUI()</c>). Handles both the GitHub Copilot and
-///     provider-agnostic <see cref="IChatClient"/> code paths.
+///     via AG-UI (<c>MapAGUI()</c>). Wraps a provider-agnostic
+///     <see cref="IChatClient"/> with instrumentation and context providers.
 /// </summary>
 public static class QylAgentBuilder
 {
-    /// <summary>
-    ///     Exposes the already-initialized agent inside a
-    ///     <see cref="QylCopilotAdapter"/> for AG-UI endpoint registration.
-    ///     Call this after the adapter has been created (e.g., via
-    ///     <see cref="CopilotAdapterFactory.GetAdapterAsync"/>).
-    /// </summary>
-    /// <param name="adapter">The live adapter whose inner agent to expose.</param>
-    /// <returns>The underlying <see cref="AIAgent"/>.</returns>
-    [Obsolete("Use LoomAgent.Create() with LoomAguiEndpoints instead. Will be removed when workflow engine is migrated.")]
-    public static AIAgent FromCopilotAdapter(QylCopilotAdapter adapter)
-    {
-        Guard.NotNull(adapter);
-        return adapter.GetInnerAgent();
-    }
-
     /// <summary>
     ///     Wraps an <see cref="IChatClient"/> as an <see cref="AIAgent"/>,
     ///     adding qyl OTel instrumentation via <see cref="InstrumentedChatClient"/>.
