@@ -117,7 +117,7 @@ public sealed class LoomSessionStore(DuckDbStore store, TimeProvider timeProvide
             await using var seqCmd = con.CreateCommand();
             seqCmd.CommandText = "SELECT COALESCE(MAX(sequence), -1) + 1 FROM loom_messages WHERE session_id = $1";
             seqCmd.Parameters.Add(new DuckDBParameter { Value = sessionId });
-            var sequence = (int)(long)(await seqCmd.ExecuteScalarAsync(token).ConfigureAwait(false))!;
+            var sequence = Convert.ToInt64(await seqCmd.ExecuteScalarAsync(token).ConfigureAwait(false));
 
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
