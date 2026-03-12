@@ -8,8 +8,7 @@ namespace Qyl.Collector.Autofix;
 ///     Drives the "Start Loom" → monologue → root cause → solution flow.
 /// </summary>
 public sealed partial class LoomExplorerService(
-    DuckDbStore store,
-    IssueService issueService,
+    IssueContextBuilder contextBuilder,
     ILogger<LoomExplorerService> logger,
     IChatClient? llm = null)
 {
@@ -30,18 +29,16 @@ public sealed partial class LoomExplorerService(
         // ── Phase 1: Ingest context ──────────────────────────────────────────
         yield return MakeProgress(0, "Ingesting qyl data...");
 
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (issue is null)
+        IssueContext context = await contextBuilder
+            .BuildAsync(issueId, userContext, ct: ct)
+            .ConfigureAwait(false);
+        if (context.Issue is null)
         {
             yield return MakeError($"Issue '{issueId}' not found.");
             yield break;
         }
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
-            .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
-
-        string contextBlock = BuildContextBlock(issue, events, userContext);
-        LogExplorationStarted(issueId, events.Count);
+        LogExplorationStarted(issueId, context.Events.Count);
 
         // ── Phase 2: Stream root cause investigation ─────────────────────────
         yield return MakeProgress(20, "Figuring out the root cause...");
@@ -50,7 +47,7 @@ public sealed partial class LoomExplorerService(
             {LoomPrompts.ExplorerMonologue}
 
             Error context:
-            {contextBlock}
+            {context.FormattedBlock}
             """;
 
         List<StreamUpdate> monologueUpdates = [];
@@ -155,39 +152,6 @@ public sealed partial class LoomExplorerService(
             LogSolutionPlanFailed(ex);
             return null;
         }
-    }
-
-    // ── Context building ──────────────────────────────────────────────────────
-
-    private static string BuildContextBlock(
-        IssueSummary issue,
-        IReadOnlyList<ErrorIssueEventRow> events,
-        string? userContext)
-    {
-        StringBuilder sb = new();
-        sb.AppendLine($"Error type: {issue.ErrorType}");
-        sb.AppendLine($"Message: {issue.ErrorMessage ?? "N/A"}");
-        sb.AppendLine($"Occurrences: {issue.EventCount}");
-        sb.AppendLine($"First seen: {issue.FirstSeen:O}");
-        sb.AppendLine($"Last seen: {issue.LastSeen:O}");
-
-        if (events.Count > 0)
-        {
-            sb.AppendLine("\nRecent events:");
-            foreach (ErrorIssueEventRow e in events)
-            {
-                sb.AppendLine($"  [{e.Timestamp:O}] {e.Message ?? "no message"}");
-                if (e.StackTrace is not null)
-                    sb.AppendLine($"    Stack: {e.StackTrace[..Math.Min(800, e.StackTrace.Length)]}");
-                if (e.Environment is not null)
-                    sb.AppendLine($"    Env: {e.Environment}");
-            }
-        }
-
-        if (userContext is not null)
-            sb.AppendLine($"\nAdditional context from user:\n{userContext}");
-
-        return sb.ToString();
     }
 
     // ── JSON parsing ──────────────────────────────────────────────────────────

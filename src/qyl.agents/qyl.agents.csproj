@@ -25,6 +25,10 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
+  </ItemGroup>
+
   <!-- OpenTelemetry for instrumentation -->
   <ItemGroup>
     <PackageReference Include="OpenTelemetry.Api"/>

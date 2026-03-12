@@ -12,6 +12,8 @@ using Microsoft.Extensions.AI;
 using Qyl.Agents.Auth;
 using Qyl.Agents.Instrumentation;
 using Qyl.Contracts.Copilot;
+using AiChatMessage = Microsoft.Extensions.AI.ChatMessage;
+using AiChatRole = Microsoft.Extensions.AI.ChatRole;
 
 namespace Qyl.Agents.Adapters;
 
@@ -168,14 +170,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         List<(string Role, string Content)>? sessionHistory = null;
         if (!string.IsNullOrEmpty(context?.SessionId))
             sessionHistory = _sessionStore.GetOrCreate(context.SessionId);
-
-        // Build context-enriched prompt for multi-turn conversations
-        var effectivePrompt = prompt;
-        if (sessionHistory is { Count: > 0 })
-        {
-            var history = string.Join('\n', sessionHistory.Select(static m => $"<{m.Role}>{m.Content}</{m.Role}>"));
-            effectivePrompt = $"{history}\n{prompt}";
-        }
+        var messages = BuildConversationMessages(prompt, context, sessionHistory);
 
         // Start OTel span for chat operation
         using var activity = CopilotInstrumentation.StartChatSpan();
@@ -195,7 +190,7 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
         var firstTokenReceived = false;
 
         // Collect updates without yielding in try block
-        var enumerator = _agent.RunStreamingAsync(effectivePrompt, cancellationToken: ct).GetAsyncEnumerator(ct);
+        var enumerator = _agent.RunStreamingAsync(messages, cancellationToken: ct).GetAsyncEnumerator(ct);
         try
         {
             while (await enumerator.MoveNextAsync().ConfigureAwait(false))
@@ -471,6 +466,54 @@ public sealed class QylCopilotAdapter : IAsyncDisposable
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
+
+    internal static List<AiChatMessage> BuildConversationMessages(
+        string prompt,
+        CopilotContext? context,
+        IReadOnlyList<(string Role, string Content)>? sessionHistory)
+    {
+        var messages = new List<AiChatMessage>();
+
+        if (!string.IsNullOrWhiteSpace(context?.AdditionalContext))
+            messages.Add(new AiChatMessage(AiChatRole.System, context.AdditionalContext));
+
+        if (context?.History is { Count: > 0 })
+        {
+            foreach (var message in context.History)
+            {
+                if (!string.IsNullOrWhiteSpace(message.Content))
+                    messages.Add(new AiChatMessage(MapRole(message.Role), message.Content));
+            }
+        }
+        else if (sessionHistory is { Count: > 0 })
+        {
+            foreach (var (role, content) in sessionHistory)
+            {
+                if (!string.IsNullOrWhiteSpace(content))
+                    messages.Add(new AiChatMessage(MapRole(role), content));
+            }
+        }
+
+        messages.Add(new AiChatMessage(AiChatRole.User, prompt));
+        return messages;
+    }
+
+    private static AiChatRole MapRole(Qyl.Contracts.Copilot.ChatRole role) => role switch
+    {
+        Qyl.Contracts.Copilot.ChatRole.System    => AiChatRole.System,
+        Qyl.Contracts.Copilot.ChatRole.Assistant => AiChatRole.Assistant,
+        Qyl.Contracts.Copilot.ChatRole.Tool      => AiChatRole.Tool,
+        _                                        => AiChatRole.User
+    };
+
+    private static AiChatRole MapRole(string role) =>
+        role.ToLowerInvariant() switch
+        {
+            "system"    => AiChatRole.System,
+            "assistant" => AiChatRole.Assistant,
+            "tool"      => AiChatRole.Tool,
+            _           => AiChatRole.User
+        };
 
     private static string SubstituteParameters(string template, IReadOnlyDictionary<string, string>? parameters)
     {

@@ -11,6 +11,7 @@
 
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using Qyl.Agents.Adapters;
 
 namespace Qyl.Agents.Agents;
@@ -45,7 +46,10 @@ public static class QylAgentBuilder
     /// <param name="description">Short description shown in AG-UI clients.</param>
     /// <param name="instructions">System instructions injected at the start of each session.</param>
     /// <param name="tools">Optional tools the agent may call during a run.</param>
+    /// <param name="contextProviders">Optional context providers invoked before each run.</param>
     /// <param name="timeProvider">Time provider for OTel timestamps.</param>
+    /// <param name="loggerFactory">Optional logger factory for agent internals.</param>
+    /// <param name="services">Optional DI provider for tool invocation dependencies.</param>
     /// <returns>A fully wired <see cref="AIAgent"/>.</returns>
     public static AIAgent FromChatClient(
         IChatClient chatClient,
@@ -53,7 +57,10 @@ public static class QylAgentBuilder
         string description = "qyl AI assistant",
         string? instructions = null,
         IReadOnlyList<AITool>? tools = null,
-        TimeProvider? timeProvider = null)
+        IReadOnlyList<AIContextProvider>? contextProviders = null,
+        TimeProvider? timeProvider = null,
+        ILoggerFactory? loggerFactory = null,
+        IServiceProvider? services = null)
     {
         Guard.NotNull(chatClient);
 
@@ -62,11 +69,32 @@ public static class QylAgentBuilder
         InstrumentedChatClient? instrumented = new(chatClient, agentName, timeProvider);
         try
         {
-            var agent = instrumented.AsAIAgent(
-                name: agentName,
-                description: description,
-                instructions: instructions,
-                tools: tools is null ? null : [.. tools]);
+            ChatOptions? chatOptions = null;
+            if (instructions is not null || tools is { Count: > 0 })
+            {
+                chatOptions = new ChatOptions();
+
+                if (instructions is not null)
+                    chatOptions.Instructions = instructions;
+
+                if (tools is { Count: > 0 })
+                    chatOptions.Tools = [.. tools];
+            }
+
+            var options = new ChatClientAgentOptions
+            {
+                Name = agentName,
+                Description = description,
+                ChatOptions = chatOptions,
+                ChatHistoryProvider = new InMemoryChatHistoryProvider()
+            };
+
+            if (contextProviders is { Count: > 0 })
+            {
+                options.AIContextProviders = [.. contextProviders];
+            }
+
+            var agent = new ChatClientAgent(instrumented, options, loggerFactory, services);
             instrumented = null; // ownership transferred to agent
             return agent;
         }

@@ -7,41 +7,38 @@ namespace Qyl.Collector.Autofix;
 ///     Produces "What Happened" / "Initial Guess" / "In the Trace" summary.
 /// </summary>
 public sealed partial class LoomInsightService(
-    DuckDbStore store,
-    IssueService issueService,
+    IssueContextBuilder contextBuilder,
     ILogger<LoomInsightService> logger,
     IChatClient? llm = null)
 {
     public async Task<LoomInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
-        if (issue is null)
+        IssueContext context = await contextBuilder
+            .BuildAsync(issueId, ct: ct)
+            .ConfigureAwait(false);
+        if (context.Issue is null)
         {
             LogIssueNotFound(issueId);
             return null;
         }
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
-            .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
-
-        LogGeneratingInsight(issueId, events.Count);
+        LogGeneratingInsight(issueId, context.Events.Count);
 
         if (llm is not null)
-            return await GenerateWithLlmAsync(issueId, issue, events, ct).ConfigureAwait(false);
+            return await GenerateWithLlmAsync(issueId, context, ct).ConfigureAwait(false);
 
-        return GenerateHeuristic(issueId, issue, events);
+        return GenerateHeuristic(issueId, context.Issue, context.Events);
     }
 
     private async Task<LoomInsight> GenerateWithLlmAsync(
-        string issueId, IssueSummary issue,
-        IReadOnlyList<ErrorIssueEventRow> events, CancellationToken ct)
+        string issueId,
+        IssueContext context,
+        CancellationToken ct)
     {
-        string context = BuildContextBlock(issue, events);
-
         try
         {
             ChatResponse response = await llm!.GetResponseAsync(
-                $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context}",
+                $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context.FormattedBlock}",
                 cancellationToken: ct).ConfigureAwait(false);
 
             LoomInsight? parsed = TryParseInsight(response.Text ?? "{}", issueId);
@@ -52,7 +49,7 @@ public sealed partial class LoomInsightService(
             LogLlmInsightFailed(issueId, ex);
         }
 
-        return GenerateHeuristic(issueId, issue, events);
+        return GenerateHeuristic(issueId, context.Issue!, context.Events);
     }
 
     internal static LoomInsight GenerateHeuristic(
@@ -85,25 +82,6 @@ public sealed partial class LoomInsightService(
             InitialGuess = initialGuess,
             InTheTrace = inTheTrace
         };
-    }
-
-    private static string BuildContextBlock(IssueSummary issue, IReadOnlyList<ErrorIssueEventRow> events)
-    {
-        StringBuilder sb = new();
-        sb.AppendLine($"Type: {issue.ErrorType}");
-        sb.AppendLine($"Message: {issue.ErrorMessage ?? "N/A"}");
-        sb.AppendLine($"Occurrences: {issue.EventCount}");
-        sb.AppendLine($"First seen: {issue.FirstSeen:O}");
-        sb.AppendLine($"Last seen: {issue.LastSeen:O}");
-
-        foreach (ErrorIssueEventRow e in events)
-        {
-            sb.AppendLine($"- [{e.Timestamp:O}] {e.Message ?? "no message"}");
-            if (e.StackTrace is not null)
-                sb.AppendLine($"  Stack: {e.StackTrace[..Math.Min(500, e.StackTrace.Length)]}");
-        }
-
-        return sb.ToString();
     }
 
     private static LoomInsight? TryParseInsight(string text, string issueId)
