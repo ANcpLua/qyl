@@ -103,11 +103,6 @@
         <Project Path="src/qyl.browser/qyl.browser.esproj" />
     </Folder>
 
-    <!-- Loom -->
-    <Folder Name="/src/">
-        <Project Path="src/qyl.loom/qyl.loom.csproj" />
-    </Folder>
-
     <!-- AI: agents, workflows, MCP server -->
     <Folder Name="/src/ai/">
         <Project Path="src/qyl.agents/qyl.agents.csproj" />
