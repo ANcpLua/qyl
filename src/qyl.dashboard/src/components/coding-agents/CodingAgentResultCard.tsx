@@ -30,19 +30,15 @@ export function CodingAgentResultCard({run}: { run: CodingAgentRun }) {
                     </div>
                     <div className="flex items-center gap-2">
                         {run.pr_url && (
-                            <Button variant="outline" size="sm" asChild>
-                                <a href={run.pr_url} target="_blank" rel="noopener noreferrer">
-                                    <GitPullRequest className="w-4 h-4 mr-1"/>
-                                    Open PR
-                                </a>
+                            <Button variant="outline" size="sm" render={<a href={run.pr_url} target="_blank" rel="noopener noreferrer" />}>
+                                <GitPullRequest className="w-4 h-4 mr-1"/>
+                                Open PR
                             </Button>
                         )}
                         {actionUrl && !run.pr_url && (
-                            <Button variant="outline" size="sm" asChild>
-                                <a href={actionUrl} target="_blank" rel="noopener noreferrer">
-                                    <ExternalLink className="w-4 h-4 mr-1"/>
-                                    {buttonText}
-                                </a>
+                            <Button variant="outline" size="sm" render={<a href={actionUrl} target="_blank" rel="noopener noreferrer" />}>
+                                <ExternalLink className="w-4 h-4 mr-1"/>
+                                {buttonText}
                             </Button>
                         )}
                     </div>

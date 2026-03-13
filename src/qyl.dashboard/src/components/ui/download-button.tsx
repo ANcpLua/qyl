@@ -52,17 +52,17 @@ export function DownloadButton<T extends Record<string, unknown>>({
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
+            <DropdownMenuTrigger
+                render={<Button
                     variant={variant}
                     size={size}
                     disabled={disabled || isDownloading}
                     className={className}
-                >
-                    <Download className="w-4 h-4 mr-2"/>
-                    Download
-                    <ChevronDown className="w-3 h-3 ml-1"/>
-                </Button>
+                />}
+            >
+                <Download className="w-4 h-4 mr-2"/>
+                Download
+                <ChevronDown className="w-3 h-3 ml-1"/>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => handleDownload('json')}>

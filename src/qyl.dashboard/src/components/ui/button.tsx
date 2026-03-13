@@ -1,5 +1,4 @@
-import {type ButtonHTMLAttributes, forwardRef} from "react"
-import {Slot} from "@radix-ui/react-slot"
+import {type ButtonHTMLAttributes, cloneElement, forwardRef, isValidElement, type ReactElement} from "react"
 import {cva, type VariantProps} from "class-variance-authority"
 import {cn} from "@/lib/utils"
 
@@ -36,18 +35,30 @@ const buttonVariants = cva(
 export interface ButtonProps
     extends ButtonHTMLAttributes<HTMLButtonElement>,
         VariantProps<typeof buttonVariants> {
-    asChild?: boolean
+    /** Render a different element with button styling. Pass a ReactElement to replace the default <button>. */
+    render?: ReactElement<Record<string, unknown>>
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-    ({className, variant, size, asChild = false, ...props}, ref) => {
-        const Comp = asChild ? Slot : "button"
+    ({className, variant, size, render, children, ...props}, ref) => {
+        const classes = cn(buttonVariants({variant, size, className}))
+
+        if (render && isValidElement(render)) {
+            return cloneElement(render, {
+                ...props,
+                ref,
+                className: cn(classes, (render.props as Record<string, unknown>).className as string | undefined),
+            } as Record<string, unknown>, children)
+        }
+
         return (
-            <Comp
-                className={cn(buttonVariants({variant, size, className}))}
+            <button
+                className={classes}
                 ref={ref}
                 {...props}
-            />
+            >
+                {children}
+            </button>
         )
     }
 )

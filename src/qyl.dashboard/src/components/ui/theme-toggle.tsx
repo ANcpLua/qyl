@@ -17,15 +17,15 @@ export function ThemeToggle() {
 
     return (
         <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button
+            <DropdownMenuTrigger
+                render={<Button
                     variant="outline"
                     size="icon"
                     className="border-2 border-brutal-zinc bg-brutal-dark text-brutal-slate hover:border-signal-orange hover:text-signal-orange hover:bg-signal-orange/10"
-                >
-                    <CurrentIcon className="h-4 w-4"/>
-                    <span className="sr-only">Toggle theme</span>
-                </Button>
+                />}
+            >
+                <CurrentIcon className="h-4 w-4"/>
+                <span className="sr-only">Toggle theme</span>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 {themeOptions.map((option) => {

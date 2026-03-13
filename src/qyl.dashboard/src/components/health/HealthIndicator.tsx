@@ -220,18 +220,18 @@ export function HealthIndicator() {
 
     return (
         <Dialog>
-            <DialogTrigger asChild>
-                <button
+            <DialogTrigger
+                render={<button
                     className={cn(
                         'flex items-center gap-2 px-2 py-1 border-2 bg-brutal-dark transition-colors',
                         statusBorderColors[health.status]
                     )}
-                >
-                    <div className={cn('w-2 h-2 rounded-full', statusColors[health.status])}/>
-                    <span className="text-xs font-bold tracking-wider text-brutal-white uppercase">
-                        {health.status}
-                    </span>
-                </button>
+                />}
+            >
+                <div className={cn('w-2 h-2 rounded-full', statusColors[health.status])}/>
+                <span className="text-xs font-bold tracking-wider text-brutal-white uppercase">
+                    {health.status}
+                </span>
             </DialogTrigger>
 
             <DialogContent

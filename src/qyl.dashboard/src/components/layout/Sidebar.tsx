@@ -28,7 +28,7 @@ import {
 } from '@phosphor-icons/react';
 import {cn} from '@/lib/utils';
 import {Button} from '@/components/ui/button';
-import {Tooltip, TooltipContent, TooltipTrigger} from '@/components/ui/tooltip';
+import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/components/ui/tooltip';
 import {useDashboards} from '@/hooks/use-dashboards';
 
 interface NavItem {
@@ -79,6 +79,7 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
     const {data: dashboards} = useDashboards();
 
     return (
+        <TooltipProvider delay={0}>
         <aside
             className={cn(
                 'relative flex flex-col bg-brutal-carbon/92 border-r border-brutal-zinc/70 transition-[width] duration-200',
@@ -144,8 +145,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
 
                     if (collapsed) {
                         return (
-                            <Tooltip key={item.to} delayDuration={0}>
-                                <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+                            <Tooltip key={item.to}>
+                                <TooltipTrigger render={linkContent} />
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
@@ -193,8 +194,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
 
                     if (collapsed) {
                         return (
-                            <Tooltip key={item.to} delayDuration={0}>
-                                <TooltipTrigger asChild>{aiLinkContent}</TooltipTrigger>
+                            <Tooltip key={item.to}>
+                                <TooltipTrigger render={aiLinkContent} />
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     {item.label}
@@ -242,8 +243,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
 
                         if (collapsed) {
                             return (
-                                <Tooltip key={db.id} delayDuration={0}>
-                                    <TooltipTrigger asChild>{dbLinkContent}</TooltipTrigger>
+                                <Tooltip key={db.id}>
+                                    <TooltipTrigger render={dbLinkContent} />
                                     <TooltipContent side="right"
                                                     className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                         {db.title.toUpperCase()}
@@ -287,8 +288,8 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
 
                     if (collapsed) {
                         return (
-                            <Tooltip delayDuration={0}>
-                                <TooltipTrigger asChild>{settingsContent}</TooltipTrigger>
+                            <Tooltip>
+                                <TooltipTrigger render={settingsContent} />
                                 <TooltipContent side="right"
                                                 className="flex items-center gap-2 bg-brutal-carbon border-2 border-brutal-zinc">
                                     SETTINGS
@@ -334,5 +335,6 @@ export function Sidebar({collapsed, onCollapsedChange, isLive}: SidebarProps) {
                 </div>
             )}
         </aside>
+        </TooltipProvider>
     );
 }

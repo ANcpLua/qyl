@@ -279,20 +279,20 @@ export function TextVisualizer({
                     {/* Tree view toggle (JSON only) */}
                     {showTreeView && contentType === "json" && parsedJson && (
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
+                            <TooltipTrigger
+                                render={<Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-6 w-6 min-h-11 min-w-11"
                                     aria-label={viewMode === "tree" ? "Show formatted" : "Show tree view"}
                                     onClick={() => setViewMode(viewMode === "tree" ? "formatted" : "tree")}
-                                >
-                                    {viewMode === "tree" ? (
-                                        <Code2 className="h-3 w-3"/>
-                                    ) : (
-                                        <FileJson className="h-3 w-3"/>
-                                    )}
-                                </Button>
+                                />}
+                            >
+                                {viewMode === "tree" ? (
+                                    <Code2 className="h-3 w-3"/>
+                                ) : (
+                                    <FileJson className="h-3 w-3"/>
+                                )}
                             </TooltipTrigger>
                             <TooltipContent side="top">
                                 <p>{viewMode === "tree" ? "Show formatted" : "Show tree view"}</p>
@@ -303,20 +303,20 @@ export function TextVisualizer({
                     {/* Expand/Collapse toggle */}
                     {needsCollapse && (
                         <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button
+                            <TooltipTrigger
+                                render={<Button
                                     variant="ghost"
                                     size="icon"
                                     className="h-6 w-6 min-h-11 min-w-11"
                                     aria-label={isExpanded ? "Collapse content" : "Expand content"}
                                     onClick={() => setIsExpanded(!isExpanded)}
-                                >
-                                    {isExpanded ? (
-                                        <Minimize2 className="h-3 w-3"/>
-                                    ) : (
-                                        <Maximize2 className="h-3 w-3"/>
-                                    )}
-                                </Button>
+                                />}
+                            >
+                                {isExpanded ? (
+                                    <Minimize2 className="h-3 w-3"/>
+                                ) : (
+                                    <Maximize2 className="h-3 w-3"/>
+                                )}
                             </TooltipTrigger>
                             <TooltipContent side="top">
                                 <p>{isExpanded ? "Collapse" : "Expand"}</p>
@@ -326,20 +326,20 @@ export function TextVisualizer({
 
                     {/* Copy button */}
                     <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Button
+                        <TooltipTrigger
+                            render={<Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-6 w-6 min-h-11 min-w-11"
                                 aria-label={copied ? "Copied!" : "Copy raw content"}
                                 onClick={handleCopy}
-                            >
-                                {copied ? (
-                                    <Check className="h-3 w-3 text-signal-green"/>
-                                ) : (
-                                    <Copy className="h-3 w-3"/>
-                                )}
-                            </Button>
+                            />}
+                        >
+                            {copied ? (
+                                <Check className="h-3 w-3 text-signal-green"/>
+                            ) : (
+                                <Copy className="h-3 w-3"/>
+                            )}
                         </TooltipTrigger>
                         <TooltipContent side="top">
                             <p>{copied ? "Copied!" : "Copy raw content"}</p>
@@ -351,7 +351,7 @@ export function TextVisualizer({
             {/* Content */}
             <Collapsible open={isExpanded || !needsCollapse}>
                 <div className="relative">
-                    <CollapsibleContent forceMount>
+                    <CollapsibleContent keepMounted>
                         <div
                             className={cn(
                                 "p-3 overflow-auto transition-[max-height] duration-200",
@@ -385,23 +385,23 @@ export function TextVisualizer({
 
                 {/* Expand trigger */}
                 {needsCollapse && (
-                    <CollapsibleTrigger asChild>
-                        <button
+                    <CollapsibleTrigger
+                        render={<button
                             className="w-full py-2 text-xs text-brutal-slate hover:text-brutal-white hover:bg-brutal-zinc/30 transition-colors border-t border-brutal-zinc flex items-center justify-center gap-1"
                             onClick={() => setIsExpanded(!isExpanded)}
-                        >
-                            {isExpanded ? (
-                                <>
-                                    <ChevronDown className="w-3 h-3"/>
-                                    Collapse
-                                </>
-                            ) : (
-                                <>
-                                    <ChevronRight className="w-3 h-3"/>
-                                    Expand ({lineCount} lines)
-                                </>
-                            )}
-                        </button>
+                        />}
+                    >
+                        {isExpanded ? (
+                            <>
+                                <ChevronDown className="w-3 h-3"/>
+                                Collapse
+                            </>
+                        ) : (
+                            <>
+                                <ChevronRight className="w-3 h-3"/>
+                                Expand ({lineCount} lines)
+                            </>
+                        )}
                     </CollapsibleTrigger>
                 )}
             </Collapsible>

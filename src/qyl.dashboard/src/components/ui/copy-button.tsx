@@ -34,8 +34,8 @@ export function CopyButton({
 
     return (
         <Tooltip>
-            <TooltipTrigger asChild>
-                <Button
+            <TooltipTrigger
+                render={<Button
                     variant="ghost"
                     size="icon"
                     className={cn(
@@ -44,13 +44,13 @@ export function CopyButton({
                     )}
                     onClick={handleCopy}
                     aria-label={copied ? "Copied!" : `Copy ${label.toLowerCase()}`}
-                >
-                    {copied ? (
-                        <Check className="h-3 w-3 text-green-500"/>
-                    ) : (
-                        <Copy className="h-3 w-3"/>
-                    )}
-                </Button>
+                />}
+            >
+                {copied ? (
+                    <Check className="h-3 w-3 text-green-500"/>
+                ) : (
+                    <Copy className="h-3 w-3"/>
+                )}
             </TooltipTrigger>
             <TooltipContent side="top">
                 <p>{copied ? "Copied!" : `Copy ${label.toLowerCase()}`}</p>
