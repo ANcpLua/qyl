@@ -1,7 +1,6 @@
 // =============================================================================
 // Qyl.Agents - Service Extensions
-// DI registration and configuration for Copilot integration
-// SDK's UseOpenTelemetry() handles gen_ai.* telemetry; these register qyl-specific sources
+// DI registration for LLM providers and agent telemetry
 // =============================================================================
 
 using Microsoft.Extensions.AI;
@@ -9,8 +8,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
-using Qyl.Agents.Adapters;
-using Qyl.Agents.Auth;
 using Qyl.Agents.Instrumentation;
 using Qyl.Agents.Providers;
 using Qyl.Instrumentation.Instrumentation;
@@ -20,29 +17,18 @@ namespace Qyl.Agents;
 /// <summary>
 ///     Extension methods for registering Qyl.Agents services.
 /// </summary>
-public static class CopilotServiceExtensions
+public static class AgentServiceExtensions
 {
     /// <summary>
-    ///     Adds qyl Copilot services to the service collection.
+    ///     Adds qyl agent services to the service collection.
+    ///     Registers the LLM provider (IChatClient) based on configuration.
     /// </summary>
-    /// <param name="services">The service collection.</param>
-    /// <param name="configuration">Application configuration for binding LLM provider options.</param>
-    /// <param name="configure">Optional configuration action.</param>
-    /// <returns>The service collection for chaining.</returns>
     public static IServiceCollection AddQylAgents(
         this IServiceCollection services,
-        IConfiguration configuration,
-        Action<CopilotOptions>? configure = null)
+        IConfiguration configuration)
     {
         Guard.NotNull(services);
         Guard.NotNull(configuration);
-
-        var options = new CopilotOptions();
-        configure?.Invoke(options);
-
-        // Register options
-        services.AddSingleton(options.AuthOptions);
-        services.AddSingleton(options);
 
         // Register LLM provider options and IChatClient
         var llmOptions = LlmProviderFactory.BindOptions(configuration);
@@ -66,28 +52,11 @@ public static class CopilotServiceExtensions
             });
         }
 
-        // Register auth provider
-        services.AddSingleton<CopilotAuthProvider>(static sp =>
-        {
-            var authOptions = sp.GetRequiredService<CopilotAuthOptions>();
-            return new CopilotAuthProvider(authOptions, TimeProvider.System);
-        });
-
-        // Register adapter factory (lazy initialization, resolves tools from DI if available)
-        services.AddSingleton<CopilotAdapterFactory>(static sp =>
-        {
-            var opts = sp.GetRequiredService<CopilotOptions>();
-            var tools = sp.GetService<IReadOnlyList<AITool>>();
-            return new CopilotAdapterFactory(opts, tools);
-        });
-
         return services;
     }
 
     /// <summary>
-    ///     Adds qyl Copilot tracing instrumentation to OpenTelemetry.
-    ///     SDK's UseOpenTelemetry() creates gen_ai.* spans using this source name.
-    ///     Call this to capture both SDK gen_ai.* spans and qyl-specific spans.
+    ///     Adds qyl agent tracing instrumentation to OpenTelemetry.
     /// </summary>
     public static TracerProviderBuilder AddQylAgentInstrumentation(this TracerProviderBuilder builder)
     {
@@ -99,9 +68,7 @@ public static class CopilotServiceExtensions
     }
 
     /// <summary>
-    ///     Adds qyl Copilot metrics to OpenTelemetry.
-    ///     Includes Qyl.Agents.workflow.duration and Qyl.Agents.workflow.executions.
-    ///     SDK handles gen_ai.client.* metrics automatically.
+    ///     Adds qyl agent metrics to OpenTelemetry.
     /// </summary>
     public static MeterProviderBuilder AddQylAgentMetrics(this MeterProviderBuilder builder)
     {
@@ -111,21 +78,8 @@ public static class CopilotServiceExtensions
     }
 
     /// <summary>
-    ///     Adds qyl Copilot telemetry (both tracing and metrics) to the service collection.
-    ///     SDK's UseOpenTelemetry() handles gen_ai.* spans automatically;
-    ///     this ensures Qyl.Agents sources are registered for capture.
+    ///     Adds qyl agent telemetry (both tracing and metrics) to the service collection.
     /// </summary>
-    /// <example>
-    ///     <code>
-    /// // Simple registration:
-    /// builder.Services.AddQylCopilotTelemetry();
-    ///
-    /// // Or with explicit builder configuration:
-    /// builder.Services.AddOpenTelemetry()
-    ///     .WithTracing(t => t.AddQylCopilotInstrumentation())
-    ///     .WithMetrics(m => m.AddQylCopilotMetrics());
-    /// </code>
-    /// </example>
     public static IServiceCollection AddQylAgentTelemetry(this IServiceCollection services)
     {
         Guard.NotNull(services);
@@ -137,98 +91,5 @@ public static class CopilotServiceExtensions
             .WithMetrics(static builder => builder.AddMeter(CopilotInstrumentation.MeterName));
 
         return services;
-    }
-}
-
-/// <summary>
-///     Configuration options for qyl agent integration.
-/// </summary>
-public sealed class CopilotOptions
-{
-    /// <summary>
-    ///     Authentication options.
-    /// </summary>
-    public CopilotAuthOptions AuthOptions { get; set; } = new();
-
-    /// <summary>
-    ///     Directory containing workflow definitions.
-    /// </summary>
-    public string? WorkflowsDirectory { get; init; }
-
-    /// <summary>
-    ///     Default system instructions for the Copilot agent.
-    /// </summary>
-    public string? DefaultInstructions { get; init; }
-
-    /// <summary>
-    ///     Whether to auto-discover workflows on startup.
-    /// </summary>
-    public bool AutoDiscoverWorkflows { get; set; } = true;
-}
-
-/// <summary>
-///     Factory for creating QylCopilotAdapter instances.
-///     Implements only IAsyncDisposable because QylCopilotAdapter is async-only.
-///     The DI container in .NET 6+ fully supports IAsyncDisposable.
-/// </summary>
-public sealed class CopilotAdapterFactory : IAsyncDisposable
-{
-    private readonly SemaphoreSlim _lock = new(1, 1);
-    private readonly CopilotOptions _options;
-    private readonly IReadOnlyList<AITool>? _tools;
-    private QylCopilotAdapter? _adapter;
-    private bool _disposed;
-
-    /// <summary>
-    ///     Creates a new adapter factory.
-    /// </summary>
-    public CopilotAdapterFactory(CopilotOptions options, IReadOnlyList<AITool>? tools = null)
-    {
-        _options = Guard.NotNull(options);
-        _tools = tools;
-    }
-
-    /// <inheritdoc />
-    public ValueTask DisposeAsync()
-    {
-        if (_disposed) return default;
-        _disposed = true;
-
-        _lock.Dispose();
-
-        return _adapter?.DisposeAsync() ?? default;
-    }
-
-    /// <summary>
-    ///     Gets or creates the shared adapter instance.
-    /// </summary>
-    public async ValueTask<QylCopilotAdapter> GetAdapterAsync(CancellationToken ct = default)
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var adapter = Volatile.Read(ref _adapter);
-        if (adapter is not null) return adapter;
-
-        await _lock.WaitAsync(ct).ConfigureAwait(false);
-        try
-        {
-            // Double-check after acquiring lock
-            adapter = Volatile.Read(ref _adapter);
-            if (adapter is not null) return adapter;
-
-            adapter = await QylCopilotAdapter.CreateAsync(
-                _options.AuthOptions,
-                _options.DefaultInstructions,
-                _tools,
-                TimeProvider.System,
-                ct).ConfigureAwait(false);
-
-            Volatile.Write(ref _adapter, adapter);
-            return adapter;
-        }
-        finally
-        {
-            _lock.Release();
-        }
     }
 }

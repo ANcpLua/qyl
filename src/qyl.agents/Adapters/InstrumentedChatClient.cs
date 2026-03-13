@@ -20,9 +20,8 @@ namespace Qyl.Agents.Adapters;
 ///     Records OTel 1.40 GenAI semantic convention attributes on every chat request.
 /// </summary>
 /// <remarks>
-///     Complements <see cref="QylCopilotAdapter" /> (which wraps the GitHub Copilot
-///     <c>AIAgent</c>). Use this when you have a raw <see cref="IChatClient" /> and want
-///     the same span enrichment without the Copilot SDK dependency.
+///     Used by <see cref="QylAgentBuilder"/> to wrap any <see cref="IChatClient"/>
+///     with OTel instrumentation before passing it to <c>ChatClientAgent</c>.
 /// </remarks>
 public sealed class InstrumentedChatClient : DelegatingChatClient
 {

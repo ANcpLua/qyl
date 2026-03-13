@@ -3,6 +3,7 @@
 // Target: .NET 10 / C# 14 | OTel Semantic Conventions 1.40.0
 // =============================================================================
 
+using System.Text.Json.Nodes;
 using Qyl.Collector.Grpc;
 using Qyl.Collector.Services;
 using Qyl.Contracts.Primitives;
@@ -274,6 +275,8 @@ public static class OtlpConverter
 
         var serviceType = ServiceClassifier.Classify(resourceAttributes, spanAttributes);
 
+        var metadataJson = BuildCapabilityMetadataJson(resourceAttributes);
+
         return new ServiceInstanceRecord
         {
             ServiceNamespace = resourceAttributes.GetValueOrDefault("service.namespace") ?? "",
@@ -289,8 +292,43 @@ public static class OtlpConverter
             AgentName = resourceAttributes.GetValueOrDefault("gen_ai.agent.name"),
             ProviderName = resourceAttributes.GetValueOrDefault("gen_ai.provider.name"),
             DefaultModel = resourceAttributes.GetValueOrDefault("gen_ai.request.model"),
-            TimestampNano = timestampNano
+            TimestampNano = timestampNano,
+            MetadataJson = metadataJson
         };
+    }
+
+    private static string? BuildCapabilityMetadataJson(IReadOnlyDictionary<string, string> resourceAttributes)
+    {
+        JsonObject? capabilities = null;
+
+        foreach (var (key, value) in resourceAttributes.OrderBy(static pair => pair.Key, StringComparer.Ordinal))
+        {
+            if (!key.StartsWithOrdinal("qyl.capability.") || string.IsNullOrEmpty(value))
+                continue;
+
+            capabilities ??= new JsonObject();
+            capabilities[key] = ParseCapabilityMetadataValue(value);
+        }
+
+        return capabilities?.ToJsonString();
+    }
+
+    private static JsonNode ParseCapabilityMetadataValue(string value)
+    {
+        if (value.Length > 0 && value[0] is '[' or '{')
+        {
+            try
+            {
+                if (JsonNode.Parse(value) is { } parsed)
+                    return parsed;
+            }
+            catch (JsonException)
+            {
+                // Preserve non-JSON strings verbatim when resource attributes are scalar.
+            }
+        }
+
+        return JsonValue.Create(value);
     }
 
     /// <summary>

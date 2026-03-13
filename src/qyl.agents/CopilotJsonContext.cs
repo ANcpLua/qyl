@@ -1,6 +1,6 @@
 // =============================================================================
 // Qyl.Agents - Source-Generated JSON Context
-// AOT-compatible JSON serialization for copilot types
+// AOT-compatible JSON serialization for agent types
 // =============================================================================
 
 using System.Text.Json.Serialization;
@@ -22,13 +22,10 @@ namespace Qyl.Agents;
 [JsonSerializable(typeof(ChatMessage))]
 [JsonSerializable(typeof(ChatMessage[]))]
 [JsonSerializable(typeof(CopilotContext))]
-[JsonSerializable(typeof(CopilotAuthStatus))]
 [JsonSerializable(typeof(TrackMode))]
 [JsonSerializable(typeof(AgentRunAudit))]
 [JsonSerializable(typeof(AgentDecision))]
 [JsonSerializable(typeof(AgentEvidenceLink))]
-[JsonSerializable(typeof(ChatRequest))]
-[JsonSerializable(typeof(ByokLlmConfig))]
 [JsonSerializable(typeof(WorkflowRunRequest))]
 [JsonSerializable(typeof(Dictionary<string, string>))]
 [JsonSourceGenerationOptions(

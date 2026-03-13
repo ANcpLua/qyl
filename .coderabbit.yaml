@@ -1,0 +1,376 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+#
+# qyl — AI Observability Platform
+# C#/.NET backend · React/TypeScript dashboard · DuckDB storage · MCP server
+#
+# Schema-validated against: https://coderabbit.ai/integrations/schema.v2.json
+# Last audited: 2026-03-12
+#
+# IMPORTANT: Most tools default to enabled:true in the schema.
+# Every irrelevant linter is explicitly disabled below.
+#
+
+language: en-US
+tone_instructions: >-
+  Principal-level stewardship. Architecture, maintainability, correctness only.
+  Flag duplication, spec drift, silent behavior changes. No praise. No nits.
+early_access: true
+enable_free_tier: false
+# inheritance: false (default) — this repo is the single source of truth.
+
+reviews:
+  profile: assertive
+  request_changes_workflow: true
+  high_level_summary: false
+  high_level_summary_in_walkthrough: false
+  auto_title_instructions: >-
+    Use conventional commits format. Prefix with area (e.g. feat(dashboard), fix(ingestion),
+    refactor(storage)). Keep under 72 characters. No periods.
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: true
+  collapse_walkthrough: true
+  changed_files_summary: false
+  sequence_diagrams: false
+  estimate_code_review_effort: false
+  assess_linked_issues: true
+  related_issues: false
+  related_prs: false
+  suggested_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+
+  # ─── Labeling ────────────────────────────────────────────────────────
+  labeling_instructions:
+    - label: 'area:dashboard'
+      instructions: 'Apply when the PR modifies files under src/qyl.dashboard/.'
+    - label: 'area:ingestion'
+      instructions: 'Apply when the PR modifies the OTLP ingestion pipeline under src/qyl.ingestion/.'
+    - label: 'area:mcp'
+      instructions: 'Apply when the PR modifies MCP server code under src/qyl.mcp/.'
+    - label: 'area:infra'
+      instructions: 'Apply when the PR modifies eng/, .github/, Dockerfiles, or build infrastructure.'
+    - label: 'breaking'
+      instructions: 'Apply when the PR introduces breaking changes to public APIs, MCP tool schemas, or storage format.'
+  auto_apply_labels: true
+
+  # ─── File scope ──────────────────────────────────────────────────────
+  path_filters:
+    - 'src/**'
+    - 'eng/**'
+    - 'core/**'
+    - 'tests/**'
+    - '.github/**'
+    - '*.props'
+    - '*.targets'
+    - '*.sln'
+    - '!**/*.g.cs'
+    - '!**/*.Designer.cs'
+    - '!**/bin/**'
+    - '!**/obj/**'
+    - '!**/dist/**'
+    - '!**/node_modules/**'
+    - '!**/wwwroot/lib/**'
+    - '!**/*.min.js'
+    - '!**/*.min.css'
+    - '!**/package-lock.json'
+    - '!**/pnpm-lock.yaml'
+    - '!**/yarn.lock'
+    - '!**/*.snap'
+
+  # ─── Path instructions ──────────────────────────────────────────────
+  path_instructions:
+    - path: 'src/**/*.cs'
+      instructions: >-
+        C#/.NET codebase. Review for: idiomatic C# patterns, proper async/await (no sync-over-async,
+        no fire-and-forget without justification), correct IDisposable/IAsyncDisposable, null safety,
+        and adherence to existing patterns. Flag new public API surface. Check DI lifetime correctness
+        (scoped vs singleton vs transient).
+
+        ARCHITECTURAL INVARIANTS — flag violations as blocking:
+        - Every new injectable service must register OpenTelemetry instrumentation (ActivitySource or Meter).
+        - Every new DuckDB write path must handle backpressure (bounded channel or semaphore).
+        - No hardcoded connection strings, paths, or magic strings — use IOptions<T> or IConfiguration.
+        - No new dependencies on Sentry-specific types in core/ — Sentry is an optional backend, not the identity.
+        - CancellationToken must be threaded through all async public methods.
+
+    - path: 'src/qyl.dashboard/**'
+      instructions: >-
+        React/TypeScript dashboard. Review for: single-responsibility components, proper hook usage
+        (no hooks in conditionals, correct dependency arrays), TypeScript strictness (no `any` unless
+        justified with a comment), and basic accessibility. Uses Tailwind — flag inline styles or
+        custom CSS that duplicates utility classes. Flag any direct fetch() calls that bypass the
+        shared API client.
+
+    - path: 'src/qyl.ingestion/**'
+      instructions: >-
+        OTLP ingestion pipeline — the hottest path in the system. Review for: correctness of
+        OpenTelemetry semantic convention usage (target v1.40.0), proper protobuf/gRPC handling,
+        backpressure and error handling on the ingest path, and DuckDB write patterns. Flag
+        unnecessary allocations, copies, or LINQ in hot paths. Prefer Span<T> and ArrayPool where
+        applicable.
+
+    - path: 'src/qyl.mcp/**'
+      instructions: >-
+        MCP server implementation. Review for: correct MCP protocol adherence, tool definition
+        completeness, proper error responses, and that tool descriptions are accurate and useful
+        for LLM consumption. Flag any tool that could return unbounded data without pagination
+        or a maxResults parameter. Every tool must document its output schema.
+
+    - path: 'tests/**'
+      instructions: >-
+        Playwright end-to-end tests. No unit or integration test framework. Review for: test
+        isolation, proper async patterns, meaningful assertions (not just "page loaded"), and that
+        tests assert behavior not implementation details. Flag flaky patterns (arbitrary waits,
+        hardcoded timeouts, element selectors that depend on render order).
+
+    - path: 'eng/**'
+      instructions: >-
+        Build and deployment infrastructure. Review for: correct MSBuild property usage, Nuke build
+        target dependencies, Docker multi-stage build efficiency, and CI/CD pipeline correctness.
+        Flag hardcoded paths, secrets, or platform-specific assumptions.
+
+    - path: '.github/**'
+      instructions: >-
+        GitHub Actions workflows. Review for: action version pinning (use SHA not tags), proper
+        secret handling (no secrets in logs), unnecessary workflow triggers, and job dependency
+        correctness. Flag missing concurrency groups on push-triggered workflows.
+
+  # ─── Auto review ────────────────────────────────────────────────────
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+    drafts: false
+    ignore_title_keywords:
+      - 'deps('
+      - 'deps-dev'
+      - '[skip ci]'
+      - '[skip review]'
+      - 'wip'
+    labels: []
+    base_branches: []
+    ignore_usernames:
+      - 'dependabot[bot]'
+      - 'renovate[bot]'
+
+  # ─── Finishing touches ──────────────────────────────────────────────
+  # NOTE: 'simplify' exists in the UI but is NOT in the published v2 schema.
+  # It may still work via org/UI settings but cannot be set here.
+  finishing_touches:
+    docstrings:
+      enabled: false
+    unit_tests:
+      enabled: false
+
+  # ─── Pre-merge checks ──────────────────────────────────────────────
+  pre_merge_checks:
+    docstrings:
+      mode: 'off'
+    title:
+      mode: error
+      requirements: >-
+        Use conventional commits format with area prefix (feat, fix, refactor, chore, docs, test, ci).
+        Include scope in parentheses. Keep under 72 characters. No trailing period.
+        Examples: feat(dashboard): add trace waterfall view, fix(ingestion): handle null span attributes
+    description:
+      mode: warning
+    issue_assessment:
+      mode: warning
+    custom_checks:
+      - name: 'OTel instrumentation required'
+        mode: warning
+        instructions: >-
+          If this PR adds a new injectable service class (any class registered in DI), verify that
+          it registers an ActivitySource or Meter for OpenTelemetry instrumentation. A new service
+          without OTel instrumentation is a gap in observability. Pass if: no new services added,
+          or all new services have instrumentation. Fail if: a new service is registered but has
+          no corresponding ActivitySource/Meter.
+      - name: 'No unbounded MCP responses'
+        mode: warning
+        instructions: >-
+          If this PR adds or modifies MCP tool definitions (under src/qyl.mcp/), verify that every
+          tool returning a collection includes a maxResults parameter or pagination mechanism. Pass if:
+          no MCP tool changes, or all collection-returning tools are bounded. Fail if: a tool can
+          return an unbounded list.
+
+  # ─── Tools ──────────────────────────────────────────────────────────
+  # Schema default for ALL tools is enabled:true.
+  # Explicitly keep what's relevant, disable everything else.
+  tools:
+    # KEEP — relevant to C#/.NET + TypeScript/React + infrastructure
+    ast-grep:
+      essential_rules: true
+    biome:
+      enabled: true          # TS/React linting and formatting
+    markdownlint:
+      enabled: true          # docs, CLAUDE.md, workflow docs
+    hadolint:
+      enabled: true          # Dockerfiles
+    shellcheck:
+      enabled: true          # shell scripts in eng/
+    gitleaks:
+      enabled: true          # secret scanning — always on
+    actionlint:
+      enabled: true          # GitHub Actions workflow validation
+    github-checks:
+      enabled: true
+      timeout_ms: 120000
+
+    # DISABLE — languages and ecosystems not in this repo
+    languagetool:
+      enabled: false         # grammar checker — noise in code reviews
+    ruff:
+      enabled: false         # Python
+    golangci-lint:
+      enabled: false         # Go
+    phpstan:
+      enabled: false         # PHP
+    phpmd:
+      enabled: false         # PHP
+    phpcs:
+      enabled: false         # PHP
+    swiftlint:
+      enabled: false         # Swift
+    detekt:
+      enabled: false         # Kotlin
+    pmd:
+      enabled: false         # Java
+    semgrep:
+      enabled: false         # broad SAST — noisy, enable selectively later
+    opengrep:
+      enabled: false         # broad SAST — enable later if needed
+    trufflehog:
+      enabled: false         # redundant with gitleaks
+    checkov:
+      enabled: false         # Terraform/IaC
+    tflint:
+      enabled: false         # Terraform
+    eslint:
+      enabled: false         # using biome instead
+    flake8:
+      enabled: false         # Python
+    fortitudeLint:
+      enabled: false         # Fortran
+    rubocop:
+      enabled: false         # Ruby
+    buf:
+      enabled: false         # Protobuf authoring — qyl consumes OTel protos, doesn't author them
+    regal:
+      enabled: false         # Rego/OPA
+    clang:
+      enabled: false         # C/C++
+    cppcheck:
+      enabled: false         # C/C++
+    circleci:
+      enabled: false         # CircleCI — using GitHub Actions
+    clippy:
+      enabled: false         # Rust
+    sqlfluff:
+      enabled: false         # SQL files — DuckDB queries are in C#, not .sql files
+    trivy:
+      enabled: false         # IaC security — enable if adding K8s manifests
+    prismaLint:
+      enabled: false         # Prisma ORM
+    pylint:
+      enabled: false         # Python
+    oxc:
+      enabled: false         # JS/TS — using biome instead
+    shopifyThemeCheck:
+      enabled: false         # Shopify
+    luacheck:
+      enabled: false         # Lua
+    brakeman:
+      enabled: false         # Ruby on Rails
+    dotenvLint:
+      enabled: false         # .env files
+    htmlhint:
+      enabled: false         # raw HTML — dashboard is React/JSX
+    stylelint:
+      enabled: false         # CSS — using Tailwind utilities
+    checkmake:
+      enabled: false         # Makefiles — using Nuke
+    osvScanner:
+      enabled: false         # vulnerability scanning — enable when shipping to prod
+    blinter:
+      enabled: false         # Windows batch files
+    yamllint:
+      enabled: false         # YAML — too noisy on config files
+    psscriptanalyzer:
+      enabled: false         # PowerShell
+
+# ─── Chat ─────────────────────────────────────────────────────────────
+chat:
+  auto_reply: true
+  art: false
+  integrations:
+    jira:
+      usage: disabled
+    linear:
+      usage: disabled
+
+# ─── Knowledge Base ───────────────────────────────────────────────────
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  learnings:
+    scope: auto
+  issues:
+    scope: auto
+  pull_requests:
+    scope: auto
+  code_guidelines:
+    enabled: true
+    # Schema uses camelCase here — filePatterns, NOT file_patterns
+    filePatterns:
+      - '**/.claude/qyl-workflows/*.md'
+      - '**/Version.props'
+  jira:
+    usage: disabled
+  linear:
+    usage: disabled
+  mcp:
+    usage: auto
+
+# ─── Code Generation ─────────────────────────────────────────────────
+code_generation:
+  docstrings:
+    language: en-US
+    path_instructions:
+      - path: 'src/**/*.cs'
+        instructions: >-
+          Use XML doc comments with <summary>, <param>, <returns>, and <exception> tags.
+          Document public and protected members only. Keep summaries to one sentence.
+          Use <inheritdoc/> for interface implementations unless the implementation adds behavior.
+      - path: 'src/qyl.dashboard/**/*.ts'
+        instructions: >-
+          Use TSDoc format. Document exported functions and component props.
+          Keep descriptions concise. Use @param, @returns, @throws tags.
+  unit_tests:
+    path_instructions:
+      - path: 'src/**/*.cs'
+        instructions: >-
+          Use xUnit with FluentAssertions. Follow Arrange-Act-Assert pattern.
+          Use descriptive test names: MethodName_Scenario_ExpectedResult.
+          Mock external dependencies with NSubstitute. Test async methods with
+          async Task, not async void.
+      - path: 'src/qyl.dashboard/**/*.ts'
+        instructions: >-
+          Use Vitest with React Testing Library. Test component behavior, not
+          implementation details. Prefer userEvent over fireEvent. Assert on
+          accessible roles and text, not CSS classes or data-testid.
+
+# ─── Issue Enrichment ─────────────────────────────────────────────────
+issue_enrichment:
+  auto_enrich:
+    enabled: true
+  planning:
+    auto_planning:
+      enabled: false
+  labeling:
+    auto_apply_labels: true

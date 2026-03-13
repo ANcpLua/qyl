@@ -44,6 +44,7 @@ Docker image IS the product.
 - Do not treat SchemaGenerator.cs as part of the Roslyn generator pipeline.
 - Do not modify layers 1/2/3 unless the failing behavior is proven to originate there.
 - Prefer fixes in feature/service layers first (dashboard, mcp, Loom services).
+- Loom uses AIAgent (via QylAgentBuilder), not raw IChatClient calls.
 
 ## Architecture
 
@@ -93,7 +94,6 @@ allowed:
   collector -> workflows (ProjectReference)
   collector -> instrumentation (ProjectReference)
   mcp -> contracts (ProjectReference)
-  loom -> collector, agents, workflows, contracts, instrumentation (ProjectReference)
   dashboard -> collector (HTTP at runtime)
   mcp -> collector (HTTP at runtime)
 forbidden:

@@ -15,6 +15,9 @@ public static class IdentityEndpoints
 
         var onboarding = app.MapGroup("/api/v1/onboarding");
         MapOnboardingRoutes(onboarding);
+
+        var mcpProjects = app.MapGroup("/api/v1/mcp/projects");
+        MapMcpProjectRoutes(mcpProjects);
     }
 
     // ==========================================================================
@@ -134,6 +137,76 @@ public static class IdentityEndpoints
     }
 
     // ==========================================================================
+    // MCP Project Routes
+    // ==========================================================================
+
+    private static void MapMcpProjectRoutes(RouteGroupBuilder group)
+    {
+        group.MapMethods("/{slug}", ["PATCH"], static async (
+            string slug, McpUpdateProjectRequest request,
+            [FromServices] DuckDbStore store, CancellationToken ct) =>
+        {
+            var affected = await store.ExecuteWriteAsync(async (con, token) =>
+            {
+                await using var cmd = con.CreateCommand();
+                cmd.CommandText = """
+                                  UPDATE projects
+                                  SET description = COALESCE($1, description),
+                                      name = COALESCE($2, name),
+                                      updated_at = $3
+                                  WHERE slug = $4
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = request.Description ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = request.Name ?? (object)DBNull.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+                cmd.Parameters.Add(new DuckDBParameter { Value = slug });
+                return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
+
+            return affected > 0
+                ? Results.Ok(new { slug, updated = true })
+                : Results.NotFound();
+        });
+
+        group.MapMethods("/{slug}/retention", ["PATCH"], static async (
+            string slug, McpRetentionRequest request,
+            [FromServices] DuckDbStore store, CancellationToken ct) =>
+        {
+            if (request.RetentionDays is null or < 1)
+                return Results.BadRequest(new { error = "retention_days must be >= 1" });
+
+            await store.ExecuteWriteAsync(async (con, token) =>
+            {
+                // Ensure retention config table exists
+                await using var ddlCmd = con.CreateCommand();
+                ddlCmd.CommandText = """
+                                     CREATE TABLE IF NOT EXISTS project_retention (
+                                         slug VARCHAR NOT NULL PRIMARY KEY,
+                                         retention_days INTEGER NOT NULL,
+                                         updated_at TIMESTAMP NOT NULL
+                                     )
+                                     """;
+                await ddlCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+
+                await using var cmd = con.CreateCommand();
+                cmd.CommandText = """
+                                  INSERT INTO project_retention (slug, retention_days, updated_at)
+                                  VALUES ($1, $2, $3)
+                                  ON CONFLICT (slug) DO UPDATE SET
+                                      retention_days = EXCLUDED.retention_days,
+                                      updated_at = EXCLUDED.updated_at
+                                  """;
+                cmd.Parameters.Add(new DuckDBParameter { Value = slug });
+                cmd.Parameters.Add(new DuckDBParameter { Value = request.RetentionDays.Value });
+                cmd.Parameters.Add(new DuckDBParameter { Value = TimeProvider.System.GetUtcNow().UtcDateTime });
+                return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+            }, ct).ConfigureAwait(false);
+
+            return Results.Ok(new { slug, retention_days = request.RetentionDays.Value });
+        });
+    }
+
+    // ==========================================================================
     // Onboarding Routes (Handshake)
     // ==========================================================================
 
@@ -193,3 +266,14 @@ public sealed record AddEnvironmentRequest(
 public sealed record HandshakeVerifyRequest(
     string WorkspaceId,
     string CodeVerifier);
+
+public sealed record McpUpdateProjectRequest
+{
+    [JsonPropertyName("name")] public string? Name { get; init; }
+    [JsonPropertyName("description")] public string? Description { get; init; }
+}
+
+public sealed record McpRetentionRequest
+{
+    [JsonPropertyName("retention_days")] public int? RetentionDays { get; init; }
+}
