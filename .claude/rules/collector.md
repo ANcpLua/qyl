@@ -10,7 +10,7 @@ paths:
 - DuckDB for storage (columnar, append-optimized)
 - References qyl.protocol for shared types
 - Hosts qyl workflow state and is the source of truth for triage, fix runs, handoffs, regressions, GitHub events, and code-review results
-- Hosts qyl.copilot integration (`AddQylCopilot`, `AddQylAgui`, `AddQylCopilotTelemetry`) but keeps MCP transport in `qyl.mcp`
+- Hosts agent integration (AIAgent via QylAgentBuilder, AG-UI SSE, Loom endpoints) but keeps MCP transport in `qyl.mcp`
 
 ## Ownership boundaries
 - If a behavior exists in both collector and MCP docs, collector semantics win and MCP should adapt.

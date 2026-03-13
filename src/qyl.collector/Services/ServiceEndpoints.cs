@@ -9,6 +9,8 @@ internal static class ServiceEndpoints
         group.MapGet("/", GetServicesAsync);
         group.MapGet("/{serviceName}", GetServiceDetailAsync);
 
+        app.MapGet("/api/v1/mcp/services/map", GetServiceMapAsync);
+
         return app;
     }
 
@@ -34,6 +36,63 @@ internal static class ServiceEndpoints
         return await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false) is not { } detail
             ? Results.NotFound()
             : Results.Ok(detail);
+    }
+
+    /// <summary>
+    ///     GET /api/v1/mcp/services/map — service dependency map derived from span parent relationships.
+    /// </summary>
+    private static async Task<IResult> GetServiceMapAsync(
+        DuckDbStore store,
+        CancellationToken ct)
+    {
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
+
+        // Build edges from parent-child span relationships across services
+        cmd.CommandText = """
+                          SELECT
+                              COALESCE(parent.service_name, 'unknown') as source,
+                              COALESCE(child.service_name, 'unknown') as target,
+                              COUNT(*) as call_count,
+                              AVG(child.duration_ns) as avg_duration_ns,
+                              COUNT(*) FILTER (WHERE child.status_code = 2) as error_count
+                          FROM spans child
+                          JOIN spans parent ON child.parent_span_id = parent.span_id
+                          WHERE child.service_name IS NOT NULL
+                            AND parent.service_name IS NOT NULL
+                            AND child.service_name != parent.service_name
+                          GROUP BY source, target
+                          ORDER BY call_count DESC
+                          LIMIT 500
+                          """;
+
+        var edges = new List<McpServiceEdgeDto>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+        {
+            edges.Add(new McpServiceEdgeDto
+            {
+                Source = reader.GetString(0),
+                Target = reader.GetString(1),
+                CallCount = reader.Col(2).GetInt64(0),
+                AvgDurationNs = reader.Col(3).AsDouble,
+                ErrorCount = reader.Col(4).GetInt64(0)
+            });
+        }
+
+        // Collect distinct nodes from edges
+        var nodeSet = new HashSet<string>();
+        foreach (var edge in edges)
+        {
+            nodeSet.Add(edge.Source);
+            nodeSet.Add(edge.Target);
+        }
+
+        return Results.Ok(new McpServiceMapDto
+        {
+            Nodes = [.. nodeSet.Order()],
+            Edges = edges
+        });
     }
 }
 
@@ -117,3 +176,22 @@ internal sealed record ServicesResponse
 [JsonSerializable(typeof(ServiceDetail))]
 [JsonSerializable(typeof(ServicesResponse))]
 internal sealed partial class ServiceSerializerContext : JsonSerializerContext;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MCP Service Map DTOs
+// ═════════════════════════════════════════════════════════════════════════════
+
+internal sealed record McpServiceEdgeDto
+{
+    [JsonPropertyName("source")] public required string Source { get; init; }
+    [JsonPropertyName("target")] public required string Target { get; init; }
+    [JsonPropertyName("call_count")] public long CallCount { get; init; }
+    [JsonPropertyName("avg_duration_ns")] public double? AvgDurationNs { get; init; }
+    [JsonPropertyName("error_count")] public long ErrorCount { get; init; }
+}
+
+internal sealed record McpServiceMapDto
+{
+    [JsonPropertyName("nodes")] public required IReadOnlyList<string> Nodes { get; init; }
+    [JsonPropertyName("edges")] public required IReadOnlyList<McpServiceEdgeDto> Edges { get; init; }
+}

@@ -34,6 +34,26 @@ internal static class SkillRegistrationExtensions
                 .WithTools<ErrorTools>(jsonOptions)
                 .WithTools<ServiceTools>(jsonOptions)
                 .WithTools<SpanQueryTools>(jsonOptions);
+
+            // Directory-facing inspect tools
+            mcpBuilder
+                .WithTools<Tools.Traces.SearchTracesTool>()
+                .WithTools<Tools.Traces.GetTraceDetailsTool>()
+                .WithTools<Tools.Traces.GetSpanTool>()
+                .WithTools<Tools.Logs.SearchLogsTool>()
+                .WithTools<Tools.Logs.GetLogDetailsTool>()
+                .WithTools<Tools.Metrics.ListMetricsTool>()
+                .WithTools<Tools.Metrics.QueryMetricsTool>()
+                .WithTools<Tools.Sessions.SearchSessionsTool>()
+                .WithTools<Tools.Sessions.GetSessionTool>()
+                .WithTools<Tools.Discovery.ListProjectsTool>()
+                .WithTools<Tools.Discovery.ListServicesTool>()
+                .WithTools<Tools.Discovery.GetServiceMapTool>()
+                // Triage (inspect-write)
+                .WithTools<Tools.Triage.AnnotateTraceTool>()
+                .WithTools<Tools.Triage.MarkTraceReviewedTool>()
+                .WithTools<Tools.Sessions.AnnotateSessionTool>()
+                .WithTools<Tools.Sessions.UpdateSessionStatusTool>();
         }
 
         // Health: storage stats, health check, system context
@@ -56,12 +76,25 @@ internal static class SkillRegistrationExtensions
                 .WithTools<UseQylTools>(jsonOptions)
                 .WithTools<RcaTools>(jsonOptions)
                 .WithTools<SummaryTools>(jsonOptions);
+
+            // Directory-facing analysis tools
+            mcpBuilder
+                .WithTools<Tools.Analysis.AnalyzeTraceTool>()
+                .WithTools<Tools.Analysis.AnalyzeSessionTool>()
+                .WithTools<Tools.Analysis.SuggestFixTool>();
         }
 
         // Build: build failures and analysis
         if (skills.IsEnabled(QylSkillKind.Build))
         {
             mcpBuilder.WithTools<BuildTools>(jsonOptions);
+
+            // Directory-facing management tools
+            mcpBuilder
+                .WithTools<Tools.Management.CreateProjectTool>()
+                .WithTools<Tools.Management.UpdateProjectTool>()
+                .WithTools<Tools.Management.ConfigureRetentionTool>()
+                .WithTools<Tools.Management.CreateApiKeyTool>();
         }
 
         // Anomaly: z-score detection, baselines, period comparison

@@ -196,6 +196,31 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddCollectorToolClient<TestGenerationTools>(collectorUrl);
     }
 
+    // ── Directory-facing tool clients ──
+    services.AddCollectorToolClient<qyl.mcp.Tools.Traces.SearchTracesTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Traces.GetTraceDetailsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Traces.GetSpanTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Logs.SearchLogsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Logs.GetLogDetailsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Metrics.ListMetricsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Metrics.QueryMetricsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Sessions.SearchSessionsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Sessions.GetSessionTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Sessions.AnnotateSessionTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Sessions.UpdateSessionStatusTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Discovery.ListProjectsTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Discovery.ListServicesTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Discovery.GetServiceMapTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Triage.AnnotateTraceTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Triage.MarkTraceReviewedTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Analysis.AnalyzeTraceTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Analysis.AnalyzeSessionTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Analysis.SuggestFixTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Management.CreateProjectTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Management.UpdateProjectTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Management.ConfigureRetentionTool>(collectorUrl);
+    services.AddCollectorToolClient<qyl.mcp.Tools.Management.CreateApiKeyTool>(collectorUrl);
+
     services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
     services.AddSingleton<RcaTools>();
 
@@ -242,7 +267,13 @@ static JsonSerializerOptions ConfigureCommonServices(
 
 static void ConfigureHttpAuthentication(IServiceCollection services, McpHostOptions hostOptions)
 {
-    services.AddAuthorization();
+    services.AddAuthorization(options =>
+    {
+        options.AddPolicy("inspect", p => p.RequireClaim("qyl:skill", "inspect"));
+        options.AddPolicy("triage",  p => p.RequireClaim("qyl:skill", "triage"));
+        options.AddPolicy("analyze", p => p.RequireClaim("qyl:skill", "analyze"));
+        options.AddPolicy("manage",  p => p.RequireClaim("qyl:skill", "manage"));
+    });
 
     if (!hostOptions.RequiresAuthentication)
         return;

@@ -253,6 +253,11 @@ public static class QylServiceDefaultsExtensions
                     .AddAttributes([
                         new KeyValuePair<string, object>("telemetry.schema_url", "https://opentelemetry.io/schemas/1.40.0")
                     ]);
+
+                // Compile-time capability manifest (populated by source generator)
+                if (options.CapabilityAttributes.Count > 0)
+                    resource.AddAttributes(options.CapabilityAttributes);
+
                 options.ConfigureResource?.Invoke(resource);
             })
             .WithMetrics(metrics =>
@@ -402,6 +407,12 @@ public sealed class QylOptions
     ///     Additional meter names to register for metrics.
     /// </summary>
     public List<string> AdditionalMeterNames { get; } = [];
+
+    /// <summary>
+    ///     Compile-time capability attributes to register as OTel Resource attributes.
+    ///     Populated by the source generator; consumers should not modify directly.
+    /// </summary>
+    public List<KeyValuePair<string, object>> CapabilityAttributes { get; } = [];
 
     /// <summary>
     ///     Custom JSON serializer configuration.

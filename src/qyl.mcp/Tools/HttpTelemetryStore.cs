@@ -40,15 +40,15 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             var response = await client.GetFromJsonAsync(
                 url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
-            return Enumerable
-                .Where<AgentRun>(response?.Items?
-                    .Select(s => MapToRun(s, time)), r =>
+            return (response?.Items ?? [])
+                .Select(s => MapToRun(s, time))
+                .Where(r =>
                     (string.IsNullOrEmpty(model) ||
                      r.Model?.ContainsIgnoreCase(model) is true) &&
                     (string.IsNullOrEmpty(errorType) ||
                      r.ErrorType?.EqualsIgnoreCase(errorType) is true) &&
                     (!since.HasValue || r.StartedAt >= since.Value))
-                .ToArray() ?? [];
+                .ToArray();
         }
         catch (HttpRequestException ex)
         {
@@ -106,9 +106,9 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
             var response = await client.GetFromJsonAsync(
                 url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
-            return Enumerable
-                .Take<StoreSession>(response?.Items?
-                    .Where(s => s.ErrorCount > 0), limit)
+            return (response?.Items ?? [])
+                .Where(s => s.ErrorCount > 0)
+                .Take(limit)
                 .Select(s => new AgentError(
                     s.SessionId,
                     s.ServiceName ?? "unknown",
@@ -116,7 +116,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                     $"{s.ErrorCount} error(s) in session",
                     ParseTime(s.StartTime) ?? time.GetUtcNow().DateTime,
                     null))
-                .ToArray() ?? [];
+                .ToArray();
         }
         catch (HttpRequestException ex)
         {
@@ -137,11 +137,11 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             var since = time.GetUtcNow().AddHours(-hours).DateTime;
-            var durations = Enumerable
-                .Select<StoreSession, double>(response?.Items?
-                    .Where(s => ParseTime(s.StartTime) >= since), s => (double)s.SpanCount)
+            var durations = (response?.Items ?? [])
+                .Where(s => ParseTime(s.StartTime) >= since)
+                .Select(s => (double)s.SpanCount)
                 .OrderBy(x => x)
-                .ToList() ?? [];
+                .ToList();
 
             return durations.Count is 0
                 ? new LatencyStats(agentName, 0, 0, 0, 0, 0, 0, 0)

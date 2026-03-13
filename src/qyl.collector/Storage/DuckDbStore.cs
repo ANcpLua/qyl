@@ -1693,6 +1693,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                                       """;
         codingAgentCmd.ExecuteNonQuery();
 
+        // Loom conversational session + message history
+        using var loomSessionsCmd = con.CreateCommand();
+        loomSessionsCmd.CommandText = DuckDbSchema.LoomSessionsDdl;
+        loomSessionsCmd.ExecuteNonQuery();
+
         // Loom triage pipeline
         using var triageCmd = con.CreateCommand();
         triageCmd.CommandText = DuckDbSchema.TriageResultsDdl;
