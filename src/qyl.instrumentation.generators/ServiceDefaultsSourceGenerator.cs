@@ -181,7 +181,9 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             var ((genAi, agents), runtimeAvailable) = input;
             if (!runtimeAvailable) return;
 
-            var source = CapabilityEmitter.Emit(CapabilityManifest.FromCallSites(genAi, agents));
+            var source = CapabilityEmitter.Emit(
+                genAi.AsImmutableArray(),
+                agents.AsImmutableArray());
 
             if (!string.IsNullOrEmpty(source))
                 spc.AddSource(GeneratedFile.Capabilities, SourceText.From(source, Encoding.UTF8));
@@ -406,7 +408,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         var currentCapabilities = genAiCallSites
             .CollectAsEquatableArray()
             .Combine(agentCallSites.CollectAsEquatableArray())
-            .Select(static (input, _) => CapabilityManifest.FromCallSites(input.Left, input.Right))
+            .Select(static (input, _) => BuildCurrentCapabilities(input.Left, input.Right))
             .WithTrackingName(PipelineStage.CapabilitiesCurrentDiscovered);
 
         // Referenced assemblies (telemetry + capabilities)
@@ -450,6 +452,45 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     .Select(static meter => meter.MeterName)
                     .Distinct(StringComparer.Ordinal)
                     .OrderBy(static name => name, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray());
+
+    private static CapabilityRegistration BuildCurrentCapabilities(
+        EquatableArray<GenAiCallSite> genAi,
+        EquatableArray<AgentCallSite> agents) =>
+        new(
+            agents.IsDefaultOrEmpty
+                ? default
+                : agents
+                    .Where(static c => c.AgentName is not null)
+                    .Select(static c => c.AgentName!)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static n => n, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray(),
+            genAi.IsDefaultOrEmpty
+                ? default
+                : genAi
+                    .Select(static c => c.Provider)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static n => n, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray(),
+            genAi.IsDefaultOrEmpty
+                ? default
+                : genAi
+                    .Where(static c => c.Model is not null)
+                    .Select(static c => c.Model!)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static n => n, StringComparer.Ordinal)
+                    .ToArray()
+                    .ToEquatableArray(),
+            genAi.IsDefaultOrEmpty
+                ? default
+                : genAi
+                    .Select(static c => c.Operation)
+                    .Distinct(StringComparer.Ordinal)
+                    .OrderBy(static n => n, StringComparer.Ordinal)
                     .ToArray()
                     .ToEquatableArray());
 
@@ -509,12 +550,20 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     meterNames.Add(name);
             }
 
-            CapabilityManifest.CollectGeneratedAttribute(
-                attribute,
-                agents,
-                genAiProviders,
-                genAiModels,
-                genAiOperations);
+            // Capability attributes: [GeneratedCapability("kind", "value")]
+            if (attribute.ConstructorArguments.Length is 2 &&
+                string.Equals(attributeName, WellKnownType.GeneratedCapabilityAttribute, StringComparison.Ordinal) &&
+                attribute.ConstructorArguments[0].Value is string { Length: > 0 } kind &&
+                attribute.ConstructorArguments[1].Value is string { Length: > 0 } value)
+            {
+                switch (kind)
+                {
+                    case CapabilityKind.Agent: agents.Add(value); break;
+                    case CapabilityKind.GenAiProvider: genAiProviders.Add(value); break;
+                    case CapabilityKind.GenAiModel: genAiModels.Add(value); break;
+                    case CapabilityKind.GenAiOperation: genAiOperations.Add(value); break;
+                }
+            }
         }
     }
 
@@ -572,15 +621,14 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private static string? BuildGeneratedServiceRegistrationLambda(
         GeneratedServiceRegistration registration)
     {
-        var hasTelemetry = !registration.ActivitySources.IsDefaultOrEmpty ||
+        var hastelemetry = !registration.ActivitySources.IsDefaultOrEmpty ||
                            !registration.MeterNames.IsDefaultOrEmpty;
-        var capabilities = new CapabilityRegistration(
-            registration.CapabilityAgents,
-            registration.CapabilityGenAiProviders,
-            registration.CapabilityGenAiModels,
-            registration.CapabilityGenAiOperations);
+        var hasCapabilities = !registration.CapabilityAgents.IsDefaultOrEmpty ||
+                              !registration.CapabilityGenAiProviders.IsDefaultOrEmpty ||
+                              !registration.CapabilityGenAiModels.IsDefaultOrEmpty ||
+                              !registration.CapabilityGenAiOperations.IsDefaultOrEmpty;
 
-        if (!hasTelemetry && CapabilityManifest.IsEmpty(capabilities))
+        if (!hastelemetry && !hasCapabilities)
             return null;
 
         var sb = new StringBuilder();
@@ -593,8 +641,10 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         foreach (var meterName in registration.MeterNames)
             sb.AppendLine($"            options.AdditionalMeterNames.Add({Literal(meterName)});");
 
-        foreach (var capability in CapabilityManifest.Enumerate(capabilities))
-            AppendCapabilityAttribute(sb, capability.ResourceKey, capability.Values);
+        AppendCapabilityAttribute(sb, "qyl.capability.agents", registration.CapabilityAgents);
+        AppendCapabilityAttribute(sb, "qyl.capability.genai.providers", registration.CapabilityGenAiProviders);
+        AppendCapabilityAttribute(sb, "qyl.capability.genai.models", registration.CapabilityGenAiModels);
+        AppendCapabilityAttribute(sb, "qyl.capability.genai.operations", registration.CapabilityGenAiOperations);
 
         sb.Append("        }");
         return sb.ToString();
@@ -629,6 +679,15 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         public const string GenAiInstrumentation = "Qyl.Instrumentation.Instrumentation.GenAi.GenAiInstrumentation";
         public const string GeneratedActivitySourceAttribute = "Qyl.Instrumentation.GeneratedActivitySourceAttribute";
         public const string GeneratedMeterAttribute = "Qyl.Instrumentation.GeneratedMeterAttribute";
+        public const string GeneratedCapabilityAttribute = "Qyl.Instrumentation.GeneratedCapabilityAttribute";
+    }
+
+    private static class CapabilityKind
+    {
+        public const string Agent = "agent";
+        public const string GenAiProvider = "genai.provider";
+        public const string GenAiModel = "genai.model";
+        public const string GenAiOperation = "genai.operation";
     }
 
     /// <summary>
@@ -712,6 +771,12 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
     private readonly record struct TelemetryRegistration(
         EquatableArray<string> ActivitySources,
         EquatableArray<string> MeterNames);
+
+    private readonly record struct CapabilityRegistration(
+        EquatableArray<string> AgentNames,
+        EquatableArray<string> GenAiProviders,
+        EquatableArray<string> GenAiModels,
+        EquatableArray<string> GenAiOperations);
 
     private readonly record struct GeneratedServiceRegistration(
         EquatableArray<string> ActivitySources,

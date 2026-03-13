@@ -26,11 +26,9 @@ using Qyl.Collector.SchemaControl;
 using Qyl.Collector.Search;
 using Qyl.Collector.Services;
 using Qyl.Collector.Telemetry;
-using Qyl.Collector.Endpoints;
 using Qyl.Collector.Workflow;
 using Qyl.Agents;
-using Qyl.Agents.Context;
-using Qyl.Contracts.Copilot;
+using Qyl.Agents.Auth;
 using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
 using Qyl.Workflows.Workflows;
@@ -189,18 +187,17 @@ builder.Services.AddSingleton<IExecutionStore>(static sp =>
 builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
     ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
 
-// LLM provider + agent infrastructure
+// GitHub Copilot integration — bridges GitHubService token to agent auth (ADR-002)
 builder.Services.AddQylAgents(builder.Configuration);
-builder.Services.AddQylAgentTelemetry();
+builder.Services.AddQylWorkflows();
 // AG-UI SSE infrastructure (CopilotKit-compatible protocol)
 builder.Services.AddQylAgui();
-// Workflow agent + engine (resolves from IChatClient at runtime)
-builder.Services.AddSingleton<AIAgent>(static sp =>
+// Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
+builder.Services.AddSingleton(sp => new CopilotAuthOptions
 {
-    var chatClient = sp.GetRequiredService<IChatClient>();
-    return QylAgentBuilder.FromChatClient(chatClient, agentName: "qyl-workflow");
+    AutoDetect = true, ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
 });
-builder.Services.AddQylWorkflows();
+builder.Services.AddQylAgentTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
@@ -210,13 +207,6 @@ builder.Services.AddHostedService<EmbeddingClusterWorker>();
 // Loom triage pipeline: auto-score and route untriaged error issues
 builder.Services.AddSingleton<TriagePipelineService>();
 builder.Services.AddHostedService(static sp => sp.GetRequiredService<TriagePipelineService>());
-
-// Loom session persistence and context
-builder.Services.AddSingleton<LoomSessionStore>();
-builder.Services.AddSingleton<IssueContextBuilder>();
-builder.Services.AddSingleton<IIssueContextSource>(sp =>
-    sp.GetRequiredService<IssueContextBuilder>());
-builder.Services.AddSingleton<ObservabilityContextProvider>();
 
 // Loom autofix agent: autonomously processes pending fix runs through the LLM pipeline
 builder.Services.AddSingleton<AutofixAgentService>();
@@ -260,9 +250,6 @@ builder.Services.AddSingleton<AgentHandoffService>();
 builder.Services.AddSingleton<CodeReviewService>();
 
 // Loom interactive debugging: insight + streaming explorer
-builder.Services.AddSingleton<IssueContextBuilder>();
-builder.Services.AddSingleton<IIssueContextSource>(static sp => sp.GetRequiredService<IssueContextBuilder>());
-builder.Services.AddSingleton<ObservabilityContextProvider>();
 builder.Services.AddSingleton<LoomInsightService>();
 builder.Services.AddSingleton<LoomExplorerService>();
 
@@ -404,16 +391,11 @@ app.MapGet("/api/v1/traces", async (
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
+app.MapCopilotEndpoints();
 // AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
 if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
 {
-    // Generic AG-UI chat (no issue context)
     app.MapQylAguiChat(QylAgentBuilder.FromChatClient(aguiChatClient, agentName: "qyl-llm"));
-
-    // Loom conversational AG-UI (issue-aware)
-    var contextProvider = app.Services.GetRequiredService<ObservabilityContextProvider>();
-    var loomAgent = LoomAgent.Create(aguiChatClient, [], [contextProvider]);
-    app.MapLoomAguiEndpoints(loomAgent);
 }
 app.MapClaudeCodeEndpoints();
 app.MapServiceEndpoints();
@@ -536,17 +518,7 @@ app.MapPost("/v1/traces", async (
             serviceInstances = OtlpConverter.ExtractServiceInstancesFromJson(otlpData);
         }
 
-        async Task UpsertServiceInstancesAsync()
-        {
-            foreach (var si in serviceInstances)
-                await store.UpsertServiceInstanceAsync(si, ct);
-        }
-
-        if (spans.Count is 0)
-        {
-            await UpsertServiceInstancesAsync();
-            return Results.Accepted();
-        }
+        if (spans.Count is 0) return Results.Accepted();
 
         // Apply Codex telemetry transformations (codex.* -> gen_ai.*)
         var batch = new SpanBatch(spans).WithCodexTransformations();
@@ -557,7 +529,8 @@ app.MapPost("/v1/traces", async (
         await store.EnqueueAsync(batch, ct);
 
         // Upsert discovered services (idempotent, through write channel)
-        await UpsertServiceInstancesAsync();
+        foreach (var si in serviceInstances)
+            await store.UpsertServiceInstanceAsync(si, ct);
 
         broadcaster.PublishSpans(batch);
 
@@ -894,11 +867,6 @@ app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
 app.MapQueryEndpoints();
 app.MapLogSummaryEndpoints();
-app.MapMcpTraceEndpoints();
-app.MapMcpLogEndpoints();
-app.MapMcpSessionEndpoints();
-app.MapMcpMetricEndpoints();
-app.MapMcpApiKeyEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
 if (buildFailureCaptureEnabled)
 {

@@ -9,6 +9,58 @@ qyl provides:
 - `qyl.copilot`: embedded-agent, AG-UI, workflow engine, and adapter primitives
 - qyl-native issue triage, autofix, regression, code-review, and handoff workflows
 
+## Section 1: Architektur-Ueberblick
+
+Zwei Eingaenge, ein OAuth-Flow, ein Account:
+
+```text
+┌─────────────────────┐     ┌────────────────────────┐
+│ Dashboard           │     │ claude.ai / Cursor /  │
+│ /onboarding         │     │ Claude Code / etc.    │
+│                     │     │                        │
+│ [1] Welcome         │     │ Click "qyl" in        │
+│ [2] -> OAuth redirect│    │ Connectors            │
+│ [3] Features        │     │        │              │
+│ [4] Doctor/Verify   │     │        │              │
+│ [5] Done            │     │        │              │
+└──────────┬──────────┘     └────────┼──────────────┘
+           │                          │
+           ▼                          ▼
+┌──────────────────────────────────────────────────┐
+│             mcp.qyl.dev/consent                  │
+│                                                  │
+│  "Claude is requesting access to qyl"            │
+│                                                  │
+│  [x] Inspect Traces & Logs        12 tools       │
+│  [x] Triage Sessions               4 tools       │
+│  [x] Analyze with AI               3 tools       │
+│  [x] Manage Projects               4 tools       │
+│                                                  │
+│  https://claude.ai/api/mcp/auth_callback         │
+│  [Cancel]                      [Approve]         │
+└──────────────────────┬───────────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────────┐
+│           Keycloak (Identity Broker)             │
+│                                                  │
+│  [Sign in with GitHub]                           │
+│  [Sign in with Google]                           │
+│  [Sign in with Azure]                            │
+│                                                  │
+│  -> Issues JWT with qyl:skill claims             │
+│  -> Redirects back to origin                     │
+└──────────────────────────────────────────────────┘
+```
+
+Flow order:
+
+1. Client lands on the consent page hosted at `mcp.qyl.dev`.
+2. User selects skills and presses `Approve`.
+3. Redirect to Keycloak login with GitHub, Azure, or Google.
+4. Keycloak issues a JWT with the selected `qyl:skill` claims.
+5. Redirect back to the caller, either a `claude.ai` callback or the dashboard onboarding flow.
+
 ## What you can do
 
 ### Query qyl in natural language

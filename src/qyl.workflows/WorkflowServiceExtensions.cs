@@ -1,5 +1,6 @@
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Qyl.Agents;
+using Qyl.Agents.Adapters;
 using Qyl.Workflows.Workflows;
 
 namespace Qyl.Workflows;
@@ -9,18 +10,16 @@ namespace Qyl.Workflows;
 /// </summary>
 public static class WorkflowServiceExtensions
 {
-    public static IServiceCollection AddQylWorkflows(
-        this IServiceCollection services,
-        string? workflowsDirectory = null,
-        bool autoDiscover = true)
+    public static IServiceCollection AddQylWorkflows(this IServiceCollection services)
     {
         Guard.NotNull(services);
 
-        services.AddSingleton<WorkflowEngineFactory>(sp =>
+        services.AddSingleton<WorkflowEngineFactory>(static sp =>
         {
-            var agent = sp.GetRequiredService<AIAgent>();
+            var opts = sp.GetRequiredService<CopilotOptions>();
+            var adapterFactory = sp.GetRequiredService<CopilotAdapterFactory>();
             var executionStore = sp.GetService<IExecutionStore>();
-            return new WorkflowEngineFactory(agent, workflowsDirectory, autoDiscover, executionStore);
+            return new WorkflowEngineFactory(opts, adapterFactory.GetAdapterAsync, executionStore);
         });
 
         return services;
@@ -32,23 +31,20 @@ public static class WorkflowServiceExtensions
 /// </summary>
 public sealed class WorkflowEngineFactory : IAsyncDisposable
 {
-    private readonly AIAgent _agent;
-    private readonly bool _autoDiscover;
     private readonly IExecutionStore? _executionStore;
+    private readonly Func<CancellationToken, ValueTask<QylCopilotAdapter>> _getAdapterAsync;
     private readonly SemaphoreSlim _lock = new(1, 1);
-    private readonly string? _workflowsDirectory;
+    private readonly CopilotOptions _options;
     private bool _disposed;
     private WorkflowEngine? _engine;
 
     public WorkflowEngineFactory(
-        AIAgent agent,
-        string? workflowsDirectory = null,
-        bool autoDiscover = true,
+        CopilotOptions options,
+        Func<CancellationToken, ValueTask<QylCopilotAdapter>> getAdapterAsync,
         IExecutionStore? executionStore = null)
     {
-        _agent = Guard.NotNull(agent);
-        _workflowsDirectory = workflowsDirectory;
-        _autoDiscover = autoDiscover;
+        _options = Guard.NotNull(options);
+        _getAdapterAsync = Guard.NotNull(getAdapterAsync);
         _executionStore = executionStore;
     }
 
@@ -87,16 +83,20 @@ public sealed class WorkflowEngineFactory : IAsyncDisposable
 
     private async Task<WorkflowEngine> CreateAndInitializeEngineAsync(CancellationToken ct)
     {
+        var adapter = await _getAdapterAsync(ct).ConfigureAwait(false);
+
         var engine = new WorkflowEngine(
-            _agent,
-            _workflowsDirectory,
+            adapter,
+            _options.WorkflowsDirectory,
             TimeProvider.System,
             _executionStore);
 
         try
         {
-            if (_autoDiscover)
+            if (_options.AutoDiscoverWorkflows)
+            {
                 await engine.DiscoverWorkflowsAsync(ct).ConfigureAwait(false);
+            }
 
             return engine;
         }

@@ -25,8 +25,6 @@ public static class LoomEndpoints
         });
 
         // ── Stages 2-5: Interactive exploration (SSE streaming) ──────────────
-        // DEPRECATED: Use POST /api/v1/loom/{issueId}/chat (LoomAguiEndpoints) instead.
-        // Kept for backward compatibility with existing dashboard until migration.
         app.MapPost("/api/v1/loom/{issueId}/explore", static async (
             string issueId,
             LoomExploreRequest? request,
@@ -51,7 +49,6 @@ public static class LoomEndpoints
         });
 
         // ── Stage 5: "Code It Up" trigger ────────────────────────────────────
-        // DEPRECATED: Use the code_it_up tool via /api/v1/loom/{issueId}/chat instead.
         app.MapPost("/api/v1/loom/{issueId}/code-it-up", static async (
             string issueId,
             LoomCodeItUpRequest request,

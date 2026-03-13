@@ -5,6 +5,9 @@ paths:
 
 # MCP Server Rules
 
+## Context
+- OAuth and connector flow overview: `.claude/qyl-workflows/README.md#section-1-architektur-ueberblick`
+
 ## Architecture
 - Supports both `stdio` and streamable HTTP (`/mcp`) transports.
 - Consumed by AI agents (Claude, Copilot, desktop tools, remote MCP connectors).

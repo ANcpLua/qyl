@@ -28,12 +28,14 @@ Landing page: <https://ancplua.github.io/qyl/>
 | Package                          | Purpose                                                     |
 |----------------------------------|-------------------------------------------------------------|
 | `qyl.collector`                  | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
-| `qyl.copilot`                    | GitHub Copilot integration with AG-UI tool rendering        |
+| `qyl.loom`                       | Loom product — C# transpile of Sentry reference impl        |
+| `qyl.agents`                     | AI agent infrastructure (QylAgentBuilder, adapters)         |
+| `qyl.workflows`                  | Workflow engine (declarative YAML + markdown discovery)      |
 | `qyl.hosting`                    | App orchestration framework (QylRunner)                     |
-| `qyl.servicedefaults`            | .NET instrumentation library with OTel setup                |
-| `qyl.instrumentation.generators`  | Roslyn source generator for GenAI/DB interceptors           |
+| `qyl.instrumentation`            | .NET instrumentation library with OTel setup                |
+| `qyl.instrumentation.generators` | Roslyn source generator for GenAI/DB interceptors           |
 | `qyl.mcp`                        | MCP server for AI agent integration                         |
-| `qyl.protocol`                   | Shared types (BCL-only, no dependencies)                    |
+| `qyl.contracts`                  | Shared types (BCL-only, no dependencies)                    |
 
 ## Quick Start
 
@@ -99,82 +101,36 @@ Supported protocols:
 ## Architecture
 
 ```text
-+------------------+                     +------------------+
-|  Your .NET App   |                     |  Any OTel App    |
-| (servicedefaults)|                     |  (Python, Go..)  |
-+--------+---------+                     +--------+---------+
-         |                                        |
-         |               OTLP                     |
-         +----------------+-----------------------+
-                          v
-            +----------------------------+
-            |       qyl.hosting          |
-            |      (QylRunner)           |
-            +-------------+--------------+
-                          | orchestrates
-                          v
-            +----------------------------+
-            |       qyl.collector        |
-            |        (ASP.NET)           |
-            +---+------+------+-----+---+
-                |      |      |     |
-      +---------+  +---+---+  |  +--+--------+
-      v            v       v  |  v            v
-+----------+ +----------+ |  | +----------+ +----------------+
-|  DuckDB  | | Dashboard| |  | |   MCP    | |  qyl.copilot   |
-| (storage)| | (React)  | |  | | (agents) | | (GitHub Copilot)|
-+----------+ +----------+ |  | +----------+ +-------+--------+
-                           |  |                      |
-                     +-----+--+-----+          SSE / AG-UI
-                     | Insights     |                |
-                     | Materializer |                v
-                     +--------------+        GitHub Copilot
+CopilotKit / Angular / Vanilla JS
+       ↕  AG-UI protocol (SSE)
+              +------------------+
+              |   qyl.dashboard  |
+              |    (React 19)    |
+              +--------+---------+
+                       | HTTP
+                       v
++----------+  +------------------+  +------+
+| qyl.mcp  |->|  qyl.collector   |<-| OTLP |
+| (stdio)  |  |  (ASP.NET Core)  |  |Clients|
++----------+  +--+-----------+---+  +------+
+                 |           |
+                 v           v
+       +----------+  +------------+
+       |  DuckDB  |  | qyl.agents |
+       +----------+  +-----+------+
+                           |
+                           v
+                    QylAgentBuilder
+                    → AIAgent (instrumented)
+                    → InstrumentedChatClient
+                    → GitHub Copilot / Azure OpenAI / Ollama
+
++------------------+
+|    qyl.loom      |  (standalone product)
+| refs: collector, |
+|  agents, wkflows |
++------------------+
 ```
-
-## AG-UI Tool Rendering
-
-qyl.copilot exposes observability tools to GitHub Copilot via SSE streaming with AG-UI event conventions.
-
-**Tools** (via `ObservabilityTools`):
-
-| Tool                 | Description                                        |
-|----------------------|----------------------------------------------------|
-| `search_spans`       | Search spans by service name, status, time range   |
-| `get_trace`          | Get all spans for a trace ID                       |
-| `get_genai_stats`    | GenAI usage statistics (requests, tokens, costs)   |
-| `search_logs`        | Search logs by severity, body text, time range     |
-| `get_storage_stats`  | Storage statistics (span/log/session counts, size) |
-| `list_sessions`      | List spans belonging to a session                  |
-| `get_system_context` | Pre-computed system context (zero query cost)      |
-
-Each tool is wrapped by `DelegatingAIFunction` which applies `CopilotMetrics` (counters, histograms) and
-`CopilotInstrumentation` (OTel spans).
-
-**Endpoints**:
-
-| Method | Path                                   | Purpose                |
-|--------|----------------------------------------|------------------------|
-| POST   | `/api/v1/copilot/chat`                 | Chat (SSE streaming)   |
-| GET    | `/api/v1/copilot/workflows`            | List workflows         |
-| POST   | `/api/v1/copilot/workflows/{name}/run` | Execute workflow (SSE) |
-| GET    | `/api/v1/copilot/status`               | Auth status            |
-| GET    | `/api/v1/copilot/executions`           | Execution history      |
-| GET    | `/api/v1/copilot/executions/{id}`      | Execution details      |
-
-SSE events use AG-UI convention: `tool_call` and `tool_result` event names.
-
-## Insights Materializer
-
-Background service that pre-computes system context every 5 minutes (10-second warmup delay).
-
-| Materializer           | Computes                                               |
-|------------------------|--------------------------------------------------------|
-| `TopologyMaterializer` | Service discovery, AI model usage                      |
-| `ProfileMaterializer`  | Latency percentiles (P50/P95/P99), token costs, trends |
-| `AlertsMaterializer`   | Error spikes, cost drift, slow operations              |
-
-Results are stored in the `materialized_insights` table and served via `get_system_context` with zero query cost at read
-time.
 
 ## Ports
 
@@ -252,18 +208,24 @@ dotnet run --project src/qyl.collector
 ## Project Structure
 
 ```
-core/                                   # TypeSpec schemas (source of truth)
-eng/                                    # NUKE build system
+core/                                    # TypeSpec schemas (source of truth)
+eng/                                     # NUKE build system
 src/
-  qyl.collector/                        # Backend API service
-  qyl.copilot/                          # GitHub Copilot integration (AG-UI)
-  qyl.dashboard/                        # React frontend
-  qyl.hosting/                          # App orchestration (QylRunner)
-  qyl.mcp/                             # MCP server
-  qyl.protocol/                         # Shared types (BCL-only)
-  qyl.servicedefaults/                  # OTel instrumentation library
-  qyl.instrumentation.generators/        # Roslyn source generator
-tests/                                  # Test projects
+  qyl.collector/                         # Backend API + gRPC + storage
+  qyl.loom/                             # Loom product (C# transpile of src/loom/)
+  qyl.agents/                            # AI agent infrastructure (QylAgentBuilder)
+  qyl.workflows/                         # Workflow engine
+  qyl.dashboard/                         # React 19 SPA
+  qyl.hosting/                           # App orchestration (QylRunner)
+  qyl.mcp/                              # MCP server for AI agents
+  qyl.contracts/                         # Shared types (BCL-only)
+  qyl.instrumentation/                   # OTel + health + resilience defaults
+  qyl.instrumentation.generators/        # Roslyn auto-instrumentation
+  qyl.collector.storage.generators/      # DuckDB source generators
+  qyl.browser/                           # Browser OTLP SDK (TypeScript)
+  qyl.watch/                             # Live terminal span viewer
+  loom/                                  # Sentry Loom reference impl (read-only)
+tests/                                   # xUnit v3 + MTP tests
 ```
 
 ## License

@@ -8,8 +8,8 @@ using Xunit;
 namespace Qyl.Collector.Tests;
 
 /// <summary>
-///     Enforces the decomposed project boundaries established during the Loom migration.
-///     See docs/plans/2026-03-10-qyl-to-qyl-loom-migration.md for rationale.
+///     Enforces project dependency boundaries across the qyl platform.
+///     qyl.loom is a standalone product that references collector — not the other way around.
 /// </summary>
 public sealed class ArchitectureTests
 {

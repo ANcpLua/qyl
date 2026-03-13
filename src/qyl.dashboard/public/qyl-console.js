@@ -2,9 +2,8 @@
 // Drop this into any webapp to send console logs to qyl.collector
 // Agents can then see frontend errors without browser MCP
 //
-// Usage: <script src="/qyl-console.js"></script>
-// Override: <script src="/qyl-console.js" data-endpoint="http://custom:5100"></script>
-// Or: window.QylConsole.init({ endpoint: 'http://custom:5100', sessionId: 'abc' })
+// Usage: <script src="/qyl-console.js" data-endpoint="http://localhost:5100"></script>
+// Or: window.QylConsole.init({ endpoint: 'http://localhost:5100', sessionId: 'abc' })
 
 (function () {
     'use strict';
@@ -12,7 +11,7 @@
     window.__qylConsole = true;
 
     const cfg = {
-        endpoint: document.currentScript?.dataset?.endpoint || location.origin,
+        endpoint: document.currentScript?.dataset?.endpoint || 'http://localhost:5100',
         sessionId: document.currentScript?.dataset?.session || null,
         batch: true, batchMs: 100, maxQueue: 50
     };

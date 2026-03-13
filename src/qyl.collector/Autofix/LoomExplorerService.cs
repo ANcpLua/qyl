@@ -9,7 +9,6 @@ namespace Qyl.Collector.Autofix;
 /// </summary>
 public sealed partial class LoomExplorerService(
     DuckDbStore store,
-    IssueContextBuilder contextBuilder,
     IssueService issueService,
     ILogger<LoomExplorerService> logger,
     IChatClient? llm = null)
@@ -31,16 +30,18 @@ public sealed partial class LoomExplorerService(
         // ── Phase 1: Ingest context ──────────────────────────────────────────
         yield return MakeProgress(0, "Ingesting qyl data...");
 
-        IssueContext ctx = await contextBuilder.BuildAsync(issueId, userContext, ct: ct)
-            .ConfigureAwait(false);
-        if (ctx.IsEmpty)
+        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        if (issue is null)
         {
             yield return MakeError($"Issue '{issueId}' not found.");
             yield break;
         }
 
-        string contextBlock = ctx.FormattedBlock;
-        LogExplorationStarted(issueId, ctx.Events.Count);
+        IReadOnlyList<ErrorIssueEventRow> events = await issueService
+            .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
+
+        string contextBlock = BuildContextBlock(issue, events, userContext);
+        LogExplorationStarted(issueId, events.Count);
 
         // ── Phase 2: Stream root cause investigation ─────────────────────────
         yield return MakeProgress(20, "Figuring out the root cause...");
@@ -154,6 +155,39 @@ public sealed partial class LoomExplorerService(
             LogSolutionPlanFailed(ex);
             return null;
         }
+    }
+
+    // ── Context building ──────────────────────────────────────────────────────
+
+    private static string BuildContextBlock(
+        IssueSummary issue,
+        IReadOnlyList<ErrorIssueEventRow> events,
+        string? userContext)
+    {
+        StringBuilder sb = new();
+        sb.AppendLine($"Error type: {issue.ErrorType}");
+        sb.AppendLine($"Message: {issue.ErrorMessage ?? "N/A"}");
+        sb.AppendLine($"Occurrences: {issue.EventCount}");
+        sb.AppendLine($"First seen: {issue.FirstSeen:O}");
+        sb.AppendLine($"Last seen: {issue.LastSeen:O}");
+
+        if (events.Count > 0)
+        {
+            sb.AppendLine("\nRecent events:");
+            foreach (ErrorIssueEventRow e in events)
+            {
+                sb.AppendLine($"  [{e.Timestamp:O}] {e.Message ?? "no message"}");
+                if (e.StackTrace is not null)
+                    sb.AppendLine($"    Stack: {e.StackTrace[..Math.Min(800, e.StackTrace.Length)]}");
+                if (e.Environment is not null)
+                    sb.AppendLine($"    Env: {e.Environment}");
+            }
+        }
+
+        if (userContext is not null)
+            sb.AppendLine($"\nAdditional context from user:\n{userContext}");
+
+        return sb.ToString();
     }
 
     // ── JSON parsing ──────────────────────────────────────────────────────────

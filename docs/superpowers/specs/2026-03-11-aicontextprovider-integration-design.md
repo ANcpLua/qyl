@@ -1,9 +1,5 @@
 # AIContextProvider Integration Design
 
-> **Status:** Partially superseded by `2026-03-12-conversational-loom-design.md`
-> **Still active here:** `IIssueContextSource`, `IssueContextBuilder`, `ObservabilityContextProvider`, and `QylAgentBuilder` context-provider wiring
-> **Superseded here:** Loom's conversation/session architecture, `QylCopilotAdapter` lifecycle, and AG-UI endpoint direction
-
 ## Problem
 
 Three components manually build LLM context through string concatenation, bypassing the Microsoft Agent Framework's `AIContextProvider` system:
@@ -14,30 +10,13 @@ Three components manually build LLM context through string concatenation, bypass
 
 3. **`QylCopilotAdapter.ExecuteWorkflowAsync()`** — manually substitutes template parameters and concatenates `AdditionalContext` into instructions. **Deferred:** This is a workflow-template concern, not a context-provider concern. The `{{parameter}}` substitution pattern is intentional for declarative workflows and doesn't benefit from `AIContextProvider`.
 
-## Approach: Hybrid (original March 11 plan)
+## Approach: Hybrid (providers where AIAgent is used, shared builder where IChatClient is used)
 
-The original March 11 plan wired `AIContextProvider` and `ChatHistoryProvider` into the two paths that already used `AIAgent` (`QylAgentBuilder.FromChatClient` and `QylCopilotAdapter`). The active part of that plan is the shared context plumbing plus `QylAgentBuilder` wiring. The March 12 Loom spec replaces the `QylCopilotAdapter` path.
+Wire `AIContextProvider` and `ChatHistoryProvider` into the two paths that already use `AIAgent` (`QylAgentBuilder.FromChatClient` and `QylCopilotAdapter`). Extract Loom's `BuildContextBlock` into a shared service that both `IChatClient` callers and future `AIAgent` callers can use.
 
-### Historical note: why March 11 did not lift Loom to `AIAgent`
+### Why not lift Loom to AIAgent?
 
 Loom's 5-phase pipeline makes multiple sequential LLM calls with different prompts (monologue prompt, then solution prompt). This doesn't map to a single `AIAgent.RunAsync` invocation — it would require either multiple `RunAsync` calls (losing the "one provider enriches one invocation" model) or a complex orchestrating agent. The IChatClient pattern is correct for Loom's multi-call design.
-
-## Document boundary
-
-Use this document as the source of truth for:
-
-- The shared issue-context contract in `qyl.contracts`
-- The collector-side `IssueContextBuilder`
-- The agent-side `ObservabilityContextProvider`
-- `QylAgentBuilder` wiring for context providers and chat history
-
-Do not use this document as the active Loom plan for:
-
-- Conversational Loom session architecture
-- Loom AG-UI endpoints
-- `QylCopilotAdapter` long-term lifecycle
-
-Those decisions moved to `2026-03-12-conversational-loom-design.md`.
 
 ## Components
 
@@ -196,11 +175,9 @@ public static AIAgent FromChatClient(
 
 **Note:** `ChatClientAgentOptions.AIContextProviders` accepts `AIContextProvider` (the base class), so both `ObservabilityContextProvider` (a `MessageAIContextProvider`) and any future `AIContextProvider` subclass work.
 
-### 4. Historical: QylCopilotAdapter session fix
+### 4. QylCopilotAdapter session fix (Copilot path)
 
 **Location:** `src/qyl.agents/Adapters/QylCopilotAdapter.cs`
-
-This section records the bug that motivated the redesign. The March 12 conversational Loom plan deletes `QylCopilotAdapter`, so treat this as historical rationale, not the active Loom implementation path.
 
 Replace the XML tag concat + `CopilotSessionStore` with proper `ChatMessage` list passing.
 
@@ -234,13 +211,11 @@ var enumerator = _agent.RunStreamingAsync(messages, cancellationToken: ct)
 
 The `CopilotSessionStore` continues to be used for the Copilot path since `GitHubCopilotAgent` manages its own server-side history. The fix here is the message format, not the storage mechanism. Migration to `InMemoryChatHistoryProvider` for the Copilot path is deferred — the Copilot SDK's session handling may conflict with it.
 
-### 5. Historical: Copilot AG-UI integration pattern
+### 5. CopilotAguiEndpoints integration (future — not in initial PR)
 
 **Location:** `src/qyl.collector/Copilot/CopilotAguiEndpoints.cs`
 
-No existing endpoint currently creates an `AgentSession` with issue-specific state. This section preserves the original integration pattern. The active Loom endpoint design now lives in `2026-03-12-conversational-loom-design.md` under `LoomAguiEndpoints`.
-
-This component defines the original **integration pattern** for future endpoints that need issue context injection:
+No existing endpoint currently creates an `AgentSession` with issue-specific state. This component defines the **integration pattern** for future endpoints (e.g., a Loom-specific AG-UI chat endpoint) that need issue context injection:
 
 ```csharp
 // Pattern for future issue-aware agent endpoints:
@@ -252,13 +227,13 @@ session.StateBag.SetValue(ObservabilityContextProvider.IssueIdKey, issueId);
 
 The `issueId` would arrive as a route parameter (e.g., `POST /api/v1/loom/{issueId}/chat`). This is explicitly **not part of the initial PR** — it becomes actionable when a Loom chat endpoint is built on top of `AIAgent` instead of raw `IChatClient`.
 
-## What this document still defines
+## What doesn't change
 
-- `IIssueContextSource` stays BCL-only in `qyl.contracts`
-- `IssueContextBuilder` remains the shared collector-side context formatter
-- `ObservabilityContextProvider` remains the agent-side issue-context injection point
-- `QylAgentBuilder` remains the place where chat history and context providers are wired into `AIAgent`
-- Dependency direction between `qyl.contracts`, `qyl.agents`, and `qyl.collector`
+- Loom streaming pipeline (`LoomExplorerService`, `LoomInsightService`) stays on `IChatClient`
+- `DeclarativeEngine` / `WorkflowEngine` — untouched
+- OTel compile-time interceptors — untouched
+- AG-UI endpoint registration (`MapAGUI`) — untouched
+- `ToolEventInterceptor` pattern in `QylCopilotAdapter` — untouched
 
 ## Dependency direction
 
@@ -290,16 +265,13 @@ builder.Services.AddSingleton<IssueContextBuilder>();
 builder.Services.AddSingleton<IIssueContextSource>(sp => sp.GetRequiredService<IssueContextBuilder>());
 ```
 
-## Relationship to the conversational Loom spec
+## Migration path
 
-The March 12 Loom spec completes the Loom-side migration that this design left open:
-
-1. Loom moves from raw `IChatClient` calls to `AIAgent`
-2. Issue context still flows through the same chain defined here:
-   `IIssueContextSource` → `IssueContextBuilder` → `ObservabilityContextProvider`
-3. Loom sessions set `StateBag["qyl.issueId"]`, so the provider wiring defined here becomes active without changing the shared context contract
-
-The sections below preserve the original March 11 delivery plan. Keep them for rationale and implementation history; when they conflict with the March 12 Loom spec, the newer Loom spec wins.
+When Loom eventually moves from `IChatClient` to `AIAgent`:
+1. `ObservabilityContextProvider` already exists and is wired
+2. Switch Loom's LLM calls from `IChatClient.GetStreamingResponseAsync` to `AIAgent.RunStreamingAsync`
+3. Set `StateBag["qyl.issueId"]` on the session
+4. Issue context injection happens automatically — delete the manual `contextBuilder.BuildAsync()` call
 
 ## Files changed
 
@@ -341,7 +313,7 @@ The sections below preserve the original March 11 delivery plan. Keep them for r
 
 ## Required tests
 
-These tests remain required for the shared context plumbing, regardless of which higher-level Loom or agent flow consumes it:
+`ObservabilityContextProvider` ships with zero callers that set `StateBag["qyl.issueId"]` in the initial PR (Component 5 is deferred). Two unit tests are required to prove correctness:
 
 1. **No StateBag key set → returns empty messages.** Verify `ProvideMessagesAsync` returns `[]` when `StateBag` has no `qyl.issueId` entry.
 2. **StateBag key set → returns formatted context.** Mock `IIssueContextSource`, set `StateBag["qyl.issueId"]`, verify the returned `ChatMessage` contains the formatted block with `ChatRole.System`.

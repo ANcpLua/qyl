@@ -262,6 +262,81 @@ public sealed record CopilotContext
 }
 
 /// <summary>
+///     Copilot authentication status.
+/// </summary>
+public sealed record CopilotAuthStatus
+{
+    /// <summary>Whether authentication is valid.</summary>
+    public required bool IsAuthenticated { get; init; }
+
+    /// <summary>Authentication method used.</summary>
+    public string? AuthMethod { get; init; }
+
+    /// <summary>GitHub username if authenticated.</summary>
+    public string? Username { get; init; }
+
+    /// <summary>Available Copilot capabilities.</summary>
+    public IReadOnlyList<string>? Capabilities { get; init; }
+
+    /// <summary>Token expiration time (if known).</summary>
+    public DateTimeOffset? ExpiresAt { get; init; }
+
+    /// <summary>Error message if authentication failed.</summary>
+    public string? Error { get; init; }
+}
+
+/// <summary>
+///     Request to start a chat interaction.
+/// </summary>
+public sealed record ChatRequest
+{
+    /// <summary>The user's prompt.</summary>
+    public required string Prompt { get; init; }
+
+    /// <summary>
+    ///     Track routing mode for this request.
+    ///     Defaults to <see cref="TrackMode.Auto"/>.
+    /// </summary>
+    public TrackMode Mode { get; init; } = TrackMode.Auto;
+
+    /// <summary>
+    ///     Optional system prompt override.
+    ///     When set, replaces the default system instructions for this request.
+    ///     Used by the MCP investigate tool to inject observability-specific instructions.
+    /// </summary>
+    public string? SystemPrompt { get; init; }
+
+    /// <summary>Execution context.</summary>
+    public CopilotContext? Context { get; init; }
+
+    /// <summary>
+    ///     BYOK (Bring Your Own Key) LLM configuration.
+    ///     When the server has no LLM configured, visitors can provide their own credentials per-request.
+    ///     Keys are never stored — used only for the duration of this request.
+    /// </summary>
+    public ByokLlmConfig? Llm { get; init; }
+}
+
+/// <summary>
+///     Per-request LLM credentials for BYOK (Bring Your Own Key).
+///     Allows dashboard visitors to use their own API key without the server owner configuring one.
+/// </summary>
+public sealed record ByokLlmConfig
+{
+    /// <summary>Provider: "openai", "anthropic", "ollama", "openai-compatible".</summary>
+    public required string Provider { get; init; }
+
+    /// <summary>API key (required for openai/anthropic).</summary>
+    public string? ApiKey { get; init; }
+
+    /// <summary>Model override (defaults to provider default).</summary>
+    public string? Model { get; init; }
+
+    /// <summary>Endpoint override (required for openai-compatible).</summary>
+    public string? Endpoint { get; init; }
+}
+
+/// <summary>
 ///     Request to execute a workflow.
 /// </summary>
 public sealed record WorkflowRunRequest

@@ -1,9 +1,9 @@
 ---
-name: qyl-frontend-contract
+name: frontend
 description: Contract router for building qyl's frontend, telemetry product surfaces, MCP-facing workflows, and loom investigation UI with strict Base UI enforcement and operator-grade product rules.
 ---
 
-# qyl-frontend-contract
+# frontend
 
 ## 1. When to use
 Use this skill whenever you are working on:

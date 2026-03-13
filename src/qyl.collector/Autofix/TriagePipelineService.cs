@@ -1,8 +1,4 @@
-using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
-using Qyl.Agents.Agents;
-using Qyl.Agents.Context;
-using Qyl.Contracts.Autofix;
 
 namespace Qyl.Collector.Autofix;
 
@@ -16,9 +12,7 @@ public sealed partial class TriagePipelineService(
     AutofixOrchestrator orchestrator,
     IConfiguration configuration,
     ILogger<TriagePipelineService> logger,
-    IChatClient? llm = null,
-    LoomSessionStore? loomSessionStore = null,
-    AIAgent? loomAgent = null)
+    IChatClient? llm = null)
     : BackgroundService
 {
     private readonly bool _enabled = configuration.GetValue("QYL_TRIAGE_ENABLED", true);
@@ -104,9 +98,6 @@ public sealed partial class TriagePipelineService(
                     issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
                 await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
                 LogAutoRouted(issueId, run.RunId);
-
-                // Also start background Loom investigation for the handoff flow
-                await ExecuteBackgroundLoomAsync(issueId, ct).ConfigureAwait(false);
             }
         }
     }
@@ -213,47 +204,6 @@ public sealed partial class TriagePipelineService(
         {
             return null;
         }
-    }
-
-    private async Task ExecuteBackgroundLoomAsync(string issueId, CancellationToken ct)
-    {
-        if (loomAgent is null || loomSessionStore is null) return;
-
-        LoomSession session = await loomSessionStore.CreateAsync(
-            issueId, LoomSessionMode.Background, ct).ConfigureAwait(false);
-
-        var agentSession = await loomAgent.CreateSessionAsync(ct).ConfigureAwait(false);
-        agentSession.StateBag.SetValue(ObservabilityContextProvider.IssueIdKey, issueId);
-        agentSession.StateBag.SetValue(LoomTools.SessionIdKey, session.SessionId);
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(TimeSpan.FromMinutes(5));
-
-        try
-        {
-            session.Status = LoomStatus.Active;
-            await loomSessionStore.UpdateAsync(session, ct).ConfigureAwait(false);
-
-            await foreach (var _ in loomAgent.RunStreamingAsync(
-                "Investigate this error. Identify the root cause and propose a solution.",
-                agentSession, cancellationToken: timeoutCts.Token).ConfigureAwait(false))
-            {
-                // Consumed but not streamed — background has no SSE client
-            }
-
-            session.Status = LoomStatus.Completed;
-        }
-        catch (OperationCanceledException)
-        {
-            session.Status = LoomStatus.Cancelled;
-        }
-        catch (HttpRequestException ex)
-        {
-            session.Status = LoomStatus.Failed;
-            session.Error = ex.Message;
-        }
-
-        await loomSessionStore.UpdateAsync(session, ct).ConfigureAwait(false);
     }
 
     // LoggerMessage source-generated log methods

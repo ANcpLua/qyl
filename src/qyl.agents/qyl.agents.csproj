@@ -13,18 +13,16 @@
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
 
+  <!-- GitHub Copilot Agent SDK (versions from Directory.Packages.props) -->
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
+    <PackageReference Include="Microsoft.Agents.AI.GitHub.Copilot"/>
     <PackageReference Include="Microsoft.Agents.AI.Abstractions"/>
     <PackageReference Include="Microsoft.Agents.AI.Hosting"/>
-  </ItemGroup>
+</ItemGroup>
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App"/>
-  </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
   </ItemGroup>
 
   <!-- OpenTelemetry for instrumentation -->

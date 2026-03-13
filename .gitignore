@@ -43,8 +43,11 @@ packages/
 .nuke/temp/
 .nuke/build.schema.json
 
-# Claude Code local files
+# Claude Code local files (keep rules, workflows, skills tracked for portability)
 .claude/*
+!.claude/rules/
+!.claude/qyl-workflows/
+!.claude/skills/
 
 # Git worktrees (canonical dev worktrees under .worktrees/)
 .worktrees/
