@@ -212,7 +212,7 @@ core/                                    # TypeSpec schemas (source of truth)
 eng/                                     # NUKE build system
 src/
   qyl.collector/                         # Backend API + gRPC + storage
-  qyl.loom/                             # Loom product (C# transpile of src/loom/)
+  qyl.loom/                             # Loom product (AI-powered issue investigation)
   qyl.agents/                            # AI agent infrastructure (QylAgentBuilder)
   qyl.workflows/                         # Workflow engine
   qyl.dashboard/                         # React 19 SPA

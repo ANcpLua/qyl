@@ -78,7 +78,7 @@ CopilotKit / Angular / Vanilla JS
 
 ### qyl.loom — Standalone Product
 
-`src/qyl.loom/` is a C# transpile of the Sentry Loom reference implementation (`src/loom/`).
+`src/qyl.loom/` is a C# transpile of the Sentry Loom reference (reference deleted; see `docs/reference/seer-knowledge-base.md`).
 It is its own product with its own standalone project at `~/RiderProjects/qyl.loom/`.
 **Do NOT decompose, delete, or merge qyl.loom into collector.** It references collector, agents,
 workflows, contracts, and instrumentation via ProjectReference — this is by design.
@@ -147,3 +147,6 @@ forbidden:
 ## Requests to Humans
 
 - [ ] Add explicit acceptance criteria for architecture changes that cross collector/loom/mcp boundaries.
+
+## Response from Human acceptance is given for boundaries do it.
+

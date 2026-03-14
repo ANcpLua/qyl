@@ -17,6 +17,11 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
 
+  <!-- Centralized build output — no scattered obj/bin -->
+  <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+  </PropertyGroup>
+
   <!-- Language & Framework (SDK provides LangVersion=latest, Nullable=enable, ImplicitUsings=enable) -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
