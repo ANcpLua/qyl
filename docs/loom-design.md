@@ -102,8 +102,8 @@ qyl.dashboard (LoomDashboardPage, use-Loom hooks, SSE consumer)
 ### qyl.loom is a standalone product
 
 `src/qyl.loom/` is **not** dead code or a staging area. It is the C# transpile of the Sentry
-reference implementation (`src/loom/` — TS + Python). A separate standalone project also exists
-at `~/RiderProjects/qyl.loom/` with its own solution file.
+reference implementation (reference material deleted; knowledge in `docs/reference/seer-knowledge-base.md`).
+A separate standalone project also exists at `~/RiderProjects/qyl.loom/` with its own solution file.
 
 `qyl.loom` references collector, agents, workflows, contracts, and instrumentation.
 Do not decompose it into collector. Do not "salvage" files from it. It is the source of truth
@@ -741,7 +741,7 @@ This prototype demonstrates:
 ## 12. Migration Plan
 
 **Decision: qyl.loom stays as its own project.** It is the C# port of the Sentry reference
-(`src/loom/`). All 56 files live in `src/qyl.loom/` and are the authoritative implementation.
+(reference deleted; see `docs/reference/seer-knowledge-base.md`). All files live in `src/qyl.loom/` and are the authoritative implementation.
 Some files are also referenced from `qyl.collector/Autofix/` — those collector copies should
 be treated as consumers, not replacements.
 | `TriagePipelineService.cs` | `qyl.collector/Autofix/` | Background trigger stays, scoring logic refactored         |

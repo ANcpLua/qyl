@@ -72,4 +72,121 @@
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
     <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Workflow\WorkflowEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Workflow\WorkflowEventEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Workflow\WorkflowRunEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Workflow\WorkflowRunService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Workflow\WorkspaceService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\GitHubEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\GitHubService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\GitHubWebhookEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\GlobalUsings.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\HandshakeService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\IdentityEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\IssueAnalyticsEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\IssueEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Identity\IssueService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorCategorizer.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorEvent.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorExtractor.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorFingerprinter.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Errors\ErrorLifecycleService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="CodingAgent\CodingAgentEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="CodingAgent\CodeReviewEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="CodingAgent\CodeReviewPrompt.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="CodingAgent\CodeReviewService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixAgentService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixArtifacts.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixConstants.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixOrchestrator.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Autofix\AutofixPrompts.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Analytics\AnomalyEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Analytics\AnomalyService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="Analytics\AnomalyTypes.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="AgentRuns\AgentHandoffEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="AgentRuns\AgentHandoffService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="AgentRuns\AgentInsightsEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="AgentRuns\AgentInsightsService.cs">
+      <Visible>true</Visible>
+    </Compile>
+    <Compile Update="AgentRuns\AgentRunEndpoints.cs">
+      <Visible>true</Visible>
+    </Compile>
+  </ItemGroup>
 </Project>

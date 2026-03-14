@@ -1,15 +1,14 @@
 ---
 paths:
   - "src/qyl.loom/**"
-  - "src/loom/**"
 ---
 
 # Loom Rules
 
 ## Architecture
 
-- `src/loom/` is the Sentry Loom reference implementation (TypeScript + Python). Read-only — never modify.
-- `src/qyl.loom/` is the C# transpile of that reference. This IS the product.
+- `src/qyl.loom/` is the qyl Loom product. Originally transpiled from Sentry's Seer reference (now deleted).
+- Reference knowledge extracted to `docs/reference/seer-knowledge-base.md`. External source at `~/sentry-seer-sourcepack/`.
 - qyl.loom has its own standalone project at `~/RiderProjects/qyl.loom/` with its own `.slnx`.
 - Loom uses AIAgent (via QylAgentBuilder), not raw IChatClient calls.
 
