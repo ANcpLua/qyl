@@ -37,8 +37,6 @@ COPY src/qyl.contracts/*.csproj src/qyl.contracts/
 COPY src/qyl.collector/*.csproj src/qyl.collector/
 COPY src/qyl.instrumentation/*.csproj src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/*.csproj src/qyl.instrumentation.generators/
-COPY src/qyl.agents/*.csproj src/qyl.agents/
-COPY src/qyl.workflows/*.csproj src/qyl.workflows/
 COPY src/qyl.collector.storage.generators/*.csproj src/qyl.collector.storage.generators/
 
 # Restore dependencies with Railway NuGet cache mount
@@ -52,8 +50,6 @@ COPY src/qyl.contracts/ src/qyl.contracts/
 COPY src/qyl.collector/ src/qyl.collector/
 COPY src/qyl.instrumentation/ src/qyl.instrumentation/
 COPY src/qyl.instrumentation.generators/ src/qyl.instrumentation.generators/
-COPY src/qyl.agents/ src/qyl.agents/
-COPY src/qyl.workflows/ src/qyl.workflows/
 COPY src/qyl.collector.storage.generators/ src/qyl.collector.storage.generators/
 
 # Publish with Railway NuGet cache mount
