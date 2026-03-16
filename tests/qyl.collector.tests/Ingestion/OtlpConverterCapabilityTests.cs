@@ -78,15 +78,32 @@ public sealed class OtlpConverterCapabilityTests
             ReadStringArray(metadata.RootElement.GetProperty("qyl.capability.agents")));
     }
 
-    private static string[] ReadStringArray(JsonElement element) =>
-        element.ValueKind switch
+    private static string[] ReadStringArray(JsonElement element)
+    {
+        if (element.ValueKind is JsonValueKind.Array)
+            return element.EnumerateArray()
+                .Select(static v => v.GetString())
+                .Where(static v => v is not null)
+                .Select(static v => v!)
+                .ToArray();
+
+        if (element.ValueKind is JsonValueKind.String)
         {
-            JsonValueKind.Array => element.EnumerateArray()
-                .Select(static value => value.GetString())
-                .Where(static value => value is not null)
-                .Select(static value => value!)
-                .ToArray(),
-            JsonValueKind.String => [element.GetString()!],
-            _ => []
-        };
+            var raw = element.GetString()!;
+            // Capability values may be stored as JSON-encoded arrays (e.g. "[\"a\",\"b\"]")
+            if (raw.StartsWith('['))
+            {
+                using var inner = JsonDocument.Parse(raw);
+                return inner.RootElement.EnumerateArray()
+                    .Select(static v => v.GetString())
+                    .Where(static v => v is not null)
+                    .Select(static v => v!)
+                    .ToArray();
+            }
+
+            return [raw];
+        }
+
+        return [];
+    }
 }
