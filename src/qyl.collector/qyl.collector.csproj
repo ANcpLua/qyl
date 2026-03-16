@@ -44,14 +44,9 @@
     <PackageReference Include="YamlDotNet"/>
   </ItemGroup>
 
-  <!-- M.E.AI for AIFunctionFactory (Copilot tool definitions) -->
+  <!-- M.E.AI for IChatClient/IEmbeddingGenerator (Autofix, Triage, Insights) -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI"/>
-  </ItemGroup>
-
-  <!-- AG-UI endpoint (CopilotKit-compatible SSE protocol) -->
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore"/>
   </ItemGroup>
 
 
@@ -92,14 +87,12 @@
 
   <!-- Core dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\qyl.agents\qyl.agents.csproj"/>
-    <ProjectReference Include="..\qyl.workflows\qyl.workflows.csproj"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
     <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>
 
   <ItemGroup>
-    <CompilerVisibleProperty Include="QylDatabase" />
+    <CompilerVisibleProperty Include="QylDatabase"/>
   </ItemGroup>
 
   <!-- Source generators (compile-time only) -->

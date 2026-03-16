@@ -6,30 +6,28 @@ import {DashboardLayout} from '@/components/layout';
 import {
     AgentRunDetailPage,
     AgentsPage,
+    AlertsPage,
     BotConversationDetailPage,
     BotPage,
     BotUserJourneyPage,
+    CodeReviewPage,
     DashboardPage,
+    ErrorsOutagesPage,
     GenAIPage,
+    InsightsOverviewPage,
     IssueDetailPage,
+    IssueFixRunsPage,
     IssuesPage,
+    IssueTriagePage,
     LogsPage,
+    LoomDashboardPage,
     OnboardingPage,
+    PerformancePage,
     ResourcesPage,
     SearchPage,
     SettingsPage,
-    TracesPage,
-    WorkflowRunDetailPage,
-    WorkflowRunsPage,
-    LoomDashboardPage,
-    IssueTriagePage,
-    IssueFixRunsPage,
-    CodeReviewPage,
-    AlertsPage,
-    PerformancePage,
-    ErrorsOutagesPage,
     SpanExplorerPage,
-    InsightsOverviewPage,
+    TracesPage,
 } from '@/pages';
 
 const queryClient = new QueryClient({
@@ -78,8 +76,6 @@ export default function App() {
                             <Route path="/agents/:runId" element={<AgentRunDetailPage/>}/>
                             <Route path="/issues" element={<IssuesPage/>}/>
                             <Route path="/issues/:issueId" element={<IssueDetailPage/>}/>
-                            <Route path="/workflows" element={<WorkflowRunsPage/>}/>
-                            <Route path="/workflows/:runId" element={<WorkflowRunDetailPage/>}/>
                             <Route path="/onboarding" element={<OnboardingPage/>}/>
                             <Route path="/bot" element={<BotPage/>}/>
                             <Route path="/bot/conversations/:conversationId" element={<BotConversationDetailPage/>}/>

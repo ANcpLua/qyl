@@ -1,19 +1,13 @@
 using System.Reflection;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Qyl.Collector;
 using Qyl.Collector.AgentRuns;
-using Qyl.Collector.Observe;
 using Qyl.Collector.Analytics;
 using Qyl.Collector.Auth;
+using Qyl.Collector.Artifacts;
 using Qyl.Collector.Autofix;
 using Qyl.Collector.BuildFailures;
-using Qyl.Collector.CodingAgent;
-using Qyl.Collector.ClaudeCode;
-using Microsoft.Agents.AI;
-using Qyl.Collector.Copilot;
-using Qyl.Agents.Agents;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Grpc;
@@ -21,17 +15,13 @@ using Qyl.Collector.Health;
 using Qyl.Collector.Identity;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
+using Qyl.Collector.Observe;
 using Qyl.Collector.Provisioning;
 using Qyl.Collector.SchemaControl;
 using Qyl.Collector.Search;
 using Qyl.Collector.Services;
 using Qyl.Collector.Telemetry;
-using Qyl.Collector.Workflow;
-using Qyl.Agents;
-using Qyl.Agents.Auth;
-using Qyl.Workflows;
 using Qyl.Instrumentation.Instrumentation;
-using Qyl.Workflows.Workflows;
 
 Console.WriteLine($"[qyl] Process starting at {TimeProvider.System.GetUtcNow():O}");
 
@@ -124,9 +114,9 @@ builder.Services.AddSingleton(new TokenAuthOptions
 // NullKeycloakJwksValidator is registered when QYL_KEYCLOAK_AUTHORITY is not set,
 // preserving existing auth behaviour unchanged.
 var keycloakAuthority = builder.Configuration["QYL_KEYCLOAK_AUTHORITY"]
-    ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUTHORITY");
+                        ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUTHORITY");
 var keycloakAudience = builder.Configuration["QYL_KEYCLOAK_AUDIENCE"]
-    ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUDIENCE");
+                       ?? Environment.GetEnvironmentVariable("QYL_KEYCLOAK_AUDIENCE");
 
 if (!string.IsNullOrWhiteSpace(keycloakAuthority))
 {
@@ -142,7 +132,7 @@ else
 {
     builder.Services.AddSingleton<IKeycloakJwksValidator>(NullKeycloakJwksValidator.Instance);
 }
-builder.Services.AddSingleton<ClaudeCodeHooksService>();
+
 builder.Services.AddSingleton<FrontendConsole>();
 builder.Services.AddSingleton(_ => new DuckDbStore(dataPath));
 builder.Services.AddSingleton<MigrationRunner>();
@@ -179,25 +169,6 @@ builder.Services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>
 var ringBufferCapacity = builder.Configuration.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);
 builder.Services.AddSingleton(new SpanRingBuffer(ringBufferCapacity));
 
-// Workflow execution persistence (DuckDB-backed)
-builder.Services.AddSingleton<IExecutionStore>(static sp =>
-    new DuckDbExecutionStore(sp.GetRequiredService<DuckDbStore>()));
-
-// Copilot observability tools (backed by DuckDbStore singleton)
-builder.Services.AddSingleton<IReadOnlyList<AITool>>(static sp =>
-    ObservabilityTools.Create(sp.GetRequiredService<DuckDbStore>(), TimeProvider.System));
-
-// GitHub Copilot integration — bridges GitHubService token to agent auth (ADR-002)
-builder.Services.AddQylAgents(builder.Configuration);
-builder.Services.AddQylWorkflows();
-// AG-UI SSE infrastructure (CopilotKit-compatible protocol)
-builder.Services.AddQylAgui();
-// Override auth options to bridge GitHubService token into Copilot (ADR-002 token bridge)
-builder.Services.AddSingleton(sp => new CopilotAuthOptions
-{
-    AutoDetect = true, ExternalTokenProvider = () => sp.GetRequiredService<GitHubService>().GetToken()
-});
-builder.Services.AddQylAgentTelemetry();
 
 // Insights materializer: auto-generates system context from telemetry every 5 minutes
 builder.Services.AddHostedService<InsightsMaterializerService>();
@@ -252,9 +223,6 @@ builder.Services.AddSingleton<CodeReviewService>();
 // Loom interactive debugging: insight + streaming explorer
 builder.Services.AddSingleton<LoomInsightService>();
 builder.Services.AddSingleton<LoomExplorerService>();
-
-// Workflow run service
-builder.Services.AddSingleton<WorkflowRunService>();
 
 // Search: document-indexed full-text search with relevance scoring
 builder.Services.AddSingleton<SearchService>();
@@ -336,7 +304,7 @@ app.UseExceptionHandler(errorApp =>
 
         var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
             .CreateLogger("Qyl.Collector.ExceptionHandler");
-        var exceptionFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        var exceptionFeature = context.Features.Get<IExceptionHandlerFeature>();
         if (exceptionFeature?.Error is { } error)
         {
             ExceptionHandlerLog.UnhandledException(logger, context.Request.Method,
@@ -391,13 +359,6 @@ app.MapGet("/api/v1/traces", async (
 app.MapGet("/api/v1/traces/{traceId}", SpanEndpoints.GetTraceAsync);
 
 
-app.MapCopilotEndpoints();
-// AG-UI endpoint — active when IChatClient is configured (QYL_LLM_* env vars)
-if (app.Services.GetService<IChatClient>() is { } aguiChatClient)
-{
-    app.MapQylAguiChat(QylAgentBuilder.FromChatClient(aguiChatClient, agentName: "qyl-llm"));
-}
-app.MapClaudeCodeEndpoints();
 app.MapServiceEndpoints();
 app.MapSseEndpoints();
 app.MapSpanMemoryEndpoints();
@@ -427,7 +388,7 @@ app.MapGet("/api/v1/meta", () =>
             Tracing = true,
             Grpc = true,
             GenAi = true,
-            Copilot = true,
+            Copilot = false,
             EmbeddedDashboard = hasEmbeddedDashboard
         },
         Status =
@@ -630,8 +591,8 @@ app.MapGet("/api/v1/logs/live", async (
         while (!ct.IsCancellationRequested)
         {
             var rows = await store.GetLogsAsync(
-                sessionId: session,
-                traceId: trace,
+                session,
+                trace,
                 after: after,
                 limit: 250,
                 ct: ct).ConfigureAwait(false);
@@ -855,16 +816,12 @@ app.MapAutofixEndpoints();
 app.MapRegressionEndpoints();
 app.MapAgentHandoffEndpoints();
 app.MapCodeReviewEndpoints();
-app.MapCodingAgentEndpoints();
 app.MapGitHubWebhookEndpoints();
-app.MapLoomSettingsEndpoints();
 app.MapLoomEndpoints();
 app.MapTriageEndpoints();
-app.MapWorkflowEndpoints();
-app.MapWorkflowRunEndpoints();
-app.MapWorkflowEventEndpoints();
 app.MapAgentRunEndpoints();
 app.MapAgentInsightsEndpoints();
+app.MapArtifactEndpoints();
 app.MapQueryEndpoints();
 app.MapLogSummaryEndpoints();
 var buildFailureCaptureEnabled = builder.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true);
@@ -898,7 +855,8 @@ app.MapFallback(context =>
     if (string.IsNullOrWhiteSpace(webRootPath))
     {
         context.Response.StatusCode = 404;
-        return context.Response.WriteAsync("Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
+        return context.Response.WriteAsync(
+            "Dashboard not found. Build with: nuke FrontendBuild && nuke DockerImageBuild");
     }
 
     var indexPath = Path.Combine(webRootPath, "index.html");
@@ -928,7 +886,8 @@ namespace Qyl.Collector
     internal static partial class ExceptionHandlerLog
     {
         [LoggerMessage(Level = LogLevel.Error, Message = "Unhandled exception on {Method} {Path}{Query}")]
-        public static partial void UnhandledException(ILogger logger, string method, string path, string query, Exception error);
+        public static partial void UnhandledException(ILogger logger, string method, string path, string query,
+            Exception error);
     }
 
     internal static partial class OtlpLogsLog

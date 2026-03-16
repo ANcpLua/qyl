@@ -22,11 +22,11 @@
     <ANcpLuaRoslynUtilitiesVersion>1.45.0</ANcpLuaRoslynUtilitiesVersion>
     <ANcpLuaRoslynUtilitiesBaseVersion>1.45.0</ANcpLuaRoslynUtilitiesBaseVersion>
     <!-- Microsoft.Agents.AI -->
-    <MicrosoftAgentsAbstractionsVersion>1.0.0-rc3</MicrosoftAgentsAbstractionsVersion>
-    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260304.1</MicrosoftAgentsCopilotVersion>
-    <MicrosoftAgentsHostingVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingVersion>
-    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260304.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
-    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc3</MicrosoftAgentsWorkflowsDeclarativeVersion>
+    <MicrosoftAgentsAbstractionsVersion>1.0.0-rc4</MicrosoftAgentsAbstractionsVersion>
+    <MicrosoftAgentsCopilotVersion>1.0.0-preview.260311.1</MicrosoftAgentsCopilotVersion>
+    <MicrosoftAgentsHostingVersion>1.0.0-preview.260311.1</MicrosoftAgentsHostingVersion>
+    <MicrosoftAgentsHostingAguiAspNetCoreVersion>1.0.0-preview.260311.1</MicrosoftAgentsHostingAguiAspNetCoreVersion>
+    <MicrosoftAgentsWorkflowsDeclarativeVersion>1.0.0-rc4</MicrosoftAgentsWorkflowsDeclarativeVersion>
     <!-- OpenAI SDK -->
     <OpenAIVersion>2.9.1</OpenAIVersion>
     <!-- MCP -->

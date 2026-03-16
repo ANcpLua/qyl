@@ -1,35 +1,27 @@
 using System.Reflection;
 using NetArchTest.Rules;
-using Qyl.Agents.Agents;
 using Qyl.Contracts.Primitives;
-using Qyl.Workflows;
 using Xunit;
+using TestResult = NetArchTest.Rules.TestResult;
 
 namespace Qyl.Collector.Tests;
 
 /// <summary>
 ///     Enforces project dependency boundaries across the qyl platform.
-///     qyl.loom is a standalone product that references collector — not the other way around.
+///     v2 architecture: server has zero LLM dependencies.
 /// </summary>
 public sealed class ArchitectureTests
 {
     [Fact]
-    public void Agents_Should_Not_Depend_On_Loom_Or_Collector()
+    public void Server_Should_Not_Depend_On_Agent_Framework()
     {
-        var result = Types.InAssembly(typeof(QylAgentBuilder).Assembly)
+        var result = Types.InAssembly(typeof(Program).Assembly)
             .ShouldNot()
-            .HaveDependencyOnAny("Qyl.Loom", "Qyl.Collector")
-            .GetResult();
-
-        Assert.True(result.IsSuccessful, FormatFailure(result));
-    }
-
-    [Fact]
-    public void Workflows_Should_Not_Depend_On_Loom_Or_Collector()
-    {
-        var result = Types.InAssembly(typeof(WorkflowServiceExtensions).Assembly)
-            .ShouldNot()
-            .HaveDependencyOnAny("Qyl.Loom", "Qyl.Collector")
+            .HaveDependencyOnAny(
+                "Microsoft.Agents.AI",
+                "Microsoft.Agents.AI.Hosting",
+                "Microsoft.Agents.AI.Hosting.AGUI",
+                "GitHub.Copilot.SDK")
             .GetResult();
 
         Assert.True(result.IsSuccessful, FormatFailure(result));
@@ -42,8 +34,6 @@ public sealed class ArchitectureTests
             .ShouldNot()
             .HaveDependencyOnAny(
                 "Qyl.Collector",
-                "Qyl.Agents",
-                "Qyl.Workflows",
                 "Qyl.Loom",
                 "Qyl.Instrumentation",
                 "Qyl.Mcp")
@@ -70,7 +60,7 @@ public sealed class ArchitectureTests
         Assert.True(result.IsSuccessful, FormatFailure(result));
     }
 
-    private static string FormatFailure(NetArchTest.Rules.TestResult result)
+    private static string FormatFailure(TestResult result)
     {
         var violators = result.FailingTypeNames ?? [];
         return $"Architecture violation: {string.Join(", ", violators)}";

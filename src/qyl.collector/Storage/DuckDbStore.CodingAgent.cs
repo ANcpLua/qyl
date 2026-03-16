@@ -1,4 +1,4 @@
-using Qyl.Collector.CodingAgent;
+using Qyl.Contracts.Loom;
 
 namespace Qyl.Collector.Storage;
 
@@ -172,9 +172,14 @@ public sealed partial class DuckDbStore
                                   updated_at = now()
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = settings.Id });
-            cmd.Parameters.Add(new DuckDBParameter { Value = CodingAgentProviderNames.NormalizeSlug(settings.DefaultCodingAgent) });
             cmd.Parameters.Add(new DuckDBParameter
-                { Value = settings.DefaultCodingAgentIntegrationId ?? (object)DBNull.Value });
+            {
+                Value = CodingAgentProviderNames.NormalizeSlug(settings.DefaultCodingAgent)
+            });
+            cmd.Parameters.Add(new DuckDBParameter
+            {
+                Value = settings.DefaultCodingAgentIntegrationId ?? (object)DBNull.Value
+            });
             cmd.Parameters.Add(new DuckDBParameter { Value = settings.AutomationTuning });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });

@@ -1,12 +1,6 @@
-using System.Text;
-using Qyl.Collector.Errors;
-using Qyl.Collector.Storage;
-using Qyl.Contracts.Copilot;
-
 namespace Qyl.Collector.Autofix;
 
 public sealed class IssueContextBuilder(DuckDbStore store, IssueService issueService)
-    : IIssueContextSource
 {
     public const int DefaultMaxStackLength = 800;
 
@@ -17,20 +11,20 @@ public sealed class IssueContextBuilder(DuckDbStore store, IssueService issueSer
         int maxStackLength = DefaultMaxStackLength,
         CancellationToken ct = default)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct);
+        var issue = await store.GetIssueByIdAsync(issueId, ct);
         if (issue is null) return IssueContext.Empty;
 
-        IReadOnlyList<ErrorIssueEventRow> events =
+        var events =
             await issueService.GetEventsAsync(issueId, maxEvents, ct);
 
-        string block = FormatBlock(issue, events, userContext, maxStackLength);
+        var block = FormatBlock(issue, events, userContext, maxStackLength);
         return new IssueContext(issue, events, userContext, block);
     }
 
-    async Task<string> IIssueContextSource.GetFormattedContextAsync(
-        string issueId, string? userContext, CancellationToken ct)
+    public async Task<string> GetFormattedContextAsync(
+        string issueId, string? userContext = null, CancellationToken ct = default)
     {
-        IssueContext ctx = await BuildAsync(issueId, userContext, ct: ct);
+        var ctx = await BuildAsync(issueId, userContext, ct: ct);
         return ctx.FormattedBlock;
     }
 
@@ -50,7 +44,7 @@ public sealed class IssueContextBuilder(DuckDbStore store, IssueService issueSer
         if (events.Count > 0)
         {
             sb.AppendLine("\nRecent events:");
-            foreach (ErrorIssueEventRow e in events)
+            foreach (var e in events)
             {
                 sb.AppendLine($"  [{e.Timestamp:O}] {e.Message ?? "no message"}");
                 if (e.StackTrace is not null)

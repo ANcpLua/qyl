@@ -4,6 +4,14 @@ using qyl.mcp.Apps.ErrorExplorer;
 using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Tools;
+using qyl.mcp.Tools.Analysis;
+using qyl.mcp.Tools.Discovery;
+using qyl.mcp.Tools.Logs;
+using qyl.mcp.Tools.Management;
+using qyl.mcp.Tools.Metrics;
+using qyl.mcp.Tools.Sessions;
+using qyl.mcp.Tools.Traces;
+using qyl.mcp.Tools.Triage;
 
 namespace qyl.mcp.Skills;
 
@@ -13,7 +21,7 @@ namespace qyl.mcp.Skills;
 internal static class SkillRegistrationExtensions
 {
     /// <summary>
-    ///     Registers all MCP tool classes, filtered by the <see cref="SkillConfiguration"/>.
+    ///     Registers all MCP tool classes, filtered by the <see cref="SkillConfiguration" />.
     ///     When <c>QYL_SKILLS=all</c> (default), all tools are registered.
     ///     When narrowed (e.g., <c>QYL_SKILLS=inspect,health</c>), only matching tool classes load.
     /// </summary>
@@ -37,23 +45,23 @@ internal static class SkillRegistrationExtensions
 
             // Directory-facing inspect tools
             mcpBuilder
-                .WithTools<Tools.Traces.SearchTracesTool>()
-                .WithTools<Tools.Traces.GetTraceDetailsTool>()
-                .WithTools<Tools.Traces.GetSpanTool>()
-                .WithTools<Tools.Logs.SearchLogsTool>()
-                .WithTools<Tools.Logs.GetLogDetailsTool>()
-                .WithTools<Tools.Metrics.ListMetricsTool>()
-                .WithTools<Tools.Metrics.QueryMetricsTool>()
-                .WithTools<Tools.Sessions.SearchSessionsTool>()
-                .WithTools<Tools.Sessions.GetSessionTool>()
-                .WithTools<Tools.Discovery.ListProjectsTool>()
-                .WithTools<Tools.Discovery.ListServicesTool>()
-                .WithTools<Tools.Discovery.GetServiceMapTool>()
+                .WithTools<SearchTracesTool>()
+                .WithTools<GetTraceDetailsTool>()
+                .WithTools<GetSpanTool>()
+                .WithTools<SearchLogsTool>()
+                .WithTools<GetLogDetailsTool>()
+                .WithTools<ListMetricsTool>()
+                .WithTools<QueryMetricsTool>()
+                .WithTools<SearchSessionsTool>()
+                .WithTools<GetSessionTool>()
+                .WithTools<ListProjectsTool>()
+                .WithTools<ListServicesTool>()
+                .WithTools<GetServiceMapTool>()
                 // Triage (inspect-write)
-                .WithTools<Tools.Triage.AnnotateTraceTool>()
-                .WithTools<Tools.Triage.MarkTraceReviewedTool>()
-                .WithTools<Tools.Sessions.AnnotateSessionTool>()
-                .WithTools<Tools.Sessions.UpdateSessionStatusTool>();
+                .WithTools<AnnotateTraceTool>()
+                .WithTools<MarkTraceReviewedTool>()
+                .WithTools<AnnotateSessionTool>()
+                .WithTools<UpdateSessionStatusTool>();
         }
 
         // Health: storage stats, health check, system context
@@ -68,20 +76,19 @@ internal static class SkillRegistrationExtensions
             mcpBuilder.WithTools<AnalyticsTools>(jsonOptions);
         }
 
-        // Agent: investigate, use_qyl, RCA, summaries (LLM-powered)
+        // Agent: use_qyl, RCA, summaries (LLM-powered)
         if (skills.IsEnabled(QylSkillKind.Agent))
         {
             mcpBuilder
-                .WithTools<InvestigateTools>(jsonOptions)
                 .WithTools<UseQylTools>(jsonOptions)
                 .WithTools<RcaTools>(jsonOptions)
                 .WithTools<SummaryTools>(jsonOptions);
 
             // Directory-facing analysis tools
             mcpBuilder
-                .WithTools<Tools.Analysis.AnalyzeTraceTool>()
-                .WithTools<Tools.Analysis.AnalyzeSessionTool>()
-                .WithTools<Tools.Analysis.SuggestFixTool>();
+                .WithTools<AnalyzeTraceTool>()
+                .WithTools<AnalyzeSessionTool>()
+                .WithTools<SuggestFixTool>();
         }
 
         // Build: build failures and analysis
@@ -91,28 +98,16 @@ internal static class SkillRegistrationExtensions
 
             // Directory-facing management tools
             mcpBuilder
-                .WithTools<Tools.Management.CreateProjectTool>()
-                .WithTools<Tools.Management.UpdateProjectTool>()
-                .WithTools<Tools.Management.ConfigureRetentionTool>()
-                .WithTools<Tools.Management.CreateApiKeyTool>();
+                .WithTools<CreateProjectTool>()
+                .WithTools<UpdateProjectTool>()
+                .WithTools<ConfigureRetentionTool>()
+                .WithTools<CreateApiKeyTool>();
         }
 
         // Anomaly: z-score detection, baselines, period comparison
         if (skills.IsEnabled(QylSkillKind.Anomaly))
         {
             mcpBuilder.WithTools<AnomalyTools>(jsonOptions);
-        }
-
-        // Copilot: GitHub Copilot chat, workflows, status
-        if (skills.IsEnabled(QylSkillKind.Copilot))
-        {
-            mcpBuilder.WithTools<CopilotTools>(jsonOptions);
-        }
-
-        // ClaudeCode: Claude Code session telemetry
-        if (skills.IsEnabled(QylSkillKind.ClaudeCode))
-        {
-            mcpBuilder.WithTools<ClaudeCodeTools>(jsonOptions);
         }
 
         // Loom: AI debugging pipeline — triage, autofix, code review, agent handoff

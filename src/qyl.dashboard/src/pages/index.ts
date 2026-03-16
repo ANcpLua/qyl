@@ -9,8 +9,6 @@ export {AgentsPage} from './AgentsPage';
 export {AgentRunDetailPage} from './AgentRunDetailPage';
 export {IssuesPage} from './IssuesPage';
 export {IssueDetailPage} from './IssueDetailPage';
-export {WorkflowRunsPage} from './WorkflowRunsPage';
-export {WorkflowRunDetailPage} from './WorkflowRunDetailPage';
 export {OnboardingPage} from './OnboardingPage';
 export {BotPage} from './BotPage';
 export {BotConversationDetailPage} from './BotConversationDetailPage';

@@ -24,15 +24,9 @@ public enum QylSkillKind
     /// <summary>Anomaly detection: z-score analysis, baselines, period comparison</summary>
     Anomaly,
 
-    /// <summary>GitHub Copilot integration: chat, workflows, status</summary>
-    Copilot,
-
-    /// <summary>Claude Code session telemetry: sessions, timelines, tool usage</summary>
-    ClaudeCode,
-
     /// <summary>Loom AI debugging: triage, autofix, code review, agent handoff</summary>
     Loom,
 
     /// <summary>Interactive ext-apps: trace viewer, error explorer, query studio</summary>
-    Apps,
+    Apps
 }

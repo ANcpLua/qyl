@@ -1,3 +1,4 @@
+using Qyl.Contracts.Loom;
 using Qyl.Contracts.Primitives;
 
 namespace Qyl.Collector.Autofix;
@@ -69,11 +70,11 @@ public sealed partial class AutofixOrchestrator(DuckDbStore store, ILogger<Autof
     /// <summary>
     ///     Launches a coding agent run for a completed fix run.
     /// </summary>
-    public async Task<CodingAgent.CodingAgentRunRecord> LaunchCodingAgentAsync(
-        string fixRunId, CodingAgent.CodingAgentProvider provider,
+    public async Task<CodingAgentRunRecord> LaunchCodingAgentAsync(
+        string fixRunId, CodingAgentProvider provider,
         string? repoFullName = null, CancellationToken ct = default)
     {
-        var record = new CodingAgent.CodingAgentRunRecord
+        var record = new CodingAgentRunRecord
         {
             Id = Guid.NewGuid().ToString("N"),
             FixRunId = fixRunId,
@@ -97,5 +98,5 @@ public sealed partial class AutofixOrchestrator(DuckDbStore store, ILogger<Autof
     [LoggerMessage(Level = LogLevel.Information,
         Message = "Coding agent {AgentRunId} launched for fix run {FixRunId} with provider {Provider}")]
     private partial void LogCodingAgentLaunched(
-        string agentRunId, string fixRunId, CodingAgent.CodingAgentProvider provider);
+        string agentRunId, string fixRunId, CodingAgentProvider provider);
 }

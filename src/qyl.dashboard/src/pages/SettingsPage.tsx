@@ -1,8 +1,31 @@
 import {useState} from 'react';
 import {useNavigate} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
-import {Brain, Database, GearSix, Keyboard, LinkBreak, Monitor, Moon, PaintBrush, Robot, SpinnerGap, Sun, Terminal, Trash,} from '@phosphor-icons/react';
+import {
+    Brain,
+    Database,
+    GearSix,
+    Keyboard,
+    LinkBreak,
+    Monitor,
+    Moon,
+    PaintBrush,
+    Robot,
+    SpinnerGap,
+    Sun,
+    Trash,
+} from '@phosphor-icons/react';
 import {useTheme} from '@/hooks/use-theme';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Input} from '@/components/ui/input';
+import {Separator} from '@/components/ui/separator';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
+import {toast} from 'sonner';
+import {LLM_PROVIDERS, type LlmProvider, useLlmConfig} from '@/hooks/use-llm-config';
+import {LoomSettingsSection} from '@/components/coding-agents/LoomSettingsSection';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -14,18 +37,6 @@ function GitHubIcon({className}: { className?: string }) {
         </svg>
     );
 }
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
-import {Button} from '@/components/ui/button';
-import {Badge} from '@/components/ui/badge';
-import {Input} from '@/components/ui/input';
-import {Separator} from '@/components/ui/separator';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from '@/components/ui/select';
-import {toast} from 'sonner';
-import {type LlmProvider, LLM_PROVIDERS, useLlmConfig} from '@/hooks/use-llm-config';
-import {useLlmStatus} from '@/hooks/use-llm-status';
-import {LoomSettingsSection} from '@/components/coding-agents/LoomSettingsSection';
-import {useClaudeCodeHooksStatus, useAttachClaudeCodeHooks, useDetachClaudeCodeHooks} from '@/hooks/use-claude-code-hooks';
 
 const keyboardShortcuts = [
     {key: 'R', description: 'Go to Resources'},
@@ -44,7 +55,6 @@ const keyboardShortcuts = [
 
 function AiSettingsTab() {
     const {config, setConfig, isConfigured} = useLlmConfig();
-    const {data: llmStatus} = useLlmStatus();
     const [provider, setProvider] = useState<LlmProvider>(config?.provider ?? 'openai');
     const [apiKey, setApiKey] = useState(config?.apiKey ?? '');
     const [model, setModel] = useState(config?.model ?? '');
@@ -77,34 +87,6 @@ function AiSettingsTab() {
 
     return (
         <>
-            {/* Server status */}
-            {llmStatus?.configured && (
-                <Card>
-                    <CardContent className="py-4">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="font-medium">
-                                    {llmStatus.provider === 'github-models'
-                                        ? 'GitHub Models (free)'
-                                        : 'Server AI configured'}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {llmStatus.provider === 'github-models'
-                                        ? llmStatus.model ?? 'gpt-4o-mini'
-                                        : `${llmStatus.provider}${llmStatus.model ? ` / ${llmStatus.model}` : ''}`}
-                                </p>
-                            </div>
-                            <Badge>{llmStatus.provider === 'github-models' ? 'Auto' : 'Active'}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                            {llmStatus.provider === 'github-models'
-                                ? 'Using your GitHub account for free AI inference. Rate-limited but zero-config.'
-                                : 'The server has a built-in LLM. BYOK config below is optional and will be used as fallback.'}
-                        </p>
-                    </CardContent>
-                </Card>
-            )}
-
             {/* BYOK config */}
             <Card>
                 <CardHeader>
@@ -202,13 +184,13 @@ export function SettingsPage() {
         queryFn: async () => {
             const res = await fetch('/api/v1/github/status');
             if (!res.ok) return {configured: false, user: null, authMethod: 'none'};
-            return res.json() as Promise<{ configured: boolean; user: { login: string; name: string; avatarUrl: string } | null; authMethod: string }>;
+            return res.json() as Promise<{
+                configured: boolean;
+                user: { login: string; name: string; avatarUrl: string } | null;
+                authMethod: string
+            }>;
         },
     });
-
-    const {data: claudeHooksStatus, isLoading: claudeHooksLoading} = useClaudeCodeHooksStatus();
-    const attachHooks = useAttachClaudeCodeHooks();
-    const detachHooks = useDetachClaudeCodeHooks();
 
     const handleDisconnectGitHub = async () => {
         setDisconnecting(true);
@@ -438,7 +420,8 @@ export function SettingsPage() {
                                             onClick={handleDisconnectGitHub}
                                             disabled={disconnecting}
                                         >
-                                            {disconnecting ? <SpinnerGap className="w-4 h-4 animate-spin mr-2"/> : <LinkBreak className="w-4 h-4 mr-2"/>}
+                                            {disconnecting ? <SpinnerGap className="w-4 h-4 animate-spin mr-2"/> :
+                                                <LinkBreak className="w-4 h-4 mr-2"/>}
                                             Disconnect
                                         </Button>
                                     )}
@@ -460,67 +443,6 @@ export function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">Claude Code Observability</CardTitle>
-                            <CardDescription>
-                                Attach hooks to observe tool calls and agent lifecycle events
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            {claudeHooksLoading ? (
-                                <div className="flex items-center gap-2 text-muted-foreground">
-                                    <SpinnerGap className="w-4 h-4 animate-spin"/>
-                                    Checking hook status...
-                                </div>
-                            ) : (
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Terminal className="w-5 h-5 text-muted-foreground"/>
-                                        <div>
-                                            <p className="font-medium">
-                                                {claudeHooksStatus?.attached ? 'Hooks attached' : 'Hooks not attached'}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                PostToolUse, SubagentStart, SubagentStop
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <Badge variant={claudeHooksStatus?.attached ? 'secondary' : 'outline'}>
-                                            {claudeHooksStatus?.attached ? 'Attached' : 'Detached'}
-                                        </Badge>
-                                        <Button
-                                            variant={claudeHooksStatus?.attached ? 'outline' : 'default'}
-                                            size="sm"
-                                            disabled={attachHooks.isPending || detachHooks.isPending}
-                                            onClick={() => {
-                                                if (claudeHooksStatus?.attached) {
-                                                    detachHooks.mutate(undefined, {
-                                                        onSuccess: () => toast.success('Claude Code hooks detached'),
-                                                        onError: () => toast.error('Failed to detach hooks'),
-                                                    });
-                                                } else {
-                                                    attachHooks.mutate(undefined, {
-                                                        onSuccess: () => toast.success('Claude Code hooks attached'),
-                                                        onError: () => toast.error('Failed to attach hooks'),
-                                                    });
-                                                }
-                                            }}
-                                        >
-                                            {(attachHooks.isPending || detachHooks.isPending) && (
-                                                <SpinnerGap className="w-4 h-4 animate-spin mr-2"/>
-                                            )}
-                                            {claudeHooksStatus?.attached ? 'Stop Observing' : 'Start Observing'}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                                New Claude Code sessions will pick up hook changes. Existing sessions are unaffected.
-                            </p>
-                        </CardContent>
-                    </Card>
                 </TabsContent>
 
                 {/* Data Settings */}

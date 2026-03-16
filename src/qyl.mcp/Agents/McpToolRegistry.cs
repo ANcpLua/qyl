@@ -8,14 +8,14 @@ namespace qyl.mcp.Agents;
 
 /// <summary>
 ///     Discovers all [McpServerTool] methods on registered tool classes and wraps
-///     them as <see cref="AIFunction"/> for use by the embedded meta-agent (use_qyl).
+///     them as <see cref="AIFunction" /> for use by the embedded meta-agent (use_qyl).
 ///     Excludes tools that would cause recursion or LLM-in-LLM loops.
 /// </summary>
 internal sealed class McpToolRegistry(IServiceProvider services)
 {
     /// <summary>
     ///     Tool class types whose [McpServerTool] methods are exposed to the meta-agent.
-    ///     Excluded: UseQylTools (self), InvestigateTools (LLM-in-LLM), CopilotTools (LLM chat/workflow).
+    ///     Excluded: UseQylTools (self — would cause recursion).
     /// </summary>
     private static readonly Type[] ToolTypes =
     [
@@ -28,7 +28,6 @@ internal sealed class McpToolRegistry(IServiceProvider services)
         typeof(StorageHealthTools),
         typeof(SpanQueryTools),
         typeof(AnalyticsTools),
-        typeof(ClaudeCodeTools),
         typeof(ServiceTools),
         typeof(ErrorTools),
         typeof(AnomalyTools)

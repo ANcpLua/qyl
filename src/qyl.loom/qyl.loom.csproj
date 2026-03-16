@@ -67,8 +67,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\qyl.collector\qyl.collector.csproj"/>
-    <ProjectReference Include="..\qyl.agents\qyl.agents.csproj"/>
-    <ProjectReference Include="..\qyl.workflows\qyl.workflows.csproj"/>
     <ProjectReference Include="..\qyl.contracts\qyl.contracts.csproj"/>
     <ProjectReference Include="..\qyl.instrumentation\qyl.instrumentation.csproj"/>
   </ItemGroup>

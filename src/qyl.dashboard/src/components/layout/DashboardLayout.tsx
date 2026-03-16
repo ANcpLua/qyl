@@ -5,9 +5,6 @@ import {TooltipProvider} from '@/components/ui/tooltip';
 import {Sidebar} from './Sidebar';
 import {TopBar} from './TopBar';
 import {telemetryKeys, useLiveStream} from '@/hooks/use-telemetry';
-import {useCopilotStatus} from '@/hooks/use-copilot';
-import {CopilotButton} from '@/components/copilot/CopilotButton';
-import {CopilotPanel} from '@/components/copilot/CopilotPanel';
 import {useKeyboardShortcuts, useNavigationShortcuts} from '@/hooks/use-keyboard-shortcuts';
 import {KeyboardShortcutsModal} from '@/components/KeyboardShortcutsModal';
 import type {Span} from '@/types';
@@ -20,11 +17,6 @@ export function DashboardLayout() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [isLive, setIsLive] = useState(true);
     const [timeRange, setTimeRange] = useState('15m');
-    const [copilotOpen, setCopilotOpen] = useState(false);
-
-    // Copilot status (polls every 5min)
-    const {data: copilotStatus} = useCopilotStatus();
-
     // Live stream
     const {isConnected, recentSpans, reconnect, clearSpans} = useLiveStream({
         enabled: isLive,
@@ -82,17 +74,6 @@ export function DashboardLayout() {
                 onOpenChange={setModalOpen}
             />
 
-            {/* Copilot - always available (BYOK works without GitHub auth) */}
-            <CopilotPanel
-                open={copilotOpen}
-                onClose={() => setCopilotOpen(false)}
-                username={copilotStatus?.username}
-            />
-            <CopilotButton
-                onClick={() => setCopilotOpen(prev => !prev)}
-                isOpen={copilotOpen}
-                username={copilotStatus?.username}
-            />
         </TooltipProvider>
     );
 }

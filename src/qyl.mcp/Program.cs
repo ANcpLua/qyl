@@ -19,13 +19,10 @@ using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
 using qyl.mcp.Tools;
-using AgentJsonContext = qyl.mcp.Agents.AgentJsonContext;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
 using BuildJsonContext = qyl.mcp.Tools.BuildJsonContext;
-using ClaudeCodeMcpJsonContext = qyl.mcp.Tools.ClaudeCodeMcpJsonContext;
 using ConsoleJsonContext = qyl.mcp.Tools.ConsoleJsonContext;
-using CopilotJsonContext = qyl.mcp.Tools.CopilotJsonContext;
 using ErrorJsonContext = qyl.mcp.Tools.ErrorJsonContext;
 using FixToolsJsonContext = qyl.mcp.Tools.FixToolsJsonContext;
 using GenAiJsonContext = qyl.mcp.Tools.GenAiJsonContext;
@@ -59,18 +56,18 @@ static async Task RunStdioAsync(
     var builder = Host.CreateApplicationBuilder(args);
     ConfigureLogging(builder.Logging);
 
-    JsonSerializerOptions jsonOptions = ConfigureCommonServices(builder.Services, builder.Configuration, skills, scope);
+    var jsonOptions = ConfigureCommonServices(builder.Services, builder.Configuration, skills, scope);
 
     IServiceProvider? serviceProvider = null;
     ConfigureMcpServer(
         builder.Services,
         skills,
         jsonOptions,
-        transport: McpTransportMode.Stdio,
-        hostOptions: null,
-        serviceProviderAccessor: () => serviceProvider);
+        McpTransportMode.Stdio,
+        null,
+        () => serviceProvider);
 
-    IHost host = builder.Build();
+    var host = builder.Build();
     serviceProvider = host.Services;
     await host.RunAsync().ConfigureAwait(false);
 }
@@ -83,10 +80,10 @@ static async Task RunHttpAsync(
     var builder = WebApplication.CreateBuilder(args);
     ConfigureLogging(builder.Logging);
 
-    McpHostOptions hostOptions = McpHostOptions.FromConfiguration(builder.Configuration, McpTransportMode.Http);
+    var hostOptions = McpHostOptions.FromConfiguration(builder.Configuration, McpTransportMode.Http);
     ApplyPortFallback(builder.WebHost, builder.Configuration);
 
-    JsonSerializerOptions jsonOptions = ConfigureCommonServices(builder.Services, builder.Configuration, skills, scope);
+    var jsonOptions = ConfigureCommonServices(builder.Services, builder.Configuration, skills, scope);
     ConfigureHttpAuthentication(builder.Services, hostOptions);
     builder.Services.AddHealthChecks();
 
@@ -95,11 +92,11 @@ static async Task RunHttpAsync(
         builder.Services,
         skills,
         jsonOptions,
-        transport: McpTransportMode.Http,
-        hostOptions: hostOptions,
-        serviceProviderAccessor: () => serviceProvider);
+        McpTransportMode.Http,
+        hostOptions,
+        () => serviceProvider);
 
-    WebApplication app = builder.Build();
+    var app = builder.Build();
     serviceProvider = app.Services;
 
     if (hostOptions.RequiresAuthentication)
@@ -135,7 +132,7 @@ static JsonSerializerOptions ConfigureCommonServices(
     services.AddMcpAuth(configuration);
     services.AddSingleton(scope);
 
-    string collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
+    var collectorUrl = configuration["QYL_COLLECTOR_URL"] ?? "http://localhost:5100";
 
     if (skills.IsEnabled(QylSkillKind.Inspect))
     {
@@ -173,16 +170,6 @@ static JsonSerializerOptions ConfigureCommonServices(
         services.AddCollectorToolClient<AnomalyTools>(collectorUrl);
     }
 
-    if (skills.IsEnabled(QylSkillKind.Copilot))
-    {
-        services.AddCollectorToolClient<CopilotTools>(collectorUrl, TimeSpan.FromSeconds(60));
-    }
-
-    if (skills.IsEnabled(QylSkillKind.ClaudeCode))
-    {
-        services.AddCollectorToolClient<ClaudeCodeTools>(collectorUrl);
-    }
-
     if (skills.IsEnabled(QylSkillKind.Loom))
     {
         services.AddCollectorToolClient<TriageTools>(collectorUrl);
@@ -197,17 +184,8 @@ static JsonSerializerOptions ConfigureCommonServices(
     }
 
     services.AddCollectorToolClient<HttpTelemetryStore>(collectorUrl);
+    services.AddCollectorToolClient<ArtifactTools>(collectorUrl);
     services.AddSingleton<RcaTools>();
-
-    services.AddHttpClient(nameof(HttpAgentProvider), client =>
-    {
-        client.BaseAddress = new Uri(collectorUrl);
-        client.Timeout = TimeSpan.FromSeconds(120);
-    }).AddStandardResilienceHandler();
-    services.AddSingleton<IAgentProvider>(static sp =>
-        new HttpAgentProvider(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpAgentProvider)),
-            sp.GetRequiredService<ILogger<HttpAgentProvider>>()));
 
     services.AddSingleton<McpToolRegistry>();
     services.AddSingleton(TimeProvider.System);
@@ -227,11 +205,8 @@ static JsonSerializerOptions ConfigureCommonServices(
     jsonOptions.TypeInfoResolverChain.Add(StorageHealthJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SpanQueryJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ReplayJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(CopilotJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(ClaudeCodeMcpJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnalyticsJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ServiceMcpJsonContext.Default);
-    jsonOptions.TypeInfoResolverChain.Add(AgentJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(ErrorJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(AnomalyJsonContext.Default);
     jsonOptions.TypeInfoResolverChain.Add(SummaryJsonContext.Default);
@@ -247,7 +222,7 @@ static void ConfigureHttpAuthentication(IServiceCollection services, McpHostOpti
     if (!hostOptions.RequiresAuthentication)
         return;
 
-    string authority = hostOptions.KeycloakAuthority!;
+    var authority = hostOptions.KeycloakAuthority!;
 
     services
         .AddAuthentication(options =>
@@ -274,7 +249,7 @@ static void ConfigureHttpAuthentication(IServiceCollection services, McpHostOpti
             {
                 OnResourceMetadataRequest = context =>
                 {
-                    string resourceUrl = hostOptions.ResolvePublicMcpUrl(context.HttpContext.Request);
+                    var resourceUrl = hostOptions.ResolvePublicMcpUrl(context.HttpContext.Request);
                     context.ResourceMetadata = new ProtectedResourceMetadata
                     {
                         Resource = resourceUrl,
@@ -300,11 +275,7 @@ static void ConfigureMcpServer(
 {
     var mcpBuilder = services.AddMcpServer(options =>
     {
-        options.ServerInfo = new Implementation
-        {
-            Name = "qyl",
-            Version = ServerVersion.Value
-        };
+        options.ServerInfo = new Implementation { Name = "qyl", Version = ServerVersion.Value };
         options.ServerInstructions =
             "Use qyl tools to inspect telemetry, traces, logs, errors, builds, and AI workflow health.";
     });
@@ -360,7 +331,8 @@ static void ConfigureMcpServer(
             filters.AddOutgoingFilter(next => async (context, cancellationToken) =>
             {
                 using var activity =
-                    TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client, parentContext: default);
+                    TelemetryConstants.ActivitySource.StartActivity("mcp.send", ActivityKind.Client,
+                        parentContext: default);
 
                 switch (context.JsonRpcMessage)
                 {
@@ -381,11 +353,11 @@ static void ConfigureMcpServer(
         {
             filters.AddCallToolFilter(next => async (request, cancellationToken) =>
             {
-                string? toolName = request.Params?.Name;
+                var toolName = request.Params?.Name;
 
                 if (toolName is not null)
                 {
-                    CallToolResult? denied = serviceProviderAccessor()!
+                    var denied = serviceProviderAccessor()!
                         .GetRequiredService<McpAdminToolFilter>()
                         .CheckAccess(toolName);
 
@@ -405,7 +377,7 @@ static void ConfigureMcpServer(
 
                 try
                 {
-                    CallToolResult result = await next(request, cancellationToken);
+                    var result = await next(request, cancellationToken);
                     if (result.IsError is true)
                         activity?.SetStatus(ActivityStatusCode.Error, "Tool returned error");
 
@@ -451,13 +423,16 @@ static string CreateLlmsText(HttpRequest request, McpHostOptions hostOptions)
     var builder = new StringBuilder();
     builder.AppendLine("# qyl MCP Server");
     builder.AppendLine();
-    builder.AppendLine("qyl exposes observability tools for traces, logs, errors, builds, analytics, RCA, and AI workflows.");
+    builder.AppendLine(
+        "qyl exposes observability tools for traces, logs, errors, builds, analytics, RCA, and AI workflows.");
     builder.AppendLine();
     builder.AppendLine($"- Endpoint: {hostOptions.ResolvePublicMcpUrl(request)}");
     builder.AppendLine("- Transport: Streamable HTTP");
-    builder.AppendLine($"- Auth: {(hostOptions.RequiresAuthentication ? "OAuth 2.0 bearer token" : "No host auth configured")}");
+    builder.AppendLine(
+        $"- Auth: {(hostOptions.RequiresAuthentication ? "OAuth 2.0 bearer token" : "No host auth configured")}");
     builder.AppendLine();
-    builder.AppendLine("Primary tool families: inspect, health, analytics, agent, build, anomaly, copilot, Claude Code, and loom.");
+    builder.AppendLine(
+        "Primary tool families: inspect, health, analytics, agent, build, anomaly, and loom.");
     return builder.ToString();
 }
 

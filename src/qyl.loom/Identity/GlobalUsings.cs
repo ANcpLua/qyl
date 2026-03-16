@@ -33,7 +33,7 @@ global using Qyl.Collector.Errors;
 global using Qyl.Collector.Ingestion;
 global using Qyl.Collector.Mapping;
 global using Qyl.Collector.Autofix;
-global using Qyl.Collector.CodingAgent;
+global using Qyl.Contracts.Loom;
 global using Qyl.Collector.Identity;
 global using Qyl.Collector.Query;
 global using Qyl.Collector.Realtime;
