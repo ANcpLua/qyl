@@ -41,6 +41,10 @@
   `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses
   `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
 - **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
+- **qyl documentation agents**: Added `qyl-diagram-agent.md` and `qyl-ecosystem-scout-SKILL.md` as
+  reusable prompts/assets for Mermaid architecture diagrams and 5-domain ecosystem scouting.
+- **Architecture docs corrected**: README and v2/spec index now describe the acyclic split of `qyl.web`,
+  `qyl.collector`, `qyl.agents`, `qyl.mcp`, `qyl.infrastructure`, and `qyl.core` instead of the old collector/loom split.
 
 ### Fixed
 

@@ -79,31 +79,50 @@ Environment:
 │     └──────────────┘  └────────────────────┘    │
 └─────────────────────────────────────────────────┘
 
-External (optional, separate processes):
+Internal assemblies (single host, strict acyclic references):
 
-┌──────────┐     HTTP      ┌──────────┐
-│ qyl-mcp  │ ──────────→   │ qyl      │
-└──────────┘               └──────────┘
-
-┌──────────┐  ProjectRef   ┌──────────┐
-│ qyl-loom │ ──────────→   │ qyl      │
-└──────────┘               └──────────┘
+┌──────────────┐
+│   qyl.web    │  composition root, API host, SSE, dashboard
+└─┬────┬────┬──┘
+  │    │    │
+  ▼    ▼    ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│ qyl.collector│  │  qyl.agents  │  │   qyl.mcp    │
+│ OTLP ingest  │  │ Loom/autofix │  │ tool surface │
+└──────┬───────┘  └──────┬───────┘  └──────┬───────┘
+       │                 │                 │
+       └──────────┬──────┴──────┬──────────┘
+                  ▼             ▼
+              ┌────────────────────┐
+              │      qyl.core      │
+              │ interfaces + DTOs  │
+              └─────────┬──────────┘
+                        ▼
+              ┌────────────────────┐
+              │ qyl.infrastructure │
+              │ DuckDB + GitHub    │
+              └─────────┬──────────┘
+                        ▼
+                      DuckDB
 ```
 
 ### 2.3 Component boundaries
 
 ```text
 Tier 1 — The Product (ships as one image):
-├── qyl server        OTLP ingest, DuckDB, REST API, SSE, cost engine
-├── qyl dashboard     React UI served as static files by the server
-└── qyl SDK           NuGet package: Roslyn generators, one-line setup
+├── qyl.web             Composition root, REST API, SSE, dashboard host
+├── qyl.collector       OTLP ingest and telemetry processors
+├── qyl.agents          Loom, autofix, triage, summarization
+├── qyl.mcp             MCP tool surface library
+├── qyl.infrastructure  DuckDB + external integration implementations
+└── qyl.core            Interfaces, DTOs, value objects, query contracts
 
-Tier 2 — Extensions (separate processes, separate repos):
-├── qyl-mcp           MCP server for AI-native telemetry queries
-└── qyl-loom          AI investigation engine, root cause analysis
+Cross-cutting:
+├── qyl SDK             NuGet package: Roslyn generators, one-line setup
+└── qyl dashboard       React UI served by `qyl.web`
 
-Tier 3 — Ecosystem (deferred):
-└── Workflow orchestration  If needed, Loom adopts Elsa/DTF or builds its own DAG engine
+Hard rule:
+└── No sibling project references. `qyl.web` may see all feature assemblies; all others depend only on `qyl.core`.
 ```
 
 ---
@@ -128,23 +147,23 @@ Tier 3 — Ecosystem (deferred):
 | **Auth** | Token-based API authentication. |
 | **Schema** | Schema versioning, migrations, promoted columns. |
 
-**Domains that DO NOT belong in the server:**
+**Domains that DO NOT belong in `qyl.collector`:**
 
 | Domain | Where it goes |
 |--------|--------------|
-| Autofix orchestration | qyl-loom |
-| Code review | qyl-loom |
-| Agent runs / handoffs | qyl-loom |
-| GitHub webhooks | qyl-loom |
+| Autofix orchestration | qyl.agents |
+| Code review | qyl.agents |
+| Agent runs / handoffs | qyl.agents |
+| GitHub webhooks | qyl.mcp or infrastructure-backed endpoint layer |
 | Coding agent provider | Kill |
 | Claude Code hooks | Kill |
 | Copilot / AG-UI | Kill (or qyl-loom if needed) |
-| Workflow execution | Deferred (Loom-owned if needed) |
+| Workflow execution | Deferred (agent-owned if needed) |
 | Build failure tracking | Kill |
 | Console bridge | Kill |
-| Regression detection | qyl-loom |
-| Triage pipeline | qyl-loom |
-| Issue analytics | qyl-loom |
+| Regression detection | qyl.agents |
+| Triage pipeline | qyl.agents |
+| Issue analytics | qyl.agents |
 
 **Hard constraint:** The server has no LLM dependencies. It does not call OpenAI, Anthropic, Copilot, or any AI provider. It receives telemetry and serves data. Period.
 
@@ -328,29 +347,23 @@ MCP server for AI-native telemetry queries. Separate process. Communicates with 
 - OAuth 2.1 + DCR for remote mode
 - No direct DuckDB access — HTTP to qyl server only
 
-### 4.2 qyl-loom
+### 4.2 qyl.agents
 
-AI investigation engine. Standalone product.
+AI investigation and automation layer. Library mounted by `qyl.web`.
 
-**Repo decision (resolved):** `src/qyl.loom/` in this repo is the Loom source of truth. It stays in-repo but communicates with the qyl server via HTTP at runtime (no ProjectReference to the server). The `~/RiderProjects/qyl.loom/` checkout is a development convenience, not a separate project. One codebase, one source of truth.
-
-**Responsibility:** Given an error/anomaly, investigate root cause using AI agents with access to qyl telemetry.
+**Responsibility:** Given an error/anomaly, investigate root cause using AI agents with access to telemetry and artifacts through `qyl.core` interfaces.
 
 **Dependencies:**
-- qyl server (HTTP for telemetry data)
-- qyl.contracts (ProjectReference — shared types only)
+- `qyl.core` only
 - LLM providers (for AI investigation)
 - Microsoft.Extensions.AI / Microsoft.Agents.AI (for agent construction)
 
 **Architecture rules:**
-- Loom → qyl server (HTTP at runtime). Never qyl server → Loom.
-- Loom → qyl.contracts (ProjectReference for shared types). This is the only allowed ProjectReference.
-- Loom uses Microsoft.Extensions.AI / Microsoft.Agents.AI for LLM calls
-- Loom instruments its own operations via qyl SDK (dogfooding)
-- Investigation results stored in Loom's own storage, linked to qyl traces by trace ID
-- If Loom needs DAG workflow orchestration, Loom owns that dependency (Elsa Workflows, Durable Task Framework, or custom). The qyl server does not provide workflow execution.
-
-**Migration note:** The current codebase has Loom depending on `qyl.collector` via ProjectReference. This is a breaking migration — Loom must be rewritten to use HTTP calls to the server instead. `QylAgentBuilder` from `qyl.agents` (being killed) must be ported into Loom's own codebase or replaced with direct `Microsoft.Extensions.AI` usage.
+- `qyl.agents` depends on `qyl.core`, never on `qyl.collector`, `qyl.mcp`, or `qyl.infrastructure`
+- All telemetry, artifact, and GitOps access goes through `ITelemetryStore`, `IArtifactService`, `IIssueService`, `IGitOpsService`, and related `qyl.core` contracts
+- `Microsoft.Extensions.AI` lives only here
+- Loom is a namespace/domain inside `qyl.agents`, not a separate runtime product
+- If agent workflows need DAG orchestration later, that dependency remains owned by `qyl.agents`
 
 ---
 
@@ -360,8 +373,8 @@ Components deleted from qyl. Not deprecated — deleted.
 
 | Component | Files | Rationale |
 |-----------|-------|-----------|
-| **qyl.agents** | `src/qyl.agents/` | Microsoft.Extensions.AI exists. `InstrumentedChatClient` moves to SDK. Everything else (QylAgentBuilder, CopilotAdapter, ChunkingPipeline, AuthProvider) is Loom's problem or dead. |
-| **qyl.workflows** | `src/qyl.workflows/` | Linear-only engine with no branching, parallelism, retries, or timeouts. Fundamental gaps, not incremental. If Loom needs workflows, Loom owns the dependency. |
+| **standalone qyl.loom** | legacy split | Fold Loom behavior into `qyl.agents`; do not preserve a separate runtime/library boundary for the same domain. |
+| **qyl.workflows** | `src/qyl.workflows/` | Linear-only engine with no branching, parallelism, retries, or timeouts. Fundamental gaps, not incremental. If agents need workflows, agents own the dependency. |
 | **qyl.hosting** | `src/qyl.hosting/` | The collector IS the host. QylApp/QylAppBuilder is an abstraction over ASP.NET Core's own builder. |
 | **qyl.watch** | `src/qyl.watch/` | Terminal span viewer. Nice toy, not core product. Publish as standalone dotnet tool if desired. |
 | **qyl.browser** | `src/qyl.browser/` | Web Vitals for AI apps. Niche. Revisit when demand exists. |
@@ -420,7 +433,7 @@ src/qyl.collector/
 | qyl.collector.storage.generators | Internal to **qyl** server | Implementation detail |
 | qyl.contracts | **qyl.contracts** (unchanged) | "contracts" is the standard .NET term for shared DTOs/types. "protocol" implies wire format, which is misleading. |
 | qyl.dashboard | **qyl-ui** | Shorter, clearer |
-| qyl.agents | Deleted | — |
+| standalone qyl.loom | Deleted | Folded into `qyl.agents` |
 | qyl.workflows | Deleted | — |
 | qyl.hosting | Deleted | — |
 | qyl.watch | Deleted (or `qyl-watch` standalone tool) | — |
@@ -564,7 +577,7 @@ This is not a refactor. It is a rebuild with knowledge transfer.
 | `qyl.contracts/` | qyl.contracts | Code (unchanged, publish as NuGet) |
 | `qyl.dashboard/` | qyl-ui | Code (strip non-core views) |
 | `qyl.mcp/` | qyl-mcp | Code (strip non-core tools) |
-| `qyl.collector/Autofix/` | qyl-loom | Knowledge (rewrite in loom context) |
+| `qyl.collector/Autofix/` | qyl.agents | Knowledge (rewrite in agents context) |
 | `qyl.agents/InstrumentedChatClient` | qyl SDK | Code (single file) |
 | `specs/08-genai-controls.md` | This spec (section 3.4) | Knowledge (cost engine only) |
 | DuckDB schema + migrations | qyl server | Code (adapt) |
@@ -700,7 +713,7 @@ Cursor = `start_time` of the last item. Stable under concurrent inserts. No COUN
 | No proxy | Side channel reliability contract. Provider API maintenance burden. | Helicone sidecar (acquired, legacy attributes), custom proxy (scope creep) |
 | No GenAI middleware (except instrumentation) | Each control is its own product category. Observability ≠ control. | Full middleware pipeline (spec 08 v1) |
 | Cost as first-class feature | Pure server-side computation from existing data. No proxy needed. Helicone-killer. | Cost as middleware (requires SDK changes), cost as separate service (unnecessary) |
-| Kill qyl.agents | Microsoft.Extensions.AI exists. One `DelegatingChatClient` in SDK suffices. | Keep as thin wrapper (adds maintenance, no value over upstream) |
+| Keep qyl.agents as AI boundary | All `Microsoft.Extensions.AI` usage must live in one place outside collector and MCP. | Spread AI logic across collector/web/mcp (recreates God-process coupling) |
 | Kill qyl.workflows | Linear-only engine is a dead end. If Loom needs DAG workflows, Loom owns the dependency. | Extend DeclarativeEngine (spec 09 known gaps are fundamental, not incremental) |
 | Server has no LLM dependencies | Keeps the server focused. AI investigation belongs in Loom. | Embedded agent in server (creates LLM dependency, resource contention) |
 | Keep `qyl.contracts` name | "contracts" is the standard .NET term for shared DTOs/types between client and server. "protocol" implies wire format. | Rename to `qyl.protocol` (misleading — contents are DTOs, not a protocol spec) |

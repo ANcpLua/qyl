@@ -10,7 +10,7 @@ React 19 frontend for qyl. Operator-grade telemetry UI with dense information su
 2. [Shell](#2-shell)
 3. [Telemetry Surfaces](#3-telemetry-surfaces)
 4. [Charts](#4-charts)
-5. [Copilot](#5-copilot)
+5. [Realtime and Handoff](#5-realtime-and-handoff)
 6. [Primitives](#6-primitives)
 7. [Definition of Done](#7-definition-of-done)
 
@@ -44,7 +44,6 @@ Design philosophy: operator-grade density. Optimize for workflow speed, scanabil
 - `CodeReviewPage` — AI code review results
 - `BotPage` + `BotConversationDetailPage` + `BotUserJourneyPage` — bot/agent conversation tracking
 - `LoomDashboardPage` — Loom investigation overview
-- `WorkflowRunsPage` — workflow execution history
 - `SettingsPage` — configuration
 - `OnboardingPage` — first-run setup
 
@@ -70,7 +69,7 @@ Prefer scanable rows, compact spacing, strong typography hierarchy. No cardified
 - `ToolDefinitionsViewer` — GenAI tool call inspection
 - `PipelineStatus` (Loom) — autofix pipeline progress
 - `LoomSidebar` — Loom investigation navigation
-- `CopilotPanel` — AG-UI copilot interface
+- `LoomHandoffPanel` — realtime session attach and continuation UI
 - `FilterPillBar` — active filter display
 
 ## 4. Charts
@@ -95,15 +94,15 @@ Allow for lighter surfaces:
 
 If the chart is part of an analysis workflow, use ECharts. If it's decorative, Recharts is fine.
 
-## 5. Copilot
+## 5. Realtime and Handoff
 
-`CopilotPanel` — AG-UI protocol integration via CopilotKit.
+The dashboard may attach to long-running Loom or agent sessions, but it does not own agent construction.
 
-`use-copilot.ts` — React hook for copilot state management.
-`use-telemetry.ts` — telemetry data hooks.
-`use-llm-config.ts` — LLM configuration hooks.
+- SSE streams are hosted by `qyl.web`
+- session hydration attaches to persisted agent state through API contracts
+- UI components render stage transitions, tool calls, and handoff state
 
-AG-UI protocol: SSE streaming from `CopilotAguiEndpoints` in collector.
+The dashboard is an operator surface over telemetry and agent progress, not a Copilot shell.
 
 ## 6. Primitives
 
@@ -140,7 +139,7 @@ shadcn is the shell layer. Base UI is the primitive layer. They do not compete.
 - [ ] Zero imports from `@radix-ui/*`
 - [ ] All dense data surfaces use TanStack Table with sort/filter/paginate
 - [ ] Heavy telemetry charts use ECharts
-- [ ] AG-UI copilot streams events correctly
+- [ ] Realtime handoff streams attach and resume correctly
 - [ ] Dark mode works across all pages
 - [ ] Keyboard navigation works for all interactive elements
 - [ ] Virtualization applied to surfaces with > 1000 rows

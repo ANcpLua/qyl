@@ -11,7 +11,7 @@ Landing page: <https://ancplua.github.io/qyl/>
 | **Collects**    | OTLP receiver with idempotent ingestion (retry-safe)     |
 | **Instruments** | Roslyn source generators for zero-config GenAI telemetry |
 | **Visualizes**  | Real-time dashboard with SSE streaming                   |
-| **Integrates**  | MCP server and GitHub Copilot for AI agent observability |
+| **Integrates**  | MCP surface, Loom agents, and GitOps over a shared application host |
 
 ## Tech Stack
 
@@ -25,17 +25,18 @@ Landing page: <https://ancplua.github.io/qyl/>
 
 ## Components
 
-| Package                          | Purpose                                                     |
-|----------------------------------|-------------------------------------------------------------|
-| `qyl.collector`                  | OTLP receiver, DuckDB storage, REST API, embedded dashboard |
-| `qyl.loom`                       | Loom product — C# transpile of Sentry reference impl        |
-| `qyl.agents`                     | AI agent infrastructure (QylAgentBuilder, adapters)         |
-| `qyl.workflows`                  | Workflow engine (declarative YAML + markdown discovery)      |
-| `qyl.hosting`                    | App orchestration framework (QylRunner)                     |
-| `qyl.instrumentation`            | .NET instrumentation library with OTel setup                |
-| `qyl.instrumentation.generators` | Roslyn source generator for GenAI/DB interceptors           |
-| `qyl.mcp`                        | MCP server for AI agent integration                         |
-| `qyl.contracts`                  | Shared types (BCL-only, no dependencies)                    |
+| Package                          | Purpose                                                            |
+|----------------------------------|--------------------------------------------------------------------|
+| `qyl.web`                        | Composition root: REST API, SSE, frontend hosting, DI             |
+| `qyl.collector`                  | OTLP ingest and telemetry processing only                         |
+| `qyl.agents`                     | Loom, autofix, triage, summarization, and other AI-driven logic   |
+| `qyl.mcp`                        | MCP tool surface as a library mounted by `qyl.web`                |
+| `qyl.infrastructure`             | DuckDB and external integration implementations                    |
+| `qyl.core`                       | Interfaces, DTOs, value objects, and query contracts              |
+| `qyl.hosting`                    | App orchestration framework (`QylRunner`)                         |
+| `qyl.instrumentation`            | .NET instrumentation library with OTel setup                      |
+| `qyl.instrumentation.generators` | Roslyn source generator for GenAI/DB interceptors                 |
+| `qyl.contracts`                  | Generated transport/shared types where still needed across layers |
 
 ## Quick Start
 
@@ -55,7 +56,7 @@ docker run -d -p 5100:5100 -p 4317:4317 -v ~/.qyl:/data qyl
 ```bash
 git clone https://github.com/ANcpLua/qyl.git
 cd qyl
-dotnet run --project src/qyl.collector
+dotnet run --project src/qyl.web
 ```
 
 ## Instrument Your .NET App
@@ -101,35 +102,36 @@ Supported protocols:
 ## Architecture
 
 ```text
-CopilotKit / Angular / Vanilla JS
-       ↕  AG-UI protocol (SSE)
-              +------------------+
-              |   qyl.dashboard  |
-              |    (React 19)    |
-              +--------+---------+
-                       | HTTP
-                       v
-+----------+  +------------------+  +------+
-| qyl.mcp  |->|  qyl.collector   |<-| OTLP |
-| (stdio)  |  |  (ASP.NET Core)  |  |Clients|
-+----------+  +--+-----------+---+  +------+
-                 |           |
-                 v           v
-       +----------+  +------------+
-       |  DuckDB  |  | qyl.agents |
-       +----------+  +-----+------+
-                           |
-                           v
-                    QylAgentBuilder
-                    → AIAgent (instrumented)
-                    → InstrumentedChatClient
-                    → GitHub Copilot / Azure OpenAI / Ollama
-
-+------------------+
-|    qyl.loom      |  (standalone product)
-| refs: collector, |
-|  agents, wkflows |
-+------------------+
+                         +------------------+
+                         |     qyl.web      |
+                         | Composition root |
+                         |  API + SSE + UI  |
+                         +----+----+----+---+
+                              |    |    |
+              +---------------+    |    +----------------+
+              |                    |                     |
+              v                    v                     v
+      +---------------+    +---------------+    +---------------+
+      | qyl.collector |    |  qyl.agents   |    |    qyl.mcp    |
+      |  OTLP ingest  |    | Loom + triage |    | Tool surface  |
+      +-------+-------+    +-------+-------+    +-------+-------+
+              \                    |                    /
+               \                   |                   /
+                \                  |                  /
+                 v                 v                 v
+                   +--------------------------------+
+                   |            qyl.core            |
+                   | Interfaces + DTOs + contracts  |
+                   +----------------+---------------+
+                                    |
+                                    v
+                        +--------------------------+
+                        |    qyl.infrastructure    |
+                        | DuckDB + GitHub impls    |
+                        +------------+-------------+
+                                     |
+                                     v
+                                  DuckDB
 ```
 
 ## Ports
@@ -211,13 +213,14 @@ dotnet run --project src/qyl.collector
 core/                                    # TypeSpec schemas (source of truth)
 eng/                                     # NUKE build system
 src/
-  qyl.collector/                         # Backend API + gRPC + storage
-  qyl.loom/                             # Loom product (AI-powered issue investigation)
-  qyl.agents/                            # AI agent infrastructure (QylAgentBuilder)
-  qyl.workflows/                         # Workflow engine
+  qyl.web/                              # Composition root and frontend host
+  qyl.collector/                        # OTLP ingest and telemetry processing
+  qyl.agents/                           # Loom, autofix, triage, summarization
+  qyl.mcp/                              # MCP surface library
+  qyl.infrastructure/                   # DuckDB + external integration implementations
+  qyl.core/                             # Interfaces, DTOs, value objects, contracts
   qyl.dashboard/                         # React 19 SPA
-  qyl.hosting/                           # App orchestration (QylRunner)
-  qyl.mcp/                              # MCP server for AI agents
+  qyl.hosting/                          # App orchestration (QylRunner)
   qyl.contracts/                         # Shared types (BCL-only)
   qyl.instrumentation/                   # OTel + health + resilience defaults
   qyl.instrumentation.generators/        # Roslyn auto-instrumentation
