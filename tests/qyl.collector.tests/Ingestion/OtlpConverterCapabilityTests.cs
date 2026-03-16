@@ -79,9 +79,14 @@ public sealed class OtlpConverterCapabilityTests
     }
 
     private static string[] ReadStringArray(JsonElement element) =>
-        element.EnumerateArray()
-            .Select(static value => value.GetString())
-            .Where(static value => value is not null)
-            .Select(static value => value!)
-            .ToArray();
+        element.ValueKind switch
+        {
+            JsonValueKind.Array => element.EnumerateArray()
+                .Select(static value => value.GetString())
+                .Where(static value => value is not null)
+                .Select(static value => value!)
+                .ToArray(),
+            JsonValueKind.String => [element.GetString()!],
+            _ => []
+        };
 }
