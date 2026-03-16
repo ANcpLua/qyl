@@ -1,0 +1,138 @@
+namespace Qyl.Collector.Artifacts;
+
+public static class ArtifactEndpoints
+{
+    /// <summary>
+    ///     Generates a URL-safe 12-character artifact ID (72 bits of entropy).
+    /// </summary>
+    private static string NewArtifactId()
+    {
+        Span<byte> bytes = stackalloc byte[9];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToBase64String(bytes)
+            .Replace('+', '-')
+            .Replace('/', '_')
+            .TrimEnd('=');
+    }
+
+    public static void MapArtifactEndpoints(this WebApplication app)
+    {
+        // ── REST API ──────────────────────────────────────────────────
+
+        app.MapPost("/api/v1/artifacts", async (
+            ArtifactCreateRequest request,
+            DuckDbStore store,
+            CancellationToken ct) =>
+        {
+            var id = string.IsNullOrWhiteSpace(request.Id) ? NewArtifactId() : request.Id;
+            var now = TimeProvider.System.GetUtcNow().UtcDateTime;
+
+            var row = new ArtifactRow(
+                Id: id,
+                ContentType: request.ContentType ?? "text/plain",
+                Content: request.Content,
+                Title: request.Title,
+                Source: request.Source,
+                MetadataJson: request.Metadata is not null
+                    ? System.Text.Json.JsonSerializer.Serialize(
+                        request.Metadata, ArtifactJsonContext.Default.DictionaryStringString)
+                    : null,
+                CreatedAt: now,
+                ExpiresAt: request.TtlSeconds is > 0
+                    ? now.AddSeconds(request.TtlSeconds.Value)
+                    : null);
+
+            await store.StoreArtifactAsync(row, ct).ConfigureAwait(false);
+
+            return Results.Created($"/a/{id}", new ArtifactResponse(
+                row.Id, row.ContentType, row.Content, row.Title,
+                row.Source, request.Metadata, row.CreatedAt, row.ExpiresAt));
+        });
+
+        app.MapGet("/api/v1/artifacts/{id}", async (
+            string id, DuckDbStore store, CancellationToken ct) =>
+        {
+            var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
+            if (row is null) return Results.NotFound();
+
+            if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
+                return Results.NotFound();
+
+            return Results.Ok(ToResponse(row));
+        });
+
+        // ── Short URL ─────────────────────────────────────────────────
+
+        app.MapGet("/a/{id}", async (
+            string id, DuckDbStore store, HttpContext ctx, CancellationToken ct) =>
+        {
+            var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
+            if (row is null) return Results.NotFound();
+
+            if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
+                return Results.NotFound();
+
+            // If the client accepts JSON, return structured response
+            var accept = ctx.Request.Headers.Accept.ToString();
+            if (accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+                return Results.Ok(ToResponse(row));
+
+            // Otherwise return raw content with appropriate content type
+            return Results.Content(row.Content, row.ContentType);
+        });
+    }
+
+    private static ArtifactResponse ToResponse(ArtifactRow row)
+    {
+        Dictionary<string, string>? metadata = null;
+        if (row.MetadataJson is not null)
+        {
+            metadata = System.Text.Json.JsonSerializer.Deserialize(
+                row.MetadataJson, ArtifactJsonContext.Default.DictionaryStringString);
+        }
+
+        return new ArtifactResponse(
+            row.Id, row.ContentType, row.Content, row.Title,
+            row.Source, metadata, row.CreatedAt, row.ExpiresAt);
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// DTOs
+// ═══════════════════════════════════════════════════════════════════════
+
+public sealed record ArtifactCreateRequest(
+    [property: JsonPropertyName("content")]
+    string Content,
+    [property: JsonPropertyName("content_type")]
+    string? ContentType = null,
+    [property: JsonPropertyName("title")] string? Title = null,
+    [property: JsonPropertyName("source")]
+    string? Source = null,
+    [property: JsonPropertyName("metadata")]
+    Dictionary<string, string>? Metadata = null,
+    [property: JsonPropertyName("id")] string? Id = null,
+    [property: JsonPropertyName("ttl_seconds")]
+    int? TtlSeconds = null);
+
+public sealed record ArtifactResponse(
+    [property: JsonPropertyName("id")] string Id,
+    [property: JsonPropertyName("content_type")]
+    string ContentType,
+    [property: JsonPropertyName("content")]
+    string Content,
+    [property: JsonPropertyName("title")] string? Title,
+    [property: JsonPropertyName("source")]
+    string? Source,
+    [property: JsonPropertyName("metadata")]
+    Dictionary<string, string>? Metadata,
+    [property: JsonPropertyName("created_at")]
+    DateTime CreatedAt,
+    [property: JsonPropertyName("expires_at")]
+    DateTime? ExpiresAt);
+
+[JsonSerializable(typeof(ArtifactCreateRequest))]
+[JsonSerializable(typeof(ArtifactResponse))]
+[JsonSerializable(typeof(Dictionary<string, string>))]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower)]
+internal sealed partial class ArtifactJsonContext : JsonSerializerContext;
