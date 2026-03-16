@@ -1,6 +1,6 @@
 # Build outputs (UseArtifactsOutput centralizes to artifacts/)
 artifacts/
-!**/Artifacts/
+!src/**/Artifacts/
 [Bb]in/
 [Oo]bj/
 [Oo]ut/
