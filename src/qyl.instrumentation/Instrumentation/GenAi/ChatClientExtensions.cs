@@ -75,4 +75,40 @@ public static class ChatClientExtensions
         {
             otel.EnableSensitiveData = enableSensitiveData;
         });
+
+    /// <summary>
+    ///     Wraps <paramref name="client" /> with qyl OTel instrumentation via
+    ///     <see cref="InstrumentedChatClient" />.
+    ///     Records OTel 1.40 GenAI semantic convention attributes on every chat request.
+    /// </summary>
+    /// <param name="client">The <see cref="IChatClient" /> to instrument.</param>
+    /// <param name="agentName">Optional agent name recorded as <c>gen_ai.agent.name</c>.</param>
+    /// <param name="timeProvider">Time provider for duration measurement. Defaults to <c>TimeProvider.System</c>.</param>
+    /// <returns>An <see cref="InstrumentedChatClient" /> wrapping <paramref name="client" />.</returns>
+    public static IChatClient UseQylInstrumentation(
+        this IChatClient client,
+        string? agentName = null,
+        TimeProvider? timeProvider = null)
+        => new InstrumentedChatClient(client, agentName, timeProvider);
+
+    /// <summary>
+    ///     Wraps each <see cref="AIFunction" /> in <see cref="ChatOptions.Tools" /> with
+    ///     <see cref="InstrumentedAIFunction" /> so every tool invocation gets an OTel
+    ///     <c>execute_tool</c> span. Already-wrapped functions are skipped (idempotent).
+    /// </summary>
+    /// <param name="options">The <see cref="ChatOptions" /> whose tool list to instrument.</param>
+    /// <returns>The same <paramref name="options" /> instance, mutated in place.</returns>
+    public static ChatOptions AddInstrumentedTools(this ChatOptions options)
+    {
+        if (options.Tools is not { Count: > 0 })
+            return options;
+
+        for (int i = 0; i < options.Tools.Count; i++)
+        {
+            if (options.Tools[i] is AIFunction fn and not InstrumentedAIFunction)
+                options.Tools[i] = new InstrumentedAIFunction(fn);
+        }
+
+        return options;
+    }
 }
