@@ -9,14 +9,8 @@ import {Badge} from '@/components/ui/badge';
 import {Input} from '@/components/ui/input';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import type {Span} from '@/types';
-import {nsToMs, nanoToIso} from '@/types';
-import {
-    formatDuration,
-    formatTimestamp,
-    getSpanColor,
-    getSpanTypeLabel,
-    STATUS_ERROR,
-} from '@/hooks/use-telemetry';
+import {nanoToIso, nsToMs} from '@/types';
+import {formatDuration, formatTimestamp, getSpanColor, getSpanTypeLabel, STATUS_ERROR,} from '@/hooks/use-telemetry';
 import {useRecentSpans} from '@/hooks/use-spans';
 
 function getServiceName(span: Span): string {

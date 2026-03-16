@@ -52,6 +52,12 @@ export const LLM_PROVIDERS: ReadonlyArray<{
 }> = [
     {value: 'openai', label: 'OpenAI', needsKey: true, defaultModel: 'gpt-4o-mini'},
     {value: 'anthropic', label: 'Anthropic', needsKey: true, defaultModel: 'claude-sonnet-4-6'},
-    {value: 'ollama', label: 'Ollama', needsKey: false, defaultModel: 'llama3', defaultEndpoint: 'http://localhost:11434'},
+    {
+        value: 'ollama',
+        label: 'Ollama',
+        needsKey: false,
+        defaultModel: 'llama3',
+        defaultEndpoint: 'http://localhost:11434'
+    },
     {value: 'openai-compatible', label: 'OpenAI-compatible', needsKey: false, defaultModel: ''},
 ];

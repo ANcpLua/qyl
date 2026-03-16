@@ -79,15 +79,13 @@ internal static class McpLogEndpoints
         if (hasMore)
             items.RemoveAt(items.Count - 1);
 
-        string? nextCursor = hasMore && items.Count > 0
+        var nextCursor = hasMore && items.Count > 0
             ? items[^1].TimeUnixNano.ToString()
             : null;
 
         return TypedResults.Ok(new McpPagedResult<McpLogSummaryDto>
         {
-            Items = items,
-            NextCursor = nextCursor,
-            HasMore = hasMore
+            Items = items, NextCursor = nextCursor, HasMore = hasMore
         });
     }
 
@@ -165,7 +163,10 @@ internal sealed record McpLogDetailDto
     [JsonPropertyName("span_id")] public string? SpanId { get; init; }
     [JsonPropertyName("session_id")] public string? SessionId { get; init; }
     [JsonPropertyName("time_unix_nano")] public ulong TimeUnixNano { get; init; }
-    [JsonPropertyName("observed_time_unix_nano")] public ulong? ObservedTimeUnixNano { get; init; }
+
+    [JsonPropertyName("observed_time_unix_nano")]
+    public ulong? ObservedTimeUnixNano { get; init; }
+
     [JsonPropertyName("severity_number")] public byte SeverityNumber { get; init; }
     [JsonPropertyName("severity_text")] public string? SeverityText { get; init; }
     [JsonPropertyName("body")] public string? Body { get; init; }

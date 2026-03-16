@@ -8,8 +8,8 @@ name: Deploy Landing Page
 
 on:
   push:
-    branches: [main]
-    paths: ["site/**"]
+    branches: [ main ]
+    paths: [ "site/**" ]
   workflow_dispatch:
 
 permissions:

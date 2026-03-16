@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Globalization;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -16,9 +14,11 @@ public sealed class ListMetricsTool(HttpClient client)
         ReadOnly = true,
         Destructive = false,
         OpenWorld = true)]
-    [Description("List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
+    [Description(
+        "List all available metrics, optionally filtered by project. Shows name, type, unit, and description.")]
     public async Task<string> ListMetrics(
-        [Description("Filter to a specific project slug")] string? projectSlug = null,
+        [Description("Filter to a specific project slug")]
+        string? projectSlug = null,
         CancellationToken ct = default)
     {
         var url = "/api/v1/mcp/metrics";

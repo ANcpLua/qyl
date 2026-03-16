@@ -367,31 +367,29 @@
 
     /* Grid overlay background */
     .bg-grid-overlay {
-        background-image:
-            linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
-            linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
-            radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--color-signal-cyan) 8%, transparent), transparent 56%),
-            radial-gradient(circle at 82% 100%, color-mix(in oklch, var(--color-signal-violet) 8%, transparent), transparent 54%),
-            linear-gradient(
-                180deg,
-                color-mix(in oklch, var(--color-brutal-carbon) 76%, transparent) 0%,
-                color-mix(in oklch, var(--color-brutal-black) 100%, transparent) 100%
-            );
+        background-image: linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 18% 0%, color-mix(in oklch, var(--color-signal-cyan) 8%, transparent), transparent 56%),
+        radial-gradient(circle at 82% 100%, color-mix(in oklch, var(--color-signal-violet) 8%, transparent), transparent 54%),
+        linear-gradient(
+            180deg,
+            color-mix(in oklch, var(--color-brutal-carbon) 76%, transparent) 0%,
+            color-mix(in oklch, var(--color-brutal-black) 100%, transparent) 100%
+        );
         background-size: 36px 36px, 36px 36px, auto, auto, auto;
         background-position: -1px -1px;
     }
 
     .bg-onboarding-canvas {
-        background-image:
-            linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
-            linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
-            radial-gradient(circle at 50% -12%, color-mix(in oklch, var(--color-signal-orange) 16%, transparent), transparent 48%),
-            radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--color-signal-cyan) 6%, transparent), transparent 56%),
-            linear-gradient(
-                180deg,
-                color-mix(in oklch, var(--color-brutal-carbon) 82%, transparent) 0%,
-                color-mix(in oklch, var(--color-brutal-black) 100%, transparent) 100%
-            );
+        background-image: linear-gradient(to right, var(--color-grid-line) 1px, transparent 1px),
+        linear-gradient(to bottom, var(--color-grid-line) 1px, transparent 1px),
+        radial-gradient(circle at 50% -12%, color-mix(in oklch, var(--color-signal-orange) 16%, transparent), transparent 48%),
+        radial-gradient(circle at 50% 100%, color-mix(in oklch, var(--color-signal-cyan) 6%, transparent), transparent 56%),
+        linear-gradient(
+            180deg,
+            color-mix(in oklch, var(--color-brutal-carbon) 82%, transparent) 0%,
+            color-mix(in oklch, var(--color-brutal-black) 100%, transparent) 100%
+        );
         background-size: 36px 36px, 36px 36px, auto, auto, auto;
         background-position: -1px -1px;
     }

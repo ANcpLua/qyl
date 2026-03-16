@@ -80,15 +80,13 @@ internal static class McpTraceEndpoints
         if (hasMore)
             items.RemoveAt(items.Count - 1);
 
-        string? nextCursor = hasMore && items.Count > 0
+        var nextCursor = hasMore && items.Count > 0
             ? items[^1].StartTimeUnixNano.ToString()
             : null;
 
         return TypedResults.Ok(new McpPagedResult<McpTraceSummaryDto>
         {
-            Items = items,
-            NextCursor = nextCursor,
-            HasMore = hasMore
+            Items = items, NextCursor = nextCursor, HasMore = hasMore
         });
     }
 
@@ -240,11 +238,7 @@ internal static class McpTraceEndpoints
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-        return TypedResults.Ok(new McpReviewResponseDto
-        {
-            TraceId = traceId,
-            ReviewedAt = now
-        });
+        return TypedResults.Ok(new McpReviewResponseDto { TraceId = traceId, ReviewedAt = now });
     }
 }
 
@@ -265,8 +259,13 @@ internal sealed record McpTraceSummaryDto
     [JsonPropertyName("name")] public string? Name { get; init; }
     [JsonPropertyName("service_name")] public string? ServiceName { get; init; }
     [JsonPropertyName("status_code")] public byte StatusCode { get; init; }
-    [JsonPropertyName("start_time_unix_nano")] public ulong StartTimeUnixNano { get; init; }
-    [JsonPropertyName("end_time_unix_nano")] public ulong EndTimeUnixNano { get; init; }
+
+    [JsonPropertyName("start_time_unix_nano")]
+    public ulong StartTimeUnixNano { get; init; }
+
+    [JsonPropertyName("end_time_unix_nano")]
+    public ulong EndTimeUnixNano { get; init; }
+
     [JsonPropertyName("duration_ns")] public ulong DurationNs { get; init; }
     [JsonPropertyName("span_count")] public long SpanCount { get; init; }
 }
@@ -279,21 +278,44 @@ internal sealed record McpSpanDetailDto
     [JsonPropertyName("session_id")] public string? SessionId { get; init; }
     [JsonPropertyName("name")] public string? Name { get; init; }
     [JsonPropertyName("kind")] public byte Kind { get; init; }
-    [JsonPropertyName("start_time_unix_nano")] public ulong StartTimeUnixNano { get; init; }
-    [JsonPropertyName("end_time_unix_nano")] public ulong EndTimeUnixNano { get; init; }
+
+    [JsonPropertyName("start_time_unix_nano")]
+    public ulong StartTimeUnixNano { get; init; }
+
+    [JsonPropertyName("end_time_unix_nano")]
+    public ulong EndTimeUnixNano { get; init; }
+
     [JsonPropertyName("duration_ns")] public ulong DurationNs { get; init; }
     [JsonPropertyName("status_code")] public byte StatusCode { get; init; }
     [JsonPropertyName("status_message")] public string? StatusMessage { get; init; }
     [JsonPropertyName("service_name")] public string? ServiceName { get; init; }
-    [JsonPropertyName("gen_ai_provider_name")] public string? GenAiProviderName { get; init; }
-    [JsonPropertyName("gen_ai_request_model")] public string? GenAiRequestModel { get; init; }
-    [JsonPropertyName("gen_ai_response_model")] public string? GenAiResponseModel { get; init; }
-    [JsonPropertyName("gen_ai_input_tokens")] public long? GenAiInputTokens { get; init; }
-    [JsonPropertyName("gen_ai_output_tokens")] public long? GenAiOutputTokens { get; init; }
-    [JsonPropertyName("gen_ai_temperature")] public double? GenAiTemperature { get; init; }
-    [JsonPropertyName("gen_ai_stop_reason")] public string? GenAiStopReason { get; init; }
+
+    [JsonPropertyName("gen_ai_provider_name")]
+    public string? GenAiProviderName { get; init; }
+
+    [JsonPropertyName("gen_ai_request_model")]
+    public string? GenAiRequestModel { get; init; }
+
+    [JsonPropertyName("gen_ai_response_model")]
+    public string? GenAiResponseModel { get; init; }
+
+    [JsonPropertyName("gen_ai_input_tokens")]
+    public long? GenAiInputTokens { get; init; }
+
+    [JsonPropertyName("gen_ai_output_tokens")]
+    public long? GenAiOutputTokens { get; init; }
+
+    [JsonPropertyName("gen_ai_temperature")]
+    public double? GenAiTemperature { get; init; }
+
+    [JsonPropertyName("gen_ai_stop_reason")]
+    public string? GenAiStopReason { get; init; }
+
     [JsonPropertyName("gen_ai_tool_name")] public string? GenAiToolName { get; init; }
-    [JsonPropertyName("gen_ai_tool_call_id")] public string? GenAiToolCallId { get; init; }
+
+    [JsonPropertyName("gen_ai_tool_call_id")]
+    public string? GenAiToolCallId { get; init; }
+
     [JsonPropertyName("gen_ai_cost_usd")] public double? GenAiCostUsd { get; init; }
     [JsonPropertyName("attributes_json")] public string? AttributesJson { get; init; }
     [JsonPropertyName("resource_json")] public string? ResourceJson { get; init; }

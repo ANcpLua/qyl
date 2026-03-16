@@ -1,5 +1,3 @@
-using Qyl.Contracts.Copilot;
-
 namespace Qyl.Collector.Storage;
 
 /// <summary>

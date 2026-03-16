@@ -12,7 +12,7 @@ using Serilog;
 
 /// <summary>
 ///     Generates DomainContracts.g.cs from qyl-extensions.json into compile-time and runtime consumers.
-///     Single entry point: <see cref="Generate"/>.
+///     Single entry point: <see cref="Generate" />.
 /// </summary>
 public static class ContractGenerator
 {
@@ -58,44 +58,42 @@ public static class ContractGenerator
         // gen_ai domain — lookup by upstreamPrefix, not positional index
         var genAiFacade = FindFacade(root, "gen_ai");
         domains.Add(new DomainSpec(
-            Name:     "gen_ai",
-            Source:   "qyl.genai",
-            Signals:  ["traces", "metrics"],
-            TraceAttributes: ExtractAttributes(genAiFacade, requiredNames: ["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model"]),
-            MetricInstruments:
+            "gen_ai",
+            "qyl.genai",
+            ["traces", "metrics"],
+            ExtractAttributes(genAiFacade, ["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model"]),
             [
-                new MetricSpec("gen_ai.client.token.usage",       "histogram", "token"),
-                new MetricSpec("gen_ai.client.operation.duration", "histogram", "s"),
+                new MetricSpec("gen_ai.client.token.usage", "histogram", "token"),
+                new MetricSpec("gen_ai.client.operation.duration", "histogram", "s")
             ]));
 
         // db domain — lookup by upstreamPrefix, not positional index
         var dbFacade = FindFacade(root, "db");
         domains.Add(new DomainSpec(
-            Name:    "db",
-            Source:  "qyl.db",
-            Signals: ["traces"],
-            TraceAttributes: ExtractAttributes(dbFacade, requiredNames: ["db.system.name", "db.operation.name"]),
-            MetricInstruments: []));
+            "db",
+            "qyl.db",
+            ["traces"],
+            ExtractAttributes(dbFacade, ["db.system.name", "db.operation.name"]),
+            []));
 
         // traced domain — open schema, no fixed attributes
         domains.Add(new DomainSpec(
-            Name:    "traced",
-            Source:  "qyl.traced",
-            Signals: ["traces"],
-            TraceAttributes: [],
-            MetricInstruments: []));
+            "traced",
+            "qyl.traced",
+            ["traces"],
+            [],
+            []));
 
         // agent domain — subset of gen_ai attributes
         domains.Add(new DomainSpec(
-            Name:    "agent",
-            Source:  "qyl.agent",
-            Signals: ["traces", "metrics"],
-            TraceAttributes:
+            "agent",
+            "qyl.agent",
+            ["traces", "metrics"],
             [
-                new AttributeSpec("gen_ai.agent.name",      "string", Required: false),
-                new AttributeSpec("gen_ai.operation.name",  "string", Required: true),
+                new AttributeSpec("gen_ai.agent.name", "string", false),
+                new AttributeSpec("gen_ai.operation.name", "string", true)
             ],
-            MetricInstruments: []));
+            []));
 
         return domains;
     }
@@ -103,11 +101,9 @@ public static class ContractGenerator
     private static JsonElement FindFacade(JsonElement root, string upstreamPrefix)
     {
         foreach (var facade in root.GetProperty("facades").EnumerateArray())
-        {
             if (string.Equals(facade.GetProperty("upstreamPrefix").GetString(),
                     upstreamPrefix, StringComparison.Ordinal))
                 return facade;
-        }
         throw new InvalidOperationException(
             $"Facade with upstreamPrefix '{upstreamPrefix}' not found in qyl-extensions.json");
     }
@@ -220,8 +216,10 @@ public static class ContractGenerator
                 foreach (var attr in domain.TraceAttributes)
                 {
                     var req = attr.Required ? "Required: true" : "Required: false";
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"            new(\"{attr.Name}\", \"{attr.Type}\", {req}),");
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"            new(\"{attr.Name}\", \"{attr.Type}\", {req}),");
                 }
+
                 sb.AppendLine("        ],");
             }
 
@@ -235,7 +233,8 @@ public static class ContractGenerator
                 sb.AppendLine("        MetricInstruments:");
                 sb.AppendLine("        [");
                 foreach (var metric in domain.MetricInstruments)
-                    sb.AppendLine(CultureInfo.InvariantCulture, $"            new(\"{metric.Name}\", \"{metric.Instrument}\", \"{metric.Unit}\"),");
+                    sb.AppendLine(CultureInfo.InvariantCulture,
+                        $"            new(\"{metric.Name}\", \"{metric.Instrument}\", \"{metric.Unit}\"),");
                 sb.AppendLine("        ],");
             }
 
@@ -258,7 +257,6 @@ public static class ContractGenerator
         var sb = new StringBuilder();
         var nextUpper = true;
         foreach (var ch in name)
-        {
             if (ch == '_' || ch == '.')
             {
                 nextUpper = true;
@@ -268,7 +266,7 @@ public static class ContractGenerator
                 sb.Append(nextUpper ? char.ToUpperInvariant(ch) : ch);
                 nextUpper = false;
             }
-        }
+
         return sb.ToString();
     }
 
@@ -282,5 +280,6 @@ public static class ContractGenerator
         List<MetricSpec> MetricInstruments);
 
     private sealed record AttributeSpec(string Name, string Type, bool Required);
+
     private sealed record MetricSpec(string Name, string Instrument, string Unit);
 }

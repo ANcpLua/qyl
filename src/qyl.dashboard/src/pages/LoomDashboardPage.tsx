@@ -82,7 +82,10 @@ function TriageRow({result, onClick}: { result: TriageResult; onClick: () => voi
             tabIndex={0}
             onClick={onClick}
             onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); }
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
             }}
         >
             <div className="w-28 min-w-0">
@@ -107,7 +110,8 @@ function TriageRow({result, onClick}: { result: TriageResult; onClick: () => voi
             <div className="w-28 text-right">
                 <span className="font-mono text-xs text-brutal-slate">{formatTimestamp(result.created_at)}</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
@@ -143,10 +147,25 @@ const triageWidths = ['w-28', 'w-16', 'w-20', 'flex-1', 'w-20', 'w-28', 'w-4'];
 const eventWidths = ['w-24', 'w-40', 'w-20', 'w-20', 'w-28'];
 
 const stats = [
-    {icon: <Activity className="w-4 h-4 text-signal-orange"/>, label: 'TRIAGE RESULTS', color: 'text-signal-orange', key: 'triage'},
+    {
+        icon: <Activity className="w-4 h-4 text-signal-orange"/>,
+        label: 'TRIAGE RESULTS',
+        color: 'text-signal-orange',
+        key: 'triage'
+    },
     {icon: <Zap className="w-4 h-4 text-green-400"/>, label: 'AUTO-FIX ELIGIBLE', color: 'text-green-400', key: 'auto'},
-    {icon: <Bot className="w-4 h-4 text-amber-400"/>, label: 'PENDING HANDOFFS', color: 'text-amber-400', key: 'pending'},
-    {icon: <RefreshCw className="w-4 h-4 text-red-400"/>, label: 'REGRESSIONS', color: 'text-red-400', key: 'regressions'},
+    {
+        icon: <Bot className="w-4 h-4 text-amber-400"/>,
+        label: 'PENDING HANDOFFS',
+        color: 'text-amber-400',
+        key: 'pending'
+    },
+    {
+        icon: <RefreshCw className="w-4 h-4 text-red-400"/>,
+        label: 'REGRESSIONS',
+        color: 'text-red-400',
+        key: 'regressions'
+    },
 ] as const;
 
 export function LoomDashboardPage() {
@@ -198,9 +217,11 @@ export function LoomDashboardPage() {
 
             {/* Recent Triage Results */}
             <div>
-                <span className="text-xs font-bold tracking-[0.3em] text-brutal-slate mb-3 block">RECENT TRIAGE RESULTS</span>
+                <span
+                    className="text-xs font-bold tracking-[0.3em] text-brutal-slate mb-3 block">RECENT TRIAGE RESULTS</span>
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                    <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         <div className="w-28">ISSUE ID</div>
                         <div className="w-16">SCORE</div>
                         <div className="w-20">LEVEL</div>
@@ -212,7 +233,8 @@ export function LoomDashboardPage() {
                     {triageLoading ? (
                         <SkeletonRows count={5} widths={triageWidths}/>
                     ) : !triageResults || triageResults.length === 0 ? (
-                        <EmptyState title="No triage results yet" subtitle="Results will appear as the AI pipeline processes issues"/>
+                        <EmptyState title="No triage results yet"
+                                    subtitle="Results will appear as the AI pipeline processes issues"/>
                     ) : (
                         triageResults.map((r) => (
                             <TriageRow key={r.triage_id} result={r} onClick={() => navigate(`/issues/${r.issue_id}`)}/>
@@ -228,7 +250,8 @@ export function LoomDashboardPage() {
                     <span className="text-xs font-bold tracking-[0.3em] text-brutal-slate">PIPELINE ACTIVITY</span>
                 </div>
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                    <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         <div className="w-24">EVENT</div>
                         <div className="w-40">REPO</div>
                         <div className="w-20">ACTION</div>
@@ -238,7 +261,8 @@ export function LoomDashboardPage() {
                     {eventsLoading ? (
                         <SkeletonRows count={5} widths={eventWidths}/>
                     ) : !githubEvents || githubEvents.length === 0 ? (
-                        <EmptyState title="No GitHub events" subtitle="Events will appear when GitHub webhooks are configured"/>
+                        <EmptyState title="No GitHub events"
+                                    subtitle="Events will appear when GitHub webhooks are configured"/>
                     ) : (
                         githubEvents.map((e) => <EventRow key={e.eventId} event={e}/>)
                     )}

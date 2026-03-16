@@ -31,13 +31,17 @@ public sealed class ErrorTools(HttpClient client)
                  Returns: List of error issues with details
                  """)]
     public Task<string> ListErrorIssuesAsync(
-        [Description("Filter by status: 'unresolved', 'acknowledged', 'investigating', 'resolved', 'ignored'")] string? status = null,
-        [Description("Filter by priority: 'critical', 'high', 'medium', 'low'")] string? priority = null,
-        [Description("Filter by level: 'error', 'warning', 'fatal'")] string? level = null,
-        [Description("Maximum issues to return (default: 50)")] int limit = 50) =>
+        [Description("Filter by status: 'unresolved', 'acknowledged', 'investigating', 'resolved', 'ignored'")]
+        string? status = null,
+        [Description("Filter by priority: 'critical', 'high', 'medium', 'low'")]
+        string? priority = null,
+        [Description("Filter by level: 'error', 'warning', 'fatal'")]
+        string? level = null,
+        [Description("Maximum issues to return (default: 50)")]
+        int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/issues?limit={limit}";
+            var url = $"/api/v1/issues?limit={limit}";
             if (!string.IsNullOrEmpty(status))
                 url += $"&status={Uri.EscapeDataString(status)}";
             if (!string.IsNullOrEmpty(priority))
@@ -45,8 +49,8 @@ public sealed class ErrorTools(HttpClient client)
             if (!string.IsNullOrEmpty(level))
                 url += $"&level={Uri.EscapeDataString(level)}";
 
-            ErrorIssueListResponse? response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
-                url, qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);
+            var response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
+                url, ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return "No error issues found matching the criteria.";
@@ -57,7 +61,7 @@ public sealed class ErrorTools(HttpClient client)
             sb.AppendLine("| Status | Priority | Title | Type | Occurrences | Last Seen |");
             sb.AppendLine("|--------|----------|-------|------|-------------|-----------|");
 
-            foreach (ErrorIssueDto issue in response.Items)
+            foreach (var issue in response.Items)
             {
                 sb.AppendLine(
                     $"| {issue.Status} | {issue.Priority} | {issue.Title} | {issue.ErrorType} | {issue.OccurrenceCount:N0} | {issue.LastSeenAt:yyyy-MM-dd HH:mm} |");
@@ -85,14 +89,17 @@ public sealed class ErrorTools(HttpClient client)
                  Returns: Detailed error issue with optional recent events
                  """)]
     public Task<string> GetErrorIssueAsync(
-        [Description("The issue ID to retrieve")] string issueId,
-        [Description("Include recent events with stack traces (default: true)")] bool includeEvents = true,
-        [Description("Maximum events to return (default: 10)")] int eventLimit = 10) =>
+        [Description("The issue ID to retrieve")]
+        string issueId,
+        [Description("Include recent events with stack traces (default: true)")]
+        bool includeEvents = true,
+        [Description("Maximum events to return (default: 10)")]
+        int eventLimit = 10) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            ErrorIssueDto? issue = await client.GetFromJsonAsync<ErrorIssueDto>(
+            var issue = await client.GetFromJsonAsync<ErrorIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueDto).ConfigureAwait(false);
+                ErrorJsonContext.Default.ErrorIssueDto).ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
@@ -120,9 +127,9 @@ public sealed class ErrorTools(HttpClient client)
 
             if (includeEvents)
             {
-                ErrorIssueEventsResponse? eventsResponse = await client.GetFromJsonAsync<ErrorIssueEventsResponse>(
+                var eventsResponse = await client.GetFromJsonAsync<ErrorIssueEventsResponse>(
                     $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit={eventLimit}",
-                    qyl.mcp.Tools.ErrorJsonContext.Default.ErrorIssueEventsResponse).ConfigureAwait(false);
+                    ErrorJsonContext.Default.ErrorIssueEventsResponse).ConfigureAwait(false);
 
                 if (eventsResponse?.Items is { Count: > 0 })
                 {
@@ -130,7 +137,7 @@ public sealed class ErrorTools(HttpClient client)
                     sb.AppendLine($"## Recent Events ({eventsResponse.Items.Count} of {eventsResponse.Total})");
                     sb.AppendLine();
 
-                    foreach (ErrorIssueEventDto evt in eventsResponse.Items)
+                    foreach (var evt in eventsResponse.Items)
                     {
                         sb.AppendLine($"### Event {evt.Id} — {evt.Timestamp:yyyy-MM-dd HH:mm:ss}");
                         if (!string.IsNullOrEmpty(evt.TraceId))
@@ -172,13 +179,15 @@ public sealed class ErrorTools(HttpClient client)
                  Returns: List of similar spans with cluster labels and similarity scores
                  """)]
     public Task<string> FindSimilarErrorsAsync(
-        [Description("The span ID to find similar errors for")] string spanId,
-        [Description("Maximum similar spans to return (default: 10)")] int limit = 10) =>
+        [Description("The span ID to find similar errors for")]
+        string spanId,
+        [Description("Maximum similar spans to return (default: 10)")]
+        int limit = 10) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            SimilarSpansResponse? response = await client.GetFromJsonAsync<SimilarSpansResponse>(
+            var response = await client.GetFromJsonAsync<SimilarSpansResponse>(
                 $"/api/v1/issues/similar?spanId={Uri.EscapeDataString(spanId)}&limit={limit}",
-                qyl.mcp.Tools.ErrorJsonContext.Default.SimilarSpansResponse).ConfigureAwait(false);
+                ErrorJsonContext.Default.SimilarSpansResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"No similar errors found for span '{spanId}'.";
@@ -187,7 +196,7 @@ public sealed class ErrorTools(HttpClient client)
             sb.AppendLine($"# Similar Errors for Span {spanId}");
             sb.AppendLine();
 
-            foreach (SimilarSpanDto span in response.Items)
+            foreach (var span in response.Items)
             {
                 sb.AppendLine($"- **Span {span.SpanId}** — Cluster: {span.ClusterLabel}");
                 sb.AppendLine($"  - Similarity: {span.SimilarityScore:P1} (distance: {span.Distance:F4})");
@@ -212,14 +221,17 @@ public sealed class ErrorTools(HttpClient client)
                  Returns: Time-bucketed occurrence counts with ASCII sparkline
                  """)]
     public Task<string> GetErrorTimelineAsync(
-        [Description("The issue ID to get timeline for")] string issueId,
-        [Description("Time window in hours (default: 24)")] int hours = 24,
-        [Description("Bucket size in minutes (default: 60)")] int bucketMinutes = 60) =>
+        [Description("The issue ID to get timeline for")]
+        string issueId,
+        [Description("Time window in hours (default: 24)")]
+        int hours = 24,
+        [Description("Bucket size in minutes (default: 60)")]
+        int bucketMinutes = 60) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            TimelineResponse? response = await client.GetFromJsonAsync<TimelineResponse>(
+            var response = await client.GetFromJsonAsync<TimelineResponse>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/timeline?hours={hours}&bucketMinutes={bucketMinutes}",
-                qyl.mcp.Tools.ErrorJsonContext.Default.TimelineResponse).ConfigureAwait(false);
+                ErrorJsonContext.Default.TimelineResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"No timeline data available for issue '{issueId}'.";
@@ -231,8 +243,8 @@ public sealed class ErrorTools(HttpClient client)
             sb.AppendLine("| Time | Count |");
             sb.AppendLine("|------|-------|");
 
-            int maxCount = 0;
-            foreach (TimelineBucketDto bucket in response.Items)
+            var maxCount = 0;
+            foreach (var bucket in response.Items)
             {
                 sb.AppendLine($"| {bucket.Bucket:yyyy-MM-dd HH:mm} | {bucket.Count:N0} |");
                 if (bucket.Count > maxCount)
@@ -243,9 +255,9 @@ public sealed class ErrorTools(HttpClient client)
             sb.AppendLine("**Sparkline:**");
             sb.Append('`');
             string[] blocks = [" ", "\u2581", "\u2582", "\u2583", "\u2584", "\u2585", "\u2586", "\u2587", "\u2588"];
-            foreach (TimelineBucketDto bucket in response.Items)
+            foreach (var bucket in response.Items)
             {
-                int index = maxCount > 0 ? (int)((double)bucket.Count / maxCount * (blocks.Length - 1)) : 0;
+                var index = maxCount > 0 ? (int)((double)bucket.Count / maxCount * (blocks.Length - 1)) : 0;
                 sb.Append(blocks[index]);
             }
 
@@ -265,27 +277,43 @@ internal sealed record ErrorIssueListResponse(
 internal sealed record ErrorIssueDto(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("error_type")] string ErrorType,
-    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("error_type")]
+    string ErrorType,
+    [property: JsonPropertyName("category")]
+    string Category,
     [property: JsonPropertyName("level")] string Level,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("priority")] string Priority,
-    [property: JsonPropertyName("occurrence_count")] long OccurrenceCount,
-    [property: JsonPropertyName("affected_users_count")] int AffectedUsersCount,
-    [property: JsonPropertyName("first_seen_at")] DateTime FirstSeenAt,
-    [property: JsonPropertyName("last_seen_at")] DateTime LastSeenAt,
-    [property: JsonPropertyName("culprit")] string? Culprit,
-    [property: JsonPropertyName("assigned_to")] string? AssignedTo,
-    [property: JsonPropertyName("fingerprint")] string Fingerprint);
+    [property: JsonPropertyName("priority")]
+    string Priority,
+    [property: JsonPropertyName("occurrence_count")]
+    long OccurrenceCount,
+    [property: JsonPropertyName("affected_users_count")]
+    int AffectedUsersCount,
+    [property: JsonPropertyName("first_seen_at")]
+    DateTime FirstSeenAt,
+    [property: JsonPropertyName("last_seen_at")]
+    DateTime LastSeenAt,
+    [property: JsonPropertyName("culprit")]
+    string? Culprit,
+    [property: JsonPropertyName("assigned_to")]
+    string? AssignedTo,
+    [property: JsonPropertyName("fingerprint")]
+    string Fingerprint);
 
 internal sealed record ErrorIssueEventDto(
     [property: JsonPropertyName("id")] string Id,
-    [property: JsonPropertyName("trace_id")] string? TraceId,
-    [property: JsonPropertyName("span_id")] string? SpanId,
-    [property: JsonPropertyName("message")] string? Message,
-    [property: JsonPropertyName("stack_trace")] string? StackTrace,
-    [property: JsonPropertyName("environment")] string? Environment,
-    [property: JsonPropertyName("timestamp")] DateTime Timestamp);
+    [property: JsonPropertyName("trace_id")]
+    string? TraceId,
+    [property: JsonPropertyName("span_id")]
+    string? SpanId,
+    [property: JsonPropertyName("message")]
+    string? Message,
+    [property: JsonPropertyName("stack_trace")]
+    string? StackTrace,
+    [property: JsonPropertyName("environment")]
+    string? Environment,
+    [property: JsonPropertyName("timestamp")]
+    DateTime Timestamp);
 
 internal sealed record ErrorIssueEventsResponse(
     [property: JsonPropertyName("items")] List<ErrorIssueEventDto>? Items,
@@ -299,10 +327,14 @@ internal sealed record TimelineResponse(
     [property: JsonPropertyName("items")] List<TimelineBucketDto>? Items);
 
 internal sealed record SimilarSpanDto(
-    [property: JsonPropertyName("span_id")] string SpanId,
-    [property: JsonPropertyName("cluster_label")] string ClusterLabel,
-    [property: JsonPropertyName("distance")] double Distance,
-    [property: JsonPropertyName("similarity_score")] double SimilarityScore);
+    [property: JsonPropertyName("span_id")]
+    string SpanId,
+    [property: JsonPropertyName("cluster_label")]
+    string ClusterLabel,
+    [property: JsonPropertyName("distance")]
+    double Distance,
+    [property: JsonPropertyName("similarity_score")]
+    double SimilarityScore);
 
 internal sealed record SimilarSpansResponse(
     [property: JsonPropertyName("items")] List<SimilarSpanDto>? Items);

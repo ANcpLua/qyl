@@ -105,7 +105,12 @@ function ResultRow({result, onClick}: { result: SearchResult; onClick: () => voi
             role="button"
             tabIndex={0}
             onClick={onClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
         >
             <Icon className={cn('w-5 h-5 flex-shrink-0', style.color.split(' ')[1])}/>
 

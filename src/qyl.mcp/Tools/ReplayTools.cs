@@ -41,7 +41,7 @@ public sealed class ReplayTools(HttpClient client)
                 url += $"&serviceName={Uri.EscapeDataString(serviceName)}";
 
             var response = await client.GetFromJsonAsync<SessionListResponse>(
-                url, qyl.mcp.Tools.ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);
+                url, ReplayJsonContext.Default.SessionListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return "No sessions found";
@@ -95,7 +95,7 @@ public sealed class ReplayTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
-                qyl.mcp.Tools.ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
+                ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{sessionId}' not found or has no spans";
@@ -172,7 +172,7 @@ public sealed class ReplayTools(HttpClient client)
         CollectorHelper.ExecuteAsync(async () =>
         {
             if (await client.GetFromJsonAsync<TraceResponse>($"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
-                    qyl.mcp.Tools.ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
+                    ReplayJsonContext.Default.TraceResponse).ConfigureAwait(false) is not { } response)
                 return $"Trace '{traceId}' not found";
 
             var sb = new StringBuilder();
@@ -224,7 +224,7 @@ public sealed class ReplayTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<SpanListResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans",
-                qyl.mcp.Tools.ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
+                ReplayJsonContext.Default.SpanListResponse).ConfigureAwait(false);
 
             if (response?.Items is null || response.Items.Count is 0)
                 return $"Session '{sessionId}' not found or has no spans";

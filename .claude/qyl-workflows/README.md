@@ -80,7 +80,8 @@ Use the `/qyl` command for live investigation of issues, regressions, triage, an
 - `qyl.trigger_code_review` — start an LLM review of a PR diff in the collector
 - `qyl.get_code_review` — fetch the latest cached review result via MCP
 - `qyl.list_github_events` — inspect the webhook events that fed automation
-- GitHub comment posting is collector REST-only today; MCP currently exposes trigger/get, not a dedicated post-comments tool
+- GitHub comment posting is collector REST-only today; MCP currently exposes trigger/get, not a dedicated post-comments
+  tool
 
 ### Fix production issues end-to-end
 
@@ -88,7 +89,8 @@ Use the `/qyl` command for live investigation of issues, regressions, triage, an
 - Fetch deep issue context: `qyl.get_error_issue`, `qyl.get_error_timeline`
 - Trigger triage: `qyl.trigger_triage`, `qyl.get_triage`
 - Investigate root cause: `qyl.root_cause_analysis`
-- Manage autofix: `qyl.generate_fix`, `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.approve_fix_run`, `qyl.reject_fix_run`
+- Manage autofix: `qyl.generate_fix`, `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.approve_fix_run`,
+  `qyl.reject_fix_run`
 - Handoff fixes to external agents: `qyl.get_pending_handoffs`, `qyl.accept_handoff`, `qyl.submit_agent_fix`
 - Use `qyl.use_qyl` for broad questions that span errors, spans, logs, sessions, and analytics
 
@@ -97,18 +99,20 @@ Use the `/qyl` command for live investigation of issues, regressions, triage, an
 1. Run `/qyl` for the user’s immediate goal.
 2. Use `qyl-workflow.md` to pick the right workflow.
 3. Follow the workflow doc step-by-step and report concrete IDs and results.
-4. When changes are made, validate with the build/test rules in this repo (`nuke`, `Playwright`, MCP checks where relevant).
+4. When changes are made, validate with the build/test rules in this repo (`nuke`, `Playwright`, MCP checks where
+   relevant).
 
 ## File map
 
 - Router: `qyl-workflow.md`
 - Skills/workflows:
-  - `qyl-code-review.md`
-  - `qyl-pr-code-review.md`
-  - `qyl-fix-issues.md`
+    - `qyl-code-review.md`
+    - `qyl-pr-code-review.md`
+    - `qyl-fix-issues.md`
 - Command: `qyl-command.md`
 - Index: `qyl-skill-tree.md`
 
 ## Notes
 
-These docs are intentionally local and qyl-specific. Any previous Sentry/Seer references were removed and replaced with qyl workflows and tool names.
+These docs are intentionally local and qyl-specific. Any previous Sentry/Seer references were removed and replaced with
+qyl workflows and tool names.

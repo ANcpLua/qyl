@@ -13,7 +13,7 @@ internal sealed class ScopingDelegatingHandler(QylScope scope) : DelegatingHandl
             return base.SendAsync(request, cancellationToken);
 
         UriBuilder uriBuilder = new(request.RequestUri);
-        string existing = uriBuilder.Query.TrimStart('?');
+        var existing = uriBuilder.Query.TrimStart('?');
 
         List<string> parts = string.IsNullOrEmpty(existing) ? [] : [existing];
 

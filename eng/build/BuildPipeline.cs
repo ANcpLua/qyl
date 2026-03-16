@@ -213,7 +213,7 @@ partial interface IPipeline : IHazSourcePaths
             var extensionsJson = SemconvDirectory / "qyl-extensions.json";
             var guard = IsServerBuild
                 ? GenerationGuard.ForCi()
-                : (DryRunGenerate ?? false)
+                : DryRunGenerate ?? false
                     ? new GenerationGuard(dryRun: true)
                     : GenerationGuard.ForLocal(ForceGenerate ?? false);
 

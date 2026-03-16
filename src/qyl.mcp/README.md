@@ -44,25 +44,27 @@ Remote mode exposes:
 
 ## Configuration
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `QYL_COLLECTOR_URL` | `http://localhost:5100` | qyl collector base URL |
-| `QYL_MCP_TRANSPORT` | `stdio` | `stdio` or `http` |
-| `QYL_MCP_PATH` | `/mcp` | MCP HTTP route prefix |
-| `QYL_MCP_PUBLIC_URL` | derived from request | Public base URL used in metadata |
-| `QYL_MCP_STATELESS` | `false` | Enables stateless Streamable HTTP sessions |
-| `QYL_MCP_TOKEN` | none | Outbound auth token used by qyl.mcp when calling qyl.collector |
-| `QYL_KEYCLOAK_AUTHORITY` | none | Keycloak/OIDC authority for collector auth and optional incoming JWT validation |
-| `QYL_KEYCLOAK_CLIENT_ID` | none | Client credentials for qyl.mcp -> qyl.collector |
-| `QYL_KEYCLOAK_CLIENT_SECRET` | none | Client credentials for qyl.mcp -> qyl.collector |
-| `QYL_KEYCLOAK_AUDIENCE` | none | Optional audience for incoming bearer token validation in HTTP mode |
-| `PORT` | none | PaaS fallback for HTTP port binding |
+| Variable                     | Default                 | Purpose                                                                         |
+|------------------------------|-------------------------|---------------------------------------------------------------------------------|
+| `QYL_COLLECTOR_URL`          | `http://localhost:5100` | qyl collector base URL                                                          |
+| `QYL_MCP_TRANSPORT`          | `stdio`                 | `stdio` or `http`                                                               |
+| `QYL_MCP_PATH`               | `/mcp`                  | MCP HTTP route prefix                                                           |
+| `QYL_MCP_PUBLIC_URL`         | derived from request    | Public base URL used in metadata                                                |
+| `QYL_MCP_STATELESS`          | `false`                 | Enables stateless Streamable HTTP sessions                                      |
+| `QYL_MCP_TOKEN`              | none                    | Outbound auth token used by qyl.mcp when calling qyl.collector                  |
+| `QYL_KEYCLOAK_AUTHORITY`     | none                    | Keycloak/OIDC authority for collector auth and optional incoming JWT validation |
+| `QYL_KEYCLOAK_CLIENT_ID`     | none                    | Client credentials for qyl.mcp -> qyl.collector                                 |
+| `QYL_KEYCLOAK_CLIENT_SECRET` | none                    | Client credentials for qyl.mcp -> qyl.collector                                 |
+| `QYL_KEYCLOAK_AUDIENCE`      | none                    | Optional audience for incoming bearer token validation in HTTP mode             |
+| `PORT`                       | none                    | PaaS fallback for HTTP port binding                                             |
 
 ## Auth
 
 - If `QYL_KEYCLOAK_AUTHORITY` is not configured, HTTP mode runs without host-facing auth.
-- If `QYL_KEYCLOAK_AUTHORITY` is configured, HTTP mode requires bearer tokens and publishes MCP protected-resource metadata for OAuth-aware clients.
-- Collector-facing auth remains separate: `qyl.mcp` still authenticates to `qyl.collector` using Keycloak client credentials or `QYL_MCP_TOKEN`.
+- If `QYL_KEYCLOAK_AUTHORITY` is configured, HTTP mode requires bearer tokens and publishes MCP protected-resource
+  metadata for OAuth-aware clients.
+- Collector-facing auth remains separate: `qyl.mcp` still authenticates to `qyl.collector` using Keycloak client
+  credentials or `QYL_MCP_TOKEN`.
 
 ## Tools
 
@@ -81,8 +83,10 @@ The exact exposed tool set is controlled by `QYL_SKILLS`.
 ## Remote client notes
 
 - Anthropic and OpenAI remote connectors should point at the public `https://.../mcp` URL.
-- If you are behind a proxy or ingress, set `QYL_MCP_PUBLIC_URL` so metadata uses the public origin rather than the internal container address.
-- For OAuth-backed deployments, your identity provider must publish standard OIDC metadata and be reachable by the MCP client.
+- If you are behind a proxy or ingress, set `QYL_MCP_PUBLIC_URL` so metadata uses the public origin rather than the
+  internal container address.
+- For OAuth-backed deployments, your identity provider must publish standard OIDC metadata and be reachable by the MCP
+  client.
 
 ## Links
 

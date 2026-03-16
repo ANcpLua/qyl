@@ -6,6 +6,12 @@ namespace qyl.mcp.Scoping;
 /// </summary>
 public sealed class QylScope
 {
+    private QylScope(string? serviceName, string? sessionId)
+    {
+        ServiceName = serviceName;
+        SessionId = sessionId;
+    }
+
     /// <summary>Narrow all queries to a specific service (e.g., "api-gateway").</summary>
     public string? ServiceName { get; }
 
@@ -13,12 +19,6 @@ public sealed class QylScope
     public string? SessionId { get; }
 
     public bool HasScope => ServiceName is not null || SessionId is not null;
-
-    private QylScope(string? serviceName, string? sessionId)
-    {
-        ServiceName = serviceName;
-        SessionId = sessionId;
-    }
 
     public static QylScope FromEnvironment() => new(
         NullIfEmpty(Environment.GetEnvironmentVariable("QYL_SERVICE")),

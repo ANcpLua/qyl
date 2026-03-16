@@ -48,14 +48,14 @@ public sealed partial class AutofixAgentService(
 
     internal async Task ProcessPendingFixRunsAsync(CancellationToken ct)
     {
-        IReadOnlyList<FixRunRecord> pending = await store.GetPendingFixRunsAsync(5, ct)
+        var pending = await store.GetPendingFixRunsAsync(5, ct)
             .ConfigureAwait(false);
 
         if (pending.Count == 0) return;
 
         LogProcessingBatch(pending.Count);
 
-        foreach (FixRunRecord run in pending)
+        foreach (var run in pending)
         {
             await ProcessFixRunAsync(run, ct).ConfigureAwait(false);
         }
@@ -69,62 +69,64 @@ public sealed partial class AutofixAgentService(
         try
         {
             // ── Step 1: Gather Context ──────────────────────────────────────
-            string stepId1 = await CreateAndStartStepAsync(run.RunId, 1, "gather_context", ct)
+            var stepId1 = await CreateAndStartStepAsync(run.RunId, 1, "gather_context", ct)
                 .ConfigureAwait(false);
 
-            IssueSummary? issue = await store.GetIssueByIdAsync(run.IssueId, ct).ConfigureAwait(false);
+            var issue = await store.GetIssueByIdAsync(run.IssueId, ct).ConfigureAwait(false);
             if (issue is null)
             {
                 await FailStepAsync(stepId1, "Issue not found", ct).ConfigureAwait(false);
                 await orchestrator.UpdateFixRunStatusAsync(run.RunId, "failed",
-                    description: "Issue not found", ct: ct).ConfigureAwait(false);
+                    "Issue not found", ct: ct).ConfigureAwait(false);
                 return;
             }
 
-            string contextJson = await GatherContextAsync(run.IssueId, issue, ct).ConfigureAwait(false);
+            var contextJson = await GatherContextAsync(run.IssueId, issue, ct).ConfigureAwait(false);
             await CompleteStepAsync(stepId1, contextJson, ct).ConfigureAwait(false);
 
             // ── Step 2: Root Cause Analysis ─────────────────────────────────
-            string stepId2 = await CreateAndStartStepAsync(run.RunId, 2, "root_cause_analysis", ct)
+            var stepId2 = await CreateAndStartStepAsync(run.RunId, 2, "root_cause_analysis", ct)
                 .ConfigureAwait(false);
 
-            string rcaReport = await RunRcaAsync(issue, contextJson, ct).ConfigureAwait(false);
+            var rcaReport = await RunRcaAsync(issue, contextJson, ct).ConfigureAwait(false);
             await CompleteStepAsync(stepId2, rcaReport, ct).ConfigureAwait(false);
 
             // ── Step 3: Solution Planning ───────────────────────────────────
-            string stepId3 = await CreateAndStartStepAsync(run.RunId, 3, "solution_planning", ct)
+            var stepId3 = await CreateAndStartStepAsync(run.RunId, 3, "solution_planning", ct)
                 .ConfigureAwait(false);
 
-            string solutionPlan = await RunSolutionPlanAsync(rcaReport, ct).ConfigureAwait(false);
+            var solutionPlan = await RunSolutionPlanAsync(rcaReport, ct).ConfigureAwait(false);
             await CompleteStepAsync(stepId3, solutionPlan, ct).ConfigureAwait(false);
 
             // ── Step 4: Diff Generation ─────────────────────────────────────
-            string stepId4 = await CreateAndStartStepAsync(run.RunId, 4, "diff_generation", ct)
+            var stepId4 = await CreateAndStartStepAsync(run.RunId, 4, "diff_generation", ct)
                 .ConfigureAwait(false);
 
-            string changesJson = await RunDiffGenerationAsync(rcaReport, solutionPlan, ct)
+            var changesJson = await RunDiffGenerationAsync(rcaReport, solutionPlan, ct)
                 .ConfigureAwait(false);
             await CompleteStepAsync(stepId4, changesJson, ct).ConfigureAwait(false);
 
             // ── Step 5: Confidence Scoring ──────────────────────────────────
-            string stepId5 = await CreateAndStartStepAsync(run.RunId, 5, "confidence_scoring", ct)
+            var stepId5 = await CreateAndStartStepAsync(run.RunId, 5, "confidence_scoring", ct)
                 .ConfigureAwait(false);
 
-            ConfidenceResult confidence = await RunConfidenceScoringAsync(rcaReport, changesJson, ct)
+            var confidence = await RunConfidenceScoringAsync(rcaReport, changesJson, ct)
                 .ConfigureAwait(false);
             await CompleteStepAsync(stepId5, JsonSerializer.Serialize(confidence,
                 AutofixAgentJsonContext.Default.ConfidenceResult), ct).ConfigureAwait(false);
 
             // ── Policy Gate ─────────────────────────────────────────────────
-            FixPolicy policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var p)
-                ? p : FixPolicy.RequireReview;
+            var policy = Enum.TryParse<FixPolicy>(run.Policy, true, out var p)
+                ? p
+                : FixPolicy.RequireReview;
 
-            string nextStatus = PolicyGate.EvaluateNextStatus(policy, confidence.Confidence);
+            var nextStatus = PolicyGate.EvaluateNextStatus(policy, confidence.Confidence);
 
-            string description = $"Autofix pipeline complete | confidence={confidence.Confidence:F2} | {confidence.Recommendation}";
+            var description =
+                $"Autofix pipeline complete | confidence={confidence.Confidence:F2} | {confidence.Recommendation}";
 
             await orchestrator.UpdateFixRunStatusAsync(
-                run.RunId, nextStatus, description, confidence.Confidence, changesJson, ct)
+                    run.RunId, nextStatus, description, confidence.Confidence, changesJson, ct)
                 .ConfigureAwait(false);
 
             LogFixRunCompleted(run.RunId, nextStatus, confidence.Confidence);
@@ -133,7 +135,7 @@ public sealed partial class AutofixAgentService(
         {
             LogFixRunFailed(run.RunId, ex);
             await orchestrator.UpdateFixRunStatusAsync(
-                run.RunId, "failed", description: ex.Message, ct: ct).ConfigureAwait(false);
+                run.RunId, "failed", ex.Message, ct: ct).ConfigureAwait(false);
         }
     }
 
@@ -142,7 +144,7 @@ public sealed partial class AutofixAgentService(
     private async Task<string> CreateAndStartStepAsync(
         string runId, int stepNumber, string stepName, CancellationToken ct)
     {
-        string stepId = Guid.NewGuid().ToString("N");
+        var stepId = Guid.NewGuid().ToString("N");
         var step = new AutofixStepRecord
         {
             StepId = stepId,
@@ -157,16 +159,12 @@ public sealed partial class AutofixAgentService(
         return stepId;
     }
 
-    private async Task CompleteStepAsync(string stepId, string outputJson, CancellationToken ct)
-    {
+    private async Task CompleteStepAsync(string stepId, string outputJson, CancellationToken ct) =>
         await store.UpdateAutofixStepAsync(stepId, "completed", outputJson, ct: ct).ConfigureAwait(false);
-    }
 
-    private async Task FailStepAsync(string stepId, string error, CancellationToken ct)
-    {
+    private async Task FailStepAsync(string stepId, string error, CancellationToken ct) =>
         await store.UpdateAutofixStepAsync(stepId, "failed", errorMessage: error, ct: ct)
             .ConfigureAwait(false);
-    }
 
     // ── LLM Pipeline Steps ─────────────────────────────────────────────────
 
@@ -174,7 +172,7 @@ public sealed partial class AutofixAgentService(
         string issueId, IssueSummary issue, CancellationToken ct)
     {
         // Gather error events for stack traces via IssueService
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService.GetEventsAsync(issueId, 5, ct)
+        var events = await issueService.GetEventsAsync(issueId, 5, ct)
             .ConfigureAwait(false);
 
         var context = new
@@ -200,17 +198,17 @@ public sealed partial class AutofixAgentService(
 
     private async Task<string> RunRcaAsync(IssueSummary issue, string contextJson, CancellationToken ct)
     {
-        string userMessage = $"""
-            Investigate this error:
-            Type: {issue.ErrorType}
-            Message: {issue.ErrorMessage ?? "N/A"}
-            Occurrences: {issue.EventCount}
+        var userMessage = $"""
+                           Investigate this error:
+                           Type: {issue.ErrorType}
+                           Message: {issue.ErrorMessage ?? "N/A"}
+                           Occurrences: {issue.EventCount}
 
-            Full context:
-            {contextJson}
-            """;
+                           Full context:
+                           {contextJson}
+                           """;
 
-        ChatResponse response = await llm!.GetResponseAsync(
+        var response = await llm!.GetResponseAsync(
             [
                 new ChatMessage(ChatRole.System, AutofixPrompts.RootCauseAnalysis),
                 new ChatMessage(ChatRole.User, userMessage)
@@ -222,7 +220,7 @@ public sealed partial class AutofixAgentService(
 
     private async Task<string> RunSolutionPlanAsync(string rcaReport, CancellationToken ct)
     {
-        ChatResponse response = await llm!.GetResponseAsync(
+        var response = await llm!.GetResponseAsync(
             [
                 new ChatMessage(ChatRole.System, AutofixPrompts.SolutionPlanning),
                 new ChatMessage(ChatRole.User, rcaReport)
@@ -235,15 +233,15 @@ public sealed partial class AutofixAgentService(
     private async Task<string> RunDiffGenerationAsync(
         string rcaReport, string solutionPlan, CancellationToken ct)
     {
-        string userMessage = $"""
-            Root Cause Analysis:
-            {rcaReport}
+        var userMessage = $"""
+                           Root Cause Analysis:
+                           {rcaReport}
 
-            Solution Plan:
-            {solutionPlan}
-            """;
+                           Solution Plan:
+                           {solutionPlan}
+                           """;
 
-        ChatResponse response = await llm!.GetResponseAsync(
+        var response = await llm!.GetResponseAsync(
             [
                 new ChatMessage(ChatRole.System, AutofixPrompts.DiffGeneration),
                 new ChatMessage(ChatRole.User, userMessage)
@@ -256,26 +254,26 @@ public sealed partial class AutofixAgentService(
     private async Task<ConfidenceResult> RunConfidenceScoringAsync(
         string rcaReport, string changesJson, CancellationToken ct)
     {
-        string userMessage = $"""
-            Root Cause Analysis:
-            {rcaReport}
+        var userMessage = $"""
+                           Root Cause Analysis:
+                           {rcaReport}
 
-            Proposed Fix:
-            {changesJson}
-            """;
+                           Proposed Fix:
+                           {changesJson}
+                           """;
 
-        ChatResponse response = await llm!.GetResponseAsync(
+        var response = await llm!.GetResponseAsync(
             [
                 new ChatMessage(ChatRole.System, AutofixPrompts.ConfidenceScoring),
                 new ChatMessage(ChatRole.User, userMessage)
             ],
             cancellationToken: ct).ConfigureAwait(false);
 
-        string json = ExtractJson(response.Text ?? "{}");
+        var json = ExtractJson(response.Text ?? "{}");
         try
         {
             return JsonSerializer.Deserialize(json, AutofixAgentJsonContext.Default.ConfidenceResult)
-                ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
+                   ?? new ConfidenceResult { Confidence = 0.5, Reasoning = "Parse failed", Recommendation = "review" };
         }
         catch (JsonException)
         {
@@ -285,11 +283,11 @@ public sealed partial class AutofixAgentService(
 
     private static string ExtractJson(string text)
     {
-        int start = text.IndexOf('{');
+        var start = text.IndexOf('{');
         if (start < 0) return "{}";
 
-        int depth = 0;
-        for (int i = start; i < text.Length; i++)
+        var depth = 0;
+        for (var i = start; i < text.Length; i++)
         {
             if (text[i] == '{') depth++;
             else if (text[i] == '}') depth--;

@@ -15,16 +15,7 @@ import {
     Wrench,
     Zap,
 } from 'lucide-react';
-import {
-    Area,
-    AreaChart,
-    Bar,
-    BarChart,
-    CartesianGrid,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+import {Area, AreaChart, Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis,} from 'recharts';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -178,7 +169,8 @@ function GenAiCallsChart({filter}: { filter: TimeFilter }) {
                 <div className="h-3 w-24 bg-brutal-zinc mb-4"/>
                 <div className="space-y-2">
                     {Array.from({length: 5}).map((_, i) => (
-                        <div key={i} className="bg-brutal-zinc/30" style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
+                        <div key={i} className="bg-brutal-zinc/30"
+                             style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
                     ))}
                 </div>
             </div>
@@ -276,7 +268,8 @@ function GenAiTokensChart({filter}: { filter: TimeFilter }) {
                 <div className="h-3 w-24 bg-brutal-zinc mb-4"/>
                 <div className="space-y-2">
                     {Array.from({length: 5}).map((_, i) => (
-                        <div key={i} className="bg-brutal-zinc/30" style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
+                        <div key={i} className="bg-brutal-zinc/30"
+                             style={{height: '12px', width: `${60 + Math.random() * 40}%`}}/>
                     ))}
                 </div>
             </div>
@@ -375,7 +368,13 @@ function GenAISpanCard({
 
     return (
         <Card className={cn('transition-shadow', isExpanded && 'ring-1 ring-primary/50')}>
-            <CardHeader className="cursor-pointer hover:bg-brutal-dark" role="button" tabIndex={0} aria-expanded={isExpanded} onClick={onToggle} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}>
+            <CardHeader className="cursor-pointer hover:bg-brutal-dark" role="button" tabIndex={0}
+                        aria-expanded={isExpanded} onClick={onToggle} onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onToggle();
+                }
+            }}>
                 <div className="flex items-start gap-4">
                     {isExpanded ? (
                         <ChevronDown className="w-5 h-5 mt-0.5 text-brutal-slate"/>

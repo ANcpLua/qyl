@@ -72,7 +72,12 @@ const LogRow = memo(function LogRow({log, isExpanded, onToggle}: LogRowProps) {
                 tabIndex={0}
                 aria-expanded={isExpanded}
                 onClick={onToggle}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle(); } }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onToggle();
+                    }
+                }}
             >
                 {/* Expand icon */}
                 <div className="pt-0.5">

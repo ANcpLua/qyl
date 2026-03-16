@@ -32,7 +32,8 @@ internal static class InsightsEndpoints
         app.MapGet("/api/v1/insights/{tier}", async (string tier, DuckDbStore store, CancellationToken ct) =>
         {
             var rows = await store.GetAllInsightsAsync(ct).ConfigureAwait(false);
-            if (rows.FirstOrDefault(r => string.Equals(r.Tier, tier, StringComparison.OrdinalIgnoreCase)) is not { } row)
+            if (rows.FirstOrDefault(r => string.Equals(r.Tier, tier, StringComparison.OrdinalIgnoreCase)) is not
+                { } row)
                 return Results.NotFound();
 
             var status = new InsightTierStatus(row.Tier, row.ContentHash, row.MaterializedAt, row.DurationMs);

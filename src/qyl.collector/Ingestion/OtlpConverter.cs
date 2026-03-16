@@ -49,7 +49,8 @@ public static class OtlpConverter
                     var attributes = ExtractAttributesFromProto(span.Attributes, serviceName);
                     var baggageJson = ExtractBaggageJson(attributes);
                     var spanRecord =
-                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl, resourceJson);
+                        CreateStorageRowFromProto(span, serviceName, attributes, baggageJson, effectiveSchemaUrl,
+                            resourceJson);
                     spans.Add(spanRecord);
                 }
             }
@@ -173,7 +174,8 @@ public static class OtlpConverter
                 {
                     var attributes = ExtractAttributesFromJson(span.Attributes, serviceName);
                     var baggageJson = ExtractBaggageJson(attributes);
-                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl, resourceJson));
+                    spans.Add(CreateStorageRowFromJson(span, serviceName, attributes, baggageJson, effectiveSchemaUrl,
+                        resourceJson));
                 }
             }
         }
@@ -415,10 +417,10 @@ public static class OtlpConverter
         if (value.ArrayValue is not null)
         {
             var items = value.ArrayValue.Values
-                ?.Select(ConvertJsonValueToString)
-                .Where(static (string? v) => v is not null)
-                .ToArray() ??
-                [];
+                            ?.Select(ConvertJsonValueToString)
+                            .Where(static (string? v) => v is not null)
+                            .ToArray() ??
+                        [];
 
             return JsonSerializer.Serialize(items, QylSerializerContext.Default.StringArray);
         }
@@ -427,9 +429,9 @@ public static class OtlpConverter
             return null;
 
         var dict = value.KvlistValue.Values
-            ?.Where(static kv => ConvertJsonValueToString(kv.Value) is not null)
-            .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value) ?? "")
-            ?? new Dictionary<string, string>(StringComparer.Ordinal);
+                       ?.Where(static kv => ConvertJsonValueToString(kv.Value) is not null)
+                       .ToDictionary(static kv => kv.Key ?? "", static kv => ConvertJsonValueToString(kv.Value) ?? "")
+                   ?? new Dictionary<string, string>(StringComparer.Ordinal);
 
         return JsonSerializer.Serialize(dict, QylSerializerContext.Default.DictionaryStringString);
     }
@@ -538,7 +540,9 @@ public static class OtlpConverter
     private static double? ParseNullableDouble(string? value) =>
         string.IsNullOrEmpty(value)
             ? null
-            : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result) ? result : null;
+            : double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var result)
+                ? result
+                : null;
 
     #endregion
 

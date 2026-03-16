@@ -31,12 +31,10 @@ internal static class ServiceEndpoints
         string serviceName,
         DuckDbStore store,
         string? type,
-        CancellationToken ct)
-    {
-        return await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false) is not { } detail
+        CancellationToken ct) =>
+        await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false) is not { } detail
             ? Results.NotFound()
             : Results.Ok(detail);
-    }
 
     /// <summary>
     ///     GET /api/v1/mcp/services/map — service dependency map derived from span parent relationships.
@@ -88,11 +86,7 @@ internal static class ServiceEndpoints
             nodeSet.Add(edge.Target);
         }
 
-        return Results.Ok(new McpServiceMapDto
-        {
-            Nodes = [.. nodeSet.Order()],
-            Edges = edges
-        });
+        return Results.Ok(new McpServiceMapDto { Nodes = [.. nodeSet.Order()], Edges = edges });
     }
 }
 

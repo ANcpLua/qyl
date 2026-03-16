@@ -38,8 +38,8 @@ internal sealed class McpHostOptions
 
     public static McpTransportMode ResolveTransport(string[] args)
     {
-        string? requested = TryGetCommandLineValue(args, TransportEnvVar)
-            ?? Environment.GetEnvironmentVariable(TransportEnvVar);
+        var requested = TryGetCommandLineValue(args, TransportEnvVar)
+                        ?? Environment.GetEnvironmentVariable(TransportEnvVar);
 
         if (TryParseTransport(requested, out var transport))
             return transport;
@@ -51,7 +51,7 @@ internal sealed class McpHostOptions
 
     public static McpHostOptions FromConfiguration(IConfiguration configuration, McpTransportMode transport)
     {
-        string? path = configuration[PathEnvVar];
+        var path = configuration[PathEnvVar];
         if (string.IsNullOrWhiteSpace(path))
             path = "/mcp";
 
@@ -71,7 +71,7 @@ internal sealed class McpHostOptions
 
     public string ResolvePublicMcpUrl(HttpRequest request)
     {
-        string baseUrl = !string.IsNullOrWhiteSpace(PublicBaseUrl)
+        var baseUrl = !string.IsNullOrWhiteSpace(PublicBaseUrl)
             ? PublicBaseUrl!.TrimEnd('/')
             : $"{request.Scheme}://{request.Host}{request.PathBase}".TrimEnd('/');
 
@@ -105,10 +105,10 @@ internal sealed class McpHostOptions
 
     private static string? TryGetCommandLineValue(string[] args, string key)
     {
-        string inlinePrefix = $"--{key}=";
+        var inlinePrefix = $"--{key}=";
         for (var i = 0; i < args.Length; i++)
         {
-            string arg = args[i];
+            var arg = args[i];
 
             if (arg.StartsWithIgnoreCase(inlinePrefix))
                 return arg[inlinePrefix.Length..];

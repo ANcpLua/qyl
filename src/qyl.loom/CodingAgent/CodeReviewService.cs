@@ -25,7 +25,7 @@ public sealed partial class CodeReviewService(
     public async Task<CodeReviewResult> ReviewPullRequestAsync(
         string repoFullName, int prNumber, CancellationToken ct = default)
     {
-        string cacheKey = $"{repoFullName}#{prNumber}";
+        var cacheKey = $"{repoFullName}#{prNumber}";
         LogReviewStarted(repoFullName, prNumber);
 
         if (llm is null)
@@ -33,48 +33,39 @@ public sealed partial class CodeReviewService(
             LogNoLlmConfigured();
             return new CodeReviewResult
             {
-                RepoFullName = repoFullName,
-                PrNumber = prNumber,
-                Comments = [],
-                Reviewed = false
+                RepoFullName = repoFullName, PrNumber = prNumber, Comments = [], Reviewed = false
             };
         }
 
-        (string Title, string Diff)? prData = await FetchPrDiffAsync(repoFullName, prNumber, ct)
+        var prData = await FetchPrDiffAsync(repoFullName, prNumber, ct)
             .ConfigureAwait(false);
 
         if (prData is null)
         {
             return new CodeReviewResult
             {
-                RepoFullName = repoFullName,
-                PrNumber = prNumber,
-                Comments = [],
-                Reviewed = false
+                RepoFullName = repoFullName, PrNumber = prNumber, Comments = [], Reviewed = false
             };
         }
 
         // Gather known error patterns from recent issues to feed context to the LLM
-        string? knownPatterns = await GetKnownErrorPatternsAsync(ct).ConfigureAwait(false);
+        var knownPatterns = await GetKnownErrorPatternsAsync(ct).ConfigureAwait(false);
 
-        string prompt = CodeReviewPrompt.Build(prData.Value.Title, prData.Value.Diff, knownPatterns);
+        var prompt = CodeReviewPrompt.Build(prData.Value.Title, prData.Value.Diff, knownPatterns);
 
         try
         {
-            ChatResponse response = await llm.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            string responseText = response.Text ?? "[]";
-            CodeReviewComment[] comments = ParseReviewComments(responseText);
+            var responseText = response.Text ?? "[]";
+            var comments = ParseReviewComments(responseText);
 
             LogReviewComplete(comments.Length);
 
             CodeReviewResult result = new()
             {
-                RepoFullName = repoFullName,
-                PrNumber = prNumber,
-                Comments = comments,
-                Reviewed = true
+                RepoFullName = repoFullName, PrNumber = prNumber, Comments = comments, Reviewed = true
             };
 
             _cache[cacheKey] = result;
@@ -85,10 +76,7 @@ public sealed partial class CodeReviewService(
             LogReviewError(ex);
             return new CodeReviewResult
             {
-                RepoFullName = repoFullName,
-                PrNumber = prNumber,
-                Comments = [],
-                Reviewed = false
+                RepoFullName = repoFullName, PrNumber = prNumber, Comments = [], Reviewed = false
             };
         }
     }
@@ -101,30 +89,30 @@ public sealed partial class CodeReviewService(
         string repoFullName, int prNumber,
         IReadOnlyList<CodeReviewComment> comments, CancellationToken ct = default)
     {
-        string? token = github.GetToken();
+        var token = github.GetToken();
         if (token is null || comments.Count == 0)
             return false;
 
-        using HttpClient client = CreateGitHubClient(token);
-        bool allPosted = true;
+        using var client = CreateGitHubClient(token);
+        var allPosted = true;
 
-        foreach (CodeReviewComment comment in comments)
+        foreach (var comment in comments)
         {
             LogPostingComment(comment.File, comment.Line);
 
-            string body = comment.Suggestion is not null
+            var body = comment.Suggestion is not null
                 ? $"**[{comment.Severity}]** {comment.Comment}\n\n```suggestion\n{comment.Suggestion}\n```"
                 : $"**[{comment.Severity}]** {comment.Comment}";
 
             var payload = new CodeReviewCommentPayload(body, comment.File, comment.Line);
-            string json = JsonSerializer.Serialize(payload, CodeReviewJsonContext.Default.CodeReviewCommentPayload);
-            using StringContent content = new(json, System.Text.Encoding.UTF8, "application/json");
+            var json = JsonSerializer.Serialize(payload, CodeReviewJsonContext.Default.CodeReviewCommentPayload);
+            using StringContent content = new(json, Encoding.UTF8, "application/json");
 
             using HttpRequestMessage req = new(HttpMethod.Post,
                 $"repos/{repoFullName}/pulls/{prNumber}/comments") { Content = content };
             SetAuthHeader(req, token);
 
-            using HttpResponseMessage response = await client.SendAsync(req, ct)
+            using var response = await client.SendAsync(req, ct)
                 .ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
@@ -137,7 +125,7 @@ public sealed partial class CodeReviewService(
     /// <summary>Returns a cached review result if one exists.</summary>
     public CodeReviewResult? GetCachedResult(string repoFullName, int prNumber)
     {
-        string cacheKey = $"{repoFullName}#{prNumber}";
+        var cacheKey = $"{repoFullName}#{prNumber}";
         return _cache.GetValueOrDefault(cacheKey);
     }
 
@@ -146,27 +134,27 @@ public sealed partial class CodeReviewService(
     private async Task<(string Title, string Diff)?> FetchPrDiffAsync(
         string repoFullName, int prNumber, CancellationToken ct)
     {
-        string? token = github.GetToken();
+        var token = github.GetToken();
         if (token is null) return null;
 
-        using HttpClient client = CreateGitHubClient(token);
+        using var client = CreateGitHubClient(token);
 
         // Get PR title
         using HttpRequestMessage prReq = new(HttpMethod.Get,
             $"repos/{repoFullName}/pulls/{prNumber}");
         SetAuthHeader(prReq, token);
 
-        using HttpResponseMessage prResp = await client.SendAsync(prReq, ct)
+        using var prResp = await client.SendAsync(prReq, ct)
             .ConfigureAwait(false);
 
         if (!prResp.IsSuccessStatusCode)
             return null;
 
-        GitHubPrDetail? prDetail = await prResp.Content
+        var prDetail = await prResp.Content
             .ReadFromJsonAsync(CodeReviewJsonContext.Default.GitHubPrDetail, ct)
             .ConfigureAwait(false);
 
-        string title = prDetail?.Title ?? $"PR #{prNumber}";
+        var title = prDetail?.Title ?? $"PR #{prNumber}";
 
         // Get diff
         using HttpRequestMessage diffReq = new(HttpMethod.Get,
@@ -175,13 +163,13 @@ public sealed partial class CodeReviewService(
         diffReq.Headers.Accept.Clear();
         diffReq.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github.diff"));
 
-        using HttpResponseMessage diffResp = await client.SendAsync(diffReq, ct)
+        using var diffResp = await client.SendAsync(diffReq, ct)
             .ConfigureAwait(false);
 
         if (!diffResp.IsSuccessStatusCode)
             return null;
 
-        string diff = await diffResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        var diff = await diffResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         return (title, diff);
     }
 
@@ -189,15 +177,16 @@ public sealed partial class CodeReviewService(
     {
         try
         {
-            IReadOnlyList<IssueSummary> recentIssues = await store
+            var recentIssues = await store
                 .GetIssuesAsync(limit: 10, ct: ct)
                 .ConfigureAwait(false);
 
             if (recentIssues.Count == 0)
                 return null;
 
-            return string.Join("\n", recentIssues.Select(
-                static i => $"- {i.ErrorType}: {i.ErrorMessage ?? "no message"} (seen {i.EventCount}x)"));
+            return string.Join("\n",
+                recentIssues.Select(static i =>
+                    $"- {i.ErrorType}: {i.ErrorMessage ?? "no message"} (seen {i.EventCount}x)"));
         }
         catch (DuckDBException)
         {
@@ -209,12 +198,12 @@ public sealed partial class CodeReviewService(
     private static CodeReviewComment[] ParseReviewComments(string text)
     {
         // Extract JSON array from potential markdown code blocks
-        int jsonStart = text.IndexOf('[');
-        int jsonEnd = text.LastIndexOf(']');
+        var jsonStart = text.IndexOf('[');
+        var jsonEnd = text.LastIndexOf(']');
         if (jsonStart < 0 || jsonEnd <= jsonStart)
             return [];
 
-        ReadOnlySpan<char> json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
+        var json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
         try
         {
             return JsonSerializer.Deserialize(json, CodeReviewJsonContext.Default.CodeReviewCommentArray) ?? [];
@@ -225,17 +214,13 @@ public sealed partial class CodeReviewService(
         }
     }
 
-    private HttpClient CreateGitHubClient(string _)
-    {
+    private HttpClient CreateGitHubClient(string _) =>
         // Return a clean client — auth is set per-request via SetAuthHeader to avoid
         // mutating DefaultRequestHeaders on a potentially shared HttpClient instance.
-        return httpClientFactory.CreateClient("GitHub");
-    }
+        httpClientFactory.CreateClient("GitHub");
 
-    private static void SetAuthHeader(HttpRequestMessage request, string token)
-    {
+    private static void SetAuthHeader(HttpRequestMessage request, string token) =>
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-    }
 
     // ── LoggerMessage ───────────────────────────────────────────────────────
 

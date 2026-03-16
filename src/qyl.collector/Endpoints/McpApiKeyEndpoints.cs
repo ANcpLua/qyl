@@ -68,12 +68,7 @@ internal static class McpApiKeyEndpoints
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
 
-        return TypedResults.Ok(new McpApiKeyResponseDto
-        {
-            Key = fullKey,
-            Prefix = prefix,
-            Name = request.Name
-        });
+        return TypedResults.Ok(new McpApiKeyResponseDto { Key = fullKey, Prefix = prefix, Name = request.Name });
     }
 }
 

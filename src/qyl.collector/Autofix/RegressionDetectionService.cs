@@ -3,7 +3,7 @@ namespace Qyl.Collector.Autofix;
 /// <summary>
 ///     Background service that polls for new deployments and runs regression detection.
 ///     Checks if resolved errors have re-appeared after a deploy and triggers re-triage
-///     via <see cref="TriagePipelineService"/> when regressions are found.
+///     via <see cref="TriagePipelineService" /> when regressions are found.
 /// </summary>
 public sealed partial class RegressionDetectionService(
     DuckDbStore store,
@@ -45,21 +45,21 @@ public sealed partial class RegressionDetectionService(
 
     internal async Task CheckForRegressionsAsync(CancellationToken ct)
     {
-        IReadOnlyList<DeploymentRecord> deployments = await store.GetDeploymentsAfterAsync(_lastChecked, ct)
+        var deployments = await store.GetDeploymentsAfterAsync(_lastChecked, ct)
             .ConfigureAwait(false);
 
         if (deployments.Count == 0) return;
 
-        int totalRegressions = 0;
+        var totalRegressions = 0;
 
-        foreach (DeploymentRecord deployment in deployments)
+        foreach (var deployment in deployments)
         {
             LogCheckingDeployment(deployment.ServiceName, deployment.ServiceVersion);
 
-            IReadOnlyList<string> regressedIds = await store.DetectRegressionsAsync(
+            var regressedIds = await store.DetectRegressionsAsync(
                 deployment.ServiceName, deployment.ServiceVersion, ct).ConfigureAwait(false);
 
-            foreach (string issueId in regressedIds)
+            foreach (var issueId in regressedIds)
             {
                 LogRegressionDetected(issueId, deployment.ServiceName, deployment.ServiceVersion);
             }
@@ -98,7 +98,8 @@ public sealed partial class RegressionDetectionService(
     private partial void LogRegressionDetected(string issueId, string serviceName, string version);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Regression check complete: {DeploymentsChecked} deployments checked, {RegressionsFound} regressions found")]
+        Message =
+            "Regression check complete: {DeploymentsChecked} deployments checked, {RegressionsFound} regressions found")]
     private partial void LogRegressionCheckComplete(int deploymentsChecked, int regressionsFound);
 
     [LoggerMessage(Level = LogLevel.Error, Message = "Regression detection error")]

@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -19,15 +20,16 @@ public sealed class AnnotateTraceTool(HttpClient client)
     public async Task<string> AnnotateTrace(
         [Description("Trace ID to annotate")] string traceId,
         [Description("Annotation note")] string note,
-        [Description("Optional tags for categorization")] List<string>? tags = null,
+        [Description("Optional tags for categorization")]
+        List<string>? tags = null,
         CancellationToken ct = default)
     {
         var body = new AnnotationRequestDto(note, tags);
         using var response = await client.PostAsJsonAsync(
-            $"/api/v1/mcp/traces/{Uri.EscapeDataString(traceId)}/annotations", body, ct)
+                $"/api/v1/mcp/traces/{Uri.EscapeDataString(traceId)}/annotations", body, ct)
             .ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Trace");
 
         response.EnsureSuccessStatusCode();

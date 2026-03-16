@@ -36,7 +36,7 @@ internal static class AnomalyEndpoints
     {
         try
         {
-            AnomalyDetectionResult result = await service.DetectAnomaliesAsync(
+            var result = await service.DetectAnomaliesAsync(
                 metric,
                 hours ?? 24,
                 sensitivity ?? 2.0,
@@ -47,10 +47,7 @@ internal static class AnomalyEndpoints
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["metric"] = [ex.Message]
-            });
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 
@@ -63,7 +60,7 @@ internal static class AnomalyEndpoints
     {
         try
         {
-            BaselineResult result = await service.GetBaselineAsync(
+            var result = await service.GetBaselineAsync(
                 metric,
                 hours ?? 24,
                 serviceName,
@@ -73,10 +70,7 @@ internal static class AnomalyEndpoints
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["metric"] = [ex.Message]
-            });
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 
@@ -92,7 +86,7 @@ internal static class AnomalyEndpoints
     {
         try
         {
-            PeriodComparisonResult result = await service.ComparePeriodAsync(
+            var result = await service.ComparePeriodAsync(
                 metric,
                 period1Start,
                 period1End,
@@ -105,10 +99,7 @@ internal static class AnomalyEndpoints
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["metric"] = [ex.Message]
-            });
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 }

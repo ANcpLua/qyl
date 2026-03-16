@@ -6,7 +6,9 @@ description: Contract router for building qyl's frontend, telemetry product surf
 # frontend
 
 ## 1. When to use
+
 Use this skill whenever you are working on:
+
 - qyl frontend code
 - design-system code
 - reusable product UI
@@ -19,12 +21,14 @@ This section is activation logic only.
 Do not treat it as the place for deep architecture discussion.
 
 ## 2. Mission
+
 qyl is an operator-facing telemetry product.
 
 The goal is not generic CRUD UI.
 The goal is source-owned product UI that feels fast, dense, legible, and trustworthy under real telemetry workloads.
 
 qyl surfaces must optimize for:
+
 - workflow speed
 - clear provenance
 - strong operator scanability
@@ -33,6 +37,7 @@ qyl surfaces must optimize for:
 - product-level ownership of the shipped frontend
 
 ## 3. Stack contract
+
 qyl frontend stack contract:
 
 - shadcn is the source-owned shell and reusable block layer
@@ -44,6 +49,7 @@ qyl frontend stack contract:
 - React Bits is allowed only for non-critical polish such as onboarding, empty states, and tasteful accent motion
 
 Hard Base UI contract:
+
 - use only `@base-ui/react`
 - never import `@radix-ui/*`
 - never import `radix-ui`
@@ -54,6 +60,7 @@ Hard Base UI contract:
 - use Base UI `Form` / `Field` patterns for canonical form behavior
 
 ## 4. Architecture rules
+
 System-wide architecture rules:
 
 - choose exactly one primitive family and enforce it mechanically
@@ -66,7 +73,9 @@ System-wide architecture rules:
 - product workflows must avoid dead-end modal traps and preserve navigation back to raw data
 
 ## 5. Done criteria
+
 A qyl frontend task is done only if:
+
 - the stack contract is followed consistently
 - Base UI semantics are correct
 - styling remains qyl-owned
@@ -80,7 +89,9 @@ A qyl frontend task is done only if:
 - no hidden conventions were introduced that a future agent cannot understand
 
 ## 6. Auto-fail criteria
+
 Fail immediately if any of the following is true:
+
 - any import from `@radix-ui/*`
 - any import from `radix-ui`
 - any use of `asChild`
@@ -93,34 +104,41 @@ Fail immediately if any of the following is true:
 - AI-generated analysis is visually indistinguishable from raw telemetry facts
 
 ## 7. Source policy
+
 Authoritative sources for qyl frontend decisions:
 
 Base UI behavior:
+
 - official Base UI docs
 - qyl local source code
 - qyl local wrappers
 - qyl local rule files
 
 Shell / design-system starter:
+
 - official shadcn docs
 - qyl local source-owned components
 
 Tables / virtualization:
+
 - official TanStack docs
 - qyl local wrappers and rules
 
 Charts:
+
 - official ECharts docs
 - official Recharts docs
 - qyl local chart wrappers and rules
 
 Disallowed as authority:
+
 - Radix docs for Base UI behavior
 - generic “headless UI” examples used as canonical truth
 - blog posts that map Radix idioms onto Base UI
 - copied examples that introduce `asChild`, `Slot`, or cross-family semantics
 
 ## 8. Rule files
+
 Load the relevant rule file for implementation details:
 
 - `./rules/shadcn-foundation.md`

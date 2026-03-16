@@ -1,3 +1,4 @@
+using System.Numerics;
 using Qyl.Collector.Search;
 using Qyl.Contracts.Primitives;
 
@@ -125,7 +126,7 @@ public sealed partial class DuckDbStore
         ulong ulongValue => TimeConversions.UnixNanoToDateTime(ulongValue),
         long longValue when longValue >= 0 => TimeConversions.UnixNanoToDateTime((ulong)longValue),
         decimal decimalValue => TimeConversions.UnixNanoToDateTime((ulong)decimalValue),
-        System.Numerics.BigInteger bigIntegerValue => TimeConversions.UnixNanoToDateTime((ulong)bigIntegerValue),
+        BigInteger bigIntegerValue => TimeConversions.UnixNanoToDateTime((ulong)bigIntegerValue),
         DateTime dateTimeValue => DateTime.SpecifyKind(dateTimeValue, DateTimeKind.Utc),
         DateTimeOffset dateTimeOffsetValue => dateTimeOffsetValue.UtcDateTime,
         _ => TimeProvider.System.GetUtcNow().UtcDateTime
@@ -138,7 +139,7 @@ public sealed partial class DuckDbStore
         decimal decimalValue => (double)decimalValue,
         int intValue => intValue,
         long longValue => longValue,
-        System.Numerics.BigInteger bigIntegerValue => (double)bigIntegerValue,
+        BigInteger bigIntegerValue => (double)bigIntegerValue,
         _ => Convert.ToDouble(value, CultureInfo.InvariantCulture)
     };
 }

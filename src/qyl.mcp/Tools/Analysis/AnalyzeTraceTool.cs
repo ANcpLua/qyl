@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -15,16 +16,18 @@ public sealed class AnalyzeTraceTool(HttpClient client)
         ReadOnly = false,
         Destructive = false,
         OpenWorld = true)]
-    [Description("Analyze a distributed trace. Returns structured analysis of spans, errors, services, and latency patterns.")]
+    [Description(
+        "Analyze a distributed trace. Returns structured analysis of spans, errors, services, and latency patterns.")]
     public async Task<string> AnalyzeTraceAsync(
         [Description("Trace ID to analyze")] string traceId,
-        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")] string? focus = null,
+        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")]
+        string? focus = null,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(
             $"/api/v1/mcp/traces/{Uri.EscapeDataString(traceId)}", ct).ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Trace");
 
         response.EnsureSuccessStatusCode();

@@ -145,7 +145,8 @@ public static class DbInstrumentation
             ? $"{operationName} {collectionName}"
             : operationName;
 
-        if (ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext)) is not { } activity)
+        if (ActivitySources.DbSource.StartActivity(spanName, ActivityKind.Client, default(ActivityContext)) is not
+            { } activity)
             return null;
 
         var dbSystem = GetDbSystem(command.Connection);
@@ -165,10 +166,8 @@ public static class DbInstrumentation
         return activity;
     }
 
-    private static void SetErrorStatus(Activity? activity, Exception ex)
-    {
+    private static void SetErrorStatus(Activity? activity, Exception ex) =>
         ActivityExceptionTelemetry.Record(activity, ex);
-    }
 
     /// <summary>
     ///     Maps a DbConnection type to its OTel db.system.name value.

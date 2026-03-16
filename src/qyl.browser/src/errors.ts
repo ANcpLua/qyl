@@ -3,7 +3,7 @@
  */
 
 import type {OtlpLogRecord} from './types.js';
-import {dateNowNano, generateTraceId, generateSpanId} from './context.js';
+import {dateNowNano, generateSpanId, generateTraceId} from './context.js';
 import type {Transport} from './transport.js';
 
 // OTLP severity numbers

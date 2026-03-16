@@ -1,3 +1,6 @@
+using System.Net;
+using System.Net.Http.Headers;
+
 namespace Qyl.Collector.Identity;
 
 /// <summary>
@@ -11,18 +14,13 @@ public sealed partial class GitHubService(
     IConfiguration configuration,
     ILogger<GitHubService> logger)
 {
-    private readonly string? _envToken = configuration["QYL_GITHUB_TOKEN"];
     private readonly string? _clientId = configuration["QYL_GITHUB_CLIENT_ID"];
+    private readonly string? _envToken = configuration["QYL_GITHUB_TOKEN"];
     private readonly Lock _tokenLock = new();
-    private string? _runtimeToken;
     private string _authMethod = "none";
+    private string? _runtimeToken;
 
     public bool IsConfigured => !string.IsNullOrWhiteSpace(GetEffectiveToken());
-
-    /// <summary>
-    ///     Returns the current GitHub token (runtime or env var). Used by Qyl.Agents token bridge (ADR-002).
-    /// </summary>
-    public string? GetToken() => GetEffectiveToken();
 
     public string AuthMethod
     {
@@ -34,6 +32,11 @@ public sealed partial class GitHubService(
     }
 
     public bool IsDeviceFlowAvailable => !string.IsNullOrWhiteSpace(_clientId);
+
+    /// <summary>
+    ///     Returns the current GitHub token (runtime or env var). Used by Qyl.Agents token bridge (ADR-002).
+    /// </summary>
+    public string? GetToken() => GetEffectiveToken();
 
     /// <summary>
     ///     Loads persisted token from DuckDB on startup, falls back to env var.
@@ -63,7 +66,8 @@ public sealed partial class GitHubService(
     /// <summary>
     ///     Validates a token against GitHub /user, persists to DuckDB, updates in-memory.
     /// </summary>
-    public async Task<GitHubUser?> SetTokenAsync(string token, string authMethod = "pat", CancellationToken ct = default)
+    public async Task<GitHubUser?> SetTokenAsync(string token, string authMethod = "pat",
+        CancellationToken ct = default)
     {
         var user = await ValidateTokenAsync(token, ct).ConfigureAwait(false);
         if (user is null)
@@ -171,7 +175,8 @@ public sealed partial class GitHubService(
         using var client = CreateClient();
         var body = new GitHubCreateRefRequest($"refs/heads/{branchName}", baseSha);
         var response = await client
-            .PostAsJsonAsync($"repos/{repoFullName}/git/refs", body, GitHubJsonContext.Default.GitHubCreateRefRequest, ct)
+            .PostAsJsonAsync($"repos/{repoFullName}/git/refs", body, GitHubJsonContext.Default.GitHubCreateRefRequest,
+                ct)
             .ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -187,10 +192,12 @@ public sealed partial class GitHubService(
         if (!IsConfigured) return null;
         using var client = CreateClient();
         var response = await client
-            .GetAsync($"repos/{repoFullName}/contents/{Uri.EscapeDataString(filePath)}?ref={Uri.EscapeDataString(branch)}", ct)
+            .GetAsync(
+                $"repos/{repoFullName}/contents/{Uri.EscapeDataString(filePath)}?ref={Uri.EscapeDataString(branch)}",
+                ct)
             .ConfigureAwait(false);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        if (response.StatusCode == HttpStatusCode.NotFound) return null;
 
         if (!response.IsSuccessStatusCode)
         {
@@ -203,7 +210,7 @@ public sealed partial class GitHubService(
             .ConfigureAwait(false);
     }
 
-    /// <summary>Creates or updates a file in a repo, committing the change to <paramref name="branch"/>.</summary>
+    /// <summary>Creates or updates a file in a repo, committing the change to <paramref name="branch" />.</summary>
     public async Task<bool> CreateOrUpdateFileAsync(
         string repoFullName, string filePath, string contentBase64,
         string commitMessage, string branch, string? existingSha,
@@ -235,7 +242,8 @@ public sealed partial class GitHubService(
 
         var request = new GitHubCreatePrRequest(title, headBranch, baseBranch, body);
         var response = await client
-            .PostAsJsonAsync($"repos/{repoFullName}/pulls", request, GitHubJsonContext.Default.GitHubCreatePrRequest, ct)
+            .PostAsJsonAsync($"repos/{repoFullName}/pulls", request, GitHubJsonContext.Default.GitHubCreatePrRequest,
+                ct)
             .ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
@@ -262,13 +270,12 @@ public sealed partial class GitHubService(
         using var client = httpClientFactory.CreateClient();
         var content = new FormUrlEncodedContent(new Dictionary<string, string>
         {
-            ["client_id"] = _clientId!,
-            ["scope"] = "repo"
+            ["client_id"] = _clientId!, ["scope"] = "repo"
         });
 
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/device/code");
         request.Content = content;
-        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
@@ -295,11 +302,10 @@ public sealed partial class GitHubService(
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:device_code"
         });
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token")
-        {
-            Content = content
-        };
-        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        using var request =
+            new HttpRequestMessage(HttpMethod.Post,
+                "https://github.com/login/oauth/access_token") { Content = content };
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var response = await client.SendAsync(request, ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode)
@@ -365,8 +371,11 @@ public sealed partial class GitHubService(
         var effectiveToken = GetEffectiveToken();
         var client = httpClientFactory.CreateClient("GitHub");
         if (!string.IsNullOrWhiteSpace(effectiveToken))
+        {
             client.DefaultRequestHeaders.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", effectiveToken);
+                new AuthenticationHeaderValue("Bearer", effectiveToken);
+        }
+
         return client;
     }
 
@@ -374,7 +383,7 @@ public sealed partial class GitHubService(
     {
         var client = httpClientFactory.CreateClient("GitHub");
         client.DefaultRequestHeaders.Authorization =
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            new AuthenticationHeaderValue("Bearer", token);
         return client;
     }
 
@@ -404,38 +413,54 @@ public sealed partial class GitHubService(
 
 public sealed record GitHubRepo(
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("full_name")] string FullName,
-    [property: JsonPropertyName("description")] string? Description,
-    [property: JsonPropertyName("html_url")] string HtmlUrl,
-    [property: JsonPropertyName("private")] bool Private,
-    [property: JsonPropertyName("default_branch")] string DefaultBranch);
+    [property: JsonPropertyName("full_name")]
+    string FullName,
+    [property: JsonPropertyName("description")]
+    string? Description,
+    [property: JsonPropertyName("html_url")]
+    string HtmlUrl,
+    [property: JsonPropertyName("private")]
+    bool Private,
+    [property: JsonPropertyName("default_branch")]
+    string DefaultBranch);
 
 public sealed record GitHubUser(
     [property: JsonPropertyName("login")] string Login,
     [property: JsonPropertyName("name")] string? Name,
-    [property: JsonPropertyName("avatar_url")] string? AvatarUrl);
+    [property: JsonPropertyName("avatar_url")]
+    string? AvatarUrl);
 
 public sealed record GitHubTokenRequest(
     [property: JsonPropertyName("token")] string Token);
 
 public sealed record GitHubStatusResponse(
-    [property: JsonPropertyName("configured")] bool Configured,
+    [property: JsonPropertyName("configured")]
+    bool Configured,
     [property: JsonPropertyName("user")] GitHubUser? User,
-    [property: JsonPropertyName("authMethod")] string AuthMethod = "none");
+    [property: JsonPropertyName("authMethod")]
+    string AuthMethod = "none");
 
 public sealed record DeviceCodeResponse(
-    [property: JsonPropertyName("device_code")] string DeviceCode,
-    [property: JsonPropertyName("user_code")] string UserCode,
-    [property: JsonPropertyName("verification_uri")] string VerificationUri,
-    [property: JsonPropertyName("expires_in")] int ExpiresIn,
-    [property: JsonPropertyName("interval")] int Interval);
+    [property: JsonPropertyName("device_code")]
+    string DeviceCode,
+    [property: JsonPropertyName("user_code")]
+    string UserCode,
+    [property: JsonPropertyName("verification_uri")]
+    string VerificationUri,
+    [property: JsonPropertyName("expires_in")]
+    int ExpiresIn,
+    [property: JsonPropertyName("interval")]
+    int Interval);
 
 public sealed record DeviceTokenResponse(
-    [property: JsonPropertyName("access_token")] string? AccessToken,
-    [property: JsonPropertyName("token_type")] string? TokenType,
+    [property: JsonPropertyName("access_token")]
+    string? AccessToken,
+    [property: JsonPropertyName("token_type")]
+    string? TokenType,
     [property: JsonPropertyName("scope")] string? Scope,
     [property: JsonPropertyName("error")] string? Error,
-    [property: JsonPropertyName("error_description")] string? ErrorDescription);
+    [property: JsonPropertyName("error_description")]
+    string? ErrorDescription);
 
 public sealed record DevicePollResponse(
     [property: JsonPropertyName("status")] string Status,
@@ -443,7 +468,8 @@ public sealed record DevicePollResponse(
     [property: JsonPropertyName("error")] string? Error);
 
 public sealed record DeviceAvailableResponse(
-    [property: JsonPropertyName("available")] bool Available);
+    [property: JsonPropertyName("available")]
+    bool Available);
 
 // Pull-request DTOs ──────────────────────────────────────────────────────────
 
@@ -460,12 +486,16 @@ public sealed record GitHubCreateRefRequest(
 
 public sealed record GitHubFileContent(
     [property: JsonPropertyName("sha")] string Sha,
-    [property: JsonPropertyName("content")] string? Content,
-    [property: JsonPropertyName("encoding")] string? Encoding);
+    [property: JsonPropertyName("content")]
+    string? Content,
+    [property: JsonPropertyName("encoding")]
+    string? Encoding);
 
 public sealed record GitHubPutFileRequest(
-    [property: JsonPropertyName("message")] string Message,
-    [property: JsonPropertyName("content")] string Content,
+    [property: JsonPropertyName("message")]
+    string Message,
+    [property: JsonPropertyName("content")]
+    string Content,
     [property: JsonPropertyName("branch")] string Branch,
     [property: JsonPropertyName("sha")] string? Sha);
 
@@ -477,7 +507,8 @@ public sealed record GitHubCreatePrRequest(
 
 public sealed record GitHubPrResponse(
     [property: JsonPropertyName("number")] int Number,
-    [property: JsonPropertyName("html_url")] string HtmlUrl);
+    [property: JsonPropertyName("html_url")]
+    string HtmlUrl);
 
 // =============================================================================
 // Source-generated JSON context for GitHub types

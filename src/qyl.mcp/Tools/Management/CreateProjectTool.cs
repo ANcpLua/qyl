@@ -16,9 +16,12 @@ public sealed class CreateProjectTool(HttpClient client)
         Idempotent = false)]
     [Description("Create a new observability project.")]
     public async Task<string> CreateProjectAsync(
-        [Description("Display name for the project")] string name,
-        [Description("URL-safe slug identifier")] string slug,
-        [Description("Optional project description")] string? description = null,
+        [Description("Display name for the project")]
+        string name,
+        [Description("URL-safe slug identifier")]
+        string slug,
+        [Description("Optional project description")]
+        string? description = null,
         CancellationToken ct = default)
     {
         var body = new { name, slug, description };

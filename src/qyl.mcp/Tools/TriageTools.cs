@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -20,10 +21,10 @@ internal sealed class TriageTools(HttpClient http)
         [Description("The error issue ID")] string issueId,
         CancellationToken ct = default)
     {
-        using HttpResponseMessage response = await http
+        using var response = await http
             .GetAsync($"/api/v1/issues/{issueId}/triage", ct).ConfigureAwait(false);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode == HttpStatusCode.NotFound)
             return $"No triage result found for issue {issueId}. Use qyl.trigger_triage to assess it.";
 
         response.EnsureSuccessStatusCode();
@@ -37,15 +38,17 @@ internal sealed class TriageTools(HttpClient http)
                  Automation levels: auto, assisted, manual, skip.
                  """)]
     public async Task<string> ListTriageAsync(
-        [Description("Filter by automation level: auto, assisted, manual, skip")] string? automationLevel = null,
-        [Description("Max results (default 20)")] int limit = 20,
+        [Description("Filter by automation level: auto, assisted, manual, skip")]
+        string? automationLevel = null,
+        [Description("Max results (default 20)")]
+        int limit = 20,
         CancellationToken ct = default)
     {
-        string url = $"/api/v1/triage?limit={Math.Clamp(limit, 1, 100)}";
+        var url = $"/api/v1/triage?limit={Math.Clamp(limit, 1, 100)}";
         if (automationLevel is not null)
             url += $"&automationLevel={automationLevel}";
 
-        using HttpResponseMessage response = await http
+        using var response = await http
             .GetAsync(url, ct).ConfigureAwait(false);
 
         response.EnsureSuccessStatusCode();
@@ -60,13 +63,14 @@ internal sealed class TriageTools(HttpClient http)
                  If no LLM is configured, uses heuristic scoring as fallback.
                  """)]
     public async Task<string> TriggerTriageAsync(
-        [Description("The error issue ID to triage")] string issueId,
+        [Description("The error issue ID to triage")]
+        string issueId,
         CancellationToken ct = default)
     {
-        using HttpResponseMessage response = await http
+        using var response = await http
             .PostAsync($"/api/v1/issues/{issueId}/triage", null, ct).ConfigureAwait(false);
 
-        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode == HttpStatusCode.NotFound)
             return $"Issue {issueId} not found.";
 
         response.EnsureSuccessStatusCode();

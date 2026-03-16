@@ -19,7 +19,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 ///         <code>
 /// [Counter("orders.created", Unit = "{order}", Description = "Orders created")]
 /// public static partial void RecordOrderCreated([Tag("status")] string status);
-///
+/// 
 /// [Counter("orders.retried", Unit = "{retry}", Description = "Retries processed")]
 /// public static partial void RecordRetries(long value, [Tag("status")] string status);
 /// </code>

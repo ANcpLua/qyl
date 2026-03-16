@@ -1,158 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Error Explorer</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-tailwind.config = {
-  darkMode: 'class',
-  theme: {
-    extend: {
-      colors: {
-        surface: { 0: '#0a0a0f', 1: '#12121a', 2: '#1a1a26', 3: '#242434' },
-        accent: { red: '#f55', orange: '#fa3', green: '#4d6', blue: '#58f', purple: '#a6f' }
-      }
-    }
-  }
-};
-</script>
-<style>
-  * { scrollbar-width: thin; scrollbar-color: #333 transparent; }
-  body { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace; }
-  .sparkline { display: inline-flex; align-items: flex-end; gap: 1px; height: 20px; }
-  .sparkline .bar { width: 3px; border-radius: 1px 1px 0 0; background: #58f; min-height: 1px; transition: height .2s; }
-  .fade-in { animation: fadeIn .15s ease-out; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
-  pre.stack { tab-size: 2; white-space: pre-wrap; word-break: break-all; }
-  pre.stack .frame-own { color: #e8e8f0; }
-  pre.stack .frame-lib { color: #555; }
-</style>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Error Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        surface: {0: '#0a0a0f', 1: '#12121a', 2: '#1a1a26', 3: '#242434'},
+                        accent: {red: '#f55', orange: '#fa3', green: '#4d6', blue: '#58f', purple: '#a6f'}
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #333 transparent;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', ui-monospace, monospace;
+        }
+
+        .sparkline {
+            display: inline-flex;
+            align-items: flex-end;
+            gap: 1px;
+            height: 20px;
+        }
+
+        .sparkline .bar {
+            width: 3px;
+            border-radius: 1px 1px 0 0;
+            background: #58f;
+            min-height: 1px;
+            transition: height .2s;
+        }
+
+        .fade-in {
+            animation: fadeIn .15s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(4px);
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        pre.stack {
+            tab-size: 2;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        pre.stack .frame-own {
+            color: #e8e8f0;
+        }
+
+        pre.stack .frame-lib {
+            color: #555;
+        }
+    </style>
 </head>
 <body class="dark bg-surface-0 text-gray-300 min-h-screen">
 
-<div id="app" class="max-w-7xl mx-auto px-4 py-6">
-  <!-- Header -->
-  <div class="flex items-center justify-between mb-6">
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded bg-accent-red/20 flex items-center justify-center text-accent-red font-bold text-sm">E</div>
-      <h1 class="text-lg font-semibold text-white">Error Explorer</h1>
-      <span id="countBadge" class="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-gray-400"></span>
+<div class="max-w-7xl mx-auto px-4 py-6" id="app">
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 rounded bg-accent-red/20 flex items-center justify-center text-accent-red font-bold text-sm">
+                E
+            </div>
+            <h1 class="text-lg font-semibold text-white">Error Explorer</h1>
+            <span class="text-xs px-2 py-0.5 rounded-full bg-surface-3 text-gray-400" id="countBadge"></span>
+        </div>
+        <div class="flex items-center gap-2">
+            <select
+                class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none"
+                id="sortBy">
+                <option value="lastSeen">Last Seen</option>
+                <option value="count">Frequency</option>
+                <option value="firstSeen">First Seen</option>
+                <option value="trend">Trend</option>
+            </select>
+            <select
+                class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none"
+                id="filterStatus">
+                <option value="">All Status</option>
+                <option value="new">New</option>
+                <option value="regressed">Regressed</option>
+                <option value="resolved">Resolved</option>
+                <option value="ignored">Ignored</option>
+            </select>
+            <input
+                class="bg-surface-2 border border-surface-3 rounded px-3 py-1 text-xs text-gray-300 w-48 focus:outline-none focus:border-accent-blue/50"
+                id="searchBox" placeholder="Search errors..."
+                type="text">
+        </div>
     </div>
-    <div class="flex items-center gap-2">
-      <select id="sortBy" class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none">
-        <option value="lastSeen">Last Seen</option>
-        <option value="count">Frequency</option>
-        <option value="firstSeen">First Seen</option>
-        <option value="trend">Trend</option>
-      </select>
-      <select id="filterStatus" class="bg-surface-2 border border-surface-3 rounded px-2 py-1 text-xs text-gray-300 focus:outline-none">
-        <option value="">All Status</option>
-        <option value="new">New</option>
-        <option value="regressed">Regressed</option>
-        <option value="resolved">Resolved</option>
-        <option value="ignored">Ignored</option>
-      </select>
-      <input id="searchBox" type="text" placeholder="Search errors..."
-        class="bg-surface-2 border border-surface-3 rounded px-3 py-1 text-xs text-gray-300 w-48 focus:outline-none focus:border-accent-blue/50">
-    </div>
-  </div>
 
-  <!-- List -->
-  <div id="errorList" class="space-y-1"></div>
+    <!-- List -->
+    <div class="space-y-1" id="errorList"></div>
 
-  <!-- Detail panel -->
-  <div id="detailPanel" class="hidden fixed inset-y-0 right-0 w-[560px] bg-surface-1 border-l border-surface-3 overflow-y-auto shadow-2xl fade-in">
-    <div class="sticky top-0 bg-surface-1/95 backdrop-blur border-b border-surface-3 px-5 py-3 flex items-center justify-between">
-      <h2 id="detailTitle" class="text-sm font-semibold text-white truncate mr-4"></h2>
-      <button id="closeDetail" class="text-gray-500 hover:text-white text-lg leading-none">&times;</button>
+    <!-- Detail panel -->
+    <div
+        class="hidden fixed inset-y-0 right-0 w-[560px] bg-surface-1 border-l border-surface-3 overflow-y-auto shadow-2xl fade-in"
+        id="detailPanel">
+        <div
+            class="sticky top-0 bg-surface-1/95 backdrop-blur border-b border-surface-3 px-5 py-3 flex items-center justify-between">
+            <h2 class="text-sm font-semibold text-white truncate mr-4" id="detailTitle"></h2>
+            <button class="text-gray-500 hover:text-white text-lg leading-none" id="closeDetail">&times;</button>
+        </div>
+        <div class="px-5 py-4 text-xs space-y-4" id="detailBody"></div>
     </div>
-    <div id="detailBody" class="px-5 py-4 text-xs space-y-4"></div>
-  </div>
 </div>
 
 <script>
-const SAMPLE_DATA = [
-  { fingerprint: 'fp-nre-001', type: 'NullReferenceException', message: 'Object reference not set to an instance of an object', count: 1247, firstSeen: '2026-03-01T08:00:00Z', lastSeen: '2026-03-11T09:45:00Z', status: 'new', services: ['user-service', 'auth-service'], stackTrace: 'at UserService.GetUser(Int32 id) in /src/Services/UserService.cs:line 42\n   at UserController.Get(Int32 id) in /src/Controllers/UserController.cs:line 18\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.Execute()\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next()', trend: [12, 15, 8, 22, 45, 38, 52], severity: 'error' },
-  { fingerprint: 'fp-timeout-002', type: 'TaskCanceledException', message: 'The request was canceled due to the configured HttpClient.Timeout of 30 seconds elapsing', count: 389, firstSeen: '2026-03-05T14:20:00Z', lastSeen: '2026-03-11T08:12:00Z', status: 'regressed', services: ['payment-service'], stackTrace: 'at System.Net.Http.HttpClient.SendAsync(HttpRequestMessage request)\n   at PaymentService.ChargeAsync(PaymentRequest req) in /src/Services/PaymentService.cs:line 67\n   at PaymentController.Charge(PaymentRequest req) in /src/Controllers/PaymentController.cs:line 24', trend: [2, 5, 3, 8, 15, 42, 89], severity: 'error' },
-  { fingerprint: 'fp-auth-003', type: 'UnauthorizedAccessException', message: 'JWT token validation failed: token expired', count: 156, firstSeen: '2026-03-08T22:10:00Z', lastSeen: '2026-03-11T07:30:00Z', status: 'new', services: ['auth-service', 'api-gateway'], stackTrace: 'at AuthService.ValidateToken(String token) in /src/Auth/AuthService.cs:line 88\n   at JwtMiddleware.InvokeAsync(HttpContext context) in /src/Middleware/JwtMiddleware.cs:line 31', trend: [0, 0, 5, 12, 28, 45, 66], severity: 'warning' },
-  { fingerprint: 'fp-db-004', type: 'DuckDbException', message: 'INTERNAL Error: Catalog Error: Table "sessions" does not exist', count: 23, firstSeen: '2026-03-10T03:00:00Z', lastSeen: '2026-03-10T03:45:00Z', status: 'resolved', services: ['collector'], stackTrace: 'at DuckDB.NET.Data.DuckDBCommand.ExecuteNonQuery()\n   at DuckDbStore.EnsureSchema() in /src/Storage/DuckDbStore.cs:line 112', trend: [0, 0, 0, 0, 0, 23, 0], severity: 'fatal' },
-  { fingerprint: 'fp-oom-005', type: 'OutOfMemoryException', message: 'Insufficient memory to continue the execution of the program', count: 7, firstSeen: '2026-03-09T18:00:00Z', lastSeen: '2026-03-10T12:00:00Z', status: 'ignored', services: ['analytics-worker'], stackTrace: 'at System.Byte[].Allocate(Int32 length)\n   at AnalyticsWorker.ProcessBatch(List<Event> batch) in /src/Workers/AnalyticsWorker.cs:line 203', trend: [0, 0, 0, 1, 2, 3, 1], severity: 'fatal' },
-  { fingerprint: 'fp-rate-006', type: 'HttpRequestException', message: 'Response status code 429: Rate limit exceeded for OpenAI API', count: 842, firstSeen: '2026-03-02T10:00:00Z', lastSeen: '2026-03-11T10:00:00Z', status: 'new', services: ['agent-service', 'copilot-proxy'], stackTrace: 'at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()\n   at AgentService.InvokeModelAsync(String prompt) in /src/Agents/AgentService.cs:line 55', trend: [30, 45, 60, 55, 120, 180, 352], severity: 'warning' }
-];
+    const SAMPLE_DATA = [
+        {
+            fingerprint: 'fp-nre-001',
+            type: 'NullReferenceException',
+            message: 'Object reference not set to an instance of an object',
+            count: 1247,
+            firstSeen: '2026-03-01T08:00:00Z',
+            lastSeen: '2026-03-11T09:45:00Z',
+            status: 'new',
+            services: ['user-service', 'auth-service'],
+            stackTrace: 'at UserService.GetUser(Int32 id) in /src/Services/UserService.cs:line 42\n   at UserController.Get(Int32 id) in /src/Controllers/UserController.cs:line 18\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.Execute()\n   at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Next()',
+            trend: [12, 15, 8, 22, 45, 38, 52],
+            severity: 'error'
+        },
+        {
+            fingerprint: 'fp-timeout-002',
+            type: 'TaskCanceledException',
+            message: 'The request was canceled due to the configured HttpClient.Timeout of 30 seconds elapsing',
+            count: 389,
+            firstSeen: '2026-03-05T14:20:00Z',
+            lastSeen: '2026-03-11T08:12:00Z',
+            status: 'regressed',
+            services: ['payment-service'],
+            stackTrace: 'at System.Net.Http.HttpClient.SendAsync(HttpRequestMessage request)\n   at PaymentService.ChargeAsync(PaymentRequest req) in /src/Services/PaymentService.cs:line 67\n   at PaymentController.Charge(PaymentRequest req) in /src/Controllers/PaymentController.cs:line 24',
+            trend: [2, 5, 3, 8, 15, 42, 89],
+            severity: 'error'
+        },
+        {
+            fingerprint: 'fp-auth-003',
+            type: 'UnauthorizedAccessException',
+            message: 'JWT token validation failed: token expired',
+            count: 156,
+            firstSeen: '2026-03-08T22:10:00Z',
+            lastSeen: '2026-03-11T07:30:00Z',
+            status: 'new',
+            services: ['auth-service', 'api-gateway'],
+            stackTrace: 'at AuthService.ValidateToken(String token) in /src/Auth/AuthService.cs:line 88\n   at JwtMiddleware.InvokeAsync(HttpContext context) in /src/Middleware/JwtMiddleware.cs:line 31',
+            trend: [0, 0, 5, 12, 28, 45, 66],
+            severity: 'warning'
+        },
+        {
+            fingerprint: 'fp-db-004',
+            type: 'DuckDbException',
+            message: 'INTERNAL Error: Catalog Error: Table "sessions" does not exist',
+            count: 23,
+            firstSeen: '2026-03-10T03:00:00Z',
+            lastSeen: '2026-03-10T03:45:00Z',
+            status: 'resolved',
+            services: ['collector'],
+            stackTrace: 'at DuckDB.NET.Data.DuckDBCommand.ExecuteNonQuery()\n   at DuckDbStore.EnsureSchema() in /src/Storage/DuckDbStore.cs:line 112',
+            trend: [0, 0, 0, 0, 0, 23, 0],
+            severity: 'fatal'
+        },
+        {
+            fingerprint: 'fp-oom-005',
+            type: 'OutOfMemoryException',
+            message: 'Insufficient memory to continue the execution of the program',
+            count: 7,
+            firstSeen: '2026-03-09T18:00:00Z',
+            lastSeen: '2026-03-10T12:00:00Z',
+            status: 'ignored',
+            services: ['analytics-worker'],
+            stackTrace: 'at System.Byte[].Allocate(Int32 length)\n   at AnalyticsWorker.ProcessBatch(List<Event> batch) in /src/Workers/AnalyticsWorker.cs:line 203',
+            trend: [0, 0, 0, 1, 2, 3, 1],
+            severity: 'fatal'
+        },
+        {
+            fingerprint: 'fp-rate-006',
+            type: 'HttpRequestException',
+            message: 'Response status code 429: Rate limit exceeded for OpenAI API',
+            count: 842,
+            firstSeen: '2026-03-02T10:00:00Z',
+            lastSeen: '2026-03-11T10:00:00Z',
+            status: 'new',
+            services: ['agent-service', 'copilot-proxy'],
+            stackTrace: 'at System.Net.Http.HttpResponseMessage.EnsureSuccessStatusCode()\n   at AgentService.InvokeModelAsync(String prompt) in /src/Agents/AgentService.cs:line 55',
+            trend: [30, 45, 60, 55, 120, 180, 352],
+            severity: 'warning'
+        }
+    ];
 
-let errorGroups = [...SAMPLE_DATA];
-let selected = null;
+    let errorGroups = [...SAMPLE_DATA];
+    let selected = null;
 
-// Listen for ext-app data
-window.addEventListener('message', (e) => {
-  if (e.data?.type === 'tool_result' && e.data?.data?.errorGroups) {
-    errorGroups = e.data.data.errorGroups;
-    selected = null;
-    render();
-  }
-});
+    // Listen for ext-app data
+    window.addEventListener('message', (e) => {
+        if (e.data?.type === 'tool_result' && e.data?.data?.errorGroups) {
+            errorGroups = e.data.data.errorGroups;
+            selected = null;
+            render();
+        }
+    });
 
-const $ = (s) => document.querySelector(s);
-const statusColor = (s) => ({ new: 'bg-accent-red/20 text-accent-red', regressed: 'bg-accent-orange/20 text-accent-orange', resolved: 'bg-accent-green/20 text-accent-green', ignored: 'bg-surface-3 text-gray-500' })[s] || 'bg-surface-3 text-gray-400';
-const severityIcon = (s) => ({ fatal: '<span class="text-red-500">&#9679;</span>', error: '<span class="text-accent-red">&#9679;</span>', warning: '<span class="text-yellow-500">&#9679;</span>' })[s] || '<span class="text-gray-500">&#9679;</span>';
-const ago = (iso) => { const d = (Date.now() - new Date(iso)) / 1000; return d < 60 ? 'just now' : d < 3600 ? `${(d/60)|0}m ago` : d < 86400 ? `${(d/3600)|0}h ago` : `${(d/86400)|0}d ago`; };
+    const $ = (s) => document.querySelector(s);
+    const statusColor = (s) => ({
+        new: 'bg-accent-red/20 text-accent-red',
+        regressed: 'bg-accent-orange/20 text-accent-orange',
+        resolved: 'bg-accent-green/20 text-accent-green',
+        ignored: 'bg-surface-3 text-gray-500'
+    })[s] || 'bg-surface-3 text-gray-400';
+    const severityIcon = (s) => ({
+        fatal: '<span class="text-red-500">&#9679;</span>',
+        error: '<span class="text-accent-red">&#9679;</span>',
+        warning: '<span class="text-yellow-500">&#9679;</span>'
+    })[s] || '<span class="text-gray-500">&#9679;</span>';
+    const ago = (iso) => {
+        const d = (Date.now() - new Date(iso)) / 1000;
+        return d < 60 ? 'just now' : d < 3600 ? `${(d / 60) | 0}m ago` : d < 86400 ? `${(d / 3600) | 0}h ago` : `${(d / 86400) | 0}d ago`;
+    };
 
-function sparkline(trend) {
-  if (!trend?.length) return '';
-  const max = Math.max(...trend, 1);
-  return '<span class="sparkline">' + trend.map(v => `<span class="bar" style="height:${Math.max(4, (v/max)*100)}%"></span>`).join('') + '</span>';
-}
-
-function trendArrow(trend) {
-  if (!trend || trend.length < 2) return '';
-  const recent = trend.slice(-3).reduce((a,b) => a+b, 0);
-  const earlier = trend.slice(0, 3).reduce((a,b) => a+b, 0);
-  if (recent > earlier * 1.3) return '<span class="text-accent-red text-[10px]">&#9650;</span>';
-  if (recent < earlier * 0.7) return '<span class="text-accent-green text-[10px]">&#9660;</span>';
-  return '<span class="text-gray-500 text-[10px]">&#9644;</span>';
-}
-
-function highlightStack(stack) {
-  if (!stack) return '<span class="text-gray-500">No stack trace available</span>';
-  return stack.split('\n').map(line => {
-    const isOwn = line.includes('/src/') || line.includes('in /');
-    return `<span class="${isOwn ? 'frame-own' : 'frame-lib'}">${escHtml(line)}</span>`;
-  }).join('\n');
-}
-
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-
-function getFiltered() {
-  let items = [...errorGroups];
-  const search = $('#searchBox').value.toLowerCase();
-  const status = $('#filterStatus').value;
-  if (status) items = items.filter(e => e.status === status);
-  if (search) items = items.filter(e => e.type.toLowerCase().includes(search) || e.message.toLowerCase().includes(search) || e.services?.some(s => s.toLowerCase().includes(search)));
-  const sort = $('#sortBy').value;
-  items.sort((a, b) => {
-    switch (sort) {
-      case 'count': return b.count - a.count;
-      case 'firstSeen': return new Date(b.firstSeen) - new Date(a.firstSeen);
-      case 'trend': { const ta = (a.trend?.slice(-2).reduce((x,y)=>x+y,0)||0); const tb = (b.trend?.slice(-2).reduce((x,y)=>x+y,0)||0); return tb - ta; }
-      default: return new Date(b.lastSeen) - new Date(a.lastSeen);
+    function sparkline(trend) {
+        if (!trend?.length) return '';
+        const max = Math.max(...trend, 1);
+        return '<span class="sparkline">' + trend.map(v => `<span class="bar" style="height:${Math.max(4, (v / max) * 100)}%"></span>`).join('') + '</span>';
     }
-  });
-  return items;
-}
 
-function render() {
-  const items = getFiltered();
-  $('#countBadge').textContent = `${items.length} issue${items.length !== 1 ? 's' : ''}`;
-  const list = $('#errorList');
+    function trendArrow(trend) {
+        if (!trend || trend.length < 2) return '';
+        const recent = trend.slice(-3).reduce((a, b) => a + b, 0);
+        const earlier = trend.slice(0, 3).reduce((a, b) => a + b, 0);
+        if (recent > earlier * 1.3) return '<span class="text-accent-red text-[10px]">&#9650;</span>';
+        if (recent < earlier * 0.7) return '<span class="text-accent-green text-[10px]">&#9660;</span>';
+        return '<span class="text-gray-500 text-[10px]">&#9644;</span>';
+    }
 
-  if (!items.length) {
-    list.innerHTML = '<div class="text-center py-16 text-gray-500"><div class="text-3xl mb-3 opacity-30">&#8709;</div><div class="text-sm">No errors match your filters</div></div>';
-    return;
-  }
+    function highlightStack(stack) {
+        if (!stack) return '<span class="text-gray-500">No stack trace available</span>';
+        return stack.split('\n').map(line => {
+            const isOwn = line.includes('/src/') || line.includes('in /');
+            return `<span class="${isOwn ? 'frame-own' : 'frame-lib'}">${escHtml(line)}</span>`;
+        }).join('\n');
+    }
 
-  list.innerHTML = items.map((e, i) => `
+    function escHtml(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function getFiltered() {
+        let items = [...errorGroups];
+        const search = $('#searchBox').value.toLowerCase();
+        const status = $('#filterStatus').value;
+        if (status) items = items.filter(e => e.status === status);
+        if (search) items = items.filter(e => e.type.toLowerCase().includes(search) || e.message.toLowerCase().includes(search) || e.services?.some(s => s.toLowerCase().includes(search)));
+        const sort = $('#sortBy').value;
+        items.sort((a, b) => {
+            switch (sort) {
+                case 'count':
+                    return b.count - a.count;
+                case 'firstSeen':
+                    return new Date(b.firstSeen) - new Date(a.firstSeen);
+                case 'trend': {
+                    const ta = (a.trend?.slice(-2).reduce((x, y) => x + y, 0) || 0);
+                    const tb = (b.trend?.slice(-2).reduce((x, y) => x + y, 0) || 0);
+                    return tb - ta;
+                }
+                default:
+                    return new Date(b.lastSeen) - new Date(a.lastSeen);
+            }
+        });
+        return items;
+    }
+
+    function render() {
+        const items = getFiltered();
+        $('#countBadge').textContent = `${items.length} issue${items.length !== 1 ? 's' : ''}`;
+        const list = $('#errorList');
+
+        if (!items.length) {
+            list.innerHTML = '<div class="text-center py-16 text-gray-500"><div class="text-3xl mb-3 opacity-30">&#8709;</div><div class="text-sm">No errors match your filters</div></div>';
+            return;
+        }
+
+        list.innerHTML = items.map((e, i) => `
     <div class="group flex items-center gap-3 px-4 py-2.5 rounded cursor-pointer transition-colors
       ${selected?.fingerprint === e.fingerprint ? 'bg-surface-2 border border-accent-blue/30' : 'hover:bg-surface-1 border border-transparent'}"
       data-idx="${i}" onclick="selectError(${i})">
@@ -177,18 +324,18 @@ function render() {
       </div>
     </div>
   `).join('');
-}
+    }
 
-function selectError(idx) {
-  const items = getFiltered();
-  selected = items[idx];
-  if (!selected) return;
+    function selectError(idx) {
+        const items = getFiltered();
+        selected = items[idx];
+        if (!selected) return;
 
-  const p = $('#detailPanel');
-  p.classList.remove('hidden');
+        const p = $('#detailPanel');
+        p.classList.remove('hidden');
 
-  $('#detailTitle').textContent = selected.type;
-  $('#detailBody').innerHTML = `
+        $('#detailTitle').textContent = selected.type;
+        $('#detailBody').innerHTML = `
     <div class="flex items-center gap-2 flex-wrap">
       <span class="px-2 py-0.5 rounded text-xs font-medium ${statusColor(selected.status)}">${selected.status}</span>
       <span class="text-[10px] text-gray-500">${selected.fingerprint}</span>
@@ -231,47 +378,55 @@ function selectError(idx) {
     </div>
   `;
 
-  if (selected.trend?.length) drawChart(selected.trend);
-  render();
-}
+        if (selected.trend?.length) drawChart(selected.trend);
+        render();
+    }
 
-function drawChart(trend) {
-  const canvas = document.getElementById('trendChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+    function drawChart(trend) {
+        const canvas = document.getElementById('trendChart');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
 
-  const w = rect.width, h = rect.height;
-  const max = Math.max(...trend, 1);
-  const pad = 2;
-  const barW = Math.max(4, (w - pad * 2) / trend.length - 2);
-  const gap = ((w - pad * 2) - barW * trend.length) / (trend.length - 1 || 1);
+        const w = rect.width, h = rect.height;
+        const max = Math.max(...trend, 1);
+        const pad = 2;
+        const barW = Math.max(4, (w - pad * 2) / trend.length - 2);
+        const gap = ((w - pad * 2) - barW * trend.length) / (trend.length - 1 || 1);
 
-  trend.forEach((v, i) => {
-    const barH = Math.max(2, (v / max) * (h - pad * 2));
-    const x = pad + i * (barW + gap);
-    const y = h - pad - barH;
-    ctx.fillStyle = v === Math.max(...trend) ? '#f55' : '#58f';
-    ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH, 2);
-    ctx.fill();
-  });
-}
+        trend.forEach((v, i) => {
+            const barH = Math.max(2, (v / max) * (h - pad * 2));
+            const x = pad + i * (barW + gap);
+            const y = h - pad - barH;
+            ctx.fillStyle = v === Math.max(...trend) ? '#f55' : '#58f';
+            ctx.beginPath();
+            ctx.roundRect(x, y, barW, barH, 2);
+            ctx.fill();
+        });
+    }
 
-$('#closeDetail').addEventListener('click', () => { $('#detailPanel').classList.add('hidden'); selected = null; render(); });
-$('#sortBy').addEventListener('change', render);
-$('#filterStatus').addEventListener('change', render);
-$('#searchBox').addEventListener('input', render);
+    $('#closeDetail').addEventListener('click', () => {
+        $('#detailPanel').classList.add('hidden');
+        selected = null;
+        render();
+    });
+    $('#sortBy').addEventListener('change', render);
+    $('#filterStatus').addEventListener('change', render);
+    $('#searchBox').addEventListener('input', render);
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { $('#detailPanel').classList.add('hidden'); selected = null; render(); }
-});
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            $('#detailPanel').classList.add('hidden');
+            selected = null;
+            render();
+        }
+    });
 
-render();
+    render();
 </script>
 </body>
 </html>

@@ -123,10 +123,8 @@ public static class GenAiInstrumentation
     /// <summary>
     ///     Records an exception on the activity with culture-invariant formatting.
     /// </summary>
-    public static void RecordException(Activity? activity, Exception exception)
-    {
+    public static void RecordException(Activity? activity, Exception exception) =>
         ActivityExceptionTelemetry.Record(activity, exception);
-    }
 
     #region Execute Methods (for source generator interception)
 

@@ -16,7 +16,8 @@ public sealed class CreateApiKeyTool(HttpClient client)
         Idempotent = false)]
     [Description("Create a new API key for programmatic access.")]
     public async Task<string> CreateApiKeyAsync(
-        [Description("Name for the API key (e.g. 'ci-pipeline', 'dev-local')")] string name,
+        [Description("Name for the API key (e.g. 'ci-pipeline', 'dev-local')")]
+        string name,
         CancellationToken ct = default)
     {
         var body = new { name };

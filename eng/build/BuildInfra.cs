@@ -62,8 +62,8 @@ interface IDocker : IHazSourcePaths
                 ImageSpecs.Length,
                 ParallelBuild ? " in parallel" : "");
 
-            DockerTasks.DockerBuild(s => DockerBuildSettingsExtensions
-                    .SetPath<DockerBuildSettings>(s, RootDirectory)
+            DockerTasks.DockerBuild(s => s
+                    .SetPath<DockerBuildSettings>(RootDirectory)
                     .EnablePull()
                     .SetProcessEnvironmentVariable("DOCKER_BUILDKIT", "1")
                     .CombineWith(ImageSpecs, static (settings, img) => settings
@@ -91,7 +91,7 @@ interface IDocker : IHazSourcePaths
             Log.Information("Pushing images to registry: {Registry}", Registry);
 
             DockerTasks.DockerPush(s => s
-                    .CombineWith(ImageSpecs, static (settings, img) => DockerPushSettingsExtensions.SetName<DockerPushSettings>(settings, img.Tag)),
+                    .CombineWith(ImageSpecs, static (settings, img) => settings.SetName<DockerPushSettings>(img.Tag)),
                 ParallelBuild ? 2 : 1);
 
             Log.Information("Images pushed successfully");
@@ -174,8 +174,8 @@ interface IDocker : IHazSourcePaths
     {
         Log.Information("Building image: {Name} → {Tag}", spec.Name, spec.Tag);
 
-        DockerTasks.DockerBuild(s => DockerBuildSettingsExtensions
-            .SetPath<DockerBuildSettings>(s, RootDirectory)
+        DockerTasks.DockerBuild(s => s
+            .SetPath<DockerBuildSettings>(RootDirectory)
             .SetFile(spec.Dockerfile)
             .SetTag(spec.Tag)
             .EnablePull()

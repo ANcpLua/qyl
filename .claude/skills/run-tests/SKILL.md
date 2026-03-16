@@ -44,11 +44,11 @@ nuke --IQylTest.TestFilter "/*/RpcTests/*" --IQylTest.StopOnFail --IQylTest.Live
 
 ## MTP Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | All passed |
-| 2 | Test(s) failed |
-| 8 | Zero tests ran (filter matched nothing — NUKE ignores this automatically) |
+| Code | Meaning                                                                   |
+|------|---------------------------------------------------------------------------|
+| 0    | All passed                                                                |
+| 2    | Test(s) failed                                                            |
+| 8    | Zero tests ran (filter matched nothing — NUKE ignores this automatically) |
 
 ## Wrong (never do this)
 

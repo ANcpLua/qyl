@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -34,12 +33,13 @@ internal sealed class QueryStudioTools(HttpClient client)
     public Task<string> OpenQueryStudioAsync() =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            QueryStudioSchemaResponse schema = await FetchSchemaAsync().ConfigureAwait(false);
+            var schema = await FetchSchemaAsync().ConfigureAwait(false);
 
             var result = new QueryStudioOpenResult(
                 schema,
                 QueryStudioPresets.All,
-                new("ui://qyl/query-studio", "Query Studio", "Interactive DuckDB query console for qyl observability data"));
+                new QueryStudioUiMeta("ui://qyl/query-studio", "Query Studio",
+                    "Interactive DuckDB query console for qyl observability data"));
 
             return JsonSerializer.Serialize(result, QueryStudioJsonContext.Default.QueryStudioOpenResult);
         });
@@ -63,10 +63,10 @@ internal sealed class QueryStudioTools(HttpClient client)
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit, 1, 10_000);
+            var take = Math.Clamp(limit, 1, 10_000);
             var stopwatch = Stopwatch.StartNew();
 
-            using HttpResponseMessage resp = await client.PostAsJsonAsync(
+            using var resp = await client.PostAsJsonAsync(
                 "/api/v1/query",
                 new QueryStudioRequest(sql, take),
                 QueryStudioJsonContext.Default.QueryStudioRequest,
@@ -76,7 +76,7 @@ internal sealed class QueryStudioTools(HttpClient client)
 
             if (!resp.IsSuccessStatusCode)
             {
-                string error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 return JsonSerializer.Serialize(
                     new QueryStudioErrorResult(error, sql),
                     QueryStudioJsonContext.Default.QueryStudioErrorResult);
@@ -86,30 +86,33 @@ internal sealed class QueryStudioTools(HttpClient client)
                 QueryStudioJsonContext.Default.QueryStudioRawResponse, ct).ConfigureAwait(false);
 
             if (raw is null)
+            {
                 return JsonSerializer.Serialize(
                     new QueryStudioErrorResult("Empty response from collector.", sql),
                     QueryStudioJsonContext.Default.QueryStudioErrorResult);
+            }
 
             // Build typed columns from first row, flatten rows to positional arrays
             var firstRow = raw.Rows.Count > 0 ? raw.Rows[0] : null;
-            List<QueryStudioColumn> columns = raw.Columns
+            var columns = raw.Columns
                 .Select(name => new QueryStudioColumn(name,
                     firstRow is not null && firstRow.TryGetValue(name, out var v) && v is not null
-                        ? InferType(v) : "varchar"))
+                        ? InferType(v)
+                        : "varchar"))
                 .ToList();
 
-            List<List<object?>> rows = raw.Rows
+            var rows = raw.Rows
                 .Select(row => raw.Columns
                     .Select(col => row.TryGetValue(col, out var val) ? NormalizeJsonElement(val) : null)
                     .ToList())
                 .ToList();
 
             var result = new QueryStudioQueryResult(
-                Columns: columns,
-                Rows: rows,
-                RowCount: raw.RowCount,
-                ExecutionTimeMs: stopwatch.Elapsed.TotalMilliseconds,
-                Query: sql);
+                columns,
+                rows,
+                raw.RowCount,
+                stopwatch.Elapsed.TotalMilliseconds,
+                sql);
 
             return JsonSerializer.Serialize(result, QueryStudioJsonContext.Default.QueryStudioQueryResult);
         });
@@ -125,22 +128,22 @@ internal sealed class QueryStudioTools(HttpClient client)
     public Task<string> QuerySchemaAsync(CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            QueryStudioSchemaResponse schema = await FetchSchemaAsync(ct).ConfigureAwait(false);
+            var schema = await FetchSchemaAsync(ct).ConfigureAwait(false);
             return JsonSerializer.Serialize(schema, QueryStudioJsonContext.Default.QueryStudioSchemaResponse);
         });
 
     private async Task<QueryStudioSchemaResponse> FetchSchemaAsync(CancellationToken ct = default)
     {
         const string schemaSql = """
-            SELECT table_name, column_name, data_type
-            FROM information_schema.columns
-            WHERE table_schema = 'main'
-            ORDER BY table_name, ordinal_position
-            """;
+                                 SELECT table_name, column_name, data_type
+                                 FROM information_schema.columns
+                                 WHERE table_schema = 'main'
+                                 ORDER BY table_name, ordinal_position
+                                 """;
 
         try
         {
-            using HttpResponseMessage resp = await client.PostAsJsonAsync(
+            using var resp = await client.PostAsJsonAsync(
                 "/api/v1/query",
                 new QueryStudioRequest(schemaSql, 5000),
                 QueryStudioJsonContext.Default.QueryStudioRequest,
@@ -159,10 +162,10 @@ internal sealed class QueryStudioTools(HttpClient client)
                 .GroupBy(r => GetStringValue(r, "table_name"))
                 .Where(g => !string.IsNullOrEmpty(g.Key))
                 .Select(g => new QueryStudioTable(
-                    Name: g.Key!,
-                    Columns: g.Select(r => new QueryStudioColumn(
-                        Name: GetStringValue(r, "column_name") ?? "unknown",
-                        Type: GetStringValue(r, "data_type") ?? "unknown"
+                    g.Key!,
+                    g.Select(r => new QueryStudioColumn(
+                        GetStringValue(r, "column_name") ?? "unknown",
+                        GetStringValue(r, "data_type") ?? "unknown"
                     )).ToList()))
                 .ToList();
 
@@ -195,7 +198,7 @@ internal sealed class QueryStudioTools(HttpClient client)
         JsonElement el => el.ValueKind switch
         {
             JsonValueKind.String => el.GetString(),
-            JsonValueKind.Number when el.TryGetInt64(out long l) => l,
+            JsonValueKind.Number when el.TryGetInt64(out var l) => l,
             JsonValueKind.Number => el.GetDouble(),
             JsonValueKind.True => true,
             JsonValueKind.False => false,
@@ -259,9 +262,11 @@ internal sealed record QueryStudioRequest(
     [property: JsonPropertyName("limit")] int? Limit);
 
 internal sealed record QueryStudioRawResponse(
-    [property: JsonPropertyName("columns")] List<string> Columns,
+    [property: JsonPropertyName("columns")]
+    List<string> Columns,
     [property: JsonPropertyName("rows")] List<Dictionary<string, object?>> Rows,
-    [property: JsonPropertyName("rowCount")] int RowCount);
+    [property: JsonPropertyName("rowCount")]
+    int RowCount);
 
 #endregion
 
@@ -282,47 +287,47 @@ internal static class QueryStudioPresets
         new("Error distribution",
             "SELECT error_type, COUNT(*) as count, MIN(first_seen) as first_seen, MAX(last_seen) as last_seen FROM errors GROUP BY error_type ORDER BY count DESC"),
         new("Service health",
-            "SELECT service_name, COUNT(*) as total_spans, COUNT(*) FILTER (WHERE status = 'ERROR') as errors, AVG(duration_ms) as avg_latency_ms FROM spans GROUP BY service_name ORDER BY errors DESC"),
+            "SELECT service_name, COUNT(*) as total_spans, COUNT(*) FILTER (WHERE status = 'ERROR') as errors, AVG(duration_ms) as avg_latency_ms FROM spans GROUP BY service_name ORDER BY errors DESC")
     ];
 
     public static readonly QueryStudioSchemaResponse FallbackSchema = new(
     [
-        new("spans",
+        new QueryStudioTable("spans",
         [
-            new("trace_id", "varchar"),
-            new("span_id", "varchar"),
-            new("parent_span_id", "varchar"),
-            new("operation_name", "varchar"),
-            new("service_name", "varchar"),
-            new("duration_ms", "double"),
-            new("start_time", "timestamp"),
-            new("end_time", "timestamp"),
-            new("status", "varchar"),
-            new("status_message", "varchar"),
-            new("kind", "varchar"),
+            new QueryStudioColumn("trace_id", "varchar"),
+            new QueryStudioColumn("span_id", "varchar"),
+            new QueryStudioColumn("parent_span_id", "varchar"),
+            new QueryStudioColumn("operation_name", "varchar"),
+            new QueryStudioColumn("service_name", "varchar"),
+            new QueryStudioColumn("duration_ms", "double"),
+            new QueryStudioColumn("start_time", "timestamp"),
+            new QueryStudioColumn("end_time", "timestamp"),
+            new QueryStudioColumn("status", "varchar"),
+            new QueryStudioColumn("status_message", "varchar"),
+            new QueryStudioColumn("kind", "varchar")
         ]),
-        new("logs",
+        new QueryStudioTable("logs",
         [
-            new("log_id", "varchar"),
-            new("timestamp", "timestamp"),
-            new("severity", "varchar"),
-            new("body", "varchar"),
-            new("service_name", "varchar"),
-            new("trace_id", "varchar"),
-            new("span_id", "varchar"),
+            new QueryStudioColumn("log_id", "varchar"),
+            new QueryStudioColumn("timestamp", "timestamp"),
+            new QueryStudioColumn("severity", "varchar"),
+            new QueryStudioColumn("body", "varchar"),
+            new QueryStudioColumn("service_name", "varchar"),
+            new QueryStudioColumn("trace_id", "varchar"),
+            new QueryStudioColumn("span_id", "varchar")
         ]),
-        new("errors",
+        new QueryStudioTable("errors",
         [
-            new("error_id", "varchar"),
-            new("error_type", "varchar"),
-            new("error_message", "varchar"),
-            new("status", "varchar"),
-            new("fingerprint", "varchar"),
-            new("first_seen", "timestamp"),
-            new("last_seen", "timestamp"),
-            new("event_count", "bigint"),
-            new("affected_services", "varchar"),
-        ]),
+            new QueryStudioColumn("error_id", "varchar"),
+            new QueryStudioColumn("error_type", "varchar"),
+            new QueryStudioColumn("error_message", "varchar"),
+            new QueryStudioColumn("status", "varchar"),
+            new QueryStudioColumn("fingerprint", "varchar"),
+            new QueryStudioColumn("first_seen", "timestamp"),
+            new QueryStudioColumn("last_seen", "timestamp"),
+            new QueryStudioColumn("event_count", "bigint"),
+            new QueryStudioColumn("affected_services", "varchar")
+        ])
     ]);
 }
 

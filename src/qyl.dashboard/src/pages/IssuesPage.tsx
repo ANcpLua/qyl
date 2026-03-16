@@ -116,7 +116,12 @@ function IssueRow({issue, onClick}: { issue: Issue; onClick: () => void }) {
             role="button"
             tabIndex={0}
             onClick={onClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
         >
             <div className="w-40 min-w-0">
                 <span className="text-sm font-bold text-brutal-white truncate block">

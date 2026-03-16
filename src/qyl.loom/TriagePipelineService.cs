@@ -15,9 +15,9 @@ public sealed partial class TriagePipelineService(
     IChatClient? llm = null)
     : BackgroundService
 {
+    private readonly double _autoThreshold = configuration.GetValue("QYL_TRIAGE_AUTO_THRESHOLD", 0.8);
     private readonly bool _enabled = configuration.GetValue("QYL_TRIAGE_ENABLED", true);
     private readonly int _intervalSeconds = configuration.GetValue("QYL_TRIAGE_INTERVAL_SECONDS", 30);
-    private readonly double _autoThreshold = configuration.GetValue("QYL_TRIAGE_AUTO_THRESHOLD", 0.8);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -51,10 +51,10 @@ public sealed partial class TriagePipelineService(
     /// </summary>
     internal async Task<TriageResult?> TriageSingleIssueAsync(string issueId, CancellationToken ct)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null) return null;
 
-        TriageResult result = llm is not null
+        var result = llm is not null
             ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
             : ScoreWithHeuristic(issue);
 
@@ -63,7 +63,7 @@ public sealed partial class TriagePipelineService(
 
         if (result.FixabilityScore >= _autoThreshold)
         {
-            FixRunRecord run = await orchestrator.CreateFixRunAsync(
+            var run = await orchestrator.CreateFixRunAsync(
                 issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
             await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
             LogAutoRouted(issueId, run.RunId);
@@ -74,17 +74,17 @@ public sealed partial class TriagePipelineService(
 
     internal async Task TriageUntriagedIssuesAsync(CancellationToken ct)
     {
-        IReadOnlyList<string> issueIds = await store.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);
+        var issueIds = await store.GetUntriagedIssueIdsAsync(20, ct).ConfigureAwait(false);
         if (issueIds.Count == 0) return;
 
         LogTriageBatchStart(issueIds.Count);
 
-        foreach (string issueId in issueIds)
+        foreach (var issueId in issueIds)
         {
-            IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+            var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null) continue;
 
-            TriageResult result = llm is not null
+            var result = llm is not null
                 ? await ScoreWithLlmAsync(issue, ct).ConfigureAwait(false)
                 : ScoreWithHeuristic(issue);
 
@@ -94,7 +94,7 @@ public sealed partial class TriagePipelineService(
             // Route auto-fixable issues to the autofix pipeline
             if (result.FixabilityScore >= _autoThreshold)
             {
-                FixRunRecord run = await orchestrator.CreateFixRunAsync(
+                var run = await orchestrator.CreateFixRunAsync(
                     issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
                 await store.UpdateTriageFixRunAsync(result.TriageId, run.RunId, ct).ConfigureAwait(false);
                 LogAutoRouted(issueId, run.RunId);
@@ -104,23 +104,23 @@ public sealed partial class TriagePipelineService(
 
     private async Task<TriageResult> ScoreWithLlmAsync(IssueSummary issue, CancellationToken ct)
     {
-        string prompt = $"""
-                         {TriagePrompts.FixabilityScoring}
-                         Type: {issue.ErrorType}
-                         Message: {issue.ErrorMessage ?? "N/A"}
-                         Occurrences: {issue.EventCount}
-                         First seen: {issue.FirstSeen:O}
-                         Last seen: {issue.LastSeen:O}
-                         Status: {issue.Status}
-                         """;
+        var prompt = $"""
+                      {TriagePrompts.FixabilityScoring}
+                      Type: {issue.ErrorType}
+                      Message: {issue.ErrorMessage ?? "N/A"}
+                      Occurrences: {issue.EventCount}
+                      First seen: {issue.FirstSeen:O}
+                      Last seen: {issue.LastSeen:O}
+                      Status: {issue.Status}
+                      """;
 
         try
         {
-            ChatResponse response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            string text = response.Text ?? "";
-            LlmTriageResponse? parsed = TryParseResponse(text);
+            var text = response.Text ?? "";
+            var parsed = TryParseResponse(text);
 
             if (parsed is not null)
             {
@@ -149,7 +149,7 @@ public sealed partial class TriagePipelineService(
     internal static TriageResult ScoreWithHeuristic(IssueSummary issue)
     {
         // Heuristic scoring based on error characteristics
-        double score = 0.3; // Base score
+        var score = 0.3; // Base score
 
         // High occurrence count suggests reproducible → more fixable
         if (issue.EventCount >= 10) score += 0.15;
@@ -162,7 +162,7 @@ public sealed partial class TriagePipelineService(
             score += 0.2;
 
         // Recent errors are more actionable
-        TimeSpan age = TimeProvider.System.GetUtcNow().UtcDateTime - issue.LastSeen;
+        var age = TimeProvider.System.GetUtcNow().UtcDateTime - issue.LastSeen;
         if (age < TimeSpan.FromHours(1)) score += 0.1;
         else if (age < TimeSpan.FromDays(1)) score += 0.05;
 
@@ -191,11 +191,11 @@ public sealed partial class TriagePipelineService(
     private static LlmTriageResponse? TryParseResponse(string text)
     {
         // Extract JSON from potential markdown code blocks
-        int jsonStart = text.IndexOf('{');
-        int jsonEnd = text.LastIndexOf('}');
+        var jsonStart = text.IndexOf('{');
+        var jsonEnd = text.LastIndexOf('}');
         if (jsonStart < 0 || jsonEnd <= jsonStart) return null;
 
-        ReadOnlySpan<char> json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
+        var json = text.AsSpan(jsonStart, jsonEnd - jsonStart + 1);
         try
         {
             return JsonSerializer.Deserialize(json, TriageJsonContext.Default.LlmTriageResponse);
@@ -227,7 +227,8 @@ public sealed partial class TriagePipelineService(
         Message = "Issue {IssueId} auto-routed to fix run {RunId}")]
     private partial void LogAutoRouted(string issueId, string runId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "LLM scoring failed for issue {IssueId}, falling back to heuristic")]
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "LLM scoring failed for issue {IssueId}, falling back to heuristic")]
     private partial void LogLlmScoringFailed(string issueId, Exception ex);
 }
 

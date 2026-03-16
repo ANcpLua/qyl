@@ -426,7 +426,7 @@ paths:
     post:
       operationId: ConfiguratorApi_createJob
       description: Create a generation job
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -600,7 +600,7 @@ paths:
     post:
       operationId: ConfiguratorApi_createProfile
       description: Create generation profile
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -746,7 +746,7 @@ paths:
     post:
       operationId: ConfiguratorApi_saveSelections
       description: Save generation selections
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -921,7 +921,7 @@ paths:
     post:
       operationId: DeploymentsApi_create
       description: Record new deployment
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -2077,7 +2077,7 @@ paths:
     post:
       operationId: LogsApi_aggregate
       description: Aggregate logs
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -2195,7 +2195,7 @@ paths:
     post:
       operationId: LogsApi_search
       description: Search logs with complex query
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -2404,7 +2404,7 @@ paths:
     post:
       operationId: MetricsApi_query
       description: Query metric data points
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -2511,7 +2511,7 @@ paths:
     post:
       operationId: OnboardingApi_startHandshake
       description: Start a new handshake session
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -2694,7 +2694,7 @@ paths:
     post:
       operationId: SearchApi_search
       description: Unified search across all entity types
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -3699,7 +3699,7 @@ paths:
     post:
       operationId: TracesApi_search
       description: Search traces
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4399,7 +4399,7 @@ paths:
     get:
       operationId: WorkspacesApi_getCurrent
       description: Get current workspace envelope
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4447,7 +4447,7 @@ paths:
     post:
       operationId: WorkspacesApi_heartbeat
       description: Register workspace heartbeat
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4562,7 +4562,7 @@ paths:
     post:
       operationId: WorkspacesApi_createProject
       description: Create a new project
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4724,7 +4724,7 @@ paths:
     get:
       operationId: health_check
       description: Health check endpoint
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4738,7 +4738,7 @@ paths:
     get:
       operationId: health_liveness
       description: Liveness probe
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -4750,7 +4750,7 @@ paths:
     get:
       operationId: health_readiness
       description: Readiness probe
-      parameters: []
+      parameters: [ ]
       responses:
         '200':
           description: The request has succeeded.
@@ -9361,7 +9361,7 @@ components:
 servers:
   - url: https://api.staging.qyl.dev
     description: QYL Staging API
-    variables: {}
+    variables: { }
   - url: https://api.qyl.dev
     description: QYL Production API
-    variables: {}
+    variables: { }

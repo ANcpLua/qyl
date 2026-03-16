@@ -1,3 +1,4 @@
+using System.ClientModel;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using OpenAI;
@@ -5,7 +6,7 @@ using OpenAI;
 namespace qyl.mcp.Agents;
 
 /// <summary>
-///     Creates an <see cref="IChatClient"/> for the use_qyl meta-agent from environment variables.
+///     Creates an <see cref="IChatClient" /> for the use_qyl meta-agent from environment variables.
 ///     Uses the OpenAI .NET SDK which supports OpenAI-compatible endpoints (Ollama, Anthropic, etc.).
 /// </summary>
 internal static class AgentLlmFactory
@@ -33,7 +34,7 @@ internal static class AgentLlmFactory
         if (endpoint is not null)
         {
             var options = new OpenAIClientOptions { Endpoint = new Uri(endpoint) };
-            openAiClient = new OpenAIClient(new System.ClientModel.ApiKeyCredential(apiKey), options);
+            openAiClient = new OpenAIClient(new ApiKeyCredential(apiKey), options);
         }
         else
         {

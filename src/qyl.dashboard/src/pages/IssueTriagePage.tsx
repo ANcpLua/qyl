@@ -38,7 +38,7 @@ function SkeletonCard() {
 }
 
 export function IssueTriagePage() {
-    const {issueId} = useParams<{issueId: string}>();
+    const {issueId} = useParams<{ issueId: string }>();
     const navigate = useNavigate();
 
     const {data: triage, isLoading, error} = useTriageResult(issueId);
@@ -96,7 +96,8 @@ export function IssueTriagePage() {
                     <CardContent className="py-12 text-center">
                         <Brain className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No triage assessment found for this issue</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Triage runs automatically when new issues are detected</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Triage runs automatically when new issues are
+                            detected</p>
                     </CardContent>
                 </Card>
             )}
@@ -175,7 +176,8 @@ export function IssueTriagePage() {
                                 <Sparkles className="w-4 h-4 text-signal-orange"/>
                                 <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em]">AI SUMMARY</h2>
                             </div>
-                            <div className="border-2 border-brutal-zinc bg-brutal-dark p-4 font-mono text-sm text-brutal-white whitespace-pre-wrap leading-relaxed">
+                            <div
+                                className="border-2 border-brutal-zinc bg-brutal-dark p-4 font-mono text-sm text-brutal-white whitespace-pre-wrap leading-relaxed">
                                 {triage.ai_summary}
                             </div>
                         </div>

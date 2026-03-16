@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
@@ -22,17 +24,18 @@ internal sealed class AgentHandoffTools(HttpClient http)
                  coding agent to implement the solution.
                  """)]
     public async Task<string> GetPendingHandoffsAsync(
-        [Description("Maximum number of handoffs to return (default: 10)")] int? limit = null,
+        [Description("Maximum number of handoffs to return (default: 10)")]
+        int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit ?? 10, 1, 100);
-            using HttpResponseMessage resp = await http
+            var take = Math.Clamp(limit ?? 10, 1, 100);
+            using var resp = await http
                 .GetAsync($"/api/v1/handoffs/pending?limit={take}", ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatHandoffList(json, "Pending Handoffs");
         });
 
@@ -48,11 +51,11 @@ internal sealed class AgentHandoffTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .GetAsync($"/api/v1/handoffs/{Uri.EscapeDataString(handoffId)}/context", ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Handoff '{handoffId}' not found.";
 
             resp.EnsureSuccessStatusCode();
@@ -67,18 +70,19 @@ internal sealed class AgentHandoffTools(HttpClient http)
                  After accepting, implement the fix and submit the result.
                  """)]
     public async Task<string> AcceptHandoffAsync(
-        [Description("The handoff ID to accept")] string handoffId,
+        [Description("The handoff ID to accept")]
+        string handoffId,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .PostAsync($"/api/v1/handoffs/{Uri.EscapeDataString(handoffId)}/accept", null, ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            if (resp.StatusCode == HttpStatusCode.Conflict)
                 return $"Handoff '{handoffId}' is not in 'pending' status or was already claimed.";
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Handoff '{handoffId}' not found.";
 
             resp.EnsureSuccessStatusCode();
@@ -94,16 +98,17 @@ internal sealed class AgentHandoffTools(HttpClient http)
                  """)]
     public async Task<string> SubmitAgentFixAsync(
         [Description("The handoff ID")] string handoffId,
-        [Description("JSON describing the fix result (files changed, diffs, PR URL, etc.)")] string resultJson,
+        [Description("JSON describing the fix result (files changed, diffs, PR URL, etc.)")]
+        string resultJson,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http.PostAsJsonAsync(
+            using var resp = await http.PostAsJsonAsync(
                 $"/api/v1/handoffs/{Uri.EscapeDataString(handoffId)}/submit",
                 new { resultJson },
                 ct).ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            if (resp.StatusCode == HttpStatusCode.Conflict)
                 return $"Handoff '{handoffId}' is not in 'accepted' status.";
 
             resp.EnsureSuccessStatusCode();
@@ -118,16 +123,17 @@ internal sealed class AgentHandoffTools(HttpClient http)
                  """)]
     public async Task<string> FailHandoffAsync(
         [Description("The handoff ID")] string handoffId,
-        [Description("Reason the fix could not be completed")] string errorMessage,
+        [Description("Reason the fix could not be completed")]
+        string errorMessage,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http.PostAsJsonAsync(
+            using var resp = await http.PostAsJsonAsync(
                 $"/api/v1/handoffs/{Uri.EscapeDataString(handoffId)}/fail",
                 new { errorMessage },
                 ct).ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            if (resp.StatusCode == HttpStatusCode.Conflict)
                 return $"Handoff '{handoffId}' is not in a claimable status.";
 
             resp.EnsureSuccessStatusCode();
@@ -138,28 +144,28 @@ internal sealed class AgentHandoffTools(HttpClient http)
     {
         try
         {
-            JsonNode? root = JsonNode.Parse(json);
-            JsonArray? items = root?["items"]?.AsArray();
+            var root = JsonNode.Parse(json);
+            var items = root?["items"]?.AsArray();
             if (items is null || items.Count == 0)
                 return "No pending handoffs available.";
 
             StringBuilder sb = new();
             sb.AppendLine($"## {title}");
             sb.AppendLine();
-            foreach (JsonNode? item in items)
+            foreach (var item in items)
             {
                 if (item is null) continue;
-                string id = item["handoffId"]?.ToString() ?? "?";
-                string runId = item["runId"]?.ToString() ?? "?";
-                string agent = item["agentType"]?.ToString() ?? "?";
-                string status = item["status"]?.ToString() ?? "?";
-                string time = item["createdAt"]?.ToString() ?? "?";
+                var id = item["handoffId"]?.ToString() ?? "?";
+                var runId = item["runId"]?.ToString() ?? "?";
+                var agent = item["agentType"]?.ToString() ?? "?";
+                var status = item["status"]?.ToString() ?? "?";
+                var time = item["createdAt"]?.ToString() ?? "?";
                 sb.AppendLine($"- **{id}** | run={runId} | agent={agent} | status={status} | {time}");
             }
 
             return sb.ToString();
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return json;
         }

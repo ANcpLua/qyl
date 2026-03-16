@@ -295,7 +295,7 @@ public sealed record ChatRequest
 
     /// <summary>
     ///     Track routing mode for this request.
-    ///     Defaults to <see cref="TrackMode.Auto"/>.
+    ///     Defaults to <see cref="TrackMode.Auto" />.
     /// </summary>
     public TrackMode Mode { get; init; } = TrackMode.Auto;
 
@@ -346,7 +346,7 @@ public sealed record WorkflowRunRequest
 
     /// <summary>
     ///     Track routing mode for this execution.
-    ///     Defaults to <see cref="TrackMode.Auto"/>.
+    ///     Defaults to <see cref="TrackMode.Auto" />.
     /// </summary>
     public TrackMode Mode { get; init; } = TrackMode.Auto;
 

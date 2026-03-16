@@ -44,15 +44,15 @@ For each finding:
 
 ### Resolved
 
-| File:Line | Severity | Fix | Result |
-|-----------|----------|-----|--------|
-| src/Checkout.cs:142 | HIGH | Added guard for null path | Applied |
+| File:Line           | Severity | Fix                       | Result  |
+|---------------------|----------|---------------------------|---------|
+| src/Checkout.cs:142 | HIGH     | Added guard for null path | Applied |
 
 ### Deferred
 
-| File:Line | Severity | Reason |
-|-----------|----------|--------|
-| src/Auth.cs:55 | MEDIUM | Behavioral contract change needed | Deferred |
+| File:Line      | Severity | Reason                            |
+|----------------|----------|-----------------------------------|
+| src/Auth.cs:55 | MEDIUM   | Behavioral contract change needed | Deferred |
 
 Include totals and next actions (re-run review, manual inspection, etc.).
 

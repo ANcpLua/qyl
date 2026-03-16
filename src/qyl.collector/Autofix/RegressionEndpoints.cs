@@ -13,7 +13,7 @@ public static class RegressionEndpoints
             DuckDbStore store, TriagePipelineService triagePipeline,
             CancellationToken ct) =>
         {
-            IReadOnlyList<string> regressedIssueIds = await store
+            var regressedIssueIds = await store
                 .DetectRegressionsAsync(serviceName, version, ct).ConfigureAwait(false);
 
             if (regressedIssueIds.Count > 0)
@@ -26,8 +26,8 @@ public static class RegressionEndpoints
             int? limit, DateTime? since,
             DuckDbStore store, CancellationToken ct) =>
         {
-            int clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
-            IReadOnlyList<RegressionEventRow> items = await store
+            var clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
+            var items = await store
                 .GetRegressionEventsAsync(clampedLimit, since, ct).ConfigureAwait(false);
 
             return Results.Ok(new
@@ -49,8 +49,8 @@ public static class RegressionEndpoints
             string issueId, int? limit,
             DuckDbStore store, CancellationToken ct) =>
         {
-            int clampedLimit = Math.Clamp(limit ?? 20, 1, 100);
-            IReadOnlyList<RegressionEventRow> items = await store
+            var clampedLimit = Math.Clamp(limit ?? 20, 1, 100);
+            var items = await store
                 .GetIssueRegressionEventsAsync(issueId, clampedLimit, ct).ConfigureAwait(false);
 
             return Results.Ok(new

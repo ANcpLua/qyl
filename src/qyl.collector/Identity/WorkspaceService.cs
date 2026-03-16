@@ -43,7 +43,7 @@ public sealed partial class WorkspaceService(DuckDbStore store, ILogger<Workspac
         string workspaceId,
         CancellationToken ct = default)
     {
-        if (await store.GetWorkspaceAsync(workspaceId, ct).ConfigureAwait(false) is not { })
+        if (await store.GetWorkspaceAsync(workspaceId, ct).ConfigureAwait(false) is null)
             return false;
 
         await store.UpdateHeartbeatAsync(workspaceId, ct).ConfigureAwait(false);

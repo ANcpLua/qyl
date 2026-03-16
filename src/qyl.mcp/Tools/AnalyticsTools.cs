@@ -52,7 +52,7 @@ public sealed class AnalyticsTools(HttpClient client)
             if (!string.IsNullOrEmpty(model)) url += $"&model={Uri.EscapeDataString(model)}";
 
             var response = await client.GetFromJsonAsync<ConversationListDto>(
-                url, qyl.mcp.Tools.AnalyticsJsonContext.Default.ConversationListDto).ConfigureAwait(false);
+                url, AnalyticsJsonContext.Default.ConversationListDto).ConfigureAwait(false);
 
             if (response?.Conversations is null || response.Conversations.Count is 0)
                 return "No conversations found for the specified period.";
@@ -103,7 +103,7 @@ public sealed class AnalyticsTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ConversationDetailDto>(
                 $"/api/v1/analytics/conversations/{Uri.EscapeDataString(conversationId)}",
-                qyl.mcp.Tools.AnalyticsJsonContext.Default.ConversationDetailDto).ConfigureAwait(false);
+                AnalyticsJsonContext.Default.ConversationDetailDto).ConfigureAwait(false);
 
             if (response?.Turns is null || response.Turns.Count is 0)
                 return $"Conversation '{conversationId}' not found.";
@@ -161,7 +161,10 @@ public sealed class AnalyticsTools(HttpClient client)
         int offset = 0) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            if (await client.GetFromJsonAsync<CoverageGapsDto>($"/api/v1/analytics/coverage-gaps?period={Uri.EscapeDataString(period)}&offset={offset}", qyl.mcp.Tools.AnalyticsJsonContext.Default.CoverageGapsDto).ConfigureAwait(false) is not { } response)
+            if (await client
+                    .GetFromJsonAsync<CoverageGapsDto>(
+                        $"/api/v1/analytics/coverage-gaps?period={Uri.EscapeDataString(period)}&offset={offset}",
+                        AnalyticsJsonContext.Default.CoverageGapsDto).ConfigureAwait(false) is not { } response)
                 return "No coverage gap data available.";
 
             var sb = new StringBuilder();
@@ -212,7 +215,10 @@ public sealed class AnalyticsTools(HttpClient client)
         int minConversations = 3) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            if (await client.GetFromJsonAsync<TopQuestionsDto>($"/api/v1/analytics/top-questions?period={Uri.EscapeDataString(period)}&offset={offset}&minConversations={minConversations}", qyl.mcp.Tools.AnalyticsJsonContext.Default.TopQuestionsDto).ConfigureAwait(false) is not { } response)
+            if (await client
+                    .GetFromJsonAsync<TopQuestionsDto>(
+                        $"/api/v1/analytics/top-questions?period={Uri.EscapeDataString(period)}&offset={offset}&minConversations={minConversations}",
+                        AnalyticsJsonContext.Default.TopQuestionsDto).ConfigureAwait(false) is not { } response)
                 return "No question data available.";
 
             var sb = new StringBuilder();
@@ -259,7 +265,7 @@ public sealed class AnalyticsTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<SourceAnalyticsDto>(
                 $"/api/v1/analytics/source-analytics?period={Uri.EscapeDataString(period)}&offset={offset}",
-                qyl.mcp.Tools.AnalyticsJsonContext.Default.SourceAnalyticsDto).ConfigureAwait(false);
+                AnalyticsJsonContext.Default.SourceAnalyticsDto).ConfigureAwait(false);
 
             if (response?.Sources is null || response.Sources.Count is 0)
                 return "No source analytics data available.";
@@ -303,7 +309,7 @@ public sealed class AnalyticsTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<SatisfactionDto>(
                 $"/api/v1/analytics/satisfaction?period={Uri.EscapeDataString(period)}&offset={offset}",
-                qyl.mcp.Tools.AnalyticsJsonContext.Default.SatisfactionDto).ConfigureAwait(false);
+                AnalyticsJsonContext.Default.SatisfactionDto).ConfigureAwait(false);
 
             if (response is null || response.TotalFeedback is 0)
                 return "No satisfaction data available for the specified period.";
@@ -364,7 +370,7 @@ public sealed class AnalyticsTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<UserListDto>(
                 $"/api/v1/analytics/users?period={Uri.EscapeDataString(period)}&offset={offset}&page={page}&pageSize={pageSize}",
-                qyl.mcp.Tools.AnalyticsJsonContext.Default.UserListDto).ConfigureAwait(false);
+                AnalyticsJsonContext.Default.UserListDto).ConfigureAwait(false);
 
             if (response?.Users is null || response.Users.Count is 0)
                 return "No user data found for the specified period.";
@@ -407,7 +413,7 @@ public sealed class AnalyticsTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<UserJourneyDto>(
                 $"/api/v1/analytics/users/{Uri.EscapeDataString(userId)}/journey",
-                qyl.mcp.Tools.AnalyticsJsonContext.Default.UserJourneyDto).ConfigureAwait(false);
+                AnalyticsJsonContext.Default.UserJourneyDto).ConfigureAwait(false);
 
             if (response?.Conversations is null || response.Conversations.Count is 0)
                 return $"No journey data found for user '{userId}'.";

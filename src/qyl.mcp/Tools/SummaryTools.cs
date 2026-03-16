@@ -11,7 +11,7 @@ namespace qyl.mcp.Tools;
 /// <summary>
 ///     MCP tools that fetch observability data via HTTP then feed it to an LLM
 ///     for structured summarization. Combines the HTTP-delegating pattern from
-///     <see cref="GenAiTools"/> with the IChatClient pattern from <see cref="UseQylTools"/>.
+///     <see cref="GenAiTools" /> with the IChatClient pattern from <see cref="UseQylTools" />.
 /// </summary>
 [McpServerToolType]
 internal sealed class SummaryTools(HttpClient client, IConfiguration config)
@@ -36,21 +36,22 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  Returns: AI-generated error analysis
                  """)]
     public Task<string> SummarizeErrorAsync(
-        [Description("The error issue ID to summarize")] string issueId,
+        [Description("The error issue ID to summarize")]
+        string issueId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             // Fetch error data
-            SummaryIssueDto? issue = await client.GetFromJsonAsync<SummaryIssueDto>(
+            var issue = await client.GetFromJsonAsync<SummaryIssueDto>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}",
-                qyl.mcp.Tools.SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
+                SummaryJsonContext.Default.SummaryIssueDto, ct).ConfigureAwait(false);
 
             if (issue is null)
                 return $"Error issue '{issueId}' not found.";
 
-            SummaryEventsResponse? eventsResponse = await client.GetFromJsonAsync<SummaryEventsResponse>(
+            var eventsResponse = await client.GetFromJsonAsync<SummaryEventsResponse>(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=5",
-                qyl.mcp.Tools.SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
+                SummaryJsonContext.Default.SummaryEventsResponse, ct).ConfigureAwait(false);
 
             // Build data context for LLM
             StringBuilder sb = new();
@@ -64,7 +65,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             if (eventsResponse?.Items is { Count: > 0 })
             {
                 sb.AppendLine("\nRecent Events:");
-                foreach (SummaryEventDto evt in eventsResponse.Items)
+                foreach (var evt in eventsResponse.Items)
                 {
                     sb.AppendLine($"- [{evt.Timestamp:u}] {evt.Message}");
                     if (evt.StackTrace is not null)
@@ -81,7 +82,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 
@@ -103,14 +104,15 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  Returns: AI-generated trace analysis
                  """)]
     public Task<string> SummarizeTraceAsync(
-        [Description("The trace ID to summarize")] string traceId,
+        [Description("The trace ID to summarize")]
+        string traceId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             // Fetch trace data (list of spans)
-            List<TraceSpanDto>? spans = await client.GetFromJsonAsync<List<TraceSpanDto>>(
+            var spans = await client.GetFromJsonAsync<List<TraceSpanDto>>(
                 $"/api/v1/traces/{Uri.EscapeDataString(traceId)}",
-                qyl.mcp.Tools.SummaryJsonContext.Default.ListTraceSpanDto, ct).ConfigureAwait(false);
+                SummaryJsonContext.Default.ListTraceSpanDto, ct).ConfigureAwait(false);
 
             if (spans is null || spans.Count is 0)
                 return $"Trace '{traceId}' not found or contains no spans.";
@@ -120,21 +122,21 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             sb.AppendLine($"Trace ID: {traceId}");
             sb.AppendLine($"Total Spans: {spans.Count}");
 
-            long minStart = spans.Min(static s => s.StartTimeUnixNano);
-            long maxEnd = spans.Max(static s => s.StartTimeUnixNano + s.DurationNs);
-            double totalDurationMs = (maxEnd - minStart) / 1_000_000.0;
+            var minStart = spans.Min(static s => s.StartTimeUnixNano);
+            var maxEnd = spans.Max(static s => s.StartTimeUnixNano + s.DurationNs);
+            var totalDurationMs = (maxEnd - minStart) / 1_000_000.0;
             sb.AppendLine($"Total Duration: {totalDurationMs:F1}ms");
 
-            int errorCount = spans.Count(static s => s.StatusCode == 2);
+            var errorCount = spans.Count(static s => s.StatusCode == 2);
             if (errorCount > 0)
                 sb.AppendLine($"Error Spans: {errorCount}");
 
             sb.AppendLine("\nSpans:");
-            foreach (TraceSpanDto span in spans.OrderBy(static s => s.StartTimeUnixNano))
+            foreach (var span in spans.OrderBy(static s => s.StartTimeUnixNano))
             {
-                double durationMs = span.DurationNs / 1_000_000.0;
-                string statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
-                string parentInfo = span.ParentSpanId is not null ? $" (parent: {span.ParentSpanId})" : " (root)";
+                var durationMs = span.DurationNs / 1_000_000.0;
+                var statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
+                var parentInfo = span.ParentSpanId is not null ? $" (parent: {span.ParentSpanId})" : " (root)";
 
                 sb.AppendLine($"- {span.Name}{statusLabel} — {durationMs:F1}ms");
                 sb.AppendLine($"  Service: {span.ServiceName ?? "unknown"}, SpanID: {span.SpanId}{parentInfo}");
@@ -152,7 +154,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 
@@ -174,21 +176,22 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                  Returns: AI-generated session analysis
                  """)]
     public Task<string> SummarizeSessionAsync(
-        [Description("The session ID to summarize")] string sessionId,
+        [Description("The session ID to summarize")]
+        string sessionId,
         CancellationToken ct = default) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             // Fetch session metadata and spans concurrently
-            Task<SessionDto?> sessionTask = client.GetFromJsonAsync<SessionDto>(
+            var sessionTask = client.GetFromJsonAsync<SessionDto>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}",
-                qyl.mcp.Tools.SummaryJsonContext.Default.SessionDto, ct);
+                SummaryJsonContext.Default.SessionDto, ct);
 
-            Task<SessionSpansResponse?> spansTask = client.GetFromJsonAsync<SessionSpansResponse>(
+            var spansTask = client.GetFromJsonAsync<SessionSpansResponse>(
                 $"/api/v1/sessions/{Uri.EscapeDataString(sessionId)}/spans?limit=50",
-                qyl.mcp.Tools.SummaryJsonContext.Default.SessionSpansResponse, ct);
+                SummaryJsonContext.Default.SessionSpansResponse, ct);
 
-            SessionDto? session = await sessionTask.ConfigureAwait(false);
-            SessionSpansResponse? spansResponse = await spansTask.ConfigureAwait(false);
+            var session = await sessionTask.ConfigureAwait(false);
+            var spansResponse = await spansTask.ConfigureAwait(false);
 
             if (session is null)
                 return $"Session '{sessionId}' not found.";
@@ -208,10 +211,10 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
             if (spansResponse?.Items is { Count: > 0 })
             {
                 sb.AppendLine($"\nSpans ({spansResponse.Items.Count} shown):");
-                foreach (SessionSpanDto span in spansResponse.Items)
+                foreach (var span in spansResponse.Items)
                 {
-                    double durationMs = span.DurationNs / 1_000_000.0;
-                    string statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
+                    var durationMs = span.DurationNs / 1_000_000.0;
+                    var statusLabel = span.StatusCode == 2 ? " [ERROR]" : "";
 
                     sb.AppendLine($"- {span.Name}{statusLabel} — {durationMs:F1}ms");
                     if (span.ServiceName is not null)
@@ -230,7 +233,7 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
                 new(ChatRole.User, sb.ToString())
             ];
 
-            ChatResponse response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
+            var response = await _llm.GetResponseAsync(messages, cancellationToken: ct).ConfigureAwait(false);
             return response.Text ?? "Summary generation produced no output.";
         });
 
@@ -242,51 +245,82 @@ internal sealed class SummaryTools(HttpClient client, IConfiguration config)
 
 internal sealed record SummaryIssueDto(
     [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("error_type")] string ErrorType,
-    [property: JsonPropertyName("category")] string Category,
+    [property: JsonPropertyName("error_type")]
+    string ErrorType,
+    [property: JsonPropertyName("category")]
+    string Category,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("priority")] string Priority,
-    [property: JsonPropertyName("occurrence_count")] long OccurrenceCount,
-    [property: JsonPropertyName("affected_users_count")] int AffectedUsersCount,
-    [property: JsonPropertyName("first_seen_at")] DateTime FirstSeenAt,
-    [property: JsonPropertyName("last_seen_at")] DateTime LastSeenAt,
-    [property: JsonPropertyName("culprit")] string? Culprit);
+    [property: JsonPropertyName("priority")]
+    string Priority,
+    [property: JsonPropertyName("occurrence_count")]
+    long OccurrenceCount,
+    [property: JsonPropertyName("affected_users_count")]
+    int AffectedUsersCount,
+    [property: JsonPropertyName("first_seen_at")]
+    DateTime FirstSeenAt,
+    [property: JsonPropertyName("last_seen_at")]
+    DateTime LastSeenAt,
+    [property: JsonPropertyName("culprit")]
+    string? Culprit);
 
 internal sealed record SummaryEventDto(
-    [property: JsonPropertyName("timestamp")] DateTime Timestamp,
-    [property: JsonPropertyName("message")] string? Message,
-    [property: JsonPropertyName("stack_trace")] string? StackTrace);
+    [property: JsonPropertyName("timestamp")]
+    DateTime Timestamp,
+    [property: JsonPropertyName("message")]
+    string? Message,
+    [property: JsonPropertyName("stack_trace")]
+    string? StackTrace);
 
 internal sealed record SummaryEventsResponse(
     [property: JsonPropertyName("items")] List<SummaryEventDto>? Items);
 
 internal sealed record TraceSpanDto(
-    [property: JsonPropertyName("trace_id")] string TraceId,
-    [property: JsonPropertyName("span_id")] string SpanId,
-    [property: JsonPropertyName("parent_span_id")] string? ParentSpanId,
+    [property: JsonPropertyName("trace_id")]
+    string TraceId,
+    [property: JsonPropertyName("span_id")]
+    string SpanId,
+    [property: JsonPropertyName("parent_span_id")]
+    string? ParentSpanId,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")] long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")] long DurationNs,
-    [property: JsonPropertyName("status_code")] int StatusCode,
-    [property: JsonPropertyName("status_message")] string? StatusMessage);
+    [property: JsonPropertyName("service_name")]
+    string? ServiceName,
+    [property: JsonPropertyName("start_time_unix_nano")]
+    long StartTimeUnixNano,
+    [property: JsonPropertyName("duration_ns")]
+    long DurationNs,
+    [property: JsonPropertyName("status_code")]
+    int StatusCode,
+    [property: JsonPropertyName("status_message")]
+    string? StatusMessage);
 
 internal sealed record SessionDto(
-    [property: JsonPropertyName("session_id")] string SessionId,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time")] DateTime? StartTime,
-    [property: JsonPropertyName("end_time")] DateTime? EndTime,
-    [property: JsonPropertyName("span_count")] int SpanCount,
-    [property: JsonPropertyName("error_count")] int ErrorCount);
+    [property: JsonPropertyName("session_id")]
+    string SessionId,
+    [property: JsonPropertyName("service_name")]
+    string? ServiceName,
+    [property: JsonPropertyName("start_time")]
+    DateTime? StartTime,
+    [property: JsonPropertyName("end_time")]
+    DateTime? EndTime,
+    [property: JsonPropertyName("span_count")]
+    int SpanCount,
+    [property: JsonPropertyName("error_count")]
+    int ErrorCount);
 
 internal sealed record SessionSpanDto(
-    [property: JsonPropertyName("span_id")] string SpanId,
+    [property: JsonPropertyName("span_id")]
+    string SpanId,
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("service_name")] string? ServiceName,
-    [property: JsonPropertyName("start_time_unix_nano")] long StartTimeUnixNano,
-    [property: JsonPropertyName("duration_ns")] long DurationNs,
-    [property: JsonPropertyName("status_code")] int StatusCode,
-    [property: JsonPropertyName("status_message")] string? StatusMessage);
+    [property: JsonPropertyName("service_name")]
+    string? ServiceName,
+    [property: JsonPropertyName("start_time_unix_nano")]
+    long StartTimeUnixNano,
+    [property: JsonPropertyName("duration_ns")]
+    long DurationNs,
+    [property: JsonPropertyName("status_code")]
+    int StatusCode,
+    [property: JsonPropertyName("status_message")]
+    string? StatusMessage);
 
 internal sealed record SessionSpansResponse(
     [property: JsonPropertyName("items")] List<SessionSpanDto>? Items);

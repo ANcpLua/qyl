@@ -6,13 +6,13 @@ namespace Qyl.Collector.Query;
 /// </summary>
 internal static class QueryEndpoints
 {
+    private const int DefaultLimit = 1000;
+    private const int MaxLimit = 10_000;
+
     private static readonly FrozenSet<string> BannedTokens = new[]
     {
         "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "TRUNCATE", "ATTACH", "DETACH", "COPY"
     }.ToFrozenSet(StringComparer.OrdinalIgnoreCase);
-
-    private const int DefaultLimit = 1000;
-    private const int MaxLimit = 10_000;
 
     public static WebApplication MapQueryEndpoints(this WebApplication app)
     {
@@ -29,8 +29,8 @@ internal static class QueryEndpoints
         if (string.IsNullOrWhiteSpace(request.Sql))
             return Results.BadRequest(new { error = "SQL query is required." });
 
-        string trimmed = request.Sql.Trim();
-        string upper = trimmed.ToUpperInvariant();
+        var trimmed = request.Sql.Trim();
+        var upper = trimmed.ToUpperInvariant();
 
         // Must start with SELECT or WITH (CTEs)
         if (!upper.StartsWithOrdinal("SELECT") &&
@@ -40,8 +40,8 @@ internal static class QueryEndpoints
         }
 
         // Scan for banned keywords
-        string[] tokens = upper.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        foreach (string token in tokens)
+        var tokens = upper.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        foreach (var token in tokens)
         {
             if (BannedTokens.Contains(token))
             {
@@ -50,19 +50,19 @@ internal static class QueryEndpoints
         }
 
         // Apply safety LIMIT
-        string sql = ApplySafetyLimit(trimmed, upper, request.Limit);
+        var sql = ApplySafetyLimit(trimmed, upper, request.Limit);
 
         try
         {
-            await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-            await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+            await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+            await using var cmd = lease.Connection.CreateCommand();
             cmd.CommandText = sql;
 
-            await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
 
             // Extract column names
             List<string> columns = new(reader.FieldCount);
-            for (int i = 0; i < reader.FieldCount; i++)
+            for (var i = 0; i < reader.FieldCount; i++)
             {
                 columns.Add(reader.GetName(i));
             }
@@ -72,13 +72,14 @@ internal static class QueryEndpoints
             while (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
                 Dictionary<string, object?> row = new(reader.FieldCount, StringComparer.Ordinal);
-                for (int i = 0; i < reader.FieldCount; i++)
+                for (var i = 0; i < reader.FieldCount; i++)
                 {
-                    object? value = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
+                    var value = await reader.IsDBNullAsync(i, ct).ConfigureAwait(false)
                         ? null
                         : NormalizeValue(reader.GetValue(i));
                     row[columns[i]] = value;
                 }
+
                 rows.Add(row);
             }
 
@@ -94,25 +95,25 @@ internal static class QueryEndpoints
     {
         if (!upper.ContainsOrdinal("LIMIT"))
         {
-            int limit = Math.Clamp(requestedLimit ?? DefaultLimit, 1, MaxLimit);
+            var limit = Math.Clamp(requestedLimit ?? DefaultLimit, 1, MaxLimit);
             return $"{sql} LIMIT {limit}";
         }
 
         // SQL already contains LIMIT — cap it to MaxLimit
         // Find the last LIMIT token and its numeric argument
-        int limitIndex = upper.LastIndexOf("LIMIT", StringComparison.Ordinal);
-        string afterLimit = sql[(limitIndex + 5)..].Trim();
+        var limitIndex = upper.LastIndexOf("LIMIT", StringComparison.Ordinal);
+        var afterLimit = sql[(limitIndex + 5)..].Trim();
 
         // Extract the numeric value after LIMIT
-        int endIndex = 0;
+        var endIndex = 0;
         while (endIndex < afterLimit.Length && char.IsDigit(afterLimit[endIndex]))
             endIndex++;
 
-        if (endIndex > 0 && int.TryParse(afterLimit[..endIndex], CultureInfo.InvariantCulture, out int existingLimit))
+        if (endIndex > 0 && int.TryParse(afterLimit[..endIndex], CultureInfo.InvariantCulture, out var existingLimit))
         {
             if (existingLimit > MaxLimit)
             {
-                string capped = sql[..(limitIndex + 5)] + " " + MaxLimit + afterLimit[endIndex..];
+                var capped = sql[..(limitIndex + 5)] + " " + MaxLimit + afterLimit[endIndex..];
                 return capped;
             }
         }

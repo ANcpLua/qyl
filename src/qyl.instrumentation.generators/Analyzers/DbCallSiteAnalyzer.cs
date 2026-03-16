@@ -37,17 +37,18 @@ internal static class DbCallSiteAnalyzer
     ///         because it requires the <see cref="Compilation" /> to resolve the DbCommand symbol.
     ///     </para>
     /// </remarks>
-    private static readonly (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[] Matchers =
-    [
-        ("ExecuteReader", Invoke.Method("ExecuteReader"), DbCommandMethod.ExecuteReader, false),
-        ("ExecuteReaderAsync", Invoke.Method("ExecuteReaderAsync"), DbCommandMethod.ExecuteReader, true),
-        ("ExecuteNonQuery", Invoke.Method("ExecuteNonQuery"), DbCommandMethod.ExecuteNonQuery, false),
-        ("ExecuteNonQueryAsync", Invoke.Method("ExecuteNonQueryAsync"), DbCommandMethod.ExecuteNonQuery, true),
-        ("ExecuteScalar", Invoke.Method("ExecuteScalar"), DbCommandMethod.ExecuteScalar, false),
-        ("ExecuteScalarAsync", Invoke.Method("ExecuteScalarAsync"), DbCommandMethod.ExecuteScalar, true),
-        // Protected virtual method exposed by some providers
-        ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
-    ];
+    private static readonly (string MethodName, InvocationMatcher Matcher, DbCommandMethod Method, bool IsAsync)[]
+        Matchers =
+        [
+            ("ExecuteReader", Invoke.Method("ExecuteReader"), DbCommandMethod.ExecuteReader, false),
+            ("ExecuteReaderAsync", Invoke.Method("ExecuteReaderAsync"), DbCommandMethod.ExecuteReader, true),
+            ("ExecuteNonQuery", Invoke.Method("ExecuteNonQuery"), DbCommandMethod.ExecuteNonQuery, false),
+            ("ExecuteNonQueryAsync", Invoke.Method("ExecuteNonQueryAsync"), DbCommandMethod.ExecuteNonQuery, true),
+            ("ExecuteScalar", Invoke.Method("ExecuteScalar"), DbCommandMethod.ExecuteScalar, false),
+            ("ExecuteScalarAsync", Invoke.Method("ExecuteScalarAsync"), DbCommandMethod.ExecuteScalar, true),
+            // Protected virtual method exposed by some providers
+            ("ExecuteDbDataReaderAsync", Invoke.Method("ExecuteDbDataReaderAsync"), DbCommandMethod.ExecuteReader, true)
+        ];
 
     private static readonly HashSet<string> CandidateMethodNames =
     [
@@ -84,7 +85,8 @@ internal static class DbCallSiteAnalyzer
         if (AnalyzerHelpers.IsAlreadyIntercepted(context, cancellationToken))
             return null;
 
-        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken)
+            is not { } interceptLocation)
             return null;
 
         return new DbCallSite(

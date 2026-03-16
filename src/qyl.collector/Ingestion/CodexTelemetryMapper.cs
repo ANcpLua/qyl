@@ -369,12 +369,10 @@ public static class CodexTelemetryMapper
         return result.Count > 0 ? result : null;
     }
 
-    private static bool HasCodexAttributesFromJson(string? attributesJson)
-    {
-        return !string.IsNullOrEmpty(attributesJson) &&
-               // Quick string check before parsing
-               attributesJson.ContainsOrdinal("codex.");
-    }
+    private static bool HasCodexAttributesFromJson(string? attributesJson) =>
+        !string.IsNullOrEmpty(attributesJson) &&
+        // Quick string check before parsing
+        attributesJson.ContainsOrdinal("codex.");
 
     private static GenAiFields ExtractGenAiFields(IReadOnlyDictionary<string, string> attributes) =>
         new(
@@ -389,10 +387,7 @@ public static class CodexTelemetryMapper
         );
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long? ParseNullableLong(string? value)
-    {
-        return string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
-    }
+    private static long? ParseNullableLong(string? value) => string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
 
     private readonly record struct GenAiFields(
         string? ProviderName,

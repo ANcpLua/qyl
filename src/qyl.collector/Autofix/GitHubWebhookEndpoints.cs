@@ -16,8 +16,8 @@ public static class GitHubWebhookEndpoints
         {
             try
             {
-                int clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
-                IReadOnlyList<GitHubEventRecord> items = await store
+                var clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
+                var items = await store
                     .GetGitHubEventsAsync(clampedLimit, eventType, repoFullName, ct).ConfigureAwait(false);
                 return Results.Ok(new { items, total = items.Count });
             }
@@ -44,9 +44,9 @@ public static class GitHubWebhookEndpoints
         }
 
         // 2. Read GitHub headers
-        string? signatureHeader = request.Headers["X-Hub-Signature-256"].ToString();
-        string? eventType = request.Headers["X-GitHub-Event"].ToString();
-        string? deliveryId = request.Headers["X-GitHub-Delivery"].ToString();
+        var signatureHeader = request.Headers["X-Hub-Signature-256"].ToString();
+        var eventType = request.Headers["X-GitHub-Event"].ToString();
+        var deliveryId = request.Headers["X-GitHub-Delivery"].ToString();
 
         if (string.IsNullOrEmpty(signatureHeader))
             signatureHeader = null;
@@ -56,7 +56,7 @@ public static class GitHubWebhookEndpoints
             deliveryId = Guid.NewGuid().ToString("N");
 
         // 3. Verify HMAC-SHA256 signature
-        string? webhookSecret = configuration["QYL_GITHUB_WEBHOOK_SECRET"];
+        var webhookSecret = configuration["QYL_GITHUB_WEBHOOK_SECRET"];
         if (!string.IsNullOrEmpty(webhookSecret))
         {
             if (!VerifySignature(payload, signatureHeader, webhookSecret))
@@ -64,23 +64,23 @@ public static class GitHubWebhookEndpoints
         }
 
         // 4. Parse JSON payload
-        using JsonDocument doc = JsonDocument.Parse(payload);
-        JsonElement root = doc.RootElement;
+        using var doc = JsonDocument.Parse(payload);
+        var root = doc.RootElement;
 
         // 5. Extract common fields
-        string? action = root.TryGetProperty("action", out JsonElement actionEl)
+        var action = root.TryGetProperty("action", out var actionEl)
             ? actionEl.GetString()
             : null;
 
-        string repoFullName = root.TryGetProperty("repository", out JsonElement repoEl)
-            && repoEl.TryGetProperty("full_name", out JsonElement fullNameEl)
-                ? fullNameEl.GetString() ?? "unknown"
-                : "unknown";
+        var repoFullName = root.TryGetProperty("repository", out var repoEl)
+                           && repoEl.TryGetProperty("full_name", out var fullNameEl)
+            ? fullNameEl.GetString() ?? "unknown"
+            : "unknown";
 
-        string? sender = root.TryGetProperty("sender", out JsonElement senderEl)
-            && senderEl.TryGetProperty("login", out JsonElement loginEl)
-                ? loginEl.GetString()
-                : null;
+        var sender = root.TryGetProperty("sender", out var senderEl)
+                     && senderEl.TryGetProperty("login", out var loginEl)
+            ? loginEl.GetString()
+            : null;
 
         // 6. Extract event-specific fields
         int? prNumber = null;
@@ -88,16 +88,16 @@ public static class GitHubWebhookEndpoints
         string? gitRef = null;
 
         if (eventType == "pull_request"
-            && root.TryGetProperty("pull_request", out JsonElement prEl))
+            && root.TryGetProperty("pull_request", out var prEl))
         {
-            if (prEl.TryGetProperty("number", out JsonElement numEl))
+            if (prEl.TryGetProperty("number", out var numEl))
                 prNumber = numEl.GetInt32();
-            if (prEl.TryGetProperty("html_url", out JsonElement urlEl))
+            if (prEl.TryGetProperty("html_url", out var urlEl))
                 prUrl = urlEl.GetString();
         }
 
         if (eventType == "push"
-            && root.TryGetProperty("ref", out JsonElement refEl))
+            && root.TryGetProperty("ref", out var refEl))
         {
             gitRef = refEl.GetString();
         }
@@ -127,9 +127,9 @@ public static class GitHubWebhookEndpoints
         if (string.IsNullOrEmpty(signatureHeader) || !signatureHeader.StartsWith("sha256="))
             return false;
 
-        byte[] secretBytes = Encoding.UTF8.GetBytes(secret);
-        byte[] hash = HMACSHA256.HashData(secretBytes, payload);
-        string expected = "sha256=" + Convert.ToHexStringLower(hash);
+        var secretBytes = Encoding.UTF8.GetBytes(secret);
+        var hash = HMACSHA256.HashData(secretBytes, payload);
+        var expected = "sha256=" + Convert.ToHexStringLower(hash);
         return CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(expected),
             Encoding.UTF8.GetBytes(signatureHeader));

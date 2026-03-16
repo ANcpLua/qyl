@@ -3,8 +3,8 @@ using ANcpLua.Roslyn.Utilities;
 using ANcpLua.Roslyn.Utilities.Models;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
 using Microsoft.CodeAnalysis.Text;
 using Qyl.Instrumentation.Generators.Analyzers;
@@ -55,11 +55,11 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         // MSBuild property toggles (default: true when absent)
         var toggles = context.AnalyzerConfigOptionsProvider
             .Select(static (options, _) => new PipelineToggles(
-                GenAi: IsPipelineEnabled(options, "QylGenAi"),
-                Database: IsPipelineEnabled(options, "QylDatabase"),
-                Agent: IsPipelineEnabled(options, "QylAgent"),
-                Traced: IsPipelineEnabled(options, "QylTraced"),
-                Meter: IsPipelineEnabled(options, "QylMeter")))
+                IsPipelineEnabled(options, "QylGenAi"),
+                IsPipelineEnabled(options, "QylDatabase"),
+                IsPipelineEnabled(options, "QylAgent"),
+                IsPipelineEnabled(options, "QylTraced"),
+                IsPipelineEnabled(options, "QylMeter")))
             .WithTrackingName(PipelineStage.ToggleCheck);
 
         // Per-pipeline enabled flags: runtime check AND MSBuild toggle
@@ -201,8 +201,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
         Func<ImmutableArray<T>, string> emitter,
         string generatedFileName,
         string diagnosticId)
-        where T : class, IEquatable<T>
-    {
+        where T : class, IEquatable<T> =>
         values
             .CollectAsEquatableArray()
             .Combine(enabledFlag)
@@ -215,7 +214,6 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
                     : new FileWithName(generatedFileName, sourceCode);
             }, context, diagnosticId)
             .AddSource(context);
-    }
 
     // =========================================================================
     // RUNTIME AVAILABILITY CHECKS
@@ -544,7 +542,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             if (attribute.ConstructorArguments.Length is 1 &&
                 attribute.ConstructorArguments[0].Value is string { Length: > 0 } name)
             {
-                if (string.Equals(attributeName, WellKnownType.GeneratedActivitySourceAttribute, StringComparison.Ordinal))
+                if (string.Equals(attributeName, WellKnownType.GeneratedActivitySourceAttribute,
+                        StringComparison.Ordinal))
                     activitySources.Add(name);
                 else if (string.Equals(attributeName, WellKnownType.GeneratedMeterAttribute, StringComparison.Ordinal))
                     meterNames.Add(name);
@@ -659,7 +658,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             $"            options.CapabilityAttributes.Add(new({Literal(key)}, new string[] {{ {items} }}));");
     }
 
-    private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, quote: true);
+    private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
 
     // =========================================================================
     // CONSTANTS - Organized by semantic category

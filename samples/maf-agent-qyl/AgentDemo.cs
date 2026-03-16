@@ -21,7 +21,7 @@ internal sealed partial class AgentDemo(
     {
         using var inner = new MockChatClient();
         using var client = new ChatClientBuilder(inner)
-            .UseQylInstrumentation(enableSensitiveData: true)
+            .UseQylInstrumentation(true)
             .Build();
 
         var systemPrompt = BuildLargeSystemPrompt();
@@ -69,7 +69,8 @@ internal sealed partial class AgentDemo(
     }
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "System prompt: {Chars} chars ({Kb} KB). App Insights limit: {Limit} chars. App Insights would truncate {Truncated} chars of context. qyl stores all of it.")]
+        Message =
+            "System prompt: {Chars} chars ({Kb} KB). App Insights limit: {Limit} chars. App Insights would truncate {Truncated} chars of context. qyl stores all of it.")]
     private static partial void LogSystemPromptInfo(ILogger logger, int chars, int kb, int limit, int truncated);
 
     [LoggerMessage(Level = LogLevel.Information,
@@ -81,7 +82,8 @@ internal sealed partial class AgentDemo(
     private static partial void LogAgentResponse(ILogger logger, long? tokens, long? input, long? output);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Demo complete. Final conversation: {Chars} chars ({Kb} KB). App Insights lost {Lost} chars. qyl preserved every byte. Open http://localhost:5100 to see the full trace.")]
+        Message =
+            "Demo complete. Final conversation: {Chars} chars ({Kb} KB). App Insights lost {Lost} chars. qyl preserved every byte. Open http://localhost:5100 to see the full trace.")]
     private static partial void LogDemoComplete(ILogger logger, int chars, int kb, int lost);
 
     /// <summary>

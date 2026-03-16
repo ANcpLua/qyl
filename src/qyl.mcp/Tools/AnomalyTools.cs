@@ -32,18 +32,24 @@ public sealed class AnomalyTools(HttpClient client)
                  Returns: Baseline stats and list of anomalous time buckets with z-scores
                  """)]
     public Task<string> DetectAnomaliesAsync(
-        [Description("Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")] string metric,
-        [Description("Time window in hours (default: 24)")] int hours = 24,
-        [Description("Z-score threshold for anomaly detection (default: 2.0)")] double sensitivity = 2.0,
-        [Description("Filter by service name")] string? service = null) =>
+        [Description(
+            "Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+        string metric,
+        [Description("Time window in hours (default: 24)")]
+        int hours = 24,
+        [Description("Z-score threshold for anomaly detection (default: 2.0)")]
+        double sensitivity = 2.0,
+        [Description("Filter by service name")]
+        string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}";
+            var url =
+                $"/api/v1/analytics/anomaly/anomalies?metric={Uri.EscapeDataString(metric)}&hours={hours}&sensitivity={sensitivity}";
             if (!string.IsNullOrEmpty(service))
                 url += $"&service={Uri.EscapeDataString(service)}";
 
-            AnomalyDetectionResponse? response = await client.GetFromJsonAsync<AnomalyDetectionResponse>(
-                url, qyl.mcp.Tools.AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
+            var response = await client.GetFromJsonAsync<AnomalyDetectionResponse>(
+                url, AnomalyJsonContext.Default.AnomalyDetectionResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No anomaly detection data available.";
@@ -68,7 +74,7 @@ public sealed class AnomalyTools(HttpClient client)
             sb.AppendLine("| Time | Value | Z-Score | Direction |");
             sb.AppendLine("|------|-------|---------|-----------|");
 
-            foreach (AnomalyPointDto anomaly in response.Anomalies)
+            foreach (var anomaly in response.Anomalies)
             {
                 sb.AppendLine(
                     $"| {anomaly.Bucket:yyyy-MM-dd HH:mm} | {anomaly.Value:F4} | {anomaly.ZScore:F2} | {anomaly.Direction} |");
@@ -96,17 +102,21 @@ public sealed class AnomalyTools(HttpClient client)
                  Returns: Statistical summary with mean, stddev, and percentiles
                  """)]
     public Task<string> GetMetricBaselineAsync(
-        [Description("Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")] string metric,
-        [Description("Time window in hours (default: 24)")] int hours = 24,
-        [Description("Filter by service name")] string? service = null) =>
+        [Description(
+            "Metric to analyze: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+        string metric,
+        [Description("Time window in hours (default: 24)")]
+        int hours = 24,
+        [Description("Filter by service name")]
+        string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}";
+            var url = $"/api/v1/analytics/anomaly/baseline?metric={Uri.EscapeDataString(metric)}&hours={hours}";
             if (!string.IsNullOrEmpty(service))
                 url += $"&service={Uri.EscapeDataString(service)}";
 
-            BaselineResponse? response = await client.GetFromJsonAsync<BaselineResponse>(
-                url, qyl.mcp.Tools.AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
+            var response = await client.GetFromJsonAsync<BaselineResponse>(
+                url, AnomalyJsonContext.Default.BaselineResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No baseline data available.";
@@ -144,24 +154,31 @@ public sealed class AnomalyTools(HttpClient client)
                  Returns: Side-by-side comparison with delta and percentage change
                  """)]
     public Task<string> ComparePeriodsAsync(
-        [Description("Metric to compare: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")] string metric,
-        [Description("Start of first period (ISO 8601, e.g., '2024-01-01T00:00:00Z')")] string period1Start,
-        [Description("End of first period (ISO 8601)")] string period1End,
-        [Description("Start of second period (ISO 8601)")] string period2Start,
-        [Description("End of second period (ISO 8601)")] string period2End,
-        [Description("Filter by service name")] string? service = null) =>
+        [Description(
+            "Metric to compare: 'error_rate', 'latency_p50', 'latency_p95', 'latency_p99', 'request_count', 'token_usage', 'cost'")]
+        string metric,
+        [Description("Start of first period (ISO 8601, e.g., '2024-01-01T00:00:00Z')")]
+        string period1Start,
+        [Description("End of first period (ISO 8601)")]
+        string period1End,
+        [Description("Start of second period (ISO 8601)")]
+        string period2Start,
+        [Description("End of second period (ISO 8601)")]
+        string period2End,
+        [Description("Filter by service name")]
+        string? service = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}"
-                         + $"&period1Start={Uri.EscapeDataString(period1Start)}"
-                         + $"&period1End={Uri.EscapeDataString(period1End)}"
-                         + $"&period2Start={Uri.EscapeDataString(period2Start)}"
-                         + $"&period2End={Uri.EscapeDataString(period2End)}";
+            var url = $"/api/v1/analytics/anomaly/compare?metric={Uri.EscapeDataString(metric)}"
+                      + $"&period1Start={Uri.EscapeDataString(period1Start)}"
+                      + $"&period1End={Uri.EscapeDataString(period1End)}"
+                      + $"&period2Start={Uri.EscapeDataString(period2Start)}"
+                      + $"&period2End={Uri.EscapeDataString(period2End)}";
             if (!string.IsNullOrEmpty(service))
                 url += $"&service={Uri.EscapeDataString(service)}";
 
-            PeriodComparisonResponse? response = await client.GetFromJsonAsync<PeriodComparisonResponse>(
-                url, qyl.mcp.Tools.AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);
+            var response = await client.GetFromJsonAsync<PeriodComparisonResponse>(
+                url, AnomalyJsonContext.Default.PeriodComparisonResponse).ConfigureAwait(false);
 
             if (response is null)
                 return "No comparison data available.";
@@ -193,33 +210,44 @@ public sealed class AnomalyTools(HttpClient client)
 internal sealed record AnomalyDetectionResponse(
     [property: JsonPropertyName("metric")] string Metric,
     [property: JsonPropertyName("hours")] int Hours,
-    [property: JsonPropertyName("sensitivity")] double Sensitivity,
+    [property: JsonPropertyName("sensitivity")]
+    double Sensitivity,
     [property: JsonPropertyName("mean")] double Mean,
-    [property: JsonPropertyName("std_dev")] double StdDev,
-    [property: JsonPropertyName("anomalies")] List<AnomalyPointDto>? Anomalies);
+    [property: JsonPropertyName("std_dev")]
+    double StdDev,
+    [property: JsonPropertyName("anomalies")]
+    List<AnomalyPointDto>? Anomalies);
 
 internal sealed record AnomalyPointDto(
     [property: JsonPropertyName("bucket")] DateTime Bucket,
     [property: JsonPropertyName("value")] double Value,
-    [property: JsonPropertyName("z_score")] double ZScore,
-    [property: JsonPropertyName("direction")] string Direction);
+    [property: JsonPropertyName("z_score")]
+    double ZScore,
+    [property: JsonPropertyName("direction")]
+    string Direction);
 
 internal sealed record BaselineResponse(
     [property: JsonPropertyName("metric")] string Metric,
     [property: JsonPropertyName("hours")] int Hours,
     [property: JsonPropertyName("mean")] double Mean,
-    [property: JsonPropertyName("std_dev")] double StdDev,
+    [property: JsonPropertyName("std_dev")]
+    double StdDev,
     [property: JsonPropertyName("p50")] double P50,
     [property: JsonPropertyName("p95")] double P95,
     [property: JsonPropertyName("p99")] double P99,
-    [property: JsonPropertyName("sample_count")] long SampleCount);
+    [property: JsonPropertyName("sample_count")]
+    long SampleCount);
 
 internal sealed record PeriodComparisonResponse(
     [property: JsonPropertyName("metric")] string Metric,
-    [property: JsonPropertyName("period1")] BaselineResponse Period1,
-    [property: JsonPropertyName("period2")] BaselineResponse Period2,
-    [property: JsonPropertyName("mean_delta")] double MeanDelta,
-    [property: JsonPropertyName("mean_delta_percent")] double MeanDeltaPercent);
+    [property: JsonPropertyName("period1")]
+    BaselineResponse Period1,
+    [property: JsonPropertyName("period2")]
+    BaselineResponse Period2,
+    [property: JsonPropertyName("mean_delta")]
+    double MeanDelta,
+    [property: JsonPropertyName("mean_delta_percent")]
+    double MeanDeltaPercent);
 
 #endregion
 

@@ -44,9 +44,11 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
         CancellationToken ct = default)
     {
         if (_agentClient is null)
+        {
             return "use_qyl requires an LLM provider. " +
                    "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
                    "Use the individual query tools (search_spans, list_errors, get_genai_stats) instead.";
+        }
 
         var tools = registry.GetTools();
 
@@ -64,8 +66,7 @@ internal sealed class UseQylTools(McpToolRegistry registry, IConfiguration confi
 
         var messages = new List<ChatMessage>
         {
-            new(ChatRole.System, UseQylSystemPrompt.Prompt),
-            new(ChatRole.User, userMessage)
+            new(ChatRole.System, UseQylSystemPrompt.Prompt), new(ChatRole.User, userMessage)
         };
 
         var options = new ChatOptions { Tools = [.. tools] };

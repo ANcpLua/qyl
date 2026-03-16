@@ -32,12 +32,15 @@ export function initSessionContext(): void {
     sessionId = generateTraceId(); // reuse 32-char hex, it's just an ID
 }
 
-export function getSessionId(): string { return sessionId; }
+export function getSessionId(): string {
+    return sessionId;
+}
 
 /** Format a W3C traceparent header value. */
 export function formatTraceparent(traceId: string, spanId: string, sampled: boolean): string {
     return `00-${traceId}-${spanId}-${sampled ? '01' : '00'}`;
 }
+
 /** Timestamp in OTLP nanosecond format from Date.now(). */
 export function dateNowNano(): string {
     const ms = Date.now();

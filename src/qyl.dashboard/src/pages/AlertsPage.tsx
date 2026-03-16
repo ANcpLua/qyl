@@ -18,7 +18,7 @@ function EmptyState() {
                 <div className="flex items-center justify-center gap-3">
                     <Button variant="outline">View Docs</Button>
                     <Tooltip>
-                        <TooltipTrigger render={<span tabIndex={0} />}>
+                        <TooltipTrigger render={<span tabIndex={0}/>}>
                             <Button disabled>
                                 <Plus className="w-4 h-4 mr-2"/>
                                 Create Alert
@@ -38,7 +38,7 @@ export function AlertsPage() {
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold text-brutal-white">Alerts</h1>
                 <Tooltip>
-                    <TooltipTrigger render={<span tabIndex={0} />}>
+                    <TooltipTrigger render={<span tabIndex={0}/>}>
                         <Button disabled>
                             <Plus className="w-4 h-4 mr-2"/>
                             Create Alert

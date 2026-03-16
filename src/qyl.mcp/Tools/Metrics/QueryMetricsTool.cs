@@ -1,7 +1,5 @@
 using System.ComponentModel;
-using System.Globalization;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -18,11 +16,16 @@ public sealed class QueryMetricsTool(HttpClient client)
         OpenWorld = true)]
     [Description("Query time-series data for a specific metric with optional filtering and time range.")]
     public async Task<string> QueryMetrics(
-        [Description("Metric name (e.g. 'http.server.request.duration')")] string name,
-        [Description("Filter expression (e.g. 'service=api-gateway')")] string? filter = null,
-        [Description("Start time in ISO 8601 format")] string? from = null,
-        [Description("End time in ISO 8601 format")] string? to = null,
-        [Description("Aggregation interval (e.g. '5m', '1h', '1d')")] string? interval = null,
+        [Description("Metric name (e.g. 'http.server.request.duration')")]
+        string name,
+        [Description("Filter expression (e.g. 'service=api-gateway')")]
+        string? filter = null,
+        [Description("Start time in ISO 8601 format")]
+        string? from = null,
+        [Description("End time in ISO 8601 format")]
+        string? to = null,
+        [Description("Aggregation interval (e.g. '5m', '1h', '1d')")]
+        string? interval = null,
         CancellationToken ct = default)
     {
         var url = $"/api/v1/mcp/metrics/{Uri.EscapeDataString(name)}/query";

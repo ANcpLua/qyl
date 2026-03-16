@@ -16,7 +16,7 @@ public static class LoomEndpoints
             LoomInsightService insightService,
             CancellationToken ct) =>
         {
-            LoomInsight? insight = await insightService.GenerateInsightAsync(issueId, ct)
+            var insight = await insightService.GenerateInsightAsync(issueId, ct)
                 .ConfigureAwait(false);
 
             return insight is not null
@@ -36,12 +36,12 @@ public static class LoomEndpoints
             httpContext.Response.Headers.CacheControl = "no-cache";
             httpContext.Response.Headers.Connection = "keep-alive";
 
-            await foreach (StreamUpdate update in explorerService
-                .ExploreAsync(issueId, request?.UserContext, ct)
-                .ConfigureAwait(false))
+            await foreach (var update in explorerService
+                               .ExploreAsync(issueId, request?.UserContext, ct)
+                               .ConfigureAwait(false))
             {
-                string eventName = MapEventName(update.Kind);
-                string json = JsonSerializer.Serialize(update, StreamUpdateJsonContext.Default.StreamUpdate);
+                var eventName = MapEventName(update.Kind);
+                var json = JsonSerializer.Serialize(update, StreamUpdateJsonContext.Default.StreamUpdate);
                 await httpContext.Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", ct)
                     .ConfigureAwait(false);
                 await httpContext.Response.Body.FlushAsync(ct).ConfigureAwait(false);
@@ -57,19 +57,19 @@ public static class LoomEndpoints
             DuckDbStore store,
             CancellationToken ct) =>
         {
-            IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+            var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null)
                 return Results.NotFound(new { error = $"Issue '{issueId}' not found." });
 
             // Create a fix run with auto-apply policy (user clicked "Code It Up")
-            FixRunRecord run = await orchestrator.CreateFixRunAsync(
+            var run = await orchestrator.CreateFixRunAsync(
                 issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
 
             // If a repo is specified, attempt immediate PR creation after pipeline completes
             string? prUrl = null;
             if (!string.IsNullOrWhiteSpace(request.Repo))
             {
-                PrCreationResult prResult = await prService.CreatePrAsync(
+                var prResult = await prService.CreatePrAsync(
                     run.RunId, request.Repo, request.BaseBranch, ct).ConfigureAwait(false);
 
                 if (prResult.Success)
@@ -77,10 +77,10 @@ public static class LoomEndpoints
             }
 
             LoomCodeItUpResponse response = new(
-                Success: true,
-                RunId: run.RunId,
-                PrUrl: prUrl,
-                Error: null);
+                true,
+                run.RunId,
+                prUrl,
+                null);
 
             return Results.Ok(response);
         });

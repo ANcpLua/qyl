@@ -1061,10 +1061,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = now });
         cmd.Parameters.Add(new DuckDBParameter { Value = 1L });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = string.IsNullOrWhiteSpace(error.UserId) ? DBNull.Value : 1L
-        });
+        cmd.Parameters.Add(new DuckDBParameter { Value = string.IsNullOrWhiteSpace(error.UserId) ? DBNull.Value : 1L });
         cmd.Parameters.Add(new DuckDBParameter { Value = error.ServiceName });
         cmd.Parameters.Add(new DuckDBParameter { Value = "new" });
         cmd.Parameters.Add(new DuckDBParameter { Value = DBNull.Value });
@@ -1726,6 +1723,11 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         using var servicesViewCmd = con.CreateCommand();
         servicesViewCmd.CommandText = ServicesViewDdl;
         servicesViewCmd.ExecuteNonQuery();
+
+        // Artifact storage
+        using var artifactsCmd = con.CreateCommand();
+        artifactsCmd.CommandText = DuckDbSchema.ArtifactsDdl;
+        artifactsCmd.ExecuteNonQuery();
     }
 
     private static string NormalizeGeneratedSchemaDdl(string ddl)

@@ -1,38 +1,38 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <OutputType>Exe</OutputType>
-        <Nullable>enable</Nullable>
-        <TargetFramework>net10.0</TargetFramework>
-        <ImplicitUsings>disable</ImplicitUsings>
-        <RootNamespace></RootNamespace>
-        <!-- NoWarn consolidated in eng/build/Directory.Build.props -->
-        <NukeRootDirectory>..</NukeRootDirectory>
-        <NukeScriptDirectory>..</NukeScriptDirectory>
-        <NukeTelemetryVersion>1</NukeTelemetryVersion>
-        <IsPackable>false</IsPackable>
-    </PropertyGroup>
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <RootNamespace></RootNamespace>
+    <!-- NoWarn consolidated in eng/build/Directory.Build.props -->
+    <NukeRootDirectory>..</NukeRootDirectory>
+    <NukeScriptDirectory>..</NukeScriptDirectory>
+    <NukeTelemetryVersion>1</NukeTelemetryVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
 
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-        <DefineConstants>OS_WINDOWS</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
-        <DefineConstants>OS_LINUX</DefineConstants>
-    </PropertyGroup>
-    <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-        <DefineConstants>OS_MAC</DefineConstants>
-    </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <DefineConstants>OS_WINDOWS</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Linux'))">
+    <DefineConstants>OS_LINUX</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <DefineConstants>OS_MAC</DefineConstants>
+  </PropertyGroup>
 
-    <ItemGroup>
-        <!-- Core NUKE (versions via CPM) -->
-        <PackageReference Include="Nuke.Common"/>
-        <PackageReference Include="Nuke.Components"/>
-        <!-- OpenAPI YAML parsing for TypeSpec God Schema pipeline -->
-        <PackageReference Include="YamlDotNet"/>
-        <!-- Code verification via isolated MSBuild compilation -->
-        <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
-        <!-- DuckDB DDL validation -->
-        <PackageReference Include="DuckDB.NET.Data.Full"/>
-    </ItemGroup>
+  <ItemGroup>
+    <!-- Core NUKE (versions via CPM) -->
+    <PackageReference Include="Nuke.Common"/>
+    <PackageReference Include="Nuke.Components"/>
+    <!-- OpenAPI YAML parsing for TypeSpec God Schema pipeline -->
+    <PackageReference Include="YamlDotNet"/>
+    <!-- Code verification via isolated MSBuild compilation -->
+    <PackageReference Include="ANcpLua.Roslyn.Utilities.Testing"/>
+    <!-- DuckDB DDL validation -->
+    <PackageReference Include="DuckDB.NET.Data.Full"/>
+  </ItemGroup>
 
 </Project>

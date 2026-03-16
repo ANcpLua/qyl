@@ -15,7 +15,7 @@ public sealed partial class LoomExplorerService(
 {
     /// <summary>
     ///     Runs the interactive exploration pipeline for an issue, yielding
-    ///     <see cref="StreamUpdate"/> events for real-time SSE rendering.
+    ///     <see cref="StreamUpdate" /> events for real-time SSE rendering.
     /// </summary>
     public async IAsyncEnumerable<StreamUpdate> ExploreAsync(
         string issueId, string? userContext,
@@ -30,32 +30,32 @@ public sealed partial class LoomExplorerService(
         // ── Phase 1: Ingest context ──────────────────────────────────────────
         yield return MakeProgress(0, "Ingesting qyl data...");
 
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null)
         {
             yield return MakeError($"Issue '{issueId}' not found.");
             yield break;
         }
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
+        var events = await issueService
             .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
 
-        string contextBlock = BuildContextBlock(issue, events, userContext);
+        var contextBlock = BuildContextBlock(issue, events, userContext);
         LogExplorationStarted(issueId, events.Count);
 
         // ── Phase 2: Stream root cause investigation ─────────────────────────
         yield return MakeProgress(20, "Figuring out the root cause...");
 
-        string monologuePrompt = $"""
-            {LoomPrompts.ExplorerMonologue}
+        var monologuePrompt = $"""
+                               {LoomPrompts.ExplorerMonologue}
 
-            Error context:
-            {contextBlock}
-            """;
+                               Error context:
+                               {contextBlock}
+                               """;
 
         List<StreamUpdate> monologueUpdates = [];
         string? fullMonologue = null;
-        bool interrupted = false;
+        var interrupted = false;
 
         try
         {
@@ -67,7 +67,7 @@ public sealed partial class LoomExplorerService(
             interrupted = true;
         }
 
-        foreach (StreamUpdate update in monologueUpdates)
+        foreach (var update in monologueUpdates)
             yield return update;
 
         if (interrupted || fullMonologue is null)
@@ -80,7 +80,7 @@ public sealed partial class LoomExplorerService(
         // ── Phase 3: Parse structured root cause from monologue ──────────────
         yield return MakeProgress(60, "Synthesizing root cause...");
 
-        LoomRootCause? rootCause = TryParseRootCause(fullMonologue);
+        var rootCause = TryParseRootCause(fullMonologue);
         if (rootCause is not null)
         {
             yield return MakeContent(
@@ -91,7 +91,7 @@ public sealed partial class LoomExplorerService(
         // ── Phase 4: Solution planning ───────────────────────────────────────
         yield return MakeProgress(80, "Planning solution...");
 
-        LoomSolution? solution = await RunSolutionPlanAsync(fullMonologue, ct).ConfigureAwait(false);
+        var solution = await RunSolutionPlanAsync(fullMonologue, ct).ConfigureAwait(false);
         if (solution is not null)
         {
             yield return MakeContent(
@@ -114,21 +114,16 @@ public sealed partial class LoomExplorerService(
         string prompt, List<StreamUpdate> updates, CancellationToken ct)
     {
         StringBuilder fullText = new();
-        DateTimeOffset now = TimeProvider.System.GetUtcNow();
+        var now = TimeProvider.System.GetUtcNow();
 
-        await foreach (ChatResponseUpdate chunk in llm!.GetStreamingResponseAsync(prompt, cancellationToken: ct)
-            .ConfigureAwait(false))
+        await foreach (var chunk in llm!.GetStreamingResponseAsync(prompt, cancellationToken: ct)
+                           .ConfigureAwait(false))
         {
-            string? text = chunk.Text;
+            var text = chunk.Text;
             if (text is null) continue;
 
             fullText.Append(text);
-            updates.Add(new StreamUpdate
-            {
-                Kind = StreamUpdateKind.Content,
-                Content = text,
-                Timestamp = now
-            });
+            updates.Add(new StreamUpdate { Kind = StreamUpdateKind.Content, Content = text, Timestamp = now });
         }
 
         return fullText.ToString();
@@ -136,16 +131,16 @@ public sealed partial class LoomExplorerService(
 
     private async Task<LoomSolution?> RunSolutionPlanAsync(string monologue, CancellationToken ct)
     {
-        string prompt = $"""
-            {LoomPrompts.SolutionPlanning}
+        var prompt = $"""
+                      {LoomPrompts.SolutionPlanning}
 
-            Root cause analysis:
-            {monologue}
-            """;
+                      Root cause analysis:
+                      {monologue}
+                      """;
 
         try
         {
-            ChatResponse response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             return TryParseSolution(response.Text ?? "{}");
@@ -174,7 +169,7 @@ public sealed partial class LoomExplorerService(
         if (events.Count > 0)
         {
             sb.AppendLine("\nRecent events:");
-            foreach (ErrorIssueEventRow e in events)
+            foreach (var e in events)
             {
                 sb.AppendLine($"  [{e.Timestamp:O}] {e.Message ?? "no message"}");
                 if (e.StackTrace is not null)
@@ -194,7 +189,7 @@ public sealed partial class LoomExplorerService(
 
     internal static LoomRootCause? TryParseRootCause(string text)
     {
-        int jsonStart = text.IndexOf("{\"summary\"");
+        var jsonStart = text.IndexOf("{\"summary\"");
         if (jsonStart < 0)
             jsonStart = text.IndexOf("```json");
 
@@ -207,7 +202,7 @@ public sealed partial class LoomExplorerService(
             if (jsonStart < 0) return null;
         }
 
-        string json = ExtractJsonObject(text, jsonStart);
+        var json = ExtractJsonObject(text, jsonStart);
         if (json == "{}") return null;
 
         try
@@ -222,10 +217,10 @@ public sealed partial class LoomExplorerService(
 
     internal static LoomSolution? TryParseSolution(string text)
     {
-        int start = text.IndexOf('{');
+        var start = text.IndexOf('{');
         if (start < 0) return null;
 
-        string json = ExtractJsonObject(text, start);
+        var json = ExtractJsonObject(text, start);
         if (json == "{}") return null;
 
         try
@@ -240,8 +235,8 @@ public sealed partial class LoomExplorerService(
 
     private static string ExtractJsonObject(string text, int start)
     {
-        int depth = 0;
-        for (int i = start; i < text.Length; i++)
+        var depth = 0;
+        for (var i = start; i < text.Length; i++)
         {
             if (text[i] == '{') depth++;
             else if (text[i] == '}') depth--;
@@ -271,15 +266,12 @@ public sealed partial class LoomExplorerService(
 
     private static StreamUpdate MakeError(string error) => new()
     {
-        Kind = StreamUpdateKind.Error,
-        Error = error,
-        Timestamp = TimeProvider.System.GetUtcNow()
+        Kind = StreamUpdateKind.Error, Error = error, Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     private static StreamUpdate MakeCompleted() => new()
     {
-        Kind = StreamUpdateKind.Completed,
-        Timestamp = TimeProvider.System.GetUtcNow()
+        Kind = StreamUpdateKind.Completed, Timestamp = TimeProvider.System.GetUtcNow()
     };
 
     // ── Log methods ───────────────────────────────────────────────────────────
@@ -289,7 +281,8 @@ public sealed partial class LoomExplorerService(
     private partial void LogExplorationStarted(string issueId, int eventCount);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "Loom exploration completed for issue {IssueId}: {RcaSteps} RCA steps, {SolutionSteps} solution steps")]
+        Message =
+            "Loom exploration completed for issue {IssueId}: {RcaSteps} RCA steps, {SolutionSteps} solution steps")]
     private partial void LogExplorationCompleted(string issueId, int rcaSteps, int solutionSteps);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Loom solution planning failed")]

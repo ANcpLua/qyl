@@ -3,7 +3,7 @@ import {AlertCircle, ArrowLeft, CheckCircle, ChevronRight, Clock, Cpu, Loader2, 
 import {cn} from '@/lib/utils';
 import {Badge} from '@/components/ui/badge';
 import {Card, CardContent} from '@/components/ui/card';
-import {useConversationDetail, type ConversationTurn} from '@/hooks/use-analytics';
+import {type ConversationTurn, useConversationDetail} from '@/hooks/use-analytics';
 
 function formatTs(iso: string): string {
     return new Date(iso).toLocaleString('en-US', {
@@ -18,7 +18,7 @@ function formatTokens(n: number): string {
     return String(n);
 }
 
-function TurnStatusBadge({statusCode}: {statusCode: number}) {
+function TurnStatusBadge({statusCode}: { statusCode: number }) {
     if (statusCode === 2) {
         return (
             <Badge variant="outline" className="text-[10px] bg-red-500/20 text-red-400 border-red-500/40">
@@ -28,7 +28,8 @@ function TurnStatusBadge({statusCode}: {statusCode: number}) {
     }
     if (statusCode === 1) {
         return (
-            <Badge variant="outline" className="text-[10px] bg-signal-green/20 text-signal-green border-signal-green/40">
+            <Badge variant="outline"
+                   className="text-[10px] bg-signal-green/20 text-signal-green border-signal-green/40">
                 OK
             </Badge>
         );
@@ -40,7 +41,7 @@ function TurnStatusBadge({statusCode}: {statusCode: number}) {
     );
 }
 
-function OperationBadge({name}: {name: string | null}) {
+function OperationBadge({name}: { name: string | null }) {
     if (!name) return null;
     const styles: Record<string, string> = {
         chat: 'bg-signal-cyan/20 text-signal-cyan border-signal-cyan/40',
@@ -49,13 +50,14 @@ function OperationBadge({name}: {name: string | null}) {
         embeddings: 'bg-signal-yellow/20 text-signal-yellow border-signal-yellow/40',
     };
     return (
-        <Badge variant="outline" className={cn('text-[10px]', styles[name] ?? 'bg-brutal-zinc/20 text-brutal-slate border-brutal-zinc/40')}>
+        <Badge variant="outline"
+               className={cn('text-[10px]', styles[name] ?? 'bg-brutal-zinc/20 text-brutal-slate border-brutal-zinc/40')}>
             {name}
         </Badge>
     );
 }
 
-function TurnCard({turn, index}: {turn: ConversationTurn; index: number}) {
+function TurnCard({turn, index}: { turn: ConversationTurn; index: number }) {
     const hasError = turn.statusCode === 2;
     const isTool = turn.operationName === 'execute_tool';
 
@@ -136,7 +138,7 @@ function TurnCard({turn, index}: {turn: ConversationTurn; index: number}) {
 
 export function BotConversationDetailPage() {
     const navigate = useNavigate();
-    const {conversationId} = useParams<{conversationId: string}>();
+    const {conversationId} = useParams<{ conversationId: string }>();
     const {data, isLoading, error} = useConversationDetail(conversationId ?? '');
 
     const turns = data?.turns ?? [];
@@ -202,7 +204,8 @@ export function BotConversationDetailPage() {
                         </div>
                         {isLoading
                             ? <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                            : <div className="text-2xl font-bold mt-1 text-signal-cyan">{formatTokens(totalTokens)}</div>
+                            :
+                            <div className="text-2xl font-bold mt-1 text-signal-cyan">{formatTokens(totalTokens)}</div>
                         }
                     </CardContent>
                 </Card>
@@ -229,7 +232,8 @@ export function BotConversationDetailPage() {
                         </div>
                         {isLoading
                             ? <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                            : <div className={cn('text-2xl font-bold mt-1', errorTurns.length > 0 ? 'text-red-400' : 'text-signal-green')}>
+                            : <div
+                                className={cn('text-2xl font-bold mt-1', errorTurns.length > 0 ? 'text-red-400' : 'text-signal-green')}>
                                 {errorTurns.length}
                             </div>
                         }

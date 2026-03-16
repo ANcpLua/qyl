@@ -1,5 +1,6 @@
 using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using HealthStatus = Qyl.Models.HealthStatus;
 using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
 
 namespace Qyl.Collector.Health;
@@ -91,12 +92,12 @@ public static class HealthExtensions
             var uptimeSeconds = (long)(now - StartTime).TotalSeconds;
 
             if (sp.GetService<HealthCheckService>() is not { } healthService)
+            {
                 return Results.Ok(new HealthResponse
                 {
-                    Status = Qyl.Models.HealthStatus.Healthy,
-                    Version = AppVersion,
-                    UptimeSeconds = uptimeSeconds,
+                    Status = HealthStatus.Healthy, Version = AppVersion, UptimeSeconds = uptimeSeconds
                 });
+            }
 
             var result = await healthService
                 .CheckHealthAsync(c => c.Tags.Contains(tag), ct)
@@ -104,9 +105,9 @@ public static class HealthExtensions
 
             var status = result.Status switch
             {
-                MsHealthStatus.Healthy => Qyl.Models.HealthStatus.Healthy,
-                MsHealthStatus.Degraded => Qyl.Models.HealthStatus.Degraded,
-                _ => Qyl.Models.HealthStatus.Unhealthy,
+                MsHealthStatus.Healthy => HealthStatus.Healthy,
+                MsHealthStatus.Degraded => HealthStatus.Degraded,
+                _ => HealthStatus.Unhealthy
             };
 
             var response = new HealthResponse
@@ -121,9 +122,9 @@ public static class HealthExtensions
                         {
                             status = e.Value.Status.ToString().ToLowerInvariant(),
                             description = e.Value.Description,
-                            data = e.Value.Data.Count > 0 ? e.Value.Data : null,
+                            data = e.Value.Data.Count > 0 ? e.Value.Data : null
                         })
-                    : null,
+                    : null
             };
 
             return result.Status == MsHealthStatus.Healthy

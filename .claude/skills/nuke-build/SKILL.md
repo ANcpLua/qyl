@@ -10,15 +10,15 @@ Use the default `nuke` entry point rather than explicit `nuke Test`.
 
 ## Targets
 
-| Target | What it does | When to use |
-|--------|-------------|-------------|
-| `nuke` | Default entrypoint: compile + backend test pipeline | After any code change |
-| `nuke Ci` | Clean + Compile + Test + Coverage | Before PR |
-| `nuke Full` | Ci + Generate + Verify + Frontend | Release readiness |
-| `nuke UnitTests` | Unit tests only | Quick feedback loop |
-| `nuke IntegrationTests` | Integration tests (needs Docker) | Before merge |
-| `nuke Dev` | Docker + Compile, prints URLs | Starting a dev session |
-| `nuke Clean` | Wipe bin/obj/Artifacts | When builds are broken |
+| Target                  | What it does                                        | When to use            |
+|-------------------------|-----------------------------------------------------|------------------------|
+| `nuke`                  | Default entrypoint: compile + backend test pipeline | After any code change  |
+| `nuke Ci`               | Clean + Compile + Test + Coverage                   | Before PR              |
+| `nuke Full`             | Ci + Generate + Verify + Frontend                   | Release readiness      |
+| `nuke UnitTests`        | Unit tests only                                     | Quick feedback loop    |
+| `nuke IntegrationTests` | Integration tests (needs Docker)                    | Before merge           |
+| `nuke Dev`              | Docker + Compile, prints URLs                       | Starting a dev session |
+| `nuke Clean`            | Wipe bin/obj/Artifacts                              | When builds are broken |
 
 ## Decision Tree
 
@@ -53,12 +53,12 @@ dotnet clean && dotnet restore && dotnet build --configuration Release ...
 
 All in `eng/build/`:
 
-| File | Responsibility |
-|------|---------------|
-| `Build.cs` | Entry point, orchestration targets (Ci, Full, Dev, Clean) |
-| `BuildTest.cs` | MTP argument builder, IQylTest interface |
-| `BuildCoverage.cs` | Coverage collection and reporting |
-| `BuildPipeline.cs` | TypeSpec → OpenAPI → C#/DuckDB/TS codegen |
-| `BuildVerify.cs` | Generated code validation, DuckDB DDL check |
-| `BuildInfra.cs` | Docker image builds, Compose orchestration |
-| `BuildPaths.cs` | Path definitions, versioning (IHazSourcePaths) |
+| File               | Responsibility                                            |
+|--------------------|-----------------------------------------------------------|
+| `Build.cs`         | Entry point, orchestration targets (Ci, Full, Dev, Clean) |
+| `BuildTest.cs`     | MTP argument builder, IQylTest interface                  |
+| `BuildCoverage.cs` | Coverage collection and reporting                         |
+| `BuildPipeline.cs` | TypeSpec → OpenAPI → C#/DuckDB/TS codegen                 |
+| `BuildVerify.cs`   | Generated code validation, DuckDB DDL check               |
+| `BuildInfra.cs`    | Docker image builds, Compose orchestration                |
+| `BuildPaths.cs`    | Path definitions, versioning (IHazSourcePaths)            |

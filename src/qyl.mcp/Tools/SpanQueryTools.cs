@@ -59,7 +59,7 @@ public sealed class SpanQueryTools(HttpClient client)
             url += "?" + string.Join("&", queryParams);
 
         var response = await client.GetFromJsonAsync<SpanSearchResponse>(
-            url, qyl.mcp.Tools.SpanQueryJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
+            url, SpanQueryJsonContext.Default.SpanSearchResponse).ConfigureAwait(false);
 
         var spans = response?.Items ?? response?.Spans;
 
@@ -96,7 +96,7 @@ public sealed class SpanQueryTools(HttpClient client)
         {
             var durationMs = TimeConversions.NanosToMs(span.DurationNs);
             var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
-            var timestamp = TimeConversions.NanosToDateTimeOffset((long)span.StartTimeUnixNano);
+            var timestamp = TimeConversions.NanosToDateTimeOffset(span.StartTimeUnixNano);
 
             sb.AppendLine($"**{timestamp:HH:mm:ss}** {span.Name} {statusIcon} ({durationMs:F0}ms)");
 

@@ -51,13 +51,13 @@ public sealed partial class DuckDbStore
         await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
 
         await using var cmd = lease.Connection.CreateCommand();
-        int paramIndex = 1;
-        string sql = """
-                     SELECT event_id, event_type, action, repo_full_name, sender,
-                            pr_number, pr_url, ref, payload_json, created_at
-                     FROM github_events
-                     WHERE 1=1
-                     """;
+        var paramIndex = 1;
+        var sql = """
+                  SELECT event_id, event_type, action, repo_full_name, sender,
+                         pr_number, pr_url, ref, payload_json, created_at
+                  FROM github_events
+                  WHERE 1=1
+                  """;
 
         if (eventType is not null)
         {

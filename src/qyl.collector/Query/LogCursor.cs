@@ -34,7 +34,7 @@ internal static class LogCursor
                 .Replace('-', '+')
                 .Replace('_', '/');
 
-            var padded = raw.PadRight(raw.Length + ((4 - raw.Length % 4) % 4), '=');
+            var padded = raw.PadRight(raw.Length + ((4 - (raw.Length % 4)) % 4), '=');
             var bytes = Convert.FromBase64String(padded);
             if (bytes.Length != sizeof(ulong))
                 return false;

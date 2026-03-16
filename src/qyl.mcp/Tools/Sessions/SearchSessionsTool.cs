@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
-using qyl.mcp.Formatting;
 using Qyl.Contracts.Models;
+using qyl.mcp.Formatting;
 
 namespace qyl.mcp.Tools.Sessions;
 
@@ -15,11 +15,15 @@ public sealed class SearchSessionsTool(HttpClient client)
         ReadOnly = true,
         Destructive = false,
         OpenWorld = true)]
-    [Description("Search debugging sessions by query. Returns paginated list of sessions with status, service, and span count.")]
+    [Description(
+        "Search debugging sessions by query. Returns paginated list of sessions with status, service, and span count.")]
     public async Task<string> SearchSessions(
-        [Description("Search query (e.g. 'failed payments', 'service:api-gateway')")] string query,
-        [Description("Pagination cursor from previous results")] string? cursor = null,
-        [Description("Max results per page (default 25, max 100)")] int limit = 25,
+        [Description("Search query (e.g. 'failed payments', 'service:api-gateway')")]
+        string query,
+        [Description("Pagination cursor from previous results")]
+        string? cursor = null,
+        [Description("Max results per page (default 25, max 100)")]
+        int limit = 25,
         CancellationToken ct = default)
     {
         limit = Math.Clamp(limit, 1, 100);
@@ -34,8 +38,8 @@ public sealed class SearchSessionsTool(HttpClient client)
             result!,
             "Sessions",
             s => $"- `{s.SessionId}` | **{s.Status}** | {s.ServiceName} | {s.SpanCount} spans | {s.CreatedAt}",
-            searchToolName: "search_sessions",
-            detailToolName: "get_session",
-            detailIdParam: "sessionId");
+            "search_sessions",
+            "get_session",
+            "sessionId");
     }
 }

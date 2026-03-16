@@ -68,11 +68,7 @@ internal static class McpMetricEndpoints
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
             services.Add(reader.GetString(0));
 
-        return TypedResults.Ok(new McpMetricsListDto
-        {
-            Metrics = metrics,
-            Services = services
-        });
+        return TypedResults.Ok(new McpMetricsListDto { Metrics = metrics, Services = services });
     }
 
     /// <summary>
@@ -107,7 +103,8 @@ internal static class McpMetricEndpoints
             qb.Add("service_name = $N", filter);
 
         // Parse time bounds
-        if (!string.IsNullOrWhiteSpace(from) && DateTimeOffset.TryParse(from, CultureInfo.InvariantCulture, out var fromTime))
+        if (!string.IsNullOrWhiteSpace(from) &&
+            DateTimeOffset.TryParse(from, CultureInfo.InvariantCulture, out var fromTime))
         {
             var fromNano = (ulong)(fromTime.ToUnixTimeMilliseconds() * 1_000_000L);
             qb.Add("start_time_unix_nano >= $N", (decimal)fromNano);
@@ -161,12 +158,7 @@ internal static class McpMetricEndpoints
             });
         }
 
-        return TypedResults.Ok(new McpTimeSeriesDto
-        {
-            Metric = name,
-            Interval = normalizedInterval,
-            Points = points
-        });
+        return TypedResults.Ok(new McpTimeSeriesDto { Metric = name, Interval = normalizedInterval, Points = points });
     }
 }
 

@@ -70,7 +70,8 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         var warningCount = logs.Count(static l => l.SeverityNumber is >= 13 and < 17);
 
         var (topIssues, resolvedPatterns) = BuildTopIssues(logs);
-        var summary = BuildProse(window, serviceName, totalCount, errorCount, warningCount, topIssues, resolvedPatterns);
+        var summary = BuildProse(window, serviceName, totalCount, errorCount, warningCount, topIssues,
+            resolvedPatterns);
         var cursor = LogCursor.Encode(logs.Count > 0 ? logs[^1].TimeUnixNano : nowNano);
 
         return new LogSummaryResponse(
@@ -96,7 +97,8 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
     {
         var (after, before) = ResolveTimeRange(window, startTime, endTime);
         var effectiveMinSeverity = minSeverity ?? 17;
-        var logs = await FetchLogsAsync(after, before, serviceName, effectiveMinSeverity, search, ct).ConfigureAwait(false);
+        var logs = await FetchLogsAsync(after, before, serviceName, effectiveMinSeverity, search, ct)
+            .ConfigureAwait(false);
         logs.Sort(static (a, b) => a.TimeUnixNano.CompareTo(b.TimeUnixNano));
 
         var groups = new Dictionary<string, PatternAccumulator>(StringComparer.Ordinal);
@@ -314,11 +316,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
                 }
                 else
                 {
-                    groups[key] = acc with
-                    {
-                        Count = acc.Count + 1,
-                        LastSeen = timestamp
-                    };
+                    groups[key] = acc with { Count = acc.Count + 1, LastSeen = timestamp };
                 }
 
                 if (!activeByService.TryGetValue(service, out var active))
@@ -366,15 +364,14 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
         FrozenSet<string> resolvedPatterns)
     {
         if (totalCount is 0)
+        {
             return serviceName is null
                 ? $"No log entries in the last {window}."
                 : $"{serviceName} had no log entries in the last {window}.";
+        }
 
         var subject = serviceName ?? "The system";
-        var parts = new List<string>
-        {
-            $"In the last {window}, {subject} logged {totalCount} entries."
-        };
+        var parts = new List<string> { $"In the last {window}, {subject} logged {totalCount} entries." };
 
         if (errorCount > 0)
         {
@@ -469,7 +466,7 @@ internal sealed class LogSummaryService(DuckDbStore store, TimeProvider timeProv
 
             var first = observedAt[0];
             var last = observedAt[^1];
-            if ((last - first) <= TimeSpan.FromMinutes(1) && observedAt.Count >= 5)
+            if (last - first <= TimeSpan.FromMinutes(1) && observedAt.Count >= 5)
                 return "spike";
 
             var midpoint = first + TimeSpan.FromTicks((last - first).Ticks / 2);

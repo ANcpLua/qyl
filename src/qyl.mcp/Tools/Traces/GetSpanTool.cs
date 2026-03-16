@@ -14,7 +14,8 @@ public sealed class GetSpanTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full details for a single span including all attributes.")]
     public async Task<string> GetSpanAsync(
-        [Description("The span ID to inspect")] string spanId,
+        [Description("The span ID to inspect")]
+        string spanId,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(

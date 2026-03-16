@@ -14,14 +14,14 @@ public sealed partial class LoomInsightService(
 {
     public async Task<LoomInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null)
         {
             LogIssueNotFound(issueId);
             return null;
         }
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
+        var events = await issueService
             .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
 
         LogGeneratingInsight(issueId, events.Count);
@@ -36,15 +36,15 @@ public sealed partial class LoomInsightService(
         string issueId, IssueSummary issue,
         IReadOnlyList<ErrorIssueEventRow> events, CancellationToken ct)
     {
-        string context = BuildContextBlock(issue, events);
+        var context = BuildContextBlock(issue, events);
 
         try
         {
-            ChatResponse response = await llm!.GetResponseAsync(
+            var response = await llm!.GetResponseAsync(
                 $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context}",
                 cancellationToken: ct).ConfigureAwait(false);
 
-            LoomInsight? parsed = TryParseInsight(response.Text ?? "{}", issueId);
+            var parsed = TryParseInsight(response.Text ?? "{}", issueId);
             if (parsed is not null) return parsed;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -59,11 +59,11 @@ public sealed partial class LoomInsightService(
         string issueId, IssueSummary issue,
         IReadOnlyList<ErrorIssueEventRow> events)
     {
-        string whatHappened = $"{issue.ErrorType} occurred " +
-            $"{issue.EventCount} time{(issue.EventCount == 1 ? "" : "s")} " +
-            $"since {issue.FirstSeen:yyyy-MM-dd HH:mm} UTC.";
+        var whatHappened = $"{issue.ErrorType} occurred " +
+                           $"{issue.EventCount} time{(issue.EventCount == 1 ? "" : "s")} " +
+                           $"since {issue.FirstSeen:yyyy-MM-dd HH:mm} UTC.";
 
-        string initialGuess = issue.ErrorType switch
+        var initialGuess = issue.ErrorType switch
         {
             string t when t.ContainsIgnoreCase("NullReference") =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
@@ -74,16 +74,13 @@ public sealed partial class LoomInsightService(
             _ => $"A {issue.ErrorType} is being thrown — investigate the stack trace for the originating call site."
         };
 
-        string? inTheTrace = events.Count > 0 && events[0].StackTrace is not null
+        var inTheTrace = events.Count > 0 && events[0].StackTrace is not null
             ? $"The most recent event shows: {events[0].Message ?? issue.ErrorType}"
             : null;
 
         return new LoomInsight
         {
-            IssueId = issueId,
-            WhatHappened = whatHappened,
-            InitialGuess = initialGuess,
-            InTheTrace = inTheTrace
+            IssueId = issueId, WhatHappened = whatHappened, InitialGuess = initialGuess, InTheTrace = inTheTrace
         };
     }
 
@@ -96,7 +93,7 @@ public sealed partial class LoomInsightService(
         sb.AppendLine($"First seen: {issue.FirstSeen:O}");
         sb.AppendLine($"Last seen: {issue.LastSeen:O}");
 
-        foreach (ErrorIssueEventRow e in events)
+        foreach (var e in events)
         {
             sb.AppendLine($"- [{e.Timestamp:O}] {e.Message ?? "no message"}");
             if (e.StackTrace is not null)
@@ -108,8 +105,8 @@ public sealed partial class LoomInsightService(
 
     private static LoomInsight? TryParseInsight(string text, string issueId)
     {
-        int start = text.IndexOf('{');
-        int end = text.LastIndexOf('}');
+        var start = text.IndexOf('{');
+        var end = text.LastIndexOf('}');
         if (start < 0 || end <= start) return null;
 
         try
@@ -129,7 +126,8 @@ public sealed partial class LoomInsightService(
         catch (JsonException) { return null; }
     }
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Generating Loom insight for issue {IssueId}, {EventCount} events")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Generating Loom insight for issue {IssueId}, {EventCount} events")]
     private partial void LogGeneratingInsight(string issueId, int eventCount);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Issue {IssueId} not found for Loom insight")]
@@ -151,33 +149,33 @@ public sealed record LoomInsight
 
 public sealed record LoomRootCause
 {
-    [JsonPropertyName("summary")]
-    public required string Summary { get; init; }
+    [JsonPropertyName("summary")] public required string Summary { get; init; }
 
-    [JsonPropertyName("steps")]
-    public required LoomCausalStep[] Steps { get; init; }
+    [JsonPropertyName("steps")] public required LoomCausalStep[] Steps { get; init; }
 }
 
 public sealed record LoomCausalStep(
     [property: JsonPropertyName("order")] int Order,
-    [property: JsonPropertyName("description")] string Description,
-    [property: JsonPropertyName("is_root_cause")] bool IsRootCause);
+    [property: JsonPropertyName("description")]
+    string Description,
+    [property: JsonPropertyName("is_root_cause")]
+    bool IsRootCause);
 
 public sealed record LoomSolution
 {
-    [JsonPropertyName("summary")]
-    public required string Summary { get; init; }
+    [JsonPropertyName("summary")] public required string Summary { get; init; }
 
-    [JsonPropertyName("steps")]
-    public required LoomSolutionStep[] Steps { get; init; }
+    [JsonPropertyName("steps")] public required LoomSolutionStep[] Steps { get; init; }
 }
 
 public sealed record LoomSolutionStep(
     [property: JsonPropertyName("title")] string Title,
-    [property: JsonPropertyName("description")] string Description);
+    [property: JsonPropertyName("description")]
+    string Description);
 
 public sealed record LoomExploreRequest(
-    [property: JsonPropertyName("user_context")] string? UserContext);
+    [property: JsonPropertyName("user_context")]
+    string? UserContext);
 
 internal sealed record InsightLlmResponse
 {

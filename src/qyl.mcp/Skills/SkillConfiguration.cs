@@ -6,8 +6,8 @@ namespace qyl.mcp.Skills;
 /// </summary>
 public sealed class SkillConfiguration
 {
-    private readonly HashSet<QylSkillKind> _enabled;
     private readonly bool _all;
+    private readonly HashSet<QylSkillKind> _enabled;
 
     private SkillConfiguration(HashSet<QylSkillKind> enabled, bool all)
     {
@@ -19,15 +19,15 @@ public sealed class SkillConfiguration
 
     public static SkillConfiguration FromEnvironment()
     {
-        string? raw = Environment.GetEnvironmentVariable("QYL_SKILLS");
+        var raw = Environment.GetEnvironmentVariable("QYL_SKILLS");
 
         if (string.IsNullOrWhiteSpace(raw) || raw.EqualsIgnoreCase("all"))
-            return new SkillConfiguration([], all: true);
+            return new SkillConfiguration([], true);
 
         HashSet<QylSkillKind> enabled = [];
-        foreach (string part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        foreach (var part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
-            if (Enum.TryParse<QylSkillKind>(part, ignoreCase: true, out QylSkillKind kind))
+            if (Enum.TryParse(part, true, out QylSkillKind kind))
                 enabled.Add(kind);
         }
 

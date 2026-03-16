@@ -28,7 +28,7 @@ namespace Qyl.Instrumentation.Instrumentation;
 /// [Traced("MyApp.Catalog")]
 /// [return: TracedReturn("product.id", Property = "Id")]
 /// public Product GetProduct(string id) { ... }
-///
+/// 
 /// // Nested path:
 /// [return: TracedReturn("usage.input_tokens", Property = "Usage.InputTokens")]
 /// public async Task&lt;ChatResponse&gt; ChatAsync(string prompt) { ... }
@@ -48,6 +48,8 @@ public sealed class TracedReturnAttribute(string tagName) : Attribute
     ///     Gets or sets an optional dotted member-access path on the return value.
     ///     When <see langword="null" />, <c>ToString()</c> is called on the result.
     /// </summary>
-    /// <example><c>Property = "Usage.InputTokens"</c></example>
+    /// <example>
+    ///     <c>Property = "Usage.InputTokens"</c>
+    /// </example>
     public string? Property { get; set; }
 }

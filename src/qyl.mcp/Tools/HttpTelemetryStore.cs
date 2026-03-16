@@ -17,7 +17,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         {
             var session = await client.GetFromJsonAsync(
                 $"/api/v1/sessions/{Uri.EscapeDataString(runId)}",
-                qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSession).ConfigureAwait(false);
+                HttpStoreJsonContext.Default.StoreSession).ConfigureAwait(false);
 
             return session is null ? null : MapToRun(session, time);
         }
@@ -38,7 +38,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&provider={Uri.EscapeDataString(provider)}";
 
             var response = await client.GetFromJsonAsync(
-                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             return (response?.Items ?? [])
                 .Select(s => MapToRun(s, time))
@@ -63,7 +63,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
         {
             var response = await client.GetFromJsonAsync(
                 "/api/v1/sessions?limit=1000",
-                qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             if (response?.Items is not { Count: > 0 }) return [];
 
@@ -76,8 +76,8 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
 
             return
             [
-                .. Enumerable
-                    .Where<StoreSession>(response.Items, s => InRange(ParseTime(s.StartTime), since, until))
+                .. response.Items
+                    .Where<StoreSession>(s => InRange(ParseTime(s.StartTime), since, until))
                     .GroupBy(keySelector)
                     .Select(g => new TokenUsageSummary(
                         g.Key,
@@ -104,7 +104,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
             var response = await client.GetFromJsonAsync(
-                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             return (response?.Items ?? [])
                 .Where(s => s.ErrorCount > 0)
@@ -134,7 +134,7 @@ public sealed partial class HttpTelemetryStore(HttpClient client, TimeProvider t
                 url += $"&serviceName={Uri.EscapeDataString(agentName)}";
 
             var response = await client.GetFromJsonAsync(
-                url, qyl.mcp.Tools.HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
+                url, HttpStoreJsonContext.Default.StoreSessionList).ConfigureAwait(false);
 
             var since = time.GetUtcNow().AddHours(-hours).DateTime;
             var durations = (response?.Items ?? [])

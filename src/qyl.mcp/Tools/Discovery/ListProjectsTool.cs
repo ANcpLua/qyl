@@ -14,7 +14,8 @@ public sealed class ListProjectsTool(HttpClient client)
     [Description("List available projects. Use project slugs to scope other tools to a specific project.")]
     public async Task<string> ListProjectsAsync(
         [Description("Cursor for pagination")] string? cursor = null,
-        [Description("Maximum results per page (1-100, default 25)")] int limit = 25,
+        [Description("Maximum results per page (1-100, default 25)")]
+        int limit = 25,
         CancellationToken ct = default)
     {
         limit = Math.Clamp(limit, 1, 100);

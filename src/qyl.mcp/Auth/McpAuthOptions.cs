@@ -21,6 +21,10 @@ public sealed class McpAuthOptions
     /// </summary>
     public const string HeaderName = "x-mcp-api-key";
 
+    public const string KeycloakAuthorityEnvVar = "QYL_KEYCLOAK_AUTHORITY";
+    public const string KeycloakClientIdEnvVar = "QYL_KEYCLOAK_CLIENT_ID";
+    public const string KeycloakClientSecretEnvVar = "QYL_KEYCLOAK_CLIENT_SECRET";
+
     /// <summary>
     ///     Gets or sets the API key for authenticating with qyl.collector.
     ///     If null or empty, authentication is disabled (dev mode).
@@ -37,8 +41,8 @@ public sealed class McpAuthOptions
     /// <summary>
     ///     Keycloak realm authority URL.
     ///     E.g., "http://localhost:8080/realms/qyl"
-    ///     Set via <see cref="KeycloakAuthorityEnvVar"/>.
-    ///     When null, Keycloak auth is disabled and <see cref="Token"/> API-key is used.
+    ///     Set via <see cref="KeycloakAuthorityEnvVar" />.
+    ///     When null, Keycloak auth is disabled and <see cref="Token" /> API-key is used.
     /// </summary>
     public string? KeycloakAuthority { get; set; }
 
@@ -50,15 +54,11 @@ public sealed class McpAuthOptions
 
     /// <summary>
     ///     Gets whether Keycloak authentication is fully configured.
-    ///     True when <see cref="KeycloakAuthority"/>, <see cref="KeycloakClientId"/>,
-    ///     and <see cref="KeycloakClientSecret"/> are all non-empty.
+    ///     True when <see cref="KeycloakAuthority" />, <see cref="KeycloakClientId" />,
+    ///     and <see cref="KeycloakClientSecret" /> are all non-empty.
     /// </summary>
     public bool IsKeycloakEnabled =>
         !string.IsNullOrWhiteSpace(KeycloakAuthority) &&
         !string.IsNullOrWhiteSpace(KeycloakClientId) &&
         !string.IsNullOrWhiteSpace(KeycloakClientSecret);
-
-    public const string KeycloakAuthorityEnvVar     = "QYL_KEYCLOAK_AUTHORITY";
-    public const string KeycloakClientIdEnvVar       = "QYL_KEYCLOAK_CLIENT_ID";
-    public const string KeycloakClientSecretEnvVar   = "QYL_KEYCLOAK_CLIENT_SECRET";
 }

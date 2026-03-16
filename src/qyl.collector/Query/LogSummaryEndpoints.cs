@@ -58,10 +58,7 @@ internal static class LogSummaryEndpoints
         }
         catch (ArgumentException ex) when (ex.ParamName is "sinceCursor")
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
-            {
-                ["sinceCursor"] = [ex.Message]
-            });
+            return Results.ValidationProblem(new Dictionary<string, string[]> { ["sinceCursor"] = [ex.Message] });
         }
     }
 
@@ -170,10 +167,7 @@ internal static class LogSummaryEndpoints
                 });
             }
 
-            request = request with
-            {
-                SeverityText = normalized is "warning" ? "warn" : normalized
-            };
+            request = request with { SeverityText = normalized is "warning" ? "warn" : normalized };
         }
 
         var response = await service.WaitForLogAsync(request, ct).ConfigureAwait(false);

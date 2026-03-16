@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
 using qyl.mcp.Formatting;
@@ -15,7 +14,8 @@ public sealed class GetTraceDetailsTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Get full span tree for a trace. Returns all spans with timing, status, and attributes.")]
     public async Task<string> GetTraceDetailsAsync(
-        [Description("The trace ID to inspect")] string traceId,
+        [Description("The trace ID to inspect")]
+        string traceId,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(

@@ -15,6 +15,6 @@ internal static class QueryStudioResource
             {
                 Name = "query-studio",
                 Description = "Interactive DuckDB query console for qyl observability data",
-                MimeType = "text/html;profile=mcp-app",
+                MimeType = "text/html;profile=mcp-app"
             });
 }

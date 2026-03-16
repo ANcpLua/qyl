@@ -1,4 +1,4 @@
-import {type ComponentPropsWithoutRef, type ReactNode, forwardRef} from "react"
+import {type ComponentPropsWithoutRef, forwardRef, type ReactNode} from "react"
 import {Select as SelectPrimitive} from "@base-ui/react/select"
 import {Check, ChevronDown, ChevronUp} from "lucide-react"
 import {cn} from "@/lib/utils"
@@ -20,11 +20,14 @@ function Select({onValueChange, ...props}: SelectProps) {
         <SelectPrimitive.Root
             {...props}
             onValueChange={onValueChange
-                ? (value) => { if (value !== null) onValueChange(value) }
+                ? (value) => {
+                    if (value !== null) onValueChange(value)
+                }
                 : undefined}
         />
     )
 }
+
 const SelectGroup = SelectPrimitive.Group
 const SelectValue = SelectPrimitive.Value
 

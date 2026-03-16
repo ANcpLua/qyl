@@ -5,8 +5,8 @@ import {Card, CardContent} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {useGitHubEvents, useTriggerCodeReview} from '@/hooks/use-Loom';
 import type {CodeReviewComment, CodeReviewResult} from '@/hooks/use-Loom';
+import {useGitHubEvents, useTriggerCodeReview} from '@/hooks/use-Loom';
 
 const severityStyles: Record<string, string> = {
     critical: 'bg-red-500/20 text-red-400 border-red-500/40',
@@ -71,7 +71,8 @@ function ReviewComment({comment}: { comment: CodeReviewComment }) {
             </div>
             <p className="text-sm text-brutal-white">{comment.comment}</p>
             {comment.suggestion && (
-                <pre className="text-xs font-mono bg-brutal-carbon border border-brutal-zinc p-3 text-signal-green overflow-x-auto whitespace-pre-wrap">
+                <pre
+                    className="text-xs font-mono bg-brutal-carbon border border-brutal-zinc p-3 text-signal-green overflow-x-auto whitespace-pre-wrap">
                     {comment.suggestion}
                 </pre>
             )}
@@ -108,10 +109,12 @@ function ReviewResults({result}: { result: CodeReviewResult }) {
                         <span className="text-xs font-bold text-red-400">{criticalCount} critical</span>
                     )}
                     {warningCount > 0 && (
-                        <span className="text-xs font-bold text-amber-400">{warningCount} warning{warningCount !== 1 ? 's' : ''}</span>
+                        <span
+                            className="text-xs font-bold text-amber-400">{warningCount} warning{warningCount !== 1 ? 's' : ''}</span>
                     )}
                     {suggestionCount > 0 && (
-                        <span className="text-xs font-bold text-cyan-400">{suggestionCount} suggestion{suggestionCount !== 1 ? 's' : ''}</span>
+                        <span
+                            className="text-xs font-bold text-cyan-400">{suggestionCount} suggestion{suggestionCount !== 1 ? 's' : ''}</span>
                     )}
                     {result.comments.length === 0 && (
                         <span className="text-xs text-signal-green font-bold">No issues found</span>
@@ -246,7 +249,8 @@ export function CodeReviewPage() {
 
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
                     {/* Table header */}
-                    <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         <div className="w-32">EVENT TYPE</div>
                         <div className="w-20">ACTION</div>
                         <div className="flex-1">REPOSITORY</div>

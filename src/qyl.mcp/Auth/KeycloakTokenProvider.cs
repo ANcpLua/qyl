@@ -9,21 +9,21 @@ namespace qyl.mcp.Auth;
 
 /// <summary>
 ///     Fetches and caches a Keycloak JWT via OAuth2 client-credentials flow.
-///     Returns <see langword="null"/> when Keycloak is not configured — callers fall back to the API-key path.
+///     Returns <see langword="null" /> when Keycloak is not configured — callers fall back to the API-key path.
 /// </summary>
 public sealed partial class KeycloakTokenProvider : IDisposable
 {
     public const string HttpClientName = "KeycloakTokenProvider";
+    private readonly HttpClient _httpClient;
+    private readonly Lock _lock = new();
 
     private readonly ILogger<KeycloakTokenProvider> _logger;
     private readonly McpAuthOptions _options;
-    private readonly HttpClient _httpClient;
     private readonly TimeProvider _time;
-    private readonly Lock _lock = new();
+    private FrozenSet<string> _cachedRoles = FrozenSet<string>.Empty;
 
     private string? _cachedToken;
     private DateTimeOffset _tokenExpiry = DateTimeOffset.MinValue;
-    private FrozenSet<string> _cachedRoles = FrozenSet<string>.Empty;
 
     public KeycloakTokenProvider(
         IOptions<McpAuthOptions> options,
@@ -37,8 +37,10 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         _logger = logger;
     }
 
+    public void Dispose() => _httpClient.Dispose();
+
     /// <summary>
-    ///     Returns a valid Bearer token string, or <see langword="null"/> when Keycloak is not configured.
+    ///     Returns a valid Bearer token string, or <see langword="null" /> when Keycloak is not configured.
     ///     Refreshes automatically when the cached token is within 60 seconds of expiry.
     /// </summary>
     public async ValueTask<string?> GetTokenAsync(CancellationToken ct = default)
@@ -72,17 +74,17 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     // so the resilience handler on the named HttpClient can retry and circuit-break.
     private async ValueTask<string?> FetchTokenAsync(CancellationToken ct)
     {
-        string authority = _options.KeycloakAuthority!.TrimEnd('/');
-        string tokenEndpoint = $"{authority}/protocol/openid-connect/token";
+        var authority = _options.KeycloakAuthority!.TrimEnd('/');
+        var tokenEndpoint = $"{authority}/protocol/openid-connect/token";
 
         using FormUrlEncodedContent form = new(
         [
-            new("grant_type",    "client_credentials"),
-            new("client_id",     _options.KeycloakClientId!),
-            new("client_secret", _options.KeycloakClientSecret!),
+            new KeyValuePair<string, string>("grant_type", "client_credentials"),
+            new KeyValuePair<string, string>("client_id", _options.KeycloakClientId!),
+            new KeyValuePair<string, string>("client_secret", _options.KeycloakClientSecret!)
         ]);
 
-        HttpResponseMessage response = await _httpClient
+        var response = await _httpClient
             .PostAsync(tokenEndpoint, form, ct)
             .ConfigureAwait(false);
 
@@ -98,7 +100,7 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         try
         {
             tokenResponse = await response.Content
-                .ReadFromJsonAsync(qyl.mcp.Auth.KeycloakJsonContext.Default.TokenResponse, ct)
+                .ReadFromJsonAsync(KeycloakJsonContext.Default.TokenResponse, ct)
                 .ConfigureAwait(false);
         }
         catch (JsonException ex)
@@ -113,8 +115,8 @@ public sealed partial class KeycloakTokenProvider : IDisposable
             return null;
         }
 
-        FrozenSet<string> roles = ExtractRoles(tokenResponse.AccessToken);
-        DateTimeOffset expiry = _time.GetUtcNow().AddSeconds(tokenResponse.ExpiresIn);
+        var roles = ExtractRoles(tokenResponse.AccessToken);
+        var expiry = _time.GetUtcNow().AddSeconds(tokenResponse.ExpiresIn);
 
         using (_lock.EnterScope())
         {
@@ -135,14 +137,14 @@ public sealed partial class KeycloakTokenProvider : IDisposable
     private static FrozenSet<string> ExtractRoles(string jwt)
     {
         ReadOnlySpan<char> span = jwt;
-        int firstDot = span.IndexOf('.');
+        var firstDot = span.IndexOf('.');
         if (firstDot < 0) return FrozenSet<string>.Empty;
 
-        ReadOnlySpan<char> remainder = span[(firstDot + 1)..];
-        int secondDot = remainder.IndexOf('.');
+        var remainder = span[(firstDot + 1)..];
+        var secondDot = remainder.IndexOf('.');
         if (secondDot < 0) return FrozenSet<string>.Empty;
 
-        string payload = new string(remainder[..secondDot])
+        var payload = new string(remainder[..secondDot])
             .Replace('-', '+')
             .Replace('_', '/');
 
@@ -155,19 +157,19 @@ public sealed partial class KeycloakTokenProvider : IDisposable
 
         try
         {
-            byte[] bytes = Convert.FromBase64String(payload);
-            using JsonDocument doc = JsonDocument.Parse(bytes);
+            var bytes = Convert.FromBase64String(payload);
+            using var doc = JsonDocument.Parse(bytes);
 
-            if (!doc.RootElement.TryGetProperty("realm_access", out JsonElement realmAccess) ||
-                !realmAccess.TryGetProperty("roles", out JsonElement rolesArray))
+            if (!doc.RootElement.TryGetProperty("realm_access", out var realmAccess) ||
+                !realmAccess.TryGetProperty("roles", out var rolesArray))
             {
                 return FrozenSet<string>.Empty;
             }
 
             HashSet<string> roles = [];
-            foreach (JsonElement role in rolesArray.EnumerateArray())
+            foreach (var role in rolesArray.EnumerateArray())
             {
-                string? roleStr = role.GetString();
+                var roleStr = role.GetString();
                 if (!string.IsNullOrWhiteSpace(roleStr))
                     roles.Add(roleStr);
             }
@@ -180,14 +182,13 @@ public sealed partial class KeycloakTokenProvider : IDisposable
         }
     }
 
-    public void Dispose() => _httpClient.Dispose();
-
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Keycloak token fetched — expires in {ExpiresIn}s, {RoleCount} realm roles")]
     private partial void LogTokenFetched(int expiresIn, int roleCount);
 
     [LoggerMessage(Level = LogLevel.Warning,
-        Message = "Keycloak token endpoint {Endpoint} returned HTTP {StatusCode} — check client credentials and realm config")]
+        Message =
+            "Keycloak token endpoint {Endpoint} returned HTTP {StatusCode} — check client credentials and realm config")]
     private partial void LogTokenHttpError(int statusCode, string endpoint);
 
     [LoggerMessage(Level = LogLevel.Warning,
@@ -201,9 +202,12 @@ public sealed partial class KeycloakTokenProvider : IDisposable
 // ── Token response DTO ────────────────────────────────────────────────────────
 
 internal sealed record TokenResponse(
-    [property: JsonPropertyName("access_token")]  string  AccessToken,
-    [property: JsonPropertyName("expires_in")]    int     ExpiresIn,
-    [property: JsonPropertyName("token_type")]    string  TokenType);
+    [property: JsonPropertyName("access_token")]
+    string AccessToken,
+    [property: JsonPropertyName("expires_in")]
+    int ExpiresIn,
+    [property: JsonPropertyName("token_type")]
+    string TokenType);
 
 [JsonSerializable(typeof(TokenResponse))]
 internal sealed partial class KeycloakJsonContext : JsonSerializerContext;

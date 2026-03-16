@@ -43,13 +43,13 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        string metricExpr = ValidateAndGetExpression(metric);
-        long cutoffNano = ComputeCutoffNano(hours);
+        var metricExpr = ValidateAndGetExpression(metric);
+        var cutoffNano = ComputeCutoffNano(hours);
 
-        await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
 
-        string serviceFilter = service is not null ? "AND service_name = $3" : "";
+        var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
         cmd.CommandText = $"""
                            WITH hourly AS (
@@ -81,16 +81,16 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         double mean = 0;
         double stddev = 0;
 
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
-            DateTime bucket = reader.GetDateTime(0);
-            double value = reader.GetDouble(1);
-            double zScore = reader.Col(2).AsDouble ?? 0;
+            var bucket = reader.GetDateTime(0);
+            var value = reader.GetDouble(1);
+            var zScore = reader.Col(2).AsDouble ?? 0;
             mean = reader.Col(3).AsDouble ?? 0;
             stddev = reader.Col(4).AsDouble ?? 0;
 
-            string direction = zScore > 0 ? "spike" : "drop";
+            var direction = zScore > 0 ? "spike" : "drop";
             anomalies.Add(new AnomalyPoint(bucket, value, zScore, direction));
         }
 
@@ -113,13 +113,13 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        string metricExpr = ValidateAndGetExpression(metric);
-        long cutoffNano = ComputeCutoffNano(hours);
+        var metricExpr = ValidateAndGetExpression(metric);
+        var cutoffNano = ComputeCutoffNano(hours);
 
-        await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
 
-        string serviceFilter = service is not null ? "AND service_name = $2" : "";
+        var serviceFilter = service is not null ? "AND service_name = $2" : "";
 
         cmd.CommandText = $"""
                            WITH hourly AS (
@@ -143,18 +143,18 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         if (service is not null)
             cmd.Parameters.Add(new DuckDBParameter { Value = service });
 
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0);
         }
 
-        double mean = reader.Col(0).AsDouble ?? 0;
-        double stddev = reader.Col(1).AsDouble ?? 0;
-        double p50 = reader.Col(2).AsDouble ?? 0;
-        double p95 = reader.Col(3).AsDouble ?? 0;
-        double p99 = reader.Col(4).AsDouble ?? 0;
-        long sampleCount = reader.GetInt64(5);
+        var mean = reader.Col(0).AsDouble ?? 0;
+        var stddev = reader.Col(1).AsDouble ?? 0;
+        var p50 = reader.Col(2).AsDouble ?? 0;
+        var p95 = reader.Col(3).AsDouble ?? 0;
+        var p99 = reader.Col(4).AsDouble ?? 0;
+        var sampleCount = reader.GetInt64(5);
 
         LogBaselineComputed(metric, hours, sampleCount);
 
@@ -178,16 +178,16 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service = null,
         CancellationToken ct = default)
     {
-        string metricExpr = ValidateAndGetExpression(metric);
+        var metricExpr = ValidateAndGetExpression(metric);
 
-        BaselineResult period1 = await GetPeriodBaselineAsync(
+        var period1 = await GetPeriodBaselineAsync(
             metric, metricExpr, period1Start, period1End, service, ct).ConfigureAwait(false);
-        BaselineResult period2 = await GetPeriodBaselineAsync(
+        var period2 = await GetPeriodBaselineAsync(
             metric, metricExpr, period2Start, period2End, service, ct).ConfigureAwait(false);
 
-        double meanDelta = period2.Mean - period1.Mean;
-        double meanDeltaPercent = period1.Mean != 0
-            ? (meanDelta / period1.Mean) * 100.0
+        var meanDelta = period2.Mean - period1.Mean;
+        var meanDeltaPercent = period1.Mean != 0
+            ? meanDelta / period1.Mean * 100.0
             : 0;
 
         LogPeriodComparison(metric, meanDelta, meanDeltaPercent);
@@ -207,14 +207,14 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         string? service,
         CancellationToken ct)
     {
-        long startNano = DateTimeToUnixNano(periodStart);
-        long endNano = DateTimeToUnixNano(periodEnd);
-        int hours = (int)(periodEnd - periodStart).TotalHours;
+        var startNano = DateTimeToUnixNano(periodStart);
+        var endNano = DateTimeToUnixNano(periodEnd);
+        var hours = (int)(periodEnd - periodStart).TotalHours;
 
-        await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
 
-        string serviceFilter = service is not null ? "AND service_name = $3" : "";
+        var serviceFilter = service is not null ? "AND service_name = $3" : "";
 
         cmd.CommandText = $"""
                            WITH hourly AS (
@@ -239,25 +239,25 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
         if (service is not null)
             cmd.Parameters.Add(new DuckDBParameter { Value = service });
 
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         if (!await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             return new BaselineResult(metric, hours, 0, 0, 0, 0, 0, 0);
         }
 
-        double mean = reader.Col(0).AsDouble ?? 0;
-        double stddev = reader.Col(1).AsDouble ?? 0;
-        double p50 = reader.Col(2).AsDouble ?? 0;
-        double p95 = reader.Col(3).AsDouble ?? 0;
-        double p99 = reader.Col(4).AsDouble ?? 0;
-        long sampleCount = reader.GetInt64(5);
+        var mean = reader.Col(0).AsDouble ?? 0;
+        var stddev = reader.Col(1).AsDouble ?? 0;
+        var p50 = reader.Col(2).AsDouble ?? 0;
+        var p95 = reader.Col(3).AsDouble ?? 0;
+        var p99 = reader.Col(4).AsDouble ?? 0;
+        var sampleCount = reader.GetInt64(5);
 
         return new BaselineResult(metric, hours, mean, stddev, p50, p95, p99, sampleCount);
     }
 
     private static string ValidateAndGetExpression(string metric)
     {
-        if (!MetricExpressions.TryGetValue(metric, out string? expr))
+        if (!MetricExpressions.TryGetValue(metric, out var expr))
         {
             throw new ArgumentException(
                 $"Unknown metric '{metric}'. Valid metrics: {string.Join(", ", MetricExpressions.Keys)}",
@@ -269,7 +269,7 @@ public sealed partial class AnomalyService(DuckDbStore store, ILogger<AnomalySer
 
     private static long ComputeCutoffNano(int hours)
     {
-        DateTimeOffset cutoff = TimeProvider.System.GetUtcNow().AddHours(-hours);
+        var cutoff = TimeProvider.System.GetUtcNow().AddHours(-hours);
         return cutoff.ToUnixTimeMilliseconds() * 1_000_000;
     }
 

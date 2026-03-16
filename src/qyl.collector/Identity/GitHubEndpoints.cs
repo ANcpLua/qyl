@@ -51,7 +51,7 @@ public static class GitHubEndpoints
         });
 
         group.MapGet("/device/available", static (
-            [FromServices] GitHubService service) =>
+                [FromServices] GitHubService service) =>
             Results.Json(
                 new DeviceAvailableResponse(service.IsDeviceFlowAvailable),
                 GitHubJsonContext.Default.DeviceAvailableResponse));
@@ -81,9 +81,11 @@ public static class GitHubEndpoints
             [FromServices] GitHubService service, CancellationToken ct) =>
         {
             if (!service.IsConfigured)
+            {
                 return Results.Json(
                     new { error = "GitHub token not configured" },
                     statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
 
             var repos = await service.GetRepositoriesAsync(ct);
             return Results.Json(repos, GitHubJsonContext.Default.GitHubRepoArray);

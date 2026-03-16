@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {resolveOnboardingConnection, type CollectorMeta} from './onboarding';
+import {type CollectorMeta, resolveOnboardingConnection} from './onboarding';
 
 describe('resolveOnboardingConnection', () => {
     it('uses qyl defaults when meta has not loaded yet', () => {

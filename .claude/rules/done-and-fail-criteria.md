@@ -1,7 +1,14 @@
+---
+paths:
+  - "src/qyl.dashboard/**"
+---
+
 # done and fail criteria
 
 ## Definition of done
+
 A qyl frontend task is done only if:
+
 - the chosen primitive-family contract is followed consistently
 - Base UI patterns are used correctly for the Base UI variant
 - no forbidden Radix imports or Radix composition patterns exist
@@ -15,7 +22,9 @@ A qyl frontend task is done only if:
 - a future agent can understand the implementation without hidden conventions
 
 ## Auto-fail criteria
+
 Fail the task immediately if any of the following is true:
+
 - any import from `@radix-ui/*`
 - any import from `radix-ui`
 - any use of `asChild`
@@ -28,7 +37,9 @@ Fail the task immediately if any of the following is true:
 - a second competing primitive layer is introduced
 
 ## Review summary checklist
+
 Before approving, verify:
+
 - one primitive family only
 - product-level ownership preserved
 - operator-grade density maintained

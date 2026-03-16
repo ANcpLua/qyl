@@ -22,6 +22,7 @@ import type {IssueEvent} from '@/hooks/use-issues';
 import {useAssignIssue, useIssue, useIssueEvents, useUpdateIssueStatus} from '@/hooks/use-issues';
 import {useCodingAgentRuns, useFixRuns, useLaunchCodingAgent, useLoomSettings} from '@/hooks/use-coding-agents';
 import {CodingAgentResultCard} from '@/components/coding-agents/CodingAgentResultCard';
+import {LoomSidebar} from '@/components/Loom/LoomSidebar';
 
 const statusStyles: Record<string, string> = {
     new: 'bg-red-500/20 text-red-400 border-red-500/40',
@@ -160,7 +161,8 @@ export function IssueDetailPage() {
     const transitions = issue ? (statusTransitions[issue.status] ?? []) : [];
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="flex h-full">
+        <div className="flex-1 overflow-auto p-6 space-y-6">
             {/* Back button + header */}
             <div className="flex items-center gap-4">
                 <Button
@@ -368,6 +370,9 @@ export function IssueDetailPage() {
                     )}
                 </div>
             </div>
+        </div>
+        {/* Loom AI sidebar */}
+        {issueId && <LoomSidebar issueId={issueId}/>}
         </div>
     );
 }

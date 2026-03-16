@@ -21,7 +21,7 @@ internal static class CollectorHelper
         }
         catch (HttpRequestException ex)
         {
-            string category = ex.StatusCode switch
+            var category = ex.StatusCode switch
             {
                 HttpStatusCode.NotFound => "Not found",
                 HttpStatusCode.BadRequest => "Invalid request",

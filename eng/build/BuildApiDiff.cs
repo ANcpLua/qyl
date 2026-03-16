@@ -82,12 +82,12 @@ interface IApiDiff : IHazSourcePaths
             }
 
             var baseline = OpenApiDiffer.Parse(baselineYaml);
-            var current  = OpenApiDiffer.Parse(File.ReadAllText(OpenApiSpec));
-            var result   = OpenApiDiffer.Diff(baseline, current);
+            var current = OpenApiDiffer.Parse(File.ReadAllText(OpenApiSpec));
+            var result = OpenApiDiffer.Diff(baseline, current);
 
             OpenApiDiffReport.Print(result, baseRef);
 
-            bool failOnBreaking = FailOnBreaking ?? IsServerBuild;
+            var failOnBreaking = FailOnBreaking ?? IsServerBuild;
             if (result.HasBreaking && failOnBreaking)
                 throw new InvalidOperationException(
                     $"{result.Breaking.Count} breaking API change(s) detected (see diff above). " +
@@ -109,11 +109,11 @@ interface IApiDiff : IHazSourcePaths
                 .GetRelativePathTo(OpenApiSpec).ToString().Replace('\\', '/');
 
             // git diff --name-only exits 0 whether or not there are diffs — safe to call without try/catch
-            IReadOnlyCollection<Output> diffOutput = GitTasks.Git(
+            var diffOutput = GitTasks.Git(
                 $"diff --name-only HEAD -- {relPath}",
                 RootDirectory, logOutput: false, logInvocation: false);
 
-            bool changed = diffOutput.Any(static o =>
+            var changed = diffOutput.Any(static o =>
                 o.Text.Contains("openapi.yaml", StringComparison.OrdinalIgnoreCase));
 
             if (changed)
@@ -166,19 +166,19 @@ internal enum ApiChangeKind
     SchemaRemoved,
     PropertyAdded,
     PropertyRemoved,
-    RequiredAdded,   // property became required → breaking for request bodies
-    RequiredRemoved, // property relaxed to optional → non-breaking
+    RequiredAdded, // property became required → breaking for request bodies
+    RequiredRemoved // property relaxed to optional → non-breaking
 }
 
 internal sealed record ApiChange(
     ApiChangeKind Kind,
-    string Subject,       // path, schema name, or "SchemaName.fieldName"
-    string? Detail,       // e.g. HTTP method
+    string Subject, // path, schema name, or "SchemaName.fieldName"
+    string? Detail, // e.g. HTTP method
     bool IsBreaking);
 
 internal sealed record OpenApiDiffResult(IReadOnlyList<ApiChange> Changes)
 {
-    public IReadOnlyList<ApiChange> Breaking    => Changes.Where(static c => c.IsBreaking).ToList();
+    public IReadOnlyList<ApiChange> Breaking => Changes.Where(static c => c.IsBreaking).ToList();
     public IReadOnlyList<ApiChange> NonBreaking => Changes.Where(static c => !c.IsBreaking).ToList();
     public bool HasBreaking => Changes.Any(static c => c.IsBreaking);
 }
@@ -229,19 +229,17 @@ internal static class OpenApiDiffer
         List<ApiChange> changes)
     {
         foreach (var path in baseline.Keys.Except(current.Keys, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.PathRemoved, path, null, IsBreaking: true));
+            changes.Add(new ApiChange(ApiChangeKind.PathRemoved, path, null, true));
 
         foreach (var path in current.Keys.Except(baseline.Keys, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.PathAdded, path, null, IsBreaking: false));
+            changes.Add(new ApiChange(ApiChangeKind.PathAdded, path, null, false));
 
         // Shared paths: diff operations
         foreach (var path in baseline.Keys.Intersect(current.Keys, StringComparer.Ordinal))
-        {
             DiffOperations(path,
                 GetOperations(baseline[path]),
                 GetOperations(current[path]),
                 changes);
-        }
     }
 
     private static void DiffOperations(
@@ -251,12 +249,12 @@ internal static class OpenApiDiffer
         List<ApiChange> changes)
     {
         foreach (var method in baseline.Except(current, StringComparer.OrdinalIgnoreCase))
-            changes.Add(new(ApiChangeKind.OperationRemoved, path,
-                method.ToUpperInvariant(), IsBreaking: true));
+            changes.Add(new ApiChange(ApiChangeKind.OperationRemoved, path,
+                method.ToUpperInvariant(), true));
 
         foreach (var method in current.Except(baseline, StringComparer.OrdinalIgnoreCase))
-            changes.Add(new(ApiChangeKind.OperationAdded, path,
-                method.ToUpperInvariant(), IsBreaking: false));
+            changes.Add(new ApiChange(ApiChangeKind.OperationAdded, path,
+                method.ToUpperInvariant(), false));
     }
 
     // ── Schema-level diff ────────────────────────────────────────────────────
@@ -267,10 +265,10 @@ internal static class OpenApiDiffer
         List<ApiChange> changes)
     {
         foreach (var name in baseline.Keys.Except(current.Keys, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.SchemaRemoved, name, null, IsBreaking: true));
+            changes.Add(new ApiChange(ApiChangeKind.SchemaRemoved, name, null, true));
 
         foreach (var name in current.Keys.Except(baseline.Keys, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.SchemaAdded, name, null, IsBreaking: false));
+            changes.Add(new ApiChange(ApiChangeKind.SchemaAdded, name, null, false));
 
         foreach (var name in baseline.Keys.Intersect(current.Keys, StringComparer.Ordinal))
             DiffSchemaFields(name, baseline[name], current[name], changes);
@@ -282,30 +280,30 @@ internal static class OpenApiDiffer
         YamlMappingNode current,
         List<ApiChange> changes)
     {
-        var baseProps     = GetPropertyNames(baseline);
-        var currProps     = GetPropertyNames(current);
-        var baseRequired  = GetRequired(baseline);
-        var currRequired  = GetRequired(current);
+        var baseProps = GetPropertyNames(baseline);
+        var currProps = GetPropertyNames(current);
+        var baseRequired = GetRequired(baseline);
+        var currRequired = GetRequired(current);
 
         // Properties removed → breaking (consumers depend on response fields)
         foreach (var prop in baseProps.Except(currProps, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.PropertyRemoved,
-                $"{schemaName}.{prop}", null, IsBreaking: true));
+            changes.Add(new ApiChange(ApiChangeKind.PropertyRemoved,
+                $"{schemaName}.{prop}", null, true));
 
         // Properties added → non-breaking
         foreach (var prop in currProps.Except(baseProps, StringComparer.Ordinal))
-            changes.Add(new(ApiChangeKind.PropertyAdded,
-                $"{schemaName}.{prop}", null, IsBreaking: false));
+            changes.Add(new ApiChange(ApiChangeKind.PropertyAdded,
+                $"{schemaName}.{prop}", null, false));
 
         // Required set tightened → breaking (callers must now supply the field)
         foreach (var prop in currRequired.Except(baseRequired, StringComparer.OrdinalIgnoreCase))
-            changes.Add(new(ApiChangeKind.RequiredAdded,
-                $"{schemaName}.{prop}", null, IsBreaking: true));
+            changes.Add(new ApiChange(ApiChangeKind.RequiredAdded,
+                $"{schemaName}.{prop}", null, true));
 
         // Required set relaxed → non-breaking
         foreach (var prop in baseRequired.Except(currRequired, StringComparer.OrdinalIgnoreCase))
-            changes.Add(new(ApiChangeKind.RequiredRemoved,
-                $"{schemaName}.{prop}", null, IsBreaking: false));
+            changes.Add(new ApiChange(ApiChangeKind.RequiredRemoved,
+                $"{schemaName}.{prop}", null, false));
     }
 
     // ── Node helpers ─────────────────────────────────────────────────────────
@@ -314,15 +312,13 @@ internal static class OpenApiDiffer
     {
         if (!root.Children.TryGetValue("paths", out var node) ||
             node is not YamlMappingNode pathsNode)
-            return new();
+            return new Dictionary<string, YamlMappingNode>();
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in pathsNode.Children)
-        {
             if (key is YamlScalarNode keyScalar && keyScalar.Value is { } k &&
                 value is YamlMappingNode v)
                 result[k] = v;
-        }
         return result;
     }
 
@@ -330,19 +326,17 @@ internal static class OpenApiDiffer
     {
         if (!root.Children.TryGetValue("components", out var comp) ||
             comp is not YamlMappingNode compNode)
-            return new();
+            return new Dictionary<string, YamlMappingNode>();
 
         if (!compNode.Children.TryGetValue("schemas", out var schemas) ||
             schemas is not YamlMappingNode schemasNode)
-            return new();
+            return new Dictionary<string, YamlMappingNode>();
 
         var result = new Dictionary<string, YamlMappingNode>(StringComparer.Ordinal);
         foreach (var (key, value) in schemasNode.Children)
-        {
             if (key is YamlScalarNode keyScalar && keyScalar.Value is { } k &&
                 value is YamlMappingNode v)
                 result[k] = v;
-        }
         return result;
     }
 
@@ -350,11 +344,9 @@ internal static class OpenApiDiffer
     {
         var ops = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var (key, _) in pathNode.Children)
-        {
             if (key is YamlScalarNode { Value: { } method } &&
                 HttpMethods.Contains(method))
                 ops.Add(method);
-        }
         return ops;
     }
 
@@ -366,10 +358,8 @@ internal static class OpenApiDiffer
 
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (var (key, _) in propsNode.Children)
-        {
             if (key is YamlScalarNode { Value: { } name })
                 result.Add(name);
-        }
         return result;
     }
 
@@ -381,10 +371,8 @@ internal static class OpenApiDiffer
 
         var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var item in seqNode.Children.OfType<YamlScalarNode>())
-        {
             if (item.Value is { } v)
                 result.Add(v);
-        }
         return result;
     }
 }

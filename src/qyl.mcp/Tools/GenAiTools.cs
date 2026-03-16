@@ -38,7 +38,8 @@ public sealed class GenAiTools(HttpClient client)
             if (!string.IsNullOrEmpty(sessionId))
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
-            if (await client.GetFromJsonAsync<GenAiStatsDto>(url, qyl.mcp.Tools.GenAiJsonContext.Default.GenAiStatsDto).ConfigureAwait(false) is not { } stats)
+            if (await client.GetFromJsonAsync<GenAiStatsDto>(url, GenAiJsonContext.Default.GenAiStatsDto)
+                    .ConfigureAwait(false) is not { } stats)
                 return "No GenAI statistics available.";
 
             var sb = new StringBuilder();
@@ -102,7 +103,7 @@ public sealed class GenAiTools(HttpClient client)
                 url += $"&sessionId={Uri.EscapeDataString(sessionId)}";
 
             var response = await client.GetFromJsonAsync<GenAiSpansResponse>(
-                url, qyl.mcp.Tools.GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);
+                url, GenAiJsonContext.Default.GenAiSpansResponse).ConfigureAwait(false);
 
             if (response?.Spans is null || response.Spans.Count is 0)
                 return "No GenAI spans found matching the criteria.";
@@ -115,7 +116,7 @@ public sealed class GenAiTools(HttpClient client)
             {
                 var durationMs = TimeConversions.NanosToMs(span.DurationNs);
                 var statusIcon = span.StatusCode == 2 ? "[ERROR]" : "[OK]";
-                var timestamp = TimeConversions.NanosToDateTimeOffset((long)span.StartTimeUnixNano);
+                var timestamp = TimeConversions.NanosToDateTimeOffset(span.StartTimeUnixNano);
 
                 sb.AppendLine($"## {span.Name} {statusIcon}");
                 sb.AppendLine($"- Time: {timestamp:HH:mm:ss}");
@@ -157,7 +158,7 @@ public sealed class GenAiTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<ModelUsageResponse>(
                 $"/api/v1/genai/models?hours={hours}",
-                qyl.mcp.Tools.GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
+                GenAiJsonContext.Default.ModelUsageResponse).ConfigureAwait(false);
 
             if (response?.Models is null || response.Models.Count is 0)
                 return "No model usage data available.";
@@ -204,7 +205,7 @@ public sealed class GenAiTools(HttpClient client)
         {
             var response = await client.GetFromJsonAsync<TokenTimeseriesResponse>(
                 $"/api/v1/genai/usage/timeseries?hours={hours}&interval={interval}",
-                qyl.mcp.Tools.GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
+                GenAiJsonContext.Default.TokenTimeseriesResponse).ConfigureAwait(false);
 
             if (response?.Data is null || response.Data.Count is 0)
                 return "No usage data available for the specified time range.";

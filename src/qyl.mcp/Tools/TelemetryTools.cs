@@ -43,7 +43,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                 .ConfigureAwait(false);
             return result.Length is 0
                 ? "No agent runs found."
-                : JsonSerializer.Serialize(result, qyl.mcp.Tools.TelemetryToolsJsonContext.Default.AgentRunArray);
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRunArray);
         });
 
     [McpServerTool(Name = "qyl.get_agent_run", Title = "Get Agent Run",
@@ -68,7 +68,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
             var result = await store.GetRunAsync(runId).ConfigureAwait(false);
             return result is null
                 ? $"Agent run '{runId}' not found."
-                : JsonSerializer.Serialize(result, qyl.mcp.Tools.TelemetryToolsJsonContext.Default.AgentRun);
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentRun);
         });
 
     [McpServerTool(Name = "qyl.get_token_usage", Title = "Get Token Usage",
@@ -97,7 +97,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                 .ConfigureAwait(false);
             return result.Length is 0
                 ? "No token usage data available."
-                : JsonSerializer.Serialize(result, qyl.mcp.Tools.TelemetryToolsJsonContext.Default.TokenUsageSummaryArray);
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.TokenUsageSummaryArray);
         });
 
     [McpServerTool(Name = "qyl.list_errors", Title = "List Errors",
@@ -124,7 +124,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
                 .ConfigureAwait(false);
             return result.Length is 0
                 ? "No errors found."
-                : JsonSerializer.Serialize(result, qyl.mcp.Tools.TelemetryToolsJsonContext.Default.AgentErrorArray);
+                : JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.AgentErrorArray);
         });
 
     [McpServerTool(Name = "qyl.get_latency_stats", Title = "Get Latency Stats",
@@ -148,7 +148,7 @@ internal sealed class TelemetryTools(ITelemetryStore store)
         {
             var result = await store.GetLatencyStatsAsync(agentName, hours)
                 .ConfigureAwait(false);
-            return JsonSerializer.Serialize(result, qyl.mcp.Tools.TelemetryToolsJsonContext.Default.LatencyStats);
+            return JsonSerializer.Serialize(result, TelemetryToolsJsonContext.Default.LatencyStats);
         });
 }
 

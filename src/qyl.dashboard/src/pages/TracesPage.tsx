@@ -123,7 +123,12 @@ function SpanRow({
             tabIndex={0}
             aria-label={`${span.name} span, ${getServiceName(span)}`}
             onClick={handleClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(e as unknown as React.MouseEvent); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleClick(e as unknown as React.MouseEvent);
+                }
+            }}
         >
             {/* Expand/collapse and indentation */}
             <div style={{paddingLeft: depth * 16}} className="flex items-center">

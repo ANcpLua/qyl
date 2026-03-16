@@ -24,11 +24,7 @@ public static class LoomSettingsEndpoints
         app.MapPut("/api/v1/loom/settings/{orgId}", static (string orgId, LoomSettingsRecord settings) =>
         {
             // TODO: Persist to DuckDB storage
-            var updatedSettings = settings with
-            {
-                Id = orgId,
-                UpdatedAt = TimeProvider.System.GetUtcNow().UtcDateTime
-            };
+            var updatedSettings = settings with { Id = orgId, UpdatedAt = TimeProvider.System.GetUtcNow().UtcDateTime };
 
             return Results.Ok(updatedSettings);
         });

@@ -28,16 +28,16 @@ Use this when a user asks for an observational or investigative query.
 
 1. Parse intent (issues, triage, fixes, regressions, PR review, handoff state).
 2. Call the relevant MCP tool(s):
-   - Open-ended multi-domain investigation: `qyl.use_qyl`
-   - Issue discovery: `qyl.list_error_issues`
-   - Issue details: `qyl.get_error_issue`, `qyl.get_error_timeline`
-   - Triage: `qyl.get_triage`, `qyl.list_triage`, `qyl.trigger_triage`
-   - RCA: `qyl.root_cause_analysis`
-   - Fix runs: `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.get_fix_run_steps`
-   - Regressions: `qyl.list_regressions`, `qyl.get_issue_regressions`
-   - Handoffs: `qyl.get_pending_handoffs`, `qyl.get_handoff_context`
-   - PR review: `qyl.trigger_code_review`, `qyl.get_code_review`
-   - GitHub automation: `qyl.list_github_events`
+    - Open-ended multi-domain investigation: `qyl.use_qyl`
+    - Issue discovery: `qyl.list_error_issues`
+    - Issue details: `qyl.get_error_issue`, `qyl.get_error_timeline`
+    - Triage: `qyl.get_triage`, `qyl.list_triage`, `qyl.trigger_triage`
+    - RCA: `qyl.root_cause_analysis`
+    - Fix runs: `qyl.list_fix_runs`, `qyl.get_fix_run`, `qyl.get_fix_run_steps`
+    - Regressions: `qyl.list_regressions`, `qyl.get_issue_regressions`
+    - Handoffs: `qyl.get_pending_handoffs`, `qyl.get_handoff_context`
+    - PR review: `qyl.trigger_code_review`, `qyl.get_code_review`
+    - GitHub automation: `qyl.list_github_events`
 3. Aggregate results and return an actionable summary.
 4. If data is missing, return exactly what is missing and a fallback next query.
 
@@ -47,9 +47,9 @@ Use the smallest useful format.
 
 ### Issue lists
 
-| Issue ID | Title | Status | Priority | Level | Occurrences | Last Seen | Link |
-|----------|-------|--------|----------|-------|-------------|-----------|------|
-| ISS-1234 | Timeout in checkout | unresolved | high | error | 2,310 | 4 mins ago | [Open](https://...) |
+| Issue ID | Title               | Status     | Priority | Level | Occurrences | Last Seen  | Link                |
+|----------|---------------------|------------|----------|-------|-------------|------------|---------------------|
+| ISS-1234 | Timeout in checkout | unresolved | high     | error | 2,310       | 4 mins ago | [Open](https://...) |
 
 ### Triage view
 

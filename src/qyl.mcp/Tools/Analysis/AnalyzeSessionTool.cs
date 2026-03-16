@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -18,13 +19,14 @@ public sealed class AnalyzeSessionTool(HttpClient client)
     [Description("Analyze a session. Returns structured analysis of span count, status, service, and trace breakdown.")]
     public async Task<string> AnalyzeSessionAsync(
         [Description("Session ID to analyze")] string sessionId,
-        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")] string? focus = null,
+        [Description("What to focus on (e.g. 'latency', 'errors', 'dependencies')")]
+        string? focus = null,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(
             $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}", ct).ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Session");
 
         response.EnsureSuccessStatusCode();

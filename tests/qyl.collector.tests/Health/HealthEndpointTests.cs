@@ -109,10 +109,11 @@ public sealed class HealthEndpointTests(WebApplicationFactory<Program> factory)
     private static async Task<T> DeserializeAsync<T>(HttpResponseMessage response)
     {
         var json = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            Converters = { new JsonStringEnumConverter<HealthStatus>(JsonNamingPolicy.CamelCase) }
-        })!;
+        return JsonSerializer.Deserialize<T>(json,
+            new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                Converters = { new JsonStringEnumConverter<HealthStatus>(JsonNamingPolicy.CamelCase) }
+            })!;
     }
 }

@@ -12,6 +12,15 @@ namespace Qyl.Instrumentation.Internal;
 /// </summary>
 internal static class AssemblyVersionExtensions
 {
+    private static string ParsePackageVersion(string informationalVersion)
+    {
+        // Strip git SHA after '+' sign
+        var indexOfPlusSign = informationalVersion.IndexOfOrdinal("+");
+        return indexOfPlusSign > 0
+            ? informationalVersion[..indexOfPlusSign]
+            : informationalVersion;
+    }
+
     extension(Assembly assembly)
     {
         /// <summary>
@@ -47,14 +56,5 @@ internal static class AssemblyVersionExtensions
             packageVersion = ParsePackageVersion(informationalVersion);
             return true;
         }
-    }
-
-    private static string ParsePackageVersion(string informationalVersion)
-    {
-        // Strip git SHA after '+' sign
-        var indexOfPlusSign = informationalVersion.IndexOfOrdinal("+");
-        return indexOfPlusSign > 0
-            ? informationalVersion[..indexOfPlusSign]
-            : informationalVersion;
     }
 }

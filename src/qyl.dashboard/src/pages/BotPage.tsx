@@ -20,17 +20,17 @@ import {Badge} from '@/components/ui/badge';
 import {Card, CardContent} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {
-    useCoverageGaps,
-    useConversations,
-    useSatisfaction,
-    useSourceAnalytics,
-    useTopQuestions,
-    useUsers,
     type ConversationSummary,
     type CoverageGap,
     type SourceUsage,
     type TopQuestionCluster,
+    useConversations,
+    useCoverageGaps,
     type UserSummary,
+    useSatisfaction,
+    useSourceAnalytics,
+    useTopQuestions,
+    useUsers,
 } from '@/hooks/use-analytics';
 
 // =============================================================================
@@ -40,7 +40,7 @@ import {
 type Tab = 'conversations' | 'coverage-gaps' | 'top-questions' | 'sources' | 'satisfaction' | 'users';
 type Period = 'weekly' | 'monthly' | 'quarterly';
 
-const TABS: {id: Tab; label: string; icon: typeof MessageSquare}[] = [
+const TABS: { id: Tab; label: string; icon: typeof MessageSquare }[] = [
     {id: 'conversations', label: 'CONVERSATIONS', icon: MessageSquare},
     {id: 'coverage-gaps', label: 'COVERAGE GAPS', icon: AlertCircle},
     {id: 'top-questions', label: 'TOP QUESTIONS', icon: HelpCircle},
@@ -92,7 +92,7 @@ function periodLabel(period: Period, offset: number): string {
 // Skeleton & Error
 // =============================================================================
 
-function SkeletonRow({cols}: {cols: number}) {
+function SkeletonRow({cols}: { cols: number }) {
     return (
         <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc animate-pulse">
             {Array.from({length: cols}, (_, i) => (
@@ -102,7 +102,7 @@ function SkeletonRow({cols}: {cols: number}) {
     );
 }
 
-function EmptyState({icon: Icon, message, sub}: {icon: typeof AlertCircle; message: string; sub: string}) {
+function EmptyState({icon: Icon, message, sub}: { icon: typeof AlertCircle; message: string; sub: string }) {
     return (
         <div className="py-12 text-center">
             <Icon className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
@@ -112,7 +112,7 @@ function EmptyState({icon: Icon, message, sub}: {icon: typeof AlertCircle; messa
     );
 }
 
-function ErrorCard({error}: {error: unknown}) {
+function ErrorCard({error}: { error: unknown }) {
     return (
         <div className="py-8 text-center">
             <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-500"/>
@@ -141,7 +141,10 @@ function PeriodControls({period, offset, onPeriodChange, onOffsetChange}: Period
             {(['weekly', 'monthly', 'quarterly'] as Period[]).map((p) => (
                 <button
                     key={p}
-                    onClick={() => {onPeriodChange(p); onOffsetChange(0);}}
+                    onClick={() => {
+                        onPeriodChange(p);
+                        onOffsetChange(0);
+                    }}
                     className={cn(
                         'px-3 py-1.5 text-[10px] font-bold tracking-wider border-2 transition-colors cursor-pointer',
                         period === p
@@ -211,17 +214,23 @@ function StatCard({icon: Icon, label, value, color = 'text-brutal-white', loadin
 // Tab: Conversations
 // =============================================================================
 
-function ConversationRow({c, onClick}: {c: ConversationSummary; onClick: () => void}) {
+function ConversationRow({c, onClick}: { c: ConversationSummary; onClick: () => void }) {
     return (
         <div
             role="button"
             tabIndex={0}
             onClick={onClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-40 min-w-0">
-                <span className="font-mono text-xs text-brutal-slate truncate block">{c.conversationId.slice(0, 12)}…</span>
+                <span
+                    className="font-mono text-xs text-brutal-slate truncate block">{c.conversationId.slice(0, 12)}…</span>
             </div>
             <div className="flex-1 min-w-0">
                 <span className="text-sm text-brutal-white truncate block">{c.firstQuestion ?? '—'}</span>
@@ -230,11 +239,13 @@ function ConversationRow({c, onClick}: {c: ConversationSummary; onClick: () => v
                 <span className="font-mono text-xs text-brutal-slate">{c.turnCount}</span>
             </div>
             <div className="w-28 text-right">
-                <span className="font-mono text-xs text-brutal-slate">{formatTokens(c.totalInputTokens + c.totalOutputTokens)}</span>
+                <span
+                    className="font-mono text-xs text-brutal-slate">{formatTokens(c.totalInputTokens + c.totalOutputTokens)}</span>
             </div>
             <div className="w-16 text-center">
                 {c.hasErrors && (
-                    <Badge variant="outline" className="text-[10px] bg-red-500/20 text-red-400 border-red-500/40">ERR</Badge>
+                    <Badge variant="outline"
+                           className="text-[10px] bg-red-500/20 text-red-400 border-red-500/40">ERR</Badge>
                 )}
             </div>
             <div className="w-20 text-right">
@@ -243,12 +254,13 @@ function ConversationRow({c, onClick}: {c: ConversationSummary; onClick: () => v
             <div className="w-28 text-right">
                 <span className="font-mono text-xs text-brutal-slate">{formatTs(c.startTime)}</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
 
-function ConversationsTab({period, offset}: {period: Period; offset: number}) {
+function ConversationsTab({period, offset}: { period: Period; offset: number }) {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const [filterErrors, setFilterErrors] = useState<boolean | undefined>();
@@ -268,9 +280,12 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
         <div className="space-y-4">
             <div className="grid grid-cols-4 gap-4">
                 <StatCard icon={MessageSquare} label="CONVERSATIONS" value={total} loading={isLoading}/>
-                <StatCard icon={BarChart2} label="TURNS" value={conversations.reduce((s, c) => s + Number(c.turnCount), 0)} loading={isLoading}/>
-                <StatCard icon={TrendingUp} label="TOKENS" value={formatTokens(totalTokens)} color="text-signal-cyan" loading={isLoading}/>
-                <StatCard icon={AlertCircle} label="WITH ERRORS" value={hasErrors} color={hasErrors > 0 ? 'text-red-400' : 'text-brutal-white'} loading={isLoading}/>
+                <StatCard icon={BarChart2} label="TURNS"
+                          value={conversations.reduce((s, c) => s + Number(c.turnCount), 0)} loading={isLoading}/>
+                <StatCard icon={TrendingUp} label="TOKENS" value={formatTokens(totalTokens)} color="text-signal-cyan"
+                          loading={isLoading}/>
+                <StatCard icon={AlertCircle} label="WITH ERRORS" value={hasErrors}
+                          color={hasErrors > 0 ? 'text-red-400' : 'text-brutal-white'} loading={isLoading}/>
             </div>
 
             {/* Filters */}
@@ -280,7 +295,10 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
                     <Input
                         placeholder="Filter by user…"
                         value={filterUser}
-                        onChange={(e) => {setFilterUser(e.target.value); setPage(1);}}
+                        onChange={(e) => {
+                            setFilterUser(e.target.value);
+                            setPage(1);
+                        }}
                         className="pl-9"
                         aria-label="Filter by user"
                     />
@@ -312,7 +330,8 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
 
             {/* Table */}
             <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-40">CONVERSATION ID</div>
                     <div className="flex-1">FIRST MESSAGE</div>
                     <div className="w-16 text-right">TURNS</div>
@@ -383,7 +402,7 @@ function ConversationsTab({period, offset}: {period: Period; offset: number}) {
 // Tab: Coverage Gaps
 // =============================================================================
 
-function GapRow({gap, index}: {gap: CoverageGap; index: number}) {
+function GapRow({gap, index}: { gap: CoverageGap; index: number }) {
     const [expanded, setExpanded] = useState(false);
     return (
         <div className="border-b border-brutal-zinc">
@@ -424,7 +443,8 @@ function GapRow({gap, index}: {gap: CoverageGap; index: number}) {
                             <div className="label-industrial">SAMPLE IDS</div>
                             <div className="flex flex-wrap gap-2 mt-1">
                                 {gap.sampleConversationIds.map((id) => (
-                                    <span key={id} className="font-mono text-[10px] text-signal-cyan bg-signal-cyan/10 px-2 py-0.5 border border-signal-cyan/30">
+                                    <span key={id}
+                                          className="font-mono text-[10px] text-signal-cyan bg-signal-cyan/10 px-2 py-0.5 border border-signal-cyan/30">
                                         {id.slice(0, 16)}…
                                     </span>
                                 ))}
@@ -437,18 +457,21 @@ function GapRow({gap, index}: {gap: CoverageGap; index: number}) {
     );
 }
 
-function CoverageGapsTab({period, offset}: {period: Period; offset: number}) {
+function CoverageGapsTab({period, offset}: { period: Period; offset: number }) {
     const {data, isLoading, error} = useCoverageGaps(period, offset);
     const gaps = data?.gaps ?? [];
 
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-                <StatCard icon={MessageSquare} label="CONVERSATIONS PROCESSED" value={data?.conversationsProcessed ?? 0} loading={isLoading}/>
-                <StatCard icon={AlertCircle} label="GAPS IDENTIFIED" value={data?.gapsIdentified ?? 0} color="text-signal-yellow" loading={isLoading}/>
+                <StatCard icon={MessageSquare} label="CONVERSATIONS PROCESSED" value={data?.conversationsProcessed ?? 0}
+                          loading={isLoading}/>
+                <StatCard icon={AlertCircle} label="GAPS IDENTIFIED" value={data?.gapsIdentified ?? 0}
+                          color="text-signal-yellow" loading={isLoading}/>
             </div>
             <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-8 text-right">#</div>
                     <div className="flex-1">TOPIC / SPAN NAME</div>
                     <div className="w-32 text-right">CONVERSATIONS</div>
@@ -476,9 +499,10 @@ function CoverageGapsTab({period, offset}: {period: Period; offset: number}) {
 // Tab: Top Questions
 // =============================================================================
 
-function ClusterRow({cluster, index}: {cluster: TopQuestionCluster; index: number}) {
+function ClusterRow({cluster, index}: { cluster: TopQuestionCluster; index: number }) {
     return (
-        <div className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 transition-colors">
+        <div
+            className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 transition-colors">
             <div className="w-8 text-right">
                 <span className="font-mono text-xs text-brutal-zinc">{index + 1}</span>
             </div>
@@ -492,18 +516,21 @@ function ClusterRow({cluster, index}: {cluster: TopQuestionCluster; index: numbe
     );
 }
 
-function TopQuestionsTab({period, offset}: {period: Period; offset: number}) {
+function TopQuestionsTab({period, offset}: { period: Period; offset: number }) {
     const {data, isLoading, error} = useTopQuestions(period, offset);
     const clusters = data?.clusters ?? [];
 
     return (
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-                <StatCard icon={MessageSquare} label="CONVERSATIONS ANALYSED" value={data?.conversationsProcessed ?? 0} loading={isLoading}/>
-                <StatCard icon={HelpCircle} label="TOPIC CLUSTERS" value={data?.clustersIdentified ?? 0} color="text-signal-cyan" loading={isLoading}/>
+                <StatCard icon={MessageSquare} label="CONVERSATIONS ANALYSED" value={data?.conversationsProcessed ?? 0}
+                          loading={isLoading}/>
+                <StatCard icon={HelpCircle} label="TOPIC CLUSTERS" value={data?.clustersIdentified ?? 0}
+                          color="text-signal-cyan" loading={isLoading}/>
             </div>
             <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-8 text-right">#</div>
                     <div className="flex-1">TOPIC / SPAN NAME</div>
                     <div className="w-32 text-right">CONVERSATIONS</div>
@@ -530,7 +557,7 @@ function TopQuestionsTab({period, offset}: {period: Period; offset: number}) {
 // Tab: Sources
 // =============================================================================
 
-function SourceRow({source, index}: {source: SourceUsage; index: number}) {
+function SourceRow({source, index}: { source: SourceUsage; index: number }) {
     const [expanded, setExpanded] = useState(false);
     return (
         <div className="border-b border-brutal-zinc">
@@ -545,7 +572,8 @@ function SourceRow({source, index}: {source: SourceUsage; index: number}) {
                     <span className="text-sm font-bold text-brutal-white truncate block">{source.sourceId}</span>
                 </div>
                 <div className="w-28 text-right">
-                    <span className="font-mono text-xs text-signal-orange">{source.citationCount.toLocaleString()} citations</span>
+                    <span
+                        className="font-mono text-xs text-signal-orange">{source.citationCount.toLocaleString()} citations</span>
                 </div>
                 <ChevronRight className={cn(
                     'w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors',
@@ -557,7 +585,8 @@ function SourceRow({source, index}: {source: SourceUsage; index: number}) {
                     <div className="label-industrial mt-3">TOP QUESTIONS</div>
                     <div className="mt-1 space-y-1">
                         {source.topQuestions.map((q) => (
-                            <div key={q} className="text-xs text-brutal-slate border-l-2 border-brutal-zinc pl-2">{q}</div>
+                            <div key={q}
+                                 className="text-xs text-brutal-slate border-l-2 border-brutal-zinc pl-2">{q}</div>
                         ))}
                     </div>
                 </div>
@@ -566,7 +595,7 @@ function SourceRow({source, index}: {source: SourceUsage; index: number}) {
     );
 }
 
-function SourcesTab({period, offset}: {period: Period; offset: number}) {
+function SourcesTab({period, offset}: { period: Period; offset: number }) {
     const {data, isLoading, error} = useSourceAnalytics(period, offset);
     const sources = data?.sources ?? [];
 
@@ -574,10 +603,13 @@ function SourcesTab({period, offset}: {period: Period; offset: number}) {
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                 <StatCard icon={BookOpen} label="SOURCES CITED" value={sources.length} loading={isLoading}/>
-                <StatCard icon={BarChart2} label="TOTAL CITATIONS" value={sources.reduce((s, src) => s + src.citationCount, 0)} color="text-signal-orange" loading={isLoading}/>
+                <StatCard icon={BarChart2} label="TOTAL CITATIONS"
+                          value={sources.reduce((s, src) => s + src.citationCount, 0)} color="text-signal-orange"
+                          loading={isLoading}/>
             </div>
             <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-8 text-right">#</div>
                     <div className="flex-1">SOURCE ID</div>
                     <div className="w-28 text-right">CITATIONS</div>
@@ -605,24 +637,27 @@ function SourcesTab({period, offset}: {period: Period; offset: number}) {
 // Tab: Satisfaction
 // =============================================================================
 
-function SatisfactionRate({rate}: {rate: number}) {
+function SatisfactionRate({rate}: { rate: number }) {
     const pct = Math.round(rate * 100);
     const color = pct >= 80 ? 'text-signal-green' : pct >= 60 ? 'text-signal-yellow' : 'text-red-400';
     return <span className={cn('text-4xl font-bold', color)}>{pct}%</span>;
 }
 
-function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
+function SatisfactionTab({period, offset}: { period: Period; offset: number }) {
     const {data, isLoading, error} = useSatisfaction(period, offset);
 
-    if (error) return <div className="border-2 border-brutal-zinc bg-brutal-carbon p-4"><ErrorCard error={error}/></div>;
+    if (error) return <div className="border-2 border-brutal-zinc bg-brutal-carbon p-4"><ErrorCard error={error}/>
+    </div>;
 
     return (
         <div className="space-y-4">
             {/* Summary cards */}
             <div className="grid grid-cols-4 gap-4">
                 <StatCard icon={BarChart2} label="TOTAL FEEDBACK" value={data?.totalFeedback ?? 0} loading={isLoading}/>
-                <StatCard icon={ThumbsUp} label="UPVOTES" value={data?.upvotes ?? 0} color="text-signal-green" loading={isLoading}/>
-                <StatCard icon={ThumbsDown} label="DOWNVOTES" value={data?.downvotes ?? 0} color="text-red-400" loading={isLoading}/>
+                <StatCard icon={ThumbsUp} label="UPVOTES" value={data?.upvotes ?? 0} color="text-signal-green"
+                          loading={isLoading}/>
+                <StatCard icon={ThumbsDown} label="DOWNVOTES" value={data?.downvotes ?? 0} color="text-red-400"
+                          loading={isLoading}/>
                 <Card>
                     <CardContent className="pt-4">
                         <div className="flex items-center gap-2">
@@ -640,7 +675,8 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
             <div className="grid grid-cols-2 gap-4">
                 {/* By model */}
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                    <div className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         BY MODEL
                     </div>
                     {isLoading ? (
@@ -649,7 +685,8 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
                         <EmptyState icon={BarChart2} message="No model data" sub="Feedback will appear per model"/>
                     ) : (
                         (data?.byModel ?? []).map((m) => (
-                            <div key={m.model} className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc">
+                            <div key={m.model}
+                                 className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc">
                                 <div className="flex-1 min-w-0">
                                     <span className="text-xs text-brutal-white truncate block">{m.model}</span>
                                 </div>
@@ -671,16 +708,19 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
 
                 {/* By topic */}
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                    <div className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         BY TOPIC (DOWNVOTES)
                     </div>
                     {isLoading ? (
                         Array.from({length: 3}, (_, i) => <SkeletonRow key={i} cols={3}/>)
                     ) : (data?.byTopic ?? []).length === 0 ? (
-                        <EmptyState icon={ThumbsDown} message="No downvotes yet" sub="Downvoted topics will appear here"/>
+                        <EmptyState icon={ThumbsDown} message="No downvotes yet"
+                                    sub="Downvoted topics will appear here"/>
                     ) : (
                         (data?.byTopic ?? []).map((t) => (
-                            <div key={t.topic} className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc">
+                            <div key={t.topic}
+                                 className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc">
                                 <div className="flex-1 min-w-0">
                                     <span className="text-xs text-brutal-white truncate block">{t.topic}</span>
                                 </div>
@@ -688,7 +728,8 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
                                     <span className="font-mono text-xs text-red-400">{t.downvotes} ▼</span>
                                 </div>
                                 <div className="w-16 text-right">
-                                    <span className={cn('font-mono text-xs', t.rate >= 0.8 ? 'text-signal-green' : 'text-signal-yellow')}>
+                                    <span
+                                        className={cn('font-mono text-xs', t.rate >= 0.8 ? 'text-signal-green' : 'text-signal-yellow')}>
                                         {Math.round(t.rate * 100)}%
                                     </span>
                                 </div>
@@ -705,13 +746,18 @@ function SatisfactionTab({period, offset}: {period: Period; offset: number}) {
 // Tab: Users
 // =============================================================================
 
-function UserRow({user, onClick}: {user: UserSummary; onClick: () => void}) {
+function UserRow({user, onClick}: { user: UserSummary; onClick: () => void }) {
     return (
         <div
             role="button"
             tabIndex={0}
             onClick={onClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-48 min-w-0">
@@ -723,7 +769,8 @@ function UserRow({user, onClick}: {user: UserSummary; onClick: () => void}) {
             <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap gap-1">
                     {user.topTopics.slice(0, 3).map((t) => (
-                        <span key={t} className="text-[10px] text-brutal-slate bg-brutal-dark border border-brutal-zinc px-1.5 py-0.5 truncate max-w-24">
+                        <span key={t}
+                              className="text-[10px] text-brutal-slate bg-brutal-dark border border-brutal-zinc px-1.5 py-0.5 truncate max-w-24">
                             {t}
                         </span>
                     ))}
@@ -735,12 +782,13 @@ function UserRow({user, onClick}: {user: UserSummary; onClick: () => void}) {
             <div className="w-28 text-right">
                 <span className="font-mono text-xs text-brutal-slate">{formatTs(user.lastSeen)}</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
 
-function UsersTab({period, offset}: {period: Period; offset: number}) {
+function UsersTab({period, offset}: { period: Period; offset: number }) {
     const navigate = useNavigate();
     const [page, setPage] = useState(1);
     const {data, isLoading, error} = useUsers(period, offset, page);
@@ -752,10 +800,13 @@ function UsersTab({period, offset}: {period: Period; offset: number}) {
         <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                 <StatCard icon={Users} label="ACTIVE USERS" value={total} loading={isLoading}/>
-                <StatCard icon={MessageSquare} label="TOTAL CONVERSATIONS" value={users.reduce((s, u) => s + u.conversationCount, 0)} color="text-signal-cyan" loading={isLoading}/>
+                <StatCard icon={MessageSquare} label="TOTAL CONVERSATIONS"
+                          value={users.reduce((s, u) => s + u.conversationCount, 0)} color="text-signal-cyan"
+                          loading={isLoading}/>
             </div>
             <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                <div
+                    className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                     <div className="w-48">USER ID</div>
                     <div className="w-28 text-right">CONVERSATIONS</div>
                     <div className="flex-1">TOP TOPICS</div>
@@ -835,7 +886,10 @@ export function BotPage() {
                 <PeriodControls
                     period={period}
                     offset={offset}
-                    onPeriodChange={(p) => {setPeriod(p); setOffset(0);}}
+                    onPeriodChange={(p) => {
+                        setPeriod(p);
+                        setOffset(0);
+                    }}
                     onOffsetChange={setOffset}
                 />
             </div>

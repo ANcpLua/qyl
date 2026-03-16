@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 using System.Text.Json;
@@ -20,6 +21,7 @@ namespace qyl.mcp.Tools;
 [McpServerToolType]
 internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceProvider services)
 {
+    private const double PolicyGateThreshold = 0.85;
     private readonly IChatClient? _llm = AgentLlmFactory.TryCreate(config);
 
     [McpServerTool(Name = "qyl.generate_fix", Title = "Generate Fix",
@@ -39,35 +41,40 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
                  Returns: Summary of the fix run including run_id and confidence score.
                  """)]
     public async Task<string> GenerateFixAsync(
-        [Description("The error issue ID to generate a fix for")] string issueId,
-        [Description("Fix policy: auto_apply, require_review (default), dry_run")] string? policy = null,
-        [Description("Additional context: suspected cause, relevant file paths, recent changes")] string? context = null,
+        [Description("The error issue ID to generate a fix for")]
+        string issueId,
+        [Description("Fix policy: auto_apply, require_review (default), dry_run")]
+        string? policy = null,
+        [Description("Additional context: suspected cause, relevant file paths, recent changes")]
+        string? context = null,
         CancellationToken ct = default)
     {
         if (_llm is null)
+        {
             return "Fix generation requires an LLM provider. " +
                    "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables.";
+        }
 
         // Create a new fix run in the collector
-        using HttpResponseMessage createResp = await http.PostAsJsonAsync(
+        using var createResp = await http.PostAsJsonAsync(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs",
             new { policy = policy ?? "require_review" },
             ct).ConfigureAwait(false);
 
-        if (createResp.StatusCode == System.Net.HttpStatusCode.NotFound)
+        if (createResp.StatusCode == HttpStatusCode.NotFound)
             return $"Error issue '{issueId}' not found.";
 
         if (!createResp.IsSuccessStatusCode)
             return $"Failed to create fix run: {(int)createResp.StatusCode} {createResp.ReasonPhrase}";
 
-        FixRunDto? run = await createResp.Content
-            .ReadFromJsonAsync(qyl.mcp.Tools.FixToolsJsonContext.Default.FixRunDto, ct)
+        var run = await createResp.Content
+            .ReadFromJsonAsync(FixToolsJsonContext.Default.FixRunDto, ct)
             .ConfigureAwait(false);
 
         if (run is null)
             return "Failed to parse fix run response from collector.";
 
-        string runId = run.RunId;
+        var runId = run.RunId;
 
         // Mark as running
         await PatchFixRunAsync(issueId, runId, "running", null, null, null, ct).ConfigureAwait(false);
@@ -75,10 +82,10 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         try
         {
             // ── Phase 1: RCA agent ──────────────────────────────────────────────
-            string rcaReport = await RunRcaAgentAsync(issueId, context, ct).ConfigureAwait(false);
+            var rcaReport = await RunRcaAgentAsync(issueId, context, ct).ConfigureAwait(false);
 
             // ── Phase 2: Fix generation (single call, no tools) ─────────────────
-            string fixGenInput = BuildFixGenInput(issueId, runId, rcaReport, context);
+            var fixGenInput = BuildFixGenInput(issueId, runId, rcaReport, context);
 
             List<ChatMessage> fixMessages =
             [
@@ -86,27 +93,28 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
                 new(ChatRole.User, fixGenInput)
             ];
 
-            ChatResponse fixResponse = await _llm.GetResponseAsync(fixMessages, cancellationToken: ct)
+            var fixResponse = await _llm.GetResponseAsync(fixMessages, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            string rawJson = fixResponse.Text?.Trim() ?? "{}";
+            var rawJson = fixResponse.Text?.Trim() ?? "{}";
 
             // Extract JSON if wrapped in markdown
-            int jsonStart = rawJson.IndexOf('{');
-            int jsonEnd = rawJson.LastIndexOf('}');
+            var jsonStart = rawJson.IndexOf('{');
+            var jsonEnd = rawJson.LastIndexOf('}');
             if (jsonStart >= 0 && jsonEnd > jsonStart)
                 rawJson = rawJson[jsonStart..(jsonEnd + 1)];
 
             // Parse confidence from the generated JSON
-            double confidence = TryExtractConfidence(rawJson);
+            var confidence = TryExtractConfidence(rawJson);
 
             // Embed metadata into the changes_json
-            string changesJson = InjectMetadata(rawJson, issueId, runId);
+            var changesJson = InjectMetadata(rawJson, issueId, runId);
 
             // Determine next status based on policy
-            string nextStatus = DetermineStatus(policy, confidence);
+            var nextStatus = DetermineStatus(policy, confidence);
 
-            string description = $"Generated by qyl.generate_fix | confidence={confidence:F2} | {rcaReport.Split('\n')[0]}";
+            var description =
+                $"Generated by qyl.generate_fix | confidence={confidence:F2} | {rcaReport.Split('\n')[0]}";
 
             await PatchFixRunAsync(issueId, runId, nextStatus, description, confidence, changesJson, ct)
                 .ConfigureAwait(false);
@@ -133,12 +141,12 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
 
     private async Task<string> RunRcaAgentAsync(string issueId, string? context, CancellationToken ct)
     {
-        List<AIFunction> tools = DiscoverToolsFrom(
+        var tools = DiscoverToolsFrom(
             typeof(ErrorTools),
             typeof(SpanQueryTools),
             typeof(StructuredLogTools));
 
-        IChatClient agent = new ChatClientBuilder(_llm!)
+        var agent = new ChatClientBuilder(_llm!)
             .UseFunctionInvocation(configure: static invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 8;
@@ -146,7 +154,8 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
             })
             .Build();
 
-        string userMessage = $"Investigate error issue ID: {issueId}\n\nFocus on identifying the root cause and affected code location.";
+        var userMessage =
+            $"Investigate error issue ID: {issueId}\n\nFocus on identifying the root cause and affected code location.";
         if (context is not null)
             userMessage += $"\n\nAdditional context: {context}";
 
@@ -157,20 +166,18 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         ];
 
         ChatOptions options = new() { Tools = [.. tools] };
-        ChatResponse response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
+        var response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
         return response.Text ?? "Root cause analysis produced no output.";
     }
 
     private async Task PatchFixRunAsync(
         string issueId, string runId, string status,
         string? description, double? confidence, string? changesJson,
-        CancellationToken ct)
-    {
+        CancellationToken ct) =>
         await http.PatchAsJsonAsync(
             $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}",
             new { status, description, confidence, changesJson },
             ct).ConfigureAwait(false);
-    }
 
     private static string BuildFixGenInput(string issueId, string runId, string rcaReport, string? context)
     {
@@ -193,12 +200,13 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
     {
         try
         {
-            using JsonDocument doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("confidence", out JsonElement el) &&
-                el.TryGetDouble(out double v))
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("confidence", out var el) &&
+                el.TryGetDouble(out var v))
                 return Math.Clamp(v, 0.0, 1.0);
         }
         catch (JsonException) { }
+
         return 0.5;
     }
 
@@ -207,10 +215,10 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         try
         {
             // JsonNode preserves arrays and nested objects; Dictionary<string,object?> does not.
-            JsonNode node = JsonNode.Parse(json)
-                ?? throw new JsonException("LLM returned JSON null literal.");
+            var node = JsonNode.Parse(json)
+                       ?? throw new JsonException("LLM returned JSON null literal.");
 
-            JsonObject obj = node.AsObject();
+            var obj = node.AsObject();
             obj["issue_id"] = issueId;
             obj["run_id"] = runId;
             obj["generated_at"] = TimeProvider.System.GetUtcNow().ToString("O");
@@ -242,15 +250,14 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         return "review";
     }
 
-    private const double PolicyGateThreshold = 0.85;
-
-    private static string FormatResult(string runId, string issueId, double confidence, string status, string changesJson)
+    private static string FormatResult(string runId, string issueId, double confidence, string status,
+        string changesJson)
     {
         bool hasFiles;
         try
         {
-            using JsonDocument doc = JsonDocument.Parse(changesJson);
-            hasFiles = doc.RootElement.TryGetProperty("files", out JsonElement files) &&
+            using var doc = JsonDocument.Parse(changesJson);
+            hasFiles = doc.RootElement.TryGetProperty("files", out var files) &&
                        files.GetArrayLength() > 0;
         }
         catch (JsonException)
@@ -259,34 +266,41 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
         }
 
         StringBuilder sb = new();
-        sb.AppendLine($"## Fix Run Created");
+        sb.AppendLine("## Fix Run Created");
         sb.AppendLine($"- **Run ID:** {runId}");
         sb.AppendLine($"- **Issue ID:** {issueId}");
         sb.AppendLine($"- **Status:** {status}");
         sb.AppendLine($"- **Confidence:** {confidence:P0}");
-        sb.AppendLine($"- **Has file patches:** {(hasFiles ? "yes" : "no — LLM could not identify specific code to change")}");
+        sb.AppendLine(
+            $"- **Has file patches:** {(hasFiles ? "yes" : "no — LLM could not identify specific code to change")}");
         sb.AppendLine();
-        sb.AppendLine($"Use `qyl.export_for_agent` with issue ID `{issueId}` to get the full context block for a coding agent.");
+        sb.AppendLine(
+            $"Use `qyl.export_for_agent` with issue ID `{issueId}` to get the full context block for a coding agent.");
         if (status == "review")
-            sb.AppendLine($"Use `POST /api/v1/issues/{issueId}/fix-runs/{runId}/pr` to create a GitHub PR from this fix.");
+        {
+            sb.AppendLine(
+                $"Use `POST /api/v1/issues/{issueId}/fix-runs/{runId}/pr` to create a GitHub PR from this fix.");
+        }
+
         return sb.ToString();
     }
 
     private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
     {
         List<AIFunction> tools = [];
-        foreach (Type type in toolTypes)
+        foreach (var type in toolTypes)
         {
-            object? instance = services.GetService(type);
+            var instance = services.GetService(type);
             if (instance is null) continue;
-            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr) continue;
-                string name = attr.Name ?? method.Name;
+                var name = attr.Name ?? method.Name;
                 tools.Add(AIFunctionFactory.Create(method, instance,
                     new AIFunctionFactoryOptions { Name = name }));
             }
         }
+
         return tools;
     }
 }
@@ -294,7 +308,8 @@ internal sealed class FixTools(HttpClient http, IConfiguration config, IServiceP
 /// <summary>JSON DTO for the fix run response from the collector.</summary>
 internal sealed record FixRunDto(
     [property: JsonPropertyName("runId")] string RunId,
-    [property: JsonPropertyName("issueId")] string IssueId,
+    [property: JsonPropertyName("issueId")]
+    string IssueId,
     [property: JsonPropertyName("status")] string Status);
 
 [JsonSerializable(typeof(FixRunDto))]

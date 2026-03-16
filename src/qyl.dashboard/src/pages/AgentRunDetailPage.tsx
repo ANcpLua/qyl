@@ -201,7 +201,8 @@ export function AgentRunDetailPage() {
                             <CardContent className="pt-4">
                                 <div className="flex items-center gap-2">
                                     <ShieldCheck className="w-4 h-4 text-signal-orange"/>
-                                    <span className="text-[10px] font-bold text-brutal-slate tracking-wider">APPROVAL</span>
+                                    <span
+                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">APPROVAL</span>
                                 </div>
                                 <div className="text-base font-bold mt-1 text-brutal-white font-mono uppercase">
                                     {run.approval_status ?? 'not_required'}
@@ -253,7 +254,8 @@ export function AgentRunDetailPage() {
                                     Loading decisions…
                                 </div>
                             ) : decisions.length === 0 ? (
-                                <div className="text-sm text-brutal-slate">No decision events recorded for this run.</div>
+                                <div className="text-sm text-brutal-slate">No decision events recorded for this
+                                    run.</div>
                             ) : (
                                 <div className="space-y-3">
                                     {decisions.map((decision) => (

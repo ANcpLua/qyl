@@ -100,7 +100,12 @@ public static class AutofixEndpoints
                 return Results.NotFound();
 
             if (run.Status is not "review")
-                return Results.BadRequest(new { error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'." });
+            {
+                return Results.BadRequest(new
+                {
+                    error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'."
+                });
+            }
 
             await orchestrator.UpdateFixRunStatusAsync(runId, "applied", ct: ct);
             return Results.Ok(new { status = "applied", runId });
@@ -116,10 +121,15 @@ public static class AutofixEndpoints
                 return Results.NotFound();
 
             if (run.Status is not "review")
-                return Results.BadRequest(new { error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'." });
+            {
+                return Results.BadRequest(new
+                {
+                    error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'."
+                });
+            }
 
             await orchestrator.UpdateFixRunStatusAsync(
-                runId, "rejected", description: request?.Reason, ct: ct);
+                runId, "rejected", request?.Reason, ct: ct);
             return Results.Ok(new { status = "rejected", runId });
         });
     }

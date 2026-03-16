@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -13,7 +12,8 @@ public sealed class GetServiceMapTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Get the service dependency map showing nodes (services) and edges (calls between services).")]
     public async Task<string> GetServiceMapAsync(
-        [Description("Filter by project slug")] string? projectSlug = null,
+        [Description("Filter by project slug")]
+        string? projectSlug = null,
         CancellationToken ct = default)
     {
         var url = "/api/v1/mcp/services/map";

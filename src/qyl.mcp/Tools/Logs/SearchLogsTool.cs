@@ -13,10 +13,13 @@ public sealed class SearchLogsTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("Search structured logs by query. Returns a paginated list of matching log entries.")]
     public async Task<string> SearchLogsAsync(
-        [Description("Search query (required)")] string query,
-        [Description("Filter by project slug")] string? projectSlug = null,
+        [Description("Search query (required)")]
+        string query,
+        [Description("Filter by project slug")]
+        string? projectSlug = null,
         [Description("Cursor for pagination")] string? cursor = null,
-        [Description("Maximum results per page (1-100, default 25)")] int limit = 25,
+        [Description("Maximum results per page (1-100, default 25)")]
+        int limit = 25,
         CancellationToken ct = default)
     {
         limit = Math.Clamp(limit, 1, 100);

@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Text;
 using Microsoft.CodeAnalysis.CSharp;
 using Qyl.Instrumentation.Generators.Models;
 
@@ -48,7 +45,7 @@ internal static class MeterEmitter
                      .OrderBy(static name => name, StringComparer.Ordinal))
         {
             sb.AppendLine(
-                $"[assembly: global::Qyl.Instrumentation.GeneratedMeterAttribute({SymbolDisplay.FormatLiteral(meterName, quote: true)})]");
+                $"[assembly: global::Qyl.Instrumentation.GeneratedMeterAttribute({SymbolDisplay.FormatLiteral(meterName, true)})]");
         }
 
         sb.AppendLine();
@@ -183,7 +180,8 @@ internal static class MeterEmitter
 
             sb.AppendLine(method.Kind switch
             {
-                MetricKind.Counter when method.ValueTypeName is not null => $"            {fieldName}.Add(value, {kvp});",
+                MetricKind.Counter when method.ValueTypeName is not null =>
+                    $"            {fieldName}.Add(value, {kvp});",
                 MetricKind.Counter => $"            {fieldName}.Add(1, {kvp});",
                 MetricKind.UpDownCounter => $"            {fieldName}.Add(value, {kvp});",
                 _ => $"            {fieldName}.Record(value, {kvp});"
@@ -203,7 +201,8 @@ internal static class MeterEmitter
 
             sb.AppendLine(method.Kind switch
             {
-                MetricKind.Counter when method.ValueTypeName is not null => $"            {fieldName}.Add(value, tags);",
+                MetricKind.Counter when method.ValueTypeName is not null =>
+                    $"            {fieldName}.Add(value, tags);",
                 MetricKind.Counter => $"            {fieldName}.Add(1, tags);",
                 MetricKind.UpDownCounter => $"            {fieldName}.Add(value, tags);",
                 _ => $"            {fieldName}.Record(value, tags);"

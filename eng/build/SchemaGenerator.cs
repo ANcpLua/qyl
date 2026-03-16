@@ -12,6 +12,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -674,8 +675,8 @@ public static class SchemaGenerator
     /// </summary>
     static int ComputeSchemaVersion(string ddlContent)
     {
-        var hash = System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(ddlContent));
+        var hash = SHA256.HashData(
+            Encoding.UTF8.GetBytes(ddlContent));
         // Take first 4 bytes → 8 hex chars → positive int (mask sign bit)
         return BitConverter.ToInt32(hash, 0) & 0x7FFFFFFF;
     }
@@ -719,7 +720,6 @@ public static class SchemaGenerator
             sb.AppendLine(");");
 
             foreach (var prop in table.Properties)
-            {
                 if (prop.Extensions.TryGetValue("x-duckdb-index", out var indexName))
                 {
                     var colName = prop.Extensions.TryGetValue("x-duckdb-column", out var c)
@@ -728,7 +728,6 @@ public static class SchemaGenerator
                     sb.AppendLine(CultureInfo.InvariantCulture,
                         $"CREATE INDEX IF NOT EXISTS {indexName} ON {tableName}({colName});");
                 }
-            }
         }
 
         return sb.ToString();

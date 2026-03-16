@@ -15,7 +15,7 @@ public static class AgentHandoffEndpoints
         {
             try
             {
-                AgentHandoffRecord record = await service.CreateHandoffAsync(runId, request.AgentType, ct)
+                var record = await service.CreateHandoffAsync(runId, request.AgentType, ct)
                     .ConfigureAwait(false);
                 return Results.Created($"/api/v1/handoffs/{record.HandoffId}", record);
             }
@@ -30,7 +30,7 @@ public static class AgentHandoffEndpoints
             string runId, int? limit,
             DuckDbStore store, CancellationToken ct) =>
         {
-            IReadOnlyList<AgentHandoffRecord> items = await store
+            var items = await store
                 .GetHandoffsForRunAsync(runId, Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
             return Results.Ok(new { items, total = items.Count });
         });
@@ -42,7 +42,7 @@ public static class AgentHandoffEndpoints
         {
             try
             {
-                IReadOnlyList<AgentHandoffRecord> items = await store
+                var items = await store
                     .GetPendingHandoffsAsync(Math.Clamp(limit ?? 50, 1, 1000), ct).ConfigureAwait(false);
                 return Results.Ok(new { items, total = items.Count });
             }
@@ -58,7 +58,7 @@ public static class AgentHandoffEndpoints
             string handoffId,
             DuckDbStore store, CancellationToken ct) =>
         {
-            AgentHandoffRecord? record = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
+            var record = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
             return record is null ? Results.NotFound() : Results.Ok(record);
         });
 
@@ -67,7 +67,7 @@ public static class AgentHandoffEndpoints
             string handoffId,
             AgentHandoffService service, CancellationToken ct) =>
         {
-            string? context = await service.GetHandoffContextAsync(handoffId, ct).ConfigureAwait(false);
+            var context = await service.GetHandoffContextAsync(handoffId, ct).ConfigureAwait(false);
             return context is null ? Results.NotFound() : Results.Content(context, "application/json");
         });
 
@@ -76,7 +76,7 @@ public static class AgentHandoffEndpoints
             string handoffId,
             AgentHandoffService service, CancellationToken ct) =>
         {
-            AgentHandoffRecord? record = await service.AcceptHandoffAsync(handoffId, ct).ConfigureAwait(false);
+            var record = await service.AcceptHandoffAsync(handoffId, ct).ConfigureAwait(false);
             return record is null
                 ? Results.Conflict(new { error = "Handoff not found or not in 'pending' status" })
                 : Results.Ok(record);
@@ -87,7 +87,7 @@ public static class AgentHandoffEndpoints
             string handoffId, SubmitHandoffRequest request,
             AgentHandoffService service, CancellationToken ct) =>
         {
-            AgentHandoffRecord? record = await service
+            var record = await service
                 .SubmitHandoffResultAsync(handoffId, request.ResultJson, ct).ConfigureAwait(false);
             return record is null
                 ? Results.Conflict(new { error = "Handoff not found or not in 'accepted' status" })
@@ -99,7 +99,7 @@ public static class AgentHandoffEndpoints
             string handoffId, FailHandoffRequest request,
             AgentHandoffService service, CancellationToken ct) =>
         {
-            AgentHandoffRecord? record = await service
+            var record = await service
                 .FailHandoffAsync(handoffId, request.ErrorMessage, ct).ConfigureAwait(false);
             return record is null
                 ? Results.Conflict(new { error = "Handoff not found or not in 'pending'/'accepted' status" })

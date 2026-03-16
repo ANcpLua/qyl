@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using ModelContextProtocol.Server;
@@ -26,42 +27,43 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
                  """)]
     public async Task<string> GenerateTestAsync(
         [Description("The error issue ID")] string issueId,
-        [Description("Target test framework: 'xunit' (default) or 'jest'")] string? framework = null,
+        [Description("Target test framework: 'xunit' (default) or 'jest'")]
+        string? framework = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
             if (_llm is null)
                 return "Test generation requires an LLM. Set QYL_AGENT_API_KEY to enable.";
 
-            string targetFramework = framework?.ToLowerInvariant() switch
+            var targetFramework = framework?.ToLowerInvariant() switch
             {
                 "jest" => "TypeScript with Jest",
                 _ => "C# with xUnit v3"
             };
 
             // Fetch error details
-            using HttpResponseMessage issueResp = await http
+            using var issueResp = await http
                 .GetAsync($"/api/v1/errors/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
 
-            if (issueResp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (issueResp.StatusCode == HttpStatusCode.NotFound)
                 return $"Error issue '{issueId}' not found.";
 
             issueResp.EnsureSuccessStatusCode();
-            string issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
             // Fetch recent events for stack traces
-            using HttpResponseMessage eventsResp = await http
+            using var eventsResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
                 .ConfigureAwait(false);
 
-            string eventsJson = eventsResp.IsSuccessStatusCode
+            var eventsJson = eventsResp.IsSuccessStatusCode
                 ? await eventsResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : "[]";
 
-            string prompt = BuildTestPrompt(issueJson, eventsJson, targetFramework);
+            var prompt = BuildTestPrompt(issueJson, eventsJson, targetFramework);
 
-            ChatResponse response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
             return $"## Generated Test for Issue {issueId}\n\n{response.Text}";
@@ -69,25 +71,25 @@ internal sealed class TestGenerationTools(HttpClient http, IConfiguration config
 
     private static string BuildTestPrompt(string issueJson, string eventsJson, string framework) =>
         $$"""
-        You are a test engineer. Generate a regression test that would catch this error if it reoccurs.
+          You are a test engineer. Generate a regression test that would catch this error if it reoccurs.
 
-        ## Error Details
-        ```json
-        {{issueJson}}
-        ```
+          ## Error Details
+          ```json
+          {{issueJson}}
+          ```
 
-        ## Recent Events (with stack traces)
-        ```json
-        {{eventsJson}}
-        ```
+          ## Recent Events (with stack traces)
+          ```json
+          {{eventsJson}}
+          ```
 
-        ## Requirements
-        - Write the test in {{framework}}
-        - The test should verify the specific behavior that caused this error
-        - Include arrange/act/assert structure
-        - Add comments explaining what the test validates
-        - If the error is in a specific method, test that method's edge cases
-        - Include setup code (mocks, fixtures) as needed
-        - Output the complete test file in a code block
-        """;
+          ## Requirements
+          - Write the test in {{framework}}
+          - The test should verify the specific behavior that caused this error
+          - Include arrange/act/assert structure
+          - Add comments explaining what the test validates
+          - If the error is in a specific method, test that method's edge cases
+          - Include setup code (mocks, fixtures) as needed
+          - Output the complete test file in a code block
+          """;
 }

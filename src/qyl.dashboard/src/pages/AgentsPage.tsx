@@ -974,7 +974,9 @@ function TraceTable({traces, total, isLoading, offset, limit, onPageChange, onSe
 
 // ── Span type icon helper ──────────────────────────────────────────────────────
 
-function SpanTypeIcon({span}: { span: { provider?: string | null; model?: string | null; toolName?: string | null; name: string } }) {
+function SpanTypeIcon({span}: {
+    span: { provider?: string | null; model?: string | null; toolName?: string | null; name: string }
+}) {
     if (span.toolName) {
         return <Wrench className="w-3.5 h-3.5 text-signal-cyan flex-shrink-0"/>;
     }
@@ -1560,7 +1562,8 @@ function RunsTab({search}: { search: string }) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">Approval</span>
+                    <span
+                        className="text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">Approval</span>
                     {['all', 'not_required', 'awaiting_approval', 'approved', 'denied'].map((value) => (
                         <button
                             key={value}
@@ -1579,7 +1582,8 @@ function RunsTab({search}: { search: string }) {
             </div>
 
             <div className="bg-brutal-carbon border-2 border-brutal-zinc">
-                <div className="grid grid-cols-[1.7fr_1.4fr_0.9fr_1fr_0.9fr_0.8fr_0.8fr_1fr] gap-2 px-4 py-2 border-b border-brutal-zinc text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">
+                <div
+                    className="grid grid-cols-[1.7fr_1.4fr_0.9fr_1fr_0.9fr_0.8fr_0.8fr_1fr] gap-2 px-4 py-2 border-b border-brutal-zinc text-[10px] font-bold uppercase tracking-[0.15em] text-brutal-slate">
                     <span>Run</span>
                     <span>Agent</span>
                     <span>Track</span>

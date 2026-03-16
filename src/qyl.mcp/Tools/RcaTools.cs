@@ -37,23 +37,27 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
                           timeline, recommendations, and confidence level
                  """)]
     public async Task<string> RootCauseAnalysisAsync(
-        [Description("The error issue ID to investigate")] string issueId,
-        [Description("Additional context: time range, suspected cause, recent deploys")] string? context = null,
+        [Description("The error issue ID to investigate")]
+        string issueId,
+        [Description("Additional context: time range, suspected cause, recent deploys")]
+        string? context = null,
         CancellationToken ct = default)
     {
         if (_llm is null)
+        {
             return "Root cause analysis requires an LLM provider. " +
                    "Set QYL_AGENT_API_KEY and QYL_AGENT_MODEL environment variables. " +
                    "Use the individual error and anomaly tools instead.";
+        }
 
         // Build curated tool set -- only data-retrieval tools, not LLM tools
-        List<AIFunction> tools = DiscoverToolsFrom(
+        var tools = DiscoverToolsFrom(
             typeof(ErrorTools),
             typeof(AnomalyTools),
             typeof(SpanQueryTools),
             typeof(StructuredLogTools));
 
-        IChatClient agent = new ChatClientBuilder(_llm)
+        var agent = new ChatClientBuilder(_llm)
             .UseFunctionInvocation(configure: static invoker =>
             {
                 invoker.MaximumIterationsPerRequest = 10;
@@ -61,7 +65,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
             })
             .Build();
 
-        string userMessage = $"Investigate error issue ID: {issueId}";
+        var userMessage = $"Investigate error issue ID: {issueId}";
         if (context is not null)
             userMessage += $"\n\nAdditional context: {context}";
 
@@ -75,7 +79,7 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
 
         try
         {
-            ChatResponse response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
+            var response = await agent.GetResponseAsync(messages, options, ct).ConfigureAwait(false);
             return response.Text ?? "RCA completed with no output.";
         }
         catch (HttpRequestException ex)
@@ -87,14 +91,14 @@ internal sealed class RcaTools(IServiceProvider services, IConfiguration config)
     private List<AIFunction> DiscoverToolsFrom(params Type[] toolTypes)
     {
         List<AIFunction> tools = [];
-        foreach (Type type in toolTypes)
+        foreach (var type in toolTypes)
         {
-            object instance = services.GetRequiredService(type);
-            foreach (MethodInfo method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
+            var instance = services.GetRequiredService(type);
+            foreach (var method in type.GetMethods(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (method.GetCustomAttribute<McpServerToolAttribute>() is not { } attr)
                     continue;
-                string name = attr.Name ?? method.Name;
+                var name = attr.Name ?? method.Name;
                 tools.Add(AIFunctionFactory.Create(method, instance,
                     new AIFunctionFactoryOptions { Name = name }));
             }

@@ -25,7 +25,8 @@ internal static class AgentCallSiteAnalyzer
     /// <summary>
     ///     Declarative agent method patterns.
     /// </summary>
-    private static readonly (string MethodName, InvocationMatcher Matcher, AgentCallKind Kind)[] Matchers = BuildMatchers();
+    private static readonly (string MethodName, InvocationMatcher Matcher, AgentCallKind Kind)[] Matchers =
+        BuildMatchers();
 
     private static readonly HashSet<string> CandidateMethodNames =
     [
@@ -62,7 +63,9 @@ internal static class AgentCallSiteAnalyzer
             return BuildCallSite(context, invocation, kind, cancellationToken);
 
         // Then try [AgentTraced] attribute
-        return TryGetAgentTracedAttribute(invocation.TargetMethod, out var agentName) ? BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName) : null;
+        return TryGetAgentTracedAttribute(invocation.TargetMethod, out var agentName)
+            ? BuildCallSite(context, invocation, AgentCallKind.AgentTracedMethod, cancellationToken, agentName)
+            : null;
     }
 
     private static AgentCallSite? BuildCallSite(
@@ -72,7 +75,8 @@ internal static class AgentCallSiteAnalyzer
         CancellationToken cancellationToken,
         string? agentName = null)
     {
-        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken) is not { } interceptLocation)
+        if (context.SemanticModel.GetInterceptableLocation((InvocationExpressionSyntax)context.Node, cancellationToken)
+            is not { } interceptLocation)
             return null;
 
         var method = invocation.TargetMethod;
@@ -121,7 +125,7 @@ internal static class AgentCallSiteAnalyzer
         if (method.GetAttribute(AgentTracedAttributeFullName) is not { } attribute)
             return false;
 
-        agentName = ExtractAgentName(attribute, fallback: method.Name);
+        agentName = ExtractAgentName(attribute, method.Name);
         return true;
     }
 

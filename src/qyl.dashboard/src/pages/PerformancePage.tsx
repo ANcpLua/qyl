@@ -1,23 +1,6 @@
 import {useMemo, useState} from 'react';
-import {
-    Area,
-    AreaChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
-import {
-    Activity,
-    AlertCircle,
-    ArrowUpDown,
-    Clock,
-    Gauge,
-    Loader2,
-    Server,
-    Zap,
-} from 'lucide-react';
+import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,} from 'recharts';
+import {Activity, AlertCircle, ArrowUpDown, Clock, Gauge, Loader2, Server, Zap,} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent, CardHeader} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -408,7 +391,8 @@ export function PerformancePage() {
                         <div className="py-12 text-center">
                             <Server className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                             <p className="text-brutal-slate text-sm">No services discovered</p>
-                            <p className="text-brutal-zinc text-xs mt-1">Services will appear as telemetry is ingested</p>
+                            <p className="text-brutal-zinc text-xs mt-1">Services will appear as telemetry is
+                                ingested</p>
                         </div>
                     ) : (
                         sorted.map((svc) => (
@@ -471,13 +455,13 @@ export function PerformancePage() {
 }
 
 function SortableHeader({
-    label,
-    field,
-    className,
-    activeField,
-    dir,
-    onSort,
-}: {
+                            label,
+                            field,
+                            className,
+                            activeField,
+                            dir,
+                            onSort,
+                        }: {
     label: string;
     field: SortField;
     className?: string;

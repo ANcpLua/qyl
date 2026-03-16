@@ -1,5 +1,4 @@
 using System.Net.Sockets;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Qyl.Instrumentation.Discovery;
@@ -15,10 +14,10 @@ internal static partial class CollectorDiscovery
 
     private static readonly (string Host, int Port)[] SProbeTargets =
     [
-        ("localhost", 4317),   // gRPC (standard)
-        ("localhost", 4318),   // HTTP OTLP (standard)
-        ("qyl", 4317),         // Docker service name (gRPC)
-        ("qyl", 4318)          // Docker service name (HTTP)
+        ("localhost", 4317), // gRPC (standard)
+        ("localhost", 4318), // HTTP OTLP (standard)
+        ("qyl", 4317), // Docker service name (gRPC)
+        ("qyl", 4318) // Docker service name (HTTP)
     ];
 
     /// <summary>
@@ -105,6 +104,7 @@ internal static partial class CollectorDiscovery
     private static partial void LogCollectorDiscovered(ILogger logger, Uri endpoint);
 
     [LoggerMessage(Level = LogLevel.Information,
-        Message = "No qyl collector found. Set OTEL_EXPORTER_OTLP_ENDPOINT or run qyl collector on localhost:4318 (HTTP) or localhost:4317 (gRPC)")]
+        Message =
+            "No qyl collector found. Set OTEL_EXPORTER_OTLP_ENDPOINT or run qyl collector on localhost:4318 (HTTP) or localhost:4317 (gRPC)")]
     private static partial void LogNoCollectorFound(ILogger logger);
 }

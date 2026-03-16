@@ -24,20 +24,20 @@ public static class McpAuthExtensions
             configuration.GetSection(McpAuthOptions.SectionName).Bind(options);
 
             // API-key: environment variable takes precedence over config
-            string? envToken = Environment.GetEnvironmentVariable(McpAuthOptions.TokenEnvVar);
+            var envToken = Environment.GetEnvironmentVariable(McpAuthOptions.TokenEnvVar);
             if (!string.IsNullOrWhiteSpace(envToken))
                 options.Token = envToken;
 
             // Keycloak OAuth2 client-credentials
-            string? authority = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakAuthorityEnvVar);
+            var authority = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakAuthorityEnvVar);
             if (!string.IsNullOrWhiteSpace(authority))
                 options.KeycloakAuthority = authority;
 
-            string? clientId = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakClientIdEnvVar);
+            var clientId = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakClientIdEnvVar);
             if (!string.IsNullOrWhiteSpace(clientId))
                 options.KeycloakClientId = clientId;
 
-            string? clientSecret = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakClientSecretEnvVar);
+            var clientSecret = Environment.GetEnvironmentVariable(McpAuthOptions.KeycloakClientSecretEnvVar);
             if (!string.IsNullOrWhiteSpace(clientSecret))
                 options.KeycloakClientSecret = clientSecret;
         });

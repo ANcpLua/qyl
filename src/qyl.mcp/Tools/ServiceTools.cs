@@ -12,9 +12,12 @@ public sealed class ServiceTools(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List all detected services with type, status, instance count, and aggregated telemetry stats")]
     public Task<string> ListServicesAsync(
-        [Description("Filter by service type: ai_agent, llm_provider, mcp_server, traditional")] string? type = null,
-        [Description("Filter by status: active, inactive")] string? status = null,
-        [Description("Maximum services to return (default: 50)")] int limit = 50) =>
+        [Description("Filter by service type: ai_agent, llm_provider, mcp_server, traditional")]
+        string? type = null,
+        [Description("Filter by status: active, inactive")]
+        string? status = null,
+        [Description("Maximum services to return (default: 50)")]
+        int limit = 50) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var query = $"?limit={limit}";
@@ -23,7 +26,7 @@ public sealed class ServiceTools(HttpClient client)
 
             var response = await client.GetFromJsonAsync<ServicesMcpResponse>(
                 $"/api/v1/services{query}",
-                qyl.mcp.Tools.ServiceMcpJsonContext.Default.ServicesMcpResponse).ConfigureAwait(false);
+                ServiceMcpJsonContext.Default.ServicesMcpResponse).ConfigureAwait(false);
 
             if (response?.Services is not { Count: > 0 })
                 return "No services detected yet. Services are auto-discovered from incoming OTLP telemetry.";
@@ -38,7 +41,8 @@ public sealed class ServiceTools(HttpClient client)
             {
                 var statusIndicator = s.ActiveInstances > 0 ? "active" : "inactive";
                 var errorRate = s.ErrorRate.HasValue ? $"{s.ErrorRate.Value:P1}" : "—";
-                sb.AppendLine($"| {s.ServiceName} | {s.ServiceType} | {statusIndicator} | {s.TotalInstances} | {s.TotalSpans:N0} | {s.TotalErrors:N0} | {errorRate} |");
+                sb.AppendLine(
+                    $"| {s.ServiceName} | {s.ServiceType} | {statusIndicator} | {s.TotalInstances} | {s.TotalSpans:N0} | {s.TotalErrors:N0} | {errorRate} |");
             }
 
             return sb.ToString();

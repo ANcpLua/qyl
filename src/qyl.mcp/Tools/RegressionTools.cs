@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
@@ -18,35 +19,37 @@ internal sealed class RegressionTools(HttpClient http)
                  them to 'regressed' status. Optionally scope to a specific deploy version.
                  """)]
     public async Task<string> CheckRegressionsAsync(
-        [Description("The service name to check for regressions")] string serviceName,
-        [Description("Optional deploy version to scope the check")] string? version = null,
+        [Description("The service name to check for regressions")]
+        string serviceName,
+        [Description("Optional deploy version to scope the check")]
+        string? version = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}";
+            var url = $"/api/v1/regressions/check/{Uri.EscapeDataString(serviceName)}";
             if (version is not null)
                 url += $"?version={Uri.EscapeDataString(version)}";
 
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .PostAsync(url, null, ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
-            JsonNode? root = JsonNode.Parse(json);
-            int count = root?["count"]?.GetValue<int>() ?? 0;
+            var root = JsonNode.Parse(json);
+            var count = root?["count"]?.GetValue<int>() ?? 0;
             if (count == 0)
                 return $"No regressions detected for service '{serviceName}'.";
 
-            JsonArray? ids = root?["regressedIssueIds"]?.AsArray();
+            var ids = root?["regressedIssueIds"]?.AsArray();
             StringBuilder sb = new();
             sb.AppendLine($"## Regressions Detected for {serviceName}");
             sb.AppendLine($"**{count}** resolved issue(s) regressed:");
             sb.AppendLine();
             if (ids is not null)
             {
-                foreach (JsonNode? id in ids)
+                foreach (var id in ids)
                     sb.AppendLine($"- {id}");
             }
 
@@ -61,22 +64,24 @@ internal sealed class RegressionTools(HttpClient http)
                  Optionally filter by time range.
                  """)]
     public async Task<string> ListRegressionsAsync(
-        [Description("Maximum number of events to return (default: 20)")] int? limit = null,
-        [Description("Only show regressions after this ISO timestamp")] string? since = null,
+        [Description("Maximum number of events to return (default: 20)")]
+        int? limit = null,
+        [Description("Only show regressions after this ISO timestamp")]
+        string? since = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit ?? 20, 1, 100);
-            string url = $"/api/v1/regressions?limit={take}";
+            var take = Math.Clamp(limit ?? 20, 1, 100);
+            var url = $"/api/v1/regressions?limit={take}";
             if (since is not null)
                 url += $"&since={Uri.EscapeDataString(since)}";
 
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .GetAsync(url, ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatRegressionList(json);
         });
 
@@ -88,17 +93,18 @@ internal sealed class RegressionTools(HttpClient http)
                  """)]
     public async Task<string> GetIssueRegressionsAsync(
         [Description("The error issue ID")] string issueId,
-        [Description("Maximum number of events to return (default: 10)")] int? limit = null,
+        [Description("Maximum number of events to return (default: 10)")]
+        int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit ?? 10, 1, 100);
-            using HttpResponseMessage resp = await http
+            var take = Math.Clamp(limit ?? 10, 1, 100);
+            using var resp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/regressions?limit={take}", ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatRegressionList(json, issueId);
         });
 
@@ -106,30 +112,32 @@ internal sealed class RegressionTools(HttpClient http)
     {
         try
         {
-            JsonNode? root = JsonNode.Parse(json);
-            JsonArray? items = root?["items"]?.AsArray();
+            var root = JsonNode.Parse(json);
+            var items = root?["items"]?.AsArray();
             if (items is null || items.Count == 0)
+            {
                 return issueId is not null
                     ? $"No regressions found for issue '{issueId}'."
                     : "No regression events found.";
+            }
 
             StringBuilder sb = new();
             sb.AppendLine(issueId is not null
                 ? $"## Regressions for Issue {issueId}"
                 : "## Recent Regressions");
             sb.AppendLine();
-            foreach (JsonNode? item in items)
+            foreach (var item in items)
             {
                 if (item is null) continue;
-                string id = item["issueId"]?.ToString() ?? "?";
-                string reason = item["reason"]?.ToString() ?? "unknown";
-                string time = item["createdAt"]?.ToString() ?? "?";
+                var id = item["issueId"]?.ToString() ?? "?";
+                var reason = item["reason"]?.ToString() ?? "unknown";
+                var time = item["createdAt"]?.ToString() ?? "?";
                 sb.AppendLine($"- **{id}** | {reason} | {time}");
             }
 
             return sb.ToString();
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return json;
         }

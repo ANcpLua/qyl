@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using ModelContextProtocol.Server;
 
 namespace qyl.mcp.Tools;
@@ -26,35 +27,37 @@ internal sealed class ExportForAgentTools(HttpClient http)
                  or any other coding agent session to provide full issue context.
                  """)]
     public async Task<string> ExportForAgentAsync(
-        [Description("The error issue ID to export context for")] string issueId,
-        [Description("Include the latest fix run and generated patch if available (default: true)")] bool includeFix = true,
+        [Description("The error issue ID to export context for")]
+        string issueId,
+        [Description("Include the latest fix run and generated patch if available (default: true)")]
+        bool includeFix = true,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
             // 1. Issue details
-            using HttpResponseMessage issueResp = await http
+            using var issueResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}", ct)
                 .ConfigureAwait(false);
 
-            if (issueResp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (issueResp.StatusCode == HttpStatusCode.NotFound)
                 return $"Error issue '{issueId}' not found.";
 
             issueResp.EnsureSuccessStatusCode();
-            string issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var issueJson = await issueResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
 
             // 2. Recent events (stack traces)
-            using HttpResponseMessage eventsResp = await http
+            using var eventsResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/events?limit=3", ct)
                 .ConfigureAwait(false);
-            string eventsJson = eventsResp.IsSuccessStatusCode
+            var eventsJson = eventsResp.IsSuccessStatusCode
                 ? await eventsResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : "{}";
 
             // 3. Triage assessment
-            using HttpResponseMessage triageResp = await http
+            using var triageResp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/triage", ct)
                 .ConfigureAwait(false);
-            string? triageJson = triageResp.IsSuccessStatusCode
+            var triageJson = triageResp.IsSuccessStatusCode
                 ? await triageResp.Content.ReadAsStringAsync(ct).ConfigureAwait(false)
                 : null;
 
@@ -62,7 +65,7 @@ internal sealed class ExportForAgentTools(HttpClient http)
             string? fixRunJson = null;
             if (includeFix)
             {
-                using HttpResponseMessage fixRunsResp = await http
+                using var fixRunsResp = await http
                     .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit=1", ct)
                     .ConfigureAwait(false);
                 if (fixRunsResp.IsSuccessStatusCode)

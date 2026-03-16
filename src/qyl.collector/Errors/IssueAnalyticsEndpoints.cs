@@ -31,13 +31,13 @@ public static class IssueAnalyticsEndpoints
         int? hours,
         CancellationToken ct)
     {
-        int clampedBucket = Math.Clamp(bucketMinutes ?? 60, 1, 1440);
-        int clampedHours = Math.Clamp(hours ?? 24, 1, 720);
+        var clampedBucket = Math.Clamp(bucketMinutes ?? 60, 1, 1440);
+        var clampedHours = Math.Clamp(hours ?? 24, 1, 720);
 
-        DateTimeOffset cutoff = TimeProvider.System.GetUtcNow().AddHours(-clampedHours);
+        var cutoff = TimeProvider.System.GetUtcNow().AddHours(-clampedHours);
 
-        await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = $"""
                            SELECT time_bucket(INTERVAL '{clampedBucket} minutes', timestamp) AS bucket,
@@ -55,13 +55,13 @@ public static class IssueAnalyticsEndpoints
         List<TimelineBucket> buckets = [];
         try
         {
-            await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+            await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
             while (await reader.ReadAsync(ct).ConfigureAwait(false))
             {
                 buckets.Add(new TimelineBucket(reader.GetDateTime(0), (int)reader.GetInt64(1)));
             }
         }
-        catch (DuckDB.NET.Data.DuckDBException ex) when (ex.Message.Contains("does not exist"))
+        catch (DuckDBException ex) when (ex.Message.Contains("does not exist"))
         {
             return Results.Ok(new { items = buckets, total = 0 });
         }
@@ -75,10 +75,10 @@ public static class IssueAnalyticsEndpoints
         int? limit,
         CancellationToken ct)
     {
-        int clampedLimit = Math.Clamp(limit ?? 10, 1, 100);
+        var clampedLimit = Math.Clamp(limit ?? 10, 1, 100);
 
-        await using DuckDbStore.ReadLease lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
-        await using DuckDBCommand cmd = lease.Connection.CreateCommand();
+        await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
 
         cmd.CommandText = """
                           SELECT sc2.span_id, sc2.cluster_label, sc2.distance,
@@ -94,7 +94,7 @@ public static class IssueAnalyticsEndpoints
         cmd.Parameters.Add(new DuckDBParameter { Value = clampedLimit });
 
         List<SimilarSpan> results = [];
-        await using DbDataReader reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
         while (await reader.ReadAsync(ct).ConfigureAwait(false))
         {
             results.Add(new SimilarSpan(

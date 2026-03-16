@@ -87,7 +87,8 @@ export function TopBar({
     };
 
     return (
-        <header className="h-12 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-3.5 gap-2.5 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
+        <header
+            className="h-12 border-b border-brutal-zinc/70 bg-brutal-carbon/92 backdrop-blur-sm flex items-center px-3 md:px-3.5 gap-2.5 shadow-[0_8px_22px_-18px_rgba(0,0,0,0.8)]">
             {/* Page title - BRUTALIST style */}
             <div className="flex items-center gap-2 shrink-0">
                 <Lightning className="w-4 h-4 text-signal-orange"/>
@@ -117,7 +118,8 @@ export function TopBar({
             <div className="hidden xl:block flex-1"/>
 
             {/* Current time display */}
-            <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-brutal-dark/85 border border-brutal-zinc">
+            <div
+                className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-brutal-dark/85 border border-brutal-zinc">
                 <Clock className="w-4 h-4 text-signal-cyan"/>
                 <span className="font-mono text-xs text-signal-cyan">{formatTime(currentTime)}</span>
             </div>

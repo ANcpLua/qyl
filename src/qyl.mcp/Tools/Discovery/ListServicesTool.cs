@@ -1,6 +1,5 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Formatting;
 
@@ -13,7 +12,8 @@ public sealed class ListServicesTool(HttpClient client)
         ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = true)]
     [Description("List detected services with instance count and last-seen timestamp. Optionally filter by project.")]
     public async Task<string> ListServicesAsync(
-        [Description("Filter by project slug")] string? projectSlug = null,
+        [Description("Filter by project slug")]
+        string? projectSlug = null,
         CancellationToken ct = default)
     {
         var url = "/api/v1/mcp/services";

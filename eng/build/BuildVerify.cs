@@ -243,7 +243,7 @@ interface IVerify : IHazSourcePaths
         {
             Log.Information("Checking for uncommitted generated file changes...");
 
-            IReadOnlyCollection<Output> diffOutput = GitTasks.Git(
+            var diffOutput = GitTasks.Git(
                 "diff --name-only",
                 RootDirectory, logOutput: false, logInvocation: false);
 

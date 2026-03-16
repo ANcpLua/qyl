@@ -1,0 +1,16 @@
+{
+  "name": "@qyl/tools",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:export": "tsc --project tsconfig.tools.json",
+    "test:tokens": "npx tsx --test src/lib/resolve-tokens.ts",
+    "export-artifact": "npx tsx tools/export-artifact.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.0"
+  }
+}

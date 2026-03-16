@@ -26,76 +26,78 @@ internal sealed class AssistedQueryTools(HttpClient http, IConfiguration config)
                  "Which services had errors in the last hour?"
                  """)]
     public async Task<string> AssistedQueryAsync(
-        [Description("Your question about the observability data")] string question,
-        [Description("Maximum rows to return (default: 50)")] int? limit = null,
+        [Description("Your question about the observability data")]
+        string question,
+        [Description("Maximum rows to return (default: 50)")]
+        int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
             if (_llm is null)
                 return "Assisted query requires an LLM. Set QYL_AGENT_API_KEY to enable.";
 
-            int take = Math.Clamp(limit ?? 50, 1, 500);
-            string prompt = BuildSqlPrompt(question, take);
+            var take = Math.Clamp(limit ?? 50, 1, 500);
+            var prompt = BuildSqlPrompt(question, take);
 
-            ChatResponse response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await _llm.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            string sql = ExtractSql(response.Text ?? "");
+            var sql = ExtractSql(response.Text ?? "");
             if (string.IsNullOrWhiteSpace(sql))
                 return "Could not generate a valid SQL query from your question. Try rephrasing.";
 
-            using HttpResponseMessage resp = await http.PostAsJsonAsync(
+            using var resp = await http.PostAsJsonAsync(
                 "/api/v1/query",
                 new { sql, limit = take },
                 ct).ConfigureAwait(false);
 
             if (!resp.IsSuccessStatusCode)
             {
-                string error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 return $"Query failed: {error}\n\nGenerated SQL:\n```sql\n{sql}\n```";
             }
 
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return $"## Query Results\n\n**SQL:**\n```sql\n{sql}\n```\n\n**Results:**\n```json\n{json}\n```";
         });
 
     private static string BuildSqlPrompt(string question, int limit) =>
         $$"""
-        You are a DuckDB SQL expert for an observability platform. Generate a single SELECT query.
+          You are a DuckDB SQL expert for an observability platform. Generate a single SELECT query.
 
-        ## Available tables (key columns only)
-        - spans: trace_id, span_id, service_name, span_name, duration_ms, status, start_time
-        - errors: error_id, error_type, error_message, status, fingerprint, first_seen, last_seen, event_count, affected_services
-        - logs: log_id, service_name, severity, body, timestamp
-        - deployments: deployment_id, service_name, service_version, status, start_time
-        - triage_results: triage_id, issue_id, fixability_score, automation_level, ai_summary
-        - fix_runs: run_id, issue_id, status, confidence_score, changes_json, created_at
-        - issue_events: event_id, issue_id, event_type, old_value, new_value, reason, created_at
+          ## Available tables (key columns only)
+          - spans: trace_id, span_id, service_name, span_name, duration_ms, status, start_time
+          - errors: error_id, error_type, error_message, status, fingerprint, first_seen, last_seen, event_count, affected_services
+          - logs: log_id, service_name, severity, body, timestamp
+          - deployments: deployment_id, service_name, service_version, status, start_time
+          - triage_results: triage_id, issue_id, fixability_score, automation_level, ai_summary
+          - fix_runs: run_id, issue_id, status, confidence_score, changes_json, created_at
+          - issue_events: event_id, issue_id, event_type, old_value, new_value, reason, created_at
 
-        ## Rules
-        - DuckDB syntax (supports LIMIT, window functions, array_agg, etc.)
-        - SELECT only — no INSERT, UPDATE, DELETE, DDL
-        - LIMIT {{limit}} maximum
-        - Use now() for current time, interval for time ranges
-        - Output ONLY the SQL in a ```sql code block, nothing else
+          ## Rules
+          - DuckDB syntax (supports LIMIT, window functions, array_agg, etc.)
+          - SELECT only — no INSERT, UPDATE, DELETE, DDL
+          - LIMIT {{limit}} maximum
+          - Use now() for current time, interval for time ranges
+          - Output ONLY the SQL in a ```sql code block, nothing else
 
-        ## Question
-        {{question}}
-        """;
+          ## Question
+          {{question}}
+          """;
 
     private static string ExtractSql(string text)
     {
-        int start = text.IndexOfIgnoreCase("```sql");
+        var start = text.IndexOfIgnoreCase("```sql");
         if (start >= 0)
         {
             start = text.IndexOf('\n', start) + 1;
-            int end = text.IndexOf("```", start, StringComparison.Ordinal);
+            var end = text.IndexOf("```", start, StringComparison.Ordinal);
             if (end > start)
                 return text[start..end].Trim();
         }
 
         // Fallback: try to find a SELECT statement
-        int selectIdx = text.IndexOfIgnoreCase("SELECT");
+        var selectIdx = text.IndexOfIgnoreCase("SELECT");
         return selectIdx >= 0
             ? text[selectIdx..].Trim().TrimEnd(';', '`', '\n', '\r')
             : "";

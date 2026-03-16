@@ -41,7 +41,8 @@ internal static class McpSessionEndpoints
 
         if (!string.IsNullOrWhiteSpace(q))
             qb.Add("(session_id ILIKE $N OR services ILIKE $N)", $"%{q}%");
-        if (!string.IsNullOrWhiteSpace(cursor) && DateTime.TryParse(cursor, CultureInfo.InvariantCulture, out var cursorTime))
+        if (!string.IsNullOrWhiteSpace(cursor) &&
+            DateTime.TryParse(cursor, CultureInfo.InvariantCulture, out var cursorTime))
             qb.Add("start_time < $N", cursorTime);
 
         cmd.CommandText = $"""
@@ -79,15 +80,13 @@ internal static class McpSessionEndpoints
         if (hasMore)
             items.RemoveAt(items.Count - 1);
 
-        string? nextCursor = hasMore && items.Count > 0
+        var nextCursor = hasMore && items.Count > 0
             ? items[^1].StartTime?.ToString("O")
             : null;
 
         return TypedResults.Ok(new McpPagedResult<McpSessionSummaryDto>
         {
-            Items = items,
-            NextCursor = nextCursor,
-            HasMore = hasMore
+            Items = items, NextCursor = nextCursor, HasMore = hasMore
         });
     }
 

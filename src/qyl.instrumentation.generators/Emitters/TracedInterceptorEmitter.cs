@@ -7,6 +7,12 @@ namespace Qyl.Instrumentation.Generators.Emitters;
 
 internal static class TracedInterceptorEmitter
 {
+    // T-003: OTel standard exception semconv (exception.type / message / stacktrace / escaped).
+    private const string ExceptionBlock = """
+                                                  global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
+                                                  throw;
+                                          """;
+
     public static string Emit(ImmutableArray<TracedCallSite> invocations)
     {
         if (invocations.IsEmpty)
@@ -15,7 +21,7 @@ internal static class TracedInterceptorEmitter
         var fieldNames = BuildFieldNameMap(invocations);
         var sb = new StringBuilder();
 
-        EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
+        EmitterHelpers.AppendFileHeader(sb, true);
         sb.AppendLine("using System.Diagnostics;");
         sb.AppendLine();
         AppendGeneratedActivitySourceAttributes(sb, invocations);
@@ -45,7 +51,7 @@ internal static class TracedInterceptorEmitter
                      .OrderBy(static name => name, StringComparer.Ordinal))
         {
             sb.AppendLine(
-                $"[assembly: global::Qyl.Instrumentation.GeneratedActivitySourceAttribute({SymbolDisplay.FormatLiteral(activitySourceName, quote: true)})]");
+                $"[assembly: global::Qyl.Instrumentation.GeneratedActivitySourceAttribute({SymbolDisplay.FormatLiteral(activitySourceName, true)})]");
         }
 
         sb.AppendLine();
@@ -57,7 +63,8 @@ internal static class TracedInterceptorEmitter
     {
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
         var used = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var name in invocations.Select(static i => i.ActivitySourceName).Distinct(StringComparer.Ordinal).OrderBy(static n => n, StringComparer.Ordinal))
+        foreach (var name in invocations.Select(static i => i.ActivitySourceName).Distinct(StringComparer.Ordinal)
+                     .OrderBy(static n => n, StringComparer.Ordinal))
         {
             var field = Sanitize(name);
             var candidate = field;
@@ -65,6 +72,7 @@ internal static class TracedInterceptorEmitter
             while (!used.Add(candidate)) candidate = $"{field}_{n++}";
             map[name] = candidate;
         }
+
         return map;
     }
 
@@ -84,8 +92,10 @@ internal static class TracedInterceptorEmitter
         foreach (var kv in fieldNames.OrderBy(static kv => kv.Key, StringComparer.Ordinal))
         {
             var (name, field) = (kv.Key, kv.Value);
-            sb.AppendLine($"        internal static readonly global::System.Diagnostics.ActivitySource {field} = new(\"{name}\");");
+            sb.AppendLine(
+                $"        internal static readonly global::System.Diagnostics.ActivitySource {field} = new(\"{name}\");");
         }
+
         sb.AppendLine("    }");
         sb.AppendLine("}");
         sb.AppendLine();
@@ -100,10 +110,19 @@ internal static class TracedInterceptorEmitter
         Dictionary<string, string> fieldNames)
     {
         var typeParamNames = cs.TypeParameters.Select(static tp => tp.Name).ToArray().ToEquatableArray();
-        var returnType = cs.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty ? null : typeParamNames.AsImmutableArray());
-        var typeParams = cs.TypeParameters.Length is 0 ? "" : "<" + string.Join(", ", cs.TypeParameters.Select(static tp => tp.Name)) + ">";
-        var constraints = cs.TypeParameters.Length is 0 ? "" : " " + string.Join(" ", cs.TypeParameters.Where(static tp => tp.Constraints is not null).Select(static tp => tp.Constraints!));
-        var parameters = EmitterHelpers.BuildParameterList(cs.ContainingTypeName, cs.ParameterTypes, cs.ParameterNames, cs.IsStatic, typeParamNames);
+        var returnType =
+            cs.ReturnTypeName.ToGlobalTypeName(typeParamNames.IsDefaultOrEmpty
+                ? null
+                : typeParamNames.AsImmutableArray());
+        var typeParams = cs.TypeParameters.Length is 0
+            ? ""
+            : "<" + string.Join(", ", cs.TypeParameters.Select(static tp => tp.Name)) + ">";
+        var constraints = cs.TypeParameters.Length is 0
+            ? ""
+            : " " + string.Join(" ",
+                cs.TypeParameters.Where(static tp => tp.Constraints is not null).Select(static tp => tp.Constraints!));
+        var parameters = EmitterHelpers.BuildParameterList(cs.ContainingTypeName, cs.ParameterTypes, cs.ParameterNames,
+            cs.IsStatic, typeParamNames);
         var arguments = EmitterHelpers.BuildArgumentList(cs.ParameterNames);
         var field = fieldNames.TryGetValue(cs.ActivitySourceName, out var f) ? f : Sanitize(cs.ActivitySourceName);
         var call = cs.IsStatic
@@ -114,11 +133,20 @@ internal static class TracedInterceptorEmitter
         var intercept = cs.Location.GetInterceptsLocationAttributeSyntax();
 
         if (cs.IsAsyncEnumerable)
-            AppendAsyncEnumerableInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+        {
+            AppendAsyncEnumerableInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field,
+                call, display, intercept);
+        }
         else if (cs.IsAsync)
-            AppendAsyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+        {
+            AppendAsyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display,
+                intercept);
+        }
         else
-            AppendSyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display, intercept);
+        {
+            AppendSyncInterceptor(sb, cs, index, typeParams, constraints, returnType, parameters, field, call, display,
+                intercept);
+        }
     }
 
     // ── Sync interceptor ──────────────────────────────────────────────────────
@@ -279,8 +307,9 @@ internal static class TracedInterceptorEmitter
             // T-006: value types with SkipIfDefault
             if (tag is { SkipIfDefault: true, IsValueType: true })
             {
-                var globalType = tag.TypeName.ToGlobalTypeName(null);
-                sb.AppendLine($"                if (!global::System.Collections.Generic.EqualityComparer<{globalType}>.Default.Equals({tag.ParameterName}, default))");
+                var globalType = tag.TypeName.ToGlobalTypeName();
+                sb.AppendLine(
+                    $"                if (!global::System.Collections.Generic.EqualityComparer<{globalType}>.Default.Equals({tag.ParameterName}, default))");
                 sb.AppendLine($"                    activity.SetTag(\"{tag.TagName}\", {tag.ParameterName});");
             }
             else if (tag is { SkipIfNull: true, IsNullable: true })
@@ -325,10 +354,4 @@ internal static class TracedInterceptorEmitter
             : $"{resultVar}?.ToString()";
         return $"\"{capture.TagName}\", {accessor}";
     }
-
-    // T-003: OTel standard exception semconv (exception.type / message / stacktrace / escaped).
-    private const string ExceptionBlock = """
-                            global::Qyl.Instrumentation.Instrumentation.ActivityExceptionTelemetry.Record(activity, ex);
-                            throw;
-                    """;
 }

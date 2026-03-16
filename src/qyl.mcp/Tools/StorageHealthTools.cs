@@ -31,7 +31,7 @@ public sealed class StorageHealthTools(HttpClient client)
     {
         var health = await client.GetFromJsonAsync<HealthResponse>(
             "/health",
-            qyl.mcp.Tools.StorageHealthJsonContext.Default.HealthResponse).ConfigureAwait(false);
+            StorageHealthJsonContext.Default.HealthResponse).ConfigureAwait(false);
 
         var sb = new StringBuilder();
         sb.AppendLine("# Storage Statistics");

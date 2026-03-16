@@ -9,9 +9,9 @@ namespace Qyl.Collector.Realtime;
 /// </summary>
 internal sealed class LiveLogDeduplicator
 {
-    private readonly TimeSpan _window;
-    private readonly int _maxSuppressed;
     private readonly Dictionary<string, DedupBucket> _buckets = new(StringComparer.Ordinal);
+    private readonly int _maxSuppressed;
+    private readonly TimeSpan _window;
 
     public LiveLogDeduplicator(TimeSpan window, int maxSuppressed = 100)
     {
@@ -135,7 +135,7 @@ internal sealed class LiveLogDeduplicator
 
 /// <summary>
 ///     Log emitted by deduplication.
-///     <see cref="RepeatCount"/> is the number of suppressed duplicates for summary events.
+///     <see cref="RepeatCount" /> is the number of suppressed duplicates for summary events.
 /// </summary>
 internal sealed record DeduplicatedLiveLog(
     LogStorageRow Log,

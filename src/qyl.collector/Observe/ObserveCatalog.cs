@@ -3,8 +3,8 @@ using Qyl.Contracts.Generated;
 namespace Qyl.Collector.Observe;
 
 /// <summary>
-/// Builds the observability catalog: available domains, their generated attribute manifests,
-/// and active subscriptions.
+///     Builds the observability catalog: available domains, their generated attribute manifests,
+///     and active subscriptions.
 /// </summary>
 internal static class ObserveCatalog
 {
@@ -12,8 +12,13 @@ internal static class ObserveCatalog
     // Sourced from the generated DomainContracts source of truth.
     private const string SchemaVersion = DomainContracts.SchemaVersion;
 
+    // ── Static domain definitions ────────────────────────────────────────────
+
+    private static readonly CatalogDomain[] Domains =
+        BuildDomains().ToArray();
+
     /// <summary>
-    /// Builds the catalog snapshot, merging static domain definitions with live subscription state.
+    ///     Builds the catalog snapshot, merging static domain definitions with live subscription state.
     /// </summary>
     public static CatalogResponse Build(SubscriptionManager subscriptions)
     {
@@ -25,11 +30,6 @@ internal static class ObserveCatalog
 
         return new CatalogResponse(SchemaVersion, Domains, active);
     }
-
-    // ── Static domain definitions ────────────────────────────────────────────
-
-    private static readonly CatalogDomain[] Domains =
-        BuildDomains().ToArray();
 
     private static IEnumerable<CatalogDomain> BuildDomains()
     {
@@ -63,12 +63,12 @@ internal static class ObserveCatalog
     /// <summary>Returns the contract hash for a given domain source name, or null if not found.</summary>
     internal static string? GetDomainHash(string sourceName)
         => Array.Find(Domains, d => string.Equals(d.Source, sourceName, StringComparison.Ordinal))
-                ?.ContractHash;
+            ?.ContractHash;
 
     /// <summary>
-    /// Deterministic 8-hex-char contract hash.
-    /// Input: "{schema_version}:{domain_name}:{sorted_attribute_name:type:required,...}"
-    /// Stable across restarts and deployments for the same semconv pin.
+    ///     Deterministic 8-hex-char contract hash.
+    ///     Input: "{schema_version}:{domain_name}:{sorted_attribute_name:type:required,...}"
+    ///     Stable across restarts and deployments for the same semconv pin.
     /// </summary>
     private static string ComputeHash(CatalogDomain domain)
     {
@@ -81,7 +81,7 @@ internal static class ObserveCatalog
                     .OrderBy(static a => a.Name, StringComparer.Ordinal)
                     .Select(static a => $"{a.Name}:{a.Type}:{(a.Required ? "1" : "0")}")));
 
-        var hash = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(input));
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hash)[..8].ToLowerInvariant();
     }
 }
@@ -89,31 +89,37 @@ internal static class ObserveCatalog
 // ── Response DTOs ────────────────────────────────────────────────────────────
 
 internal sealed record CatalogResponse(
-    [property: JsonPropertyName("schema_version")] string SchemaVersion,
-    [property: JsonPropertyName("domains")] IReadOnlyList<CatalogDomain> Domains,
-    [property: JsonPropertyName("active_subscriptions")] IReadOnlyList<SubscriptionDto> ActiveSubscriptions);
+    [property: JsonPropertyName("schema_version")]
+    string SchemaVersion,
+    [property: JsonPropertyName("domains")]
+    IReadOnlyList<CatalogDomain> Domains,
+    [property: JsonPropertyName("active_subscriptions")]
+    IReadOnlyList<SubscriptionDto> ActiveSubscriptions);
 
 internal sealed record CatalogDomain(
-    [property: JsonPropertyName("name")]    string Name,
-    [property: JsonPropertyName("source")]  string Source,
-    [property: JsonPropertyName("signals")] string[] Signals,
-    [property: JsonPropertyName("trace_attributes"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("source")] string Source,
+    [property: JsonPropertyName("signals")]
+    string[] Signals,
+    [property: JsonPropertyName("trace_attributes")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<CatalogAttribute>? TraceAttributes = null,
-    [property: JsonPropertyName("metric_instruments"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [property: JsonPropertyName("metric_instruments")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     IReadOnlyList<CatalogMetricInstrument>? MetricInstruments = null,
-    [property: JsonPropertyName("contract_hash"),
-     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    [property: JsonPropertyName("contract_hash")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     string? ContractHash = null);
 
 internal sealed record CatalogAttribute(
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("type")] string Type,
-    [property: JsonPropertyName("required"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    [property: JsonPropertyName("required")]
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     bool Required = false);
 
 internal sealed record CatalogMetricInstrument(
     [property: JsonPropertyName("name")] string Name,
-    [property: JsonPropertyName("instrument")] string Instrument,
+    [property: JsonPropertyName("instrument")]
+    string Instrument,
     [property: JsonPropertyName("unit")] string Unit);

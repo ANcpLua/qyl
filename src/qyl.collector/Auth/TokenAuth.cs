@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -9,7 +8,7 @@ namespace Qyl.Collector.Auth;
 
 /// <summary>
 ///     Validates a JWT via Keycloak's JWKS endpoint and returns the claims on success,
-///     or <see langword="null"/> on failure.
+///     or <see langword="null" /> on failure.
 /// </summary>
 public interface IKeycloakJwksValidator
 {
@@ -18,7 +17,7 @@ public interface IKeycloakJwksValidator
 
 /// <summary>
 ///     No-op sentinel used when <c>QYL_KEYCLOAK_AUTHORITY</c> is not set.
-///     Always returns <see langword="null"/>, preserving existing auth behaviour unchanged.
+///     Always returns <see langword="null" />, preserving existing auth behaviour unchanged.
 /// </summary>
 internal sealed class NullKeycloakJwksValidator : IKeycloakJwksValidator
 {
@@ -30,16 +29,16 @@ internal sealed class NullKeycloakJwksValidator : IKeycloakJwksValidator
 
 /// <summary>
 ///     Validates JWTs against Keycloak's JWKS endpoint.
-///     Signing keys are cached for <see cref="KeysCacheDuration"/> and refreshed automatically
-///     on <see cref="SecurityTokenSignatureKeyNotFoundException"/>.
+///     Signing keys are cached for <see cref="KeysCacheDuration" /> and refreshed automatically
+///     on <see cref="SecurityTokenSignatureKeyNotFoundException" />.
 /// </summary>
 internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, IDisposable
 {
     private static readonly JsonWebTokenHandler TokenHandler = new();
     private static readonly TimeSpan KeysCacheDuration = TimeSpan.FromHours(1);
+    private readonly string? _audience;
 
     private readonly string _authority;
-    private readonly string? _audience;
     private readonly HttpClient _httpClient;
     private readonly ILogger<KeycloakJwksValidator> _logger;
     private readonly SemaphoreSlim _refreshLock = new(1, 1);
@@ -59,11 +58,13 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
         _logger = logger;
     }
 
+    public void Dispose() => _refreshLock.Dispose();
+
     public async ValueTask<IReadOnlyDictionary<string, string>?> ValidateAsync(
         string token, CancellationToken ct = default)
     {
-        IReadOnlyList<SecurityKey> keys = await GetKeysAsync(ct).ConfigureAwait(false);
-        TokenValidationResult result = await ValidateWithKeysAsync(token, keys).ConfigureAwait(false);
+        var keys = await GetKeysAsync(ct).ConfigureAwait(false);
+        var result = await ValidateWithKeysAsync(token, keys).ConfigureAwait(false);
 
         // On stale signing key: force-refresh keys and retry once
         if (!result.IsValid && result.Exception is SecurityTokenSignatureKeyNotFoundException)
@@ -88,7 +89,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
 
     private async ValueTask<IReadOnlyList<SecurityKey>> GetKeysAsync(CancellationToken ct)
     {
-        DateTimeOffset now = TimeProvider.System.GetUtcNow();
+        var now = TimeProvider.System.GetUtcNow();
 
         // Fast path: return cached keys without acquiring the semaphore
         if (_cachedKeys.Count > 0 && now < _keysExpiry)
@@ -111,12 +112,12 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
 
     private async ValueTask<IReadOnlyList<SecurityKey>> RefreshKeysAsync(CancellationToken ct)
     {
-        string jwksUri = $"{_authority}/protocol/openid-connect/certs";
+        var jwksUri = $"{_authority}/protocol/openid-connect/certs";
         try
         {
-            string json = await _httpClient.GetStringAsync(jwksUri, ct).ConfigureAwait(false);
+            var json = await _httpClient.GetStringAsync(jwksUri, ct).ConfigureAwait(false);
             JsonWebKeySet jwks = new(json);
-            IReadOnlyList<SecurityKey> keys = (IReadOnlyList<SecurityKey>)jwks.GetSigningKeys();
+            var keys = (IReadOnlyList<SecurityKey>)jwks.GetSigningKeys();
             _cachedKeys = keys;
             _keysExpiry = TimeProvider.System.GetUtcNow().Add(KeysCacheDuration);
             LogKeysRefreshed(keys.Count);
@@ -128,7 +129,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
             LogKeysRefreshFailed(jwksUri, ex.Message);
             return _cachedKeys;
         }
-        catch (System.Text.Json.JsonException ex)
+        catch (JsonException ex)
         {
             // Malformed JWKS JSON: return stale keys
             LogKeysRefreshFailed(jwksUri, ex.Message);
@@ -146,7 +147,7 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
             ValidAudience = _audience,
             ValidateLifetime = true,
             IssuerSigningKeys = keys,
-            ClockSkew = TimeSpan.FromSeconds(30),
+            ClockSkew = TimeSpan.FromSeconds(30)
         };
         return TokenHandler.ValidateTokenAsync(token, parameters);
     }
@@ -154,12 +155,10 @@ internal sealed partial class KeycloakJwksValidator : IKeycloakJwksValidator, ID
     private static FrozenDictionary<string, string> ExtractClaims(TokenValidationResult result)
     {
         Dictionary<string, string> claims = new(StringComparer.OrdinalIgnoreCase);
-        foreach (Claim claim in result.ClaimsIdentity.Claims)
+        foreach (var claim in result.ClaimsIdentity.Claims)
             claims.TryAdd(claim.Type, claim.Value);
         return claims.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
     }
-
-    public void Dispose() => _refreshLock.Dispose();
 
     [LoggerMessage(Level = LogLevel.Debug,
         Message = "Keycloak signing keys refreshed — {KeyCount} keys cached for 1 hour")]
@@ -199,6 +198,12 @@ public sealed class TokenAuthOptions
     public const string McpApiKeyHeader = "x-mcp-api-key";
 
     /// <summary>
+    ///     <see cref="HttpContext.Items" /> key under which validated Keycloak claims are stored.
+    ///     Value is an <see cref="IReadOnlyDictionary{TKey,TValue}" /> of claim type → value.
+    /// </summary>
+    public const string KeycloakClaimsKey = "qyl.keycloak.claims";
+
+    /// <summary>
     ///     Gets or sets the auth token. Auto-generates a secure token if not explicitly set.
     /// </summary>
     public string Token
@@ -235,12 +240,6 @@ public sealed class TokenAuthOptions
     /// </summary>
     public string[] ExcludedPaths { get; set; } =
         ["/health", "/ready", "/alive", "/v1/traces", "/v1/logs", "/v1/metrics"];
-
-    /// <summary>
-    ///     <see cref="HttpContext.Items"/> key under which validated Keycloak claims are stored.
-    ///     Value is an <see cref="IReadOnlyDictionary{TKey,TValue}"/> of claim type → value.
-    /// </summary>
-    public const string KeycloakClaimsKey = "qyl.keycloak.claims";
 }
 
 public sealed class TokenAuthMiddleware(
@@ -250,7 +249,7 @@ public sealed class TokenAuthMiddleware(
 {
     public async Task InvokeAsync(HttpContext context)
     {
-        string path = context.Request.Path.Value ?? "/";
+        var path = context.Request.Path.Value ?? "/";
 
         // Allow dashboard root and static files without auth
         if (path == "/" || IsStaticFile(path))
@@ -265,27 +264,27 @@ public sealed class TokenAuthMiddleware(
             return;
         }
 
-        string? queryToken = context.Request.Query[options.QueryParameterName].FirstOrDefault();
+        var queryToken = context.Request.Query[options.QueryParameterName].FirstOrDefault();
         if (!string.IsNullOrEmpty(queryToken) && ValidateToken(queryToken))
         {
             SetAuthCookie(context);
 
-            string cleanUrl = RemoveQueryParameter(context.Request, options.QueryParameterName);
+            var cleanUrl = RemoveQueryParameter(context.Request, options.QueryParameterName);
             context.Response.Redirect(cleanUrl);
             return;
         }
 
-        string? cookieToken = context.Request.Cookies[options.CookieName];
+        var cookieToken = context.Request.Cookies[options.CookieName];
         if (!string.IsNullOrEmpty(cookieToken) && ValidateToken(cookieToken))
         {
             await next(context).ConfigureAwait(false);
             return;
         }
 
-        string? authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+        var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
         if (!string.IsNullOrEmpty(authHeader))
         {
-            string bearerToken = authHeader.StartsWithIgnoreCase("Bearer ")
+            var bearerToken = authHeader.StartsWithIgnoreCase("Bearer ")
                 ? authHeader[7..]
                 : authHeader;
 
@@ -298,7 +297,7 @@ public sealed class TokenAuthMiddleware(
             // Symmetric check failed; try Keycloak JWKS for JWT Bearer tokens (contain '.')
             if (keycloakValidator is not NullKeycloakJwksValidator && bearerToken.Contains('.'))
             {
-                IReadOnlyDictionary<string, string>? claims = await keycloakValidator
+                var claims = await keycloakValidator
                     .ValidateAsync(bearerToken, context.RequestAborted)
                     .ConfigureAwait(false);
 

@@ -1,5 +1,7 @@
+using Qyl.Collector.Artifacts;
 using Qyl.Collector.BuildFailures;
 using Qyl.Collector.Dashboards;
+using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
 using Qyl.Collector.Meta;
 using Qyl.Collector.Search;
@@ -34,10 +36,10 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(SpanListResponseDto))]
 [JsonSerializable(typeof(TraceResponseDto))]
 [JsonSerializable(typeof(SpanBatchDto))]
-[JsonSerializable(typeof(Qyl.Models.HealthResponse))]
-[JsonSerializable(typeof(Health.HealthUiResponse))]
-[JsonSerializable(typeof(Health.ComponentHealth))]
-[JsonSerializable(typeof(IReadOnlyList<Health.ComponentHealth>))]
+[JsonSerializable(typeof(HealthResponse))]
+[JsonSerializable(typeof(HealthUiResponse))]
+[JsonSerializable(typeof(ComponentHealth))]
+[JsonSerializable(typeof(IReadOnlyList<ComponentHealth>))]
 [JsonSerializable(typeof(ErrorResponse))]
 [JsonSerializable(typeof(SpanBatch))]
 [JsonSerializable(typeof(SpanStorageRow))]
@@ -119,4 +121,7 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(IReadOnlyList<SearchResult>))]
 [JsonSerializable(typeof(SearchSuggestion))]
 [JsonSerializable(typeof(IReadOnlyList<SearchSuggestion>))]
+// Artifact types
+[JsonSerializable(typeof(ArtifactCreateRequest))]
+[JsonSerializable(typeof(ArtifactResponse))]
 public partial class QylSerializerContext : JsonSerializerContext;

@@ -53,10 +53,8 @@ public static class ServiceClassifier
 
     private static bool HasPrefixKey(
         IReadOnlyDictionary<string, string>? attrs,
-        string prefix)
-    {
-        return attrs is not null && attrs.Any(kvp => kvp.Key.StartsWithOrdinal(prefix));
-    }
+        string prefix) =>
+        attrs is not null && attrs.Any(kvp => kvp.Key.StartsWithOrdinal(prefix));
 
     private static bool HasKey(
         IReadOnlyDictionary<string, string>? attrs,

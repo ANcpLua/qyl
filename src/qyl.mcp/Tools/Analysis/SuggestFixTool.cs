@@ -1,7 +1,6 @@
 using System.ComponentModel;
-using System.Globalization;
+using System.Net;
 using System.Net.Http.Json;
-using System.Text;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
 using qyl.mcp.Formatting;
@@ -19,14 +18,16 @@ public sealed class SuggestFixTool(HttpClient client)
         OpenWorld = true)]
     [Description("Suggest fixes for errors in a trace. Analyzes error spans and proposes remediation steps.")]
     public async Task<string> SuggestFixAsync(
-        [Description("Trace ID containing errors to analyze")] string traceId,
-        [Description("Specific error message to focus on")] string? errorMessage = null,
+        [Description("Trace ID containing errors to analyze")]
+        string traceId,
+        [Description("Specific error message to focus on")]
+        string? errorMessage = null,
         CancellationToken ct = default)
     {
         var response = await client.GetAsync(
             $"/api/v1/mcp/traces/{Uri.EscapeDataString(traceId)}", ct).ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Trace");
 
         response.EnsureSuccessStatusCode();
@@ -83,8 +84,8 @@ public sealed class SuggestFixTool(HttpClient client)
                 sb.AppendLine("- Review request timeout configuration");
                 break;
             case var name when name.ContainsIgnoreCase("db")
-                            || name.ContainsIgnoreCase("query")
-                            || name.ContainsIgnoreCase("sql"):
+                               || name.ContainsIgnoreCase("query")
+                               || name.ContainsIgnoreCase("sql"):
                 sb.AppendLine("- Check database connection pool and availability");
                 sb.AppendLine("- Review query for performance issues or deadlocks");
                 sb.AppendLine("- Verify database credentials and permissions");

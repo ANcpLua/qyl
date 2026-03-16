@@ -58,11 +58,11 @@ Collect enough context to avoid blind changes:
 1. `qyl.trigger_triage(issueId)`
 2. `qyl.get_triage(issueId)`
 3. If automation is `auto` or `assisted`, inspect fix-run state:
-   - `qyl.list_fix_runs(issueId)`
-   - `qyl.get_fix_run(issueId, runId)`
-   - `qyl.get_fix_run_steps(issueId, runId)`
+    - `qyl.list_fix_runs(issueId)`
+    - `qyl.get_fix_run(issueId, runId)`
+    - `qyl.get_fix_run_steps(issueId, runId)`
 4. If no useful fix run exists and the user wants generation now, create one explicitly:
-   - `qyl.generate_fix(issueId, policy="require_review", context?)`
+    - `qyl.generate_fix(issueId, policy="require_review", context?)`
 
 If automation is `skip`, provide manual reasoning summary and ask for explicit fix target.
 
@@ -71,21 +71,21 @@ If automation is `skip`, provide manual reasoning summary and ask for explicit f
 Choose one path:
 
 - **Manual code fix** (user-authored change)
-  - Edit smallest safe location
-  - Add edge-case handling and validation
-  - Preserve behavior
+    - Edit smallest safe location
+    - Add edge-case handling and validation
+    - Preserve behavior
 
 - **qyl fix-run path**
-  - Review generated diff and confidence score
-  - Approve only when change is safe: `qyl.approve_fix_run(issueId, runId)`
-  - Reject with reason if unsafe: `qyl.reject_fix_run(issueId, runId, "reason")`
+    - Review generated diff and confidence score
+    - Approve only when change is safe: `qyl.approve_fix_run(issueId, runId)`
+    - Reject with reason if unsafe: `qyl.reject_fix_run(issueId, runId, "reason")`
 
 - **external-agent handoff path**
-  - Export context when a coding agent should take over: `qyl.export_for_agent(issueId, includeFix=true)`
-  - Claim/submit through handoff tools when the collector created a handoff:
-    - `qyl.get_pending_handoffs`
-    - `qyl.accept_handoff`
-    - `qyl.submit_agent_fix`
+    - Export context when a coding agent should take over: `qyl.export_for_agent(issueId, includeFix=true)`
+    - Claim/submit through handoff tools when the collector created a handoff:
+        - `qyl.get_pending_handoffs`
+        - `qyl.accept_handoff`
+        - `qyl.submit_agent_fix`
 
 ## Phase 5 — Regression safety checks
 
@@ -94,7 +94,8 @@ Before marking complete:
 - Re-check triage for issue ID
 - Confirm similar errors count is decreasing in latest `qyl.get_error_issue`
 - Validate no obvious side-effect regressions in touched code paths
-- Optionally derive a regression test skeleton from the issue: `qyl.generate_test_from_error(issueId, framework="xunit")`
+- Optionally derive a regression test skeleton from the issue:
+  `qyl.generate_test_from_error(issueId, framework="xunit")`
 
 ## Phase 6 — Close report
 
@@ -113,4 +114,5 @@ Before marking complete:
 
 - Do not claim completion without evidence from `qyl` tools.
 - Do not use copied event payload values directly in code comments or tests.
-- Prefer `qyl.use_qyl` only when the problem spans multiple domains; for deterministic issue work, stay on the narrow issue/fix tools.
+- Prefer `qyl.use_qyl` only when the problem spans multiple domains; for deterministic issue work, stay on the narrow
+  issue/fix tools.

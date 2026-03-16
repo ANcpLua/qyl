@@ -19,23 +19,23 @@ public sealed partial class AgentHandoffService(
     public async Task<AgentHandoffRecord> CreateHandoffAsync(
         string runId, string agentType, CancellationToken ct)
     {
-        FixRunRecord fixRun = await store.GetFixRunAsync(runId, ct).ConfigureAwait(false)
-                              ?? throw new InvalidOperationException($"Fix run '{runId}' not found");
+        var fixRun = await store.GetFixRunAsync(runId, ct).ConfigureAwait(false)
+                     ?? throw new InvalidOperationException($"Fix run '{runId}' not found");
 
-        IReadOnlyList<AutofixStepRecord> steps = await store.GetAutofixStepsAsync(runId, ct).ConfigureAwait(false);
+        var steps = await store.GetAutofixStepsAsync(runId, ct).ConfigureAwait(false);
 
         HandoffContext context = new(
-            RunId: fixRun.RunId,
-            IssueId: fixRun.IssueId,
-            FixDescription: fixRun.FixDescription,
-            Confidence: fixRun.ConfidenceScore,
-            ChangesJson: fixRun.ChangesJson,
-            Steps: steps.Select(static s => new HandoffStepSummary(s.StepName, s.OutputJson)).ToList());
+            fixRun.RunId,
+            fixRun.IssueId,
+            fixRun.FixDescription,
+            fixRun.ConfidenceScore,
+            fixRun.ChangesJson,
+            steps.Select(static s => new HandoffStepSummary(s.StepName, s.OutputJson)).ToList());
 
-        string contextJson = JsonSerializer.Serialize(context, HandoffJsonContext.Default.HandoffContext);
+        var contextJson = JsonSerializer.Serialize(context, HandoffJsonContext.Default.HandoffContext);
 
-        string handoffId = Guid.NewGuid().ToString("N");
-        DateTime timeoutAt = TimeProvider.System.GetUtcNow().UtcDateTime.AddMinutes(_timeoutMinutes);
+        var handoffId = Guid.NewGuid().ToString("N");
+        var timeoutAt = TimeProvider.System.GetUtcNow().UtcDateTime.AddMinutes(_timeoutMinutes);
 
         AgentHandoffRecord record = new()
         {
@@ -59,7 +59,7 @@ public sealed partial class AgentHandoffService(
     /// </summary>
     public async Task<AgentHandoffRecord?> AcceptHandoffAsync(string handoffId, CancellationToken ct)
     {
-        int affected = await store.UpdateHandoffStatusAsync(
+        var affected = await store.UpdateHandoffStatusAsync(
             handoffId, "accepted", expectedCurrentStatus: "pending", ct: ct).ConfigureAwait(false);
 
         if (affected == 0)
@@ -75,11 +75,11 @@ public sealed partial class AgentHandoffService(
     public async Task<AgentHandoffRecord?> SubmitHandoffResultAsync(
         string handoffId, string resultJson, CancellationToken ct)
     {
-        AgentHandoffRecord? handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
+        var handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
         if (handoff is null || handoff.Status is not "accepted")
             return null;
 
-        await store.UpdateHandoffStatusAsync(handoffId, "completed", resultJson: resultJson, ct: ct)
+        await store.UpdateHandoffStatusAsync(handoffId, "completed", resultJson, ct: ct)
             .ConfigureAwait(false);
 
         LogHandoffSubmitted(handoffId);
@@ -92,7 +92,7 @@ public sealed partial class AgentHandoffService(
     public async Task<AgentHandoffRecord?> FailHandoffAsync(
         string handoffId, string errorMessage, CancellationToken ct)
     {
-        AgentHandoffRecord? handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
+        var handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
         if (handoff is null || handoff.Status is not ("pending" or "accepted"))
             return null;
 
@@ -108,7 +108,7 @@ public sealed partial class AgentHandoffService(
     /// </summary>
     public async Task<string?> GetHandoffContextAsync(string handoffId, CancellationToken ct)
     {
-        AgentHandoffRecord? handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
+        var handoff = await store.GetHandoffAsync(handoffId, ct).ConfigureAwait(false);
         return handoff?.ContextJson;
     }
 

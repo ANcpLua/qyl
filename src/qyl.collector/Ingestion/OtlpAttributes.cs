@@ -227,10 +227,8 @@ internal static class OtlpGenAiAttributes
     ///     NOTE: Do NOT use SearchValues for prefix matching - it does substring matching.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool IsGenAiAttribute(ReadOnlySpan<byte> key)
-    {
-        return key.Length >= 7 && key[..7].SequenceEqual("gen_ai."u8);
-    }
+    public static bool IsGenAiAttribute(ReadOnlySpan<byte> key) =>
+        key.Length >= 7 && key[..7].SequenceEqual("gen_ai."u8);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool TryGetCurrentName(string deprecatedKey, [NotNullWhen(true)] out string? currentKey) =>
@@ -380,7 +378,6 @@ public sealed record OtlpAnyValue
     public string? BytesValue { get; init; }
 }
 
-
 public sealed record OtlpArrayValue
 {
     public List<OtlpAnyValue>? Values { get; init; }
@@ -429,16 +426,13 @@ public sealed class ParsedSpan
     /// <summary>
     ///     Duration as TimeSpan. Returns TimeSpan.Zero if EndTime is before StartTime (clock skew protection).
     /// </summary>
-    public TimeSpan Duration
-    {
-        get
-        {
-            // Guard against clock skew where EndTime < StartTime
-            return EndTime.Value < StartTime.Value ? TimeSpan.Zero :
-                // Safe: duration in nanoseconds / 100 = ticks, fits in long for any reasonable duration
-                TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
-        }
-    }
+    public TimeSpan Duration =>
+        // Guard against clock skew where EndTime < StartTime
+        EndTime.Value < StartTime.Value
+            ? TimeSpan.Zero
+            :
+            // Safe: duration in nanoseconds / 100 = ticks, fits in long for any reasonable duration
+            TimeSpan.FromTicks((long)((EndTime.Value - StartTime.Value) / 100));
 
     public long TotalTokens => InputTokens + OutputTokens;
     public bool IsGenAiSpan => ProviderName is not null || RequestModel is not null;

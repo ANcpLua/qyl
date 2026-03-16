@@ -35,6 +35,8 @@
 
 ### Changed
 
+- **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
+
 - **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method
   name lookup instead of generic `CouldBeInvocation`, avoiding expensive `GetSymbolInfo` calls on non-matching nodes.
 - **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension,

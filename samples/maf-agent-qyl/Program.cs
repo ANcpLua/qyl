@@ -15,8 +15,8 @@
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Qyl.Samples.MafAgent;
 using Qyl.Instrumentation.Instrumentation;
+using Qyl.Samples.MafAgent;
 
 var builder = Host.CreateApplicationBuilder(args);
 

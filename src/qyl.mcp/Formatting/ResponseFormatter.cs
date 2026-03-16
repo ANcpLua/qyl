@@ -1,15 +1,14 @@
 // src/qyl.mcp/Formatting/ResponseFormatter.cs
-using System.Globalization;
-using System.Text;
+
 using System.Text.Json;
 using Qyl.Contracts.Models;
 
 namespace qyl.mcp.Formatting;
 
 /// <summary>
-/// Formats collector API responses as markdown for AI consumption.
-/// Rules: summary before detail, backtick IDs, suggest next tools,
-/// paginate by default (25 items), 20k token budget per response.
+///     Formats collector API responses as markdown for AI consumption.
+///     Rules: summary before detail, backtick IDs, suggest next tools,
+///     paginate by default (25 items), 20k token budget per response.
 /// </summary>
 public static class ResponseFormatter
 {
@@ -27,22 +26,24 @@ public static class ResponseFormatter
         sb.AppendLine(CultureInfo.InvariantCulture, $"# {title} ({result.Items.Count} of {result.TotalCount})");
         sb.AppendLine();
 
-        foreach (T item in result.Items)
+        foreach (var item in result.Items)
             sb.AppendLine(rowFormatter(item));
 
         sb.AppendLine();
         sb.AppendLine("## Next steps");
 
         if (result.Items.Count > 0)
+        {
             sb.AppendLine(CultureInfo.InvariantCulture,
                 $"- Use `{detailToolName}({detailIdParam}: '<id>')` for full details");
+        }
 
         sb.AppendLine(CultureInfo.InvariantCulture,
             $"- Refine with `{searchToolName}(query: '<narrower query>')`");
 
         if (result.Cursor is not null)
         {
-            int remaining = result.TotalCount - result.Items.Count;
+            var remaining = result.TotalCount - result.Items.Count;
             sb.AppendLine(CultureInfo.InvariantCulture,
                 $"- {remaining} more results available — pass `cursor: '{result.Cursor}'` for next page");
         }
@@ -56,7 +57,7 @@ public static class ResponseFormatter
         sb.AppendLine(CultureInfo.InvariantCulture, $"# {title}");
         sb.AppendLine();
 
-        foreach ((string label, string? value) in fields)
+        foreach (var (label, value) in fields)
         {
             if (value is not null)
                 sb.AppendLine(CultureInfo.InvariantCulture, $"**{label}:** {value}");

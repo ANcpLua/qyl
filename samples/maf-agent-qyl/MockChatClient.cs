@@ -51,10 +51,7 @@ internal sealed class MockChatClient : IChatClient
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var response = await GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
-        yield return new ChatResponseUpdate(ChatRole.Assistant, response.Text)
-        {
-            ModelId = response.ModelId
-        };
+        yield return new ChatResponseUpdate(ChatRole.Assistant, response.Text) { ModelId = response.ModelId };
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null) =>

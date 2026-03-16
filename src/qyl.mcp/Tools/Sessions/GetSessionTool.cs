@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -24,7 +25,7 @@ public sealed class GetSessionTool(HttpClient client)
             .GetAsync($"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}", ct)
             .ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Session");
 
         response.EnsureSuccessStatusCode();
@@ -38,7 +39,9 @@ public sealed class GetSessionTool(HttpClient client)
                 ("Span Count", session.SpanCount.ToString()),
                 ("Created", session.CreatedAt),
                 ("Traces", session.Traces is { Count: > 0 }
-                    ? string.Join("\n", session.Traces.Select(t => $"  - `{t.TraceId}` | {t.Status} | {t.DurationMs:N0}ms | {t.Service}"))
+                    ? string.Join("\n",
+                        session.Traces.Select(t =>
+                            $"  - `{t.TraceId}` | {t.Status} | {t.DurationMs:N0}ms | {t.Service}"))
                     : "none")
             ]);
     }

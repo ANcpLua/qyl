@@ -77,7 +77,12 @@ function ToolCallNode({call, agentStartTime, agentDurationNs}: ToolCallNodeProps
                 tabIndex={hasPayload ? 0 : undefined}
                 aria-expanded={hasPayload ? expanded : undefined}
                 onClick={() => hasPayload && setExpanded(!expanded)}
-                onKeyDown={hasPayload ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } } : undefined}
+                onKeyDown={hasPayload ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setExpanded(!expanded);
+                    }
+                } : undefined}
             >
                 {/* Connector */}
                 <div className="w-4 h-px bg-brutal-zinc -ml-[calc(0.75rem+1px)]"/>
@@ -184,7 +189,12 @@ export function AgentTraceTree({run, toolCalls, isLoading}: AgentTraceTreeProps)
                 tabIndex={0}
                 aria-expanded={rootExpanded}
                 onClick={() => setRootExpanded(!rootExpanded)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setRootExpanded(!rootExpanded); } }}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setRootExpanded(!rootExpanded);
+                    }
+                }}
             >
                 {rootExpanded ? (
                     <ChevronDown className="w-4 h-4 text-brutal-slate"/>

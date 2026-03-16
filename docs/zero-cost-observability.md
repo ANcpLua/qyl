@@ -1,6 +1,7 @@
 # Zero-Cost-Until-Observed: Compiled Observability Contracts
 
-For the complete attribute-to-pipeline mapping for tracing, agent tracing, and metrics generators, see the [Instrumentation Toolkit Reference](instrumentation-toolkit.md).
+For the complete attribute-to-pipeline mapping for tracing, agent tracing, and metrics generators, see
+the [Instrumentation Toolkit Reference](instrumentation-toolkit.md).
 For layer governance, keep generator changes in `src/qyl.instrumentation.generators/` and runtime/collector changes in
 `src/qyl.servicedefaults/` plus `src/qyl.collector/`; schema-generation belongs only to `eng/build/SchemaGenerator.cs`.
 
@@ -95,7 +96,8 @@ and DB instrumentation all emit the same OTel exception shape.
 
 > **Note:** The previous `DuckDbInsertGenerator` Roslyn source generator is being replaced by `DuckDBAppenderMap<T>` (
 > see `hades-storage-purge.md` in this directory). The appender approach is simpler (27 lines vs a full generator
-> project), faster (direct DuckDB writes, no parameterized SQL), and removes the `(decimal)ulong` UBIGINT workaround. The
+> project), faster (direct DuckDB writes, no parameterized SQL), and removes the `(decimal)ulong` UBIGINT workaround.
+> The
 > cost is that column mapping is no longer enforced at compile time — making the contract model more valuable, not less.
 
 ### SSE Streaming Infrastructure
@@ -578,16 +580,16 @@ doesn't have this complexity.
 
 The components for zero-cost-until-observed already exist across the .NET runtime and the qyl codebase:
 
-| Component                               | Where it lives                                                           |
-|-----------------------------------------|--------------------------------------------------------------------------|
-| `HasListeners()` → null return path     | .NET runtime (`System.Diagnostics.Activity`)                             |
-| Dynamic subscription wiring             | `src/qyl.collector/Observe/SubscriptionManager.cs`                       |
-| HTTP subscription endpoints             | `src/qyl.collector/Observe/ObserveEndpoints.cs`                          |
-| Lazy ActivitySources + Meters           | `src/qyl.servicedefaults/Instrumentation/ActivitySources.cs`             |
+| Component                               | Where it lives                                                            |
+|-----------------------------------------|---------------------------------------------------------------------------|
+| `HasListeners()` → null return path     | .NET runtime (`System.Diagnostics.Activity`)                              |
+| Dynamic subscription wiring             | `src/qyl.collector/Observe/SubscriptionManager.cs`                        |
+| HTTP subscription endpoints             | `src/qyl.collector/Observe/ObserveEndpoints.cs`                           |
+| Lazy ActivitySources + Meters           | `src/qyl.servicedefaults/Instrumentation/ActivitySources.cs`              |
 | Generated interceptors with null-guard  | `src/qyl.instrumentation.generators/Emitters/TracedInterceptorEmitter.cs` |
-| DuckDB storage via Appender             | `src/qyl.collector/Storage/SpanAppender.cs` (post-purge)                 |
-| SSE streaming with connection lifecycle | `src/qyl.collector/Realtime/SseEndpoints.cs`                             |
-| TypeSpec schemas with semconv 1.40      | `core/specs/main.tsp`                                                    |
+| DuckDB storage via Appender             | `src/qyl.collector/Storage/SpanAppender.cs` (post-purge)                  |
+| SSE streaming with connection lifecycle | `src/qyl.collector/Realtime/SseEndpoints.cs`                              |
+| TypeSpec schemas with semconv 1.40      | `core/specs/main.tsp`                                                     |
 
 What's missing is the mode switch (Phase 1), the catalog (Phase 2), and the contracts (Phases 3-4). Phase 1 is a single
 `enum` and a sampler swap in `ConfigureOpenTelemetry()`. Phase 2 is a new endpoint. Phases 3-4 extend the existing
@@ -618,7 +620,7 @@ The work touches **four** areas of the repository.
 | Area                                  | Projects                              |
 |---------------------------------------|---------------------------------------|
 | Nuke build system                     | `eng/build/`                          |
-| Roslyn generator (public NuGet)       | `src/qyl.instrumentation.generators/`  |
+| Roslyn generator (public NuGet)       | `src/qyl.instrumentation.generators/` |
 | Roslyn generator (collector-internal) | `src/qyl.instrumentation.generators/` |
 | Collector observe subsystem           | `src/qyl.collector/Observe/`          |
 
@@ -1794,7 +1796,7 @@ These must hold at every phase boundary and in the final state.
 | `eng/build/BuildPaths.cs`                                           | 3     | Modify — add 2 path properties to `CodegenPaths`                                                   |
 | `eng/build/ContractGenerator.cs`                                    | 3     | **Create**                                                                                         |
 | `eng/build/BuildPipeline.cs`                                        | 3     | Modify — add `GenerateContracts` target, wire into `Generate`                                      |
-| `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs`  | 3     | **Generated by Nuke**                                                                              |
+| `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | 3     | **Generated by Nuke**                                                                              |
 | `src/qyl.instrumentation.generators/Generated/DomainContracts.g.cs` | 3     | **Generated by Nuke**                                                                              |
 | `src/qyl.collector/Observe/ObserveCatalog.cs`                       | 3 + 4 | Modify — add `ContractHash` to `CatalogDomain`; add `ComputeHash`, `BuildDomains`, `GetDomainHash` |
 | `src/qyl.collector/Observe/ObservationSubscription.cs`              | 4 + 5 | Modify — add `ContractHash`, `SchemaVersion` properties; extend constructor                        |

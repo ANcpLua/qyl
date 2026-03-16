@@ -18,7 +18,7 @@ public sealed class OtlpConverterCapabilityTests
         };
 
         var instance = Assert.IsType<ServiceInstanceRecord>(
-            OtlpConverter.ExtractServiceInstance(resourceAttributes, spanAttributes: null, timestampNano: 42));
+            OtlpConverter.ExtractServiceInstance(resourceAttributes, null, 42));
         var metadataJson = Assert.IsType<string>(instance.MetadataJson);
 
         using var metadata = JsonDocument.Parse(metadataJson);
@@ -46,8 +46,7 @@ public sealed class OtlpConverterCapabilityTests
                         [
                             new OtlpKeyValue
                             {
-                                Key = "service.name",
-                                Value = new OtlpAnyValue { StringValue = "planner" }
+                                Key = "service.name", Value = new OtlpAnyValue { StringValue = "planner" }
                             },
                             new OtlpKeyValue
                             {

@@ -10,86 +10,86 @@ public sealed partial class DuckDbStore
     // ══════════════════════════════════════════════════════════════════════════
 
     internal const string ServiceInstancesDdl = """
-        CREATE TABLE IF NOT EXISTS service_instances (
-            service_namespace        VARCHAR NOT NULL DEFAULT '',
-            service_name             VARCHAR NOT NULL,
-            service_instance_id      VARCHAR NOT NULL,
-            service_type             VARCHAR NOT NULL DEFAULT 'traditional',
-            service_version          VARCHAR,
-            deployment_environment   VARCHAR,
-            os_type                  VARCHAR,
-            host_arch                VARCHAR,
-            agent_name               VARCHAR,
-            provider_name            VARCHAR,
-            default_model            VARCHAR,
-            first_seen               TIMESTAMP NOT NULL,
-            last_seen                TIMESTAMP NOT NULL,
-            last_error_at            TIMESTAMP,
-            status                   VARCHAR NOT NULL DEFAULT 'active',
-            total_spans              BIGINT NOT NULL DEFAULT 0,
-            total_logs               BIGINT NOT NULL DEFAULT 0,
-            total_errors             BIGINT NOT NULL DEFAULT 0,
-            total_input_tokens       BIGINT DEFAULT 0,
-            total_output_tokens      BIGINT DEFAULT 0,
-            total_cost_usd           DOUBLE DEFAULT 0,
-            total_duration_ns        BIGINT DEFAULT 0,
-            metadata                 JSON,
-            PRIMARY KEY (service_namespace, service_name, service_type, service_instance_id)
-        )
-        """;
+                                                CREATE TABLE IF NOT EXISTS service_instances (
+                                                    service_namespace        VARCHAR NOT NULL DEFAULT '',
+                                                    service_name             VARCHAR NOT NULL,
+                                                    service_instance_id      VARCHAR NOT NULL,
+                                                    service_type             VARCHAR NOT NULL DEFAULT 'traditional',
+                                                    service_version          VARCHAR,
+                                                    deployment_environment   VARCHAR,
+                                                    os_type                  VARCHAR,
+                                                    host_arch                VARCHAR,
+                                                    agent_name               VARCHAR,
+                                                    provider_name            VARCHAR,
+                                                    default_model            VARCHAR,
+                                                    first_seen               TIMESTAMP NOT NULL,
+                                                    last_seen                TIMESTAMP NOT NULL,
+                                                    last_error_at            TIMESTAMP,
+                                                    status                   VARCHAR NOT NULL DEFAULT 'active',
+                                                    total_spans              BIGINT NOT NULL DEFAULT 0,
+                                                    total_logs               BIGINT NOT NULL DEFAULT 0,
+                                                    total_errors             BIGINT NOT NULL DEFAULT 0,
+                                                    total_input_tokens       BIGINT DEFAULT 0,
+                                                    total_output_tokens      BIGINT DEFAULT 0,
+                                                    total_cost_usd           DOUBLE DEFAULT 0,
+                                                    total_duration_ns        BIGINT DEFAULT 0,
+                                                    metadata                 JSON,
+                                                    PRIMARY KEY (service_namespace, service_name, service_type, service_instance_id)
+                                                )
+                                                """;
 
     internal const string ServicesViewDdl = """
-        CREATE OR REPLACE VIEW services AS
-        SELECT
-            service_namespace,
-            service_name,
-            service_type,
-            arg_max(service_version, last_seen) AS latest_version,
-            arg_max(provider_name, last_seen) FILTER (WHERE provider_name IS NOT NULL) AS provider_name,
-            arg_max(default_model, last_seen) FILTER (WHERE default_model IS NOT NULL) AS default_model,
-            MIN(first_seen) AS first_seen,
-            MAX(last_seen) AS last_seen,
-            MAX(last_error_at) AS last_error_at,
-            COUNT(*) AS total_instances,
-            COUNT(*) FILTER (WHERE status = 'active') AS active_instances,
-            array_agg(DISTINCT deployment_environment) FILTER (WHERE deployment_environment IS NOT NULL) AS environments,
-            array_agg(DISTINCT service_version) FILTER (WHERE service_version IS NOT NULL) AS versions_seen,
-            SUM(total_spans) AS total_spans,
-            SUM(total_logs) AS total_logs,
-            SUM(total_errors) AS total_errors,
-            SUM(total_input_tokens) AS total_input_tokens,
-            SUM(total_output_tokens) AS total_output_tokens,
-            SUM(total_cost_usd) AS total_cost_usd,
-            SUM(total_duration_ns) AS total_duration_ns,
-            SUM(total_duration_ns) / NULLIF(SUM(total_spans), 0) AS avg_duration_ns,
-            SUM(total_errors)::DOUBLE / NULLIF(SUM(total_spans) + SUM(total_logs), 0) AS error_rate
-        FROM service_instances
-        GROUP BY service_namespace, service_name, service_type
-        """;
+                                            CREATE OR REPLACE VIEW services AS
+                                            SELECT
+                                                service_namespace,
+                                                service_name,
+                                                service_type,
+                                                arg_max(service_version, last_seen) AS latest_version,
+                                                arg_max(provider_name, last_seen) FILTER (WHERE provider_name IS NOT NULL) AS provider_name,
+                                                arg_max(default_model, last_seen) FILTER (WHERE default_model IS NOT NULL) AS default_model,
+                                                MIN(first_seen) AS first_seen,
+                                                MAX(last_seen) AS last_seen,
+                                                MAX(last_error_at) AS last_error_at,
+                                                COUNT(*) AS total_instances,
+                                                COUNT(*) FILTER (WHERE status = 'active') AS active_instances,
+                                                array_agg(DISTINCT deployment_environment) FILTER (WHERE deployment_environment IS NOT NULL) AS environments,
+                                                array_agg(DISTINCT service_version) FILTER (WHERE service_version IS NOT NULL) AS versions_seen,
+                                                SUM(total_spans) AS total_spans,
+                                                SUM(total_logs) AS total_logs,
+                                                SUM(total_errors) AS total_errors,
+                                                SUM(total_input_tokens) AS total_input_tokens,
+                                                SUM(total_output_tokens) AS total_output_tokens,
+                                                SUM(total_cost_usd) AS total_cost_usd,
+                                                SUM(total_duration_ns) AS total_duration_ns,
+                                                SUM(total_duration_ns) / NULLIF(SUM(total_spans), 0) AS avg_duration_ns,
+                                                SUM(total_errors)::DOUBLE / NULLIF(SUM(total_spans) + SUM(total_logs), 0) AS error_rate
+                                            FROM service_instances
+                                            GROUP BY service_namespace, service_name, service_type
+                                            """;
+
+    private const string ServiceInstanceUpsertSql = """
+                                                    INSERT INTO service_instances (
+                                                        service_namespace, service_name, service_instance_id, service_type,
+                                                        service_version, deployment_environment, os_type, host_arch,
+                                                        agent_name, provider_name, default_model,
+                                                        first_seen, last_seen, status, metadata
+                                                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', $14)
+                                                    ON CONFLICT (service_namespace, service_name, service_type, service_instance_id)
+                                                    DO UPDATE SET
+                                                        service_version        = COALESCE(EXCLUDED.service_version, service_instances.service_version),
+                                                        deployment_environment = COALESCE(EXCLUDED.deployment_environment, service_instances.deployment_environment),
+                                                        os_type                = COALESCE(EXCLUDED.os_type, service_instances.os_type),
+                                                        host_arch              = COALESCE(EXCLUDED.host_arch, service_instances.host_arch),
+                                                        agent_name             = COALESCE(EXCLUDED.agent_name, service_instances.agent_name),
+                                                        provider_name          = COALESCE(EXCLUDED.provider_name, service_instances.provider_name),
+                                                        default_model          = COALESCE(EXCLUDED.default_model, service_instances.default_model),
+                                                        last_seen              = GREATEST(EXCLUDED.last_seen, service_instances.last_seen),
+                                                        status                 = 'active',
+                                                        metadata               = COALESCE(EXCLUDED.metadata, service_instances.metadata)
+                                                    """;
 
     private static DateTime NanoToDateTime(ulong nanos) =>
         TimeConversions.UnixNanoToDateTime(nanos);
-
-    private const string ServiceInstanceUpsertSql = """
-        INSERT INTO service_instances (
-            service_namespace, service_name, service_instance_id, service_type,
-            service_version, deployment_environment, os_type, host_arch,
-            agent_name, provider_name, default_model,
-            first_seen, last_seen, status, metadata
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'active', $14)
-        ON CONFLICT (service_namespace, service_name, service_type, service_instance_id)
-        DO UPDATE SET
-            service_version        = COALESCE(EXCLUDED.service_version, service_instances.service_version),
-            deployment_environment = COALESCE(EXCLUDED.deployment_environment, service_instances.deployment_environment),
-            os_type                = COALESCE(EXCLUDED.os_type, service_instances.os_type),
-            host_arch              = COALESCE(EXCLUDED.host_arch, service_instances.host_arch),
-            agent_name             = COALESCE(EXCLUDED.agent_name, service_instances.agent_name),
-            provider_name          = COALESCE(EXCLUDED.provider_name, service_instances.provider_name),
-            default_model          = COALESCE(EXCLUDED.default_model, service_instances.default_model),
-            last_seen              = GREATEST(EXCLUDED.last_seen, service_instances.last_seen),
-            status                 = 'active',
-            metadata               = COALESCE(EXCLUDED.metadata, service_instances.metadata)
-        """;
 
     /// <summary>
     ///     Upserts a service instance discovered from OTLP resource attributes.
@@ -147,21 +147,21 @@ public sealed partial class DuckDbStore
 
         await using var cmd = lease.Connection.CreateCommand();
         cmd.CommandText = $"""
-            SELECT
-                service_namespace, service_name, service_type,
-                latest_version, provider_name, default_model,
-                first_seen, last_seen, last_error_at,
-                total_instances, active_instances,
-                environments, versions_seen,
-                total_spans, total_logs, total_errors,
-                total_input_tokens, total_output_tokens,
-                total_cost_usd, total_duration_ns,
-                avg_duration_ns, error_rate
-            FROM services
-            {qb.WhereClause}
-            ORDER BY last_seen DESC
-            LIMIT {limit}
-            """;
+                           SELECT
+                               service_namespace, service_name, service_type,
+                               latest_version, provider_name, default_model,
+                               first_seen, last_seen, last_error_at,
+                               total_instances, active_instances,
+                               environments, versions_seen,
+                               total_spans, total_logs, total_errors,
+                               total_input_tokens, total_output_tokens,
+                               total_cost_usd, total_duration_ns,
+                               avg_duration_ns, error_rate
+                           FROM services
+                           {qb.WhereClause}
+                           ORDER BY last_seen DESC
+                           LIMIT {limit}
+                           """;
         qb.ApplyTo(cmd);
 
         var results = new List<ServiceSummary>();
@@ -208,17 +208,17 @@ public sealed partial class DuckDbStore
         await using var cmd = lease.Connection.CreateCommand();
         var typeClause = serviceType is not null ? "AND service_type = $2" : "";
         cmd.CommandText = $"""
-            SELECT
-                service_namespace, service_name, service_instance_id, service_type,
-                service_version, deployment_environment, os_type, host_arch,
-                agent_name, provider_name, default_model,
-                first_seen, last_seen, last_error_at, status,
-                total_spans, total_logs, total_errors,
-                total_input_tokens, total_output_tokens, total_cost_usd
-            FROM service_instances
-            WHERE service_name = $1 {typeClause}
-            ORDER BY last_seen DESC
-            """;
+                           SELECT
+                               service_namespace, service_name, service_instance_id, service_type,
+                               service_version, deployment_environment, os_type, host_arch,
+                               agent_name, provider_name, default_model,
+                               first_seen, last_seen, last_error_at, status,
+                               total_spans, total_logs, total_errors,
+                               total_input_tokens, total_output_tokens, total_cost_usd
+                           FROM service_instances
+                           WHERE service_name = $1 {typeClause}
+                           ORDER BY last_seen DESC
+                           """;
         cmd.Parameters.Add(new DuckDBParameter { Value = serviceName });
         if (serviceType is not null)
             cmd.Parameters.Add(new DuckDBParameter { Value = serviceType });
@@ -258,9 +258,7 @@ public sealed partial class DuckDbStore
 
         return new ServiceDetail
         {
-            ServiceName = serviceName,
-            ServiceType = instances[0].ServiceType,
-            Instances = instances
+            ServiceName = serviceName, ServiceType = instances[0].ServiceType, Instances = instances
         };
     }
 
@@ -275,52 +273,52 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                UPDATE service_instances si SET
-                    total_spans = agg.span_count,
-                    total_errors = agg.error_count,
-                    total_input_tokens = agg.input_tokens,
-                    total_output_tokens = agg.output_tokens,
-                    total_cost_usd = agg.cost_usd,
-                    total_duration_ns = agg.duration_ns
-                FROM (
-                    SELECT
-                        service_name,
-                        COUNT(*) AS span_count,
-                        COUNT(*) FILTER (WHERE status_code = 2) AS error_count,
-                        COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
-                        COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
-                        COALESCE(SUM(gen_ai_cost_usd), 0) AS cost_usd,
-                        COALESCE(SUM(duration_ns), 0) AS duration_ns
-                    FROM spans
-                    GROUP BY service_name
-                ) agg
-                WHERE si.service_name = agg.service_name
-                """;
+                              UPDATE service_instances si SET
+                                  total_spans = agg.span_count,
+                                  total_errors = agg.error_count,
+                                  total_input_tokens = agg.input_tokens,
+                                  total_output_tokens = agg.output_tokens,
+                                  total_cost_usd = agg.cost_usd,
+                                  total_duration_ns = agg.duration_ns
+                              FROM (
+                                  SELECT
+                                      service_name,
+                                      COUNT(*) AS span_count,
+                                      COUNT(*) FILTER (WHERE status_code = 2) AS error_count,
+                                      COALESCE(SUM(gen_ai_input_tokens), 0) AS input_tokens,
+                                      COALESCE(SUM(gen_ai_output_tokens), 0) AS output_tokens,
+                                      COALESCE(SUM(gen_ai_cost_usd), 0) AS cost_usd,
+                                      COALESCE(SUM(duration_ns), 0) AS duration_ns
+                                  FROM spans
+                                  GROUP BY service_name
+                              ) agg
+                              WHERE si.service_name = agg.service_name
+                              """;
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
             await using var logCmd = con.CreateCommand();
             logCmd.CommandText = """
-                UPDATE service_instances si SET
-                    total_logs = agg.log_count
-                FROM (
-                    SELECT service_name, COUNT(*) AS log_count
-                    FROM logs
-                    WHERE service_name IS NOT NULL
-                    GROUP BY service_name
-                ) agg
-                WHERE si.service_name = agg.service_name
-                """;
+                                 UPDATE service_instances si SET
+                                     total_logs = agg.log_count
+                                 FROM (
+                                     SELECT service_name, COUNT(*) AS log_count
+                                     FROM logs
+                                     WHERE service_name IS NOT NULL
+                                     GROUP BY service_name
+                                 ) agg
+                                 WHERE si.service_name = agg.service_name
+                                 """;
             await logCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
             await using var statusCmd = con.CreateCommand();
             statusCmd.CommandText = """
-                UPDATE service_instances SET status = CASE
-                    WHEN last_seen >= (now() - INTERVAL '5 minutes') THEN
-                        CASE WHEN total_errors::DOUBLE / NULLIF(total_spans + total_logs, 0) > 0.1
-                             THEN 'degraded' ELSE 'active' END
-                    ELSE 'inactive'
-                END
-                """;
+                                    UPDATE service_instances SET status = CASE
+                                        WHEN last_seen >= (now() - INTERVAL '5 minutes') THEN
+                                            CASE WHEN total_errors::DOUBLE / NULLIF(total_spans + total_logs, 0) > 0.1
+                                                 THEN 'degraded' ELSE 'active' END
+                                        ELSE 'inactive'
+                                    END
+                                    """;
             await statusCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
 
             return 0;
@@ -340,28 +338,28 @@ public sealed partial class DuckDbStore
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
-                INSERT INTO service_instances (
-                    service_namespace, service_name, service_instance_id, service_type,
-                    first_seen, last_seen, status
-                )
-                SELECT
-                    '' AS service_namespace,
-                    s.service_name,
-                    'unknown' AS service_instance_id,
-                    'traditional' AS service_type,
-                    make_timestamp((MIN(s.start_time_unix_nano) / 1000)::BIGINT) AS first_seen,
-                    make_timestamp((MAX(s.start_time_unix_nano) / 1000)::BIGINT) AS last_seen,
-                    'active' AS status
-                FROM spans s
-                WHERE s.service_name IS NOT NULL
-                  AND s.service_name != 'unknown'
-                  AND NOT EXISTS (
-                      SELECT 1 FROM service_instances si
-                      WHERE si.service_name = s.service_name
-                  )
-                GROUP BY s.service_name
-                ON CONFLICT DO NOTHING
-                """;
+                              INSERT INTO service_instances (
+                                  service_namespace, service_name, service_instance_id, service_type,
+                                  first_seen, last_seen, status
+                              )
+                              SELECT
+                                  '' AS service_namespace,
+                                  s.service_name,
+                                  'unknown' AS service_instance_id,
+                                  'traditional' AS service_type,
+                                  make_timestamp((MIN(s.start_time_unix_nano) / 1000)::BIGINT) AS first_seen,
+                                  make_timestamp((MAX(s.start_time_unix_nano) / 1000)::BIGINT) AS last_seen,
+                                  'active' AS status
+                              FROM spans s
+                              WHERE s.service_name IS NOT NULL
+                                AND s.service_name != 'unknown'
+                                AND NOT EXISTS (
+                                    SELECT 1 FROM service_instances si
+                                    WHERE si.service_name = s.service_name
+                                )
+                              GROUP BY s.service_name
+                              ON CONFLICT DO NOTHING
+                              """;
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
         });
 

@@ -1,8 +1,19 @@
 import {useNavigate, useParams} from 'react-router-dom';
-import {AlertCircle, ArrowLeft, Calendar, CheckCircle, ChevronRight, Clock, Cpu, Loader2, ThumbsDown, ThumbsUp,} from 'lucide-react';
+import {
+    AlertCircle,
+    ArrowLeft,
+    Calendar,
+    CheckCircle,
+    ChevronRight,
+    Clock,
+    Cpu,
+    Loader2,
+    ThumbsDown,
+    ThumbsUp,
+} from 'lucide-react';
 import {cn} from '@/lib/utils';
 import {Card, CardContent} from '@/components/ui/card';
-import {useUserJourney, type UserConversation} from '@/hooks/use-analytics';
+import {type UserConversation, useUserJourney} from '@/hooks/use-analytics';
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-US', {
@@ -16,13 +27,18 @@ function formatTokens(n: number): string {
     return String(n);
 }
 
-function ConversationRow({c, onClick}: {c: UserConversation; onClick: () => void}) {
+function ConversationRow({c, onClick}: { c: UserConversation; onClick: () => void }) {
     return (
         <div
             role="button"
             tabIndex={0}
             onClick={onClick}
-            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onClick();
+                }
+            }}
             className="flex items-center gap-4 px-4 py-3 border-b border-brutal-zinc hover:bg-brutal-dark/50 cursor-pointer transition-colors group"
         >
             <div className="w-32">
@@ -41,16 +57,18 @@ function ConversationRow({c, onClick}: {c: UserConversation; onClick: () => void
                 }
             </div>
             <div className="w-40 min-w-0">
-                <span className="font-mono text-[10px] text-brutal-zinc truncate block">{c.conversationId.slice(0, 16)}…</span>
+                <span
+                    className="font-mono text-[10px] text-brutal-zinc truncate block">{c.conversationId.slice(0, 16)}…</span>
             </div>
-            <ChevronRight className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
+            <ChevronRight
+                className="w-4 h-4 text-brutal-zinc group-hover:text-brutal-slate transition-colors flex-shrink-0"/>
         </div>
     );
 }
 
 export function BotUserJourneyPage() {
     const navigate = useNavigate();
-    const {userId} = useParams<{userId: string}>();
+    const {userId} = useParams<{ userId: string }>();
     const {data, isLoading, error} = useUserJourney(userId ?? '');
 
     const satisfiedCount = data?.conversations.filter((c) => c.satisfied).length ?? 0;
@@ -104,7 +122,8 @@ export function BotUserJourneyPage() {
                         </div>
                         {isLoading
                             ? <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                            : <div className="text-2xl font-bold mt-1 text-brutal-white">{data?.conversations.length ?? 0}</div>
+                            : <div
+                                className="text-2xl font-bold mt-1 text-brutal-white">{data?.conversations.length ?? 0}</div>
                         }
                     </CardContent>
                 </Card>
@@ -116,7 +135,8 @@ export function BotUserJourneyPage() {
                         </div>
                         {isLoading
                             ? <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                            : <div className="text-2xl font-bold mt-1 text-signal-cyan">{formatTokens(data?.totalTokens ?? 0)}</div>
+                            : <div
+                                className="text-2xl font-bold mt-1 text-signal-cyan">{formatTokens(data?.totalTokens ?? 0)}</div>
                         }
                     </CardContent>
                 </Card>
@@ -128,7 +148,8 @@ export function BotUserJourneyPage() {
                         </div>
                         {isLoading
                             ? <Loader2 className="w-5 h-5 mt-2 animate-spin text-brutal-slate"/>
-                            : <div className="text-2xl font-bold mt-1 text-signal-orange">{data?.retentionDays ?? 0}d</div>
+                            : <div
+                                className="text-2xl font-bold mt-1 text-signal-orange">{data?.retentionDays ?? 0}d</div>
                         }
                     </CardContent>
                 </Card>
@@ -160,7 +181,8 @@ export function BotUserJourneyPage() {
                     <span className="label-industrial mr-4">FREQUENT TOPICS</span>
                     <div className="flex flex-wrap gap-2 mt-2">
                         {data!.frequentTopics.map((t) => (
-                            <span key={t} className="text-xs text-signal-cyan bg-signal-cyan/10 border border-signal-cyan/30 px-3 py-1">
+                            <span key={t}
+                                  className="text-xs text-signal-cyan bg-signal-cyan/10 border border-signal-cyan/30 px-3 py-1">
                                 {t}
                             </span>
                         ))}
@@ -172,7 +194,8 @@ export function BotUserJourneyPage() {
             <div>
                 <div className="section-header mb-4">CONVERSATION HISTORY</div>
                 <div className="border-2 border-brutal-zinc bg-brutal-carbon">
-                    <div className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
+                    <div
+                        className="flex items-center gap-4 px-4 py-2 border-b-2 border-brutal-zinc text-[10px] font-bold text-brutal-slate tracking-wider">
                         <div className="w-32">DATE</div>
                         <div className="flex-1">TOPIC</div>
                         <div className="w-16 text-right">TURNS</div>
@@ -188,7 +211,8 @@ export function BotUserJourneyPage() {
                         <div className="py-12 text-center">
                             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                             <p className="text-brutal-slate text-sm">No conversations found</p>
-                            <p className="text-brutal-zinc text-xs mt-1">User not found or has no recorded conversations</p>
+                            <p className="text-brutal-zinc text-xs mt-1">User not found or has no recorded
+                                conversations</p>
                         </div>
                     ) : (
                         data!.conversations.map((c) => (
@@ -205,7 +229,8 @@ export function BotUserJourneyPage() {
             {/* Satisfaction summary */}
             {!isLoading && (data?.conversations.length ?? 0) > 0 && (
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-3 px-4 py-3 border-2 border-signal-green/30 bg-signal-green/5">
+                    <div
+                        className="flex items-center gap-3 px-4 py-3 border-2 border-signal-green/30 bg-signal-green/5">
                         <ThumbsUp className="w-5 h-5 text-signal-green"/>
                         <span className="text-sm font-bold text-signal-green">{satisfiedCount}</span>
                         <span className="text-xs text-brutal-slate tracking-wider">SATISFIED CONVERSATIONS</span>

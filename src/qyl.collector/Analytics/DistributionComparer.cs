@@ -7,15 +7,6 @@ namespace Qyl.Collector.Analytics;
 /// </summary>
 public static class DistributionComparer
 {
-    /// <summary>Key, value, count triple representing one observation.</summary>
-    public readonly record struct KeyedValueCount(string Key, string Value, double Count);
-
-    /// <summary>Key with its score.</summary>
-    public readonly record struct KeyScore(string Key, double Score);
-
-    /// <summary>Key with score and filter flag.</summary>
-    public readonly record struct KeyScoreFiltered(string Key, double Score, bool Filtered);
-
     /// <summary>
     ///     KL-score a multi-dimensional distribution. Returns keys sorted by descending KL divergence.
     /// </summary>
@@ -58,10 +49,10 @@ public static class DistributionComparer
 
         double[] eArr = [.. entropyScores];
         double[] klArr = [.. klScores];
-        double[] rrfScores = StatisticalMath.RrfScore(eArr, klArr, entropyAlpha, klAlpha, offset);
+        var rrfScores = StatisticalMath.RrfScore(eArr, klArr, entropyAlpha, klAlpha, offset);
 
         var results = new List<KeyScore>(keys.Count);
-        for (int i = 0; i < keys.Count; i++)
+        for (var i = 0; i < keys.Count; i++)
             results.Add(new KeyScore(keys[i], rrfScores[i]));
 
         results.Sort(static (x, y) => y.Score.CompareTo(x.Score));
@@ -97,14 +88,14 @@ public static class DistributionComparer
         double[] klArr = [.. klScores];
         var (normalizedEntropy, _) = StatisticalMath.BoxCoxTransform(eArr);
         var (normalizedKl, _) = StatisticalMath.BoxCoxTransform(klArr);
-        double[] entropyZ = StatisticalMath.CalculateZScores(normalizedEntropy);
-        double[] klZ = StatisticalMath.CalculateZScores(normalizedKl);
-        double[] rrfScores = StatisticalMath.RrfScore(eArr, klArr, entropyAlpha, klAlpha, offset);
+        var entropyZ = StatisticalMath.CalculateZScores(normalizedEntropy);
+        var klZ = StatisticalMath.CalculateZScores(normalizedKl);
+        var rrfScores = StatisticalMath.RrfScore(eArr, klArr, entropyAlpha, klAlpha, offset);
 
         var results = new List<KeyScoreFiltered>(keys.Count);
-        for (int i = 0; i < keys.Count; i++)
+        for (var i = 0; i < keys.Count; i++)
         {
-            bool filtered = entropyZ[i] <= zThreshold && klZ[i] <= zThreshold;
+            var filtered = entropyZ[i] <= zThreshold && klZ[i] <= zThreshold;
             results.Add(new KeyScoreFiltered(keys[i], rrfScores[i], filtered));
         }
 
@@ -127,7 +118,7 @@ public static class DistributionComparer
         var keyedOutliers = ToAttributeDict(outliers);
         var results = new List<(string, double[], double[])>();
 
-        foreach (string key in keyedOutliers.Keys)
+        foreach (var key in keyedOutliers.Keys)
         {
             if (!keyedBaseline.TryGetValue(key, out var baselineDist))
                 continue;
@@ -138,9 +129,9 @@ public static class DistributionComparer
             AddUnseenValue(outliersDist, totalOutliers);
             EnsureSymmetry(baselineDist, outliersDist);
 
-            double[] smoothedBaseline = StatisticalMath.LaplaceSmooth(
+            var smoothedBaseline = StatisticalMath.LaplaceSmooth(
                 [.. baselineDist.Values]);
-            double[] smoothedOutliers = StatisticalMath.LaplaceSmooth(
+            var smoothedOutliers = StatisticalMath.LaplaceSmooth(
                 [.. outliersDist.Values]);
 
             results.Add((key, smoothedBaseline, smoothedOutliers));
@@ -166,10 +157,10 @@ public static class DistributionComparer
     private static void AddUnseenValue(Dictionary<string, double> dist, int total)
     {
         double count = 0;
-        foreach (double v in dist.Values)
+        foreach (var v in dist.Values)
             count += v;
 
-        double delta = total - count;
+        var delta = total - count;
         if (delta > 0)
             dist[""] = delta;
     }
@@ -177,9 +168,18 @@ public static class DistributionComparer
     private static void EnsureSymmetry(
         Dictionary<string, double> a, Dictionary<string, double> b)
     {
-        foreach (string key in b.Keys)
+        foreach (var key in b.Keys)
             a.TryAdd(key, 0);
-        foreach (string key in a.Keys)
+        foreach (var key in a.Keys)
             b.TryAdd(key, 0);
     }
+
+    /// <summary>Key, value, count triple representing one observation.</summary>
+    public readonly record struct KeyedValueCount(string Key, string Value, double Count);
+
+    /// <summary>Key with its score.</summary>
+    public readonly record struct KeyScore(string Key, double Score);
+
+    /// <summary>Key with score and filter flag.</summary>
+    public readonly record struct KeyScoreFiltered(string Key, double Score, bool Filtered);
 }

@@ -1,4 +1,5 @@
 import {useNavigate, useParams} from 'react-router-dom';
+import type {LucideIcon} from 'lucide-react';
 import {
     Activity,
     AlertCircle,
@@ -10,7 +11,6 @@ import {
     MessageSquare,
     Zap,
 } from 'lucide-react';
-import type {LucideIcon} from 'lucide-react';
 import type {DashboardDefinition, StatCardData, TimeSeriesPoint, TopNRow} from '@/hooks/use-dashboards';
 import {useDashboard, useDashboards} from '@/hooks/use-dashboards';
 import {StatCard, TimeSeriesChart, TopNTable} from '@/components/dashboards';

@@ -1,8 +1,6 @@
 using System.ComponentModel;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using qyl.mcp.Tools;
@@ -11,7 +9,7 @@ namespace qyl.mcp.Apps.ErrorExplorer;
 
 /// <summary>
 ///     MCP ext-app tool that returns error groups with a UI resource link.
-///     Detail/timeline queries reuse existing <see cref="ErrorTools"/>.
+///     Detail/timeline queries reuse existing <see cref="ErrorTools" />.
 /// </summary>
 [McpServerToolType]
 public sealed class ErrorExplorerTools(HttpClient client)
@@ -27,19 +25,22 @@ public sealed class ErrorExplorerTools(HttpClient client)
                  Example: error_explorer(status="unresolved", limit=50)
                  """)]
     public async Task<CallToolResult> ExploreErrorsAsync(
-        [Description("Filter by status: 'unresolved', 'resolved', 'ignored'")] string? status = null,
-        [Description("Filter by service name")] string? service = null,
-        [Description("Maximum error groups (default: 50)")] int limit = 50)
+        [Description("Filter by status: 'unresolved', 'resolved', 'ignored'")]
+        string? status = null,
+        [Description("Filter by service name")]
+        string? service = null,
+        [Description("Maximum error groups (default: 50)")]
+        int limit = 50)
     {
-        string text = await CollectorHelper.ExecuteAsync(async () =>
+        var text = await CollectorHelper.ExecuteAsync(async () =>
         {
-            string url = $"/api/v1/issues?limit={limit}";
+            var url = $"/api/v1/issues?limit={limit}";
             if (!string.IsNullOrEmpty(status))
                 url += $"&status={Uri.EscapeDataString(status)}";
             if (!string.IsNullOrEmpty(service))
                 url += $"&service={Uri.EscapeDataString(service)}";
 
-            ErrorIssueListResponse? response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
+            var response = await client.GetFromJsonAsync<ErrorIssueListResponse>(
                 url, ErrorJsonContext.Default.ErrorIssueListResponse).ConfigureAwait(false);
 
             if (response?.Items is not { Count: > 0 })
@@ -51,9 +52,9 @@ public sealed class ErrorExplorerTools(HttpClient client)
             sb.AppendLine("| Status | Type | Title | Count | Last Seen |");
             sb.AppendLine("|--------|------|-------|-------|-----------|");
 
-            foreach (ErrorIssueDto issue in response.Items)
+            foreach (var issue in response.Items)
             {
-                string title = issue.Title.Length > 50
+                var title = issue.Title.Length > 50
                     ? string.Concat(issue.Title.AsSpan(0, 47), "...")
                     : issue.Title;
                 sb.AppendLine(

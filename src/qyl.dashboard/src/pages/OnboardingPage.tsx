@@ -16,6 +16,13 @@ import {
     Terminal,
     Unlink,
 } from 'lucide-react';
+import {cn} from '@/lib/utils';
+import {Card, CardContent} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Badge} from '@/components/ui/badge';
+import {resolveOnboardingConnection, useCollectorMeta} from '@/lib/onboarding';
+import {toast} from 'sonner';
 
 function GitHubIcon({className}: { className?: string }) {
     return (
@@ -27,13 +34,6 @@ function GitHubIcon({className}: { className?: string }) {
         </svg>
     );
 }
-import {cn} from '@/lib/utils';
-import {Card, CardContent} from '@/components/ui/card';
-import {Button} from '@/components/ui/button';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {Badge} from '@/components/ui/badge';
-import {resolveOnboardingConnection, useCollectorMeta} from '@/lib/onboarding';
-import {toast} from 'sonner';
 
 const STEPS = ['Welcome', 'GitHub', 'Connect', 'SDK Setup', 'Verify', 'Done'] as const;
 const RADIX_ICON_STROKE = 1.75;
@@ -122,7 +122,8 @@ function WelcomeStep() {
                     {icon: Sparkles, label: 'GENAI', desc: 'AI model telemetry'},
                     {icon: Plug, label: 'OTLP', desc: 'OpenTelemetry native'},
                 ].map(({icon: Icon, label, desc}) => (
-                    <div key={label} className="border border-brutal-zinc/95 p-4 bg-gradient-to-b from-brutal-dark/95 to-brutal-carbon/88">
+                    <div key={label}
+                         className="border border-brutal-zinc/95 p-4 bg-gradient-to-b from-brutal-dark/95 to-brutal-carbon/88">
                         <Icon className="w-6 h-6 text-signal-orange mx-auto mb-2" strokeWidth={RADIX_ICON_STROKE}/>
                         <div className="text-xs font-bold text-brutal-white tracking-wider">{label}</div>
                         <div className="text-[10px] text-brutal-slate mt-1">{desc}</div>
@@ -133,7 +134,11 @@ function WelcomeStep() {
     );
 }
 
-type GitHubStatus = { configured: boolean; user: { login: string; name: string; avatarUrl: string } | null; authMethod: string };
+type GitHubStatus = {
+    configured: boolean;
+    user: { login: string; name: string; avatarUrl: string } | null;
+    authMethod: string
+};
 
 function GitHubStep({onSkip}: { onSkip: () => void }) {
     const [patToken, setPatToken] = useState('');
@@ -317,7 +322,8 @@ function GitHubStep({onSkip}: { onSkip: () => void }) {
             <Tabs defaultValue={deviceAvailable?.available ? 'device' : 'pat'}>
                 <TabsList className={cn('grid w-full', deviceAvailable?.available ? 'grid-cols-3' : 'grid-cols-2')}>
                     {deviceAvailable?.available && (
-                        <TabsTrigger value="device" className="text-xs font-bold tracking-wider">DEVICE FLOW</TabsTrigger>
+                        <TabsTrigger value="device" className="text-xs font-bold tracking-wider">DEVICE
+                            FLOW</TabsTrigger>
                     )}
                     <TabsTrigger value="pat" className="text-xs font-bold tracking-wider">PERSONAL TOKEN</TabsTrigger>
                     <TabsTrigger value="env" className="text-xs font-bold tracking-wider">ENV VARIABLE</TabsTrigger>
@@ -465,7 +471,8 @@ function ConnectStep() {
                 )}
                 {!connection.isLocal && (
                     <p className="text-[10px] text-brutal-slate">
-                        Set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span> for
+                        Set <span
+                        className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf</span> for
                         HTTP transport (recommended for cloud deployments).
                     </p>
                 )}
@@ -492,7 +499,8 @@ function ConnectStep() {
                     </div>
                     {meta?.ports?.otlpHttp === 0 && (
                         <p className="text-[10px] text-brutal-slate">
-                            Dedicated OTLP HTTP is disabled, so HTTP ingestion falls back to the dashboard listener on port{' '}
+                            Dedicated OTLP HTTP is disabled, so HTTP ingestion falls back to the dashboard listener on
+                            port{' '}
                             <span className="text-brutal-white font-mono">{connection.dashboardPort}</span>.
                         </p>
                     )}
@@ -621,7 +629,8 @@ sdk.start();`,
             <div className="border-2 border-signal-orange/30 bg-signal-orange/5 p-4 space-y-2">
                 <div className="text-xs font-bold text-signal-orange tracking-wider">ALREADY USING OPENTELEMETRY?</div>
                 <p className="text-brutal-slate text-sm">
-                    Just set <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={endpoint}</span> and
+                    Just set <span
+                    className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={endpoint}</span> and
                     skip this step. The snippets below are for new projects.
                 </p>
                 {connection.isLocal && !connection.grpcEnabled && (
@@ -792,12 +801,14 @@ function VerifyStep({onVerified}: { onVerified: (ok: boolean) => void }) {
             )}
 
             {status === 'timeout' && (
-                <div className="border border-signal-orange/35 bg-gradient-to-b from-signal-orange/10 to-signal-orange/2 p-4 text-left space-y-3">
+                <div
+                    className="border border-signal-orange/35 bg-gradient-to-b from-signal-orange/10 to-signal-orange/2 p-4 text-left space-y-3">
                     <div className="text-[10px] font-bold text-signal-orange tracking-wider">TROUBLESHOOTING</div>
                     <ul className="text-xs text-brutal-slate space-y-2">
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">1.</span>
-                            <span>Verify your app sets <span className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={connection.otlpHttpEndpoint}</span></span>
+                            <span>Verify your app sets <span
+                                className="text-brutal-white font-mono">OTEL_EXPORTER_OTLP_ENDPOINT={connection.otlpHttpEndpoint}</span></span>
                         </li>
                         <li className="flex items-start gap-2">
                             <span className="text-signal-orange mt-0.5">2.</span>
@@ -912,7 +923,8 @@ export function OnboardingPage() {
             </div>
 
             {/* Step content */}
-            <Card className="border border-brutal-zinc/95 bg-gradient-to-b from-brutal-carbon/96 to-brutal-black/90 shadow-[0_24px_56px_-34px_rgba(0,0,0,0.92)]">
+            <Card
+                className="border border-brutal-zinc/95 bg-gradient-to-b from-brutal-carbon/96 to-brutal-black/90 shadow-[0_24px_56px_-34px_rgba(0,0,0,0.92)]">
                 <CardContent className="py-9 px-5 sm:px-8 md:px-10">
                     {renderStep()}
                 </CardContent>

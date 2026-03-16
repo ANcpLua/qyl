@@ -741,12 +741,13 @@ This prototype demonstrates:
 ## 12. Migration Plan
 
 **Decision: qyl.loom stays as its own project.** It is the C# port of the Sentry reference
-(reference deleted; see `docs/reference/seer-knowledge-base.md`). All files live in `src/qyl.loom/` and are the authoritative implementation.
+(reference deleted; see `docs/reference/seer-knowledge-base.md`). All files live in `src/qyl.loom/` and are the
+authoritative implementation.
 Some files are also referenced from `qyl.collector/Autofix/` — those collector copies should
 be treated as consumers, not replacements.
-| `TriagePipelineService.cs` | `qyl.collector/Autofix/` | Background trigger stays, scoring logic refactored         |
-| `AutofixArtifacts.cs`      | `qyl.contracts/Autofix/` | Shared type definitions                                    |
-| `AutofixConstants.cs`      | `qyl.contracts/Autofix/` | Shared constants                                           |
+| `TriagePipelineService.cs` | `qyl.collector/Autofix/` | Background trigger stays, scoring logic refactored |
+| `AutofixArtifacts.cs`      | `qyl.contracts/Autofix/` | Shared type definitions |
+| `AutofixConstants.cs`      | `qyl.contracts/Autofix/` | Shared constants |
 
 **DELETE — superseded or incomplete:**
 

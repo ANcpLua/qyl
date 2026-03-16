@@ -9,7 +9,7 @@ import {startErrorCapture, stopErrorCapture} from './errors.js';
 import {startNavigationCapture, stopNavigationCapture} from './navigation.js';
 import {startResourceCapture, stopResourceCapture} from './resources.js';
 import {startInteractionCapture, stopInteractionCapture} from './interactions.js';
-import {patchFetch, unpatchFetch, initSessionContext, getSessionId} from './context.js';
+import {getSessionId, initSessionContext, patchFetch, unpatchFetch} from './context.js';
 
 function resolveConfig(config: QylConfig): ResolvedConfig {
     return {

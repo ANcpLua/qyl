@@ -11,7 +11,7 @@ public static class CodeReviewEndpoints
             string repoFullName, int prNumber,
             CodeReviewService reviewService, CancellationToken ct) =>
         {
-            CodeReviewResult result = await reviewService
+            var result = await reviewService
                 .ReviewPullRequestAsync(repoFullName, prNumber, ct)
                 .ConfigureAwait(false);
 
@@ -22,7 +22,7 @@ public static class CodeReviewEndpoints
             string repoFullName, int prNumber,
             CodeReviewService reviewService) =>
         {
-            CodeReviewResult? cached = reviewService.GetCachedResult(repoFullName, prNumber);
+            var cached = reviewService.GetCachedResult(repoFullName, prNumber);
             return cached is not null
                 ? Results.Ok(cached)
                 : Results.NotFound();
@@ -32,11 +32,11 @@ public static class CodeReviewEndpoints
             string repoFullName, int prNumber,
             CodeReviewService reviewService, CancellationToken ct) =>
         {
-            CodeReviewResult? cached = reviewService.GetCachedResult(repoFullName, prNumber);
+            var cached = reviewService.GetCachedResult(repoFullName, prNumber);
             if (cached is null || cached.Comments.Count == 0)
                 return Results.BadRequest(new { error = "No review comments available. Run a review first." });
 
-            bool posted = await reviewService
+            var posted = await reviewService
                 .PostReviewCommentsAsync(repoFullName, prNumber, cached.Comments, ct)
                 .ConfigureAwait(false);
 

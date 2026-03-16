@@ -26,9 +26,9 @@ public sealed class LogSummaryServiceTests
         var summary = await service.BuildSummaryAsync(
             "5m",
             "svc.api",
-            sinceCursor: null,
-            minSeverity: null,
-            search: null,
+            null,
+            null,
+            null,
             ct);
 
         Assert.Equal("5m", summary.Window);
@@ -60,9 +60,9 @@ public sealed class LogSummaryServiceTests
         var first = await service.BuildSummaryAsync(
             "5m",
             "svc.api",
-            sinceCursor: null,
-            minSeverity: null,
-            search: null,
+            null,
+            null,
+            null,
             ct);
 
         await store.InsertLogsAsync(
@@ -73,9 +73,9 @@ public sealed class LogSummaryServiceTests
         var delta = await service.BuildSummaryAsync(
             "5m",
             "svc.api",
-            sinceCursor: first.Cursor,
-            minSeverity: null,
-            search: null,
+            first.Cursor,
+            null,
+            null,
             ct);
 
         Assert.Equal(1, delta.TotalCount);
@@ -93,7 +93,7 @@ public sealed class LogSummaryServiceTests
 
         var waitTask = service.WaitForLogAsync(
             new LogWaitRequest(
-                ServiceName: "svc.worker",
+                "svc.worker",
                 Search: "ready",
                 TimeoutSeconds: 3,
                 PollIntervalMs: 100),
@@ -133,11 +133,11 @@ public sealed class LogSummaryServiceTests
         var patterns = await service.BuildPatternsAsync(
             "5m",
             "svc.api",
-            startTime: null,
-            endTime: null,
-            minCount: 2,
-            minSeverity: 17,
-            search: null,
+            null,
+            null,
+            2,
+            17,
+            null,
             ct);
 
         var pattern = Assert.Single(patterns);
@@ -169,11 +169,11 @@ public sealed class LogSummaryServiceTests
         var patterns = await service.BuildPatternsAsync(
             "5m",
             "svc.api",
-            startTime: now.AddMinutes(-5),
-            endTime: now,
-            minCount: 1,
-            minSeverity: 17,
-            search: null,
+            now.AddMinutes(-5),
+            now,
+            1,
+            17,
+            null,
             ct);
 
         var pattern = Assert.Single(patterns);
@@ -201,13 +201,14 @@ public sealed class LogSummaryServiceTests
         var stats = await service.BuildStatsAsync(
             "5m",
             "svc.api",
-            startTime: null,
-            endTime: null,
-            minSeverity: null,
-            search: null,
+            null,
+            null,
+            null,
+            null,
             ct);
 
-        var bySeverity = stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
+        var bySeverity =
+            stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
         Assert.Equal("5m", stats.Window);
         Assert.Equal(5, stats.TotalCount);
         Assert.Equal(1, bySeverity["trace"]);
@@ -240,13 +241,14 @@ public sealed class LogSummaryServiceTests
         var stats = await service.BuildStatsAsync(
             "5m",
             "svc.api",
-            startTime: now.AddMinutes(-5),
-            endTime: now,
-            minSeverity: 17,
-            search: "timeout",
+            now.AddMinutes(-5),
+            now,
+            17,
+            "timeout",
             ct);
 
-        var bySeverity = stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
+        var bySeverity =
+            stats.BySeverity.ToDictionary(static x => x.Severity, static x => x.Count, StringComparer.Ordinal);
         Assert.Equal("custom", stats.Window);
         Assert.Equal(1, stats.TotalCount);
         Assert.Equal(1, bySeverity["error"]);

@@ -34,6 +34,7 @@ interface RawSpanRow {
     service_name?: string | null;
     attributes_json?: string | null;
     resource_json?: string | null;
+
     [key: string]: unknown;
 }
 
@@ -161,11 +162,9 @@ export function useLiveStream(options: UseLiveStreamOptions = {}) {
 
             // .NET TypedResults.ServerSentEvents wraps payloads as:
             // { eventType, data: { eventType, data, timestamp } }
-            if (outer.data && typeof outer.data === 'object')
-            {
+            if (outer.data && typeof outer.data === 'object') {
                 const inner = outer.data as { eventType?: unknown; data?: unknown };
-                if (typeof inner.eventType === 'string')
-                {
+                if (typeof inner.eventType === 'string') {
                     return {
                         eventType: inner.eventType.toLowerCase(),
                         payload: inner.data

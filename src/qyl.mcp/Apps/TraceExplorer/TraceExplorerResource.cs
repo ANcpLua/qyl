@@ -20,7 +20,7 @@ internal sealed class TraceExplorerResource
     private static string LoadHtml()
     {
         const string embeddedName = "qyl.mcp.Apps.TraceExplorer.trace-viewer.html";
-        using Stream? stream = typeof(TraceExplorerResource).Assembly
+        using var stream = typeof(TraceExplorerResource).Assembly
             .GetManifestResourceStream(embeddedName);
 
         if (stream is not null)
@@ -29,8 +29,8 @@ internal sealed class TraceExplorerResource
             return reader.ReadToEnd();
         }
 
-        string assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
-        string filePath = Path.Combine(assemblyDir, "Apps", "TraceExplorer", "trace-viewer.html");
+        var assemblyDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? ".";
+        var filePath = Path.Combine(assemblyDir, "Apps", "TraceExplorer", "trace-viewer.html");
 
         return File.Exists(filePath)
             ? File.ReadAllText(filePath)

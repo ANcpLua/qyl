@@ -88,5 +88,4 @@ internal static class EmitterHelpers
     /// </summary>
     public static string BuildArgumentList(EquatableArray<string> parameterNames) =>
         parameterNames.Length is 0 ? string.Empty : string.Join(", ", parameterNames);
-
 }

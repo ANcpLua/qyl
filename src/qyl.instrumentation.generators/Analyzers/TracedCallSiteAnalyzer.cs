@@ -58,7 +58,8 @@ internal static class TracedCallSiteAnalyzer
         var tracedReturnAttributeType = compilation.GetTypeByMetadataName(TracedReturnAttributeFullName);
 
         var tracedTags = ExtractTracedTags(method, tracedTagAttributeType);
-        var tracedTagProperties = ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic);
+        var tracedTagProperties =
+            ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic);
         var returnCapture = ExtractReturnCapture(method, tracedReturnAttributeType);
         var typeParameters = ExtractTypeParameters(method);
         var parameterTypes =
@@ -97,7 +98,8 @@ internal static class TracedCallSiteAnalyzer
     private static bool TryGetTracedAttribute(
         ISymbol method,
         Compilation compilation,
-        [NotNullWhen(true)] out (string ActivitySourceName, string SpanName, string SpanKind, bool RootSpan)? tracedInfo)
+        [NotNullWhen(true)]
+        out (string ActivitySourceName, string SpanName, string SpanKind, bool RootSpan)? tracedInfo)
     {
         tracedInfo = null;
 
@@ -157,7 +159,8 @@ internal static class TracedCallSiteAnalyzer
         AttributeData attribute,
         string defaultSpanName)
     {
-        if (attribute.ConstructorArguments.Length < 1 || attribute.ConstructorArguments[0].Value is not string { Length: > 0 } activitySourceName)
+        if (attribute.ConstructorArguments.Length < 1 ||
+            attribute.ConstructorArguments[0].Value is not string { Length: > 0 } activitySourceName)
             return null;
 
         string? spanName = null;
@@ -184,6 +187,7 @@ internal static class TracedCallSiteAnalyzer
                             _ => "Internal"
                         };
                     }
+
                     break;
                 case "RootSpan":
                     rootSpan = namedArg.Value.Value is true;
@@ -235,7 +239,8 @@ internal static class TracedCallSiteAnalyzer
             var tagName = TelemetryTagNameResolver.ResolveName(parameter, explicitTagName, parameter.Name);
             var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(parameter, explicitSkipIfNull);
 
-            var isValueType = parameter.Type is { IsValueType: true, OriginalDefinition.SpecialType: not SpecialType.System_Nullable_T };
+            var isValueType = parameter.Type is
+                { IsValueType: true, OriginalDefinition.SpecialType: not SpecialType.System_Nullable_T };
             var isNullable = !isValueType ||
                              parameter.Type.NullableAnnotation == NullableAnnotation.Annotated;
 
@@ -333,7 +338,8 @@ internal static class TracedCallSiteAnalyzer
                 a => a.AttributeClass.IsEqualTo(tracedReturnAttributeType)) is not { } attr)
             return null;
 
-        if (attr.ConstructorArguments.Length < 1 || attr.ConstructorArguments[0].Value is not string { Length: > 0 } tagName)
+        if (attr.ConstructorArguments.Length < 1 ||
+            attr.ConstructorArguments[0].Value is not string { Length: > 0 } tagName)
             return null;
 
         string? propertyPath = null;

@@ -169,37 +169,17 @@ interface IQylTest : ITest, IHazSourcePaths
     Target UnitTests => d => d
         .Description("Run unit tests only")
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() => RunFilteredTests("*.Unit.*", "Unit", needsTestcontainers: false));
+        .Executes(() => RunFilteredTests("*.Unit.*", "Unit", false));
 
     Target IntegrationTests => d => d
         .Description("Run integration tests only")
         .DependsOn<ICompile>(static x => x.Compile)
-        .Executes(() => RunFilteredTests("*.Integration.*", "Integration", needsTestcontainers: true));
+        .Executes(() => RunFilteredTests("*.Integration.*", "Integration", true));
 
-    sealed void RunFilteredTests(string namespaceFilter, string trxSuffix, bool needsTestcontainers)
-    {
-        if (needsTestcontainers) EnsureTestcontainersConfigured();
-
-        DotNetTasks.DotNetTest(s => s
-            .SetNoBuild(true)
-            .SetNoRestore(true)
-            .SetResultsDirectory(TestResultsDirectory)
-            .CombineWith(TestProjects, (ss, project) =>
-            {
-                var mtp = MtpExtensions.Mtp()
-                    .ReportTrx($"{project.Name}.{trxSuffix}.trx")
-                    .IgnoreExitCode(8)
-                    .FilterNamespace(namespaceFilter);
-
-                if (StopOnFail == true) mtp.StopOnFail();
-                if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
-
-                var projectPath = project.Path ??
-                                  throw new InvalidOperationException($"Project '{project.Name}' has no path");
-                string[] args = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
-                return ss.SetProcessAdditionalArguments(args);
-            }), completeOnFailure: true);
-    }
+    Target TestSummary => d => d
+        .Description("Generate Markdown test summary from MTP TRX reports")
+        .After<IQylTest>(static x => x.Test)
+        .Executes(WriteGitHubTestSummary);
 
     // Override test project discovery (tests/ dir, not *.Tests naming)
     IEnumerable<Project> ITest.TestProjects =>
@@ -233,10 +213,30 @@ interface IQylTest : ITest, IHazSourcePaths
         return s.ClearLoggers().ResetProjectFile().SetProcessAdditionalArguments(additionalArgs);
     };
 
-    Target TestSummary => d => d
-        .Description("Generate Markdown test summary from MTP TRX reports")
-        .After<IQylTest>(static x => x.Test)
-        .Executes(WriteGitHubTestSummary);
+    sealed void RunFilteredTests(string namespaceFilter, string trxSuffix, bool needsTestcontainers)
+    {
+        if (needsTestcontainers) EnsureTestcontainersConfigured();
+
+        DotNetTasks.DotNetTest(s => s
+            .SetNoBuild(true)
+            .SetNoRestore(true)
+            .SetResultsDirectory(TestResultsDirectory)
+            .CombineWith(TestProjects, (ss, project) =>
+            {
+                var mtp = MtpExtensions.Mtp()
+                    .ReportTrx($"{project.Name}.{trxSuffix}.trx")
+                    .IgnoreExitCode(8)
+                    .FilterNamespace(namespaceFilter);
+
+                if (StopOnFail == true) mtp.StopOnFail();
+                if (LiveOutput == true || IsLocalBuild) mtp.ShowLiveOutput();
+
+                var projectPath = project.Path ??
+                                  throw new InvalidOperationException($"Project '{project.Name}' has no path");
+                string[] args = ["--project", projectPath.ToString(), .. mtp.BuildArgs().Prepend("--")];
+                return ss.SetProcessAdditionalArguments(args);
+            }), completeOnFailure: true);
+    }
 
     sealed void EnsureTestcontainersConfigured()
     {
@@ -339,6 +339,7 @@ interface IQylTest : ITest, IHazSourcePaths
                     sb.AppendLine(message.Length > 500 ? string.Concat(message.AsSpan(0, 500), "...") : message);
                     sb.AppendLine("```");
                 }
+
                 if (stackTrace is { Length: > 0 })
                 {
                     sb.AppendLine("```");
@@ -347,6 +348,7 @@ interface IQylTest : ITest, IHazSourcePaths
                         : stackTrace);
                     sb.AppendLine("```");
                 }
+
                 sb.AppendLine("</details>");
                 sb.AppendLine();
             }
@@ -355,7 +357,7 @@ interface IQylTest : ITest, IHazSourcePaths
         var markdown = sb.ToString();
 
         // Always write to artifacts
-        var artifactPath = ((IHazSourcePaths)this).ArtifactsDirectory / "test-summary.md";
+        var artifactPath = ArtifactsDirectory / "test-summary.md";
         artifactPath.Parent.CreateDirectory();
         File.WriteAllText(artifactPath, markdown);
         Log.Information("Test summary: {Path}", artifactPath);

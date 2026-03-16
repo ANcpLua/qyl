@@ -46,7 +46,8 @@ export function PipelineStatus({steps, className}: PipelineStatusProps) {
                         >
                             {stepIcon[step.status]}
                         </div>
-                        <span className="text-[10px] uppercase tracking-wider text-brutal-slate max-w-16 text-center leading-tight">
+                        <span
+                            className="text-[10px] uppercase tracking-wider text-brutal-slate max-w-16 text-center leading-tight">
                             {step.name}
                         </span>
                     </div>

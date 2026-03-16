@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
 using ModelContextProtocol.Server;
 using qyl.mcp.Errors;
@@ -18,18 +19,16 @@ public sealed class UpdateSessionStatusTool(HttpClient client)
     [Description("Update the status of a debugging session (e.g. 'reviewed', 'investigating', 'resolved').")]
     public async Task<string> UpdateSessionStatus(
         [Description("Session ID")] string sessionId,
-        [Description("New status (e.g. 'reviewed', 'investigating', 'resolved')")] string status,
+        [Description("New status (e.g. 'reviewed', 'investigating', 'resolved')")]
+        string status,
         CancellationToken ct = default)
     {
         var body = new { status };
         using var request = new HttpRequestMessage(HttpMethod.Patch,
-            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status")
-        {
-            Content = JsonContent.Create(body)
-        };
+            $"/api/v1/mcp/sessions/{Uri.EscapeDataString(sessionId)}/status") { Content = JsonContent.Create(body) };
         using var response = await client.SendAsync(request, ct).ConfigureAwait(false);
 
-        if (response.StatusCode is System.Net.HttpStatusCode.NotFound)
+        if (response.StatusCode is HttpStatusCode.NotFound)
             throw new QylNotFoundException("Session");
 
         response.EnsureSuccessStatusCode();

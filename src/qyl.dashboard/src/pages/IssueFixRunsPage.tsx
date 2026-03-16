@@ -42,7 +42,7 @@ function SkeletonCard() {
     );
 }
 
-function StepDetail({step}: {step: AutofixStep}) {
+function StepDetail({step}: { step: AutofixStep }) {
     const [expanded, setExpanded] = useState(false);
     const Icon = expanded ? ChevronDown : ChevronRight;
 
@@ -73,7 +73,8 @@ function StepDetail({step}: {step: AutofixStep}) {
                     {step.input_json && (
                         <div className="mt-2">
                             <span className="text-[10px] font-bold text-brutal-slate tracking-wider">INPUT</span>
-                            <pre className="text-xs text-brutal-slate font-mono bg-brutal-carbon p-2 mt-1 overflow-x-auto max-h-48 overflow-y-auto">
+                            <pre
+                                className="text-xs text-brutal-slate font-mono bg-brutal-carbon p-2 mt-1 overflow-x-auto max-h-48 overflow-y-auto">
                                 {step.input_json}
                             </pre>
                         </div>
@@ -81,7 +82,8 @@ function StepDetail({step}: {step: AutofixStep}) {
                     {step.output_json && (
                         <div>
                             <span className="text-[10px] font-bold text-brutal-slate tracking-wider">OUTPUT</span>
-                            <pre className="text-xs text-brutal-slate font-mono bg-brutal-carbon p-2 mt-1 overflow-x-auto max-h-48 overflow-y-auto">
+                            <pre
+                                className="text-xs text-brutal-slate font-mono bg-brutal-carbon p-2 mt-1 overflow-x-auto max-h-48 overflow-y-auto">
                                 {step.output_json}
                             </pre>
                         </div>
@@ -96,7 +98,7 @@ function StepDetail({step}: {step: AutofixStep}) {
     );
 }
 
-function FixRunCard({run, issueId}: {run: FixRun; issueId: string}) {
+function FixRunCard({run, issueId}: { run: FixRun; issueId: string }) {
     const [showSteps, setShowSteps] = useState(false);
     const {data: steps = [], isLoading: stepsLoading} = useFixRunSteps(
         showSteps ? issueId : undefined,
@@ -159,7 +161,8 @@ function FixRunCard({run, issueId}: {run: FixRun; issueId: string}) {
                     onClick={() => setShowSteps(!showSteps)}
                     className="text-[10px] font-bold tracking-wider text-brutal-slate hover:text-brutal-white px-0"
                 >
-                    {showSteps ? <ChevronDown className="w-3.5 h-3.5 mr-1"/> : <ChevronRight className="w-3.5 h-3.5 mr-1"/>}
+                    {showSteps ? <ChevronDown className="w-3.5 h-3.5 mr-1"/> :
+                        <ChevronRight className="w-3.5 h-3.5 mr-1"/>}
                     STEPS
                 </Button>
 
@@ -196,7 +199,7 @@ function FixRunCard({run, issueId}: {run: FixRun; issueId: string}) {
 }
 
 export function IssueFixRunsPage() {
-    const {issueId} = useParams<{issueId: string}>();
+    const {issueId} = useParams<{ issueId: string }>();
     const navigate = useNavigate();
 
     const {data: fixRuns = [], isLoading, error} = useFixRuns(issueId);
@@ -252,7 +255,8 @@ export function IssueFixRunsPage() {
                     <CardContent className="py-12 text-center">
                         <Play className="w-12 h-12 mx-auto mb-4 text-brutal-zinc"/>
                         <p className="text-brutal-slate text-sm">No fix runs found for this issue</p>
-                        <p className="text-brutal-zinc text-xs mt-1">Fix runs are created when Loom attempts to resolve an issue</p>
+                        <p className="text-brutal-zinc text-xs mt-1">Fix runs are created when Loom attempts to resolve
+                            an issue</p>
                     </CardContent>
                 </Card>
             )}

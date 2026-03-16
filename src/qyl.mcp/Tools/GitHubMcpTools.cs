@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Net;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
@@ -19,19 +21,20 @@ internal sealed class GitHubMcpTools(HttpClient http)
                  structured review comments with severity, file, line, and suggestions.
                  """)]
     public async Task<string> TriggerCodeReviewAsync(
-        [Description("GitHub repo full name (e.g. 'owner/repo')")] string repoFullName,
+        [Description("GitHub repo full name (e.g. 'owner/repo')")]
+        string repoFullName,
         [Description("Pull request number")] int prNumber,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .PostAsync(
                     $"/api/v1/code-review/{Uri.EscapeDataString(repoFullName)}/pulls/{prNumber}",
                     null, ct)
                 .ConfigureAwait(false);
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatCodeReview(json, repoFullName, prNumber);
         });
 
@@ -43,21 +46,22 @@ internal sealed class GitHubMcpTools(HttpClient http)
                  Use trigger_code_review first to generate a review.
                  """)]
     public async Task<string> GetCodeReviewAsync(
-        [Description("GitHub repo full name (e.g. 'owner/repo')")] string repoFullName,
+        [Description("GitHub repo full name (e.g. 'owner/repo')")]
+        string repoFullName,
         [Description("Pull request number")] int prNumber,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .GetAsync(
                     $"/api/v1/code-review/{Uri.EscapeDataString(repoFullName)}/pulls/{prNumber}", ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"No code review found for {repoFullName} PR #{prNumber}. Trigger a review first.";
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatCodeReview(json, repoFullName, prNumber);
         });
 
@@ -69,22 +73,25 @@ internal sealed class GitHubMcpTools(HttpClient http)
                  Optionally filter by event type or repository.
                  """)]
     public async Task<string> ListGitHubEventsAsync(
-        [Description("Maximum number of events to return (default: 20)")] int? limit = null,
-        [Description("Filter by event type (e.g. 'push', 'pull_request')")] string? eventType = null,
-        [Description("Filter by repository full name")] string? repoFullName = null,
+        [Description("Maximum number of events to return (default: 20)")]
+        int? limit = null,
+        [Description("Filter by event type (e.g. 'push', 'pull_request')")]
+        string? eventType = null,
+        [Description("Filter by repository full name")]
+        string? repoFullName = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit ?? 20, 1, 100);
-            string url = $"/api/v1/github/events?limit={take}";
+            var take = Math.Clamp(limit ?? 20, 1, 100);
+            var url = $"/api/v1/github/events?limit={take}";
             if (eventType is not null)
                 url += $"&eventType={Uri.EscapeDataString(eventType)}";
             if (repoFullName is not null)
                 url += $"&repoFullName={Uri.EscapeDataString(repoFullName)}";
 
-            using HttpResponseMessage resp = await http.GetAsync(url, ct).ConfigureAwait(false);
+            using var resp = await http.GetAsync(url, ct).ConfigureAwait(false);
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatEventList(json);
         });
 
@@ -92,12 +99,15 @@ internal sealed class GitHubMcpTools(HttpClient http)
     {
         try
         {
-            JsonNode? root = JsonNode.Parse(json);
-            bool reviewed = root?["reviewed"]?.GetValue<bool>() ?? false;
+            var root = JsonNode.Parse(json);
+            var reviewed = root?["reviewed"]?.GetValue<bool>() ?? false;
             if (!reviewed)
-                return $"Code review for {repoFullName} PR #{prNumber} was not completed (no LLM configured or PR not accessible).";
+            {
+                return
+                    $"Code review for {repoFullName} PR #{prNumber} was not completed (no LLM configured or PR not accessible).";
+            }
 
-            JsonArray? comments = root?["comments"]?.AsArray();
+            var comments = root?["comments"]?.AsArray();
             if (comments is null || comments.Count == 0)
                 return $"Code review for {repoFullName} PR #{prNumber}: no issues found.";
 
@@ -105,19 +115,19 @@ internal sealed class GitHubMcpTools(HttpClient http)
             sb.AppendLine($"## Code Review: {repoFullName} PR #{prNumber}");
             sb.AppendLine($"**{comments.Count}** issue(s) found:");
             sb.AppendLine();
-            foreach (JsonNode? c in comments)
+            foreach (var c in comments)
             {
                 if (c is null) continue;
-                string severity = c["severity"]?.ToString() ?? "?";
-                string file = c["file"]?.ToString() ?? "?";
-                string line = c["line"]?.ToString() ?? "?";
-                string comment = c["comment"]?.ToString() ?? "";
+                var severity = c["severity"]?.ToString() ?? "?";
+                var file = c["file"]?.ToString() ?? "?";
+                var line = c["line"]?.ToString() ?? "?";
+                var comment = c["comment"]?.ToString() ?? "";
                 sb.AppendLine($"- **[{severity}]** `{file}:{line}` — {comment}");
             }
 
             return sb.ToString();
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return json;
         }
@@ -127,28 +137,28 @@ internal sealed class GitHubMcpTools(HttpClient http)
     {
         try
         {
-            JsonNode? root = JsonNode.Parse(json);
-            JsonArray? items = root?["items"]?.AsArray();
+            var root = JsonNode.Parse(json);
+            var items = root?["items"]?.AsArray();
             if (items is null || items.Count == 0)
                 return "No GitHub webhook events found.";
 
             StringBuilder sb = new();
             sb.AppendLine("## GitHub Webhook Events");
             sb.AppendLine();
-            foreach (JsonNode? item in items)
+            foreach (var item in items)
             {
                 if (item is null) continue;
-                string type = item["eventType"]?.ToString() ?? "?";
-                string action = item["action"]?.ToString() ?? "";
-                string repo = item["repoFullName"]?.ToString() ?? "?";
-                string time = item["createdAt"]?.ToString() ?? "?";
-                string display = string.IsNullOrEmpty(action) ? type : $"{type}.{action}";
+                var type = item["eventType"]?.ToString() ?? "?";
+                var action = item["action"]?.ToString() ?? "";
+                var repo = item["repoFullName"]?.ToString() ?? "?";
+                var time = item["createdAt"]?.ToString() ?? "?";
+                var display = string.IsNullOrEmpty(action) ? type : $"{type}.{action}";
                 sb.AppendLine($"- **{display}** | {repo} | {time}");
             }
 
             return sb.ToString();
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return json;
         }

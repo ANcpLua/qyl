@@ -10,9 +10,9 @@ namespace qyl.mcp.Auth;
 /// </summary>
 public sealed partial class McpAuthHandler : DelegatingHandler
 {
+    private readonly KeycloakTokenProvider _keycloak;
     private readonly ILogger<McpAuthHandler> _logger;
     private readonly McpAuthOptions _options;
-    private readonly KeycloakTokenProvider _keycloak;
 
     public McpAuthHandler(
         IOptions<McpAuthOptions> options,
@@ -38,7 +38,7 @@ public sealed partial class McpAuthHandler : DelegatingHandler
         // Keycloak path: fetch JWT and forward as Bearer
         if (_options.IsKeycloakEnabled)
         {
-            string? jwt = await _keycloak.GetTokenAsync(cancellationToken).ConfigureAwait(false);
+            var jwt = await _keycloak.GetTokenAsync(cancellationToken).ConfigureAwait(false);
             if (jwt is not null)
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", jwt);

@@ -1,5 +1,7 @@
 using System.ComponentModel;
+using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ModelContextProtocol.Server;
 
@@ -20,20 +22,21 @@ internal sealed class AutofixMcpTools(HttpClient http)
                  """)]
     public async Task<string> ListFixRunsAsync(
         [Description("The error issue ID")] string issueId,
-        [Description("Maximum number of runs to return (default: 10)")] int? limit = null,
+        [Description("Maximum number of runs to return (default: 10)")]
+        int? limit = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            int take = Math.Clamp(limit ?? 10, 1, 100);
-            using HttpResponseMessage resp = await http
+            var take = Math.Clamp(limit ?? 10, 1, 100);
+            using var resp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs?limit={take}", ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Issue '{issueId}' not found.";
 
             resp.EnsureSuccessStatusCode();
-            string json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+            var json = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
             return FormatFixRunList(json, issueId);
         });
 
@@ -49,11 +52,11 @@ internal sealed class AutofixMcpTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}", ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Fix run '{runId}' not found for issue '{issueId}'.";
 
             resp.EnsureSuccessStatusCode();
@@ -74,11 +77,12 @@ internal sealed class AutofixMcpTools(HttpClient http)
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
-                .GetAsync($"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
+            using var resp = await http
+                .GetAsync(
+                    $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/steps", ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Fix run '{runId}' not found for issue '{issueId}'.";
 
             resp.EnsureSuccessStatusCode();
@@ -94,22 +98,23 @@ internal sealed class AutofixMcpTools(HttpClient http)
                  """)]
     public async Task<string> ApproveFixRunAsync(
         [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID to approve")] string runId,
+        [Description("The fix run ID to approve")]
+        string runId,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http
+            using var resp = await http
                 .PostAsync(
                     $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/approve",
                     null, ct)
                 .ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Fix run '{runId}' not found for issue '{issueId}'.";
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (resp.StatusCode == HttpStatusCode.BadRequest)
             {
-                string error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 return $"Cannot approve: {error}";
             }
 
@@ -125,22 +130,24 @@ internal sealed class AutofixMcpTools(HttpClient http)
                  """)]
     public async Task<string> RejectFixRunAsync(
         [Description("The error issue ID")] string issueId,
-        [Description("The fix run ID to reject")] string runId,
-        [Description("Optional reason for rejection")] string? reason = null,
+        [Description("The fix run ID to reject")]
+        string runId,
+        [Description("Optional reason for rejection")]
+        string? reason = null,
         CancellationToken ct = default) =>
         await CollectorHelper.ExecuteAsync(async () =>
         {
-            using HttpResponseMessage resp = await http.PostAsJsonAsync(
+            using var resp = await http.PostAsJsonAsync(
                 $"/api/v1/issues/{Uri.EscapeDataString(issueId)}/fix-runs/{Uri.EscapeDataString(runId)}/reject",
                 new { reason },
                 ct).ConfigureAwait(false);
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            if (resp.StatusCode == HttpStatusCode.NotFound)
                 return $"Fix run '{runId}' not found for issue '{issueId}'.";
 
-            if (resp.StatusCode == System.Net.HttpStatusCode.BadRequest)
+            if (resp.StatusCode == HttpStatusCode.BadRequest)
             {
-                string error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+                var error = await resp.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
                 return $"Cannot reject: {error}";
             }
 
@@ -152,23 +159,24 @@ internal sealed class AutofixMcpTools(HttpClient http)
     {
         try
         {
-            JsonNode? root = JsonNode.Parse(json);
-            JsonArray? items = root?["items"]?.AsArray();
+            var root = JsonNode.Parse(json);
+            var items = root?["items"]?.AsArray();
             if (items is null || items.Count == 0)
                 return $"No fix runs found for issue '{issueId}'.";
 
             StringBuilder sb = new();
             sb.AppendLine($"## Fix Runs for {issueId}");
             sb.AppendLine();
-            foreach (JsonNode? item in items)
+            foreach (var item in items)
             {
                 if (item is null) continue;
-                sb.AppendLine($"- **{item["runId"]}** | status={item["status"]} | confidence={item["confidenceScore"]} | created={item["createdAt"]}");
+                sb.AppendLine(
+                    $"- **{item["runId"]}** | status={item["status"]} | confidence={item["confidenceScore"]} | created={item["createdAt"]}");
             }
 
             return sb.ToString();
         }
-        catch (System.Text.Json.JsonException)
+        catch (JsonException)
         {
             return json;
         }

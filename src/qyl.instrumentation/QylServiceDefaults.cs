@@ -46,7 +46,8 @@ public static partial class QylServiceDefaults
     }
 
     /// <summary>
-    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.MapQylEndpoints" />.
+    ///     Thin wrapper for generator compatibility — delegates to <see cref="QylServiceDefaultsExtensions.MapQylEndpoints" />
+    ///     .
     /// </summary>
     public static void MapQylDefaultEndpoints(this WebApplication app) => app.MapQylEndpoints();
 

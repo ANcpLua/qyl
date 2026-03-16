@@ -20,11 +20,11 @@ public static class TimeConversions
 
     // ── DateTimeOffset → UnixNano ────────────────────────────────────────────
 
-    /// <summary>Converts a <see cref="DateTimeOffset"/> to Unix nanoseconds (signed).</summary>
+    /// <summary>Converts a <see cref="DateTimeOffset" /> to Unix nanoseconds (signed).</summary>
     public static long ToUnixNano(DateTimeOffset dto) =>
         dto.ToUnixTimeMilliseconds() * NanosPerMillisecond;
 
-    /// <summary>Converts a <see cref="DateTimeOffset"/> to Unix nanoseconds (unsigned).</summary>
+    /// <summary>Converts a <see cref="DateTimeOffset" /> to Unix nanoseconds (unsigned).</summary>
     public static ulong ToUnixNanoUnsigned(DateTimeOffset dto) =>
         (ulong)(dto.ToUnixTimeMilliseconds() * NanosPerMillisecond);
 
@@ -38,13 +38,13 @@ public static class TimeConversions
 
     // ── UnixNano → DateTimeOffset / DateTime ────────────────────────────────
 
-    /// <summary>Converts signed Unix nanoseconds to a <see cref="DateTimeOffset"/>.</summary>
+    /// <summary>Converts signed Unix nanoseconds to a <see cref="DateTimeOffset" />.</summary>
     public static DateTimeOffset NanosToDateTimeOffset(long nanos) =>
         DateTimeOffset.FromUnixTimeMilliseconds(nanos / NanosPerMillisecond);
 
-    /// <summary>Converts unsigned Unix nanoseconds to a <see cref="DateTimeOffset"/>.</summary>
+    /// <summary>Converts unsigned Unix nanoseconds to a <see cref="DateTimeOffset" />.</summary>
     public static DateTimeOffset NanosToDateTimeOffset(ulong nanos) =>
-        DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / (ulong)NanosPerMillisecond));
+        DateTimeOffset.FromUnixTimeMilliseconds((long)(nanos / NanosPerMillisecond));
 
     /// <summary>
     ///     Converts Unix nanoseconds (ulong) to DateTime (UTC) via ticks (100ns precision).

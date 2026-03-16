@@ -15,14 +15,14 @@ public sealed partial class LoomInsightService(
 {
     public async Task<LoomInsight?> GenerateInsightAsync(string issueId, CancellationToken ct = default)
     {
-        IssueSummary? issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
+        var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
         if (issue is null)
         {
             LogIssueNotFound(issueId);
             return null;
         }
 
-        IReadOnlyList<ErrorIssueEventRow> events = await issueService
+        var events = await issueService
             .GetEventsAsync(issueId, 5, ct).ConfigureAwait(false);
 
         LogGeneratingInsight(issueId, events.Count);
@@ -39,16 +39,16 @@ public sealed partial class LoomInsightService(
         string issueId, IssueSummary issue,
         IReadOnlyList<ErrorIssueEventRow> events, CancellationToken ct)
     {
-        string context = BuildContextBlock(issue, events);
-        string prompt = $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context}";
+        var context = BuildContextBlock(issue, events);
+        var prompt = $"{LoomPrompts.InsightGeneration}\n\nError details:\n{context}";
 
         try
         {
-            ChatResponse response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
+            var response = await llm!.GetResponseAsync(prompt, cancellationToken: ct)
                 .ConfigureAwait(false);
 
-            string text = response.Text ?? "{}";
-            LoomInsight? parsed = TryParseInsight(text, issueId);
+            var text = response.Text ?? "{}";
+            var parsed = TryParseInsight(text, issueId);
             if (parsed is not null)
                 return parsed;
         }
@@ -66,11 +66,11 @@ public sealed partial class LoomInsightService(
         string issueId, IssueSummary issue,
         IReadOnlyList<ErrorIssueEventRow> events)
     {
-        string whatHappened = $"{issue.ErrorType} occurred " +
-            $"{issue.EventCount} time{(issue.EventCount == 1 ? "" : "s")} " +
-            $"since {issue.FirstSeen:yyyy-MM-dd HH:mm} UTC.";
+        var whatHappened = $"{issue.ErrorType} occurred " +
+                           $"{issue.EventCount} time{(issue.EventCount == 1 ? "" : "s")} " +
+                           $"since {issue.FirstSeen:yyyy-MM-dd HH:mm} UTC.";
 
-        string initialGuess = issue.ErrorType switch
+        var initialGuess = issue.ErrorType switch
         {
             string t when t.ContainsIgnoreCase("NullReference") =>
                 "A null reference is being accessed — likely a missing null check or uninitialized dependency.",
@@ -85,7 +85,7 @@ public sealed partial class LoomInsightService(
             _ => $"A {issue.ErrorType} is being thrown — investigate the stack trace for the originating call site."
         };
 
-        string? inTheTrace = events.Count > 0 && events[0].StackTrace is not null
+        var inTheTrace = events.Count > 0 && events[0].StackTrace is not null
             ? $"The most recent event shows: {events[0].Message ?? issue.ErrorType}"
             : null;
 
@@ -114,7 +114,7 @@ public sealed partial class LoomInsightService(
         if (events.Count > 0)
         {
             sb.AppendLine("\nRecent events:");
-            foreach (ErrorIssueEventRow e in events)
+            foreach (var e in events)
             {
                 sb.AppendLine($"- [{e.Timestamp:O}] {e.Message ?? "no message"}");
                 if (e.StackTrace is not null)
@@ -155,14 +155,14 @@ public sealed partial class LoomInsightService(
 
     private static LoomInsight? TryParseInsight(string text, string issueId)
     {
-        int start = text.IndexOf('{');
-        int end = text.LastIndexOf('}');
+        var start = text.IndexOf('{');
+        var end = text.LastIndexOf('}');
         if (start < 0 || end <= start) return null;
 
-        ReadOnlySpan<char> json = text.AsSpan(start, end - start + 1);
+        var json = text.AsSpan(start, end - start + 1);
         try
         {
-            InsightLlmResponse? r = JsonSerializer.Deserialize(json, LoomInsightJsonContext.Default.InsightLlmResponse);
+            var r = JsonSerializer.Deserialize(json, LoomInsightJsonContext.Default.InsightLlmResponse);
             if (r is null) return null;
 
             return new LoomInsight
@@ -171,8 +171,8 @@ public sealed partial class LoomInsightService(
                 WhatHappened = r.WhatHappened ?? "Unknown",
                 InitialGuess = r.InitialGuess ?? "Unable to determine",
                 InTheTrace = r.InTheTrace,
-                Resources = r.Resources?.Select(
-                    static x => new LoomResource(x.Title ?? "Resource", x.Url, x.Description ?? "")).ToArray() ?? []
+                Resources = r.Resources?.Select(static x =>
+                    new LoomResource(x.Title ?? "Resource", x.Url, x.Description ?? "")).ToArray() ?? []
             };
         }
         catch (JsonException)
@@ -183,13 +183,15 @@ public sealed partial class LoomInsightService(
 
     // ── Log methods ───────────────────────────────────────────────────────────
 
-    [LoggerMessage(Level = LogLevel.Debug, Message = "Generating Loom insight for issue {IssueId}, {EventCount} events")]
+    [LoggerMessage(Level = LogLevel.Debug,
+        Message = "Generating Loom insight for issue {IssueId}, {EventCount} events")]
     private partial void LogGeneratingInsight(string issueId, int eventCount);
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Issue {IssueId} not found for Loom insight")]
     private partial void LogIssueNotFound(string issueId);
 
-    [LoggerMessage(Level = LogLevel.Warning, Message = "LLM insight generation failed for issue {IssueId}, falling back to heuristic")]
+    [LoggerMessage(Level = LogLevel.Warning,
+        Message = "LLM insight generation failed for issue {IssueId}, falling back to heuristic")]
     private partial void LogLlmInsightFailed(string issueId, Exception ex);
 }
 
@@ -197,29 +199,22 @@ public sealed partial class LoomInsightService(
 
 internal sealed record InsightLlmResponse
 {
-    [JsonPropertyName("what_happened")]
-    public string? WhatHappened { get; init; }
+    [JsonPropertyName("what_happened")] public string? WhatHappened { get; init; }
 
-    [JsonPropertyName("initial_guess")]
-    public string? InitialGuess { get; init; }
+    [JsonPropertyName("initial_guess")] public string? InitialGuess { get; init; }
 
-    [JsonPropertyName("in_the_trace")]
-    public string? InTheTrace { get; init; }
+    [JsonPropertyName("in_the_trace")] public string? InTheTrace { get; init; }
 
-    [JsonPropertyName("resources")]
-    public InsightLlmResource[]? Resources { get; init; }
+    [JsonPropertyName("resources")] public InsightLlmResource[]? Resources { get; init; }
 }
 
 internal sealed record InsightLlmResource
 {
-    [JsonPropertyName("title")]
-    public string? Title { get; init; }
+    [JsonPropertyName("title")] public string? Title { get; init; }
 
-    [JsonPropertyName("url")]
-    public string? Url { get; init; }
+    [JsonPropertyName("url")] public string? Url { get; init; }
 
-    [JsonPropertyName("description")]
-    public string? Description { get; init; }
+    [JsonPropertyName("description")] public string? Description { get; init; }
 }
 
 [JsonSerializable(typeof(InsightLlmResponse))]

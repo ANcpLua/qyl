@@ -152,8 +152,8 @@ reviews:
       - '[skip ci]'
       - '[skip review]'
       - 'wip'
-    labels: []
-    base_branches: []
+    labels: [ ]
+    base_branches: [ ]
     ignore_usernames:
       - 'dependabot[bot]'
       - 'renovate[bot]'
