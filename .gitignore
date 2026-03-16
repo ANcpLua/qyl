@@ -110,6 +110,12 @@ coverage/
 # MSBuild debug dumps
 **/preprocess.xml
 
+# LSP config (local to each developer)
+.lsp.json
+
+# Python virtualenvs
+**/venv/
+
 # Misc
 *.bak
 *.swp

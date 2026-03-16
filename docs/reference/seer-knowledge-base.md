@@ -3,6 +3,13 @@
 Extracted from Sentry's public Loom plugin, MCP server, and Seer backend.
 Source material: `src/loom/` (deleted after extraction), `~/sentry-seer-sourcepack/` (external).
 
+## Companion Documents (archived)
+
+Deep-dive references were extracted from `~/sentry-seer-sourcepack/` and later consolidated into this file.
+The individual companion files (`seer-explorer-tools.md`, `seer-autofix-pipeline.md`, `seer-code-review.md`,
+`seer-algorithms.md`, `seer-api-surface.md`) were deleted during the 2026-03-15 repo cleanup.
+Key information is preserved in the sections below.
+
 ## 1. MCP Tool Catalog
 
 Sentry's MCP server exposes tools grouped into 5 skills. qyl.mcp should implement equivalent coverage.
@@ -329,7 +336,40 @@ Structure: `{ namespace, description, attributes: { "attr.name": { type, descrip
 qyl already has semconv data via `qyl.protocol/Attributes/Generated/`.
 Consider bundling a JSON export for MCP tool guidance.
 
-## 8. Autofix Pipeline Prompts & Schemas
+## 8. Undocumented UI API Surface (from network waterfall analysis)
+
+Extracted from Sentry performance JSON exports (18 files, 3 capture sessions).
+Noise domains stripped (pendo, amplitude, stripe, statuspage, zendesk, ingest).
+22 unique Sentry API endpoints found, 11 already documented above, 11 new.
+
+### High-value gaps (relevant to qyl)
+
+| Endpoint | Latency | What it is | qyl equivalent |
+|----------|---------|-----------|----------------|
+| `/api/0/organizations/{org}/integrations/coding-agents/` | 1341ms | Coding agent integration registry | qyl.loom `AutofixAgentService` — missing integration listing |
+| `/api/0/assistant/` | 425ms | AI assistant API (chat-style) | qyl copilot — already implemented differently |
+| `/api/0/organizations/{org}/dashboards/` | 169ms | Saved dashboard CRUD | No saved-dashboard API in qyl.collector |
+| `/api/0/organizations/{org}/repos/` | 214ms | Repository listing for org | qyl.loom needs for code review context |
+| `/api/0/organizations/{org}/config/integrations/` | 460ms | Available integration catalog | Integration registry pattern — not in qyl |
+| `/api/0/organizations/{org}/group-search-views/starred/` | 153ms | Saved/starred issue search views | Bookmarked queries — not in qyl |
+
+### SaaS-only (not relevant to qyl)
+
+| Endpoint | Latency | Purpose |
+|----------|---------|---------|
+| `/api/0/organizations/{org}/pendo-details/` | 959ms | Pendo tracking integration |
+| `/api/0/organizations/{org}/promotions/trigger-check/` | 266ms | Marketing promotion eligibility |
+| `/api/0/organizations/{org}/prompts-activity/` | 152ms | Onboarding prompt state |
+| `/api/0/organizations/{org}/broadcasts/` | 1441ms | System-wide announcements |
+| `/api/0/organizations/{org}/forwarding/` | 142ms | Event forwarding config |
+
+### Source data
+
+- Raw: `/Users/ancplua/Downloads/seer/{1,2,3}/*.json`
+- Deduplicated: `/Users/ancplua/Downloads/seer/sentry_api_surface.csv`
+- Gaps only: `/Users/ancplua/Downloads/seer/sentry_feature_gaps.csv`
+
+## 9. Autofix Pipeline Prompts & Schemas
 
 ### Step Pipeline
 
@@ -343,71 +383,38 @@ Consider bundling a JSON export for MCP tool guidance.
 
 ### Prompt Templates
 
-**Root Cause Prompt:**
-- Analyze issue {short_id}: "{title}" (culprit: {culprit})
-- Fetch issue details, examine evidence, investigate trace/replay/logs/trends
-- Ask "why" repeatedly to find TRUE root cause (not symptoms)
-- Output: one_line_description (<30 words), five_whys chain, reproduction_steps (<15 words each)
+**Root Cause:** Analyze issue, ask "why" repeatedly, output one_line_description (<30 words) + five_whys + reproduction_steps (<15 words each).
 
-**Solution Prompt:**
-- Review root cause, explore codebase, consider approaches, pick most pragmatic
-- Do NOT include testing in plan, do NOT implement
-- Output: one_line_summary (<30 words), ordered steps with title + description
+**Solution:** Review root cause, pick most pragmatic approach, do NOT include testing/implementation. Output: one_line_summary + ordered steps.
 
-**Code Changes Prompt:**
-- Review root cause + solution plan, use code editing tools
-- Changes must be minimal and focused
+**Code Changes:** Review root cause + solution, use code editing tools. Minimal and focused.
 
-**Impact Assessment Prompt:**
-- Fetch issue details, understand upstream/downstream dependencies
-- Check metrics, performance data, connected issues
-- Consider: affected functionality, user-facing impact, data integrity, system stability
-- Output: one_line_description (<30 words), impacts[{ label, rating(low/medium/high), impact_description, evidence }]
+**Impact Assessment:** Check upstream/downstream dependencies, metrics, connected issues. Output: one_line_description + impacts[{ label, rating(low/medium/high), impact_description, evidence }].
 
-**Triage Prompt:**
-- Consider telemetry, impacted systems, root cause
-- Look at recent commits, identify potential introducer
-- Consider code ownership patterns
-- Output: suspect_commit { sha(7), repo_name, message, author_name/email, committed_date, description }, suggested_assignee { name, email, why }
+**Triage:** Look at recent commits, code ownership. Output: suspect_commit { sha(7), repo, message, author, date } + suggested_assignee { name, email, why }.
 
 ### Fixability Score Thresholds
 
-| Level | Score | Label |
-|-------|-------|-------|
-| SUPER_HIGH | >= 0.76 | super_high |
-| HIGH | >= 0.66 | high |
-| MEDIUM | >= 0.40 | medium |
-| LOW | >= 0.25 | low |
-| SUPER_LOW | >= 0.0 | super_low |
+| Level | Score |
+|-------|-------|
+| SUPER_HIGH | >= 0.76 |
+| HIGH | >= 0.66 |
+| MEDIUM | >= 0.40 |
+| LOW | >= 0.25 |
+| SUPER_LOW | >= 0.0 |
 
-### Automation Tuning Settings
+### Automation Tuning
 
-Per-project configuration: `off`, `super_low` (deprecated), `low` (deprecated), `medium`, `high` (deprecated), `always`
-Stopping points: `root_cause` (deprecated), `solution` (deprecated), `code_changes`, `open_pr`
+Per-project: `off` | `medium` | `always` (super_low/low/high deprecated).
+Stopping points: `code_changes` | `open_pr` (root_cause/solution deprecated).
 
 ### Autofix Settings API
 
 ```
-GET  /organizations/{org}/autofix/automation-settings/  → list projects with settings (paginated, searchable)
-POST /organizations/{org}/autofix/automation-settings/  → bulk update (max 1000 projects)
-
-Response: { projectId, autofixAutomationTuning, automatedRunStoppingPoint, reposCount }
-```
-
-### Autofix Update Payloads
-
-```
-select_root_cause: { type, cause_id }
-select_solution:   { type }
-create_pr:         { type }
+GET  /organizations/{org}/autofix/automation-settings/  → paginated, searchable
+POST /organizations/{org}/autofix/automation-settings/  → bulk update (max 1000)
 ```
 
 ### Autofix Referrers
 
-Where autofix can be triggered from:
-- `api.group_ai_autofix` — explicit API call
-- `issue_summary.fixability` — issue detail page view
-- `issue_summary.alert_fixability` — alert creation
-- `issue_summary.post_process_fixability` — post-process pipeline
-- `slack` — Slack integration
-- `unknown` — fallback
+`api.group_ai_autofix`, `issue_summary.fixability`, `issue_summary.alert_fixability`, `issue_summary.post_process_fixability`, `slack`, `unknown`.
