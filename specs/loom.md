@@ -1,5 +1,10 @@
 # Loom Specification
 
+> Owner: loom
+> SSOT: YES (AI investigation pipeline, autofix, triage, code review, regression detection)
+> Depends on: `telemetry-intelligence.md` (pattern engine), `telemetry-data-model.md` (schema), `issue-fingerprinting.md` (error grouping)
+> Used by: `mcp.md` (analysis tool delegation)
+
 AI-powered issue investigation and autofix. C# transpile of Sentry Seer. Standalone product.
 
 ---
@@ -23,11 +28,17 @@ AI-powered issue investigation and autofix. C# transpile of Sentry Seer. Standal
 
 `src/qyl.loom/` — standalone product. Also exists as its own project at `~/RiderProjects/qyl.loom/`.
 
-References collector, agents, workflows, contracts, and instrumentation via ProjectReference. This is by design. Do NOT decompose, delete, or merge into collector.
+Dependencies:
+- `qyl.collector` (ProjectRef — data access)
+- `qyl.contracts` (shared types, including `Qyl.Contracts.Loom`)
+- `qyl.instrumentation` (OTel wiring)
+- Microsoft.Extensions.AI / Microsoft.Agents.AI (agent construction via MAF)
+
+Ownership boundaries: see `00-architecture.md` section 2.3.
 
 Reference architecture: `docs/reference/seer-knowledge-base.md` and `docs/loom-design.md`.
 
-All agent calls use AIAgent via QylAgentBuilder. Never raw IChatClient.
+Agent construction uses MAF directly: `AIAgent`, `IChatClient`, `AddAIAgent()`. Shared types (`CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord`) live in `qyl.contracts/Loom/`.
 
 ## 2. Pipeline
 
@@ -52,7 +63,36 @@ Each stage persisted as `AutofixStepRecord` in DuckDB.
 - Related telemetry (traces, logs around the error)
 - Historical fixes for similar issues
 
-### 2.2 Prompts
+### 2.2 Investigation Input Contract
+
+Every investigation run receives a normalized input bundle. `IssueContextBuilder` assembles this. No agent builds its own context.
+
+| Field | Source | Required |
+|-------|--------|----------|
+| **Issue summary** | `error_issues` row (type, category, occurrence_count, first/last seen, priority, status) | Yes |
+| **Grouped occurrences** | `error_issue_events` (all trace_ids, span_ids, stack_traces, environments, release_versions) | Yes |
+| **Trace graph** | `spans` joined by `trace_id` → full span tree with parent/child relationships | Yes |
+| **Code context** | Spans' `code.filepath`, `code.function`, `code.lineno` → source file content | Yes — guaranteed for `[Traced]` methods (compile-time emission) |
+| **Deployment context** | `deployments` table: `service_version`, `git_commit`, `git_branch`, `previous_version` | Yes (if deployment exists) |
+| **Deploy diff** | `git_commit` current vs `previous_version` → changed files list | Optional |
+| **Recent commits** | Git log since last known-good deploy | Optional |
+| **Historical fixes** | `fix_runs` WHERE `issue_id = ?` with outcomes (resolved/failed/regressed) | Yes |
+| **Approval state** | `PolicyGate` config: AutoApply / RequireReview / DryRun | Yes |
+| **Handoff state** | `agent_handoffs` row if resuming from a previous investigation | If resuming |
+| **Artifacts** | `artifacts` table: related code snippets, logs, previous analysis outputs | Optional |
+| **Breadcrumbs** | `error_breadcrumbs`: contextual events preceding the error | Optional |
+
+Data flow:
+
+```text
+issue_id
+  → IssueContextBuilder.BuildAsync()
+    → queries error_issues, error_issue_events, spans, deployments, fix_runs, artifacts
+    → assembles InvestigationContext record
+      → passed to each pipeline stage as immutable input
+```
+
+### 2.3 Prompts
 
 `AutofixPrompts` and `LoomPrompts` define system and user prompts for each pipeline stage.
 
@@ -109,12 +149,13 @@ Classifies incoming issues by severity, assigns to teams, and determines if auto
 
 ## 9. Constraints
 
-- Loom is standalone. Do NOT merge into collector.
-- Collector MUST NOT depend on Loom (dependency flows loom → collector).
-- All LLM calls via AIAgent + QylAgentBuilder. Never raw IChatClient.
+Ownership boundaries: see `00-architecture.md` section 2.3.
+
+- Agent construction uses MAF directly (`AIAgent`, `IChatClient`, `AddAIAgent()`).
 - Each pipeline stage persisted independently for resumability.
 - `LoomEndpoints`, `LoomExplorerService`, `LoomInsightService` are the primary query surfaces.
 - `LoomSettingsEndpoints` manages Loom configuration.
+- Shared types in `qyl.contracts/Loom/` — NOT in collector or Loom-local namespaces.
 
 ## 10. Definition of Done
 

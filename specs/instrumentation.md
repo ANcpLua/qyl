@@ -1,5 +1,10 @@
 # Instrumentation Specification
 
+> Owner: instrumentation
+> SSOT: YES (Roslyn generators, runtime wiring, code context emission)
+> Depends on: `contracts.md` (shared types)
+> Used by: `telemetry-data-model.md` (populated columns), `issue-fingerprinting.md` (code location), `loom.md` (autofix input)
+
 Compile-time OTel instrumentation via Roslyn source generators. Zero runtime reflection.
 
 ---
@@ -104,11 +109,50 @@ Key attributes:
 - `[Counter]` — generates a metric counter for the method
 - `[TracedReturn]` — captures return value as span attribute
 
+### 5.1 Code Context Emission (SSOT)
+
+This section is the single source of truth for code context attributes. All other specs reference here.
+
+Emitted automatically by Roslyn generators at compile time. No manual setting required.
+
+| Attribute | Value source | Emission | Generator |
+|-----------|-------------|----------|-----------|
+| `code.filepath` | `IMethodSymbol.DeclaringSyntaxReferences[0].SyntaxTree.FilePath` | Compile-time constant | `[Traced]` |
+| `code.function` | `IMethodSymbol.Name` | Compile-time constant | `[Traced]` |
+| `code.lineno` | `SyntaxTree.GetLineSpan().StartLinePosition.Line + 1` | Compile-time constant | `[Traced]` |
+| `code.namespace` | `IMethodSymbol.ContainingNamespace.ToDisplayString()` | Compile-time constant | `[Traced]` |
+
+These are the source location of the **method definition** (where `[Traced]` is declared), not the call site. Values are baked into the generated interceptor as string/int literals — zero runtime cost.
+
+Promoted DuckDB columns (`code_filepath`, `code_function`, `code_lineno`, `code_namespace`) receive these values via normal OTLP ingestion.
+
+**`[GenAi]` / `[Db]` interceptors:** Code context emission pending. These delegate to `GenAiInstrumentation.Execute*()` / `DbInstrumentation.StartDbActivity()` which create the Activity internally. Adding code context requires a runtime API change to pass context through.
+
+### 5.2 What Generators Emit
+
+| Generator | Attributes Emitted | Metrics |
+|-----------|-------------------|---------|
+| `[Traced]` | `code.filepath`, `code.function`, `code.lineno`, `code.namespace` + custom tags via `[TracedTag]` | None |
+| `[GenAi]` | `gen_ai.operation.name`, `.provider.name`, `.request.model`, `.output.type`, `.usage.*`, `error.type` | `gen_ai.client.token.usage`, `gen_ai.client.operation.duration` |
+| `[Db]` | `db.system.name`, `db.operation.name`, `db.collection.name`, `db.query.text`, `db.namespace` | None |
+| Agent interceptor | `gen_ai.operation.name`, `.provider.name`, `.agent.name` | None |
+| All (on exception) | `exception.type`, `exception.message`, `exception.stacktrace`, `exception.escaped` | None |
+
+### 5.3 InstrumentedChatClient
+
+`DelegatingChatClient` that wraps LLM calls in OTel spans with GenAI semconv 1.40 attributes.
+
+Location: `src/qyl.instrumentation/Instrumentation/GenAi/InstrumentedChatClient.cs`
+
+Emits: `gen_ai.system`, `gen_ai.request.model`, `gen_ai.request.temperature`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`. Captures tool calls as child spans via `InstrumentedAIFunction`.
+
 ## 6. Definition of Done
 
 - [ ] All generators are IIncrementalGenerator with ForAttributeWithMetadataName
 - [ ] Generated interceptors produce correct OTel spans with semconv 1.40 attributes
+- [ ] Generated interceptors emit `code.filepath`, `code.function`, `code.lineno` on every span
 - [ ] No runtime reflection anywhere in the instrumentation pipeline
 - [ ] Analyzer releases tracked in AnalyzerReleases.Shipped.md / Unshipped.md
 - [ ] All generators pass ANcpLua.Roslyn.Utilities test suite
 - [ ] CollectorDiscovery auto-detects collector endpoint without manual configuration
+- [ ] InstrumentedChatClient emits all GenAI semconv 1.40 attributes

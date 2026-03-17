@@ -1,5 +1,10 @@
 # Dashboard Specification
 
+> Owner: dashboard
+> SSOT: YES (React UI, component library, chart strategy, Base UI contract)
+> Depends on: `api.md` (response contract), `collector.md` (REST API)
+> Used by: none (leaf node)
+
 React 19 frontend for qyl. Operator-grade telemetry UI with dense information surfaces.
 
 ---
@@ -34,18 +39,23 @@ Design philosophy: operator-grade density. Optimize for workflow speed, scanabil
 - `TracesPage` — trace search and exploration
 - `SpanExplorerPage` — span-level detail
 - `LogsPage` — structured log explorer
-- `GenAIPage` — GenAI-specific telemetry
-- `AgentsPage` + `AgentRunDetailPage` — agent execution monitoring
-- `IssuesPage` + `IssueTriagePage` + `IssueFixRunsPage` — error tracking and triage
+- `GenAIPage` — GenAI-specific telemetry (model, tokens, latency, cost per call)
+- `CostPage` — per-model, per-service, per-session cost aggregations and budget alerts
+- `IssuesPage` — error tracking and grouping
 - `ErrorsOutagesPage` — error and outage overview
 - `AlertsPage` — alert configuration and history
 - `PerformancePage` — performance monitoring
 - `SearchPage` — full-text search across telemetry
-- `CodeReviewPage` — AI code review results
-- `BotPage` + `BotConversationDetailPage` + `BotUserJourneyPage` — bot/agent conversation tracking
-- `LoomDashboardPage` — Loom investigation overview
-- `SettingsPage` — configuration
+- `ServicesPage` — service map, dependencies, health
+- `SettingsPage` — pricing table, retention, API keys
 - `OnboardingPage` — first-run setup
+
+Deleted per v2 architecture (see `00-architecture.md` section 3.2):
+
+- `CodeReviewPage`, `IssueTriagePage`, `IssueFixRunsPage` → Loom's responsibility
+- `BotPage`, `BotConversationDetailPage`, `BotUserJourneyPage` → deleted
+- `LoomDashboardPage` → Loom's own UI
+- `AgentsPage`, `AgentRunDetailPage` → deleted (Loom monitors its own agents)
 
 ## 3. Telemetry Surfaces
 
@@ -65,12 +75,11 @@ Prefer scanable rows, compact spacing, strong typography hierarchy. No cardified
 ### 3.2 Components
 
 - `AgentTraceTree` — hierarchical trace visualization for agent runs
-- `CodingAgentResultCard` — coding agent execution results
 - `ToolDefinitionsViewer` — GenAI tool call inspection
-- `PipelineStatus` (Loom) — autofix pipeline progress
-- `LoomSidebar` — Loom investigation navigation
-- `LoomHandoffPanel` — realtime session attach and continuation UI
 - `FilterPillBar` — active filter display
+- `CostSummaryCard` — cost KPIs (spend today, top model, budget status)
+
+Deleted (Loom-owned): `CodingAgentResultCard`, `PipelineStatus`, `LoomSidebar`, `LoomHandoffPanel`.
 
 ## 4. Charts
 
@@ -94,15 +103,15 @@ Allow for lighter surfaces:
 
 If the chart is part of an analysis workflow, use ECharts. If it's decorative, Recharts is fine.
 
-## 5. Realtime and Handoff
+## 5. Realtime
 
-The dashboard may attach to long-running Loom or agent sessions, but it does not own agent construction.
+SSE streams hosted by `qyl.collector` push live telemetry (spans, logs, metrics) to the dashboard.
 
-- SSE streams are hosted by `qyl.web`
-- session hydration attaches to persisted agent state through API contracts
-- UI components render stage transitions, tool calls, and handoff state
+- `ObservationSubscription` + `SubscriptionManager` handle per-client subscriptions
+- `SchemaVersionNegotiator` handles client/server schema compatibility
+- Issues are REST-only (not streamed)
 
-The dashboard is an operator surface over telemetry and agent progress, not a Copilot shell.
+The dashboard is an operator surface over telemetry, not a Copilot shell or agent UI.
 
 ## 6. Primitives
 

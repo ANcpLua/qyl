@@ -4,6 +4,10 @@
 
 ### Added
 
+- **Telemetry Intelligence Model spec**: `specs/telemetry-intelligence.md` — canonical reasoning model over telemetry data. Defines diagnostic patterns, causal rules, and investigation strategies as TypeSpec → generated C# types. Completes the deterministic stack: emit → store → group → **reason** → investigate.
+- **API Contract spec**: `specs/api.md` — single source of truth for response envelope, error model, status codes, pagination, timestamps, and entity IDs. Referenced by collector and MCP specs.
+- **Cost Engine spec**: `specs/cost.md` — extracted from architecture spec. Adds normative cost formula, time aggregation rules, and consistency guarantees.
+- **Spec restructure**: Slimmed `00-architecture.md` from 750→563 lines (kernel only). Added ownership headers to all 12 specs. Deduplicated boundary statements in loom.md and mcp.md. Code context SSOT assigned to `instrumentation.md` section 5.1.
 - **MAF rc4 upgrade**: Microsoft.Agents.AI packages bumped from rc3/preview.260304.1 to rc4/preview.260311.1.
 - **OTel source name fix**: Added `Experimental.Microsoft.Agents.AI` to `SGenAiActivitySources` and
   `SGenAiMeterNames` — MAF's `UseOpenTelemetry()` spans were silently dropped.

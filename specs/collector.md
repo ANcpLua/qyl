@@ -1,5 +1,10 @@
 # Collector Specification
 
+> Owner: collector
+> SSOT: YES (OTLP ingestion, DuckDB storage, SSE streaming, REST API)
+> Depends on: `api.md` (response contract), `telemetry-data-model.md` (schema), `cost.md` (cost computation)
+> Used by: `mcp.md`, `loom.md`, `dashboard.md`
+
 The collector is the core process. It ingests OTLP telemetry, stores it in DuckDB, streams updates via SSE, and serves the REST API.
 
 ---
@@ -29,11 +34,7 @@ Responsibilities:
 - Serve REST API for dashboard, MCP, and external consumers
 - Host dashboard static files in production
 
-Does NOT:
-
-- Proxy LLM API calls (see `decisions/no-proxy.md`)
-- Depend on qyl.loom (loom depends on collector, not vice versa)
-- Run Roslyn generators (that's MSBuild compile time, Layer 2)
+Ownership boundaries: see `00-architecture.md` section 2.3.
 
 ## 2. OTLP Ingestion
 
@@ -114,10 +115,10 @@ Major endpoint groups:
 - Service endpoints (registry, classification)
 - Issue endpoints (grouping, analytics)
 - MCP-facing endpoints (sessions, logs, traces, metrics, API keys)
-- Loom endpoints (autofix, regression, code review, triage)
-- Copilot endpoints (AG-UI protocol)
+- Cost endpoints (pricing, aggregations, budget)
 - Health endpoints
-- Workflow endpoints
+
+Exclusions: see `00-architecture.md` section 1.1 (scope) and section 5 (kill list).
 
 ### 5.2 Query Layer
 

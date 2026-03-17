@@ -1,5 +1,10 @@
 # Contracts Specification
 
+> Owner: contracts
+> SSOT: YES (TypeSpec-generated shared types, enums, attribute constants)
+> Depends on: none (BCL-only)
+> Used by: `collector.md`, `mcp.md`, `loom.md`, `instrumentation.md`, `telemetry-intelligence.md`
+
 Shared types consumed by all qyl projects. Generated from TypeSpec. BCL-only — zero NuGet packages.
 
 ---

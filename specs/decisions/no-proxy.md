@@ -22,4 +22,4 @@ Maintaining proxy compatibility with 100+ LLM provider APIs (OpenAI, Anthropic, 
 
 ## Alternative
 
-GenAI controls implemented as in-process `DelegatingChatClient` middleware. See `specs/08-genai-controls.md`.
+GenAI instrumentation implemented as `InstrumentedChatClient` (`DelegatingChatClient`). See `specs/instrumentation.md` section 5.2. Middleware beyond instrumentation (caching, rate limiting, PII, guards, fallback) deliberately excluded — see `specs/00-architecture.md` section 1.1.

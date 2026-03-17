@@ -1,56 +1,24 @@
-do# qyl
+# qyl
 
-- [Overview](./00-overview.md)
+- [Architecture](./00-architecture.md) — product identity, deployment, component boundaries, dependency rules, kill list, cost engine
 
-# Specs
+# Subsystem Specs
 
-- [Collector](./01-collector.md)
-  - [OTLP Ingestion](./01-collector.md#2-otlp-ingestion)
-  - [DuckDB Storage](./01-collector.md#3-storage)
-  - [SSE Streaming](./01-collector.md#4-realtime)
-  - [REST API](./01-collector.md#5-api)
-  - [Auth](./01-collector.md#6-auth)
-- [Contracts](./02-contracts.md)
-  - [TypeSpec Models](./02-contracts.md#2-typespec-models)
-  - [Enums and Attributes](./02-contracts.md#3-enums-and-attributes)
-  - [Constraints](./02-contracts.md#4-constraints)
-- [Instrumentation](./03-instrumentation.md)
-  - [Schema Generation (NUKE)](./03-instrumentation.md#2-schema-generation)
-  - [Roslyn Generators (MSBuild)](./03-instrumentation.md#3-roslyn-generators)
-  - [Runtime Wiring](./03-instrumentation.md#4-runtime)
-- [Agents](./04-agents.md)
-- [Loom](./05-loom.md)
-  - [5-Stage Pipeline](./05-loom.md#2-pipeline)
-  - [PolicyGate](./05-loom.md#3-policy-gate)
-  - [Autofix](./05-loom.md#4-autofix)
-  - [Code Review](./05-loom.md#5-code-review)
-  - [Regression Detection](./05-loom.md#6-regression)
-- [MCP Server](./06-mcp.md)
-  - [Tool Surface](./06-mcp.md#2-tool-surface)
-  - [Skills and Auth](./06-mcp.md#3-skills-and-auth)
-  - [Deployment Modes](./06-mcp.md#4-deployment-modes)
-  - [Response Format](./06-mcp.md#5-response-format)
-- [Dashboard](./07-dashboard.md)
-  - [Shell and Navigation](./07-dashboard.md#2-shell)
-  - [Telemetry Surfaces](./07-dashboard.md#3-telemetry-surfaces)
-  - [Charts](./07-dashboard.md#4-charts)
-  - [Realtime and Handoff](./07-dashboard.md#5-realtime-and-handoff)
-- [GenAI Controls](./08-genai-controls.md)
-  - [Middleware Pipeline](./08-genai-controls.md#2-pipeline)
-  - [Middleware Contracts](./08-genai-controls.md#3-middleware)
-  - [Cost Tracking](./08-genai-controls.md#4-cost-tracking)
-  - [Non-.NET Integration](./08-genai-controls.md#5-non-dotnet)
-- [Workflows](./09-workflows.md)
-  - [Declarative Engine](./09-workflows.md#2-engine)
-  - [Workflow Parser](./09-workflows.md#3-parser)
-  - [Execution Store](./09-workflows.md#4-execution-store)
-- [Browser SDK](./10-browser.md)
-  - [Web Vitals](./10-browser.md#2-web-vitals)
-  - [Interactions](./10-browser.md#3-interactions)
-  - [OTLP Export](./10-browser.md#4-export)
+- [Collector](./collector.md) — OTLP ingestion, DuckDB storage, SSE streaming, REST API, auth
+- [Contracts](./contracts.md) — TypeSpec-generated shared types, BCL-only
+- [Instrumentation](./instrumentation.md) — 3-layer build model, Roslyn generators, runtime OTel wiring
+- [Loom](./loom.md) — AI investigation, 5-stage autofix pipeline, regression, triage, code review
+- [MCP Server](./mcp.md) — MCP tool surface, skills/auth, deployment modes, response format
+- [Dashboard](./dashboard.md) — React telemetry UI, operator-grade density, charts, primitives
+
+# Agent Intelligence Specs
+
+- [Telemetry Data Model](./telemetry-data-model.md) — canonical schema, promoted columns, attribute inventory
+- [Issue Fingerprinting](./issue-fingerprinting.md) — grouping algorithm, stacktrace normalization, issue lifecycle
 
 # Decisions
 
 - [No Proxy Gateway](./decisions/no-proxy.md)
 - [No Helicone Sidecar](./decisions/no-helicone.md)
 - [Loom as Standalone Product](./decisions/loom-standalone.md)
+- [MAF Native Migration](./decisions/maf-native-migration.md)
