@@ -2,7 +2,6 @@ using Qyl.Collector.AgentRuns;
 using Qyl.Collector.Analytics;
 using Qyl.Collector.Artifacts;
 using Qyl.Collector.Autofix;
-using Qyl.Collector.BuildFailures;
 using Qyl.Collector.Dashboard;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Grpc;
@@ -53,12 +52,6 @@ public static class CollectorEndpointExtensions
         api.MapGet("/genai/stats", GetGenAiStatsAsync);
         api.MapGet("/genai/spans", GetGenAiSpansAsync);
 
-        // Console
-        api.MapPost("/console", IngestConsoleAsync);
-        api.MapGet("/console", GetConsoleAsync);
-        api.MapGet("/console/errors", GetConsoleErrorsAsync);
-        api.MapGet("/console/live", StreamConsoleLiveAsync);
-
         // Telemetry management
         api.MapDelete("/telemetry", ClearTelemetryAsync);
         api.MapGet("/telemetry/stats", GetTelemetryStatsAsync);
@@ -97,9 +90,6 @@ public static class CollectorEndpointExtensions
         app.MapArtifactEndpoints();
         app.MapQueryEndpoints();
         app.MapLogSummaryEndpoints();
-
-        if (app.Configuration.GetValue("QYL_BUILD_FAILURE_CAPTURE_ENABLED", true))
-            app.MapBuildFailureEndpoints();
 
         // Browser SDK
         app.MapGet("/qyl.js", static (IWebHostEnvironment env) =>
@@ -420,66 +410,12 @@ public static class CollectorEndpointExtensions
     }
 
     // =========================================================================
-    // Console
-    // =========================================================================
-
-    private static IResult IngestConsoleAsync(ConsoleIngestBatch batch, FrontendConsole console)
-    {
-        foreach (var req in batch.Logs)
-            console.Ingest(req);
-        return Results.Accepted();
-    }
-
-    private static IResult GetConsoleAsync(FrontendConsole console, string? session, string? level, int? limit)
-    {
-        var minLevel = level?.ToLowerInvariant() switch
-        {
-            "warn" => ConsoleLevel.Warn,
-            "error" => ConsoleLevel.Error,
-            _ => (ConsoleLevel?)null
-        };
-        return Results.Ok(console.Query(minLevel, session, null, limit ?? 50));
-    }
-
-    private static IResult GetConsoleErrorsAsync(FrontendConsole console, int? limit) =>
-        Results.Ok(console.Errors(limit ?? 20));
-
-    private static ServerSentEventsResult<SseItem<object?>> StreamConsoleLiveAsync(
-        FrontendConsole console,
-        string? session,
-        CancellationToken ct) =>
-        TypedResults.ServerSentEvents(StreamConsoleEventsAsync(console, session, ct), null);
-
-    private static async IAsyncEnumerable<SseItem<object?>> StreamConsoleEventsAsync(
-        FrontendConsole console,
-        string? session,
-        [EnumeratorCancellation] CancellationToken ct)
-    {
-        var channel = Channel.CreateBounded<ConsoleLogEntry>(new BoundedChannelOptions(100)
-        {
-            FullMode = BoundedChannelFullMode.DropOldest
-        });
-        var connectionId = Guid.NewGuid().ToString("N")[..8];
-
-        using var _ = console.Subscribe(connectionId, channel);
-
-        yield return new SseItem<object?>(new { id = connectionId }, "connected");
-
-        await foreach (var entry in channel.Reader.ReadAllAsync(ct).ConfigureAwait(false))
-        {
-            if (session is not null && entry.Session != session) continue;
-            yield return new SseItem<object?>(entry, "console");
-        }
-    }
-
-    // =========================================================================
     // Telemetry Management
     // =========================================================================
 
     private static async Task<IResult> ClearTelemetryAsync(
         DuckDbStore store,
         SpanRingBuffer ringBuffer,
-        FrontendConsole console,
         string? type,
         CancellationToken ct)
     {
@@ -490,17 +426,15 @@ public static class CollectorEndpointExtensions
                 "spans" or "traces" => await ClearSpansAsync(store, ringBuffer, ct).ConfigureAwait(false),
                 "logs" => await store.ClearAllLogsAsync(ct).ConfigureAwait(false),
                 "sessions" => await store.ClearAllSessionsAsync(ct).ConfigureAwait(false),
-                "console" => ClearConsole(console),
                 _ => throw new ArgumentException($"Unknown telemetry type: {type}")
             };
-            return Results.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, type));
+            return TypedResults.Ok(new ClearTelemetryResponse(deleted, 0, 0, 0, type));
         }
 
         var result = await store.ClearAllTelemetryAsync(ct).ConfigureAwait(false);
         ringBuffer.Clear();
-        console.Clear();
 
-        return Results.Ok(new ClearTelemetryResponse(
+        return TypedResults.Ok(new ClearTelemetryResponse(
             result.SpansDeleted, result.LogsDeleted, result.SessionsDeleted, 0, "all"));
 
         static async Task<int> ClearSpansAsync(DuckDbStore store, SpanRingBuffer ringBuffer, CancellationToken ct)
@@ -508,12 +442,6 @@ public static class CollectorEndpointExtensions
             var deleted = await store.ClearAllSpansAsync(ct).ConfigureAwait(false);
             ringBuffer.Clear();
             return deleted;
-        }
-
-        static int ClearConsole(FrontendConsole console)
-        {
-            console.Clear();
-            return 0;
         }
     }
 

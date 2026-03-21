@@ -18,7 +18,6 @@ global using Grpc.AspNetCore.Server.Model;
 global using Grpc.Core;
 global using Microsoft.AspNetCore.Http.HttpResults;
 global using Microsoft.Extensions.ObjectPool;
-global using Qyl.Collector.ConsoleBridge;
 global using Qyl.Collector.Contracts;
 global using Qyl.Collector.Ingestion;
 global using Qyl.Collector.Query;

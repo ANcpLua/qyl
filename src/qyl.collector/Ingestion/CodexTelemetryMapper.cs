@@ -107,7 +107,7 @@ public static class CodexTelemetryMapper
         // Always set provider to OpenAI for Codex telemetry
         if (!attributes.ContainsKey(GenAiAttributes.ProviderName))
         {
-            attributes[GenAiAttributes.ProviderName] = GenAiAttributes.Providers.OpenAi;
+            attributes[GenAiAttributes.ProviderName] = GenAiAttributes.Providers.Openai;
             transformed = true;
         }
 

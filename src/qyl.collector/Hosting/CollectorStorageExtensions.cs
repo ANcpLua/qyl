@@ -19,9 +19,6 @@ public static class CollectorStorageExtensions
         services.AddSingleton<SourceLocationCache>();
         services.AddSingleton<PdbSourceResolver>();
 
-        var maxRetainedFailures = config.GetValue("QYL_MAX_BUILD_FAILURES", 10);
-        services.AddSingleton<IBuildFailureStore>(_ => new DuckDbBuildFailureStore(dataPath, maxRetainedFailures));
-
         services.AddSingleton<SchemaPlanner>();
         services.AddSingleton<SchemaExecutor>();
 

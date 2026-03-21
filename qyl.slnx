@@ -92,7 +92,6 @@
     <Folder Name="/src/platform/">
         <Project Path="src/qyl.collector/qyl.collector.csproj"/>
         <Project Path="src/qyl.contracts/qyl.contracts.csproj"/>
-        <Project Path="src/qyl.hosting/qyl.hosting.csproj"/>
     </Folder>
 
     <!-- SDK: instrumentation, generators, browser telemetry -->
@@ -100,7 +99,6 @@
         <Project Path="src/qyl.instrumentation/qyl.instrumentation.csproj"/>
         <Project Path="src/qyl.instrumentation.generators/qyl.instrumentation.generators.csproj"/>
         <Project Path="src/qyl.collector.storage.generators/qyl.collector.storage.generators.csproj"/>
-        <Project Path="src/qyl.browser/qyl.browser.esproj"/>
     </Folder>
 
     <!-- Loom -->
@@ -118,39 +116,11 @@
         <Project Path="src/qyl.dashboard/qyl.dashboard.esproj"/>
     </Folder>
 
-    <!-- Tools: terminal utilities -->
-    <Folder Name="/src/tools/">
-        <Project Path="src/qyl.watch/qyl.watch.csproj"/>
-    </Folder>
-
     <!-- Tests -->
     <Folder Name="/tests/">
         <Project Path="tests/qyl.collector.tests/qyl.collector.tests.csproj"/>
     </Folder>
 
-    <!-- Docs -->
-    <Folder Name="/docs/">
-        <File Path="docs/instrumentation-toolkit.md"/>
-        <File Path="docs/loom-design.md"/>
-        <File Path="docs/mcp-platform.md"/>
-        <File Path="docs/mcp-tool-audit.md"/>
-        <File Path="docs/qyl-ollama-mcp-design.md"/>
-        <File Path="docs/sentry-ui-reference.md"/>
-        <File Path="docs/zero-cost-observability.md"/>
-        <File Path="docs\agent-framework.pdf"/>
-        <File Path="docs\reference\mintlify-helicone-findings.md"/>
-        <File Path="docs\reference\otel-release-validation-template.md"/>
-        <File Path="docs\reference\seer-algorithms.md"/>
-        <File Path="docs\reference\seer-api-surface.md"/>
-        <File Path="docs\reference\seer-autofix-pipeline.md"/>
-        <File Path="docs\reference\seer-code-review.md"/>
-        <File Path="docs\reference\seer-explorer-tools.md"/>
-        <File Path="docs\reference\seer-knowledge-base.md"/>
-        <File Path="docs\superpowers\plans\2026-03-12-qyl-agents-upgrade.md"/>
-        <File Path="docs\superpowers\specs\2026-03-11-aicontextprovider-integration-design.md"/>
-        <File Path="docs\superpowers\specs\2026-03-12-qyl-agents-upgrade-design.md"/>
-        <File Path="docs\superpowers\specs\2026-03-12-qyl-onboarding-rework-design.md"/>
-    </Folder>
 
     <!-- GitHub config -->
     <Folder Name="/.github/">

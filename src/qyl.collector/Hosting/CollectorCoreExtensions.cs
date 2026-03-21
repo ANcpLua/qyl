@@ -26,7 +26,6 @@ public static class CollectorCoreExtensions
         });
         services.AddSingleton<IServiceMethodProvider<TraceServiceImpl>, TraceServiceMethodProvider>();
 
-        services.AddSingleton<FrontendConsole>();
         services.AddSingleton<ITelemetrySseBroadcaster, TelemetrySseBroadcaster>();
 
         var ringBufferCapacity = config.GetValue("QYL_RINGBUFFER_CAPACITY", 10_000);

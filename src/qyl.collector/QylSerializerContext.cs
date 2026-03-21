@@ -1,5 +1,4 @@
 using Qyl.Collector.Artifacts;
-using Qyl.Collector.BuildFailures;
 using Qyl.Collector.Dashboards;
 using Qyl.Collector.Health;
 using Qyl.Collector.Insights;
@@ -16,10 +15,6 @@ namespace Qyl.Collector;
     WriteIndented = false)]
 [JsonSerializable(typeof(StorageStats))]
 [JsonSerializable(typeof(GenAiStats))]
-[JsonSerializable(typeof(ConsoleLogEntry))]
-[JsonSerializable(typeof(ConsoleLogEntry[]))]
-[JsonSerializable(typeof(ConsoleIngestRequest))]
-[JsonSerializable(typeof(ConsoleIngestBatch))]
 [JsonSerializable(typeof(TelemetryEventDto))]
 [JsonSerializable(typeof(TelemetryMessage))]
 [JsonSerializable(typeof(SpanDto))]
@@ -112,9 +107,6 @@ namespace Qyl.Collector;
 [JsonSerializable(typeof(ErrorStats))]
 [JsonSerializable(typeof(ErrorCategoryStat))]
 [JsonSerializable(typeof(IReadOnlyList<ErrorCategoryStat>))]
-[JsonSerializable(typeof(BuildFailureIngestRequest))]
-[JsonSerializable(typeof(BuildFailureResponse))]
-[JsonSerializable(typeof(BuildFailureResponse[]))]
 // Search types
 [JsonSerializable(typeof(SearchQuery))]
 [JsonSerializable(typeof(SearchResult))]
