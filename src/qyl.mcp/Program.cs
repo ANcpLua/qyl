@@ -19,6 +19,7 @@ using qyl.mcp.Auth;
 using qyl.mcp.Scoping;
 using qyl.mcp.Skills;
 using qyl.mcp.Tools;
+using qyl.mcp.Tools.Debug;
 using AnalyticsJsonContext = qyl.mcp.Tools.AnalyticsJsonContext;
 using AnomalyJsonContext = qyl.mcp.Tools.AnomalyJsonContext;
 using BuildJsonContext = qyl.mcp.Tools.BuildJsonContext;
@@ -189,6 +190,12 @@ static JsonSerializerOptions ConfigureCommonServices(
 
     services.AddSingleton<McpToolRegistry>();
     services.AddSingleton(TimeProvider.System);
+
+    if (skills.IsEnabled(QylSkillKind.Debug))
+    {
+        services.AddSingleton<JetBrainsDiscovery>();
+        services.AddSingleton<RiderMcpProxy>();
+    }
     services.AddSingleton<ITelemetryStore>(static sp =>
         new HttpTelemetryStore(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(nameof(HttpTelemetryStore)),

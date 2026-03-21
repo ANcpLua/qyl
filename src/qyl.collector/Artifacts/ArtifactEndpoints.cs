@@ -19,7 +19,7 @@ public static class ArtifactEndpoints
     {
         // ── REST API ──────────────────────────────────────────────────
 
-        app.MapPost("/api/v1/artifacts", async (
+        app.MapPost("/api/v1/artifacts", static async (
             ArtifactCreateRequest request,
             DuckDbStore store,
             CancellationToken ct) =>
@@ -49,7 +49,7 @@ public static class ArtifactEndpoints
                 row.Source, request.Metadata, row.CreatedAt, row.ExpiresAt));
         });
 
-        app.MapGet("/api/v1/artifacts/{id}", async Task<IResult> (
+        app.MapGet("/api/v1/artifacts/{id}", static async Task<IResult> (
             string id, DuckDbStore store, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
@@ -63,7 +63,7 @@ public static class ArtifactEndpoints
 
         // ── Short URL ─────────────────────────────────────────────────
 
-        app.MapGet("/a/{id}", async Task<IResult> (
+        app.MapGet("/a/{id}", static async Task<IResult> (
             string id, DuckDbStore store, HttpContext ctx, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
@@ -74,7 +74,7 @@ public static class ArtifactEndpoints
 
             // If the client accepts JSON, return structured response
             var accept = ctx.Request.Headers.Accept.ToString();
-            if (accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+            if (accept.ContainsIgnoreCase("application/json"))
                 return TypedResults.Ok(ToResponse(row));
 
             // Otherwise return raw content with appropriate content type

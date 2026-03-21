@@ -34,8 +34,21 @@
   Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
   its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped per policy.
 
+### Fixed
+
+- **GenAiCallSiteAnalyzer AzureOpenAIClient dead entry**: Removed `AzureOpenAIClient` entry with empty methods array
+  that produced zero matchers. Azure.AI.OpenAI's new pattern uses `OpenAI.Chat.ChatClient` via `GetChatClient()` and
+  is already covered by the OpenAI SDK entries.
+- **AgentCallSiteAnalyzer invariant undocumented**: Added XML doc comment documenting that `GenAiCallSiteAnalyzer`
+  handles RunAsync/RunStreamingAsync while `AgentCallSiteAnalyzer` handles InvokeAsync on the same
+  `Microsoft.Agents.AI` types (disjoint method sets, overlapping types).
+- **MeterAnalyzer CouldBeMeterClass undocumented**: Added remarks documenting why the predicate is kept despite being
+  largely redundant with `ForAttributeWithMetadataName` (public pipeline API stability).
+
 ### Removed
 
+- **DomainContracts.g.cs**: Deleted unreferenced generated file and empty `Generated/` directory from
+  `qyl.instrumentation.generators`. The `Qyl.Contracts.Generated` namespace had zero consumers.
 - **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —
   `McpApiKeyEndpoints.cs`, `McpLogEndpoints.cs`, `McpMetricEndpoints.cs`, `McpSessionEndpoints.cs`,
   `McpTraceEndpoints.cs`, `McpQueryBuilder.cs`. None were registered in endpoint routing. Directory removed.

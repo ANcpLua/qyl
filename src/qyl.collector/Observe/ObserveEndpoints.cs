@@ -15,7 +15,7 @@ internal static class ObserveEndpoints
     }
 
     // GET /api/v1/observe/catalog — domain discovery and attribute manifests
-    private static IResult GetCatalog(SubscriptionManager manager)
+    private static Ok<CatalogResponse> GetCatalog(SubscriptionManager manager)
         => TypedResults.Ok(ObserveCatalog.Build(manager));
 
     // GET /api/v1/observe — list active subscriptions
@@ -27,7 +27,7 @@ internal static class ObserveEndpoints
                 s.ContractHash, s.SchemaVersion))
             .ToArray();
 
-        return TypedResults.Ok(new { subscriptions = items });
+        return Results.Ok(new { subscriptions = items });
     }
 
     // POST /api/v1/observe — activate a new subscription

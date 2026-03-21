@@ -1521,7 +1521,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
         foreach (var statement in statements)
         {
-            if (!statement.StartsWith("CREATE TABLE IF NOT EXISTS ", StringComparison.Ordinal))
+            if (!statement.StartsWithOrdinal("CREATE TABLE IF NOT EXISTS "))
             {
                 normalized.Add(statement);
                 continue;
@@ -1532,7 +1532,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
             for (var i = 0; i < lines.Count; i++)
             {
-                if (lines[i].TrimStart().StartsWith("created_at ", StringComparison.OrdinalIgnoreCase))
+                if (lines[i].TrimStart().StartsWithIgnoreCase("created_at "))
                 {
                     createdAtIndexes.Add(i);
                 }

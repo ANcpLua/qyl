@@ -28,5 +28,8 @@ public enum QylSkillKind
     Loom,
 
     /// <summary>Interactive ext-apps: trace viewer, error explorer, query studio</summary>
-    Apps
+    Apps,
+
+    /// <summary>IDE debugging: breakpoints, stepping, evaluation, variables (proxied from Rider)</summary>
+    Debug
 }

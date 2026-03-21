@@ -5,6 +5,7 @@ using qyl.mcp.Apps.QueryStudio;
 using qyl.mcp.Apps.TraceExplorer;
 using qyl.mcp.Tools;
 using qyl.mcp.Tools.Analysis;
+using qyl.mcp.Tools.Debug;
 using qyl.mcp.Tools.Discovery;
 using qyl.mcp.Tools.Logs;
 using qyl.mcp.Tools.Management;
@@ -132,6 +133,12 @@ internal static class SkillRegistrationExtensions
                 .WithTraceExplorer(jsonOptions)
                 .WithErrorExplorer(jsonOptions)
                 .WithQueryStudio(jsonOptions);
+        }
+
+        // Debug: IDE debugging via Rider's Debugger MCP plugin
+        if (skills.IsEnabled(QylSkillKind.Debug))
+        {
+            mcpBuilder.WithTools<DebugTools>();
         }
 
         return mcpBuilder;

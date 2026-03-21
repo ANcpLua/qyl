@@ -51,7 +51,7 @@ public sealed partial class DuckDbStore
             : null;
     }
 
-    private static ArtifactRow ReadArtifactRow(IDataReader reader) =>
+    private static ArtifactRow ReadArtifactRow(DbDataReader reader) =>
         new(
             reader.GetString(0),
             reader.GetString(1),
