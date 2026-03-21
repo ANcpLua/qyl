@@ -55,7 +55,7 @@
         "gen_ai.data_source.id"
       ],
       "crossCutting": {
-        "EnduserId": "enduser.id",
+        "UserId": "user.id",
         "SessionId": "session.id",
         "ErrorType": "error.type",
         "ExceptionType": "exception.type",
@@ -79,26 +79,12 @@
         },
         "Providers": {
           "summary": "Well-known provider name values.",
-          "values": {
-            "Anthropic": "anthropic",
-            "AwsBedrock": "aws.bedrock",
-            "AzureAiInference": "azure.ai.inference",
-            "AzureOpenAi": "azure.ai.openai",
-            "Cohere": "cohere",
-            "DeepSeek": "deepseek",
-            "GcpGemini": "gcp.gemini",
-            "GcpGenAi": "gcp.gen_ai",
-            "GcpVertexAi": "gcp.vertex_ai",
-            "Groq": "groq",
+          "upstream": "GEN_AI_PROVIDER_NAME",
+          "extensions": {
             "GitHubCopilot": "github_copilot",
-            "IbmWatsonxAi": "ibm.watsonx.ai",
             "MicrosoftAgents": "microsoft_agents",
-            "MistralAi": "mistral_ai",
-            "OpenAi": "openai",
-            "Perplexity": "perplexity",
-            "XAi": "x_ai",
             "Meta": "meta",
-            "HuggingFace": "huggingface",
+            "HuggingFace": "hugging_face",
             "Replicate": "replicate",
             "TogetherAi": "together_ai",
             "Fireworks": "fireworks",

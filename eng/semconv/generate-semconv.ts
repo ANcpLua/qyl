@@ -27,7 +27,6 @@ const __dirname = path.dirname(__filename);
 interface Attribute {
     exportName: string; // ATTR_GEN_AI_SYSTEM
     value: string; // "gen_ai.system"
-    deprecated?: string;
 }
 
 interface EnumValue {
@@ -35,12 +34,12 @@ interface EnumValue {
     exportName: string; // GEN_AI_SYSTEM_VALUE_OPENAI
     memberName: string; // OPENAI
     value: string; // "openai"
-    deprecated?: string;
 }
 
 interface ParsedData {
     version: string;
     attributes: Attribute[];
+    attrMap: Map<string, Attribute>;
     enums: Map<string, EnumValue[]>; // grouped by attributePrefix
 }
 
@@ -282,6 +281,9 @@ function parse(): ParsedData {
     // Sort for consistent output
     dedupedAttrs.sort((a, b) => a.value.localeCompare(b.value));
 
+    // O(1) lookup by attribute value
+    const attrMap = new Map(dedupedAttrs.map(a => [a.value, a]));
+
     console.log(
         `  Found ${dedupedAttrs.length} attributes, ${enumMap.size} enum groups`
     );
@@ -289,6 +291,7 @@ function parse(): ParsedData {
     return {
         version,
         attributes: dedupedAttrs,
+        attrMap,
         enums: enumMap,
     };
 }
@@ -313,7 +316,7 @@ function generateTypeScript(data: ParsedData): string {
         lines.push(``);
         lines.push(`// ${prefix}`);
         for (const attr of attrs) {
-            const found = data.attributes.find((a) => a.value === attr);
+            const found = data.attrMap.get(attr);
             if (found) {
                 lines.push(`export const ${attrToConstName(found.value)} = "${found.value}";`);
             }
@@ -326,7 +329,7 @@ function generateTypeScript(data: ParsedData): string {
         lines.push(`// Enum values`);
 
         for (const [prefix, values] of data.enums) {
-            const enumName = prefixToEnumName(prefix) + "Values";
+            const enumName = snakeToPascal(prefix) + "Values";
             lines.push(`export const ${enumName} = {`);
             for (const v of values) {
                 const memberName = snakeToPascal(v.memberName);
@@ -366,7 +369,7 @@ function generateCSharp(data: ParsedData): string {
         lines.push(`{`);
 
         for (const attr of attrs) {
-            const found = data.attributes.find((a) => a.value === attr);
+            const found = data.attrMap.get(attr);
             if (found) {
                 const propName = attrToCSharpPropName(found.value, prefix);
                 lines.push(`    /// <summary>${found.value}</summary>`);
@@ -430,7 +433,7 @@ function generateCSharpUtf8(data: ParsedData): string {
         lines.push(`{`);
 
         for (const attr of attrs) {
-            const found = data.attributes.find((a) => a.value === attr);
+            const found = data.attrMap.get(attr);
             if (found) {
                 const propName = attrToCSharpPropName(found.value, prefix);
                 lines.push(`    /// <summary>${found.value}</summary>`);
@@ -547,7 +550,7 @@ function generateTypeSpec(data: ParsedData): string {
         lines.push(`  namespace ${nsName} {`);
 
         for (const attr of attrs) {
-            const found = data.attributes.find((a) => a.value === attr);
+            const found = data.attrMap.get(attr);
             if (found) {
                 const propName = attrToTypeSpecPropName(found.value, domain);
                 lines.push(`    /** "${found.value}" */`);
@@ -615,7 +618,7 @@ function generateTypeSpec(data: ParsedData): string {
         lines.push(`model ${modelName} {`);
 
         for (const attr of attrs) {
-            const found = data.attributes.find((a) => a.value === attr);
+            const found = data.attrMap.get(attr);
             if (found) {
                 const propName = attrToTypeSpecPropName(found.value, domain);
                 const propType = inferTypeSpecType(found.value, enumLookup);
@@ -809,7 +812,7 @@ function generateFacadeClass(data: ParsedData, facade: FacadeConfig): string {
         const override = facade.propertyOverrides?.[key];
         const propName = override ?? attrToCSharpPropName(key, facade.upstreamPrefix);
 
-        const found = data.attributes.find(a => a.value === key);
+        const found = data.attrMap.get(key);
         if (!found) {
             console.warn(`    ⚠ '${key}' not found in upstream v${version}`);
         }
@@ -921,7 +924,7 @@ function groupByTopLevelPrefix(values: string[]): Map<string, string[]> {
     for (const v of values) {
         const parts = v.split(".");
         // Use first part only: gen_ai.request.model -> gen_ai
-        const prefix = parts[0].replace(/_/g, "_");
+        const prefix = parts[0];
         const group = groups.get(prefix) || [];
         group.push(v);
         groups.set(prefix, group);
@@ -932,11 +935,6 @@ function groupByTopLevelPrefix(values: string[]): Map<string, string[]> {
 function attrToConstName(attr: string): string {
     // gen_ai.system -> GEN_AI_SYSTEM
     return attr.toUpperCase().replace(/\./g, "_");
-}
-
-function prefixToEnumName(prefix: string): string {
-    // GEN_AI_SYSTEM -> GenAiSystem
-    return snakeToPascal(prefix);
 }
 
 function prefixToClassName(prefix: string): string {
@@ -982,7 +980,7 @@ function parseArg(args: string[], name: string): string | undefined {
     return arg ? arg.slice(prefix.length) : undefined;
 }
 
-async function main() {
+function main() {
     const args = process.argv.slice(2);
     const tsOnly = args.includes("--ts-only");
     const csOnly = args.includes("--cs-only");
@@ -1079,7 +1077,4 @@ async function main() {
     console.log("Done!");
 }
 
-main().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+main();

@@ -140,8 +140,8 @@ public static class GenAiAttributes
     /// <summary>gen_ai.data_source.id</summary>
     public const string DataSourceId = "gen_ai.data_source.id";
 
-    /// <summary>enduser.id</summary>
-    public const string EnduserId = "enduser.id";
+    /// <summary>user.id</summary>
+    public const string UserId = "user.id";
 
     /// <summary>session.id</summary>
     public const string SessionId = "session.id";
@@ -226,13 +226,13 @@ public static class GenAiAttributes
         public const string AzureAiInference = "azure.ai.inference";
 
         /// <summary>azure.ai.openai</summary>
-        public const string AzureOpenAi = "azure.ai.openai";
+        public const string AzureAiOpenai = "azure.ai.openai";
 
         /// <summary>cohere</summary>
         public const string Cohere = "cohere";
 
         /// <summary>deepseek</summary>
-        public const string DeepSeek = "deepseek";
+        public const string Deepseek = "deepseek";
 
         /// <summary>gcp.gemini</summary>
         public const string GcpGemini = "gcp.gemini";
@@ -246,20 +246,14 @@ public static class GenAiAttributes
         /// <summary>groq</summary>
         public const string Groq = "groq";
 
-        /// <summary>github_copilot</summary>
-        public const string GitHubCopilot = "github_copilot";
-
         /// <summary>ibm.watsonx.ai</summary>
         public const string IbmWatsonxAi = "ibm.watsonx.ai";
-
-        /// <summary>microsoft_agents</summary>
-        public const string MicrosoftAgents = "microsoft_agents";
 
         /// <summary>mistral_ai</summary>
         public const string MistralAi = "mistral_ai";
 
         /// <summary>openai</summary>
-        public const string OpenAi = "openai";
+        public const string Openai = "openai";
 
         /// <summary>perplexity</summary>
         public const string Perplexity = "perplexity";
@@ -267,11 +261,19 @@ public static class GenAiAttributes
         /// <summary>x_ai</summary>
         public const string XAi = "x_ai";
 
+        // qyl extensions
+
+        /// <summary>github_copilot</summary>
+        public const string GitHubCopilot = "github_copilot";
+
+        /// <summary>microsoft_agents</summary>
+        public const string MicrosoftAgents = "microsoft_agents";
+
         /// <summary>meta</summary>
         public const string Meta = "meta";
 
-        /// <summary>huggingface</summary>
-        public const string HuggingFace = "huggingface";
+        /// <summary>hugging_face</summary>
+        public const string HuggingFace = "hugging_face";
 
         /// <summary>replicate</summary>
         public const string Replicate = "replicate";
