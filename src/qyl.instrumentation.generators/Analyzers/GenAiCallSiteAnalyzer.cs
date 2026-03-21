@@ -23,8 +23,9 @@ internal static class GenAiCallSiteAnalyzer
     /// <summary>
     ///     Declarative GenAI method patterns.
     ///     Each entry pairs an <see cref="InvocationMatcher" /> with the OTel operation metadata it represents.
+    ///     Type matching uses symbol comparison (Phase 2) rather than string prefixes.
     /// </summary>
-    private static readonly (string MethodName, InvocationMatcher Matcher, string Operation, bool IsAsync)[] Matchers =
+    private static readonly (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)[] Matchers =
         BuildMatchers();
 
     private static readonly HashSet<string> CandidateMethodNames =
@@ -54,7 +55,7 @@ internal static class GenAiCallSiteAnalyzer
         if (!AnalyzerHelpers.TryGetInvocationOperation(context, cancellationToken, out var invocation))
             return null;
 
-        if (!TryMatchGenAiMethod(invocation, out var provider, out var operation, out var isAsync))
+        if (!TryMatchGenAiMethod(invocation, context.SemanticModel.Compilation, out var provider, out var operation, out var isAsync))
             return null;
 
         // Skip if already intercepted by another generator
@@ -83,6 +84,7 @@ internal static class GenAiCallSiteAnalyzer
 
     private static bool TryMatchGenAiMethod(
         IInvocationOperation invocation,
+        Compilation compilation,
         [NotNullWhen(true)] out string? provider,
         [NotNullWhen(true)] out string? operation,
         out bool isAsync)
@@ -91,13 +93,22 @@ internal static class GenAiCallSiteAnalyzer
         operation = null;
         isAsync = false;
 
-        foreach (var (_, matcher, op, async) in Matchers)
+        foreach (var (_, matcher, typeMetadataName, op, async) in Matchers)
         {
+            // Phase 1: cheap method-name match via Invoke DSL
             if (!matcher.Matches(invocation))
                 continue;
 
-            var typeName = invocation.TargetMethod.ContainingType?.ToDisplayString();
-            provider = (typeName is not null ? ProviderDetector.GetGenAiProviderId(typeName) : null) ?? "unknown";
+            // Phase 2: symbol-based type check
+            var expectedType = compilation.GetTypeByMetadataName(typeMetadataName);
+            if (expectedType is null)
+                continue;
+
+            var containingType = invocation.TargetMethod.ContainingType;
+            if (containingType is null || !containingType.IsEqualTo(expectedType))
+                continue;
+
+            provider = ProviderDetector.GetGenAiProviderId(containingType.ToDisplayString()) ?? "unknown";
             operation = op;
             isAsync = async;
             return true;
@@ -127,7 +138,7 @@ internal static class GenAiCallSiteAnalyzer
     ///     This preserves the original matching semantics (StartsWith on fully-qualified type name)
     ///     while expressing each pattern declaratively via the <see cref="Invoke" /> DSL.
     /// </remarks>
-    private static (string MethodName, InvocationMatcher Matcher, string Operation, bool IsAsync)[] BuildMatchers()
+    private static (string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)[] BuildMatchers()
     {
         // Agent framework methods shared across multiple types
         var agentMethods = new (string MethodName, string Operation, bool IsAsync)[]
@@ -135,8 +146,8 @@ internal static class GenAiCallSiteAnalyzer
             ("RunAsync", "invoke_agent", true), ("RunStreamingAsync", "invoke_agent", true)
         };
 
-        // (type prefix, methods) — same structure as the old MethodPatterns dictionary
-        var patterns = new (string TypePrefix, (string MethodName, string Operation, bool IsAsync)[] Methods)[]
+        // (type metadata name, methods) — type matching is done via symbol comparison in TryMatchGenAiMethod
+        var patterns = new (string TypeMetadataName, (string MethodName, string Operation, bool IsAsync)[] Methods)[]
         {
             // Microsoft.Extensions.AI abstractions
             (
@@ -185,18 +196,15 @@ internal static class GenAiCallSiteAnalyzer
                 [("ChatAsync", "chat", true), ("EmbedAsync", "embeddings", true), ("RerankAsync", "rerank", true)])
         };
 
-        var result = new List<(string MethodName, InvocationMatcher Matcher, string Operation, bool IsAsync)>();
+        var result = new List<(string MethodName, InvocationMatcher Matcher, string TypeMetadataName, string Operation, bool IsAsync)>();
 
-        foreach (var (typePrefix, methods) in patterns)
+        foreach (var (typeMetadataName, methods) in patterns)
         {
             foreach (var (methodName, operation, isAsync) in methods)
             {
-                var prefix = typePrefix; // capture for closure
-                var matcher = Invoke.Method(methodName)
-                    .Where(i => i.TargetMethod.ContainingType?.ToDisplayString()
-                        .StartsWithIgnoreCase(prefix) == true);
-
-                result.Add((methodName, matcher, operation, isAsync));
+                // Phase 1 only: method-name match via Invoke DSL
+                // Phase 2 (type check via IsEqualTo) happens in TryMatchGenAiMethod
+                result.Add((methodName, Invoke.Method(methodName), typeMetadataName, operation, isAsync));
             }
         }
 

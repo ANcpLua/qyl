@@ -1,3 +1,4 @@
+using ANcpLua.Roslyn.Utilities;
 using Microsoft.CodeAnalysis;
 
 namespace Qyl.Instrumentation.Generators.Analyzers;
@@ -22,35 +23,34 @@ internal static class TelemetryTagNameResolver
 {
     private const string OTelAttributeMetadataName = "Qyl.Instrumentation.Instrumentation.OTelAttribute";
 
-    public static string ResolveName(ISymbol symbol, string? explicitName, string fallbackName)
+    public static string ResolveName(ISymbol symbol, Compilation compilation, string? explicitName, string fallbackName)
     {
         if (!string.IsNullOrWhiteSpace(explicitName))
             return explicitName!;
 
-        var otel = ReadOtelOverride(symbol);
+        var otel = ReadOtelOverride(symbol, compilation);
         return !string.IsNullOrWhiteSpace(otel.Name) ? otel.Name! : fallbackName;
     }
 
-    public static bool ResolveSkipIfNull(ISymbol symbol, bool? explicitSkipIfNull, bool defaultValue = true)
+    public static bool ResolveSkipIfNull(ISymbol symbol, Compilation compilation, bool? explicitSkipIfNull, bool defaultValue = true)
     {
         if (explicitSkipIfNull.HasValue)
             return explicitSkipIfNull.Value;
 
-        var otel = ReadOtelOverride(symbol);
+        var otel = ReadOtelOverride(symbol, compilation);
         return otel.SkipIfNull ?? defaultValue;
     }
 
-    private static (string? Name, bool? SkipIfNull) ReadOtelOverride(ISymbol symbol)
+    private static (string? Name, bool? SkipIfNull) ReadOtelOverride(ISymbol symbol, Compilation compilation)
     {
-        var attribute = AnalyzerHelpers.FindAttributeByName(symbol.GetAttributes(), OTelAttributeMetadataName);
+        var attribute = AnalyzerHelpers.FindAttributeByName(symbol.GetAttributes(), compilation, OTelAttributeMetadataName);
         if (attribute is null)
             return default;
 
         string? name = null;
         bool? skipIfNull = null;
 
-        if (attribute.ConstructorArguments.Length > 0 &&
-            attribute.ConstructorArguments[0].Value is string attributeName &&
+        if (attribute.TryGetConstructorArgument<string>(0, out var attributeName) &&
             !string.IsNullOrWhiteSpace(attributeName))
         {
             name = attributeName;

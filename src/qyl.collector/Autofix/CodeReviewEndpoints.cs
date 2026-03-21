@@ -16,36 +16,36 @@ public static class CodeReviewEndpoints
                 .ReviewPullRequestAsync(repoFullName, prNumber, ct)
                 .ConfigureAwait(false);
 
-            return Results.Ok(result);
+            return TypedResults.Ok(result);
         });
 
-        app.MapGet("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", static (
+        app.MapGet("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}", static IResult (
             string owner, string repo, int prNumber,
             CodeReviewService reviewService) =>
         {
             var repoFullName = $"{owner}/{repo}";
             var cached = reviewService.GetCachedResult(repoFullName, prNumber);
             return cached is not null
-                ? Results.Ok(cached)
-                : Results.NotFound();
+                ? TypedResults.Ok(cached)
+                : TypedResults.NotFound();
         });
 
-        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", static async (
+        app.MapPost("/api/v1/code-review/{owner}/{repo}/pulls/{prNumber:int}/post", static async Task<IResult> (
             string owner, string repo, int prNumber,
             CodeReviewService reviewService, CancellationToken ct) =>
         {
             var repoFullName = $"{owner}/{repo}";
             var cached = reviewService.GetCachedResult(repoFullName, prNumber);
             if (cached is null || cached.Comments.Count == 0)
-                return Results.BadRequest(new { error = "No review comments available. Run a review first." });
+                return TypedResults.BadRequest(new { error = "No review comments available. Run a review first." });
 
             var posted = await reviewService
                 .PostReviewCommentsAsync(repoFullName, prNumber, cached.Comments, ct)
                 .ConfigureAwait(false);
 
             return posted
-                ? Results.Ok(new { posted = cached.Comments.Count })
-                : Results.Problem("Failed to post some or all review comments to GitHub.");
+                ? TypedResults.Ok(new { posted = cached.Comments.Count })
+                : TypedResults.Problem("Failed to post some or all review comments to GitHub.");
         });
     }
 }

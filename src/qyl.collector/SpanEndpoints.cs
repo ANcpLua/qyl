@@ -28,18 +28,18 @@ internal static class SpanEndpoints
         }
 
         var spanDtos = spans.Select(s => SpanMapper.ToDto(s, serviceName)).ToList();
-        return Results.Ok(new SpanListResponseDto { Spans = spanDtos });
+        return TypedResults.Ok(new SpanListResponseDto { Spans = spanDtos });
     }
 
     public static async Task<IResult> GetTraceAsync(string traceId, DuckDbStore store)
     {
         var spans = await store.GetTraceAsync(traceId).ConfigureAwait(false);
-        if (spans.Count is 0) return Results.NotFound();
+        if (spans.Count is 0) return TypedResults.NotFound();
 
         var spanDtos = SpanMapper.ToDtos(spans, static r => (r.Name.Split(' ').LastOrDefault() ?? "unknown", null));
         var rootSpan = spanDtos.FirstOrDefault(static s => s.ParentSpanId is null);
 
-        return Results.Ok(new TraceResponseDto
+        return TypedResults.Ok(new TraceResponseDto
         {
             TraceId = traceId,
             Spans = spanDtos,

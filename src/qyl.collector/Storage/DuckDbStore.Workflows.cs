@@ -26,10 +26,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a workflow execution using the full record type.
     /// </summary>
-    public async Task InsertWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -42,20 +40,14 @@ public sealed partial class DuckDbStore
                               ON CONFLICT (execution_id) DO NOTHING
                               """;
             AddWorkflowExecutionParameters(cmd, record);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Updates a workflow execution using the full record type.
     /// </summary>
-    public async Task UpdateWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpdateWorkflowExecutionAsync(WorkflowExecutionRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -81,33 +73,18 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.DurationNs ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ErrorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ExecutionId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single workflow execution by ID as a full record.
     /// </summary>
-    public async Task<WorkflowExecutionRecord?> GetWorkflowExecutionAsync(
-        string executionId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = WorkflowExecutionSelectSql + " WHERE execution_id = $1";
-        cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapWorkflowExecution(reader);
-
-        return null;
-    }
+    public Task<WorkflowExecutionRecord?> GetWorkflowExecutionAsync(
+        string executionId, CancellationToken ct = default) =>
+        ReadOneAsync(
+            WorkflowExecutionSelectSql + " WHERE execution_id = $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = executionId }),
+            MapWorkflowExecution, ct);
 
     /// <summary>
     ///     Lists workflow executions with optional filtering.
@@ -119,9 +96,6 @@ public sealed partial class DuckDbStore
         string? status = null,
         CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
         var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(workflowName))
@@ -132,22 +106,15 @@ public sealed partial class DuckDbStore
         var clampedLimit = Math.Clamp(limit, 1, 1000);
         var clampedOffset = Math.Max(offset, 0);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           {WorkflowExecutionSelectSql}
-                           {qb.WhereClause}
-                           ORDER BY start_time_unix_nano DESC
-                           LIMIT {clampedLimit} OFFSET {clampedOffset}
-                           """;
-
-        qb.ApplyTo(cmd);
-
-        var records = new List<WorkflowExecutionRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            records.Add(MapWorkflowExecution(reader));
-
-        return records;
+        return await ReadManyAsync(
+            $"""
+             {WorkflowExecutionSelectSql}
+             {qb.WhereClause}
+             ORDER BY start_time_unix_nano DESC
+             LIMIT {clampedLimit} OFFSET {clampedOffset}
+             """,
+            cmd => qb.ApplyTo(cmd),
+            MapWorkflowExecution, ct).ConfigureAwait(false);
     }
 
     // ==========================================================================
@@ -157,10 +124,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a workflow checkpoint record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertCheckpointAsync(WorkflowCheckpointRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertCheckpointAsync(WorkflowCheckpointRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -176,40 +141,24 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.StateJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.SequenceNumber });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.CreatedAtUnixNano });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets all checkpoints for a workflow execution, ordered by sequence number.
     /// </summary>
-    public async Task<IReadOnlyList<WorkflowCheckpointRecord>> GetCheckpointsAsync(
-        string executionId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT checkpoint_id, execution_id, node_id, state_json,
-                                 sequence_number, created_at_unix_nano
-                          FROM workflow_checkpoints
-                          WHERE execution_id = $1
-                          ORDER BY sequence_number ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
-
-        var records = new List<WorkflowCheckpointRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            records.Add(MapCheckpoint(reader));
-
-        return records;
-    }
+    public Task<IReadOnlyList<WorkflowCheckpointRecord>> GetCheckpointsAsync(
+        string executionId, CancellationToken ct = default) =>
+        ReadManyAsync(
+            """
+            SELECT checkpoint_id, execution_id, node_id, state_json,
+                   sequence_number, created_at_unix_nano
+            FROM workflow_checkpoints
+            WHERE execution_id = $1
+            ORDER BY sequence_number ASC
+            """,
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = executionId }),
+            MapCheckpoint, ct);
 
     // ==========================================================================
     // Workflow Event Operations
@@ -218,10 +167,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a workflow event record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertWorkflowEventAsync(WorkflowEventRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertWorkflowEventAsync(WorkflowEventRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -238,12 +185,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.PayloadJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.SequenceNumber });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.CreatedAtUnixNano });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets workflow events for an execution, ordered by sequence number.
@@ -253,31 +196,21 @@ public sealed partial class DuckDbStore
         int? afterSequence = null,
         CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
         var qb = new QueryBuilder();
         qb.Add("execution_id = $N", executionId);
         if (afterSequence.HasValue)
             qb.Add("sequence_number > $N", afterSequence.Value);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT event_id, execution_id, node_id, event_type,
-                                  payload_json, sequence_number, created_at_unix_nano
-                           FROM workflow_events
-                           {qb.WhereClause}
-                           ORDER BY sequence_number ASC
-                           """;
-
-        qb.ApplyTo(cmd);
-
-        var records = new List<WorkflowEventRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            records.Add(MapEvent(reader));
-
-        return records;
+        return await ReadManyAsync(
+            $"""
+             SELECT event_id, execution_id, node_id, event_type,
+                    payload_json, sequence_number, created_at_unix_nano
+             FROM workflow_events
+             {qb.WhereClause}
+             ORDER BY sequence_number ASC
+             """,
+            cmd => qb.ApplyTo(cmd),
+            MapEvent, ct).ConfigureAwait(false);
     }
 
     // ==========================================================================
@@ -287,10 +220,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Cancels a running workflow execution by setting its status to 'cancelled'.
     /// </summary>
-    public async Task<bool> CancelWorkflowExecutionAsync(string executionId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<bool> CancelWorkflowExecutionAsync(string executionId, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -305,12 +236,8 @@ public sealed partial class DuckDbStore
                 Value = TimeConversions.ToUnixNano(TimeProvider.System.GetUtcNow())
             });
             cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false) > 0;
-    }
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
+        }, ct).ConfigureAwait(false);
 
     private static void AddWorkflowExecutionParameters(DuckDBCommand cmd, WorkflowExecutionRecord record)
     {

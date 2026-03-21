@@ -8,13 +8,18 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    private const string HandoffSelectSql = """
+                                            SELECT handoff_id, run_id, agent_type, status, context_json,
+                                                   result_json, error_message, accepted_at, submitted_at,
+                                                   failed_at, timeout_at, created_at
+                                            FROM agent_handoffs
+                                            """;
+
     /// <summary>
     ///     Inserts a new agent handoff record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertHandoffAsync(AgentHandoffRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertHandoffAsync(AgentHandoffRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -31,12 +36,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ContextJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ResultJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ErrorMessage ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Updates a handoff's status with conditional timestamp setting.
@@ -44,10 +45,8 @@ public sealed partial class DuckDbStore
     public async Task<int> UpdateHandoffStatusAsync(
         string handoffId, string status, string? resultJson = null,
         string? errorMessage = null, string? expectedCurrentStatus = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = expectedCurrentStatus is not null
@@ -78,94 +77,40 @@ public sealed partial class DuckDbStore
             if (expectedCurrentStatus is not null)
                 cmd.Parameters.Add(new DuckDBParameter { Value = expectedCurrentStatus });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single agent handoff by handoff_id.
     /// </summary>
-    public async Task<AgentHandoffRecord?> GetHandoffAsync(string handoffId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT handoff_id, run_id, agent_type, status, context_json,
-                                 result_json, error_message, accepted_at, submitted_at,
-                                 failed_at, timeout_at, created_at
-                          FROM agent_handoffs WHERE handoff_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = handoffId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return null;
-
-        return MapHandoff(reader);
-    }
+    public Task<AgentHandoffRecord?> GetHandoffAsync(string handoffId, CancellationToken ct = default) =>
+        ReadOneAsync(
+            HandoffSelectSql + " WHERE handoff_id = $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = handoffId }),
+            MapHandoff, ct);
 
     /// <summary>
     ///     Gets pending handoffs ordered by creation time ascending (oldest first).
     /// </summary>
-    public async Task<IReadOnlyList<AgentHandoffRecord>> GetPendingHandoffsAsync(
-        int limit = 50, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT handoff_id, run_id, agent_type, status, context_json,
-                                 result_json, error_message, accepted_at, submitted_at,
-                                 failed_at, timeout_at, created_at
-                          FROM agent_handoffs
-                          WHERE status = 'pending'
-                          ORDER BY created_at ASC
-                          LIMIT $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<AgentHandoffRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapHandoff(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<AgentHandoffRecord>> GetPendingHandoffsAsync(
+        int limit = 50, CancellationToken ct = default) =>
+        ReadManyAsync(
+            HandoffSelectSql + " WHERE status = 'pending' ORDER BY created_at ASC LIMIT $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = limit }),
+            MapHandoff, ct);
 
     /// <summary>
     ///     Gets handoffs for a specific run, ordered by creation time descending.
     /// </summary>
-    public async Task<IReadOnlyList<AgentHandoffRecord>> GetHandoffsForRunAsync(
-        string runId, int limit = 50, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT handoff_id, run_id, agent_type, status, context_json,
-                                 result_json, error_message, accepted_at, submitted_at,
-                                 failed_at, timeout_at, created_at
-                          FROM agent_handoffs
-                          WHERE run_id = $1
-                          ORDER BY created_at DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<AgentHandoffRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapHandoff(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<AgentHandoffRecord>> GetHandoffsForRunAsync(
+        string runId, int limit = 50, CancellationToken ct = default) =>
+        ReadManyAsync(
+            HandoffSelectSql + " WHERE run_id = $1 ORDER BY created_at DESC LIMIT $2",
+            cmd =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = runId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapHandoff, ct);
 
     private static AgentHandoffRecord MapHandoff(DbDataReader reader) =>
         new()

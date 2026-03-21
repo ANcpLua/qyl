@@ -513,7 +513,7 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 
 ## 11. Acceptance Criteria
 
-### 11.1 Product criteria
+### 13.1 Product criteria
 
 - [ ] `docker run qyl` starts a working server with dashboard in < 5 seconds
 - [ ] `dotnet add package qyl` + `builder.AddQyl()` produces traces in the dashboard
@@ -524,7 +524,7 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 - [ ] Server has zero LLM provider dependencies
 - [ ] Server process survives qyl-loom being offline
 
-### 11.2 Architecture criteria
+### 13.2 Architecture criteria
 
 - [ ] Collector contains <= 15 domain directories (down from 30+)
 - [ ] No code path in the server calls an LLM provider
@@ -534,7 +534,7 @@ Everything on the kill list (section 5). No code, no "maybe later," no commented
 - [ ] qyl.contracts has zero NuGet package dependencies
 - [ ] No component on the kill list exists in the codebase
 
-### 11.3 UX criteria
+### 13.3 UX criteria
 
 - [ ] Setup time (server + SDK + first trace) <= 2 minutes
 - [ ] Dashboard loads in < 1 second with 100K spans in DuckDB

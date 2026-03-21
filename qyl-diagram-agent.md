@@ -193,7 +193,7 @@ Stack/Message grouping]
 token counts, provider, model]
     CONV[Convergence Calculator
 embedding distance + clusters]
-    ANM[Anomaly Scorer
+    ANM[Anomaly S``corer
 statistical deviations]
     WRITER[DuckDB Writer]
   end

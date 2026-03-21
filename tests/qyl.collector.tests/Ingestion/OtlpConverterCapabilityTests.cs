@@ -81,11 +81,13 @@ public sealed class OtlpConverterCapabilityTests
     private static string[] ReadStringArray(JsonElement element)
     {
         if (element.ValueKind is JsonValueKind.Array)
+        {
             return element.EnumerateArray()
                 .Select(static v => v.GetString())
                 .Where(static v => v is not null)
                 .Select(static v => v!)
                 .ToArray();
+        }
 
         if (element.ValueKind is JsonValueKind.String)
         {

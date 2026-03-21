@@ -217,6 +217,13 @@ public static class SpanMapper
     }
 }
 
+internal static class AttributeParsing
+{
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static long? ParseNullableLong(string? value) =>
+        string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
+}
+
 public static class SessionMapper
 {
     public static SessionDto ToDto(SessionQueryRow summary)

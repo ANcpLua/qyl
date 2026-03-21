@@ -12,39 +12,39 @@ public static class ErrorEndpoints
         {
             var errors =
                 await store.GetErrorsAsync(category, status, serviceName, Math.Clamp(limit ?? 50, 1, 1000), ct);
-            return Results.Ok(new { items = errors, total = errors.Count });
+            return TypedResults.Ok(new { items = errors, total = errors.Count });
         });
 
         app.MapGet("/api/v1/errors/stats", static async (DuckDbStore store, CancellationToken ct) =>
         {
             var stats = await store.GetErrorStatsAsync(ct);
-            return Results.Ok(stats);
+            return TypedResults.Ok(stats);
         });
 
-        app.MapGet("/api/v1/errors/{errorId}", static async (
+        app.MapGet("/api/v1/errors/{errorId}", static async Task<IResult> (
             string errorId, DuckDbStore store, CancellationToken ct) =>
         {
             var error = await store.GetErrorByIdAsync(errorId, ct);
-            return error is null ? Results.NotFound() : Results.Ok(error);
+            return error is null ? TypedResults.NotFound() : TypedResults.Ok(error);
         });
 
-        app.MapPatch("/api/v1/errors/{errorId}", static async (
+        app.MapPatch("/api/v1/errors/{errorId}", static async Task<IResult> (
             string errorId, ErrorStatusUpdate update, DuckDbStore store, CancellationToken ct) =>
         {
             var status = update.Status?.Trim().ToLowerInvariant();
             if (string.IsNullOrEmpty(status) || !AllowedStatuses.Contains(status))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["status"] = [$"Must be one of: {string.Join(", ", AllowedStatuses)}"]
                 });
             }
 
             if (await store.GetErrorByIdAsync(errorId, ct) is not { } existing)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             await store.UpdateErrorStatusAsync(errorId, status, update.AssignedTo?.Trim(), ct);
-            return Results.Ok();
+            return TypedResults.Ok();
         });
     }
 }

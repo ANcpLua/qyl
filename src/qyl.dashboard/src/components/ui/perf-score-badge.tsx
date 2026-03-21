@@ -34,7 +34,8 @@ export function PerfScoreBadge({score, className, showLabel = true}: PerfScoreBa
     const displayScore = score != null ? Math.round(score) : null;
 
     return (
-        <span className={cn('inline-flex items-center gap-1 font-mono text-xs font-bold', levelStyles[level], className)}>
+        <span
+            className={cn('inline-flex items-center gap-1 font-mono text-xs font-bold', levelStyles[level], className)}>
             {showLabel && <span>{levelLabels[level]}</span>}
             {displayScore != null && <span>{displayScore}</span>}
         </span>

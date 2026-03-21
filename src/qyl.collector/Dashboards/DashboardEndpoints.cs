@@ -15,11 +15,11 @@ public static class DashboardEndpoints
             var dashboards = service.GetAvailable()
                 .Where(d => d.IsAvailable)
                 .ToList();
-            return Results.Ok(new { items = dashboards, total = dashboards.Count });
+            return TypedResults.Ok(new { items = dashboards, total = dashboards.Count });
         });
 
         // Get dashboard data with computed widgets
-        endpoints.MapGet("/api/v1/dashboards/{id}", async (
+        endpoints.MapGet("/api/v1/dashboards/{id}", async Task<IResult> (
             string id,
             [FromServices] DashboardService service,
             DuckDbStore store,
@@ -27,12 +27,12 @@ public static class DashboardEndpoints
         {
             var dashboard = service.GetAvailable().FirstOrDefault(d => d.Id == id);
             if (dashboard is null || !dashboard.IsAvailable)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
             var widgets = await DashboardQueries.GetWidgetsAsync(id, lease.Connection, ct).ConfigureAwait(false);
 
-            return Results.Ok(new DashboardData(
+            return TypedResults.Ok(new DashboardData(
                 dashboard.Id,
                 dashboard.Title,
                 dashboard.Description,
@@ -41,7 +41,7 @@ public static class DashboardEndpoints
         });
 
         // Get individual widget data (partial refresh)
-        endpoints.MapGet("/api/v1/dashboards/{id}/widgets", async (
+        endpoints.MapGet("/api/v1/dashboards/{id}/widgets", async Task<IResult> (
             string id,
             [FromServices] DashboardService service,
             DuckDbStore store,
@@ -49,12 +49,12 @@ public static class DashboardEndpoints
         {
             var dashboard = service.GetAvailable().FirstOrDefault(d => d.Id == id);
             if (dashboard is null || !dashboard.IsAvailable)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             await using var lease = await store.GetReadConnectionAsync(ct).ConfigureAwait(false);
             var widgets = await DashboardQueries.GetWidgetsAsync(id, lease.Connection, ct).ConfigureAwait(false);
 
-            return Results.Ok(new { widgets });
+            return TypedResults.Ok(new { widgets });
         });
     }
 }

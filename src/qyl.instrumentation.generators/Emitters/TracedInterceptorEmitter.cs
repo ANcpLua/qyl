@@ -288,6 +288,8 @@ internal static class TracedInterceptorEmitter
     private static string BuildAllTagSetters(TracedCallSite cs)
     {
         var sb = new StringBuilder();
+        // T-008: code.* attributes (compile-time constants from method definition).
+        AppendCodeContextTags(sb, cs);
         AppendParameterTagSetters(sb, cs);
         AppendPropertyTagSetters(sb, cs);
         if (sb.Length is 0) return string.Empty;
@@ -298,6 +300,22 @@ internal static class TracedInterceptorEmitter
         wrapped.Append(sb);
         wrapped.AppendLine("            }");
         return wrapped.ToString();
+    }
+
+    // T-008: Emit OTel code.* semantic convention attributes as compile-time constants.
+    private static void AppendCodeContextTags(StringBuilder sb, TracedCallSite cs)
+    {
+        if (cs.CodeFilePath is { Length: > 0 })
+        {
+            sb.AppendLine(
+                $"                activity.SetTag(\"code.filepath\", {SymbolDisplay.FormatLiteral(cs.CodeFilePath, true)});");
+        }
+
+        sb.AppendLine($"                activity.SetTag(\"code.function\", \"{cs.MethodName}\");");
+        if (cs.CodeNamespace is { Length: > 0 })
+            sb.AppendLine($"                activity.SetTag(\"code.namespace\", \"{cs.CodeNamespace}\");");
+        if (cs.CodeLineNumber > 0)
+            sb.AppendLine($"                activity.SetTag(\"code.lineno\", {cs.CodeLineNumber});");
     }
 
     private static void AppendParameterTagSetters(StringBuilder sb, TracedCallSite cs)

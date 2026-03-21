@@ -69,7 +69,7 @@ public static class GenAiInstrumentation
         string? sourceName = null,
         Action<OpenTelemetryChatClient>? configure = null)
     {
-        ArgumentNullException.ThrowIfNull(builder);
+        Guard.NotNull(builder);
 
         return builder.UseOpenTelemetry(
             sourceName: sourceName ?? GenAiConstants.SourceName,

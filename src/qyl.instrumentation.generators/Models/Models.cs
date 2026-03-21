@@ -283,6 +283,10 @@ internal sealed record TracedCallSite(
     EquatableArray<TypeParameterConstraint> TypeParameters,
     // T-007: Return-value capture descriptor, or null if not requested.
     TracedReturnInfo? ReturnCapture,
+    // T-008: OTel code.* attributes — source location of the [Traced] method definition.
+    string? CodeFilePath,
+    string? CodeNamespace,
+    int CodeLineNumber,
     InterceptableLocation Location);
 
 /// <summary>

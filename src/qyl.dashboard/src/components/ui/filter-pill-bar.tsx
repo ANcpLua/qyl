@@ -16,7 +16,13 @@ interface FilterPillBarProps {
     className?: string;
 }
 
-export function FilterPillBar({pills, onChange, availableFields, placeholder = 'Filter...', className}: FilterPillBarProps) {
+export function FilterPillBar({
+                                  pills,
+                                  onChange,
+                                  availableFields,
+                                  placeholder = 'Filter...',
+                                  className
+                              }: FilterPillBarProps) {
     const [input, setInput] = useState('');
     const [showFields, setShowFields] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -32,12 +38,16 @@ export function FilterPillBar({pills, onChange, availableFields, placeholder = '
                 onClick={() => inputRef.current?.focus()}
             >
                 {pills.map((pill) => (
-                    <span key={pill.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-brutal-dark border border-brutal-zinc text-xs font-mono">
+                    <span key={pill.id}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-brutal-dark border border-brutal-zinc text-xs font-mono">
                         <span className="text-brutal-slate">{pill.field}</span>
                         <span className="text-brutal-zinc">is</span>
                         <span className="text-brutal-white">{pill.value || '…'}</span>
                         <button
-                            onClick={(e) => { e.stopPropagation(); onChange(pills.filter((p) => p.id !== pill.id)); }}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onChange(pills.filter((p) => p.id !== pill.id));
+                            }}
                             className="ml-0.5 p-0.5 hover:bg-brutal-zinc/50 text-brutal-slate hover:text-brutal-white"
                             aria-label={`Remove ${pill.field} filter`}
                         >
@@ -48,7 +58,10 @@ export function FilterPillBar({pills, onChange, availableFields, placeholder = '
                 <input
                     ref={inputRef}
                     value={input}
-                    onChange={(e) => { setInput(e.target.value); setShowFields(true); }}
+                    onChange={(e) => {
+                        setInput(e.target.value);
+                        setShowFields(true);
+                    }}
                     onFocus={() => setShowFields(true)}
                     onBlur={() => setTimeout(() => setShowFields(false), 150)}
                     onKeyDown={(e) => {
@@ -63,7 +76,8 @@ export function FilterPillBar({pills, onChange, availableFields, placeholder = '
             </div>
 
             {showFields && unusedFields.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-brutal-carbon border-2 border-brutal-zinc max-h-48 overflow-auto">
+                <div
+                    className="absolute z-50 top-full left-0 right-0 mt-1 bg-brutal-carbon border-2 border-brutal-zinc max-h-48 overflow-auto">
                     {unusedFields.map((field) => (
                         <button
                             key={field}

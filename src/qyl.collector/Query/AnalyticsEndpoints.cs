@@ -47,7 +47,7 @@ internal static class AnalyticsEndpoints
             model,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetConversationAsync(
@@ -56,7 +56,7 @@ internal static class AnalyticsEndpoints
         CancellationToken ct)
     {
         var result = await analytics.GetConversationAsync(conversationId, ct).ConfigureAwait(false);
-        return result is null ? Results.NotFound() : Results.Ok(result);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetCoverageGapsAsync(
@@ -70,7 +70,7 @@ internal static class AnalyticsEndpoints
             offset ?? 0,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetTopQuestionsAsync(
@@ -86,7 +86,7 @@ internal static class AnalyticsEndpoints
             minConversations ?? 3,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetSourceAnalyticsAsync(
@@ -100,7 +100,7 @@ internal static class AnalyticsEndpoints
             offset ?? 0,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetSatisfactionAsync(
@@ -114,7 +114,7 @@ internal static class AnalyticsEndpoints
             offset ?? 0,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> ListUsersAsync(
@@ -132,7 +132,7 @@ internal static class AnalyticsEndpoints
             pageSize ?? 20,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(result);
+        return TypedResults.Ok(result);
     }
 
     private static async Task<IResult> GetUserJourneyAsync(
@@ -141,6 +141,6 @@ internal static class AnalyticsEndpoints
         CancellationToken ct)
     {
         var result = await analytics.GetUserJourneyAsync(userId, ct).ConfigureAwait(false);
-        return result is null ? Results.NotFound() : Results.Ok(result);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 }

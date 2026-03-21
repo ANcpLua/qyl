@@ -30,28 +30,28 @@ public static class IdentityEndpoints
             [FromServices] WorkspaceService service, int? limit, CancellationToken ct) =>
         {
             var workspaces = await service.ListWorkspacesAsync(limit ?? 50, ct);
-            return Results.Ok(new { items = workspaces, total = workspaces.Count });
+            return TypedResults.Ok(new { items = workspaces, total = workspaces.Count });
         });
 
-        group.MapGet("/{workspaceId}", static async (
+        group.MapGet("/{workspaceId}", static async Task<IResult> (
             string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var workspace = await service.GetWorkspaceAsync(workspaceId, ct);
-            return workspace is null ? Results.NotFound() : Results.Ok(workspace);
+            return workspace is null ? TypedResults.NotFound() : TypedResults.Ok(workspace);
         });
 
-        group.MapPost("/{workspaceId}/heartbeat", static async (
+        group.MapPost("/{workspaceId}/heartbeat", static async Task<IResult> (
             string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var found = await service.HeartbeatAsync(workspaceId, ct);
-            return found ? Results.Ok(new { status = "ok" }) : Results.NotFound();
+            return found ? TypedResults.Ok(new { status = "ok" }) : TypedResults.NotFound();
         });
 
-        group.MapDelete("/{workspaceId}", static async (
+        group.MapDelete("/{workspaceId}", static async Task<IResult> (
             string workspaceId, [FromServices] WorkspaceService service, CancellationToken ct) =>
         {
             var deleted = await service.DeleteWorkspaceAsync(workspaceId, ct);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         });
 
         // --- Project sub-routes under workspace ---
@@ -62,42 +62,42 @@ public static class IdentityEndpoints
         {
             var projects = await service.ListProjectsAsync(workspaceId, limit ?? 50, cursor, ct);
             var nextCursor = projects.Count > 0 ? projects[^1].ProjectId : null;
-            return Results.Ok(new { items = projects, total = projects.Count, next_cursor = nextCursor });
+            return TypedResults.Ok(new { items = projects, total = projects.Count, next_cursor = nextCursor });
         });
 
-        group.MapPost("/{workspaceId}/projects", static async (
+        group.MapPost("/{workspaceId}/projects", static async Task<IResult> (
             string workspaceId, CreateProjectRequest request,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
-                return Results.BadRequest(new { error = "Name is required" });
+                return TypedResults.BadRequest(new { error = "Name is required" });
 
             // Bind workspace ID from route
             var bound = request with { WorkspaceId = workspaceId };
             var project = await service.CreateProjectAsync(bound, ct);
-            return Results.Created($"/api/v1/workspaces/{workspaceId}/projects/{project.ProjectId}", project);
+            return TypedResults.Created($"/api/v1/workspaces/{workspaceId}/projects/{project.ProjectId}", project);
         });
 
-        group.MapGet("/{workspaceId}/projects/{projectId}", static async (
+        group.MapGet("/{workspaceId}/projects/{projectId}", static async Task<IResult> (
             string workspaceId, string projectId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var project = await service.GetProjectAsync(projectId, ct);
             return project is null || project.WorkspaceId != workspaceId
-                ? Results.NotFound()
-                : Results.Ok(project);
+                ? TypedResults.NotFound()
+                : TypedResults.Ok(project);
         });
 
-        group.MapDelete("/{workspaceId}/projects/{projectId}", static async (
+        group.MapDelete("/{workspaceId}/projects/{projectId}", static async Task<IResult> (
             string workspaceId, string projectId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             var project = await service.GetProjectAsync(projectId, ct);
             if (project is null || project.WorkspaceId != workspaceId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             var deleted = await service.DeleteProjectAsync(projectId, ct);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         });
 
         // --- Environment sub-routes under project ---
@@ -108,31 +108,31 @@ public static class IdentityEndpoints
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
             var envs = await service.ListEnvironmentsAsync(projectId, ct);
-            return Results.Ok(new { items = envs, total = envs.Count });
+            return TypedResults.Ok(new { items = envs, total = envs.Count });
         });
 
-        group.MapPost("/{workspaceId}/projects/{projectId}/environments", static async (
+        group.MapPost("/{workspaceId}/projects/{projectId}/environments", static async Task<IResult> (
             string workspaceId, string projectId,
             AddEnvironmentRequest request,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Name))
-                return Results.BadRequest(new { error = "Name is required" });
+                return TypedResults.BadRequest(new { error = "Name is required" });
 
             var env = await service.AddEnvironmentAsync(projectId, request.Name, request.Description, ct);
-            return Results.Created(
+            return TypedResults.Created(
                 $"/api/v1/workspaces/{workspaceId}/projects/{projectId}/environments/{env.EnvironmentId}",
                 env);
         });
 
-        group.MapDelete("/{workspaceId}/projects/{projectId}/environments/{environmentId}", static async (
+        group.MapDelete("/{workspaceId}/projects/{projectId}/environments/{environmentId}", static async Task<IResult> (
             string workspaceId, string projectId, string environmentId,
             [FromServices] ProjectService service, CancellationToken ct) =>
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(workspaceId);
             ArgumentException.ThrowIfNullOrWhiteSpace(projectId);
             var deleted = await service.DeleteEnvironmentAsync(environmentId, ct);
-            return deleted ? Results.NoContent() : Results.NotFound();
+            return deleted ? TypedResults.NoContent() : TypedResults.NotFound();
         });
     }
 
@@ -142,7 +142,7 @@ public static class IdentityEndpoints
 
     private static void MapMcpProjectRoutes(RouteGroupBuilder group)
     {
-        group.MapMethods("/{slug}", ["PATCH"], static async (
+        group.MapMethods("/{slug}", ["PATCH"], static async Task<IResult> (
             string slug, McpUpdateProjectRequest request,
             [FromServices] DuckDbStore store, CancellationToken ct) =>
         {
@@ -164,16 +164,16 @@ public static class IdentityEndpoints
             }, ct).ConfigureAwait(false);
 
             return affected > 0
-                ? Results.Ok(new { slug, updated = true })
-                : Results.NotFound();
+                ? TypedResults.Ok(new { slug, updated = true })
+                : TypedResults.NotFound();
         });
 
-        group.MapMethods("/{slug}/retention", ["PATCH"], static async (
+        group.MapMethods("/{slug}/retention", ["PATCH"], static async Task<IResult> (
             string slug, McpRetentionRequest request,
             [FromServices] DuckDbStore store, CancellationToken ct) =>
         {
             if (request.RetentionDays is null or < 1)
-                return Results.BadRequest(new { error = "retention_days must be >= 1" });
+                return TypedResults.BadRequest(new { error = "retention_days must be >= 1" });
 
             await store.ExecuteWriteAsync(async (con, token) =>
             {
@@ -202,7 +202,7 @@ public static class IdentityEndpoints
                 return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }, ct).ConfigureAwait(false);
 
-            return Results.Ok(new { slug, retention_days = request.RetentionDays.Value });
+            return TypedResults.Ok(new { slug, retention_days = request.RetentionDays.Value });
         });
     }
 
@@ -212,39 +212,39 @@ public static class IdentityEndpoints
 
     private static void MapOnboardingRoutes(RouteGroupBuilder group)
     {
-        group.MapPost("/handshake/start", static async (
+        group.MapPost("/handshake/start", static async Task<IResult> (
             HandshakeRequest request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.ServiceName))
-                return Results.BadRequest(new { error = "ServiceName is required" });
+                return TypedResults.BadRequest(new { error = "ServiceName is required" });
 
             var response = await service.StartHandshakeAsync(request, ct);
-            return Results.Ok(response);
+            return TypedResults.Ok(response);
         });
 
-        group.MapPost("/handshake/verify", static async (
+        group.MapPost("/handshake/verify", static async Task<IResult> (
             HandshakeVerifyRequest request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
-                return Results.BadRequest(new { error = "WorkspaceId is required" });
+                return TypedResults.BadRequest(new { error = "WorkspaceId is required" });
 
             if (string.IsNullOrWhiteSpace(request.CodeVerifier))
-                return Results.BadRequest(new { error = "CodeVerifier is required" });
+                return TypedResults.BadRequest(new { error = "CodeVerifier is required" });
 
             var result = await service.VerifyHandshakeAsync(request.WorkspaceId, request.CodeVerifier, ct);
             return result is null
-                ? Results.Unauthorized()
-                : Results.Ok(result);
+                ? TypedResults.Unauthorized()
+                : TypedResults.Ok(result);
         });
 
-        group.MapPost("/handshake/complete", static async (
+        group.MapPost("/handshake/complete", static async Task<IResult> (
             HandshakeResponse request, [FromServices] HandshakeService service, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.WorkspaceId))
-                return Results.BadRequest(new { error = "WorkspaceId is required" });
+                return TypedResults.BadRequest(new { error = "WorkspaceId is required" });
 
             var response = await service.CompleteHandshakeAsync(request.WorkspaceId, ct);
-            return response is null ? Results.NotFound() : Results.Ok(response);
+            return response is null ? TypedResults.NotFound() : TypedResults.Ok(response);
         });
     }
 }

@@ -28,57 +28,57 @@ public static class ArtifactEndpoints
             var now = TimeProvider.System.GetUtcNow().UtcDateTime;
 
             var row = new ArtifactRow(
-                Id: id,
-                ContentType: request.ContentType ?? "text/plain",
-                Content: request.Content,
-                Title: request.Title,
-                Source: request.Source,
-                MetadataJson: request.Metadata is not null
-                    ? System.Text.Json.JsonSerializer.Serialize(
+                id,
+                request.ContentType ?? "text/plain",
+                request.Content,
+                request.Title,
+                request.Source,
+                request.Metadata is not null
+                    ? JsonSerializer.Serialize(
                         request.Metadata, ArtifactJsonContext.Default.DictionaryStringString)
                     : null,
-                CreatedAt: now,
-                ExpiresAt: request.TtlSeconds is > 0
+                now,
+                request.TtlSeconds is > 0
                     ? now.AddSeconds(request.TtlSeconds.Value)
                     : null);
 
             await store.StoreArtifactAsync(row, ct).ConfigureAwait(false);
 
-            return Results.Created($"/a/{id}", new ArtifactResponse(
+            return TypedResults.Created($"/a/{id}", new ArtifactResponse(
                 row.Id, row.ContentType, row.Content, row.Title,
                 row.Source, request.Metadata, row.CreatedAt, row.ExpiresAt));
         });
 
-        app.MapGet("/api/v1/artifacts/{id}", async (
+        app.MapGet("/api/v1/artifacts/{id}", async Task<IResult> (
             string id, DuckDbStore store, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
-            if (row is null) return Results.NotFound();
+            if (row is null) return TypedResults.NotFound();
 
             if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
-            return Results.Ok(ToResponse(row));
+            return TypedResults.Ok(ToResponse(row));
         });
 
         // ── Short URL ─────────────────────────────────────────────────
 
-        app.MapGet("/a/{id}", async (
+        app.MapGet("/a/{id}", async Task<IResult> (
             string id, DuckDbStore store, HttpContext ctx, CancellationToken ct) =>
         {
             var row = await store.GetArtifactAsync(id, ct).ConfigureAwait(false);
-            if (row is null) return Results.NotFound();
+            if (row is null) return TypedResults.NotFound();
 
             if (row.ExpiresAt.HasValue && row.ExpiresAt.Value < TimeProvider.System.GetUtcNow().UtcDateTime)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             // If the client accepts JSON, return structured response
             var accept = ctx.Request.Headers.Accept.ToString();
             if (accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
-                return Results.Ok(ToResponse(row));
+                return TypedResults.Ok(ToResponse(row));
 
             // Otherwise return raw content with appropriate content type
-            return Results.Content(row.Content, row.ContentType);
+            return TypedResults.Content(row.Content, row.ContentType);
         });
     }
 
@@ -87,7 +87,7 @@ public static class ArtifactEndpoints
         Dictionary<string, string>? metadata = null;
         if (row.MetadataJson is not null)
         {
-            metadata = System.Text.Json.JsonSerializer.Deserialize(
+            metadata = JsonSerializer.Deserialize(
                 row.MetadataJson, ArtifactJsonContext.Default.DictionaryStringString);
         }
 
@@ -107,8 +107,7 @@ public sealed record ArtifactCreateRequest(
     [property: JsonPropertyName("content_type")]
     string? ContentType = null,
     [property: JsonPropertyName("title")] string? Title = null,
-    [property: JsonPropertyName("source")]
-    string? Source = null,
+    [property: JsonPropertyName("source")] string? Source = null,
     [property: JsonPropertyName("metadata")]
     Dictionary<string, string>? Metadata = null,
     [property: JsonPropertyName("id")] string? Id = null,
@@ -122,8 +121,7 @@ public sealed record ArtifactResponse(
     [property: JsonPropertyName("content")]
     string Content,
     [property: JsonPropertyName("title")] string? Title,
-    [property: JsonPropertyName("source")]
-    string? Source,
+    [property: JsonPropertyName("source")] string? Source,
     [property: JsonPropertyName("metadata")]
     Dictionary<string, string>? Metadata,
     [property: JsonPropertyName("created_at")]

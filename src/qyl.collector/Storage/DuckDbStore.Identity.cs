@@ -16,10 +16,8 @@ public sealed partial class DuckDbStore
     ///     Upserts a workspace record via the channel-buffered write path.
     ///     On conflict, updates all mutable fields and refreshes last_heartbeat.
     /// </summary>
-    public async Task UpsertWorkspaceAsync(WorkspaceRecord workspace, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpsertWorkspaceAsync(WorkspaceRecord workspace, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -39,12 +37,8 @@ public sealed partial class DuckDbStore
                                   metadata_json = EXCLUDED.metadata_json
                               """;
             AddWorkspaceParameters(cmd, workspace);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single workspace by its workspace ID.
@@ -73,10 +67,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Updates the last_heartbeat timestamp for a workspace.
     /// </summary>
-    public async Task UpdateHeartbeatAsync(string workspaceId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpdateHeartbeatAsync(string workspaceId, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -84,12 +76,8 @@ public sealed partial class DuckDbStore
                               WHERE workspace_id = $1
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Lists workspaces ordered by last heartbeat, most recent first.
@@ -123,20 +111,14 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Deletes a workspace by ID. Returns true if a row was deleted.
     /// </summary>
-    public async Task<bool> DeleteWorkspaceAsync(string workspaceId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<bool> DeleteWorkspaceAsync(string workspaceId, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM workspaces WHERE workspace_id = $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false) > 0;
-    }
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Project Operations
@@ -145,10 +127,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a new project record.
     /// </summary>
-    public async Task InsertProjectAsync(ProjectRecord project, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertProjectAsync(ProjectRecord project, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -162,12 +142,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = project.Description ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = project.CreatedAt });
             cmd.Parameters.Add(new DuckDBParameter { Value = project.UpdatedAt });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single project by its ID.
@@ -235,20 +211,14 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Deletes a project by ID. Returns true if a row was deleted.
     /// </summary>
-    public async Task<bool> DeleteProjectAsync(string projectId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<bool> DeleteProjectAsync(string projectId, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM projects WHERE project_id = $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = projectId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false) > 0;
-    }
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Project Environment Operations
@@ -259,10 +229,8 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task InsertProjectEnvironmentAsync(
         ProjectEnvironmentRecord env,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -275,12 +243,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = env.Name });
             cmd.Parameters.Add(new DuckDBParameter { Value = env.Description ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = env.CreatedAt });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Lists all environments for a project.
@@ -314,20 +278,14 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task<bool> DeleteProjectEnvironmentAsync(
         string environmentId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM project_environments WHERE environment_id = $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = environmentId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false) > 0;
-    }
+            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false) > 0;
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Handshake PKCE Challenge Operations
@@ -340,10 +298,8 @@ public sealed partial class DuckDbStore
         string workspaceId,
         string codeChallenge,
         DateTime createdAt,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -356,12 +312,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
             cmd.Parameters.Add(new DuckDBParameter { Value = codeChallenge });
             cmd.Parameters.Add(new DuckDBParameter { Value = createdAt });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Retrieves the stored PKCE challenge for a workspace.
@@ -398,20 +350,14 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task DeleteHandshakeChallengeAsync(
         string workspaceId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM handshake_challenges WHERE workspace_id = $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // GitHub Token Operations
@@ -422,10 +368,8 @@ public sealed partial class DuckDbStore
         string? scope,
         string? githubLogin,
         string authMethod = "pat",
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, cancellation) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, cancellation) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -443,12 +387,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = scope ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = githubLogin ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = authMethod });
-            return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     public async Task<GitHubTokenRecord?> GetGitHubTokenAsync(CancellationToken ct = default)
     {
@@ -476,19 +416,13 @@ public sealed partial class DuckDbStore
         return null;
     }
 
-    public async Task<bool> DeleteGitHubTokenAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, cancellation) =>
+    public async Task<bool> DeleteGitHubTokenAsync(CancellationToken ct = default) =>
+        await ExecuteWriteAsync(static async (con, cancellation) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM github_tokens WHERE key = 'default'";
-            return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false) > 0;
-    }
+            return await cmd.ExecuteNonQueryAsync(cancellation).ConfigureAwait(false) > 0;
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Private Methods - Identity Mapping

@@ -6,7 +6,8 @@
 -- Include in CREATE TABLE statements as needed
 
 -- artifact.attestation attributes
-artifact_attestation_filename VARCHAR,
+artifact_attestation_filename
+VARCHAR,
 artifact_attestation_hash VARCHAR,
 artifact_attestation_id VARCHAR,
 

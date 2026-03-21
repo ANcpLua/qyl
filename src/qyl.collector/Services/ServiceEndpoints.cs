@@ -24,7 +24,7 @@ internal static class ServiceEndpoints
         var services = await store.GetServicesAsync(
             type, status, limit ?? 100, ct).ConfigureAwait(false);
 
-        return Results.Ok(new ServicesResponse { Services = services, Total = services.Count });
+        return TypedResults.Ok(new ServicesResponse { Services = services, Total = services.Count });
     }
 
     private static async Task<IResult> GetServiceDetailAsync(
@@ -33,8 +33,8 @@ internal static class ServiceEndpoints
         string? type,
         CancellationToken ct) =>
         await store.GetServiceDetailAsync(serviceName, type, ct).ConfigureAwait(false) is not { } detail
-            ? Results.NotFound()
-            : Results.Ok(detail);
+            ? TypedResults.NotFound()
+            : TypedResults.Ok(detail);
 
     /// <summary>
     ///     GET /api/v1/mcp/services/map — service dependency map derived from span parent relationships.
@@ -86,7 +86,7 @@ internal static class ServiceEndpoints
             nodeSet.Add(edge.Target);
         }
 
-        return Results.Ok(new McpServiceMapDto { Nodes = [.. nodeSet.Order()], Edges = edges });
+        return TypedResults.Ok(new McpServiceMapDto { Nodes = [.. nodeSet.Order()], Edges = edges });
     }
 }
 

@@ -33,17 +33,15 @@ public sealed partial class DuckDbStore
     ///     Updates the status of an error (issue) by error_id, enforcing lifecycle transitions.
     /// </summary>
     public async Task UpdateIssueStatusAsync(string issueId, string newStatus, string? reason = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             // Read current status
             await using var readCmd = con.CreateCommand();
             readCmd.CommandText = "SELECT status FROM errors WHERE error_id = $1";
             readCmd.Parameters.Add(new DuckDBParameter { Value = issueId });
             if ((string?)await readCmd.ExecuteScalarAsync(token).ConfigureAwait(false) is not
-                { } currentStatus) return 0;
+                { } currentStatus) return;
 
             // Update error status
             await using var updateCmd = con.CreateCommand();
@@ -55,21 +53,13 @@ public sealed partial class DuckDbStore
             // Record the lifecycle event
             await InsertIssueEventInternalAsync(con, issueId, "status_change", currentStatus, newStatus, reason,
                 token).ConfigureAwait(false);
-
-            return 1;
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Assigns an owner to an issue (error).
     /// </summary>
-    public async Task AssignIssueOwnerAsync(string issueId, string owner, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task AssignIssueOwnerAsync(string issueId, string owner, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             // Read current owner
             await using var readCmd = con.CreateCommand();
@@ -87,13 +77,7 @@ public sealed partial class DuckDbStore
             // Record ownership event
             await InsertIssueEventInternalAsync(con, issueId, "assigned", currentOwner, owner, null, token)
                 .ConfigureAwait(false);
-
-            return 1;
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets the owner of an issue by error_id.
@@ -238,10 +222,8 @@ public sealed partial class DuckDbStore
     ///     Finds resolved errors whose fingerprint has reappeared, transitioning them to regressed.
     /// </summary>
     public async Task<IReadOnlyList<string>> DetectRegressionsAsync(string serviceName, string? deployVersion = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<IReadOnlyList<string>>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             // Find errors that were resolved but have new occurrences (last_seen > resolved marker)
             // We detect regressions by finding errors with status='resolved' whose fingerprint
@@ -264,7 +246,7 @@ public sealed partial class DuckDbStore
                 candidates.Add((reader.GetString(0), reader.GetString(1)));
 
             if (candidates.Count == 0)
-                return regressedIds;
+                return (IReadOnlyList<string>)regressedIds;
 
             var fingerprints = candidates
                 .Select(static candidate => candidate.Fingerprint)
@@ -310,12 +292,8 @@ public sealed partial class DuckDbStore
                 regressedIds.Add(errorId);
             }
 
-            return regressedIds;
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
+            return (IReadOnlyList<string>)regressedIds;
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Internal Helpers

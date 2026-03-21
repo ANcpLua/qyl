@@ -4,7 +4,7 @@ public static class BuildFailureEndpoints
 {
     public static IEndpointRouteBuilder MapBuildFailureEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/api/v1/build-failures", static async (
+        endpoints.MapPost("/api/v1/build-failures", static async Task<IResult> (
             HttpContext context,
             BuildFailureIngestRequest request,
             IBuildFailureStore store,
@@ -12,11 +12,11 @@ public static class BuildFailureEndpoints
             CancellationToken ct) =>
         {
             if (!IsAuthorized(context, config))
-                return Results.Unauthorized();
+                return TypedResults.Unauthorized();
 
             if (string.IsNullOrWhiteSpace(request.Target))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["target"] = ["target is required"]
                 });
@@ -37,7 +37,7 @@ public static class BuildFailureEndpoints
             };
 
             var id = await store.InsertAsync(row, ct).ConfigureAwait(false);
-            return Results.Created($"/api/v1/build-failures/{id}", new { id });
+            return TypedResults.Created($"/api/v1/build-failures/{id}", new { id });
         });
 
         endpoints.MapGet("/api/v1/build-failures", static async (
@@ -46,19 +46,19 @@ public static class BuildFailureEndpoints
             CancellationToken ct) =>
         {
             var rows = await store.ListAsync(limit ?? 10, ct).ConfigureAwait(false);
-            return Results.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
+            return TypedResults.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
         });
 
-        endpoints.MapGet("/api/v1/build-failures/{id}", static async (
+        endpoints.MapGet("/api/v1/build-failures/{id}", static async Task<IResult> (
             string id,
             IBuildFailureStore store,
             CancellationToken ct) =>
         {
             var row = await store.GetAsync(id, ct).ConfigureAwait(false);
-            return row is null ? Results.NotFound() : Results.Ok(Map(row));
+            return row is null ? TypedResults.NotFound() : TypedResults.Ok(Map(row));
         });
 
-        endpoints.MapGet("/api/v1/build-failures/search", static async (
+        endpoints.MapGet("/api/v1/build-failures/search", static async Task<IResult> (
             string pattern,
             int? limit,
             IBuildFailureStore store,
@@ -66,14 +66,14 @@ public static class BuildFailureEndpoints
         {
             if (string.IsNullOrWhiteSpace(pattern))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["pattern"] = ["pattern is required"]
                 });
             }
 
             var rows = await store.SearchAsync(pattern, limit ?? 50, ct).ConfigureAwait(false);
-            return Results.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
+            return TypedResults.Ok(new { items = rows.Select(Map).ToArray(), total = rows.Count });
         });
 
         return endpoints;

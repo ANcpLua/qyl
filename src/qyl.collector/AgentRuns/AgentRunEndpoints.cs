@@ -20,35 +20,35 @@ public static class AgentRunEndpoints
                 trackMode,
                 approvalStatus,
                 ct);
-            return Results.Ok(new { items = runs, total = runs.Count });
+            return TypedResults.Ok(new { items = runs, total = runs.Count });
         });
 
-        app.MapGet("/api/v1/agent-runs/{runId}", static async (
+        app.MapGet("/api/v1/agent-runs/{runId}", static async Task<IResult> (
             string runId, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetAgentRunAsync(runId, ct);
-            return run is null ? Results.NotFound() : Results.Ok(run);
+            return run is null ? TypedResults.NotFound() : TypedResults.Ok(run);
         });
 
         app.MapGet("/api/v1/agent-runs/{runId}/tools", static async (
             string runId, DuckDbStore store, CancellationToken ct) =>
         {
             var calls = await store.GetToolCallsAsync(runId, ct);
-            return Results.Ok(new { items = calls, total = calls.Count });
+            return TypedResults.Ok(new { items = calls, total = calls.Count });
         });
 
         app.MapGet("/api/v1/agent-runs/{runId}/decisions", static async (
             string runId, DuckDbStore store, CancellationToken ct) =>
         {
             var decisions = await store.GetAgentDecisionsAsync(runId, ct);
-            return Results.Ok(new { items = decisions, total = decisions.Count });
+            return TypedResults.Ok(new { items = decisions, total = decisions.Count });
         });
 
         app.MapGet("/api/v1/agent-runs/by-trace/{traceId}", static async (
             string traceId, DuckDbStore store, CancellationToken ct) =>
         {
             var runs = await store.GetAgentRunsByTraceAsync(traceId, ct);
-            return Results.Ok(new { items = runs, total = runs.Count });
+            return TypedResults.Ok(new { items = runs, total = runs.Count });
         });
     }
 }

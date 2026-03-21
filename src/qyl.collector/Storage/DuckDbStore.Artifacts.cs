@@ -17,10 +17,8 @@ public sealed partial class DuckDbStore
                                                  expires_at    = EXCLUDED.expires_at
                                              """;
 
-    public async Task<ArtifactRow> StoreArtifactAsync(ArtifactRow artifact, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        return await ExecuteWriteAsync(async (con, token) =>
+    public async Task<ArtifactRow> StoreArtifactAsync(ArtifactRow artifact, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = ArtifactInsertSql;
@@ -35,7 +33,6 @@ public sealed partial class DuckDbStore
             await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             return artifact;
         }, ct).ConfigureAwait(false);
-    }
 
     public async Task<ArtifactRow?> GetArtifactAsync(string id, CancellationToken ct = default)
     {
@@ -56,14 +53,14 @@ public sealed partial class DuckDbStore
 
     private static ArtifactRow ReadArtifactRow(IDataReader reader) =>
         new(
-            Id: reader.GetString(0),
-            ContentType: reader.GetString(1),
-            Content: reader.GetString(2),
-            Title: reader.IsDBNull(3) ? null : reader.GetString(3),
-            Source: reader.IsDBNull(4) ? null : reader.GetString(4),
-            MetadataJson: reader.IsDBNull(5) ? null : reader.GetString(5),
-            CreatedAt: reader.GetDateTime(6),
-            ExpiresAt: reader.IsDBNull(7) ? null : reader.GetDateTime(7));
+            reader.GetString(0),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.IsDBNull(3) ? null : reader.GetString(3),
+            reader.IsDBNull(4) ? null : reader.GetString(4),
+            reader.IsDBNull(5) ? null : reader.GetString(5),
+            reader.GetDateTime(6),
+            reader.IsDBNull(7) ? null : reader.GetDateTime(7));
 }
 
 public sealed record ArtifactRow(

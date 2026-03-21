@@ -9,16 +9,17 @@ paths:
 
 - ASP.NET Core web API: REST endpoints, gRPC OTLP ingest, SSE streaming
 - DuckDB for storage (columnar, append-optimized)
-- References qyl.protocol for shared types
-- Source of truth for triage, fix runs, handoffs, regressions, GitHub events, and code-review results
-- Server has zero LLM dependencies. No agent framework, no AG-UI, no workflow engine. MCP transport is in `qyl.mcp`
+- References qyl.contracts for shared types
+- Server has zero LLM dependencies. No agent framework, no AG-UI, no workflow engine
+- Autofix, triage, code review, regression detection belong in qyl.loom, not here
+- MCP transport is in `qyl.mcp` (separate process, HTTP only)
 - qyl.loom references collector via ProjectReference — collector must NOT reference loom
 
 ## Ownership boundaries
 
 - If a behavior exists in both collector and MCP docs, collector semantics win and MCP should adapt.
-- Fix issue/fix-run/review lifecycle bugs here before touching `src/qyl.mcp`.
-- Keep workflow state, persistence, and GitHub side effects in the collector host.
+- Issue/error lifecycle (fingerprinting, grouping, status transitions) owned here.
+- DuckDB storage is the single source of truth for all telemetry and issues.
 
 ## DuckDB Specifics
 

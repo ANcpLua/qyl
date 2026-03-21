@@ -10,7 +10,7 @@ public static class GitHubWebhookEndpoints
     {
         app.MapPost("/api/v1/github/webhooks", HandleWebhookAsync);
 
-        app.MapGet("/api/v1/github/events", static async (
+        app.MapGet("/api/v1/github/events", static async Task<IResult> (
             int? limit, string? eventType, string? repoFullName,
             DuckDbStore store, CancellationToken ct) =>
         {
@@ -19,12 +19,12 @@ public static class GitHubWebhookEndpoints
                 var clampedLimit = Math.Clamp(limit ?? 50, 1, 1000);
                 var items = await store
                     .GetGitHubEventsAsync(clampedLimit, eventType, repoFullName, ct).ConfigureAwait(false);
-                return Results.Ok(new { items, total = items.Count });
+                return TypedResults.Ok(new { items, total = items.Count });
             }
             catch
             {
                 // Avoid breaking Loom dashboard when webhook storage is not initialized.
-                return Results.Ok(new { items = Array.Empty<GitHubEventRecord>(), total = 0 });
+                return TypedResults.Ok(new { items = Array.Empty<GitHubEventRecord>(), total = 0 });
             }
         });
     }
@@ -60,7 +60,7 @@ public static class GitHubWebhookEndpoints
         if (!string.IsNullOrEmpty(webhookSecret))
         {
             if (!VerifySignature(payload, signatureHeader, webhookSecret))
-                return Results.Unauthorized();
+                return TypedResults.Unauthorized();
         }
 
         // 4. Parse JSON payload
@@ -119,7 +119,7 @@ public static class GitHubWebhookEndpoints
 
         await store.InsertGitHubEventAsync(record, ct).ConfigureAwait(false);
 
-        return Results.Ok(new { eventId = deliveryId, eventType, action });
+        return TypedResults.Ok(new { eventId = deliveryId, eventType, action });
     }
 
     private static bool VerifySignature(byte[] payload, string? signatureHeader, string secret)

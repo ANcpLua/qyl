@@ -12,10 +12,8 @@ public sealed partial class DuckDbStore
     // Coding Agent Runs
     // =========================================================================
 
-    public async Task InsertCodingAgentRunAsync(CodingAgentRunRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertCodingAgentRunAsync(CodingAgentRunRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -31,19 +29,13 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.AgentUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.PrUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.RepoFullName ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     public async Task UpdateCodingAgentRunStatusAsync(
         string id, string status, string? prUrl = null, string? agentUrl = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -58,12 +50,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = prUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = agentUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = id });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     public async Task<CodingAgentRunRecord?> GetCodingAgentRunAsync(string id, CancellationToken ct = default)
     {
@@ -155,10 +143,8 @@ public sealed partial class DuckDbStore
         };
     }
 
-    public async Task UpsertLoomSettingsAsync(LoomSettingsRecord settings, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpsertLoomSettingsAsync(LoomSettingsRecord settings, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -181,10 +167,6 @@ public sealed partial class DuckDbStore
                 Value = settings.DefaultCodingAgentIntegrationId ?? (object)DBNull.Value
             });
             cmd.Parameters.Add(new DuckDBParameter { Value = settings.AutomationTuning });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 }

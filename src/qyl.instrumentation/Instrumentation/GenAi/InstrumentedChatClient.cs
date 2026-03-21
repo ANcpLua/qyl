@@ -27,15 +27,6 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
     private readonly string? _agentName;
     private readonly TimeProvider _timeProvider;
 
-    // Lazy-initialized histograms matching GenAiInstrumentation's pattern
-    private static Histogram<long> TokenUsageHistogram =>
-        field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
-            GenAiAttributes.Metrics.ClientTokenUsage, "{token}", "Token usage");
-
-    private static Histogram<double> OperationDurationHistogram =>
-        field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
-            GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
-
     /// <summary>
     ///     Creates a new <see cref="InstrumentedChatClient" />.
     /// </summary>
@@ -46,11 +37,20 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         IChatClient inner,
         string? agentName = null,
         TimeProvider? timeProvider = null)
-        : base(inner)
+        : base(Guard.NotNull(inner))
     {
         _agentName = agentName;
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
+
+    // Lazy-initialized histograms matching GenAiInstrumentation's pattern
+    private static Histogram<long> TokenUsageHistogram =>
+        field ??= ActivitySources.GenAiMeter.CreateHistogram<long>(
+            GenAiAttributes.Metrics.ClientTokenUsage, "{token}", "Token usage");
+
+    private static Histogram<double> OperationDurationHistogram =>
+        field ??= ActivitySources.GenAiMeter.CreateHistogram<double>(
+            GenAiAttributes.Metrics.ClientOperationDuration, "s", "Operation duration");
 
     // -- GetResponseAsync -----------------------------------------------------
 
@@ -60,9 +60,9 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        ChatClientMetadata? meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
-        string model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
-        string provider = meta?.ProviderName ?? "unknown";
+        var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
+        var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
+        var provider = meta?.ProviderName ?? "unknown";
 
         using var activity = StartChatActivity(model, provider);
         var startTime = _timeProvider.GetUtcNow();
@@ -76,10 +76,6 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
 
             EnrichResponseAttributes(activity, response, startTime, model, provider);
             return response;
-        }
-        catch (OperationCanceledException)
-        {
-            throw; // expected cancellation, not an error
         }
         catch (HttpRequestException ex)
         {
@@ -101,9 +97,9 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
         ChatOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        ChatClientMetadata? meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
-        string model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
-        string provider = meta?.ProviderName ?? "unknown";
+        var meta = GetService(typeof(ChatClientMetadata)) as ChatClientMetadata;
+        var model = options?.ModelId ?? meta?.DefaultModelId ?? "unknown";
+        var provider = meta?.ProviderName ?? "unknown";
 
         using var activity = StartChatActivity(model, provider);
         var startTime = _timeProvider.GetUtcNow();
@@ -112,7 +108,7 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
 
         var responses = new List<ChatResponseUpdate>();
 
-        IAsyncEnumerator<ChatResponseUpdate> enumerator = base
+        var enumerator = base
             .GetStreamingResponseAsync(messages, options, cancellationToken)
             .GetAsyncEnumerator(cancellationToken);
         try
@@ -131,10 +127,6 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
 
                     current = enumerator.Current;
                     responses.Add(current);
-                }
-                catch (OperationCanceledException)
-                {
-                    throw; // expected cancellation, not an error
                 }
                 catch (HttpRequestException ex)
                 {
@@ -313,11 +305,12 @@ public sealed class InstrumentedChatClient : DelegatingChatClient
 
         activity.SetTag(GenAiAttributes.ErrorType, errorType);
         activity.SetStatus(ActivityStatusCode.Error, ex.Message);
-        activity.AddEvent(new ActivityEvent("exception", tags: new ActivityTagsCollection
-        {
-            { GenAiAttributes.ExceptionType, ex.GetType().FullName ?? ex.GetType().Name },
-            { GenAiAttributes.ExceptionMessage, ex.Message }
-        }));
+        activity.AddEvent(new ActivityEvent("exception",
+            tags: new ActivityTagsCollection
+            {
+                { GenAiAttributes.ExceptionType, ex.GetType().FullName ?? ex.GetType().Name },
+                { GenAiAttributes.ExceptionMessage, ex.Message }
+            }));
     }
 
     private static string MapFinishReason(ChatFinishReason reason) =>

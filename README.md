@@ -6,11 +6,11 @@ Landing page: <https://ancplua.github.io/qyl/>
 
 ## What qyl Does
 
-|                 |                                                          |
-|-----------------|----------------------------------------------------------|
-| **Collects**    | OTLP receiver with idempotent ingestion (retry-safe)     |
-| **Instruments** | Roslyn source generators for zero-config GenAI telemetry |
-| **Visualizes**  | Real-time dashboard with SSE streaming                   |
+|                 |                                                                     |
+|-----------------|---------------------------------------------------------------------|
+| **Collects**    | OTLP receiver with idempotent ingestion (retry-safe)                |
+| **Instruments** | Roslyn source generators for zero-config GenAI telemetry            |
+| **Visualizes**  | Real-time dashboard with SSE streaming                              |
 | **Integrates**  | MCP surface, Loom agents, and GitOps over a shared application host |
 
 ## Tech Stack
@@ -25,13 +25,13 @@ Landing page: <https://ancplua.github.io/qyl/>
 
 ## Components
 
-| Package                          | Purpose                                                            |
-|----------------------------------|--------------------------------------------------------------------|
+| Package                          | Purpose                                                           |
+|----------------------------------|-------------------------------------------------------------------|
 | `qyl.web`                        | Composition root: REST API, SSE, frontend hosting, DI             |
 | `qyl.collector`                  | OTLP ingest and telemetry processing only                         |
 | `qyl.agents`                     | Loom, autofix, triage, summarization, and other AI-driven logic   |
 | `qyl.mcp`                        | MCP tool surface as a library mounted by `qyl.web`                |
-| `qyl.infrastructure`             | DuckDB and external integration implementations                    |
+| `qyl.infrastructure`             | DuckDB and external integration implementations                   |
 | `qyl.core`                       | Interfaces, DTOs, value objects, and query contracts              |
 | `qyl.hosting`                    | App orchestration framework (`QylRunner`)                         |
 | `qyl.instrumentation`            | .NET instrumentation library with OTel setup                      |

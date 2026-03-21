@@ -11,7 +11,7 @@ public static class LoomEndpoints
     public static void MapLoomEndpoints(this WebApplication app)
     {
         // ── Stage 1: Pre-investigation insight (fast, no streaming) ──────────
-        app.MapGet("/api/v1/loom/{issueId}/insight", static async (
+        app.MapGet("/api/v1/loom/{issueId}/insight", static async Task<IResult> (
             string issueId,
             LoomInsightService insightService,
             CancellationToken ct) =>
@@ -20,36 +20,22 @@ public static class LoomEndpoints
                 .ConfigureAwait(false);
 
             return insight is not null
-                ? Results.Ok(insight)
-                : Results.NotFound(new { error = $"Issue '{issueId}' not found." });
+                ? TypedResults.Ok(insight)
+                : TypedResults.NotFound(new { error = $"Issue '{issueId}' not found." });
         });
 
         // ── Stages 2-5: Interactive exploration (SSE streaming) ──────────────
-        app.MapPost("/api/v1/loom/{issueId}/explore", static async (
+        app.MapPost("/api/v1/loom/{issueId}/explore", static (
             string issueId,
             LoomExploreRequest? request,
             LoomExplorerService explorerService,
-            HttpContext httpContext,
             CancellationToken ct) =>
-        {
-            httpContext.Response.ContentType = "text/event-stream";
-            httpContext.Response.Headers.CacheControl = "no-cache";
-            httpContext.Response.Headers.Connection = "keep-alive";
-
-            await foreach (var update in explorerService
-                               .ExploreAsync(issueId, request?.UserContext, ct)
-                               .ConfigureAwait(false))
-            {
-                var eventName = MapEventName(update.Kind);
-                var json = JsonSerializer.Serialize(update, LoomStreamUpdateJsonContext.Default.StreamUpdate);
-                await httpContext.Response.WriteAsync($"event: {eventName}\ndata: {json}\n\n", ct)
-                    .ConfigureAwait(false);
-                await httpContext.Response.Body.FlushAsync(ct).ConfigureAwait(false);
-            }
-        });
+            TypedResults.ServerSentEvents(
+                StreamExploreAsync(explorerService, issueId, request?.UserContext, ct),
+                null));
 
         // ── Stage 5: "Code It Up" trigger ────────────────────────────────────
-        app.MapPost("/api/v1/loom/{issueId}/code-it-up", static async (
+        app.MapPost("/api/v1/loom/{issueId}/code-it-up", static async Task<IResult> (
             string issueId,
             LoomCodeItUpRequest request,
             AutofixOrchestrator orchestrator,
@@ -59,7 +45,7 @@ public static class LoomEndpoints
         {
             var issue = await store.GetIssueByIdAsync(issueId, ct).ConfigureAwait(false);
             if (issue is null)
-                return Results.NotFound(new { error = $"Issue '{issueId}' not found." });
+                return TypedResults.NotFound(new { error = $"Issue '{issueId}' not found." });
 
             var run = await orchestrator.CreateFixRunAsync(
                 issueId, issue, FixPolicy.AutoApply, ct).ConfigureAwait(false);
@@ -80,8 +66,22 @@ public static class LoomEndpoints
                 prUrl,
                 null);
 
-            return Results.Ok(response);
+            return TypedResults.Ok(response);
         });
+    }
+
+    private static async IAsyncEnumerable<SseItem<StreamUpdate>> StreamExploreAsync(
+        LoomExplorerService explorerService,
+        string issueId,
+        string? userContext,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var update in explorerService
+                           .ExploreAsync(issueId, userContext, ct)
+                           .ConfigureAwait(false))
+        {
+            yield return new SseItem<StreamUpdate>(update, MapEventName(update.Kind));
+        }
     }
 
     private static string MapEventName(StreamUpdateKind kind) => kind switch

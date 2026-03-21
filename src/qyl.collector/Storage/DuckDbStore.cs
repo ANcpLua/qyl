@@ -556,25 +556,17 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         return result is long count ? count : 0;
     }
 
-    public async Task<int> DeleteSpansBeforeAsync(ulong timestampNanos, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<int> DeleteSpansBeforeAsync(ulong timestampNanos, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = "DELETE FROM spans WHERE start_time_unix_nano < $1";
             cmd.Parameters.Add(new DuckDBParameter { Value = (decimal)timestampNanos });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
+        }, ct).ConfigureAwait(false);
 
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    public async Task<int> DeleteOldestSpansAsync(long count, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<int> DeleteOldestSpansAsync(long count, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -587,16 +579,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = count });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
+        }, ct).ConfigureAwait(false);
 
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    public async Task<int> DeleteOldestLogsAsync(long count, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task<int> DeleteOldestLogsAsync(long count, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -609,11 +595,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                               """;
             cmd.Parameters.Add(new DuckDBParameter { Value = count });
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Clear All Operations (for dashboard controls)
@@ -625,27 +607,19 @@ public sealed partial class DuckDbStore : IAsyncDisposable
 
     public Task<int> ClearAllSessionsAsync(CancellationToken ct = default) => ClearTableAsync("session_entities", ct);
 
-    private async Task<int> ClearTableAsync(string tableName, CancellationToken ct)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    private async Task<int> ClearTableAsync(string tableName, CancellationToken ct) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = $"DELETE FROM {tableName}";
             return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Clears all telemetry data (spans, logs, sessions) from the database.
     /// </summary>
-    public async Task<ClearTelemetryResult> ClearAllTelemetryAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<ClearTelemetryResult>(static async (con, token) =>
+    public async Task<ClearTelemetryResult> ClearAllTelemetryAsync(CancellationToken ct = default) =>
+        await ExecuteWriteAsync(static async (con, token) =>
         {
             // Use transaction for atomic clear
             await using var tx = await con.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -676,195 +650,7 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             await tx.CommitAsync(token).ConfigureAwait(false);
 
             return new ClearTelemetryResult(spansDeleted, logsDeleted, sessionsDeleted);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
-
-    // ==========================================================================
-    // Workflow Execution Operations
-    // ==========================================================================
-
-    /// <summary>
-    ///     Inserts a new workflow execution record.
-    /// </summary>
-    public async Task InsertExecutionAsync(WorkflowExecution execution, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              INSERT INTO workflow_executions
-                                  (execution_id, workflow_name, status, started_at, completed_at,
-                                   result, error, parameters_json, input_tokens, output_tokens, trace_id)
-                              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-                              ON CONFLICT (execution_id) DO NOTHING
-                              """;
-            AddExecutionInsertParameters(cmd, execution);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     Updates an existing workflow execution (status, result, tokens, etc.).
-    /// </summary>
-    public async Task UpdateExecutionAsync(WorkflowExecution execution, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
-        {
-            await using var cmd = con.CreateCommand();
-            cmd.CommandText = """
-                              UPDATE workflow_executions SET
-                                  status = $1,
-                                  completed_at = $2,
-                                  result = $3,
-                                  error = $4,
-                                  input_tokens = $5,
-                                  output_tokens = $6,
-                                  trace_id = $7
-                              WHERE execution_id = $8
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Status.ToString().ToLowerInvariant() });
-            cmd.Parameters.Add(new DuckDBParameter
-            {
-                Value = execution.CompletedAt.HasValue
-                    ? execution.CompletedAt.Value.UtcDateTime
-                    : DBNull.Value
-            });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Result ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Error ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.InputTokens ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.OutputTokens ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = execution.Id });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     Gets a single workflow execution by ID.
-    /// </summary>
-    public async Task<WorkflowExecution?> GetExecutionAsync(string executionId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT execution_id, workflow_name, status, started_at, completed_at,
-                                 result, error, parameters_json, input_tokens, output_tokens, trace_id
-                          FROM workflow_executions
-                          WHERE execution_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = executionId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapExecution(reader);
-
-        return null;
-    }
-
-    /// <summary>
-    ///     Gets workflow executions with optional filtering.
-    /// </summary>
-    public async Task<IReadOnlyList<WorkflowExecution>> GetExecutionsAsync(
-        string? workflowName = null,
-        string? status = null,
-        int limit = 50,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        var qb = new QueryBuilder();
-
-        if (!string.IsNullOrEmpty(workflowName))
-            qb.Add("workflow_name = $N", workflowName);
-        if (!string.IsNullOrEmpty(status))
-            qb.Add("status = $N", status);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT execution_id, workflow_name, status, started_at, completed_at,
-                                  result, error, parameters_json, input_tokens, output_tokens, trace_id
-                           FROM workflow_executions
-                           {qb.WhereClause}
-                           ORDER BY started_at DESC
-                           LIMIT {qb.NextParam}
-                           """;
-
-        qb.ApplyTo(cmd);
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var executions = new List<WorkflowExecution>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            executions.Add(MapExecution(reader));
-
-        return executions;
-    }
-
-    private static void AddExecutionInsertParameters(DuckDBCommand cmd, WorkflowExecution execution)
-    {
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Id });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.WorkflowName });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Status.ToString().ToLowerInvariant() });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.StartedAt.UtcDateTime });
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = execution.CompletedAt.HasValue
-                ? execution.CompletedAt.Value.UtcDateTime
-                : DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Result ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.Error ?? (object)DBNull.Value });
-        // Serialize parameters as JSON if present
-        cmd.Parameters.Add(new DuckDBParameter
-        {
-            Value = execution.Parameters is not null
-                ? JsonSerializer.Serialize(execution.Parameters)
-                : DBNull.Value
-        });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.InputTokens ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.OutputTokens ?? (object)DBNull.Value });
-        cmd.Parameters.Add(new DuckDBParameter { Value = execution.TraceId ?? (object)DBNull.Value });
-    }
-
-    private static WorkflowExecution MapExecution(DbDataReader reader)
-    {
-        var parametersJson = reader.Col(7).AsString;
-        Dictionary<string, string>? parameters = null;
-        if (parametersJson is not null)
-        {
-            parameters = JsonSerializer.Deserialize<Dictionary<string, string>>(parametersJson);
-        }
-
-        return new WorkflowExecution
-        {
-            Id = reader.GetString(0),
-            WorkflowName = reader.GetString(1),
-            Status =
-                Enum.TryParse<WorkflowStatus>(reader.GetString(2), true, out var s) ? s : WorkflowStatus.Pending,
-            StartedAt = new DateTimeOffset(reader.GetDateTime(3), TimeSpan.Zero),
-            CompletedAt = reader.Col(4).AsDateTimeOffset,
-            Result = reader.Col(5).AsString,
-            Error = reader.Col(6).AsString,
-            Parameters = parameters,
-            InputTokens = reader.Col(8).AsInt64,
-            OutputTokens = reader.Col(9).AsInt64,
-            TraceId = reader.Col(10).AsString
-        };
-    }
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Insight Materialization Operations
@@ -927,10 +713,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
         string hash,
         long spanCount,
         double durationMs,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -949,12 +733,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             cmd.Parameters.Add(new DuckDBParameter { Value = hash });
             cmd.Parameters.Add(new DuckDBParameter { Value = spanCount });
             cmd.Parameters.Add(new DuckDBParameter { Value = durationMs });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Log Operations
@@ -1073,21 +853,15 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     ///     Upserts an error event. On fingerprint conflict, increments occurrence_count,
     ///     updates last_seen, merges affected_services, and appends to sample_traces (max 10).
     /// </summary>
-    public async Task UpsertErrorAsync(ErrorEvent error, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpsertErrorAsync(ErrorEvent error, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             var now = TimeProvider.System.GetUtcNow().UtcDateTime;
             await using var cmd = con.CreateCommand();
             cmd.CommandText = ErrorUpsertSql;
             AddErrorUpsertParameters(cmd, error, Guid.NewGuid().ToString("N"), now);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets errors with optional filtering by category, status, and service name.
@@ -1191,10 +965,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     ///     Updates the status (and optionally assigned_to) for a specific error.
     /// </summary>
     public async Task UpdateErrorStatusAsync(string errorId, string status, string? assignedTo = null,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = assignedTo is not null
@@ -1206,12 +978,8 @@ public sealed partial class DuckDbStore : IAsyncDisposable
                 cmd.Parameters.Add(new DuckDBParameter { Value = assignedTo });
             cmd.Parameters.Add(new DuckDBParameter { Value = errorId });
 
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single error by its ID. Returns null if not found.
@@ -1241,18 +1009,10 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     public async Task<int> ArchiveToParquetAsync(
         string outputDirectory,
         TimeSpan olderThan,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        if (ct.IsCancellationRequested)
-            return await Task.FromCanceled<int>(ct).ConfigureAwait(false);
-
-        var job = new WriteJob<int>((con, token) =>
-            ArchiveInternalAsync(con, outputDirectory, olderThan, token));
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        return await job.Task.ConfigureAwait(false);
-    }
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(
+            (con, token) => ArchiveInternalAsync(con, outputDirectory, olderThan, token),
+            ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Private Methods - Writing
@@ -1550,6 +1310,35 @@ public sealed partial class DuckDbStore : IAsyncDisposable
     // Private Methods - Reading
     // ==========================================================================
 
+    private async Task<T?> ReadOneAsync<T>(
+        string sql, Action<DuckDBCommand>? addParams, Func<DbDataReader, T> mapper,
+        CancellationToken ct = default) where T : class
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = sql;
+        addParams?.Invoke(cmd);
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        return await reader.ReadAsync(ct).ConfigureAwait(false) ? mapper(reader) : null;
+    }
+
+    private async Task<IReadOnlyList<T>> ReadManyAsync<T>(
+        string sql, Action<DuckDBCommand>? addParams, Func<DbDataReader, T> mapper,
+        CancellationToken ct = default)
+    {
+        ThrowIfDisposed();
+        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
+        await using var cmd = lease.Connection.CreateCommand();
+        cmd.CommandText = sql;
+        addParams?.Invoke(cmd);
+        var results = new List<T>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
+        while (await reader.ReadAsync(ct).ConfigureAwait(false))
+            results.Add(mapper(reader));
+        return results;
+    }
+
     private async ValueTask<ReadLease> RentReadAsync(CancellationToken ct)
     {
         ThrowIfDisposed();
@@ -1592,11 +1381,6 @@ public sealed partial class DuckDbStore : IAsyncDisposable
             _readGate.Release();
         }
     }
-
-    /// <summary>
-    ///     Releases the read gate for shared connections (in-memory mode).
-    /// </summary>
-    internal void ReleaseReadGate() => _readGate.Release();
 
     // ==========================================================================
     // Private Methods - Schema & Mapping

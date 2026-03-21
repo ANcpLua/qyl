@@ -22,6 +22,15 @@ paths:
 - Must not reference qyl.collector project directly
 - All collector communication via HTTP REST API
 - ModelContextProtocol SDK for transport layer
+- MCP tools are compile-time generated — never write dispatch code manually. NuGet: `Qyl.Agents` +
+  `Qyl.Agents.Abstractions` + `Qyl.Agents.Generator`. Repo: `github.com/ANcpLua/netagents`. Add a new tool = add a
+  method with `[Tool]` to a `[McpServer]` partial class, build, done. Safety annotations via
+  `[Tool(ReadOnly = ToolHint.True)]`. Resources via `[Resource("uri")]`. Prompts via `[Prompt("name")]`. Generator emits
+  dispatch, JSON Schema, OTel spans, SKILL.md, llms.txt. HTTP: `app.MapMcpServer<T>()` mounts `/mcp` + `/skill.md` +
+  `/llms.txt`
+- OTel instrumentation via `qyl.instrumentation` attributes — never instrument manually. `[Traced]` = span, `[GenAi]` =
+  LLM semconv, `[Db]` = DB semconv, `[Counter]` = metric, `[TracedReturn]` = return value capture. Source generator
+  emits interceptors at compile time
 - `QYL_SKILLS` gates which tool families are registered at startup
 - Do not reintroduce a parallel investigation/proxy stack; broad queries should go through `qyl.use_qyl` or focused
   agent tools over the same DI-resolved tool set

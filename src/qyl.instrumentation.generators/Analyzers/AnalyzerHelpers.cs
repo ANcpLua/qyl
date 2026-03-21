@@ -94,8 +94,15 @@ internal static class AnalyzerHelpers
     /// </summary>
     public static AttributeData? FindAttributeByName(
         ImmutableArray<AttributeData> attributes,
-        string fullMetadataName) =>
-        Enumerable.FirstOrDefault(attributes, attr => attr.AttributeClass?.ToDisplayString() == fullMetadataName);
+        Compilation compilation,
+        string fullMetadataName)
+    {
+        if (compilation.GetTypeByMetadataName(fullMetadataName) is not { } targetType)
+            return null;
+
+        return Enumerable.FirstOrDefault(attributes,
+            attr => attr.AttributeClass.IsEqualTo(targetType));
+    }
 
     /// <summary>
     ///     Checks if a method's return type indicates an async method (Task, ValueTask, or their generic variants).

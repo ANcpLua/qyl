@@ -19,7 +19,7 @@ public static class RegressionEndpoints
             if (regressedIssueIds.Count > 0)
                 await triagePipeline.TriageUntriagedIssuesAsync(ct).ConfigureAwait(false);
 
-            return Results.Ok(new { regressedIssueIds, count = regressedIssueIds.Count });
+            return TypedResults.Ok(new { regressedIssueIds, count = regressedIssueIds.Count });
         });
 
         app.MapGet("/api/v1/regressions", static async (
@@ -30,7 +30,7 @@ public static class RegressionEndpoints
             var items = await store
                 .GetRegressionEventsAsync(clampedLimit, since, ct).ConfigureAwait(false);
 
-            return Results.Ok(new
+            return TypedResults.Ok(new
             {
                 items = items.Select(static r => new
                 {
@@ -53,7 +53,7 @@ public static class RegressionEndpoints
             var items = await store
                 .GetIssueRegressionEventsAsync(issueId, clampedLimit, ct).ConfigureAwait(false);
 
-            return Results.Ok(new
+            return TypedResults.Ok(new
             {
                 items = items.Select(static r => new
                 {

@@ -45,11 +45,11 @@ internal static class AnomalyEndpoints
                 serviceName,
                 ct).ConfigureAwait(false);
 
-            return Results.Ok(result);
+            return TypedResults.Ok(result);
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 
@@ -68,11 +68,11 @@ internal static class AnomalyEndpoints
                 serviceName,
                 ct).ConfigureAwait(false);
 
-            return Results.Ok(result);
+            return TypedResults.Ok(result);
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 
@@ -97,11 +97,11 @@ internal static class AnomalyEndpoints
                 serviceName,
                 ct).ConfigureAwait(false);
 
-            return Results.Ok(result);
+            return TypedResults.Ok(result);
         }
         catch (ArgumentException ex)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["metric"] = [ex.Message] });
         }
     }
 }

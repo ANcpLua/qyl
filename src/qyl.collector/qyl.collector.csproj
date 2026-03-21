@@ -22,17 +22,6 @@
     <InternalsVisibleTo Include="Qyl.Collector.Tests"/>
   </ItemGroup>
 
-  <!-- CLAUDE.md v2: Enable generation with rich metadata -->
-  <!-- Set GenerateClaudeMd=true to enable auto-generation from these properties -->
-  <!-- Currently using hand-written CLAUDE.md (richer content) -->
-  <!--
-  <PropertyGroup>
-    <GenerateClaudeMd>true</GenerateClaudeMd>
-    <ClaudePurpose>Backend service. This IS qyl from user perspective.</ClaudePurpose>
-    <ClaudeRole>primary-runtime</ClaudeRole>
-  </PropertyGroup>
-  -->
-
   <ItemGroup>
     <Using Include="ANcpLua.Roslyn.Utilities"/>
   </ItemGroup>
@@ -41,7 +30,6 @@
   <ItemGroup>
     <PackageReference Include="ANcpLua.Roslyn.Utilities"/>
     <PackageReference Include="DuckDB.NET.Data.Full"/>
-    <PackageReference Include="YamlDotNet"/>
   </ItemGroup>
 
   <!-- M.E.AI for IChatClient/IEmbeddingGenerator (Autofix, Triage, Insights) -->
@@ -50,11 +38,9 @@
   </ItemGroup>
 
 
-  <!-- OTLP protobuf ingestion -->
+  <!-- OTLP ingestion: gRPC hosting + OTel export for dynamic forwarding -->
   <ItemGroup>
-    <PackageReference Include="Google.Protobuf"/>
     <PackageReference Include="Grpc.AspNetCore"/>
-    <PackageReference Include="Grpc.Tools"/>
     <PackageReference Include="OpenTelemetry.Api"/>
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol"/>
     <PackageReference Include="System.IO.Hashing"/>
@@ -71,7 +57,6 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.Common"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.ResourceUtilization"/>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.ResourceMonitoring"/>
-    <PackageReference Include="Microsoft.Extensions.Http.Diagnostics"/>
   </ItemGroup>
 
   <!-- .NET 10 DI Lifecycle: AsyncState, object pooling -->
@@ -81,7 +66,6 @@
 
   <!-- Auth: Keycloak JWT validation via JWKS -->
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens"/>
   </ItemGroup>
 
@@ -107,5 +91,21 @@
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </Content>
   </ItemGroup>
+
+  <!-- Compile-time version constant (avoids runtime reflection) -->
+  <Target Name="GenerateVersionConstant" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <_VersionString>$(InformationalVersion)</_VersionString>
+      <_VersionString Condition="'$(_VersionString)' == ''">$(Version)</_VersionString>
+      <_VersionString Condition="'$(_VersionString)' == ''">0.0.0</_VersionString>
+    </PropertyGroup>
+    <ItemGroup>
+      <Compile Include="$(IntermediateOutputPath)BuildVersion.g.cs"/>
+    </ItemGroup>
+    <WriteLinesToFile
+      File="$(IntermediateOutputPath)BuildVersion.g.cs"
+      Lines="namespace Qyl.Collector%3B&#10;&#10;internal static partial class BuildVersion&#10;{&#10;    public const string InformationalVersion = &quot;$(_VersionString)&quot;%3B&#10;}"
+      Overwrite="true"/>
+  </Target>
 
 </Project>

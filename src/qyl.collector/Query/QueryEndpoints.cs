@@ -27,7 +27,7 @@ internal static class QueryEndpoints
     {
         // Validate SQL is provided
         if (string.IsNullOrWhiteSpace(request.Sql))
-            return Results.BadRequest(new { error = "SQL query is required." });
+            return TypedResults.BadRequest(new { error = "SQL query is required." });
 
         var trimmed = request.Sql.Trim();
         var upper = trimmed.ToUpperInvariant();
@@ -36,7 +36,7 @@ internal static class QueryEndpoints
         if (!upper.StartsWithOrdinal("SELECT") &&
             !upper.StartsWithOrdinal("WITH"))
         {
-            return Results.BadRequest(new { error = "Only SELECT and WITH (CTE) queries are allowed." });
+            return TypedResults.BadRequest(new { error = "Only SELECT and WITH (CTE) queries are allowed." });
         }
 
         // Scan for banned keywords
@@ -45,7 +45,7 @@ internal static class QueryEndpoints
         {
             if (BannedTokens.Contains(token))
             {
-                return Results.BadRequest(new { error = $"Forbidden keyword detected: {token}" });
+                return TypedResults.BadRequest(new { error = $"Forbidden keyword detected: {token}" });
             }
         }
 
@@ -83,11 +83,11 @@ internal static class QueryEndpoints
                 rows.Add(row);
             }
 
-            return Results.Ok(new { columns, rows, rowCount = rows.Count });
+            return TypedResults.Ok(new { columns, rows, rowCount = rows.Count });
         }
         catch (DuckDBException ex)
         {
-            return Results.BadRequest(new { error = ex.Message });
+            return TypedResults.BadRequest(new { error = ex.Message });
         }
     }
 

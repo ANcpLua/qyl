@@ -16,10 +16,8 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task InsertSchemaPromotionAsync(
         SchemaPromotionRecord record,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -36,12 +34,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.Status });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.AppliedAt ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.CreatedAt });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a schema promotion by its ID.
@@ -103,10 +97,8 @@ public sealed partial class DuckDbStore
     public async Task UpdateSchemaPromotionStatusAsync(
         string promotionId,
         string status,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = status == "applied"
@@ -122,31 +114,21 @@ public sealed partial class DuckDbStore
                   """;
             cmd.Parameters.Add(new DuckDBParameter { Value = status });
             cmd.Parameters.Add(new DuckDBParameter { Value = promotionId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Executes a raw DDL statement for schema promotion.
     /// </summary>
     public async Task ExecuteSchemaDdlAsync(
         string ddl,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = ddl;
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     // ==========================================================================
     // Private Methods - Schema Control Mapping

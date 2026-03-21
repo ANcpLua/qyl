@@ -42,15 +42,16 @@ internal static class MeterAnalyzer
         if (context.TargetSymbol is not INamedTypeSymbol classSymbol)
             return null;
 
-        return AnalyzerHelpers.FindAttributeByName(context.Attributes, MeterAttributeMetadataName) is not { } meterAttr
+        return AnalyzerHelpers.FindAttributeByName(context.Attributes, context.SemanticModel.Compilation, MeterAttributeMetadataName) is not { } meterAttr
             ? null
-            : BuildDefinition(classSyntax, classSymbol, meterAttr, AnalyzerHelpers.FormatSortKey(context.TargetNode));
+            : BuildDefinition(classSyntax, classSymbol, meterAttr, context.SemanticModel.Compilation, AnalyzerHelpers.FormatSortKey(context.TargetNode));
     }
 
     private static MeterDefinition? BuildDefinition(
         ClassDeclarationSyntax classSyntax,
         INamedTypeSymbol classSymbol,
         AttributeData meterAttr,
+        Compilation compilation,
         string sortKey)
     {
         // The generator requires a partial container but can target either static
@@ -62,7 +63,7 @@ internal static class MeterAnalyzer
         if (meterName is null)
             return null;
 
-        var methods = ExtractMetricMethods(classSymbol);
+        var methods = ExtractMetricMethods(classSymbol, compilation);
         if (methods.Length is 0)
             return null;
 
@@ -81,7 +82,7 @@ internal static class MeterAnalyzer
         string? name = null;
         string? version = null;
 
-        if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string nameValue)
+        if (attr.TryGetConstructorArgument<string>(0, out var nameValue))
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
@@ -93,7 +94,9 @@ internal static class MeterAnalyzer
         return (name, version);
     }
 
-    private static EquatableArray<MetricMethodDefinition> ExtractMetricMethods(INamespaceOrTypeSymbol classSymbol)
+    private static EquatableArray<MetricMethodDefinition> ExtractMetricMethods(
+        INamespaceOrTypeSymbol classSymbol,
+        Compilation compilation)
     {
         var methods = new List<MetricMethodDefinition>();
 
@@ -105,11 +108,11 @@ internal static class MeterAnalyzer
             if (!method.IsPartialDefinition)
                 continue;
 
-            var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), CounterAttributeFullName);
-            var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), HistogramAttributeFullName);
-            var gaugeAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), GaugeAttributeFullName);
+            var counterAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, CounterAttributeFullName);
+            var histogramAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, HistogramAttributeFullName);
+            var gaugeAttr = AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, GaugeAttributeFullName);
             var upDownCounterAttr =
-                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), UpDownCounterAttributeFullName);
+                AnalyzerHelpers.FindAttributeByName(method.GetAttributes(), compilation, UpDownCounterAttributeFullName);
 
             var (kind, attr) = counterAttr is not null ? (MetricKind.Counter, counterAttr)
                 : histogramAttr is not null ? (MetricKind.Histogram, histogramAttr)
@@ -121,12 +124,12 @@ internal static class MeterAnalyzer
                 continue;
 
             var (metricName, unit, description) = ExtractMetricAttributeValues(attr);
-            var valueTypeName = FindMetricValueTypeName(method);
+            var valueTypeName = FindMetricValueTypeName(method, compilation);
 
             if (metricName is null)
                 continue;
 
-            var tags = ExtractTags(method);
+            var tags = ExtractTags(method, compilation);
 
             methods.Add(new MetricMethodDefinition(
                 method.Name,
@@ -141,10 +144,10 @@ internal static class MeterAnalyzer
         return methods.ToArray().ToEquatableArray();
     }
 
-    private static string? FindMetricValueTypeName(IMethodSymbol method)
+    private static string? FindMetricValueTypeName(IMethodSymbol method, Compilation compilation)
     {
-        foreach (var param in method.Parameters.Where(static param =>
-                     AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is null))
+        foreach (var param in method.Parameters.Where(param =>
+                     AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is null))
         {
             return param.Type.ToDisplayString();
         }
@@ -158,7 +161,7 @@ internal static class MeterAnalyzer
         string? unit = null;
         string? description = null;
 
-        if (attr.ConstructorArguments.Length > 0 && attr.ConstructorArguments[0].Value is string nameValue)
+        if (attr.TryGetConstructorArgument<string>(0, out var nameValue))
             name = nameValue;
 
         foreach (var namedArg in attr.NamedArguments)
@@ -177,20 +180,20 @@ internal static class MeterAnalyzer
         return (name, unit, description);
     }
 
-    private static EquatableArray<MetricTagParameter> ExtractTags(IMethodSymbol method)
+    private static EquatableArray<MetricTagParameter> ExtractTags(IMethodSymbol method, Compilation compilation)
     {
         var tags = new List<MetricTagParameter>();
 
         foreach (var param in method.Parameters)
         {
-            if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), TagAttributeFullName) is not { } tagAttr)
+            if (AnalyzerHelpers.FindAttributeByName(param.GetAttributes(), compilation, TagAttributeFullName) is not { } tagAttr)
                 continue;
 
             string? explicitTagName = null;
-            if (tagAttr.ConstructorArguments.Length > 0 && tagAttr.ConstructorArguments[0].Value is string tagNameValue)
+            if (tagAttr.TryGetConstructorArgument<string>(0, out var tagNameValue))
                 explicitTagName = tagNameValue;
 
-            var tagName = TelemetryTagNameResolver.ResolveName(param, explicitTagName, param.Name);
+            var tagName = TelemetryTagNameResolver.ResolveName(param, compilation, explicitTagName, param.Name);
 
             tags.Add(new MetricTagParameter(
                 param.Name,

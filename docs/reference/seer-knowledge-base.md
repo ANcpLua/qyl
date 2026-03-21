@@ -16,73 +16,74 @@ Sentry's MCP server exposes tools grouped into 5 skills. qyl.mcp should implemen
 
 ### Skill: inspect (16 tools, default enabled)
 
-| Tool | Purpose | Scopes |
-|------|---------|--------|
-| `find_organizations` | List/search orgs (max 25) | org:read |
-| `find_projects` | List/search projects (max 25) | project:read |
-| `find_releases` | List releases, find recent versions | project:read |
-| `find_teams` | List/search teams | team:read |
-| `get_event_attachment` | Download event attachments or list them | event:read |
-| `get_issue_details` | Full issue details by ID, URL, or event ID | event:read |
-| `get_issue_tag_values` | Tag value distribution for an issue (url, browser, os, env, release) | event:read |
-| `get_qyl_resource` | Generic resource fetch by URL or type+ID, supports breadcrumbs sub-resource | event:read |
-| `get_trace_details` | Trace overview by trace ID (32-char hex) | event:read |
-| `list_events` | Direct query syntax search across datasets (errors, logs, spans) | event:read |
-| `list_issue_events` | Direct query syntax search within a specific issue | event:read |
-| `list_issues` | Direct query syntax issue search | event:read |
-| `search_events` | NL→query translation for events AND aggregations (counts, sums, avgs) | event:read |
-| `search_issue_events` | NL→query for events within a specific issue | event:read |
-| `search_issues` | NL→query for grouped issue lists (NOT counts) | event:read |
-| `whoami` | Authenticated user identity | (none) |
+| Tool                   | Purpose                                                                     | Scopes       |
+|------------------------|-----------------------------------------------------------------------------|--------------|
+| `find_organizations`   | List/search orgs (max 25)                                                   | org:read     |
+| `find_projects`        | List/search projects (max 25)                                               | project:read |
+| `find_releases`        | List releases, find recent versions                                         | project:read |
+| `find_teams`           | List/search teams                                                           | team:read    |
+| `get_event_attachment` | Download event attachments or list them                                     | event:read   |
+| `get_issue_details`    | Full issue details by ID, URL, or event ID                                  | event:read   |
+| `get_issue_tag_values` | Tag value distribution for an issue (url, browser, os, env, release)        | event:read   |
+| `get_qyl_resource`     | Generic resource fetch by URL or type+ID, supports breadcrumbs sub-resource | event:read   |
+| `get_trace_details`    | Trace overview by trace ID (32-char hex)                                    | event:read   |
+| `list_events`          | Direct query syntax search across datasets (errors, logs, spans)            | event:read   |
+| `list_issue_events`    | Direct query syntax search within a specific issue                          | event:read   |
+| `list_issues`          | Direct query syntax issue search                                            | event:read   |
+| `search_events`        | NL→query translation for events AND aggregations (counts, sums, avgs)       | event:read   |
+| `search_issue_events`  | NL→query for events within a specific issue                                 | event:read   |
+| `search_issues`        | NL→query for grouped issue lists (NOT counts)                               | event:read   |
+| `whoami`               | Authenticated user identity                                                 | (none)       |
 
 ### Skill: loom (9 tools, default enabled)
 
-| Tool | Purpose | Scopes |
-|------|---------|--------|
-| `analyze_issue_with_loom` | AI root cause analysis + code fixes (polling state machine, 5min timeout) | (none) |
-| `find_organizations` | (shared) | org:read |
-| `find_projects` | (shared) | project:read |
-| `get_issue_details` | (shared) | event:read |
-| `list_events` | (shared) | event:read |
-| `list_issues` | (shared) | event:read |
-| `search_events` | (shared) | event:read |
-| `search_issues` | (shared) | event:read |
-| `whoami` | (shared) | (none) |
+| Tool                      | Purpose                                                                   | Scopes       |
+|---------------------------|---------------------------------------------------------------------------|--------------|
+| `analyze_issue_with_loom` | AI root cause analysis + code fixes (polling state machine, 5min timeout) | (none)       |
+| `find_organizations`      | (shared)                                                                  | org:read     |
+| `find_projects`           | (shared)                                                                  | project:read |
+| `get_issue_details`       | (shared)                                                                  | event:read   |
+| `list_events`             | (shared)                                                                  | event:read   |
+| `list_issues`             | (shared)                                                                  | event:read   |
+| `search_events`           | (shared)                                                                  | event:read   |
+| `search_issues`           | (shared)                                                                  | event:read   |
+| `whoami`                  | (shared)                                                                  | (none)       |
 
 ### Skill: docs (5 tools, default disabled)
 
-| Tool | Purpose | Scopes |
-|------|---------|--------|
-| `search_docs` | Search SDK documentation (POST /api/search, 15s timeout) | (none) |
-| `get_doc` | Fetch specific doc page by path | (none) |
-| `find_organizations` | (shared) | org:read |
-| `find_projects` | (shared) | project:read |
-| `whoami` | (shared) | (none) |
+| Tool                 | Purpose                                                  | Scopes       |
+|----------------------|----------------------------------------------------------|--------------|
+| `search_docs`        | Search SDK documentation (POST /api/search, 15s timeout) | (none)       |
+| `get_doc`            | Fetch specific doc page by path                          | (none)       |
+| `find_organizations` | (shared)                                                 | org:read     |
+| `find_projects`      | (shared)                                                 | project:read |
+| `whoami`             | (shared)                                                 | (none)       |
 
 ### Skill: triage (6 tools, default disabled)
 
-| Tool | Purpose | Scopes |
-|------|---------|--------|
-| `update_issue` | Resolve, assign, comment on issues | event:write |
-| `find_organizations` | (shared) | org:read |
-| `find_projects` | (shared) | project:read |
-| `get_issue_details` | (shared) | event:read |
-| `search_issues` | (shared) | event:read |
-| `whoami` | (shared) | (none) |
+| Tool                 | Purpose                            | Scopes       |
+|----------------------|------------------------------------|--------------|
+| `update_issue`       | Resolve, assign, comment on issues | event:write  |
+| `find_organizations` | (shared)                           | org:read     |
+| `find_projects`      | (shared)                           | project:read |
+| `get_issue_details`  | (shared)                           | event:read   |
+| `search_issues`      | (shared)                           | event:read   |
+| `whoami`             | (shared)                           | (none)       |
 
 ### Skill: project-management (5 tools, default disabled)
 
-| Tool | Purpose | Scopes |
-|------|---------|--------|
+| Tool             | Purpose                   | Scopes        |
+|------------------|---------------------------|---------------|
 | `create_project` | Create new project in org | project:write |
-| `create_team` | Create new team in org | team:write |
-| `create_dsn` | Create DSN for a project | project:write |
-| `find_dsns` | List DSNs for a project | project:read |
-| `update_project` | Modify project settings | project:write |
+| `create_team`    | Create new team in org    | team:write    |
+| `create_dsn`     | Create DSN for a project  | project:write |
+| `find_dsns`      | List DSNs for a project   | project:read  |
+| `update_project` | Modify project settings   | project:write |
 
 ### Meta-tool: use_qyl (agent-only)
 
 Embedded AI agent that chains multiple MCP tools via in-memory transport.
+
 - Creates `InMemoryTransport.createLinkedPair()` for client↔server
 - Excludes itself (anti-recursion) and simple replacement tools
 - Returns text result + optional tool call trace
@@ -91,6 +92,7 @@ Embedded AI agent that chains multiple MCP tools via in-memory transport.
 ### Tool Annotations (Directory Requirements)
 
 Every tool must declare:
+
 ```json
 {
   "readOnlyHint": true|false,
@@ -106,47 +108,47 @@ qyl runs algorithms locally — no separate service needed — but the API surfa
 
 ### Autofix & Analysis
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v1/automation/summarize/trace` | POST | AI trace summarization (7-day cache) |
-| `/v1/automation/summarize/issue` | POST | AI issue summarization |
-| `/v1/automation/codegen/unit-tests` | POST | Automated test generation |
-| `/v1/automation/explorer/index` | POST | Explorer context indexing |
-| `/v1/automation/explorer/index/org-project-knowledge` | POST | Project knowledge indexing |
+| Endpoint                                              | Method | Purpose                              |
+|-------------------------------------------------------|--------|--------------------------------------|
+| `/v1/automation/summarize/trace`                      | POST   | AI trace summarization (7-day cache) |
+| `/v1/automation/summarize/issue`                      | POST   | AI issue summarization               |
+| `/v1/automation/codegen/unit-tests`                   | POST   | Automated test generation            |
+| `/v1/automation/explorer/index`                       | POST   | Explorer context indexing            |
+| `/v1/automation/explorer/index/org-project-knowledge` | POST   | Project knowledge indexing           |
 
 ### Similarity & Grouping
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v0/issues/supergroups` | POST | Supergroups embedding trigger |
-| (configurable SEER_SIMILAR_ISSUES_URL) | POST | Similar issues via embedding distance |
+| Endpoint                               | Method | Purpose                               |
+|----------------------------------------|--------|---------------------------------------|
+| `/v0/issues/supergroups`               | POST   | Supergroups embedding trigger         |
+| (configurable SEER_SIMILAR_ISSUES_URL) | POST   | Similar issues via embedding distance |
 
 ### Anomaly Detection
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/detect-anomalies` | POST | Time-series anomaly detection |
-| `/v1/workflows/compare/cohort` | POST | Distribution comparison (baseline vs outlier) |
+| Endpoint                       | Method | Purpose                                       |
+|--------------------------------|--------|-----------------------------------------------|
+| `/detect-anomalies`            | POST   | Time-series anomaly detection                 |
+| `/v1/workflows/compare/cohort` | POST   | Distribution comparison (baseline vs outlier) |
 
 ### Assisted Query
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v1/assisted-query/translate` | POST | NL → query syntax translation |
-| `/v1/assisted-query/translate-agentic` | POST | Agentic NL translation |
-| `/v1/assisted-query/start` | POST | Start search agent run |
-| `/v1/assisted-query/state` | POST | Get search agent state |
-| `/v1/assisted-query/create-cache` | POST | Create query cache |
+| Endpoint                               | Method | Purpose                       |
+|----------------------------------------|--------|-------------------------------|
+| `/v1/assisted-query/translate`         | POST   | NL → query syntax translation |
+| `/v1/assisted-query/translate-agentic` | POST   | Agentic NL translation        |
+| `/v1/assisted-query/start`             | POST   | Start search agent run        |
+| `/v1/assisted-query/state`             | POST   | Get search agent state        |
+| `/v1/assisted-query/create-cache`      | POST   | Create query cache            |
 
 ### Infrastructure
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/v1/models` | GET | List available LLM models |
-| `/v1/llm/generate` | POST | Generic LLM generate (provider, model, prompt, schema) |
-| `/v1/project-preference/remove-repository` | POST | Remove repository from project |
-| `/v1/explorer/service-map/update` | POST | Update service topology map |
-| `/trends/breakpoint-detector` | POST | Statistical breakpoint detection in time series |
+| Endpoint                                   | Method | Purpose                                                |
+|--------------------------------------------|--------|--------------------------------------------------------|
+| `/v1/models`                               | GET    | List available LLM models                              |
+| `/v1/llm/generate`                         | POST   | Generic LLM generate (provider, model, prompt, schema) |
+| `/v1/project-preference/remove-repository` | POST   | Remove repository from project                         |
+| `/v1/explorer/service-map/update`          | POST   | Update service topology map                            |
+| `/trends/breakpoint-detector`              | POST   | Statistical breakpoint detection in time series        |
 
 ### Authentication Pattern
 
@@ -167,6 +169,7 @@ Viewer context (optional):
 From `similarity/utils.py` (678 lines). Extracts normalized stacktrace strings for embedding similarity.
 
 **Algorithm:**
+
 1. Reverse-iterate exceptions (prioritize recent), limit 30 exceptions, 30 frames/exception
 2. Filter by `contributes` flag from grouping info
 3. Strip base64-encoded frames, compiler-generated code, minified HTML
@@ -183,21 +186,24 @@ Current `ErrorFingerprinter.cs` does SHA-256 fingerprinting but not embedding-re
 From `similarity/similar_issues.py`. Pattern for resilient embedding lookups.
 
 **Algorithm:**
+
 1. `CircuitBreaker` wraps Seer embedding API calls
 2. Configurable retries (default 2, 0.5s backoff)
 3. On `TimeoutError`/`MaxRetryError` → increment circuit breaker, return empty
 4. Race-condition handling: if hash lookup fails because group was deleted during ingest:
-   - Check hash age (60s threshold)
-   - If stale → trigger async hash deletion
-   - Track outcome metrics (similar_groups_found, matching_group_found, error, redirect)
+    - Check hash age (60s threshold)
+    - If stale → trigger async hash deletion
+    - Track outcome metrics (similar_groups_found, matching_group_found, error, redirect)
 
-**qyl equivalent needed:** `EmbeddingClusterWorker.cs` does greedy cosine similarity but lacks circuit breaker and race-condition recovery.
+**qyl equivalent needed:** `EmbeddingClusterWorker.cs` does greedy cosine similarity but lacks circuit breaker and
+race-condition recovery.
 
 ### 3.3 Breakpoint Detection
 
 From `breakpoints.py`. Statistical change-point detection in time series.
 
 **Data model:**
+
 ```python
 BreakpointData:
   project: str
@@ -220,6 +226,7 @@ Breakpoint detection would add statistical time-series change detection independ
 From `assisted_query/` (3 files, ~1000 lines). Translates natural language to platform search syntax.
 
 **Key patterns:**
+
 - Static value sets: IS (resolved/unresolved/archived), PRIORITY, FIXABILITY, CATEGORIES
 - Event context fields: device class, error type, timestamps, memory usage
 - Dynamic field value discovery: fetches unique values for categorical fields
@@ -234,6 +241,7 @@ This is the most complex untranspiled feature.
 From `trace_summary.py`. AI trace summarization with cache.
 
 **Pattern:**
+
 - Cache key: `ai-trace-summary:{traceId}`
 - TTL: 7 days
 - Response: snake_case → camelCase conversion
@@ -247,6 +255,7 @@ Simple addition to `LoomExplorerService.cs`.
 From `supergroups.py` + similarity pipeline. Groups similar issues by embedding distance.
 
 **Pattern:**
+
 1. On new issue → trigger embedding request to Seer
 2. Seer computes embedding → finds similar groups by distance
 3. Distance threshold: `SEER_MAX_GROUPING_DISTANCE` (configurable)
@@ -275,10 +284,12 @@ OrgProjectKnowledgeProjectData { project_id, slug, sdk_name, error_count, transa
 ## 5. Autofix Status State Machine
 
 Terminal states (no more updates expected):
+
 - `COMPLETED`, `FAILED`, `ERROR`, `CANCELLED`
 - `NEED_MORE_INFORMATION`, `WAITING_FOR_USER_RESPONSE` (human intervention)
 
 Non-terminal states:
+
 - `PENDING`, `PROCESSING`, `IN_PROGRESS`
 
 Polling: 5s interval, 5min timeout, 3 max retries with exponential backoff (1s initial).
@@ -318,6 +329,7 @@ in-process tool invocation for `qyl.loom` → MCP tool access without HTTP.
 ### Skills-Based Authorization
 
 5 skill categories control tool visibility:
+
 - `inspect` (default) — read-only issue/event/trace exploration
 - `loom` (default) — AI analysis
 - `docs` (default) — documentation search
@@ -344,24 +356,24 @@ Noise domains stripped (pendo, amplitude, stripe, statuspage, zendesk, ingest).
 
 ### High-value gaps (relevant to qyl)
 
-| Endpoint | Latency | What it is | qyl equivalent |
-|----------|---------|-----------|----------------|
-| `/api/0/organizations/{org}/integrations/coding-agents/` | 1341ms | Coding agent integration registry | qyl.loom `AutofixAgentService` — missing integration listing |
-| `/api/0/assistant/` | 425ms | AI assistant API (chat-style) | qyl copilot — already implemented differently |
-| `/api/0/organizations/{org}/dashboards/` | 169ms | Saved dashboard CRUD | No saved-dashboard API in qyl.collector |
-| `/api/0/organizations/{org}/repos/` | 214ms | Repository listing for org | qyl.loom needs for code review context |
-| `/api/0/organizations/{org}/config/integrations/` | 460ms | Available integration catalog | Integration registry pattern — not in qyl |
-| `/api/0/organizations/{org}/group-search-views/starred/` | 153ms | Saved/starred issue search views | Bookmarked queries — not in qyl |
+| Endpoint                                                 | Latency | What it is                        | qyl equivalent                                               |
+|----------------------------------------------------------|---------|-----------------------------------|--------------------------------------------------------------|
+| `/api/0/organizations/{org}/integrations/coding-agents/` | 1341ms  | Coding agent integration registry | qyl.loom `AutofixAgentService` — missing integration listing |
+| `/api/0/assistant/`                                      | 425ms   | AI assistant API (chat-style)     | qyl copilot — already implemented differently                |
+| `/api/0/organizations/{org}/dashboards/`                 | 169ms   | Saved dashboard CRUD              | No saved-dashboard API in qyl.collector                      |
+| `/api/0/organizations/{org}/repos/`                      | 214ms   | Repository listing for org        | qyl.loom needs for code review context                       |
+| `/api/0/organizations/{org}/config/integrations/`        | 460ms   | Available integration catalog     | Integration registry pattern — not in qyl                    |
+| `/api/0/organizations/{org}/group-search-views/starred/` | 153ms   | Saved/starred issue search views  | Bookmarked queries — not in qyl                              |
 
 ### SaaS-only (not relevant to qyl)
 
-| Endpoint | Latency | Purpose |
-|----------|---------|---------|
-| `/api/0/organizations/{org}/pendo-details/` | 959ms | Pendo tracking integration |
-| `/api/0/organizations/{org}/promotions/trigger-check/` | 266ms | Marketing promotion eligibility |
-| `/api/0/organizations/{org}/prompts-activity/` | 152ms | Onboarding prompt state |
-| `/api/0/organizations/{org}/broadcasts/` | 1441ms | System-wide announcements |
-| `/api/0/organizations/{org}/forwarding/` | 142ms | Event forwarding config |
+| Endpoint                                               | Latency | Purpose                         |
+|--------------------------------------------------------|---------|---------------------------------|
+| `/api/0/organizations/{org}/pendo-details/`            | 959ms   | Pendo tracking integration      |
+| `/api/0/organizations/{org}/promotions/trigger-check/` | 266ms   | Marketing promotion eligibility |
+| `/api/0/organizations/{org}/prompts-activity/`         | 152ms   | Onboarding prompt state         |
+| `/api/0/organizations/{org}/broadcasts/`               | 1441ms  | System-wide announcements       |
+| `/api/0/organizations/{org}/forwarding/`               | 142ms   | Event forwarding config         |
 
 ### Source data
 
@@ -378,30 +390,35 @@ Noise domains stripped (pendo, amplitude, stripe, statuspage, zendesk, ingest).
 1. **ROOT_CAUSE** → `RootCauseArtifact { one_line_description, five_whys[], reproduction_steps[] }`
 2. **SOLUTION** → `SolutionArtifact { one_line_summary, steps[{ title, description }] }`
 3. **CODE_CHANGES** → No artifact (reads file_patches from Explorer state)
-4. **IMPACT_ASSESSMENT** → `ImpactAssessmentArtifact { one_line_description, impacts[{ label, rating, impact_description, evidence }] }`
+4. **IMPACT_ASSESSMENT** →
+   `ImpactAssessmentArtifact { one_line_description, impacts[{ label, rating, impact_description, evidence }] }`
 5. **TRIAGE** → `TriageArtifact { suspect_commit?, suggested_assignee? }`
 
 ### Prompt Templates
 
-**Root Cause:** Analyze issue, ask "why" repeatedly, output one_line_description (<30 words) + five_whys + reproduction_steps (<15 words each).
+**Root Cause:** Analyze issue, ask "why" repeatedly, output one_line_description (<30 words) + five_whys +
+reproduction_steps (<15 words each).
 
-**Solution:** Review root cause, pick most pragmatic approach, do NOT include testing/implementation. Output: one_line_summary + ordered steps.
+**Solution:** Review root cause, pick most pragmatic approach, do NOT include testing/implementation. Output:
+one_line_summary + ordered steps.
 
 **Code Changes:** Review root cause + solution, use code editing tools. Minimal and focused.
 
-**Impact Assessment:** Check upstream/downstream dependencies, metrics, connected issues. Output: one_line_description + impacts[{ label, rating(low/medium/high), impact_description, evidence }].
+**Impact Assessment:** Check upstream/downstream dependencies, metrics, connected issues. Output: one_line_description +
+impacts[{ label, rating(low/medium/high), impact_description, evidence }].
 
-**Triage:** Look at recent commits, code ownership. Output: suspect_commit { sha(7), repo, message, author, date } + suggested_assignee { name, email, why }.
+**Triage:** Look at recent commits, code ownership. Output: suspect_commit { sha(7), repo, message, author, date } +
+suggested_assignee { name, email, why }.
 
 ### Fixability Score Thresholds
 
-| Level | Score |
-|-------|-------|
+| Level      | Score   |
+|------------|---------|
 | SUPER_HIGH | >= 0.76 |
-| HIGH | >= 0.66 |
-| MEDIUM | >= 0.40 |
-| LOW | >= 0.25 |
-| SUPER_LOW | >= 0.0 |
+| HIGH       | >= 0.66 |
+| MEDIUM     | >= 0.40 |
+| LOW        | >= 0.25 |
+| SUPER_LOW  | >= 0.0  |
 
 ### Automation Tuning
 
@@ -417,4 +434,5 @@ POST /organizations/{org}/autofix/automation-settings/  → bulk update (max 100
 
 ### Autofix Referrers
 
-`api.group_ai_autofix`, `issue_summary.fixability`, `issue_summary.alert_fixability`, `issue_summary.post_process_fixability`, `slack`, `unknown`.
+`api.group_ai_autofix`, `issue_summary.fixability`, `issue_summary.alert_fixability`,
+`issue_summary.post_process_fixability`, `slack`, `unknown`.

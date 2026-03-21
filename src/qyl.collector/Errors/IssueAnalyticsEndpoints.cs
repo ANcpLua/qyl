@@ -63,10 +63,10 @@ public static class IssueAnalyticsEndpoints
         }
         catch (DuckDBException ex) when (ex.Message.Contains("does not exist"))
         {
-            return Results.Ok(new { items = buckets, total = 0 });
+            return TypedResults.Ok(new { items = buckets, total = 0 });
         }
 
-        return Results.Ok(new { items = buckets, total = buckets.Count });
+        return TypedResults.Ok(new { items = buckets, total = buckets.Count });
     }
 
     private static async Task<IResult> FindSimilarAsync(
@@ -104,7 +104,7 @@ public static class IssueAnalyticsEndpoints
                 reader.GetDouble(3)));
         }
 
-        return Results.Ok(new { items = results, total = results.Count });
+        return TypedResults.Ok(new { items = results, total = results.Count });
     }
 }
 

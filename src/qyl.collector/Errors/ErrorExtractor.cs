@@ -29,7 +29,9 @@ public static class ErrorExtractor
             span.GenAiProviderName,
             span.GenAiRequestModel,
             genAiFinishReasons,
-            category);
+            category,
+            span.ServiceName,
+            span.Name);
 
         return new ErrorEvent
         {

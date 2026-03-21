@@ -15,23 +15,23 @@ public static class GitHubEndpoints
                 ? await service.GetUserAsync(ct)
                 : null;
 
-            return Results.Json(
+            return TypedResults.Json(
                 new GitHubStatusResponse(service.IsConfigured, user, service.AuthMethod),
                 GitHubJsonContext.Default.GitHubStatusResponse);
         });
 
-        group.MapPost("/token", static async (
+        group.MapPost("/token", static async Task<IResult> (
             [FromBody] GitHubTokenRequest request,
             [FromServices] GitHubService service,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Token))
-                return Results.BadRequest(new { error = "Token is required" });
+                return TypedResults.BadRequest(new { error = "Token is required" });
 
             if (await service.SetTokenAsync(request.Token, "pat", ct) is not { } user)
-                return Results.BadRequest(new { error = "Invalid GitHub token" });
+                return TypedResults.BadRequest(new { error = "Invalid GitHub token" });
 
-            return Results.Json(
+            return TypedResults.Json(
                 new GitHubStatusResponse(true, user, "pat"),
                 GitHubJsonContext.Default.GitHubStatusResponse);
         });
@@ -45,50 +45,50 @@ public static class GitHubEndpoints
                 ? await service.GetUserAsync(ct)
                 : null;
 
-            return Results.Json(
+            return TypedResults.Json(
                 new GitHubStatusResponse(service.IsConfigured, user, service.AuthMethod),
                 GitHubJsonContext.Default.GitHubStatusResponse);
         });
 
         group.MapGet("/device/available", static (
                 [FromServices] GitHubService service) =>
-            Results.Json(
+            TypedResults.Json(
                 new DeviceAvailableResponse(service.IsDeviceFlowAvailable),
                 GitHubJsonContext.Default.DeviceAvailableResponse));
 
-        group.MapPost("/device/start", static async (
+        group.MapPost("/device/start", static async Task<IResult> (
             [FromServices] GitHubService service, CancellationToken ct) =>
         {
             var response = await service.StartDeviceFlowAsync(ct);
             return response is null
-                ? Results.BadRequest(new { error = "Device flow not available. Set QYL_GITHUB_CLIENT_ID." })
-                : Results.Json(response, GitHubJsonContext.Default.DeviceCodeResponse);
+                ? TypedResults.BadRequest(new { error = "Device flow not available. Set QYL_GITHUB_CLIENT_ID." })
+                : TypedResults.Json(response, GitHubJsonContext.Default.DeviceCodeResponse);
         });
 
-        group.MapGet("/device/poll", static async (
+        group.MapGet("/device/poll", static async Task<IResult> (
             [FromQuery] string deviceCode,
             [FromServices] GitHubService service,
             CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(deviceCode))
-                return Results.BadRequest(new { error = "deviceCode is required" });
+                return TypedResults.BadRequest(new { error = "deviceCode is required" });
 
             var response = await service.PollDeviceFlowAsync(deviceCode, ct);
-            return Results.Json(response, GitHubJsonContext.Default.DevicePollResponse);
+            return TypedResults.Json(response, GitHubJsonContext.Default.DevicePollResponse);
         });
 
-        group.MapGet("/repos", static async (
+        group.MapGet("/repos", static async Task<IResult> (
             [FromServices] GitHubService service, CancellationToken ct) =>
         {
             if (!service.IsConfigured)
             {
-                return Results.Json(
+                return TypedResults.Json(
                     new { error = "GitHub token not configured" },
                     statusCode: StatusCodes.Status503ServiceUnavailable);
             }
 
             var repos = await service.GetRepositoriesAsync(ct);
-            return Results.Json(repos, GitHubJsonContext.Default.GitHubRepoArray);
+            return TypedResults.Json(repos, GitHubJsonContext.Default.GitHubRepoArray);
         });
     }
 }

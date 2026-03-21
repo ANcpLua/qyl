@@ -13,35 +13,35 @@ public static class TriageEndpoints
         {
             var results = await store.GetTriageResultsAsync(
                 automationLevel, Math.Clamp(limit ?? 50, 1, 1000), ct);
-            return Results.Ok(new { items = results, total = results.Count });
+            return TypedResults.Ok(new { items = results, total = results.Count });
         });
 
-        app.MapGet("/api/v1/triage/{triageId}", static async (
+        app.MapGet("/api/v1/triage/{triageId}", static async Task<IResult> (
             string triageId, DuckDbStore store, CancellationToken ct) =>
         {
             var result = await store.GetTriageResultAsync(triageId, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
         });
 
-        app.MapGet("/api/v1/issues/{issueId}/triage", static async (
+        app.MapGet("/api/v1/issues/{issueId}/triage", static async Task<IResult> (
             string issueId, DuckDbStore store, CancellationToken ct) =>
         {
             var result = await store.GetLatestTriageForIssueAsync(issueId, ct);
-            return result is null ? Results.NotFound() : Results.Ok(result);
+            return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
         });
 
-        app.MapPost("/api/v1/issues/{issueId}/triage", static async (
+        app.MapPost("/api/v1/issues/{issueId}/triage", static async Task<IResult> (
             string issueId, TriagePipelineService pipeline,
             DuckDbStore store, CancellationToken ct) =>
         {
             if (await store.GetIssueByIdAsync(issueId, ct) is null)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             // Triage only this specific issue (no side effects on other issues)
             var result = await pipeline.TriageSingleIssueAsync(issueId, ct);
             return result is null
-                ? Results.Problem("Triage failed to produce a result")
-                : Results.Created($"/api/v1/triage/{result.TriageId}", result);
+                ? TypedResults.Problem("Triage failed to produce a result")
+                : TypedResults.Created($"/api/v1/triage/{result.TriageId}", result);
         });
     }
 }

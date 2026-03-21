@@ -51,6 +51,9 @@ packages/
 !.claude/qyl-workflows/
 !.claude/skills/
 
+# Plugin session state (Hades smart ledger, elegance pipeline, etc.)
+.smart/
+
 # Git worktrees (canonical dev worktrees under .worktrees/)
 .worktrees/
 

@@ -86,12 +86,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", default=".", help="Repository root path.")
     parser.add_argument("--fix", action="store_true", help="Rewrite workflow files in-place.")
     parser.add_argument("--allow-major", action="store_true", help="Allow major version jumps.")
-    parser.add_argument("--report-json", default=".github/action-governance-report.json", help="JSON report output path.")
-    parser.add_argument("--report-md", default=".github/action-governance-report.md", help="Markdown report output path.")
+    parser.add_argument("--report-json", default=".github/action-governance-report.json",
+                        help="JSON report output path.")
+    parser.add_argument("--report-md", default=".github/action-governance-report.md",
+                        help="Markdown report output path.")
     parser.add_argument("--fail-on-drift", action="store_true", help="Exit non-zero if any actionable drift exists.")
-    parser.add_argument("--github-api-url", default=os.getenv("GITHUB_API_URL", "").strip(), help="GitHub API base URL override.")
-    parser.add_argument("--github-server-url", default=os.getenv("GITHUB_SERVER_URL", "").strip(), help="GitHub server URL override.")
-    parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN", "").strip() or os.getenv("GH_TOKEN", "").strip(), help="GitHub token.")
+    parser.add_argument("--github-api-url", default=os.getenv("GITHUB_API_URL", "").strip(),
+                        help="GitHub API base URL override.")
+    parser.add_argument("--github-server-url", default=os.getenv("GITHUB_SERVER_URL", "").strip(),
+                        help="GitHub server URL override.")
+    parser.add_argument("--token", default=os.getenv("GITHUB_TOKEN", "").strip() or os.getenv("GH_TOKEN", "").strip(),
+                        help="GitHub token.")
     parser.add_argument("--verbose", action="store_true", help="Verbose logging.")
     return parser.parse_args()
 
@@ -275,7 +280,8 @@ def stable_tag_score(tag: str) -> Optional[Tuple[int, int, int]]:
     return int(m.group(1)), int(m.group(2)), int(m.group(3))
 
 
-def resolve_latest_stable(client: GitHubClient, action: str) -> Tuple[Optional[str], Optional[Tuple[int, int, int]], str]:
+def resolve_latest_stable(client: GitHubClient, action: str) -> Tuple[
+    Optional[str], Optional[Tuple[int, int, int]], str]:
     latest_tag, source = client.get_latest_release_tag(action)
     if latest_tag:
         score = stable_tag_score(latest_tag)
@@ -297,7 +303,8 @@ def resolve_latest_stable(client: GitHubClient, action: str) -> Tuple[Optional[s
     return None, None, f"{source}+tags_no_stable"
 
 
-def should_update(current_ref: str, current_semver: Optional[Tuple[int, int, int]], latest_ref: Optional[str], latest_semver: Optional[Tuple[int, int, int]], allow_major: bool) -> Tuple[bool, bool, str]:
+def should_update(current_ref: str, current_semver: Optional[Tuple[int, int, int]], latest_ref: Optional[str],
+                  latest_semver: Optional[Tuple[int, int, int]], allow_major: bool) -> Tuple[bool, bool, str]:
     if not latest_ref or not latest_semver:
         return False, False, "no_stable_target"
 

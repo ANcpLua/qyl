@@ -162,217 +162,217 @@ export function IssueDetailPage() {
 
     return (
         <div className="flex h-full">
-        <div className="flex-1 overflow-auto p-6 space-y-6">
-            {/* Back button + header */}
-            <div className="flex items-center gap-4">
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/issues')}
-                    className="text-brutal-slate hover:text-brutal-white"
-                >
-                    <ArrowLeft className="w-4 h-4 mr-1"/>
-                    Back
-                </Button>
+            <div className="flex-1 overflow-auto p-6 space-y-6">
+                {/* Back button + header */}
+                <div className="flex items-center gap-4">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate('/issues')}
+                        className="text-brutal-slate hover:text-brutal-white"
+                    >
+                        <ArrowLeft className="w-4 h-4 mr-1"/>
+                        Back
+                    </Button>
 
-                {isLoading ? (
-                    <div className="flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin text-brutal-slate"/>
-                        <span className="text-brutal-slate">Loading…</span>
+                    {isLoading ? (
+                        <div className="flex items-center gap-2">
+                            <Loader2 className="w-5 h-5 animate-spin text-brutal-slate"/>
+                            <span className="text-brutal-slate">Loading…</span>
+                        </div>
+                    ) : issue ? (
+                        <div className="flex items-center gap-3 flex-1">
+                            <AlertCircle className="w-5 h-5 text-red-400"/>
+                            <h1 className="text-lg font-bold text-brutal-white tracking-wide">
+                                {issue.error_type}
+                            </h1>
+                            <StatusBadge status={issue.status}/>
+                            {issue.owner && (
+                                <Badge variant="outline" className="text-xs text-brutal-slate border-brutal-zinc">
+                                    {issue.owner}
+                                </Badge>
+                            )}
+                        </div>
+                    ) : null}
+                </div>
+
+                {/* Error message */}
+                {issue?.message && (
+                    <div
+                        className="text-sm text-brutal-slate bg-brutal-dark border-2 border-brutal-zinc rounded p-4 font-mono whitespace-pre-wrap">
+                        {issue.message}
                     </div>
-                ) : issue ? (
-                    <div className="flex items-center gap-3 flex-1">
-                        <AlertCircle className="w-5 h-5 text-red-400"/>
-                        <h1 className="text-lg font-bold text-brutal-white tracking-wide">
-                            {issue.error_type}
-                        </h1>
-                        <StatusBadge status={issue.status}/>
-                        {issue.owner && (
-                            <Badge variant="outline" className="text-xs text-brutal-slate border-brutal-zinc">
-                                {issue.owner}
-                            </Badge>
+                )}
+
+                {/* Stats cards */}
+                <div className="grid grid-cols-3 gap-4">
+                    {isLoading ? (
+                        <>
+                            <SkeletonCard/>
+                            <SkeletonCard/>
+                            <SkeletonCard/>
+                        </>
+                    ) : issue ? (
+                        <>
+                            <Card>
+                                <CardContent className="pt-4">
+                                    <div className="flex items-center gap-2">
+                                        <AlertCircle className="w-4 h-4 text-red-400"/>
+                                        <span
+                                            className="text-[10px] font-bold text-brutal-slate tracking-wider">EVENTS</span>
+                                    </div>
+                                    <div className="text-xl font-bold mt-1 text-brutal-white font-mono">
+                                        {issue.event_count.toLocaleString()}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardContent className="pt-4">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-brutal-slate"/>
+                                        <span
+                                            className="text-[10px] font-bold text-brutal-slate tracking-wider">FIRST SEEN</span>
+                                    </div>
+                                    <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
+                                        {formatTimestamp(issue.first_seen)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card>
+                                <CardContent className="pt-4">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="w-4 h-4 text-signal-orange"/>
+                                        <span
+                                            className="text-[10px] font-bold text-brutal-slate tracking-wider">LAST SEEN</span>
+                                    </div>
+                                    <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
+                                        {formatTimestamp(issue.last_seen)}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </>
+                    ) : null}
+                </div>
+
+                {/* IDs */}
+                {issue && (
+                    <div className="flex items-center gap-6 text-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="text-brutal-slate text-xs font-bold tracking-wider">ISSUE ID</span>
+                            <CopyableText value={issue.issue_id} label="Issue ID" truncate maxWidth="140px"/>
+                        </div>
+                        {issue.trace_id && (
+                            <div className="flex items-center gap-2">
+                                <span className="text-brutal-slate text-xs font-bold tracking-wider">TRACE ID</span>
+                                <CopyableText value={issue.trace_id} label="Trace ID" truncate maxWidth="140px"
+                                              textClassName="text-primary"/>
+                            </div>
                         )}
                     </div>
-                ) : null}
-            </div>
+                )}
 
-            {/* Error message */}
-            {issue?.message && (
-                <div
-                    className="text-sm text-brutal-slate bg-brutal-dark border-2 border-brutal-zinc rounded p-4 font-mono whitespace-pre-wrap">
-                    {issue.message}
-                </div>
-            )}
+                {/* Actions */}
+                {issue && (
+                    <div className="flex items-center gap-3">
+                        {transitions.map(({label, target, icon: BtnIcon}) => (
+                            <Button
+                                key={target}
+                                size="sm"
+                                variant="outline"
+                                disabled={updateStatus.isPending}
+                                onClick={() => updateStatus.mutate({issueId: issue.issue_id, status: target})}
+                                className="text-xs font-bold tracking-wider"
+                            >
+                                <BtnIcon className="w-4 h-4 mr-1"/>
+                                {label}
+                            </Button>
+                        ))}
 
-            {/* Stats cards */}
-            <div className="grid grid-cols-3 gap-4">
-                {isLoading ? (
-                    <>
-                        <SkeletonCard/>
-                        <SkeletonCard/>
-                        <SkeletonCard/>
-                    </>
-                ) : issue ? (
-                    <>
-                        <Card>
-                            <CardContent className="pt-4">
-                                <div className="flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-red-400"/>
-                                    <span
-                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">EVENTS</span>
-                                </div>
-                                <div className="text-xl font-bold mt-1 text-brutal-white font-mono">
-                                    {issue.event_count.toLocaleString()}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardContent className="pt-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-brutal-slate"/>
-                                    <span
-                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">FIRST SEEN</span>
-                                </div>
-                                <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
-                                    {formatTimestamp(issue.first_seen)}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardContent className="pt-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-signal-orange"/>
-                                    <span
-                                        className="text-[10px] font-bold text-brutal-slate tracking-wider">LAST SEEN</span>
-                                </div>
-                                <div className="text-sm font-bold mt-1 text-brutal-white font-mono">
-                                    {formatTimestamp(issue.last_seen)}
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </>
-                ) : null}
-            </div>
-
-            {/* IDs */}
-            {issue && (
-                <div className="flex items-center gap-6 text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="text-brutal-slate text-xs font-bold tracking-wider">ISSUE ID</span>
-                        <CopyableText value={issue.issue_id} label="Issue ID" truncate maxWidth="140px"/>
-                    </div>
-                    {issue.trace_id && (
-                        <div className="flex items-center gap-2">
-                            <span className="text-brutal-slate text-xs font-bold tracking-wider">TRACE ID</span>
-                            <CopyableText value={issue.trace_id} label="Trace ID" truncate maxWidth="140px"
-                                          textClassName="text-primary"/>
+                        <div className="flex items-center gap-2 ml-auto">
+                            <Input
+                                placeholder="Assign to…"
+                                value={assignInput}
+                                onChange={(e) => setAssignInput(e.target.value)}
+                                className="w-40 h-8 text-xs"
+                                aria-label="Assign owner"
+                            />
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={!assignInput.trim() || assignIssue.isPending}
+                                onClick={() => {
+                                    assignIssue.mutate({issueId: issue.issue_id, owner: assignInput.trim()});
+                                    setAssignInput('');
+                                }}
+                                className="text-xs font-bold tracking-wider"
+                            >
+                                <User className="w-4 h-4 mr-1"/>
+                                Assign
+                            </Button>
                         </div>
-                    )}
-                </div>
-            )}
-
-            {/* Actions */}
-            {issue && (
-                <div className="flex items-center gap-3">
-                    {transitions.map(({label, target, icon: BtnIcon}) => (
-                        <Button
-                            key={target}
-                            size="sm"
-                            variant="outline"
-                            disabled={updateStatus.isPending}
-                            onClick={() => updateStatus.mutate({issueId: issue.issue_id, status: target})}
-                            className="text-xs font-bold tracking-wider"
-                        >
-                            <BtnIcon className="w-4 h-4 mr-1"/>
-                            {label}
-                        </Button>
-                    ))}
-
-                    <div className="flex items-center gap-2 ml-auto">
-                        <Input
-                            placeholder="Assign to…"
-                            value={assignInput}
-                            onChange={(e) => setAssignInput(e.target.value)}
-                            className="w-40 h-8 text-xs"
-                            aria-label="Assign owner"
-                        />
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={!assignInput.trim() || assignIssue.isPending}
-                            onClick={() => {
-                                assignIssue.mutate({issueId: issue.issue_id, owner: assignInput.trim()});
-                                setAssignInput('');
-                            }}
-                            className="text-xs font-bold tracking-wider"
-                        >
-                            <User className="w-4 h-4 mr-1"/>
-                            Assign
-                        </Button>
                     </div>
-                </div>
-            )}
+                )}
 
-            {/* Coding Agent Runs */}
-            {latestFixRun && (
+                {/* Coding Agent Runs */}
+                {latestFixRun && (
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em]">CODING AGENTS</h2>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={launchAgent.isPending}
+                                onClick={() => launchAgent.mutate({
+                                    fixRunId: latestFixRun.run_id,
+                                    provider: LoomSettings?.default_coding_agent,
+                                })}
+                                className="text-xs font-bold tracking-wider"
+                            >
+                                {launchAgent.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin"/>}
+                                Launch Agent
+                            </Button>
+                        </div>
+                        {codingAgentRuns.length === 0 ? (
+                            <Card>
+                                <CardContent className="py-6 text-center">
+                                    <p className="text-brutal-slate text-sm">No coding agent runs yet</p>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <div className="space-y-2">
+                                {codingAgentRuns.map((run) => (
+                                    <CodingAgentResultCard key={run.id} run={run}/>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Event timeline */}
                 <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em]">CODING AGENTS</h2>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            disabled={launchAgent.isPending}
-                            onClick={() => launchAgent.mutate({
-                                fixRunId: latestFixRun.run_id,
-                                provider: LoomSettings?.default_coding_agent,
-                            })}
-                            className="text-xs font-bold tracking-wider"
-                        >
-                            {launchAgent.isPending && <Loader2 className="w-4 h-4 mr-1 animate-spin"/>}
-                            Launch Agent
-                        </Button>
+                    <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em] mb-3">EVENT TIMELINE</h2>
+                    <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
+                        {eventsLoading ? (
+                            <div className="py-8 text-center">
+                                <Loader2 className="w-6 h-6 mx-auto animate-spin text-brutal-slate"/>
+                            </div>
+                        ) : events.length === 0 ? (
+                            <div className="py-8 text-center">
+                                <Clock className="w-8 h-8 mx-auto mb-2 text-brutal-zinc"/>
+                                <p className="text-brutal-slate text-sm">No events recorded</p>
+                            </div>
+                        ) : (
+                            events.map((event) => (
+                                <EventRow key={event.event_id} event={event}/>
+                            ))
+                        )}
                     </div>
-                    {codingAgentRuns.length === 0 ? (
-                        <Card>
-                            <CardContent className="py-6 text-center">
-                                <p className="text-brutal-slate text-sm">No coding agent runs yet</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <div className="space-y-2">
-                            {codingAgentRuns.map((run) => (
-                                <CodingAgentResultCard key={run.id} run={run}/>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Event timeline */}
-            <div>
-                <h2 className="text-xs font-bold text-brutal-slate tracking-[0.3em] mb-3">EVENT TIMELINE</h2>
-                <div className="border-2 border-brutal-zinc rounded bg-brutal-carbon">
-                    {eventsLoading ? (
-                        <div className="py-8 text-center">
-                            <Loader2 className="w-6 h-6 mx-auto animate-spin text-brutal-slate"/>
-                        </div>
-                    ) : events.length === 0 ? (
-                        <div className="py-8 text-center">
-                            <Clock className="w-8 h-8 mx-auto mb-2 text-brutal-zinc"/>
-                            <p className="text-brutal-slate text-sm">No events recorded</p>
-                        </div>
-                    ) : (
-                        events.map((event) => (
-                            <EventRow key={event.event_id} event={event}/>
-                        ))
-                    )}
                 </div>
             </div>
-        </div>
-        {/* Loom AI sidebar */}
-        {issueId && <LoomSidebar issueId={issueId}/>}
+            {/* Loom AI sidebar */}
+            {issueId && <LoomSidebar issueId={issueId}/>}
         </div>
     );
 }

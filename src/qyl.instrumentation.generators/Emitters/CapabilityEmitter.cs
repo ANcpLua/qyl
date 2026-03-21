@@ -18,7 +18,7 @@ internal static class CapabilityEmitter
             return string.Empty;
 
         var sb = new StringBuilder();
-        EmitterHelpers.AppendFileHeader(sb, suppressWarnings: true);
+        EmitterHelpers.AppendFileHeader(sb, true);
 
         // GenAI capabilities: providers, models, operations
         var providers = new HashSet<string>(StringComparer.Ordinal);
@@ -58,5 +58,5 @@ internal static class CapabilityEmitter
         }
     }
 
-    private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, quote: true);
+    private static string Literal(string s) => SymbolDisplay.FormatLiteral(s, true);
 }

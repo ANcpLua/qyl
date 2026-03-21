@@ -1,4 +1,3 @@
-using System.Reflection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using HealthStatus = Qyl.Models.HealthStatus;
 using MsHealthStatus = Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus;
@@ -134,11 +133,7 @@ public static class HealthExtensions
 
     private static SemVer GetVersion()
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        var version = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
-                      ?? assembly.GetName().Version?.ToString()
-                      ?? "0.0.0";
-
+        var version = BuildVersion.InformationalVersion;
         var plusIndex = version.IndexOf('+');
         return plusIndex > 0 ? version[..plusIndex] : version;
     }

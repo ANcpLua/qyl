@@ -4,10 +4,16 @@
 
 ### Added
 
-- **Telemetry Intelligence Model spec**: `specs/telemetry-intelligence.md` — canonical reasoning model over telemetry data. Defines diagnostic patterns, causal rules, and investigation strategies as TypeSpec → generated C# types. Completes the deterministic stack: emit → store → group → **reason** → investigate.
-- **API Contract spec**: `specs/api.md` — single source of truth for response envelope, error model, status codes, pagination, timestamps, and entity IDs. Referenced by collector and MCP specs.
-- **Cost Engine spec**: `specs/cost.md` — extracted from architecture spec. Adds normative cost formula, time aggregation rules, and consistency guarantees.
-- **Spec restructure**: Slimmed `00-architecture.md` from 750→563 lines (kernel only). Added ownership headers to all 12 specs. Deduplicated boundary statements in loom.md and mcp.md. Code context SSOT assigned to `instrumentation.md` section 5.1.
+- **Telemetry Intelligence Model spec**: `specs/telemetry-intelligence.md` — canonical reasoning model over telemetry
+  data. Defines diagnostic patterns, causal rules, and investigation strategies as TypeSpec → generated C# types.
+  Completes the deterministic stack: emit → store → group → **reason** → investigate.
+- **API Contract spec**: `specs/api.md` — single source of truth for response envelope, error model, status codes,
+  pagination, timestamps, and entity IDs. Referenced by collector and MCP specs.
+- **Cost Engine spec**: `specs/cost.md` — extracted from architecture spec. Adds normative cost formula, time
+  aggregation rules, and consistency guarantees.
+- **Spec restructure**: Slimmed `00-architecture.md` from 750→563 lines (kernel only). Added ownership headers to all 12
+  specs. Deduplicated boundary statements in loom.md and mcp.md. Code context SSOT assigned to `instrumentation.md`
+  section 5.1.
 - **MAF rc4 upgrade**: Microsoft.Agents.AI packages bumped from rc3/preview.260304.1 to rc4/preview.260311.1.
 - **OTel source name fix**: Added `Experimental.Microsoft.Agents.AI` to `SGenAiActivitySources` and
   `SGenAiMeterNames` — MAF's `UseOpenTelemetry()` spans were silently dropped.
@@ -15,8 +21,24 @@
 - **CodingAgent types relocated**: `CodingAgentProvider`, `CodingAgentRunRecord`, `LoomSettingsRecord` moved from
   `Qyl.Collector.CodingAgent` to `Qyl.Contracts.Loom` for cross-project sharing.
 
+### Changed
+
+- **WriteJob boilerplate consolidation**: Converted all 48 write methods across 13 DuckDbStore partial files to use the
+  existing `ExecuteWriteAsync` / `ExecuteWriteAsync<T>` helpers instead of manually constructing `WriteJob<int>` +
+  `_jobs.Writer.WriteAsync` + `job.Task`. Net reduction of ~800 lines. `new WriteJob` now only appears in the two
+  helper definitions in DuckDbStore.cs.
+- **TypedResults migration**: Migrated all 29 non-Mcp `*Endpoints.cs` files in `qyl.collector` from `Results.*` to
+  `TypedResults.*`. Added explicit `Task<IResult>` return type annotations to inline lambdas with mixed result types
+  to satisfy delegate inference. `TypedResults.Accepted((string?)null)` used where `Results.Accepted()` had no args.
+- **Dead using cleanup**: Removed unused `global using Qyl.Collector.Contracts;` from `src/qyl.loom/Identity/GlobalUsings.cs`.
+  Investigation confirmed Contracts.cs DTOs (SpanDto, SessionDto, etc.) are only used within collector — qyl.mcp defines
+  its own independent DTOs for HTTP deserialization, qyl.loom does not use them at all. Move to qyl.contracts skipped per policy.
+
 ### Removed
 
+- **Dead Mcp*Endpoints files**: Deleted 6 unreferenced files from `src/qyl.collector/Endpoints/` —
+  `McpApiKeyEndpoints.cs`, `McpLogEndpoints.cs`, `McpMetricEndpoints.cs`, `McpSessionEndpoints.cs`,
+  `McpTraceEndpoints.cs`, `McpQueryBuilder.cs`. None were registered in endpoint routing. Directory removed.
 - **qyl.agents project**: Deleted. `QylAgentBuilder`, `QylCopilotAdapter`, `CopilotAdapterFactory`,
   `LlmProviderFactory`, `TrackModeRouter`, `ChunkingPipeline` — all shim layers over MAF native APIs
   (`AddAIAgent()`, `AgentWorkflowBuilder`, `MapAGUI()`). `InstrumentedChatClient` and `InstrumentedAIFunction`
@@ -39,18 +61,23 @@
 
 ### Changed
 
-- **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
+- **Artifact export CLI**: `tools/export-artifact.ts` now reads the artifact API base URL from `QYL_URL` (or legacy
+  `QYL_COLLECTOR_URL`) and no longer embeds a collector-specific host default.
 
 - **Analyzer pre-filter tightened**: `AgentCallSiteAnalyzer.CouldBeAgentInvocation` now uses `HashSet<string>` method
   name lookup instead of generic `CouldBeInvocation`, avoiding expensive `GetSymbolInfo` calls on non-matching nodes.
 - **Dead code removed from analyzers**: `TryFindAttributeData` replaced with `method.GetAttribute()` extension,
   `GenAiCallSiteAnalyzer.TryExtractModelName` uses `TryGetStringArgument` helper, `TracedCallSiteAnalyzer` uses
   `is not {}` pattern match, `ServiceDefaultsSourceGenerator` uses `IsMethodNamed` helper.
+- **Dead NuGet package removed**: `Microsoft.AspNetCore.Authentication.JwtBearer` — zero usage in collector (auth uses `IdentityModel` directly).
+- **Guard.NotNull consistency**: `SpanRingBuffer.PushRange` now uses `Guard.NotNull(spans)` instead of `ArgumentNullException.ThrowIfNull`.
+- **ParseNullableLong consolidated**: Duplicate definitions in `OtlpConverter` and `CodexTelemetryMapper` now delegate to shared `AttributeParsing.ParseNullableLong` in `Mapping/Mappers.cs`.
 - **Expression-bodied methods and ternary cleanup** across collector, copilot, mcp, and watch projects.
 - **qyl documentation agents**: Added `qyl-diagram-agent.md` and `qyl-ecosystem-scout-SKILL.md` as
   reusable prompts/assets for Mermaid architecture diagrams and 5-domain ecosystem scouting.
 - **Architecture docs corrected**: README and v2/spec index now describe the acyclic split of `qyl.web`,
-  `qyl.collector`, `qyl.agents`, `qyl.mcp`, `qyl.infrastructure`, and `qyl.core` instead of the old collector/loom split.
+  `qyl.collector`, `qyl.agents`, `qyl.mcp`, `qyl.infrastructure`, and `qyl.core` instead of the old collector/loom
+  split.
 
 ### Fixed
 

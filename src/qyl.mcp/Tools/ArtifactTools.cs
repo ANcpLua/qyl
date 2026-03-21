@@ -34,10 +34,13 @@ public sealed class ArtifactTools(HttpClient client)
                  """)]
     public Task<string> StoreArtifactAsync(
         [Description("The artifact content")] string content,
-        [Description("MIME type (default: text/plain)")] string? contentType = null,
+        [Description("MIME type (default: text/plain)")]
+        string? contentType = null,
         [Description("Human-readable title")] string? title = null,
-        [Description("Origin (e.g. autofix, rca, code-review)")] string? source = null,
-        [Description("Auto-expire seconds (0 = never)")] int? ttlSeconds = null) =>
+        [Description("Origin (e.g. autofix, rca, code-review)")]
+        string? source = null,
+        [Description("Auto-expire seconds (0 = never)")]
+        int? ttlSeconds = null) =>
         CollectorHelper.ExecuteAsync(async () =>
         {
             var request = new ArtifactStoreRequest(content, contentType, title, source, ttlSeconds);
@@ -51,7 +54,7 @@ public sealed class ArtifactTools(HttpClient client)
                 ArtifactToolsJsonContext.Default.ArtifactStoreResponse).ConfigureAwait(false);
 
             var sb = new StringBuilder();
-            sb.AppendLine($"# Artifact Stored");
+            sb.AppendLine("# Artifact Stored");
             sb.AppendLine();
             sb.AppendLine($"- **ID:** `{result!.Id}`");
             sb.AppendLine($"- **URL:** `/a/{result.Id}`");
@@ -120,8 +123,7 @@ internal sealed record ArtifactStoreRequest(
     [property: JsonPropertyName("content_type")]
     string? ContentType = null,
     [property: JsonPropertyName("title")] string? Title = null,
-    [property: JsonPropertyName("source")]
-    string? Source = null,
+    [property: JsonPropertyName("source")] string? Source = null,
     [property: JsonPropertyName("ttl_seconds")]
     int? TtlSeconds = null);
 
@@ -132,8 +134,7 @@ internal sealed record ArtifactStoreResponse(
     [property: JsonPropertyName("content")]
     string Content,
     [property: JsonPropertyName("title")] string? Title,
-    [property: JsonPropertyName("source")]
-    string? Source,
+    [property: JsonPropertyName("source")] string? Source,
     [property: JsonPropertyName("created_at")]
     DateTime CreatedAt,
     [property: JsonPropertyName("expires_at")]

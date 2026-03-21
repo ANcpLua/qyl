@@ -5,8 +5,25 @@
 OTLP-native observability: ingest traces/logs/metrics, store in DuckDB, query via API/MCP/Copilot.
 Single Docker image. Single process.
 
-Specs: `specs/SUMMARY.md`
-Decisions: `specs/decisions/`
+<specs>
+
+| Spec | What it covers |
+|------|---------------|
+| `specs/00-architecture.md` | Product identity, scope, component boundaries, dependency rules, kill list |
+| `specs/api.md` | Response envelope, error model, status codes, pagination, timestamps, entity IDs |
+| `specs/collector.md` | OTLP ingestion, DuckDB storage, SSE streaming, REST API, auth |
+| `specs/contracts.md` | TypeSpec-generated shared types, BCL-only |
+| `specs/cost.md` | Cost formula, pricing schema, aggregation endpoints, budget alerts |
+| `specs/instrumentation.md` | 3-layer build model, Roslyn generators, runtime wiring, code.* emission (compile-time) |
+| `specs/loom.md` | AI investigation, 5-stage autofix pipeline, regression, triage, code review |
+| `specs/mcp.md` | MCP tool surface, skills/auth, deployment modes, tool contract |
+| `specs/dashboard.md` | React telemetry UI, operator-grade density, charts, Base UI primitives |
+| `specs/telemetry-data-model.md` | Canonical DuckDB schema: spans, logs, issues, deployments, sessions, promoted columns |
+| `specs/issue-fingerprinting.md` | Error grouping algorithm, categorization, stacktrace normalization, issue lifecycle |
+| `specs/telemetry-intelligence.md` | Canonical reasoning model: diagnostic patterns, causal rules, investigation strategies — TypeSpec → generated types |
+| `specs/decisions/` | ADRs: no-proxy, no-helicone, loom-standalone, maf-native-migration |
+
+</specs>
 
 ```bash
 nuke          # build

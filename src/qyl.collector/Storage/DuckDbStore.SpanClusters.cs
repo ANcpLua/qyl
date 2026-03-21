@@ -76,9 +76,8 @@ public sealed partial class DuckDbStore
         CancellationToken ct = default)
     {
         if (rows.Count is 0) return;
-        ThrowIfDisposed();
 
-        var job = new WriteJob<int>(async (con, token) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             const string sql = """
                                INSERT INTO span_clusters
@@ -92,7 +91,6 @@ public sealed partial class DuckDbStore
                                    computed_at   = EXCLUDED.computed_at
                                """;
 
-            var inserted = 0;
             foreach (var row in rows)
             {
                 await using var cmd = con.CreateCommand();
@@ -103,13 +101,8 @@ public sealed partial class DuckDbStore
                 cmd.Parameters.Add(new DuckDBParameter { Value = row.Distance });
                 cmd.Parameters.Add(new DuckDBParameter { Value = row.ModelVersion });
                 cmd.Parameters.Add(new DuckDBParameter { Value = row.ComputedAt });
-                inserted += await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
             }
-
-            return inserted;
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
     }
 }

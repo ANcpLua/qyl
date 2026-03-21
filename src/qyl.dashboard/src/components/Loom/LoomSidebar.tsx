@@ -5,8 +5,8 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {FixabilityBadge} from './FixabilityBadge';
 import {PipelineStatus} from './PipelineStatus';
-import type {TriageResult, AutofixStep} from '@/hooks/use-Loom';
-import {useTriageResult, useFixRunSteps} from '@/hooks/use-Loom';
+import type {AutofixStep, TriageResult} from '@/hooks/use-Loom';
+import {useFixRunSteps, useTriageResult} from '@/hooks/use-Loom';
 import {useFixRuns} from '@/hooks/use-coding-agents';
 
 interface LoomSidebarProps {
@@ -47,7 +47,8 @@ function AutofixSection({steps, issueId, runId}: { steps: AutofixStep[]; issueId
         try {
             const parsed = JSON.parse(latestOutput);
             summary = parsed.summary ?? parsed.root_cause ?? parsed.recommendation;
-        } catch { /* ignore */ }
+        } catch { /* ignore */
+        }
     }
 
     return (
@@ -126,7 +127,8 @@ export function LoomSidebar({issueId, className}: LoomSidebarProps) {
 
             {/* Provenance footer */}
             <div className="px-4 py-2 border-t border-brutal-zinc">
-                <p className="text-[10px] text-brutal-zinc italic">AI-generated analysis — verify against raw telemetry</p>
+                <p className="text-[10px] text-brutal-zinc italic">AI-generated analysis — verify against raw
+                    telemetry</p>
             </div>
         </div>
     );

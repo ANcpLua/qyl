@@ -386,8 +386,8 @@ public static class CodexTelemetryMapper
             attributes.GetValueOrDefault(GenAiAttributes.ToolCallId)
         );
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static long? ParseNullableLong(string? value) => string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
+    private static long? ParseNullableLong(string? value) =>
+        AttributeParsing.ParseNullableLong(value);
 
     private readonly record struct GenAiFields(
         string? ProviderName,

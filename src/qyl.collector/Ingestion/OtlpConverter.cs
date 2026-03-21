@@ -535,7 +535,7 @@ public static class OtlpConverter
     };
 
     private static long? ParseNullableLong(string? value) =>
-        string.IsNullOrEmpty(value) ? null : value.TryParseInt64();
+        AttributeParsing.ParseNullableLong(value);
 
     private static double? ParseNullableDouble(string? value) =>
         string.IsNullOrEmpty(value)
@@ -636,6 +636,61 @@ public static class OtlpConverter
         >= 21 => "FATAL",
         _ => "UNSPECIFIED"
     };
+
+    #endregion
+
+    #region Proto Log Conversion
+
+    /// <summary>
+    ///     Converts protobuf OTLP log request to storage rows.
+    ///     Maps proto → JSON DTO → reuses existing <see cref="ConvertLogsToStorageRows" />.
+    /// </summary>
+    public static List<LogStorageRow> ConvertProtoLogsToStorageRows(ExportLogsServiceRequestProto proto)
+    {
+        var jsonDto = new OtlpExportLogsServiceRequest
+        {
+            ResourceLogs = proto.ResourceLogs.Select(static rl => new OtlpResourceLogs
+            {
+                Resource = rl.Resource is not null
+                    ? new OtlpResource { Attributes = rl.Resource.Attributes.Select(MapProtoKeyValue).ToList() }
+                    : null,
+                ScopeLogs = rl.ScopeLogs.Select(static sl => new OtlpScopeLogs
+                {
+                    LogRecords = sl.LogRecords.Select(static lr => new OtlpLogRecord
+                    {
+                        TimeUnixNano = lr.TimeUnixNano,
+                        ObservedTimeUnixNano = lr.ObservedTimeUnixNano,
+                        SeverityNumber = lr.SeverityNumber,
+                        SeverityText = lr.SeverityText,
+                        Body = lr.Body is not null ? MapProtoAnyValue(lr.Body) : null,
+                        Attributes = lr.Attributes?.Select(MapProtoKeyValue).ToList(),
+                        TraceId = lr.TraceId,
+                        SpanId = lr.SpanId
+                    }).ToList()
+                }).ToList()
+            }).ToList()
+        };
+        return ConvertLogsToStorageRows(jsonDto);
+    }
+
+    private static OtlpKeyValue MapProtoKeyValue(OtlpKeyValueProto proto) =>
+        new() { Key = proto.Key, Value = proto.Value is not null ? MapProtoAnyValue(proto.Value) : null };
+
+    private static OtlpAnyValue MapProtoAnyValue(OtlpAnyValueProto proto) =>
+        new()
+        {
+            StringValue = proto.StringValue,
+            BoolValue = proto.BoolValue,
+            IntValue = proto.IntValue,
+            DoubleValue = proto.DoubleValue,
+            ArrayValue = proto.ArrayValue is { Count: > 0 }
+                ? new OtlpArrayValue { Values = proto.ArrayValue.Select(MapProtoAnyValue).ToList() }
+                : null,
+            KvlistValue = proto.KvlistValue is { Count: > 0 }
+                ? new OtlpKeyValueList { Values = proto.KvlistValue.Select(MapProtoKeyValue).ToList() }
+                : null,
+            BytesValue = proto.BytesValue is not null ? Convert.ToBase64String(proto.BytesValue) : null
+        };
 
     #endregion
 }

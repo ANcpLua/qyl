@@ -56,8 +56,7 @@ public static class OtlpProtobufParser
         await using var ms = new MemoryStream();
         await request.Body.CopyToAsync(ms, ct).ConfigureAwait(false);
 
-        var bytes = ms.ToArray();
-        return Parse(bytes.AsMemory());
+        return Parse(ms.GetBuffer().AsMemory(0, (int)ms.Length));
     }
 
     /// <summary>

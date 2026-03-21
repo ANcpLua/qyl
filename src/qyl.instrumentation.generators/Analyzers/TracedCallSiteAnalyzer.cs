@@ -57,9 +57,9 @@ internal static class TracedCallSiteAnalyzer
         var tracedTagAttributeType = compilation.GetTypeByMetadataName(TracedTagAttributeFullName);
         var tracedReturnAttributeType = compilation.GetTypeByMetadataName(TracedReturnAttributeFullName);
 
-        var tracedTags = ExtractTracedTags(method, tracedTagAttributeType);
+        var tracedTags = ExtractTracedTags(method, tracedTagAttributeType, compilation);
         var tracedTagProperties =
-            ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic);
+            ExtractTracedTagProperties(method.ContainingType, tracedTagAttributeType, method.IsStatic, compilation);
         var returnCapture = ExtractReturnCapture(method, tracedReturnAttributeType);
         var typeParameters = ExtractTypeParameters(method);
         var parameterTypes =
@@ -69,6 +69,20 @@ internal static class TracedCallSiteAnalyzer
         var returnTypeName = method.ReturnType.ToDisplayString();
         var isAsyncEnumerable = returnTypeName.StartsWithOrdinal(AsyncEnumerablePrefix);
         var isAsync = !isAsyncEnumerable && AnalyzerHelpers.IsAsyncReturnType(method);
+
+        // T-008: Extract code.* attributes from method definition location.
+        string? codeFilePath = null;
+        var codeLineNumber = 0;
+        if (method.DeclaringSyntaxReferences.FirstOrDefault() is { } syntaxRef)
+        {
+            codeFilePath = syntaxRef.SyntaxTree.FilePath;
+            codeLineNumber =
+                syntaxRef.SyntaxTree.GetLineSpan(syntaxRef.Span, cancellationToken).StartLinePosition.Line + 1;
+        }
+
+        var codeNamespace = method.ContainingNamespace is { IsGlobalNamespace: false } ns
+            ? ns.ToDisplayString()
+            : null;
 
         return new TracedCallSite(
             AnalyzerHelpers.FormatSortKey(context.Node),
@@ -88,6 +102,9 @@ internal static class TracedCallSiteAnalyzer
             tracedTagProperties,
             typeParameters,
             returnCapture,
+            codeFilePath,
+            codeNamespace,
+            codeLineNumber,
             interceptLocation);
     }
 
@@ -159,8 +176,7 @@ internal static class TracedCallSiteAnalyzer
         AttributeData attribute,
         string defaultSpanName)
     {
-        if (attribute.ConstructorArguments.Length < 1 ||
-            attribute.ConstructorArguments[0].Value is not string { Length: > 0 } activitySourceName)
+        if (attribute.GetConstructorArgument<string>(0) is not { Length: > 0 } activitySourceName)
             return null;
 
         string? spanName = null;
@@ -204,7 +220,8 @@ internal static class TracedCallSiteAnalyzer
 
     private static EquatableArray<TracedTagParameter> ExtractTracedTags(
         IMethodSymbol method,
-        INamedTypeSymbol? tracedTagAttributeType)
+        INamedTypeSymbol? tracedTagAttributeType,
+        Compilation compilation)
     {
         if (tracedTagAttributeType is null)
             return default;
@@ -217,9 +234,7 @@ internal static class TracedCallSiteAnalyzer
             if (!attribute.AttributeClass.IsEqualTo(tracedTagAttributeType))
                 continue;
 
-            string? explicitTagName = null;
-            if (attribute.ConstructorArguments.Length > 0)
-                explicitTagName = attribute.ConstructorArguments[0].Value as string;
+            attribute.TryGetConstructorArgument<string>(0, out var explicitTagName);
 
             bool? explicitSkipIfNull = null;
             var skipIfDefault = false;
@@ -236,8 +251,8 @@ internal static class TracedCallSiteAnalyzer
                 }
             }
 
-            var tagName = TelemetryTagNameResolver.ResolveName(parameter, explicitTagName, parameter.Name);
-            var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(parameter, explicitSkipIfNull);
+            var tagName = TelemetryTagNameResolver.ResolveName(parameter, compilation, explicitTagName, parameter.Name);
+            var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(parameter, compilation, explicitSkipIfNull);
 
             var isValueType = parameter.Type is
                 { IsValueType: true, OriginalDefinition.SpecialType: not SpecialType.System_Nullable_T };
@@ -264,7 +279,8 @@ internal static class TracedCallSiteAnalyzer
     private static EquatableArray<TracedTagProperty> ExtractTracedTagProperties(
         INamedTypeSymbol containingType,
         INamedTypeSymbol? tracedTagAttributeType,
-        bool methodIsStatic)
+        bool methodIsStatic,
+        Compilation compilation)
     {
         if (tracedTagAttributeType is null)
             return default;
@@ -286,9 +302,7 @@ internal static class TracedCallSiteAnalyzer
                 if (!attribute.AttributeClass.IsEqualTo(tracedTagAttributeType))
                     continue;
 
-                string? explicitTagName = null;
-                if (attribute.ConstructorArguments.Length > 0)
-                    explicitTagName = attribute.ConstructorArguments[0].Value as string;
+                attribute.TryGetConstructorArgument<string>(0, out var explicitTagName);
 
                 bool? explicitSkipIfNull = null;
                 foreach (var namedArg in attribute.NamedArguments)
@@ -297,8 +311,8 @@ internal static class TracedCallSiteAnalyzer
                         explicitSkipIfNull = sv;
                 }
 
-                var tagName = TelemetryTagNameResolver.ResolveName(member, explicitTagName, member.Name);
-                var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(member, explicitSkipIfNull);
+                var tagName = TelemetryTagNameResolver.ResolveName(member, compilation, explicitTagName, member.Name);
+                var skipIfNull = TelemetryTagNameResolver.ResolveSkipIfNull(member, compilation, explicitSkipIfNull);
 
                 var isNullable = member.Type.IsReferenceType ||
                                  member.NullableAnnotation == NullableAnnotation.Annotated;
@@ -338,8 +352,7 @@ internal static class TracedCallSiteAnalyzer
                 a => a.AttributeClass.IsEqualTo(tracedReturnAttributeType)) is not { } attr)
             return null;
 
-        if (attr.ConstructorArguments.Length < 1 ||
-            attr.ConstructorArguments[0].Value is not string { Length: > 0 } tagName)
+        if (attr.GetConstructorArgument<string>(0) is not { Length: > 0 } tagName)
             return null;
 
         string? propertyPath = null;

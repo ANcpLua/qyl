@@ -7,63 +7,63 @@ public static class AutofixEndpoints
 {
     public static void MapAutofixEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/v1/issues/{issueId}/fix-runs", static async (
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs", static async Task<IResult> (
             string issueId, FixRunRequest request,
             AutofixOrchestrator orchestrator, CancellationToken ct) =>
         {
             if (await orchestrator.Store.GetIssueByIdAsync(issueId, ct) is not { } issue)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             if (!Enum.TryParse<FixPolicy>(request.Policy, true, out var policy))
                 policy = FixPolicy.RequireReview;
 
             var run = await orchestrator.CreateFixRunAsync(issueId, issue, policy, ct);
-            return Results.Created($"/api/v1/issues/{issueId}/fix-runs/{run.RunId}", run);
+            return TypedResults.Created($"/api/v1/issues/{issueId}/fix-runs/{run.RunId}", run);
         });
 
         app.MapGet("/api/v1/issues/{issueId}/fix-runs", static async (
             string issueId, DuckDbStore store, int? limit, CancellationToken ct) =>
         {
             var runs = await store.GetFixRunsAsync(issueId, Math.Clamp(limit ?? 50, 1, 1000), ct);
-            return Results.Ok(new { items = runs, total = runs.Count });
+            return TypedResults.Ok(new { items = runs, total = runs.Count });
         });
 
-        app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}", static async (
+        app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}", static async Task<IResult> (
             string issueId, string runId, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
-            return Results.Ok(run);
+            return TypedResults.Ok(run);
         });
 
-        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/pr", static async (
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/pr", static async Task<IResult> (
             string issueId, string runId,
             PrCreationRequest request,
             PrCreationService prService, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             if (string.IsNullOrWhiteSpace(request.Repo))
-                return Results.BadRequest(new { error = "repo is required (e.g. 'owner/my-repo')" });
+                return TypedResults.BadRequest(new { error = "repo is required (e.g. 'owner/my-repo')" });
 
             var result = await prService.CreatePrAsync(runId, request.Repo, request.BaseBranch, ct);
             return result.Success
-                ? Results.Ok(new { prUrl = result.PrUrl })
-                : Results.UnprocessableEntity(new { error = result.Error });
+                ? TypedResults.Ok(new { prUrl = result.PrUrl })
+                : TypedResults.UnprocessableEntity(new { error = result.Error });
         });
 
-        app.MapPatch("/api/v1/issues/{issueId}/fix-runs/{runId}", static async (
+        app.MapPatch("/api/v1/issues/{issueId}/fix-runs/{runId}", static async Task<IResult> (
             string issueId, string runId,
             FixRunPatchRequest request,
             AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             await orchestrator.UpdateFixRunStatusAsync(
                 runId,
@@ -73,56 +73,56 @@ public static class AutofixEndpoints
                 request.ChangesJson,
                 ct);
 
-            return Results.NoContent();
+            return TypedResults.NoContent();
         });
 
         // ── Steps ────────────────────────────────────────────────────────────
 
-        app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}/steps", static async (
+        app.MapGet("/api/v1/issues/{issueId}/fix-runs/{runId}/steps", static async Task<IResult> (
             string issueId, string runId, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             var steps = await store.GetAutofixStepsAsync(runId, ct);
-            return Results.Ok(new { items = steps, total = steps.Count });
+            return TypedResults.Ok(new { items = steps, total = steps.Count });
         });
 
         // ── Approve / Reject ─────────────────────────────────────────────────
 
-        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/approve", static async (
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/approve", static async Task<IResult> (
             string issueId, string runId,
             AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             if (run.Status is not "review")
             {
-                return Results.BadRequest(new
+                return TypedResults.BadRequest(new
                 {
                     error = $"Cannot approve fix run in status '{run.Status}'. Must be 'review'."
                 });
             }
 
             await orchestrator.UpdateFixRunStatusAsync(runId, "applied", ct: ct);
-            return Results.Ok(new { status = "applied", runId });
+            return TypedResults.Ok(new { status = "applied", runId });
         });
 
-        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/reject", static async (
+        app.MapPost("/api/v1/issues/{issueId}/fix-runs/{runId}/reject", static async Task<IResult> (
             string issueId, string runId,
             FixRunRejectRequest? request,
             AutofixOrchestrator orchestrator, DuckDbStore store, CancellationToken ct) =>
         {
             var run = await store.GetFixRunAsync(runId, ct);
             if (run is null || run.IssueId != issueId)
-                return Results.NotFound();
+                return TypedResults.NotFound();
 
             if (run.Status is not "review")
             {
-                return Results.BadRequest(new
+                return TypedResults.BadRequest(new
                 {
                     error = $"Cannot reject fix run in status '{run.Status}'. Must be 'review'."
                 });
@@ -130,7 +130,7 @@ public static class AutofixEndpoints
 
             await orchestrator.UpdateFixRunStatusAsync(
                 runId, "rejected", request?.Reason, ct: ct);
-            return Results.Ok(new { status = "rejected", runId });
+            return TypedResults.Ok(new { status = "rejected", runId });
         });
     }
 }

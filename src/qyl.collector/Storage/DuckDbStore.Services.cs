@@ -95,10 +95,8 @@ public sealed partial class DuckDbStore
     ///     Upserts a service instance discovered from OTLP resource attributes.
     ///     Called at ingest time — idempotent and cheap.
     /// </summary>
-    public async Task UpsertServiceInstanceAsync(ServiceInstanceRecord instance, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task UpsertServiceInstanceAsync(ServiceInstanceRecord instance, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = ServiceInstanceUpsertSql;
@@ -117,12 +115,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = ts });
             cmd.Parameters.Add(new DuckDBParameter { Value = ts });
             cmd.Parameters.Add(new DuckDBParameter { Value = (object?)instance.MetadataJson ?? DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Queries the services view for the REST endpoint.
@@ -266,10 +260,8 @@ public sealed partial class DuckDbStore
     ///     Recomputes aggregates for all service instances from spans/logs tables.
     ///     Called by ServiceMaterializerService on a 5-minute interval.
     /// </summary>
-    public async Task UpdateServiceAggregatesAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, token) =>
+    public async Task UpdateServiceAggregatesAsync(CancellationToken ct = default) =>
+        await ExecuteWriteAsync(static async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -320,21 +312,13 @@ public sealed partial class DuckDbStore
                                     END
                                     """;
             await statusCmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-
-            return 0;
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Backfills service_instances from spans for services not yet registered.
     /// </summary>
-    public async Task BackfillMissingServicesAsync(CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(static async (con, token) =>
+    public async Task BackfillMissingServicesAsync(CancellationToken ct = default) =>
+        await ExecuteWriteAsync(static async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -360,12 +344,8 @@ public sealed partial class DuckDbStore
                               GROUP BY s.service_name
                               ON CONFLICT DO NOTHING
                               """;
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 }
 
 /// <summary>

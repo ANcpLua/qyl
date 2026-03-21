@@ -540,7 +540,7 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
 
             // Telemetry attributes: [GeneratedActivitySource("name")] / [GeneratedMeter("name")]
             if (attribute.ConstructorArguments.Length is 1 &&
-                attribute.ConstructorArguments[0].Value is string { Length: > 0 } name)
+                attribute.GetConstructorArgument<string>(0) is { Length: > 0 } name)
             {
                 if (string.Equals(attributeName, WellKnownType.GeneratedActivitySourceAttribute,
                         StringComparison.Ordinal))
@@ -552,8 +552,8 @@ public sealed class ServiceDefaultsSourceGenerator : IIncrementalGenerator
             // Capability attributes: [GeneratedCapability("kind", "value")]
             if (attribute.ConstructorArguments.Length is 2 &&
                 string.Equals(attributeName, WellKnownType.GeneratedCapabilityAttribute, StringComparison.Ordinal) &&
-                attribute.ConstructorArguments[0].Value is string { Length: > 0 } kind &&
-                attribute.ConstructorArguments[1].Value is string { Length: > 0 } value)
+                attribute.GetConstructorArgument<string>(0) is { Length: > 0 } kind &&
+                attribute.GetConstructorArgument<string>(1) is { Length: > 0 } value)
             {
                 switch (kind)
                 {

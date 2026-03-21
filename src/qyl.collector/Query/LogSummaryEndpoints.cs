@@ -38,7 +38,7 @@ internal static class LogSummaryEndpoints
         var selectedWindow = string.IsNullOrWhiteSpace(window) ? "5m" : window;
         if (!LogSummaryService.IsValidWindow(selectedWindow))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["window"] = ["Window must be one of: 30s, 1m, 5m, 15m, 1h."]
             });
@@ -54,11 +54,11 @@ internal static class LogSummaryEndpoints
                 search,
                 ct).ConfigureAwait(false);
 
-            return Results.Ok(summary);
+            return TypedResults.Ok(summary);
         }
         catch (ArgumentException ex) when (ex.ParamName is "sinceCursor")
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]> { ["sinceCursor"] = [ex.Message] });
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]> { ["sinceCursor"] = [ex.Message] });
         }
     }
 
@@ -76,7 +76,7 @@ internal static class LogSummaryEndpoints
         var selectedWindow = string.IsNullOrWhiteSpace(window) ? "5m" : window;
         if (startTime is null && !LogSummaryService.IsValidWindow(selectedWindow))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["window"] = ["Window must be one of: 30s, 1m, 5m, 15m, 1h."]
             });
@@ -85,7 +85,7 @@ internal static class LogSummaryEndpoints
         var selectedMinCount = minCount ?? 2;
         if (selectedMinCount < 1)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["minCount"] = ["Minimum count must be greater than or equal to 1."]
             });
@@ -93,7 +93,7 @@ internal static class LogSummaryEndpoints
 
         if (startTime.HasValue && endTime.HasValue && endTime.Value <= startTime.Value)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["endTime"] = ["endTime must be greater than startTime."]
             });
@@ -109,7 +109,7 @@ internal static class LogSummaryEndpoints
             search,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(patterns);
+        return TypedResults.Ok(patterns);
     }
 
     private static async Task<IResult> GetStatsAsync(
@@ -125,7 +125,7 @@ internal static class LogSummaryEndpoints
         var selectedWindow = string.IsNullOrWhiteSpace(window) ? "5m" : window;
         if (startTime is null && !LogSummaryService.IsValidWindow(selectedWindow))
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["window"] = ["Window must be one of: 30s, 1m, 5m, 15m, 1h."]
             });
@@ -133,7 +133,7 @@ internal static class LogSummaryEndpoints
 
         if (startTime.HasValue && endTime.HasValue && endTime.Value <= startTime.Value)
         {
-            return Results.ValidationProblem(new Dictionary<string, string[]>
+            return TypedResults.ValidationProblem(new Dictionary<string, string[]>
             {
                 ["endTime"] = ["endTime must be greater than startTime."]
             });
@@ -148,7 +148,7 @@ internal static class LogSummaryEndpoints
             search,
             ct).ConfigureAwait(false);
 
-        return Results.Ok(stats);
+        return TypedResults.Ok(stats);
     }
 
     private static async Task<IResult> WaitForLogAsync(
@@ -161,7 +161,7 @@ internal static class LogSummaryEndpoints
             var normalized = request.SeverityText.Trim().ToLowerInvariant();
             if (normalized is not ("trace" or "debug" or "info" or "warn" or "error" or "fatal" or "warning"))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["severityText"] = ["Severity must be one of: trace, debug, info, warn, warning, error, fatal."]
                 });
@@ -171,6 +171,6 @@ internal static class LogSummaryEndpoints
         }
 
         var response = await service.WaitForLogAsync(request, ct).ConfigureAwait(false);
-        return Results.Ok(response);
+        return TypedResults.Ok(response);
     }
 }

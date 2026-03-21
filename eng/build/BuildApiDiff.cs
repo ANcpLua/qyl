@@ -46,7 +46,7 @@ using YamlDotNet.RepresentationModel;
 interface IApiDiff : IHazSourcePaths
 {
     [Parameter("Git ref to compare against (default: HEAD)")]
-    string? BaseRef => TryGetValue<string?>(() => BaseRef) ?? "HEAD";
+    string? BaseRef => TryGetValue(() => BaseRef) ?? "HEAD";
 
     [Parameter("Fail the build when breaking changes are detected (default: true on CI)")]
     bool? FailOnBreaking => TryGetValue<bool?>(() => FailOnBreaking);

@@ -6,75 +6,56 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    private const string RegressionEventSelectSql = """
+                                                    SELECT event_id, issue_id, old_value, new_value, reason, created_at
+                                                    FROM issue_events
+                                                    WHERE event_type = 'regression'
+                                                    """;
+
     /// <summary>
     ///     Gets regression events across all issues, ordered by most recent first.
     /// </summary>
     public async Task<IReadOnlyList<RegressionEventRow>> GetRegressionEventsAsync(
         int limit, DateTime? since = null, CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
+        var qb = new QueryBuilder();
+        qb.AddCondition("event_type = 'regression'");
         if (since is not null)
-        {
-            cmd.CommandText = """
-                              SELECT event_id, issue_id, old_value, new_value, reason, created_at
-                              FROM issue_events
-                              WHERE event_type = 'regression' AND created_at >= $1
-                              ORDER BY created_at DESC
-                              LIMIT $2
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = since.Value });
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-        }
-        else
-        {
-            cmd.CommandText = """
-                              SELECT event_id, issue_id, old_value, new_value, reason, created_at
-                              FROM issue_events
-                              WHERE event_type = 'regression'
-                              ORDER BY created_at DESC
-                              LIMIT $1
-                              """;
-            cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-        }
+            qb.Add("created_at >= $N", since.Value);
 
-        var results = new List<RegressionEventRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapRegressionEventRow(reader));
-
-        return results;
+        return await ReadManyAsync(
+            $"""
+             SELECT event_id, issue_id, old_value, new_value, reason, created_at
+             FROM issue_events
+             {qb.WhereClause}
+             ORDER BY created_at DESC
+             LIMIT {qb.NextParam}
+             """,
+            cmd =>
+            {
+                qb.ApplyTo(cmd);
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapRegressionEventRow, ct).ConfigureAwait(false);
     }
 
     /// <summary>
     ///     Gets regression events for a specific issue, ordered by most recent first.
     /// </summary>
-    public async Task<IReadOnlyList<RegressionEventRow>> GetIssueRegressionEventsAsync(
-        string issueId, int limit, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-        await using var cmd = lease.Connection.CreateCommand();
-
-        cmd.CommandText = """
-                          SELECT event_id, issue_id, old_value, new_value, reason, created_at
-                          FROM issue_events
-                          WHERE event_type = 'regression' AND issue_id = $1
-                          ORDER BY created_at DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<RegressionEventRow>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapRegressionEventRow(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<RegressionEventRow>> GetIssueRegressionEventsAsync(
+        string issueId, int limit, CancellationToken ct = default) =>
+        ReadManyAsync(
+            RegressionEventSelectSql + """
+                                        AND issue_id = $1
+                                       ORDER BY created_at DESC
+                                       LIMIT $2
+                                       """,
+            cmd =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapRegressionEventRow, ct);
 
     private static RegressionEventRow MapRegressionEventRow(DbDataReader reader) =>
         new()

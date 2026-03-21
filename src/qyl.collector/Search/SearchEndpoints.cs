@@ -10,26 +10,26 @@ public static class SearchEndpoints
     /// </summary>
     public static void MapSearchEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/v1/search/query", static async (
+        app.MapPost("/api/v1/search/query", static async Task<IResult> (
             SearchQuery query, DuckDbStore store, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(query.Text))
             {
-                return Results.ValidationProblem(new Dictionary<string, string[]>
+                return TypedResults.ValidationProblem(new Dictionary<string, string[]>
                 {
                     ["text"] = ["Search text is required."]
                 });
             }
 
             var results = await store.SearchAsync(query, ct).ConfigureAwait(false);
-            return Results.Ok(new { items = results, total = results.Count });
+            return TypedResults.Ok(new { items = results, total = results.Count });
         });
 
         app.MapGet("/api/v1/search/suggestions", static async (
             string? prefix, DuckDbStore store, CancellationToken ct) =>
         {
             var suggestions = await store.GetSuggestionsAsync(prefix ?? "", ct).ConfigureAwait(false);
-            return Results.Ok(new { items = suggestions, total = suggestions.Count });
+            return TypedResults.Ok(new { items = suggestions, total = suggestions.Count });
         });
     }
 }

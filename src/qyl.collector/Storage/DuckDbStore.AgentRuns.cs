@@ -5,6 +5,15 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    private const string AgentRunSelectSql = """
+                                             SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
+                                                    model, provider, status, input_tokens, output_tokens,
+                                                    total_cost, tool_call_count, start_time, end_time,
+                                                    duration_ns, error_message, metadata_json, track_mode,
+                                                    approval_status, evidence_count
+                                             FROM agent_runs
+                                             """;
+
     // ==========================================================================
     // Agent Run Operations
     // ==========================================================================
@@ -12,10 +21,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a new agent run record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertAgentRunAsync(AgentRunRecord run, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertAgentRunAsync(AgentRunRecord run, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -48,12 +55,8 @@ public sealed partial class DuckDbStore
                                   evidence_count = EXCLUDED.evidence_count
                               """;
             AddAgentRunParameters(cmd, run);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Updates an existing agent run (status, tokens, cost) on completion.
@@ -73,8 +76,7 @@ public sealed partial class DuckDbStore
         int? evidenceCount = null,
         CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -107,11 +109,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = approvalStatus ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = evidenceCount ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -126,9 +125,6 @@ public sealed partial class DuckDbStore
         string? approvalStatus = null,
         CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
         var qb = new QueryBuilder();
 
         if (!string.IsNullOrEmpty(agentName))
@@ -143,86 +139,35 @@ public sealed partial class DuckDbStore
         var clampedLimit = Math.Clamp(limit, 1, 1000);
         var clampedOffset = Math.Max(offset, 0);
 
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = $"""
-                           SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                                  model, provider, status, input_tokens, output_tokens,
-                                  total_cost, tool_call_count, start_time, end_time,
-                                  duration_ns, error_message, metadata_json, track_mode,
-                                  approval_status, evidence_count
-                           FROM agent_runs
-                           {qb.WhereClause}
-                           ORDER BY start_time DESC
-                           LIMIT {clampedLimit} OFFSET {clampedOffset}
-                           """;
-
-        qb.ApplyTo(cmd);
-
-        var runs = new List<AgentRunRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            runs.Add(MapAgentRun(reader));
-
-        return runs;
+        return await ReadManyAsync(
+            $"""
+             {AgentRunSelectSql}
+             {qb.WhereClause}
+             ORDER BY start_time DESC
+             LIMIT {clampedLimit} OFFSET {clampedOffset}
+             """,
+            cmd => qb.ApplyTo(cmd),
+            MapAgentRun, ct).ConfigureAwait(false);
     }
 
     /// <summary>
     ///     Gets a single agent run by its run ID.
     /// </summary>
-    public async Task<AgentRunRecord?> GetAgentRunAsync(string runId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                                 model, provider, status, input_tokens, output_tokens,
-                                 total_cost, tool_call_count, start_time, end_time,
-                                 duration_ns, error_message, metadata_json, track_mode,
-                                 approval_status, evidence_count
-                          FROM agent_runs
-                          WHERE run_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (await reader.ReadAsync(ct).ConfigureAwait(false))
-            return MapAgentRun(reader);
-
-        return null;
-    }
+    public Task<AgentRunRecord?> GetAgentRunAsync(string runId, CancellationToken ct = default) =>
+        ReadOneAsync(
+            AgentRunSelectSql + " WHERE run_id = $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
+            MapAgentRun, ct);
 
     /// <summary>
     ///     Finds agent runs associated with a specific trace ID.
     /// </summary>
-    public async Task<IReadOnlyList<AgentRunRecord>> GetAgentRunsByTraceAsync(
-        string traceId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT run_id, trace_id, parent_run_id, agent_name, agent_type,
-                                 model, provider, status, input_tokens, output_tokens,
-                                 total_cost, tool_call_count, start_time, end_time,
-                                 duration_ns, error_message, metadata_json, track_mode,
-                                 approval_status, evidence_count
-                          FROM agent_runs
-                          WHERE trace_id = $1
-                          ORDER BY start_time ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = traceId });
-
-        var runs = new List<AgentRunRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            runs.Add(MapAgentRun(reader));
-
-        return runs;
-    }
+    public Task<IReadOnlyList<AgentRunRecord>> GetAgentRunsByTraceAsync(
+        string traceId, CancellationToken ct = default) =>
+        ReadManyAsync(
+            AgentRunSelectSql + " WHERE trace_id = $1 ORDER BY start_time ASC",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = traceId }),
+            MapAgentRun, ct);
 
     // ==========================================================================
     // Tool Call Operations
@@ -231,10 +176,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a new tool call record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertToolCallAsync(ToolCallRecord toolCall, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertToolCallAsync(ToolCallRecord toolCall, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -246,41 +189,25 @@ public sealed partial class DuckDbStore
                               ON CONFLICT (call_id) DO NOTHING
                               """;
             AddToolCallParameters(cmd, toolCall);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets all tool calls for a specific agent run, ordered by sequence number.
     /// </summary>
-    public async Task<IReadOnlyList<ToolCallRecord>> GetToolCallsAsync(
-        string runId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT call_id, run_id, trace_id, span_id, tool_name, tool_type,
-                                 arguments_json, result_json, status, start_time, end_time,
-                                 duration_ns, error_message, sequence_number
-                          FROM tool_calls
-                          WHERE run_id = $1
-                          ORDER BY sequence_number ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        var calls = new List<ToolCallRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            calls.Add(MapToolCall(reader));
-
-        return calls;
-    }
+    public Task<IReadOnlyList<ToolCallRecord>> GetToolCallsAsync(
+        string runId, CancellationToken ct = default) =>
+        ReadManyAsync(
+            """
+            SELECT call_id, run_id, trace_id, span_id, tool_name, tool_type,
+                   arguments_json, result_json, status, start_time, end_time,
+                   duration_ns, error_message, sequence_number
+            FROM tool_calls
+            WHERE run_id = $1
+            ORDER BY sequence_number ASC
+            """,
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
+            MapToolCall, ct);
 
     // ==========================================================================
     // Agent Decision Operations
@@ -289,10 +216,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts or updates a decision event associated with an agent run.
     /// </summary>
-    public async Task InsertAgentDecisionAsync(AgentDecisionRecord decision, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertAgentDecisionAsync(AgentDecisionRecord decision, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -314,41 +239,25 @@ public sealed partial class DuckDbStore
                                   created_at_unix_nano = EXCLUDED.created_at_unix_nano
                               """;
             AddAgentDecisionParameters(cmd, decision);
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Lists all decisions for a run in chronological order.
     /// </summary>
-    public async Task<IReadOnlyList<AgentDecisionRecord>> GetAgentDecisionsAsync(
-        string runId,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT decision_id, run_id, trace_id, decision_type, outcome,
-                                 requires_approval, approval_status, reason, evidence_json,
-                                 metadata_json, created_at_unix_nano
-                          FROM agent_decisions
-                          WHERE run_id = $1
-                          ORDER BY created_at_unix_nano ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        var decisions = new List<AgentDecisionRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            decisions.Add(MapAgentDecision(reader));
-
-        return decisions;
-    }
+    public Task<IReadOnlyList<AgentDecisionRecord>> GetAgentDecisionsAsync(
+        string runId, CancellationToken ct = default) =>
+        ReadManyAsync(
+            """
+            SELECT decision_id, run_id, trace_id, decision_type, outcome,
+                   requires_approval, approval_status, reason, evidence_json,
+                   metadata_json, created_at_unix_nano
+            FROM agent_decisions
+            WHERE run_id = $1
+            ORDER BY created_at_unix_nano ASC
+            """,
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
+            MapAgentDecision, ct);
 
     // ==========================================================================
     // Private Methods - Agent Run Mapping

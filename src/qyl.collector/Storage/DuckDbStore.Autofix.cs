@@ -8,13 +8,18 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    private const string FixRunSelectSql = """
+                                           SELECT run_id, issue_id, execution_id, status, policy,
+                                                  fix_description, confidence_score, changes_json,
+                                                  created_at, completed_at
+                                           FROM fix_runs
+                                           """;
+
     /// <summary>
     ///     Inserts a new fix run record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertFixRunAsync(FixRunRecord record, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertFixRunAsync(FixRunRecord record, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -32,22 +37,16 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = record.FixDescription ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ConfidenceScore ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = record.ChangesJson ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Updates a fix run's status, description, confidence score, and changes.
     /// </summary>
     public async Task UpdateFixRunAsync(
         string runId, string status, string? description = null,
-        double? confidence = null, string? changesJson = null, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        double? confidence = null, string? changesJson = null, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -64,66 +63,31 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = confidence ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = changesJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a single fix run by run_id.
     /// </summary>
-    public async Task<FixRunRecord?> GetFixRunAsync(string runId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT run_id, issue_id, execution_id, status, policy,
-                                 fix_description, confidence_score, changes_json,
-                                 created_at, completed_at
-                          FROM fix_runs WHERE run_id = $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        if (!await reader.ReadAsync(ct).ConfigureAwait(false))
-            return null;
-
-        return MapFixRun(reader);
-    }
+    public Task<FixRunRecord?> GetFixRunAsync(string runId, CancellationToken ct = default) =>
+        ReadOneAsync(
+            FixRunSelectSql + " WHERE run_id = $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
+            MapFixRun, ct);
 
     /// <summary>
     ///     Gets fix runs for a specific issue, ordered by creation time descending.
     /// </summary>
-    public async Task<IReadOnlyList<FixRunRecord>> GetFixRunsAsync(
-        string issueId, int limit = 50, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT run_id, issue_id, execution_id, status, policy,
-                                 fix_description, confidence_score, changes_json,
-                                 created_at, completed_at
-                          FROM fix_runs
-                          WHERE issue_id = $1
-                          ORDER BY created_at DESC
-                          LIMIT $2
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<FixRunRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapFixRun(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<FixRunRecord>> GetFixRunsAsync(
+        string issueId, int limit = 50, CancellationToken ct = default) =>
+        ReadManyAsync(
+            FixRunSelectSql + " WHERE issue_id = $1 ORDER BY created_at DESC LIMIT $2",
+            cmd =>
+            {
+                cmd.Parameters.Add(new DuckDBParameter { Value = issueId });
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapFixRun, ct);
 
     private static FixRunRecord MapFixRun(DbDataReader reader) =>
         new()

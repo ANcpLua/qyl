@@ -22,7 +22,7 @@ public sealed class InstrumentedAIFunction(AIFunction inner) : DelegatingAIFunct
     {
         using var activity = StartToolActivity();
 
-        bool succeeded = false;
+        var succeeded = false;
         try
         {
             var result = await base.InvokeCoreAsync(arguments, cancellationToken)

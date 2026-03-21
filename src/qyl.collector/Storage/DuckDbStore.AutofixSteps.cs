@@ -11,10 +11,8 @@ public sealed partial class DuckDbStore
     /// <summary>
     ///     Inserts a new autofix step via the channel-buffered write path.
     /// </summary>
-    public async Task InsertAutofixStepAsync(AutofixStepRecord step, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertAutofixStepAsync(AutofixStepRecord step, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -29,22 +27,16 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = step.StepName });
             cmd.Parameters.Add(new DuckDBParameter { Value = step.Status });
             cmd.Parameters.Add(new DuckDBParameter { Value = step.InputJson ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Updates an autofix step status and output.
     /// </summary>
     public async Task UpdateAutofixStepAsync(
         string stepId, string status, string? outputJson = null,
-        string? errorMessage = null, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        string? errorMessage = null, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -60,69 +52,35 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = outputJson ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = errorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = stepId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets all steps for a specific fix run, ordered by step number.
     /// </summary>
-    public async Task<IReadOnlyList<AutofixStepRecord>> GetAutofixStepsAsync(
-        string runId, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT step_id, run_id, step_number, step_name, status,
-                                 input_json, output_json, error_message,
-                                 started_at, completed_at, created_at
-                          FROM autofix_steps
-                          WHERE run_id = $1
-                          ORDER BY step_number ASC
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = runId });
-
-        var results = new List<AutofixStepRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapAutofixStep(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<AutofixStepRecord>> GetAutofixStepsAsync(
+        string runId, CancellationToken ct = default) =>
+        ReadManyAsync(
+            """
+            SELECT step_id, run_id, step_number, step_name, status,
+                   input_json, output_json, error_message,
+                   started_at, completed_at, created_at
+            FROM autofix_steps
+            WHERE run_id = $1
+            ORDER BY step_number ASC
+            """,
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = runId }),
+            MapAutofixStep, ct);
 
     /// <summary>
     ///     Returns fix runs with status 'pending' that are ready for agent processing.
     /// </summary>
-    public async Task<IReadOnlyList<FixRunRecord>> GetPendingFixRunsAsync(
-        int limit = 10, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        cmd.CommandText = """
-                          SELECT run_id, issue_id, execution_id, status, policy,
-                                 fix_description, confidence_score, changes_json,
-                                 created_at, completed_at
-                          FROM fix_runs
-                          WHERE status = 'pending'
-                          ORDER BY created_at ASC
-                          LIMIT $1
-                          """;
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        var results = new List<FixRunRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapFixRun(reader));
-
-        return results;
-    }
+    public Task<IReadOnlyList<FixRunRecord>> GetPendingFixRunsAsync(
+        int limit = 10, CancellationToken ct = default) =>
+        ReadManyAsync(
+            FixRunSelectSql + " WHERE status = 'pending' ORDER BY created_at ASC LIMIT $1",
+            cmd => cmd.Parameters.Add(new DuckDBParameter { Value = limit }),
+            MapFixRun, ct);
 
     private static AutofixStepRecord MapAutofixStep(DbDataReader reader) =>
         new()

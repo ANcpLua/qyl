@@ -103,7 +103,7 @@ public static class ChatClientExtensions
         if (options.Tools is not { Count: > 0 })
             return options;
 
-        for (int i = 0; i < options.Tools.Count; i++)
+        for (var i = 0; i < options.Tools.Count; i++)
         {
             if (options.Tools[i] is AIFunction fn and not InstrumentedAIFunction)
                 options.Tools[i] = new InstrumentedAIFunction(fn);

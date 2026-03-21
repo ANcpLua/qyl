@@ -54,42 +54,42 @@ internal static class AgentInsightsEndpoints
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetTrafficAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetTrafficAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetDurationAsync(
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetDurationAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetDurationAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetIssuesAsync(
         AgentInsightsService svc, long? from, long? to, int? limit, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetIssuesAsync(f, t, limit ?? 10, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetIssuesAsync(f, t, limit ?? 10, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetLlmCallsAsync(
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetLlmCallsAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetLlmCallsAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetTokensAsync(
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetTokensAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetTokensAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetToolCallsAsync(
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetToolCallsTimeseriesAsync(f, t, bucket, ct: ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetToolCallsTimeseriesAsync(f, t, bucket, ct: ct).ConfigureAwait(false));
     }
 
     // =========================================================================
@@ -100,14 +100,14 @@ internal static class AgentInsightsEndpoints
         AgentInsightsService svc, long? from, long? to, int? limit, int? offset, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetAgentTracesAsync(f, t, limit ?? 50, offset ?? 0, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetAgentTracesAsync(f, t, limit ?? 50, offset ?? 0, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetTraceSpansAsync(
         string traceId, AgentInsightsService svc, CancellationToken ct)
     {
         var spans = await svc.GetTraceSpansAsync(traceId, ct).ConfigureAwait(false);
-        return Results.Ok(new { spans });
+        return TypedResults.Ok(new { spans });
     }
 
     // =========================================================================
@@ -118,13 +118,13 @@ internal static class AgentInsightsEndpoints
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetModelsAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetModelsAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 
     private static async Task<IResult> GetToolsAsync(
         AgentInsightsService svc, long? from, long? to, string? bucket, CancellationToken ct)
     {
         var (f, t) = ParseRange(from, to);
-        return Results.Ok(await svc.GetToolsAsync(f, t, bucket, ct).ConfigureAwait(false));
+        return TypedResults.Ok(await svc.GetToolsAsync(f, t, bucket, ct).ConfigureAwait(false));
     }
 }

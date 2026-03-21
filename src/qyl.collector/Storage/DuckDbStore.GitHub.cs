@@ -8,13 +8,17 @@ namespace Qyl.Collector.Storage;
 /// </summary>
 public sealed partial class DuckDbStore
 {
+    private const string GitHubEventSelectSql = """
+                                                SELECT event_id, event_type, action, repo_full_name, sender,
+                                                       pr_number, pr_url, ref, payload_json, created_at
+                                                FROM github_events
+                                                """;
+
     /// <summary>
     ///     Inserts a new GitHub event record via the channel-buffered write path.
     /// </summary>
-    public async Task InsertGitHubEventAsync(GitHubEventRecord @event, CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+    public async Task InsertGitHubEventAsync(GitHubEventRecord @event, CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -33,12 +37,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = @event.PrUrl ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = @event.Ref ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = @event.PayloadJson ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets GitHub events with optional filtering by event type and repository.
@@ -47,43 +47,20 @@ public sealed partial class DuckDbStore
         int limit = 50, string? eventType = null, string? repoFullName = null,
         CancellationToken ct = default)
     {
-        ThrowIfDisposed();
-        await using var lease = await RentReadAsync(ct).ConfigureAwait(false);
-
-        await using var cmd = lease.Connection.CreateCommand();
-        var paramIndex = 1;
-        var sql = """
-                  SELECT event_id, event_type, action, repo_full_name, sender,
-                         pr_number, pr_url, ref, payload_json, created_at
-                  FROM github_events
-                  WHERE 1=1
-                  """;
-
+        var qb = new QueryBuilder();
         if (eventType is not null)
-        {
-            sql += $" AND event_type = ${paramIndex}";
-            cmd.Parameters.Add(new DuckDBParameter { Value = eventType });
-            paramIndex++;
-        }
-
+            qb.Add("event_type = $N", eventType);
         if (repoFullName is not null)
-        {
-            sql += $" AND repo_full_name = ${paramIndex}";
-            cmd.Parameters.Add(new DuckDBParameter { Value = repoFullName });
-            paramIndex++;
-        }
+            qb.Add("repo_full_name = $N", repoFullName);
 
-        sql += $" ORDER BY created_at DESC LIMIT ${paramIndex}";
-        cmd.Parameters.Add(new DuckDBParameter { Value = limit });
-
-        cmd.CommandText = sql;
-
-        var results = new List<GitHubEventRecord>();
-        await using var reader = await cmd.ExecuteReaderAsync(ct).ConfigureAwait(false);
-        while (await reader.ReadAsync(ct).ConfigureAwait(false))
-            results.Add(MapGitHubEvent(reader));
-
-        return results;
+        return await ReadManyAsync(
+            $"{GitHubEventSelectSql} {qb.WhereClause} ORDER BY created_at DESC LIMIT {qb.NextParam}",
+            cmd =>
+            {
+                qb.ApplyTo(cmd);
+                cmd.Parameters.Add(new DuckDBParameter { Value = limit });
+            },
+            MapGitHubEvent, ct).ConfigureAwait(false);
     }
 
     private static GitHubEventRecord MapGitHubEvent(DbDataReader reader) =>

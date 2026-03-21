@@ -19,10 +19,8 @@ public sealed partial class DuckDbStore
         string workspaceId,
         string profileId,
         string? customOverrides,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var job = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -36,12 +34,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = workspaceId });
             cmd.Parameters.Add(new DuckDBParameter { Value = profileId });
             cmd.Parameters.Add(new DuckDBParameter { Value = customOverrides ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(job, ct).ConfigureAwait(false);
-        await job.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets the current profile selection for a workspace.
@@ -77,10 +71,8 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task InsertGenerationJobAsync(
         GenerationJobRecord job,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var writeJob = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -96,12 +88,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ErrorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.CreatedAt });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.CompletedAt ?? (object)DBNull.Value });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(writeJob, ct).ConfigureAwait(false);
-        await writeJob.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Gets a generation job by its ID.
@@ -134,10 +122,8 @@ public sealed partial class DuckDbStore
     /// </summary>
     public async Task UpdateGenerationJobAsync(
         GenerationJobRecord job,
-        CancellationToken ct = default)
-    {
-        ThrowIfDisposed();
-        var writeJob = new WriteJob<int>(async (con, token) =>
+        CancellationToken ct = default) =>
+        await ExecuteWriteAsync(async (con, token) =>
         {
             await using var cmd = con.CreateCommand();
             cmd.CommandText = """
@@ -153,12 +139,8 @@ public sealed partial class DuckDbStore
             cmd.Parameters.Add(new DuckDBParameter { Value = job.ErrorMessage ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.CompletedAt ?? (object)DBNull.Value });
             cmd.Parameters.Add(new DuckDBParameter { Value = job.JobId });
-            return await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
-        });
-
-        await _jobs.Writer.WriteAsync(writeJob, ct).ConfigureAwait(false);
-        await writeJob.Task.ConfigureAwait(false);
-    }
+            await cmd.ExecuteNonQueryAsync(token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
 
     /// <summary>
     ///     Lists generation jobs for a workspace, ordered by creation time descending.

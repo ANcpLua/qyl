@@ -46,7 +46,7 @@ public sealed class SpanRingBuffer
 
     public void PushRange(IEnumerable<SpanRecord> spans)
     {
-        ArgumentNullException.ThrowIfNull(spans);
+        Guard.NotNull(spans);
         // Materialize once to avoid multiple enumeration of IEnumerable
         var materialized = spans as IReadOnlyList<SpanRecord> ?? [.. spans];
         lock (_lock)
