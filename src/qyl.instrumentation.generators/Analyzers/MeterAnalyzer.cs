@@ -22,6 +22,14 @@ internal static class MeterAnalyzer
     ///     Fast syntactic pre-filter: could this syntax node be a [Meter] class?
     ///     Runs on every syntax node, so must be cheap (no semantic model).
     /// </summary>
+    /// <remarks>
+    ///     This predicate is largely redundant with <c>ForAttributeWithMetadataName</c>, which already
+    ///     filters by the <c>[Meter]</c> attribute. It provides marginal value by rejecting non-class
+    ///     syntax nodes before the pipeline starts. Removing it would change the public pipeline API
+    ///     signature, so it is kept as a required pipeline step. Could be tightened to check for
+    ///     <c>partial</c> modifier if needed, but that would reject classes before a diagnostic can
+    ///     suggest adding the keyword.
+    /// </remarks>
     public static bool CouldBeMeterClass(SyntaxNode node, CancellationToken _) =>
         node is ClassDeclarationSyntax { AttributeLists.Count: > 0 };
 

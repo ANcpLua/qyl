@@ -32,9 +32,9 @@ internal static class CapabilityEmitter
             if (!string.IsNullOrEmpty(site.Operation)) operations.Add(site.Operation);
         }
 
-        AppendAttributes(sb, "gen_ai.provider", providers);
-        AppendAttributes(sb, "gen_ai.model", models);
-        AppendAttributes(sb, "gen_ai.operation", operations);
+        AppendAttributes(sb, "genai.provider", providers);
+        AppendAttributes(sb, "genai.model", models);
+        AppendAttributes(sb, "genai.operation", operations);
 
         // Agent capabilities: agent names
         var agentNames = new HashSet<string>(StringComparer.Ordinal);
@@ -44,14 +44,14 @@ internal static class CapabilityEmitter
             if (!string.IsNullOrEmpty(site.AgentName)) agentNames.Add(site.AgentName!);
         }
 
-        AppendAttributes(sb, "agent.name", agentNames);
+        AppendAttributes(sb, "agent", agentNames);
 
         return sb.ToString();
     }
 
     private static void AppendAttributes(StringBuilder sb, string kind, HashSet<string> values)
     {
-        foreach (var value in values)
+        foreach (var value in values.OrderBy(static v => v, StringComparer.Ordinal))
         {
             sb.AppendLine(
                 $"[assembly: global::Qyl.Instrumentation.GeneratedCapabilityAttribute({Literal(kind)}, {Literal(value)})]");

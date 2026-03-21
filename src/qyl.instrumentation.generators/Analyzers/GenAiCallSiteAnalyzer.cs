@@ -184,9 +184,6 @@ internal static class GenAiCallSiteAnalyzer
                 ("GetEmbeddingsAsync", "embeddings", true), ("GetEmbeddings", "embeddings", false)
             ]),
 
-            // Azure.AI.OpenAI (new pattern using OpenAI SDK) — no methods; uses OpenAI.Chat.ChatClient via GetChatClient()
-            ("Azure.AI.OpenAI.AzureOpenAIClient", []),
-
             // Microsoft Agent Framework (OpenTelemetryAgent excluded — already emits OTel spans)
             ("Microsoft.Agents.AI.AIAgent", agentMethods), ("Microsoft.Agents.AI.ChatClientAgent", agentMethods),
             ("Microsoft.Agents.AI.DelegatingAIAgent", agentMethods),

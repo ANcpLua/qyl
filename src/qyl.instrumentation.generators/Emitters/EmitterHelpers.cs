@@ -32,24 +32,23 @@ internal static class EmitterHelpers
     /// </summary>
     public static void AppendInterceptsLocationAttribute(StringBuilder sb)
     {
-        sb.AppendLine("""
-                      namespace System.Runtime.CompilerServices
-                      {
-                          [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
-                          file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute;
-                      }
-                      """);
+        sb.AppendLine(InterceptsLocationBlock);
         sb.AppendLine();
     }
 
-    /// <summary>
-    ///     Appends closing braces for nested namespace and class.
-    /// </summary>
-    public static void AppendClassClose(StringBuilder sb) =>
-        sb.AppendLine("""
-                          }
-                      }
-                      """);
+    public static void AppendInterceptsLocationAttribute(IndentedStringBuilder sb)
+    {
+        sb.AppendLineNoIndent(InterceptsLocationBlock);
+        sb.AppendLine();
+    }
+
+    private const string InterceptsLocationBlock = """
+                                                   namespace System.Runtime.CompilerServices
+                                                   {
+                                                       [global::System.AttributeUsage(global::System.AttributeTargets.Method, AllowMultiple = true)]
+                                                       file sealed class InterceptsLocationAttribute(int version, string data) : global::System.Attribute;
+                                                   }
+                                                   """;
 
     /// <summary>
     ///     Builds the parameter list for an interceptor method signature.

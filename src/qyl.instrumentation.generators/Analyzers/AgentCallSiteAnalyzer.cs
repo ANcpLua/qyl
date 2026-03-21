@@ -17,6 +17,11 @@ namespace Qyl.Instrumentation.Generators.Analyzers;
 ///     - <c>DelegatingAIAgent</c> pipeline methods
 ///     - <c>AIAgentBuilder</c> registration calls
 ///     - Methods decorated with <c>[AgentTraced]</c>
+///     <para>
+///     Note: <see cref="GenAiCallSiteAnalyzer"/> handles RunAsync/RunStreamingAsync on these same
+///     Microsoft.Agents.AI types. This analyzer handles InvokeAsync for agent-specific instrumentation.
+///     The two analyzers target disjoint method sets on overlapping types.
+///     </para>
 /// </remarks>
 internal static class AgentCallSiteAnalyzer
 {
