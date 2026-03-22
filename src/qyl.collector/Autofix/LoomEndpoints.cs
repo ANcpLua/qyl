@@ -28,10 +28,10 @@ public static class LoomEndpoints
         app.MapPost("/api/v1/loom/{issueId}/explore", static (
             string issueId,
             LoomExploreRequest? request,
-            LoomExplorerService explorerService,
+            LoomOrchestrator orchestrator,
             CancellationToken ct) =>
             TypedResults.ServerSentEvents(
-                StreamExploreAsync(explorerService, issueId, request?.UserContext, ct),
+                StreamExploreAsync(orchestrator, issueId, request?.UserContext, ct),
                 null));
 
         // ── Stage 5: "Code It Up" trigger ────────────────────────────────────
@@ -71,12 +71,12 @@ public static class LoomEndpoints
     }
 
     private static async IAsyncEnumerable<SseItem<StreamUpdate>> StreamExploreAsync(
-        LoomExplorerService explorerService,
+        LoomOrchestrator orchestrator,
         string issueId,
         string? userContext,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        await foreach (var update in explorerService
+        await foreach (var update in orchestrator
                            .ExploreAsync(issueId, userContext, ct)
                            .ConfigureAwait(false))
         {

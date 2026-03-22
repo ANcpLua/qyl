@@ -80,6 +80,7 @@
 
 ### Changed
 
+- **Loom exploration facade**: Collector `/api/v1/loom/{issueId}/explore` now runs through `LoomOrchestrator`, which delegates root-cause investigation to `LoomDiagnostician` and solution planning to `LoomStrategist` via keyed DI. Added an in-memory `LoomSessionStore` so the strategist can reuse diagnostician output without rebuilding prompts manually.
 - **API contract ownership tightened**: Rewrote `specs/api.md` to own only cross-cutting HTTP invariants
   (errors, pagination, timestamps, IDs, auth, serialization), removed the hand-maintained route inventory
   approach from that spec, and documented runtime endpoint verification as the enforcement direction.

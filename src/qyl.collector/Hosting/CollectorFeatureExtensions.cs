@@ -4,10 +4,6 @@ using Qyl.Collector.Dashboards;
 using Qyl.Collector.Identity;
 using Qyl.Collector.Provisioning;
 using Qyl.Collector.Search;
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using OpenAI;
-using System.ClientModel;
 
 namespace Qyl.Collector.Hosting;
 
@@ -62,7 +58,6 @@ public static class CollectorFeatureExtensions
         services.AddSingleton<LoomOrchestrator>();
         services.AddKeyedSingleton<LoomDiagnostician>(LoomAgentKeys.Diagnostician);
         services.AddKeyedSingleton<LoomStrategist>(LoomAgentKeys.Strategist);
-        services.TryAddSingleton<IChatClient?>(BuildLoomChatClient);
 
         // Search
         services.AddSingleton<SearchService>();
@@ -71,25 +66,5 @@ public static class CollectorFeatureExtensions
         services.AddDashboardServices();
 
         return services;
-    }
-
-    private static IChatClient? BuildLoomChatClient(IServiceProvider services)
-    {
-        var config = services.GetRequiredService<IConfiguration>();
-
-        var apiKey = config["QYL_AGENT_API_KEY"];
-        if (string.IsNullOrWhiteSpace(apiKey))
-            return null;
-
-        var model = config["QYL_AGENT_MODEL"] ?? "gpt-4o";
-        var endpoint = config["QYL_AGENT_ENDPOINT"];
-        if (string.IsNullOrWhiteSpace(endpoint))
-            return new OpenAIClient(apiKey).GetChatClient(model).AsIChatClient();
-
-        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var endpointUri))
-            throw new InvalidOperationException($"QYL_AGENT_ENDPOINT '{endpoint}' is not a valid absolute URI.");
-
-        var options = new OpenAIClientOptions { Endpoint = endpointUri };
-        return new OpenAIClient(new ApiKeyCredential(apiKey), options).GetChatClient(model).AsIChatClient();
     }
 }
